@@ -4,9 +4,9 @@ export const acidVial: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(119),
     label: 'Acid (vial)',
-    description: 'A vial of corrosive liquid that can be thrown to deal acid damage.',
+    description: "As an action, you can splash the contents of this vial onto a creature within 5 feet of you or throw the vial up to 20 feet, shattering it on impact. In either case, make a ranged attack against a creature or object, treating the acid as an improvised weapon. On a hit, the target takes 2d6 acid damage.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL],
     effects: [
         {
             id: S.equipmentChildId(S.equipId(119), 0x210, 1),
@@ -22,7 +22,8 @@ export const acidVial: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.SPECIAL
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

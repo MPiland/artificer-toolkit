@@ -22,6 +22,7 @@ import {
   upsertSystem,
   upsertVehicle
 } from '../domains/index.js'
+import { createAuthoredRouteIdRepository } from '../repositories/index.js'
 import type {
   SeedBaselineContent,
   SeedContext,
@@ -38,6 +39,16 @@ type BaselineSubjectTable =
   | 'spells'
   | 'vehicles'
 
+type BaselineSubjectKind =
+  | 'BACKGROUND'
+  | 'CLASS'
+  | 'CREATURE'
+  | 'EQUIPMENT'
+  | 'FEAT'
+  | 'RACE'
+  | 'SPELL'
+  | 'VEHICLE'
+
 async function markBaselineSubjectsMaster(
   context: SeedContext,
   table: BaselineSubjectTable,
@@ -50,6 +61,18 @@ async function markBaselineSubjectsMaster(
     .set({ is_master: true })
     .where('id', 'in', ids)
     .execute()
+}
+
+async function seedBaselineSubjectRouteIds(
+  context: SeedContext,
+  subjects: readonly {
+    subjectKind: BaselineSubjectKind
+    subjectId: string
+  }[]
+) {
+  if (subjects.length === 0) return
+
+  await createAuthoredRouteIdRepository(context.db).seedSrdSubjects(subjects)
 }
 
 /**
@@ -161,6 +184,17 @@ export const seedBaselineContent: SeedBaselineContent = async (
   await markBaselineSubjectsMaster(context, 'races', bundle.subjects.races.map((record) => record.id))
   await markBaselineSubjectsMaster(context, 'spells', bundle.subjects.spells.map((record) => record.id))
   await markBaselineSubjectsMaster(context, 'vehicles', bundle.subjects.vehicles.map((record) => record.id))
+
+  await seedBaselineSubjectRouteIds(context, [
+    ...bundle.subjects.backgrounds.map((record) => ({ subjectKind: 'BACKGROUND' as const, subjectId: record.id })),
+    ...bundle.subjects.classes.map((record) => ({ subjectKind: 'CLASS' as const, subjectId: record.id })),
+    ...bundle.subjects.creatures.map((record) => ({ subjectKind: 'CREATURE' as const, subjectId: record.id })),
+    ...bundle.subjects.equipment.map((record) => ({ subjectKind: 'EQUIPMENT' as const, subjectId: record.id })),
+    ...bundle.subjects.feats.map((record) => ({ subjectKind: 'FEAT' as const, subjectId: record.id })),
+    ...bundle.subjects.races.map((record) => ({ subjectKind: 'RACE' as const, subjectId: record.id })),
+    ...bundle.subjects.spells.map((record) => ({ subjectKind: 'SPELL' as const, subjectId: record.id })),
+    ...bundle.subjects.vehicles.map((record) => ({ subjectKind: 'VEHICLE' as const, subjectId: record.id }))
+  ])
 
   const result: SeedResult = {
     systems: bundle.vocabulary.systems.length,

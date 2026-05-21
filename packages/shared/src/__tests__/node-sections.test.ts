@@ -207,10 +207,16 @@ describe('node map sections', () => {
     if (FEATURE_NODE_MAP.nodes.description.kind === 'INPUT') {
       expect(FEATURE_NODE_MAP.nodes.description.type).toBe('RICH_TEXT')
     }
-    expect(FEATURE_NODE_MAP.nodes.detail.kind).toBe('INPUT')
-    if (FEATURE_NODE_MAP.nodes.detail.kind === 'INPUT') {
-      expect(FEATURE_NODE_MAP.nodes.detail.type).toBe('RICH_TEXT')
-    }
+    expect(FEATURE_NODE_MAP.nodes.details).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'ARRAY'
+    })
+    expect(FEATURE_NODE_MAP.nodes.availableAtLevel.order).toBe(30)
+    expect(FEATURE_NODE_MAP.nodes.attributes.order).toBe(40)
+    expect(OPTION_NODE_MAP.nodes.details).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'ARRAY'
+    })
     expect(OPTION_NODE_MAP.nodes.description.kind).toBe('INPUT')
     if (OPTION_NODE_MAP.nodes.description.kind === 'INPUT') {
       expect(OPTION_NODE_MAP.nodes.description.type).toBe('RICH_TEXT')

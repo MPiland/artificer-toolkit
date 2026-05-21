@@ -75,6 +75,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
   items: [
     {
       id: masterBackgroundFixture.id,
+      publicId: masterBackgroundFixture.id,
       label: masterBackgroundFixture.label,
       description: masterBackgroundFixture.description,
       status: 'ACTIVE',
@@ -93,6 +94,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
     },
     {
       id: ownedBackgroundFixture.id,
+      publicId: ownedBackgroundFixture.id,
       label: ownedBackgroundFixture.label,
       description: ownedBackgroundFixture.description,
       status: 'DRAFT',
@@ -110,10 +112,12 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
       }
     }
   ],
+  drafts: [],
   meta: {}
 }
 
 export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
+  publicId: ownedBackgroundFixture.id,
   item: ownedBackgroundFixture,
   provenance: {
     kind: 'OWNED',
@@ -128,6 +132,7 @@ export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> 
 }
 
 export const masterBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
+  publicId: masterBackgroundFixture.id,
   item: masterBackgroundFixture,
   provenance: {
     kind: 'MASTER',

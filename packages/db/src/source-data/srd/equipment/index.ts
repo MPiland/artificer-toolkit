@@ -168,6 +168,7 @@ import { perfumeVial } from './perfume-vial.js'
 import { piton } from './piton.js'
 import { pole10Foot } from './pole-10-foot.js'
 import { portableRam } from './portable-ram.js'
+import { poisonBasicVial } from './poison-basic-vial.js'
 import { potionOfHealing } from './potion-of-healing.js'
 import { incense } from './incense.js'
 import { prayerBook } from './prayer-book.js'
@@ -527,6 +528,7 @@ export const srdEquipment = [
   piton,
   pole10Foot,
   portableRam,
+  poisonBasicVial,
   potionOfHealing,
   incense,
   prayerBook,

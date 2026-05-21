@@ -59,11 +59,38 @@ const halflingWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UN
 export const halfling: RaceAuthored = {
   id: RACE_IDS.HALFLING,
   label: 'Halfling',
+  description: '<p>Your halfling character has a number of traits in common with all other halflings.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.SMALL,
   speeds: halflingWalk25,
   heritageIds: [SRD_HALFLING_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(3, 0, 1),
+      label: 'Age',
+      description: 'A halfling reaches adulthood at the age of 20 and generally lives into the middle of his or her second century.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(3, 0, 2),
+      label: 'Alignment',
+      description: 'Most halflings are lawful good. As a rule, they are good-hearted and kind, hate to see others in pain, and have no tolerance for oppression. They are also very orderly and traditional, leaning heavily on the support of their community and the comfort of their old ways.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(3, 0, 3),
+      label: 'Size',
+      description: 'Halflings average about 3 feet tall and weigh about 40 pounds. Your size is Small.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(3, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 25 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -131,7 +158,7 @@ export const halfling: RaceAuthored = {
     {
       id: raceFeatureId(3, 5, 1),
       label: 'Languages',
-      description: 'You can speak, read, and write Common and Halfling.',
+      description: 'You can speak, read, and write Common and Halfling. The Halfling language is not secret, but halflings are loath to share it with others.',
       availableAtLevel: 1,
       order: 4,
       grants: {
@@ -158,6 +185,7 @@ export const halfling: RaceAuthored = {
 export const lightfoot: RaceAuthored = {
   id: SUBRACE_IDS.LIGHTFOOT,
   label: 'Lightfoot',
+  description: '<p>As a lightfoot halfling, you can easily hide from notice, even using other people as cover.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.HALFLING,
   userId: SRD_USER_ID,

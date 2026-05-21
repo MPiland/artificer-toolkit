@@ -1,4 +1,5 @@
 export * from './background.js'
+export * from './authoredRouteId.js'
 export * from './authoredSubjectDraft.js'
 export * from './character.js'
 export * from './characterBuilderDraft.js'

@@ -33,13 +33,13 @@ export const homunculus: CreatureAuthored = {
   xp: 10,
   features: [
     {
-      id: S.featureId(4783, 1),
+      id: S.featureId(166, 1),
       label: 'Telepathic Bond',
       description: 'Telepathic Bond. While the homunculus is on the same plane of existence as its master, it can magically convey what it senses to its master, and the two can communicate telepathically.',
       order: 1
     },
     {
-      id: S.featureId(4783, 2),
+      id: S.featureId(166, 2),
       label: 'Bite',
       description: 'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 1 piercing damage, and the target must succeed on a DC 10 Constitution saving throw or be poisoned for 1 minute. If the saving throw fails by 5 or more, the target is instead poisoned for 5 (1d10) minutes and unconscious while poisoned in this way.',
       order: 2

@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createOptionRepository } from '../repositories/index.js';
 import { InMemoryDb } from './helpers/in-memory-db.js';
+import type { DBLike } from '#types';
 type RowMap = Record<string, unknown[]>;
 function createFakeDb(rowsByTable: RowMap) {
+    const queryCounts = new Map<string, number>();
     return {
+        queryCounts,
         selectFrom(table: string) {
+            queryCounts.set(table, (queryCounts.get(table) ?? 0) + 1);
             const state = {
                 filtered: [...(rowsByTable[table] ?? [])]
             };
@@ -12,9 +16,12 @@ function createFakeDb(rowsByTable: RowMap) {
                 select() {
                     return builder;
                 },
-                where(column: string, _op: string, value: string) {
+                where(column: string, _op: string, value: string | string[]) {
                     state.filtered = state.filtered.filter((row) => {
                         const record = row as Record<string, unknown>;
+                        if (_op === 'in') {
+                            return Array.isArray(value) && value.includes(record[column] as string);
+                        }
                         return record[column] === value;
                     });
                     return builder;
@@ -39,6 +46,61 @@ function createFakeDb(rowsByTable: RowMap) {
     };
 }
 describe('createOptionRepository', () => {
+    it('batches findByIds while preserving requested order and omitting inaccessible rows', async () => {
+        const db = createFakeDb({
+            options: [
+                {
+                    id: 'option-1',
+                    label: 'First',
+                    description: 'Visible option.',
+                    sort_order: 1,
+                    charge_id: null,
+                    restriction_id: null
+                },
+                {
+                    id: 'option-2',
+                    label: 'Second',
+                    description: 'Visible option.',
+                    sort_order: 2,
+                    charge_id: null,
+                    restriction_id: null
+                },
+                {
+                    id: 'option-unrequested',
+                    label: 'Unrequested',
+                    description: 'Should not hydrate.',
+                    sort_order: 3,
+                    charge_id: null,
+                    restriction_id: null
+                }
+            ],
+            option_effects: [],
+            option_details: [],
+            details: [],
+            option_attributes: [
+                { option_id: 'option-1', attribute_code: 'LIMITED_USE', sort_order: 1 },
+                { option_id: 'option-2', attribute_code: 'HIDDEN_ON_SHEET', sort_order: 1 },
+                { option_id: 'option-unrequested', attribute_code: 'SUPPRESSED_IN_BUILDER', sort_order: 1 }
+            ],
+            option_feat_grants: [],
+            option_modifier_grants: [],
+            option_proficiency_grants: [],
+            option_sense_grants: [],
+            option_spell_grants: []
+        });
+        const repository = createOptionRepository(db as unknown as DBLike);
+
+        const results = await repository.findByIds(['option-2', 'option-missing', 'option-1', 'option-2']);
+
+        expect(Array.from(results.keys())).toEqual(['option-2', 'option-1']);
+        expect(results.get('option-2')?.attributes).toEqual(['HIDDEN_ON_SHEET']);
+        expect(results.get('option-1')?.attributes).toEqual(['LIMITED_USE']);
+        expect(results.has('option-missing')).toBe(false);
+        expect(results.has('option-unrequested')).toBe(false);
+        expect(db.queryCounts.get('options')).toBe(1);
+        expect(db.queryCounts.get('option_attributes')).toBe(1);
+    });
+
     it('hydrates an option with supported owned charge and grants', async () => {
         const repository = createOptionRepository(createFakeDb({
             options: [
@@ -46,13 +108,18 @@ describe('createOptionRepository', () => {
                     id: 'option-1',
                     label: 'Quickened',
                     description: 'Cast faster.',
-                    detail: 'Costs a charge.',
                     sort_order: 2,
                     charge_id: 'charge-1',
                     restriction_id: null
                 }
             ],
             option_effects: [],
+            option_details: [
+                { option_id: 'option-1', detail_id: 'option-detail-1', sort_order: 1 }
+            ],
+            details: [
+                { id: 'option-detail-1', label: 'Detail', description: 'Costs a charge.', sort_order: 1 }
+            ],
             option_attributes: [
                 { option_id: 'option-1', attribute_code: 'LIMITED_USE', sort_order: 1 }
             ],
@@ -109,7 +176,14 @@ describe('createOptionRepository', () => {
             label: 'Quickened',
             description: 'Cast faster.',
             attributes: ['LIMITED_USE'],
-            detail: 'Costs a charge.',
+            details: [
+                {
+                    id: 'option-detail-1',
+                    label: 'Detail',
+                    description: 'Costs a charge.',
+                    order: 1
+                }
+            ],
             effects: undefined,
             charges: {
                 id: 'charge-1',
@@ -180,7 +254,7 @@ describe('createOptionRepository', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'option-effect-direct-1__result',
+                                id: 'option-effect-direct-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -203,7 +277,7 @@ describe('createOptionRepository', () => {
             label: 'Explosive Choice',
             description: 'Carries an authored effect.',
             attributes: undefined,
-            detail: undefined,
+            details: undefined,
             effects: [
                 {
                     id: 'option-effect-standalone-1',
@@ -228,7 +302,7 @@ describe('createOptionRepository', () => {
                             pathCode: 'ON_HIT',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'option-effect-direct-1__result',
+                                id: 'option-effect-direct-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {

@@ -32,19 +32,19 @@ export const specter: CreatureAuthored = {
     xp: 200,
     features: [
         {
-            id: S.featureId(6522, 1),
+            id: S.featureId(257, 1),
             label: 'Incorporeal Movement',
             description: 'Incorporeal Movement. The specter can move through other creatures and objects as if they were difficult terrain.',
             order: 1
         },
         {
-            id: S.featureId(6522, 2),
+            id: S.featureId(257, 2),
             label: 'Sunlight Sensitivity',
             description: 'Sunlight Sensitivity. While in sunlight, the specter has disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight.',
             order: 2
         },
         {
-            id: S.featureId(6522, 3),
+            id: S.featureId(257, 3),
             label: 'Life Drain',
             description: 'Life Drain. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 10 (3d6) necrotic damage, and the target’s hit point maximum is reduced by an amount equal to the damage taken.',
             effects: [
@@ -64,7 +64,8 @@ export const specter: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

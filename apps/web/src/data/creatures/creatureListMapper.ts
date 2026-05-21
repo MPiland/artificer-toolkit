@@ -10,14 +10,6 @@ function mapPermissions(item: CreatureListResponseDto['items'][number]): Authore
   }
 }
 
-function formatStatus(status: string | undefined): string {
-  if (!status) return 'Draft'
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
 export function formatCreatureCategory(category: string | undefined): string {
   if (!category) return 'Creature'
   if (category === 'NPC') return 'NPC'
@@ -36,25 +28,22 @@ export function mapCreatureListToAuthoredItems(response: CreatureListResponseDto
   return response.items.map((item) => {
     const category = item.category ?? 'CREATURE'
     const categoryLabel = formatCreatureCategory(category)
-    const statusLabel = formatStatus(item.status)
 
     return {
       id: item.id,
+      publicId: item.publicId,
       name: item.label,
       description: summarizeDescription(item.description),
       attributes: {
         Category: categoryLabel
       },
-      badges: [statusLabel],
       filterValues: {
         category,
-        status: item.status,
         source: item.provenance.kind
       },
       sortValues: {
         category: categoryLabel,
-        name: item.label,
-        status: statusLabel
+        name: item.label
       },
       searchText: `${summarizeDescription(item.description)} ${categoryLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
@@ -65,7 +54,6 @@ export function mapCreatureListToAuthoredItems(response: CreatureListResponseDto
 }
 
 export function buildCreatureListFilters(response: CreatureListResponseDto): AuthoredListFilter[] {
-  const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
   const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'CREATURE'))).sort()
 
   return [
@@ -76,15 +64,6 @@ export function buildCreatureListFilters(response: CreatureListResponseDto): Aut
       options: categories.map((category) => ({
         value: category,
         label: formatCreatureCategory(category)
-      }))
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      placeholder: 'Any status',
-      options: statuses.map((status) => ({
-        value: status,
-        label: formatStatus(status)
       }))
     },
     {
@@ -99,12 +78,11 @@ export function buildCreatureListFilters(response: CreatureListResponseDto): Aut
   ]
 }
 
-export const creatureListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
+export const creatureListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
 
 export const creatureListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
-  { value: 'category', label: 'Category' },
-  { value: 'status', label: 'Status' }
+  { value: 'category', label: 'Category' }
 ]
 
 export function summarizeCreatureList(response: CreatureListResponseDto) {

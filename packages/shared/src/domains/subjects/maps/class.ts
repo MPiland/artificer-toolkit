@@ -11,6 +11,7 @@ import {
 } from '#core'
 import {
   CHARGE_NODE_MAP,
+  DETAIL_NODE_MAP,
   FEATURE_NODE_MAP,
   PROFICIENCY_NODE_MAP,
   STARTING_EQUIPMENT_NODE_MAP
@@ -133,6 +134,7 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSp
 
   map
     .set('spellLimits', groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
     .set('magicName', text(['magicName'], 'Magic Name'))
     .set('ability', selectSingle(['ability'], 'Spellcasting Ability', {
       kind: 'INLINE',

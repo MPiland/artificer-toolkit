@@ -41,10 +41,17 @@ export const authoredDraftStateDtoSchema = z.enum([
 export const authoredDraftSummaryDtoSchema = z.object({
   subjectKind: authoredSubjectKindDtoSchema,
   subjectId: z.string(),
+  publicId: z.string(),
   userId: z.string(),
   systemId: z.string(),
   label: z.string(),
+  description: z.string().nullable().optional(),
   status: z.literal('DRAFT'),
+  category: z.string().optional(),
+  level: z.number().int().optional(),
+  magicSchoolId: z.string().nullable().optional(),
+  castingTimeUnit: z.string().optional(),
+  castingTimeAmount: z.number().int().optional(),
   draftState: authoredDraftStateDtoSchema,
   baseActiveUpdatedAt: z.string().nullable()
     .optional(),
@@ -55,6 +62,15 @@ export const authoredDraftSummaryDtoSchema = z.object({
 export const authoredDraftDtoSchema = authoredDraftSummaryDtoSchema.extend({
   id: z.string(),
   payload: unknownObjectSchema
+})
+
+export const authoredDetailViewDtoSchema = z.enum(['active', 'draft'])
+
+export const authoredDetailRequestDtoSchema = z.object({
+  id: z.string().min(1),
+  view: authoredDetailViewDtoSchema.optional(),
+  meta: z.array(z.string().min(1)).optional(),
+  includeDraft: z.boolean().optional()
 })
 
 export const authoredDraftSaveRequestDtoSchema = z.object({
@@ -74,6 +90,7 @@ export const authoredDraftActivateRequestDtoSchema = z.object({
 
 const authoredContentListItemBaseDtoSchema = z.object({
   id: z.string(),
+  publicId: z.string(),
   label: z.string(),
   status: authoredRecordStatusSchema,
   description: z.string().nullable()
@@ -85,14 +102,20 @@ const authoredContentListItemBaseDtoSchema = z.object({
 
 export const backgroundListItemDtoSchema = authoredContentListItemBaseDtoSchema
 export const classListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
-  category: z.string().optional()
+  category: z.string().optional(),
+  parentClassId: z.string().nullable()
+    .optional()
 })
 export const equipmentListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   category: z.string().optional()
 })
 export const featListItemDtoSchema = authoredContentListItemBaseDtoSchema
 export const raceListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
-  category: z.string().optional()
+  category: z.string().optional(),
+  parentRaceId: z.string().nullable()
+    .optional(),
+  selectionMode: z.string().nullable()
+    .optional()
 })
 export const spellListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   level: z.number().int()
@@ -117,24 +140,88 @@ export const featureListItemDtoSchema = z.object({
   order: z.number().int()
 })
 
-export const backgroundListResponseDtoSchema = listResponseDtoSchema(backgroundListItemDtoSchema)
-export const classListResponseDtoSchema = listResponseDtoSchema(classListItemDtoSchema)
-export const equipmentListResponseDtoSchema = listResponseDtoSchema(equipmentListItemDtoSchema)
-export const featListResponseDtoSchema = listResponseDtoSchema(featListItemDtoSchema)
-export const raceListResponseDtoSchema = listResponseDtoSchema(raceListItemDtoSchema)
-export const spellListResponseDtoSchema = listResponseDtoSchema(spellListItemDtoSchema)
-export const creatureListResponseDtoSchema = listResponseDtoSchema(creatureListItemDtoSchema)
-export const vehicleListResponseDtoSchema = listResponseDtoSchema(vehicleListItemDtoSchema)
+function authoredContentListResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
+  return listResponseDtoSchema(itemSchema).extend({
+    drafts: z.array(authoredDraftSummaryDtoSchema)
+  })
+}
+
+export const backgroundListResponseDtoSchema = authoredContentListResponseDtoSchema(backgroundListItemDtoSchema)
+export const classListResponseDtoSchema = authoredContentListResponseDtoSchema(classListItemDtoSchema)
+export const equipmentListResponseDtoSchema = authoredContentListResponseDtoSchema(equipmentListItemDtoSchema)
+export const featListResponseDtoSchema = authoredContentListResponseDtoSchema(featListItemDtoSchema)
+export const raceListResponseDtoSchema = authoredContentListResponseDtoSchema(raceListItemDtoSchema)
+export const spellListResponseDtoSchema = authoredContentListResponseDtoSchema(spellListItemDtoSchema)
+export const creatureListResponseDtoSchema = authoredContentListResponseDtoSchema(creatureListItemDtoSchema)
+export const vehicleListResponseDtoSchema = authoredContentListResponseDtoSchema(vehicleListItemDtoSchema)
 export const featureListResponseDtoSchema = listResponseDtoSchema(featureListItemDtoSchema)
 
-export const backgroundResponseDtoSchema = authoredResourceResponseDtoSchema(backgroundAuthoredDtoSchema)
-export const classResponseDtoSchema = authoredResourceResponseDtoSchema(classAuthoredDtoSchema)
-export const equipmentResponseDtoSchema = authoredResourceResponseDtoSchema(equipmentAuthoredDtoSchema)
-export const featResponseDtoSchema = authoredResourceResponseDtoSchema(featAuthoredDtoSchema)
-export const raceResponseDtoSchema = authoredResourceResponseDtoSchema(raceAuthoredDtoSchema)
-export const spellResponseDtoSchema = authoredResourceResponseDtoSchema(spellAuthoredDtoSchema)
-export const creatureResponseDtoSchema = authoredResourceResponseDtoSchema(creatureAuthoredDtoSchema)
-export const vehicleResponseDtoSchema = authoredResourceResponseDtoSchema(vehicleAuthoredDtoSchema)
+const detailReferenceOptionDtoSchema = z.object({
+  value: z.string(),
+  label: z.string()
+})
+
+const detailResponseExtrasDtoSchema = <TSchema extends z.ZodTypeAny>(metaSchema: TSchema) => z.object({
+  draft: authoredDraftDtoSchema.nullable().optional(),
+  meta: metaSchema.optional()
+})
+
+type AuthoredDetailResponseDtoSchema<
+  TItemSchema extends z.ZodTypeAny,
+  TMetaSchema extends z.ZodTypeAny
+> = z.ZodNullable<z.ZodObject<{
+  item: z.ZodNullable<TItemSchema>
+  publicId: z.ZodString
+  provenance: typeof authoredContentProvenanceDtoSchema
+  permissions: typeof authoredContentPermissionsDtoSchema
+  draft: z.ZodOptional<z.ZodNullable<typeof authoredDraftDtoSchema>>
+  meta: z.ZodOptional<TMetaSchema>
+}>>
+
+export const emptyDetailMetaDtoSchema = z.object({})
+
+export const classDetailMetaDtoSchema = z.object({
+  classes: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const equipmentDetailMetaDtoSchema = z.object({
+  equipment: z.array(detailReferenceOptionDtoSchema).optional(),
+  rarities: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const raceDetailMetaDtoSchema = z.object({
+  heritages: z.array(detailReferenceOptionDtoSchema).optional(),
+  races: z.array(detailReferenceOptionDtoSchema).optional(),
+  speeds: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const spellDetailMetaDtoSchema = z.object({
+  classes: z.array(detailReferenceOptionDtoSchema).optional(),
+  conditionTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  damageTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  magicSchools: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const creatureDetailMetaDtoSchema = z.object({
+  challengeRatings: z.array(detailReferenceOptionDtoSchema).optional(),
+  conditionTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  creatureTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  damageTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  speeds: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const vehicleDetailMetaDtoSchema = z.object({
+  currencies: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
+export const backgroundResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof backgroundAuthoredDtoSchema, typeof emptyDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(backgroundAuthoredDtoSchema, detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema))
+export const classResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof classAuthoredDtoSchema, typeof classDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(classAuthoredDtoSchema, detailResponseExtrasDtoSchema(classDetailMetaDtoSchema))
+export const equipmentResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof equipmentAuthoredDtoSchema, typeof equipmentDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(equipmentAuthoredDtoSchema, detailResponseExtrasDtoSchema(equipmentDetailMetaDtoSchema))
+export const featResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof featAuthoredDtoSchema, typeof emptyDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(featAuthoredDtoSchema, detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema))
+export const raceResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof raceAuthoredDtoSchema, typeof raceDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(raceAuthoredDtoSchema, detailResponseExtrasDtoSchema(raceDetailMetaDtoSchema))
+export const spellResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof spellAuthoredDtoSchema, typeof spellDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(spellAuthoredDtoSchema, detailResponseExtrasDtoSchema(spellDetailMetaDtoSchema))
+export const creatureResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof creatureAuthoredDtoSchema, typeof creatureDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(creatureAuthoredDtoSchema, detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema))
+export const vehicleResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof vehicleAuthoredDtoSchema, typeof vehicleDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(vehicleAuthoredDtoSchema, detailResponseExtrasDtoSchema(vehicleDetailMetaDtoSchema))
 export const featureResponseDtoSchema = singleResourceResponseDtoSchema(featureDtoSchema)
 
 // Named TypeScript types for list item DTOs
@@ -153,6 +240,14 @@ export type AuthoredDraftSummaryDto = z.infer<typeof authoredDraftSummaryDtoSche
 export type AuthoredDraftDto = z.infer<typeof authoredDraftDtoSchema>
 export type AuthoredDraftSaveRequestDto = z.infer<typeof authoredDraftSaveRequestDtoSchema>
 export type AuthoredDraftActivateRequestDto = z.infer<typeof authoredDraftActivateRequestDtoSchema>
+export type AuthoredDetailViewDto = z.infer<typeof authoredDetailViewDtoSchema>
+export type AuthoredDetailRequestDto = z.infer<typeof authoredDetailRequestDtoSchema>
+export type ClassDetailMetaDto = z.infer<typeof classDetailMetaDtoSchema>
+export type EquipmentDetailMetaDto = z.infer<typeof equipmentDetailMetaDtoSchema>
+export type RaceDetailMetaDto = z.infer<typeof raceDetailMetaDtoSchema>
+export type SpellDetailMetaDto = z.infer<typeof spellDetailMetaDtoSchema>
+export type CreatureDetailMetaDto = z.infer<typeof creatureDetailMetaDtoSchema>
+export type VehicleDetailMetaDto = z.infer<typeof vehicleDetailMetaDtoSchema>
 
 // Named TypeScript types for response DTOs
 export type BackgroundListResponseDto = z.infer<typeof backgroundListResponseDtoSchema>

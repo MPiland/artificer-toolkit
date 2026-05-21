@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const duergar: CreatureAuthored = {
@@ -37,19 +37,19 @@ export const duergar: CreatureAuthored = {
     xp: 200,
     features: [
         {
-            id: S.featureId(3450, 1),
+            id: S.featureId(91, 1),
             label: 'Duergar Resilience',
             description: 'Duergar Resilience. The duergar has advantage on saving throws against poison, spells, and illusions, as well as to resist being charmed or paralyzed.',
             order: 1
         },
         {
-            id: S.featureId(3450, 2),
+            id: S.featureId(91, 2),
             label: 'Sunlight Sensitivity',
             description: 'Sunlight Sensitivity. While in sunlight, the duergar has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
             order: 2
         },
         {
-            id: S.featureId(3450, 3),
+            id: S.featureId(91, 3),
             label: 'Enlarge (Recharges after a Short or Long Rest)',
             description: 'Enlarge (Recharges after a Short or Long Rest). For 1 minute, the duergar magically increases in size, along with anything it is wearing or carrying. While enlarged, the duergar is Large, doubles its damage dice on Strength-based weapon attacks, and makes Strength checks and Strength saving throws with advantage. If the duergar lacks the room to become Large, it attains the maximum size possible in the space available.',
             effects: [
@@ -91,7 +91,7 @@ export const duergar: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(3450, 4),
+            id: S.featureId(91, 4),
             label: 'War Pick',
             description: 'War Pick. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 6 (1d8 + 2) piercing damage, or 11 (2d8 + 2) piercing damage while enlarged.',
             effects: [
@@ -111,7 +111,8 @@ export const duergar: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -142,7 +143,7 @@ export const duergar: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(3450, 5),
+            id: S.featureId(91, 5),
             label: 'Javelin',
             description: 'Javelin. Melee or Ranged Weapon Attack: +4 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 5 (1d6 + 2) piercing damage, or 9 (2d6 + 2) piercing damage while enlarged.',
             effects: [
@@ -162,7 +163,8 @@ export const duergar: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -205,7 +207,8 @@ export const duergar: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -236,7 +239,7 @@ export const duergar: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(3450, 6),
+            id: S.featureId(91, 6),
             label: 'Invisibility (Recharges after a Short or Long Rest)',
             description: 'Invisibility (Recharges after a Short or Long Rest). The duergar magically turns invisible until it attacks, casts a spell, or uses its enlarge ability, or until its concentration ends (as if concentrating on a spell). Any equipment the duergar wears or carries is invisible with it.',
             effects: [

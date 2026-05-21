@@ -33,25 +33,25 @@ export const airElemental: CreatureAuthored = {
   xp: 1800,
   features: [
     {
-      id: S.featureId(6076, 1),
+      id: S.featureId(13, 1),
       label: 'Air Form',
       description: "Air Form. The elemental can enter a hostile creature's space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.",
       order: 1
     },
     {
-      id: S.featureId(6076, 2),
+      id: S.featureId(13, 2),
       label: 'Whirlwind (Recharge 4-6)',
       description: 'Whirlwind (Recharge 4-6). Each creature in the elemental\'s space must make a Strength saving throw. On a failure, a target takes bludgeoning damage, is flung up to 20 feet away in a random direction, and is knocked prone. If a thrown target strikes an object, it takes additional bludgeoning damage. If the saving throw is successful, the target takes half damage and is not flung or knocked prone.',
       order: 2
     },
     {
-      id: S.featureId(6076, 3),
+      id: S.featureId(13, 3),
       label: 'Multiattack',
       description: 'Multiattack. The elemental makes two slam attacks.',
       order: 3
     },
     {
-      id: S.featureId(6076, 4),
+      id: S.featureId(13, 4),
       label: 'Slam',
       description: 'Slam. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
       order: 4

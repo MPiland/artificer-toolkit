@@ -73,7 +73,8 @@ export const winterWolf: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -141,8 +142,9 @@ export const winterWolf: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(295, 7),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 12
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -153,7 +155,8 @@ export const winterWolf: CreatureAuthored = {
                             rangeKind: S.RANGE_KIND.SPECIAL
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES
+                            selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

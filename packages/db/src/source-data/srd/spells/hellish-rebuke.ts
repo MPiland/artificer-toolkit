@@ -1,14 +1,15 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const hellishRebuke: SpellAuthored = {
     kind: SUBJECT.SPELL,
     id: SPELL_IDS.HELLISH_REBUKE,
     label: 'Hellish Rebuke',
-    description: 'You point your finger, and the creature that damaged you is momentarily surrounded by hellish flames. The creature must make a Dexterity saving throw, taking 2d10 fire damage on a failed save, or half as much damage on a successful one.',
+    description: '<p>You point your finger, and the creature that damaged you is momentarily surrounded by hellish flames. The creature must make a Dexterity saving throw, taking 2d10 fire damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d10 for each slot level above 1st.</p>',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 1,
     classIds: [CLASS_IDS.WARLOCK],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('EVOCATION'),
     effects: [
         {
@@ -18,7 +19,7 @@ export const hellishRebuke: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.HELLISH_REBUKE, 0x214, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.DEXTERITY
                 },
                 activation: {
@@ -32,7 +33,8 @@ export const hellishRebuke: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

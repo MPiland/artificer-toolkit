@@ -1,14 +1,15 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const magicMissile: SpellAuthored = {
     kind: SUBJECT.SPELL,
     id: SPELL_IDS.MAGIC_MISSILE,
     label: 'Magic Missile',
-    description: 'You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals 1d4 + 1 force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several.',
+    description: '<p>You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals 1d4 + 1 force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.</p>',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 1,
     classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('EVOCATION'),
     effects: [
         {
@@ -28,6 +29,7 @@ export const magicMissile: SpellAuthored = {
                 },
                 targeting: {
                     selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY,
                     maxTargets: 3
                 }
             },

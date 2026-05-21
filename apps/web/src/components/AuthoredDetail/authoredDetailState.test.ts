@@ -9,6 +9,7 @@ const itemSchema = z.object({
 })
 
 const response = {
+  publicId: '1',
   item: {
     id: 'active-id',
     label: 'Active Record',
@@ -26,17 +27,20 @@ const response = {
   }
 }
 
-function draft(payload: Record<string, unknown>): AuthoredDraftDto {
+function draft(payload: Record<string, unknown>, overrides: Partial<AuthoredDraftDto> = {}): AuthoredDraftDto {
   return {
     id: 'draft-row-id',
     subjectKind: 'SPELL',
     subjectId: 'active-id',
+    publicId: '1',
     userId: 'user-id',
     systemId: 'system-id',
     label: 'Draft Record',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
-    payload
+    baseActiveUpdatedAt: null,
+    payload,
+    ...overrides
   }
 }
 
@@ -55,6 +59,8 @@ describe('resolveAuthoredDetailState', () => {
     expect(state.mode).toBe('draft')
     expect(state.item?.label).toBe('Draft Record')
     expect(state.activeItem?.label).toBe('Active Record')
+    expect(state.canViewActive).toBe(true)
+    expect(state.hasActiveContent).toBe(true)
   })
 
   it('can show active content when a valid draft also exists', () => {
@@ -72,6 +78,36 @@ describe('resolveAuthoredDetailState', () => {
     expect(state.mode).toBe('active')
     expect(state.item?.label).toBe('Active Record')
     expect(state.draftItem?.label).toBe('Draft Record')
+    expect(state.canViewActive).toBe(true)
+    expect(state.hasActiveContent).toBe(true)
+  })
+
+  it('does not treat a draft-only detail response as active content', () => {
+    const draftOnlyResponse = {
+      ...response,
+      item: {
+        id: 'draft-only-id',
+        label: 'Draft Only Record',
+        description: 'Draft-only copy'
+      }
+    }
+    const state = resolveAuthoredDetailState({
+      draft: draft({
+        id: 'draft-only-id',
+        label: 'Draft Only Record',
+        description: 'Draft-only copy'
+      }, {
+        draftState: 'DRAFT_ONLY',
+        subjectId: 'draft-only-id'
+      }),
+      response: draftOnlyResponse,
+      schema: itemSchema
+    })
+
+    expect(state.mode).toBe('draft')
+    expect(state.item?.label).toBe('Draft Only Record')
+    expect(state.canViewActive).toBe(false)
+    expect(state.hasActiveContent).toBe(false)
   })
 
   it('falls back to active content when a stale draft is invalid', () => {
@@ -84,6 +120,7 @@ describe('resolveAuthoredDetailState', () => {
     expect(state.mode).toBe('active')
     expect(state.hasInvalidDraft).toBe(true)
     expect(state.item?.label).toBe('Active Record')
+    expect(state.hasActiveContent).toBe(true)
   })
 
   it('returns an invalid draft-only recovery state without throwing', () => {
@@ -96,5 +133,7 @@ describe('resolveAuthoredDetailState', () => {
     expect(state.mode).toBe('invalid-draft-only')
     expect(state.item).toBeNull()
     expect(state.hasInvalidDraft).toBe(true)
+    expect(state.canViewActive).toBe(false)
+    expect(state.hasActiveContent).toBe(false)
   })
 })

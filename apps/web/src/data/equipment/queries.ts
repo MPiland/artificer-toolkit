@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getEquipmentList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.equipment.list(),
-    queryFn: async () => await client.content.equipment.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const equipmentQueries = createAuthoredContentQueries(
+  (client) => client.content.equipment,
+  queryKeys.content.equipment
+)
+
+export function getEquipmentList(client?: Api) {
+  return equipmentQueries.getList(client)
 }
 
 export function useGetEquipmentList() {
-  return useSuspenseQuery(getEquipmentList())
+  return equipmentQueries.useList()
 }
 
-export function getEquipment(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.equipment.detail(id),
-    queryFn: async () => await client.content.equipment.get(id)
-  })
+export function getEquipment(input: DetailInput, client?: Api) {
+  return equipmentQueries.getDetail(input, client)
 }
 
-export function useGetEquipment(id: string) {
-  return useSuspenseQuery(getEquipment(id))
+export function useGetEquipment(input: DetailInput) {
+  return equipmentQueries.useDetail(input)
 }
 
-export function getEquipmentDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.equipment.draft(id),
-    queryFn: async () => await client.content.equipment.getDraft(id)
-  })
+export function getEquipmentDraft(id: string, client?: Api) {
+  return equipmentQueries.getDraft(id, client)
 }

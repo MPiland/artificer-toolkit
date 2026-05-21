@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../../../css/foundations.css.ts'
 import { app } from '../../../css/layers.css.ts'
 
@@ -31,6 +31,14 @@ export const description = style({
   }
 })
 
+export const required = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.input.border.error
+    }
+  }
+})
+
 export const input = style({
   '@layer': {
     [app]: {
@@ -40,7 +48,7 @@ export const input = style({
         '--input-color': foundationVars.color.text.primary,
         '--input-placeholder-color': foundationVars.color.input.placeholder
       },
-      backgroundColor: `${foundationVars.color.input.background.default} !important`,
+      backgroundColor: `${foundationVars.color.input.background.default}`,
       borderColor: foundationVars.color.input.border.default,
       borderRadius: foundationVars.radius.md,
       color: foundationVars.color.text.primary,
@@ -53,7 +61,7 @@ export const input = style({
             '--input-bg': foundationVars.color.input.background.hover,
             '--input-bd': foundationVars.color.border.strong
           },
-          backgroundColor: `${foundationVars.color.input.background.hover} !important`,
+          backgroundColor: `${foundationVars.color.input.background.hover}`,
           borderColor: foundationVars.color.border.strong
         },
         '&:focus, &:focus-within': {
@@ -63,17 +71,34 @@ export const input = style({
           borderColor: foundationVars.color.input.border.focus,
           boxShadow: foundationVars.shadow.focus
         },
-        '&:disabled, &[data-disabled="true"], &[readonly], &[data-readonly="true"]': {
-          vars: {
-            '--input-bg': foundationVars.color.input.background.disabled,
-            '--input-bd': foundationVars.color.input.border.disabled,
-            '--input-color': foundationVars.color.text.secondary
-          },
-          backgroundColor: `${foundationVars.color.input.background.disabled} !important`,
-          borderColor: foundationVars.color.input.border.disabled,
-          color: foundationVars.color.text.secondary
-        }
+        '&[data-placeholder]': {
+          color: foundationVars.color.input.placeholder
+        },
+        '&::placeholder': {
+          color: foundationVars.color.input.placeholder,
+          opacity: 1
+        },
+        '&:disabled, &[data-disabled="true"], &[readonly], &[data-readonly="true"]':
+          {
+            vars: {
+              '--input-bg': foundationVars.color.input.background.disabled,
+              '--input-bd': foundationVars.color.input.border.disabled,
+              '--input-color': foundationVars.color.text.secondary
+            },
+            backgroundColor: `${foundationVars.color.input.background.disabled}`,
+            borderColor: foundationVars.color.input.border.disabled,
+            color: foundationVars.color.text.secondary
+          }
       }
+    }
+  }
+})
+
+export const multiSelectInput = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center'
     }
   }
 })
@@ -85,6 +110,7 @@ export const pillsList = style({
       flexWrap: 'nowrap',
       alignItems: 'center',
       gap: foundationVars.space[1],
+      minHeight: '28px',
       minWidth: 0,
       width: '100%',
       overflow: 'hidden'
@@ -95,6 +121,7 @@ export const pillsList = style({
 export const inputField = style({
   '@layer': {
     [app]: {
+      alignSelf: 'center',
       flex: '0 0 2ch',
       minWidth: '2ch'
     }
@@ -135,21 +162,27 @@ export const option = style({
 export const pill = style({
   '@layer': {
     [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
       flex: '0 1 auto',
+      minHeight: '24px',
       maxWidth: 'min(11rem, 45%)',
       minWidth: 0,
       background: foundationVars.color.accent.soft,
       border: `1px solid ${foundationVars.color.accent.border}`,
-      color: foundationVars.color.text.primary
+      color: foundationVars.color.text.primary,
+      lineHeight: '22px'
     }
   }
 })
 
-globalStyle(`${pill} .mantine-Pill-label`, {
+export const pillLabel = style({
   '@layer': {
     [app]: {
-      display: 'block',
+      display: 'inline-flex',
+      alignItems: 'center',
       minWidth: 0,
+      lineHeight: '20px',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
@@ -157,9 +190,10 @@ globalStyle(`${pill} .mantine-Pill-label`, {
   }
 })
 
-globalStyle(`${pill} .mantine-Pill-remove`, {
+export const pillRemove = style({
   '@layer': {
     [app]: {
+      'alignSelf': 'center',
       '@media': {
         '(max-width: 760px)': {
           minWidth: '44px',

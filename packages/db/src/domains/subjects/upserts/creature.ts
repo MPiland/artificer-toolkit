@@ -297,16 +297,6 @@ export async function upsertCreature(
   const trx = await db.startTransaction().execute()
 
   try {
-    for (const detail of jsonData.details ?? []) {
-      await upsertDetail(trx, detail)
-    }
-    for (const feature of jsonData.features ?? []) {
-      await upsertFeature(trx, feature, jsonData.systemId)
-    }
-    for (const proficiency of jsonData.proficiencies ?? []) {
-      await upsertProficiencyGrant(trx, proficiency)
-    }
-
     await trx
       .insertInto('creatures')
       .values(creatureRow)
@@ -322,6 +312,16 @@ export async function upsertCreature(
     await trx.deleteFrom('creature_damage_immunities').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_damage_vulnerabilities').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_condition_immunities').where('creature_id', '=', jsonData.id).execute()
+
+    for (const detail of jsonData.details ?? []) {
+      await upsertDetail(trx, detail)
+    }
+    for (const feature of jsonData.features ?? []) {
+      await upsertFeature(trx, feature, jsonData.systemId)
+    }
+    for (const proficiency of jsonData.proficiencies ?? []) {
+      await upsertProficiencyGrant(trx, proficiency)
+    }
 
     if (detailRows.length > 0) {
       await trx.insertInto('creature_details').values(detailRows).execute()

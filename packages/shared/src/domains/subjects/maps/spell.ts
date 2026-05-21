@@ -31,16 +31,16 @@ export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ ma
 // Spell Node Map - Complete map with ALL SpellAuthored properties
 const spellNode = buildNodeMap<SpellAuthored>()
 export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, cond }) => {
-  const { text, number, selectMulti, selectSingle, groupObject, groupArray } = nodes
+  const { text, richText, number, selectMulti, selectSingle, groupObject, groupArray } = nodes
   const { table } = data
   const local = cond.local()
   map
     .set('kind', text(['kind'], 'Kind'))
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', { section: SPELL_SECTIONS.basics, order: 10 }))
-    .set('description', text(['description'], 'Description', { section: SPELL_SECTIONS.basics, order: 20 }))
+    .set('description', richText(['description'], 'Description', { section: SPELL_SECTIONS.basics, order: 20 }))
     .set('level', number(['level'], 'Level', { section: SPELL_SECTIONS.basics, order: 30 }))
-    .set('materialDescription', text(['materialDescription'], 'Material Description', {
+    .set('materialDescription', richText(['materialDescription'], 'Material Description', {
       section: SPELL_SECTIONS.casting,
       order: 40,
       showIf: local.field(['components']).contains(['MATERIAL']),

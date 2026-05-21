@@ -2,6 +2,7 @@ import type { BackgroundAuthored } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertBackground } from '../upserts/background.js'
 import type { BackgroundRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
@@ -74,22 +75,22 @@ async function hydrateBackgroundById(
   ])
 
   const [
-    details,
-    features,
-    proficiencies,
+    detailsById,
+    featuresById,
+    proficienciesById,
     startingEquipment
   ] = await Promise.all([
-    Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id))),
-    Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id))),
-    Promise.all(proficiencyLinks.map((link) => proficiencyRepository.findById(link.proficiency_grant_id))),
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id)),
+    proficiencyRepository.findByIds(proficiencyLinks.map((link) => link.proficiency_grant_id)),
     row.starting_equipment_id
       ? startingEquipmentRepository.findById(row.starting_equipment_id)
       : Promise.resolve(null)
   ])
 
-  const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Background "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Background "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
-  const authoredProficiencies = proficiencies.map((grant, index) => requireLinkedRecord(grant, `Background "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`))
+  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(detailsById.get(link.detail_id) ?? null, `Background "${id}" is linked to missing detail "${link.detail_id}".`))
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(featuresById.get(link.feature_id) ?? null, `Background "${id}" is linked to missing feature "${link.feature_id}".`))
+  const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(proficienciesById.get(link.proficiency_grant_id) ?? null, `Background "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`))
   const authoredStartingEquipment = row.starting_equipment_id
     ? requireLinkedRecord(startingEquipment, `Background "${id}" is linked to missing starting equipment "${row.starting_equipment_id}".`)
     : null
@@ -119,6 +120,10 @@ export function createBackgroundRepository(db: DBLike): BackgroundRepository {
       return hydrateBackgroundById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateBackgroundById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('backgrounds')
@@ -134,8 +139,10 @@ export function createBackgroundRepository(db: DBLike): BackgroundRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateBackgroundById(db, row.id)))
-      return records.filter((record): record is BackgroundAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateBackgroundById(db, id))
+      )
     }
   }
 }

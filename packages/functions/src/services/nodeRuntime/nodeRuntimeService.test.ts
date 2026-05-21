@@ -68,6 +68,58 @@ describe('node runtime service', () => {
     expect(flattened.find((node) => node.id === 'proficiencyKind')?.options?.some((option) => option.value === 'SKILL')).toBe(true)
   })
 
+  it('treats nodes without requiredIf as optional', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'feature',
+      values: {}
+    })
+
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    expect(flattened.find((node) => node.id === 'attributes')).toMatchObject({
+      visible: true,
+      required: false
+    })
+  })
+
+  it('resolves group requiredness from requiredIf metadata', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'invocation',
+      values: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED'
+      }
+    })
+
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    expect(flattened.find((node) => node.id === 'activation')).toMatchObject({
+      visible: true,
+      required: true
+    })
+    expect(flattened.find((node) => node.id === 'targeting')).toMatchObject({
+      visible: true,
+      required: false
+    })
+  })
+
+  it('separates feature mechanics into effects, usage, and restrictions sections', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'feature',
+      values: {
+        attributes: ['LIMITED_USE']
+      }
+    })
+
+    const mechanics = result.steps.find((step) => step.id === 'mechanics')
+    expect(mechanics?.sections.map((section) => section.label)).toEqual([
+      'Effects',
+      'Usage',
+      'Restrictions'
+    ])
+    expect(mechanics?.sections.find((section) => section.label === 'Effects')?.nodes.map((node) => node.id)).toContain('effects')
+    expect(mechanics?.sections.find((section) => section.label === 'Usage')?.nodes.map((node) => node.id)).toContain('charges')
+    expect(mechanics?.sections.find((section) => section.label === 'Restrictions')?.nodes.map((node) => node.id)).toContain('restrictions')
+  })
+
   it('normalizes values by clearing hidden CLEAR paths from the resolved runtime model', async () => {
     const result = await normalizeNodeRuntimeValues(unusedDb, {
       mapId: 'proficiencyGrant',

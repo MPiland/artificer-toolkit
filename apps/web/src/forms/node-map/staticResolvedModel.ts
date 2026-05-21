@@ -79,7 +79,6 @@ const STATIC_ROOT_NODE_MAPS = [
 
 const STATIC_NODE_MAP_ALIASES: Readonly<Record<string, string>> = {
   detail: BACKGROUND_DETAIL_NODE_MAP.mapId,
-  feature: FEATURE_BASICS_NODE_MAP.mapId,
   charges: CHARGE_NODE_MAP.mapId,
   proficiencyGrant: PROFICIENCY_NODE_MAP.mapId
 }
@@ -173,7 +172,7 @@ function toRuntimeNode<TValues extends object>(id: string, node: NodeEntry<TValu
     label: node.label,
     kind: node.kind,
     visible: true,
-    required: node.kind === 'INPUT' && node.requiredIf === true,
+    required: node.requiredIf === true,
     hiddenBehavior: node.hiddenBehavior,
     clearPaths: []
   } satisfies Pick<

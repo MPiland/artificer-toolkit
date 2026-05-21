@@ -1,16 +1,15 @@
-import { ACTIVATION_CODE, ABILITY_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SHAPE_KIND, TARGET_SELECTION_KIND, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, ABILITY_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SHAPE_KIND, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const thunderwave: SpellAuthored = {
     kind: SUBJECT.SPELL,
     id: SPELL_IDS.THUNDERWAVE,
     label: 'Thunderwave',
-    description: 'A wave of thunderous force sweeps out from you. Each creature in a 15-foot cube originating from you must make a Constitution saving throw or take thunder damage and be pushed away from you.',
+    description: '<p>A wave of thunderous force sweeps out from you. Each creature in a 15-foot cube originating from you must make a Constitution saving throw or take thunder damage and be pushed away from you.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st.</p>',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 1,
-    classIds: [
-        CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD
-    ],
+    classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('EVOCATION'),
     effects: [
         {
@@ -20,7 +19,7 @@ export const thunderwave: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x211, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.CONSTITUTION
                 },
                 activation: {
@@ -32,7 +31,8 @@ export const thunderwave: SpellAuthored = {
                     rangeKind: RANGE_KIND.SELF
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
+                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 },
                 shape: {
                     id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x213, 1),

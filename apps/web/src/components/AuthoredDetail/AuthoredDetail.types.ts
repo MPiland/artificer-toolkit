@@ -2,13 +2,19 @@ import type { ReactNode } from 'react'
 
 export type AuthoredDetailNoticeTone = 'draft' | 'warning' | 'info'
 
-export type AuthoredDetailActionTone = 'primary' | 'secondary' | 'quiet'
+export type AuthoredDetailActionTone = 'primary' | 'secondary' | 'quiet' | 'danger'
 
 export interface AuthoredDetailAction {
   label: string
   tone?: AuthoredDetailActionTone
   disabled?: boolean
+  loading?: boolean
   onClick: () => void
+}
+
+export interface AuthoredDetailPendingOperation {
+  title: string
+  body: string
 }
 
 export interface AuthoredDetailFact {

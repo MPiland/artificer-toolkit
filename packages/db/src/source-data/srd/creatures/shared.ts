@@ -22,10 +22,13 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   DAMAGE_BONUS_KIND,
-  DAMAGE_VALUE_KIND
+  DAMAGE_VALUE_KIND,
+  type CreatureAuthored,
+  type FeatureAuthored
 } from '@artificer-toolkit/shared'
 import { CREATURE_IDS } from '../ids.js'
 import {
@@ -236,6 +239,224 @@ export function grantedLanguageProficiency(
   }
 }
 
+interface LegendaryActionOptionTemplate {
+  label: string
+  description: string
+  order?: number
+}
+
+const dragonLegendaryActionOptions: LegendaryActionOptionTemplate[] = [
+  {
+    label: 'Detect',
+    description: 'The dragon makes a Wisdom (Perception) check.'
+  },
+  {
+    label: 'Tail Attack',
+    description: 'The dragon makes a tail attack.'
+  },
+  {
+    label: 'Wing Attack (Costs 2 Actions)',
+    description: 'The dragon beats its wings. Nearby creatures risk bludgeoning damage and being knocked prone, then the dragon can fly up to half its flying speed.'
+  }
+]
+
+const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptionTemplate[]> = {
+  Androsphinx: [
+    {
+      label: 'Detect',
+      description: 'The sphinx makes a Wisdom (Perception) check.'
+    },
+    {
+      label: 'Claw Attack',
+      description: 'The sphinx makes one claw attack.'
+    },
+    {
+      label: 'Teleport (Costs 2 Actions)',
+      description: 'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
+    }
+  ],
+  Gynosphinx: [
+    {
+      label: 'Claw Attack',
+      description: 'The sphinx makes one claw attack.'
+    },
+    {
+      label: 'Teleport (Costs 2 Actions)',
+      description: 'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
+    },
+    {
+      label: 'Cast a Spell (Costs 3 Actions)',
+      description: 'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.'
+    }
+  ],
+  Lich: [
+    {
+      label: 'Cantrip',
+      description: 'The lich casts a cantrip.'
+    },
+    {
+      label: 'Paralyzing Touch (Costs 2 Actions)',
+      description: 'The lich uses its Paralyzing Touch.'
+    },
+    {
+      label: 'Frightening Gaze (Costs 2 Actions)',
+      description: 'The lich fixes its gaze on one creature it can see within 10 feet. The target must succeed on a Wisdom saving throw against this magic or become frightened for 1 minute.'
+    },
+    {
+      label: 'Disrupt Life (Costs 3 Actions)',
+      description: 'Each non-undead creature within 20 feet of the lich must make a Constitution saving throw against this magic, taking necrotic damage on a failed save or half as much on a successful one.'
+    }
+  ],
+  'Mummy Lord': [
+    {
+      label: 'Attack',
+      description: 'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.'
+    },
+    {
+      label: 'Blinding Dust',
+      description: 'Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a Constitution saving throw or be blinded until the end of the creature\'s next turn.'
+    },
+    {
+      label: 'Blasphemous Word (Costs 2 Actions)',
+      description: 'The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a Constitution saving throw or be stunned until the end of the mummy lord\'s next turn.'
+    },
+    {
+      label: 'Channel Negative Energy (Costs 2 Actions)',
+      description: 'The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can\'t regain hit points until the end of the mummy lord\'s next turn.'
+    },
+    {
+      label: 'Whirlwind of Sand (Costs 2 Actions)',
+      description: 'The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form.'
+    }
+  ],
+  Unicorn: [
+    {
+      label: 'Hooves',
+      description: 'The unicorn makes one attack with its hooves.'
+    },
+    {
+      label: 'Shimmering Shield (Costs 2 Actions)',
+      description: 'The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet. The target gains a +2 bonus to AC until the end of the unicorn\'s next turn.'
+    },
+    {
+      label: 'Heal Self (Costs 3 Actions)',
+      description: 'The unicorn magically regains hit points.'
+    }
+  ],
+  Vampire: [
+    {
+      label: 'Move',
+      description: 'The vampire moves up to its speed without provoking opportunity attacks.'
+    },
+    {
+      label: 'Unarmed Strike',
+      description: 'The vampire makes one unarmed strike.'
+    },
+    {
+      label: 'Bite (Costs 2 Actions)',
+      description: 'The vampire makes one bite attack.'
+    }
+  ]
+}
+
+export function normalizeLegendaryActionOptions<TCreature extends CreatureAuthored>(creature: TCreature): TCreature {
+  if (!creature.features?.some(isLegendaryActionFeature)) {
+    return creature
+  }
+
+  let changed = false
+  const features = creature.features.map((feature) => {
+    if (!isLegendaryActionFeature(feature) || feature.options?.length) {
+      return feature
+    }
+
+    const optionTemplates = getLegendaryActionOptionTemplates(creature.label)
+
+    if (!optionTemplates.length) {
+      return feature
+    }
+
+    changed = true
+    return buildLegendaryActionFeatureWithOptions(feature, optionTemplates)
+  })
+
+  return changed ? { ...creature, features } : creature
+}
+
+function isLegendaryActionFeature(feature: FeatureAuthored): boolean {
+  return feature.label.toLowerCase() === 'legendary actions'
+}
+
+function getLegendaryActionOptionTemplates(creatureLabel: string): LegendaryActionOptionTemplate[] {
+  if (creatureLabel.endsWith('Dragon')) {
+    return dragonLegendaryActionOptions
+  }
+
+  return legendaryActionOptionsByCreatureLabel[creatureLabel] ?? []
+}
+
+function buildLegendaryActionFeatureWithOptions(
+  feature: FeatureAuthored,
+  optionTemplates: LegendaryActionOptionTemplate[]
+): FeatureAuthored {
+  const effectsByOrder = new Map<number, NonNullable<FeatureAuthored['effects']>>()
+
+  for (const effect of feature.effects ?? []) {
+    effectsByOrder.set(effect.order, [
+      ...(effectsByOrder.get(effect.order) ?? []),
+      effect
+    ])
+  }
+
+  const featureWithoutEffects = { ...feature }
+  delete featureWithoutEffects.effects
+
+  return {
+    ...featureWithoutEffects,
+    description: getLegendaryActionIntro(feature.description, optionTemplates),
+    options: optionTemplates.map((template, index) => {
+      const order = template.order ?? index + 1
+      const optionEffects = effectsByOrder.get(order)
+
+      return {
+        id: legendaryActionOptionId(feature.id, order),
+        label: template.label,
+        description: template.description,
+        order,
+        ...(optionEffects?.length ? { effects: optionEffects } : {})
+      }
+    })
+  }
+}
+
+function getLegendaryActionIntro(
+  description: string,
+  optionTemplates: LegendaryActionOptionTemplate[]
+): string {
+  const plainText = description
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^Legendary Actions\.\s*/, '')
+  const firstOptionIndex = optionTemplates
+    .map((template) => plainText.indexOf(`${template.label}.`))
+    .filter((index) => index > 0)
+    .sort((left, right) => left - right)[0]
+
+  return firstOptionIndex ? plainText.slice(0, firstOptionIndex).trim() : plainText
+}
+
+function legendaryActionOptionId(featureId: string, order: number): string {
+  const parts = featureId.split('-')
+  const creatureIndex = Number.parseInt(parts[4]?.slice(0, 4) ?? '', 16)
+
+  if (parts.length !== 5 || parts[3] !== '0070' || Number.isNaN(creatureIndex)) {
+    throw new Error(`Cannot derive legendary action option ID from feature ID "${featureId}".`)
+  }
+
+  return localId(5, creatureIndex, 200 + order)
+}
+
 export {
   ABILITY_CODE,
   ACTIVATION_CODE,
@@ -259,6 +480,7 @@ export {
   SCALING,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER
 }

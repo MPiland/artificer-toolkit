@@ -1,5 +1,5 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
-import { SPELL_IDS } from '../ids.js';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
+import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 import { spellChildId } from './shared.js';
 function schoolId(code: string): string {
@@ -15,7 +15,8 @@ export const thaumaturgy: SpellAuthored = {
     description: 'You manifest a minor wonder, a sign of supernatural power, within range. You create one of the following magical effects within range: your voice booms up to three times as loud as normal for 1 minute; you cause flames to flicker, brighten, dim, or change color for 1 minute; you cause harmless tremors in the ground for 1 minute; you create an instantaneous sound that originates from a point of your choice within range, such as a rumble of thunder, the cry of a raven, or ominous whispers; you instantaneously cause an unlocked door or window to fly open or slam shut; you alter the appearance of your eyes for 1 minute.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 0,
-    classIds: [],
+    classIds: [CLASS_IDS.CLERIC],
+    components: [SPELL_COMPONENT.VERBAL],
     magicSchoolId: schoolId('TRANSMUTATION'),
     effects: [
         {
@@ -34,7 +35,8 @@ export const thaumaturgy: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

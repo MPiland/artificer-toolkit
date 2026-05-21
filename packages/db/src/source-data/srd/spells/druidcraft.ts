@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 import { spellChildId } from './shared.js';
@@ -16,6 +16,7 @@ export const druidcraft: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 0,
     classIds: [CLASS_IDS.DRUID],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('TRANSMUTATION'),
     effects: [
         {
@@ -34,7 +35,8 @@ export const druidcraft: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

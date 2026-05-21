@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const findFamiliar: SpellAuthored = {
@@ -8,7 +8,9 @@ export const findFamiliar: SpellAuthored = {
     description: 'You gain the service of a familiar, a spirit that takes an animal form you choose. The familiar acts independently of you, but it always obeys your commands.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
     level: 1,
-    classIds: [CLASS_IDS.WARLOCK],
+    classIds: [CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "10 gp worth of charcoal, incense, and herbs that must be consumed by fire in a brass brazier",
     magicSchoolId: schoolId('CONJURATION'),
     attributes: [SPELL_ATTRIBUTE.RITUAL],
     effects: [
@@ -28,7 +30,8 @@ export const findFamiliar: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
+                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [
@@ -53,7 +56,6 @@ export const findFamiliar: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: 'charcoal, incense, and herbs worth at least 10 gp consumed as incense',
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID,
 };

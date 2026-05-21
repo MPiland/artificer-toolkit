@@ -30,6 +30,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateSpellMutation,
@@ -37,10 +38,13 @@ import {
   useDuplicateSpellMutation,
   useSaveSpellDraftMutation
 } from '#app/data/spells/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import {
   normalizeSpellForSubmit
 } from '../spellAuthoring.utils'
 import { SpellAuthoringRenderer } from '../components/SpellAuthoringRenderer'
+import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 
 type ParsedSpellDraft = {
   draft: AuthoredDraftDto | null
@@ -49,12 +53,11 @@ type ParsedSpellDraft = {
 }
 
 export function SpellEditPage() {
-  const route = getRouteApi('/_authed/spells/$spellId')
-  const { draft, response } = route.useLoaderData()
-  const { spellId } = route.useParams()
+  const route = getRouteApi('/_authed/spells/$spellPublicId/$spellSlug')
+  const { draft, response, spellId } = route.useLoaderData()
   const parsedDraft: ParsedSpellDraft = parseAuthoredDraftPayload(draft ?? null, spellAuthoringInputDtoSchema)
   const draftSpell = parsedDraft.item
-  const activeSpell = response?.item
+  const activeSpell = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -101,13 +104,14 @@ function SpellEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   spell: SpellAuthoringInputDto | SpellAuthoredDto
   spellId: string
 }) {
-  const route = getRouteApi('/_authed/spells/$spellId')
-  const { references: spellReferences } = route.useLoaderData()
+  const route = getRouteApi('/_authed/spells/$spellPublicId/$spellSlug/edit')
+  const spellReferences = route.useLoaderData()
   const navigate = useNavigate()
   const router = useRouter()
   const activateMutation = useActivateSpellMutation()
@@ -117,6 +121,20 @@ function SpellEditAuthoring({
   const [formValues] = useState(() => spell)
   const readOnly = Boolean(activeSpell && permissions?.canEdit === false)
   const canCopy = Boolean(permissions?.canCopy && spellId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.spells.deleteActive,
+    deleteDraft: api.content.spells.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.spells.detailRoot(spellId),
+    domainLabel: 'Spell',
+    domainQueryKey: queryKeys.content.spells.all(),
+    draftQueryKey: queryKeys.content.spells.draft(spellId),
+    onDeleted: async () => navigate({ to: '/spells' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/spells' })
@@ -129,8 +147,11 @@ function SpellEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Spell activated.' })
 
-      if (response?.item.id && response.item.id !== spellId) {
-        await navigate({ to: '/spells/$spellId', params: { spellId: response.item.id } })
+      if (response?.item?.id && response.item.id !== spellId) {
+        await navigate({
+          params: buildSpellRouteParams(response.publicId, response.item.label),
+          to: '/spells/$spellPublicId/$spellSlug'
+        })
         return
       }
 
@@ -180,7 +201,10 @@ function SpellEditAuthoring({
       notifications.show({ color: 'green', message: 'Spell duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/spells/$spellId/edit', params: { spellId: copied.subjectId } })
+        await navigate({
+          params: buildSpellRouteParams(copied.publicId, copied.label),
+          to: '/spells/$spellPublicId/$spellSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that spell yet.' })
@@ -209,11 +233,26 @@ function SpellEditAuthoring({
     spellReferences
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: spellId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Spell'
+    })
+  }, [
+    draft,
+    formValues.label,
+    requestDelete,
+    spellId
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Spell',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeSpell),
+    isDraft: Boolean(draft),
     mapId: 'spell',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -221,13 +260,16 @@ function SpellEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Spell',
     subjectLabel: formValues.label || 'Untitled Spell',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeSpell,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -236,12 +278,15 @@ function SpellEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -263,6 +308,7 @@ function SpellEditAuthoring({
         <AuthoringFormLayout>
           <SpellAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

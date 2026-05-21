@@ -1,7 +1,7 @@
 import type { DBLike } from '#types'
 import { sql } from 'kysely'
 
-interface FeatListItem { id: string; label: string; description: string; detail: string | null; status: string; systemId: string; userId: string; ownerUserId: string | null; isMaster: boolean | null }
+interface FeatListItem { id: string; label: string; description: string; status: string; systemId: string; userId: string; ownerUserId: string | null; isMaster: boolean | null }
 interface FeatMetaObject { id: string; featIds: string[] }
 interface FeatMeta { features: FeatMetaObject[] }
 
@@ -12,7 +12,6 @@ export async function getFeatListQuery(db: DBLike): Promise<{ items: FeatListIte
       'id as id',
       'label as label',
       'description as description',
-      'detail as detail',
       'status as status',
       'system_id as systemId',
       'user_id as ownerUserId',

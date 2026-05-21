@@ -1,4 +1,4 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING_AMOUNT_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING_AMOUNT_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const harm: SpellAuthored = {
@@ -9,6 +9,7 @@ export const harm: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 6,
     classIds: [CLASS_IDS.CLERIC],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('NECROMANCY'),
     effects: [
         {
@@ -18,7 +19,7 @@ export const harm: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.HARM, 0x211, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.CONSTITUTION
                 },
                 activation: {
@@ -32,7 +33,8 @@ export const harm: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '../../lib/api'
-import { queryKeys } from '../../lib/queryKeys'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getSpellList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.spells.list(),
-    queryFn: async () => await client.content.spells.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const spellQueries = createAuthoredContentQueries(
+  (client) => client.content.spells,
+  queryKeys.content.spells
+)
+
+export function getSpellList(client?: Api) {
+  return spellQueries.getList(client)
 }
 
 export function useGetSpellList() {
-  return useSuspenseQuery(getSpellList())
+  return spellQueries.useList()
 }
 
-export function getSpell(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.spells.detail(id),
-    queryFn: async () => await client.content.spells.get(id)
-  })
+export function getSpell(input: DetailInput, client?: Api) {
+  return spellQueries.getDetail(input, client)
 }
 
-export function useGetSpell(id: string) {
-  return useSuspenseQuery(getSpell(id))
+export function useGetSpell(input: DetailInput) {
+  return spellQueries.useDetail(input)
 }
 
-export function getSpellDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.spells.draft(id),
-    queryFn: async () => await client.content.spells.getDraft(id)
-  })
+export function getSpellDraft(id: string, client?: Api) {
+  return spellQueries.getDraft(id, client)
 }

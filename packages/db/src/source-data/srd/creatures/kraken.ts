@@ -35,19 +35,19 @@ export const kraken: CreatureAuthored = {
     xp: 50000,
     features: [
         {
-            id: S.featureId(9001, 1),
+            id: S.featureId(180, 1),
             label: 'Amphibious',
             description: 'Amphibious. The kraken can breathe air and water.',
             order: 1
         },
         {
-            id: S.featureId(9001, 2),
+            id: S.featureId(180, 2),
             label: 'Freedom of Movement',
             description: 'Freedom of Movement. The kraken ignores difficult terrain, and magical effects can\'t reduce its speed or cause it to be restrained. It can spend 5 feet of movement to escape from nonmagical restraints or being grappled.',
             order: 2
         },
         {
-            id: S.featureId(9001, 3),
+            id: S.featureId(180, 3),
             label: 'Legendary Resistance (3/Day)',
             description: 'Legendary Resistance (3/Day). If the kraken fails a saving throw, it can choose to succeed instead.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -61,19 +61,19 @@ export const kraken: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(9001, 4),
+            id: S.featureId(180, 4),
             label: 'Siege Monster',
             description: 'Siege Monster. The kraken deals double damage to objects and structures.',
             order: 4
         },
         {
-            id: S.featureId(9001, 5),
+            id: S.featureId(180, 5),
             label: 'Multiattack',
             description: 'The kraken makes three tentacle attacks, each of which it can replace with one bite attack against a creature grappled by it.',
             order: 5
         },
         {
-            id: S.featureId(9001, 6),
+            id: S.featureId(180, 6),
             label: 'Tentacle',
             description: 'Tentacle. Melee Weapon Attack: +17 to hit, reach 30 ft., one target. Hit: 20 (3d6 + 10) bludgeoning damage, and the target is grappled (escape DC 18).',
             effects: [
@@ -90,7 +90,8 @@ export const kraken: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -129,7 +130,7 @@ export const kraken: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(9001, 7),
+            id: S.featureId(180, 7),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +17 to hit, reach 5 ft., one target grappled by the kraken. Hit: 23 (3d8 + 10) piercing damage.',
             effects: [
@@ -146,7 +147,8 @@ export const kraken: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -185,7 +187,7 @@ export const kraken: CreatureAuthored = {
             order: 7
         },
         {
-            id: S.featureId(9001, 8),
+            id: S.featureId(180, 8),
             label: 'Lightning Storm',
             description: 'Lightning Storm. The kraken magically creates three bolts of lightning, each of which can strike a point or creature it can see within 120 feet of it. Each creature within 5 feet of a lightning strike point must make a DC 23 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.',
             order: 8

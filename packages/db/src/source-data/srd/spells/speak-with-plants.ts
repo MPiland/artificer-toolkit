@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const speakWithPlants: SpellAuthored = {
@@ -9,6 +9,7 @@ export const speakWithPlants: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 3,
     classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('TRANSMUTATION'),
     effects: [
         {
@@ -25,7 +26,8 @@ export const speakWithPlants: SpellAuthored = {
                     rangeKind: RANGE_KIND.SELF
                 },
                 targeting: {
-                    selectionKind: 'AREA_CONTENTS'
+                    selectionKind: 'AREA_CONTENTS',
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

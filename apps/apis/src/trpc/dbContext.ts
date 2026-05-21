@@ -1,10 +1,27 @@
 import { TRPCError } from '@trpc/server'
 import { ZodError } from 'zod'
-import { createDb, withUserContext, type DBLike } from '@artificer-toolkit/db'
+import { createDb, withUserContext, type DBLike, type KyselyDatabase } from '@artificer-toolkit/db'
 
 export interface TrpcContext {
   databaseConnectionString?: string
   userId: string | null
+}
+
+const defaultConnectionKey = '__default__'
+const globalDbCache = globalThis as typeof globalThis & {
+  __artificerApiDbs?: Map<string, KyselyDatabase>
+}
+const sharedDbs = globalDbCache.__artificerApiDbs ?? new Map<string, KyselyDatabase>()
+globalDbCache.__artificerApiDbs = sharedDbs
+
+function getSharedDb(connectionString: string | undefined): KyselyDatabase {
+  const key = connectionString ?? defaultConnectionKey
+  const existing = sharedDbs.get(key)
+  if (existing) return existing
+
+  const db = createDb({ connectionString })
+  sharedDbs.set(key, db)
+  return db
 }
 
 export function requireUserId(ctx: TrpcContext): string {
@@ -25,6 +42,7 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'AuthoredDraftNotFoundError') return 'NOT_FOUND'
   if (error.name === 'NotFoundError') return 'NOT_FOUND'
   if (error.name === 'AuthoredContentOwnershipError') return 'FORBIDDEN'
+  if (error.name === 'AuthoredContentDependencyError') return 'CONFLICT'
   if (error.name === 'CharacterBuilderDraftConflictError') return 'CONFLICT'
   if (error.name === 'ConcurrencyError') return 'CONFLICT'
   if (error.name === 'CharacterSheetCommandError') return 'BAD_REQUEST'
@@ -64,13 +82,11 @@ export async function withAuthenticatedDb<TResult>(
   callback: (db: DBLike, userId: string) => Promise<TResult>
 ): Promise<TResult> {
   const userId = requireUserId(ctx)
-  const db = createDb({ connectionString: ctx.databaseConnectionString })
+  const db = getSharedDb(ctx.databaseConnectionString)
 
   try {
     return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId))
   } catch (error) {
     throw toTrpcError(error)
-  } finally {
-    await db.destroy()
   }
 }

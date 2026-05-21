@@ -36,31 +36,31 @@ export const deva: CreatureAuthored = {
     xp: 5900,
     features: [
         {
-            id: S.featureId(2916, 1),
+            id: S.featureId(80, 1),
             label: 'Angelic Weapons',
             description: "Angelic Weapons. The deva's weapon attacks are magical. When the deva hits with any weapon, the weapon deals an extra 4d8 radiant damage (included in the attack).",
             order: 1
         },
         {
-            id: S.featureId(2916, 2),
+            id: S.featureId(80, 2),
             label: 'Innate Spellcasting',
             description: "Innate Spellcasting. The deva's spellcasting ability is Charisma (spell save DC 17). The deva can innately cast the following spells, requiring only verbal components: At will: detect evil and good. 1/day each: commune, raise dead.",
             order: 2
         },
         {
-            id: S.featureId(2916, 3),
+            id: S.featureId(80, 3),
             label: 'Magic Resistance',
             description: 'Magic Resistance. The deva has advantage on saving throws against spells and other magical effects.',
             order: 3
         },
         {
-            id: S.featureId(2916, 4),
+            id: S.featureId(80, 4),
             label: 'Multiattack',
             description: 'Multiattack. The deva makes two melee attacks.',
             order: 4
         },
         {
-            id: S.featureId(2916, 5),
+            id: S.featureId(80, 5),
             label: 'Mace',
             description: 'Mace. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 7 (1d6 + 4) bludgeoning damage plus 18 (4d8) radiant damage.',
             effects: [
@@ -80,7 +80,8 @@ export const deva: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -140,7 +141,7 @@ export const deva: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(2916, 6),
+            id: S.featureId(80, 6),
             label: 'Healing Touch (3/Day)',
             description: 'Healing Touch (3/Day). The deva touches another creature. The target magically regains 20 (4d8 + 2) hit points and is freed from any curse, disease, poison, blindness, or deafness.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -166,7 +167,8 @@ export const deva: CreatureAuthored = {
                             rangeKind: S.RANGE_KIND.TOUCH
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -196,7 +198,7 @@ export const deva: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(2916, 7),
+            id: S.featureId(80, 7),
             label: 'Change Shape',
             description: "Change Shape. The deva magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the deva's choice). In a new form, the deva retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and special senses are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
             order: 7

@@ -184,7 +184,8 @@ export const attackDomainCodeSchema = z.enum([
   'UNARMED'
 ])
 
-export const savingThrowKindSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_VALUE'])
+export const savingThrowDcMethodSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC'])
+export const savingThrowDcBonusKindSchema = z.enum(['ABILITY_MODIFIER', 'PROFICIENCY_BONUS', 'STATIC_BONUS'])
 
 export const grantKindSchema = z.enum([
   'MODIFIER_GRANT',

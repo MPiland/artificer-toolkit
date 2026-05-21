@@ -189,26 +189,6 @@ export async function upsertRace(
   const trx = await db.startTransaction().execute()
 
   try {
-    if (json_data.details) {
-      for (const detail of json_data.details) {
-        await upsertDetail(trx, detail)
-      }
-    }
-
-    if (json_data.features) {
-      for (const feature of json_data.features) {
-        await upsertFeature(trx, feature, json_data.systemId)
-      }
-    }
-
-    if (ancestryData) {
-      for (const option of ancestryData.options) {
-        for (const feature of option.features ?? []) {
-          await upsertFeature(trx, feature, json_data.systemId)
-        }
-      }
-    }
-
     await trx
       .insertInto('races')
       .values(mapRaceRow(json_data))
@@ -250,6 +230,26 @@ export async function upsertRace(
       .deleteFrom('race_heritages')
       .where('race_id', '=', json_data.id)
       .execute()
+
+    if (json_data.details) {
+      for (const detail of json_data.details) {
+        await upsertDetail(trx, detail)
+      }
+    }
+
+    if (json_data.features) {
+      for (const feature of json_data.features) {
+        await upsertFeature(trx, feature, json_data.systemId)
+      }
+    }
+
+    if (ancestryData) {
+      for (const option of ancestryData.options) {
+        for (const feature of option.features ?? []) {
+          await upsertFeature(trx, feature, json_data.systemId)
+        }
+      }
+    }
 
     const detailRows: RaceDetailRow[] = (json_data.details ?? []).map((detail) => ({
       race_id: json_data.id,

@@ -1,7 +1,7 @@
 import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
-import { EFFECT_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP } from '#maps'
+import { EFFECT_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
 import { OPTION_NODE_MAP } from './option.js'
 
 const optionChoice = buildNodeMap<FeatureOptionChoice>()
@@ -30,7 +30,9 @@ const FEATURE_BASICS_SECTIONS = {
 
 const FEATURE_SECTIONS = {
   basics: FEATURE_BASICS_SECTIONS.basics,
-  mechanics: { id: 'mechanics', label: 'Mechanics', order: 10, step: FEATURE_STEPS.mechanics },
+  effects: { id: 'effects', label: 'Effects', order: 10, step: FEATURE_STEPS.mechanics },
+  usage: { id: 'usage', label: 'Usage', order: 20, step: FEATURE_STEPS.mechanics },
+  restrictions: { id: 'restrictions', label: 'Restrictions', order: 30, step: FEATURE_STEPS.mechanics },
   grants: { id: 'grants', label: 'Grants', order: 10, step: FEATURE_STEPS.grants },
   options: { id: 'options', label: 'Options', order: 10, step: FEATURE_STEPS.options }
 } as const
@@ -52,20 +54,20 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', { section: FEATURE_SECTIONS.basics, order: 10 }))
     .set('description', richText(['description'], 'Description', { section: FEATURE_SECTIONS.basics, order: 20 }))
+    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level', { section: FEATURE_SECTIONS.basics, order: 30 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: FEATURE_ATTRIBUTE_OPTIONS
-    }, { section: FEATURE_SECTIONS.basics, order: 30 }))
-    .set('detail', richText(['detail'], 'Detail', { section: FEATURE_SECTIONS.basics, order: 40 }))
-    .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 50 }))
-    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level', { section: FEATURE_SECTIONS.basics, order: 60 }))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: FEATURE_SECTIONS.mechanics, order: 10 }))
+    }, { section: FEATURE_SECTIONS.basics, order: 40 }))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: FEATURE_SECTIONS.basics, order: 50 }))
+    .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 60 }))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: FEATURE_SECTIONS.effects, order: 10 }))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
-      section: FEATURE_SECTIONS.mechanics,
+      section: FEATURE_SECTIONS.usage,
       order: 20,
       showIf: local.field(['attributes']).contains(['LIMITED_USE'])
     }))
-    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, { section: FEATURE_SECTIONS.mechanics, order: 30 }))
+    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, { section: FEATURE_SECTIONS.restrictions, order: 30 }))
     .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, { section: FEATURE_SECTIONS.grants, order: 10 }))
     .set('optionChoices', groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP, { section: FEATURE_SECTIONS.options, order: 10 }))
     .set('options', groupArray(['options'], 'Options', () => OPTION_NODE_MAP, { section: FEATURE_SECTIONS.options, order: 20 }))

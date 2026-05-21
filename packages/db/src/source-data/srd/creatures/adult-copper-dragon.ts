@@ -113,6 +113,7 @@ export const adultCopperDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -172,6 +173,7 @@ export const adultCopperDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -231,6 +233,7 @@ export const adultCopperDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -324,8 +327,9 @@ export const adultCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7, 29),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 18
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -397,8 +401,9 @@ export const adultCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7, 34),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.CONSTITUTION
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION,
+                            baseDc: 18
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,

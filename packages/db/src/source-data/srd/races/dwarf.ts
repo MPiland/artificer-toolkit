@@ -59,20 +59,69 @@ function languageId(code: string): string {
 export const dwarf: RaceAuthored = {
   id: RACE_IDS.DWARF,
   label: 'Dwarf',
+  description: '<p>Your dwarf character has an assortment of inborn abilities, part and parcel of dwarven nature.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
   speeds: dwarfWalk25,
   heritageIds: [SRD_DWARVEN_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(1, 0, 1),
+      label: 'Age',
+      description: 'Dwarves mature at the same rate as humans, but they are considered young until they reach the age of 50. On average, they live about 350 years.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(1, 0, 2),
+      label: 'Alignment',
+      description: 'Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(1, 0, 3),
+      label: 'Size',
+      description: 'Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(1, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
     {
-      id: raceFeatureId(1, 1, 1),
-      label: 'Darkvision',
-      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.',
+      id: raceFeatureId(1, 7, 1),
+      label: 'Ability Score Increase',
+      description: 'Your Constitution score increases by 2.',
       availableAtLevel: 1,
       order: 0,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(1, 7, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
+            domain: { ability: ABILITY_CODE.CONSTITUTION },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED' as const, amount: 2 },
+            order: 0
+          }
+        ]
+      }
+    },
+    {
+      id: raceFeatureId(1, 1, 1),
+      label: 'Darkvision',
+      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+      availableAtLevel: 1,
+      order: 1,
       grants: {
         senses: [
           {
@@ -98,7 +147,7 @@ export const dwarf: RaceAuthored = {
       label: 'Dwarven Resilience',
       description: 'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
-      order: 1,
+      order: 2,
       grants: {
         modifiers: [
           {
@@ -134,7 +183,7 @@ export const dwarf: RaceAuthored = {
       label: 'Dwarven Combat Training',
       description: 'You have proficiency with the battleaxe, handaxe, light hammer, and warhammer.',
       availableAtLevel: 1,
-      order: 2,
+      order: 3,
       grants: {
         proficiencies: [
           {
@@ -147,9 +196,9 @@ export const dwarf: RaceAuthored = {
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             equipmentIds: [
               equipId(15), // battleaxe
-              equipId(4),  // handaxe
-              equipId(6),  // light hammer
-              equipId(31)  // warhammer
+              equipId(4), // handaxe
+              equipId(6), // light hammer
+              equipId(31) // warhammer
             ],
             order: 0
           }
@@ -159,9 +208,9 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 4, 1),
       label: 'Tool Proficiency',
-      description: "You gain proficiency with the artisan's tools of your choice: smith's tools, brewer's supplies, or mason's tools.",
+      description: 'You gain proficiency with the artisan\'s tools of your choice: smith\'s tools, brewer\'s supplies, or mason\'s tools.',
       availableAtLevel: 1,
-      order: 3,
+      order: 4,
       grants: {
         proficiencies: [
           {
@@ -176,7 +225,7 @@ export const dwarf: RaceAuthored = {
             equipmentIds: [
               equipId(52), // brewer's supplies
               equipId(61), // mason's tools
-              equipId(64)  // smith's tools
+              equipId(64) // smith's tools
             ],
             order: 0
           }
@@ -188,14 +237,14 @@ export const dwarf: RaceAuthored = {
       label: 'Stonecunning',
       description: 'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
       availableAtLevel: 1,
-      order: 4
+      order: 5
     },
     {
       id: raceFeatureId(1, 6, 1),
       label: 'Languages',
-      description: 'You can speak, read, and write Common and Dwarvish.',
+      description: 'You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.',
       availableAtLevel: 1,
-      order: 5,
+      order: 6,
       grants: {
         proficiencies: [
           {
@@ -220,6 +269,7 @@ export const dwarf: RaceAuthored = {
 export const hillDwarf: RaceAuthored = {
   id: SUBRACE_IDS.HILL_DWARF,
   label: 'Hill Dwarf',
+  description: '<p>As a hill dwarf, you have keen senses, deep intuition, and remarkable resilience.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.DWARF,
   userId: SRD_USER_ID,
@@ -351,5 +401,3 @@ export const mountainDwarf: RaceAuthored = {
     }
   ]
 }
-
-

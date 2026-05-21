@@ -36,7 +36,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
     xp: 200,
     features: [
         {
-            id: S.featureId(7951, 1),
+            id: S.featureId(70, 1),
             label: 'Bite',
             description: 'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage.',
             effects: [
@@ -56,7 +56,8 @@ export const copperDragonWyrmling: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -95,13 +96,13 @@ export const copperDragonWyrmling: CreatureAuthored = {
             order: 1
         },
         {
-            id: S.featureId(7951, 2),
+            id: S.featureId(70, 2),
             label: 'Spider Climb',
             description: 'Spider Climb. The dragon can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
             order: 2
         },
         {
-            id: S.featureId(7951, 3),
+            id: S.featureId(70, 3),
             label: 'Breath Weapons (Recharge 5-6)',
             description: 'The dragon uses one of the following breath weapons.',
             effects: [
@@ -112,8 +113,9 @@ export const copperDragonWyrmling: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7951, 6),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 11
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -177,8 +179,9 @@ export const copperDragonWyrmling: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7951, 11),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.CONSTITUTION
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION,
+                            baseDc: 11
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,

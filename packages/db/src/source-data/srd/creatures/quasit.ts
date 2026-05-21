@@ -37,19 +37,19 @@ export const quasit: CreatureAuthored = {
     xp: 200,
     features: [
         {
-            id: S.featureId(2663, 1),
+            id: S.featureId(228, 1),
             label: 'Shapechanger',
             description: "Shapechanger. The quasit can use its action to polymorph into a beast form that resembles a bat (speed 10 ft., fly 40 ft.), a centipede (40 ft., climb 40 ft.), or a toad (40 ft., swim 40 ft.), or back into its true form. Its statistics are the same in each form, except for the speed changes noted. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
             order: 1
         },
         {
-            id: S.featureId(2663, 2),
+            id: S.featureId(228, 2),
             label: "Magic Resistance",
             description: "Magic Resistance. The quasit has advantage on saving throws against spells and other magical effects.",
             order: 2
         },
         {
-            id: S.featureId(2663, 3),
+            id: S.featureId(228, 3),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 5 (1d4 + 3) slashing damage, and the target must succeed on a DC 10 Constitution saving throw or be poisoned for 1 minute. While poisoned in this way, the target is also frightened of the quasit. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
             effects: [
@@ -69,7 +69,8 @@ export const quasit: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -108,13 +109,13 @@ export const quasit: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(2663, 4),
+            id: S.featureId(228, 4),
             label: 'Scare',
             description: "Scare. One creature of the quasit's choice within 20 feet of it must succeed on a DC 10 Wisdom saving throw or be frightened for 1 minute. The target can repeat the saving throw at the end of each of its turns, with disadvantage if the quasit is within line of sight, ending the effect on itself on a success.",
             order: 4
         },
         {
-            id: S.featureId(2663, 5),
+            id: S.featureId(228, 5),
             label: 'Invisibility',
             description: 'Invisibility. The quasit magically turns invisible until it attacks or until its concentration ends (as if concentrating on a spell). Any equipment the quasit wears or carries is invisible with it.',
             effects: [

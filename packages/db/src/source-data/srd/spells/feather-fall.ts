@@ -1,14 +1,16 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const featherFall: SpellAuthored = {
     kind: SUBJECT.SPELL,
     id: SPELL_IDS.FEATHER_FALL,
     label: 'Feather Fall',
-    description: 'Choose up to five falling creatures within range. A falling creature’s rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet.',
+    description: 'Choose up to five falling creatures within range. A falling creature\'s rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 1,
     classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a small feather or piece of down",
     magicSchoolId: schoolId('TRANSMUTATION'),
     effects: [
         {
@@ -28,6 +30,7 @@ export const featherFall: SpellAuthored = {
                 },
                 targeting: {
                     selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY,
                     maxTargets: 5
                 }
             },

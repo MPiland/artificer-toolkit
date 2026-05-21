@@ -35,37 +35,37 @@ export const oni: CreatureAuthored = {
     xp: 2900,
     features: [
         {
-            id: S.featureId(3186, 1),
+            id: S.featureId(211, 1),
             label: 'Darkness Aura',
             description: 'Darkness Aura. Magical darkness surrounds the oni in dim light or darkness. A creature with darkvision can see through this darkness only if its darkvision can penetrate magical darkness.',
             order: 1
         },
         {
-            id: S.featureId(3186, 2),
+            id: S.featureId(211, 2),
             label: 'Innate Spellcasting',
             description: "Innate Spellcasting. The oni's innate spellcasting ability is Charisma (spell save DC 13, +5 to hit with spell attacks). The oni can innately cast the following spells, requiring no material components: At will: darkness, invisibility. 1/day each: cone of cold, gaseous form, sleep.",
             order: 2
         },
         {
-            id: S.featureId(3186, 3),
+            id: S.featureId(211, 3),
             label: 'Regeneration',
             description: 'Regeneration. The oni regains 10 hit points at the start of its turn if it has at least 1 hit point and is in dim light or darkness. The oni dies only if it starts its turn with 0 hit points and does not regenerate.',
             order: 3
         },
         {
-            id: S.featureId(3186, 4),
+            id: S.featureId(211, 4),
             label: 'Shapechanger',
             description: "Shapechanger. The oni magically polymorphs into a Small or Medium humanoid, or back into its true form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
             order: 4
         },
         {
-            id: S.featureId(3186, 5),
+            id: S.featureId(211, 5),
             label: 'Multiattack',
             description: 'Multiattack. The oni makes two attacks, only one of which can be with its bite.',
             order: 5
         },
         {
-            id: S.featureId(3186, 6),
+            id: S.featureId(211, 6),
             label: 'Claw',
             description: 'Claw. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
             effects: [
@@ -85,7 +85,8 @@ export const oni: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -124,7 +125,7 @@ export const oni: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(3186, 7),
+            id: S.featureId(211, 7),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 7 (1d6 + 3) piercing damage plus 7 (2d6) cold damage.',
             effects: [
@@ -144,7 +145,8 @@ export const oni: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

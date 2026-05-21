@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const windWalk: SpellAuthored = {
@@ -8,9 +8,10 @@ export const windWalk: SpellAuthored = {
     description: 'You and up to ten willing creatures within range become cloudlike forms with great speed, and can later spend a minute returning to flesh or back to vapor before the spell ends.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
     level: 6,
-    classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
+    classIds: [CLASS_IDS.DRUID],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "fire and holy water",
     magicSchoolId: schoolId('TRANSMUTATION'),
-    materialDescription: 'fire and holy water',
     effects: [
         {
             id: spellChildId(SPELL_IDS.WIND_WALK, 0x210, 1),
@@ -29,6 +30,7 @@ export const windWalk: SpellAuthored = {
                 },
                 targeting: {
                     selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY,
                     maxTargets: 11
                 }
             },

@@ -1,14 +1,16 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const shatter: SpellAuthored = {
     kind: SUBJECT.SPELL,
     id: SPELL_IDS.SHATTER,
     label: 'Shatter',
-    description: 'A sudden loud ringing noise, painfully intense, erupts from a point of your choice within range. Each creature in a 10-foot-radius sphere centered on that point must make a Constitution saving throw, taking 3d8 thunder damage on a failed save, or half as much damage on a successful one.',
+    description: '<p>A sudden loud ringing noise, painfully intense, erupts from a point of your choice within range. Each creature in a 10-foot-radius sphere centered on that point must make a Constitution saving throw, taking 3d8 thunder damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, the damage increases by 1d8 for each slot level above 2nd.</p>',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 2,
-    classIds: [CLASS_IDS.WARLOCK],
+    classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a chip of mica",
     magicSchoolId: schoolId('EVOCATION'),
     effects: [
         {
@@ -18,7 +20,7 @@ export const shatter: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.SHATTER, 0x214, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.CONSTITUTION
                 },
                 activation: {
@@ -32,7 +34,8 @@ export const shatter: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
+                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 },
                 shape: {
                     id: spellChildId(SPELL_IDS.SHATTER, 0x212, 1),

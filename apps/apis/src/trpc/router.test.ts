@@ -8,6 +8,7 @@ describe('tRPC router auth', () => {
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(caller.routeIds.resolve({ subjectKind: 'SPELL', publicId: '1' })).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.nodeRuntime.resolve({ mapId: 'spell', values: {} })).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 })

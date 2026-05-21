@@ -25,6 +25,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateEquipmentMutation,
@@ -32,6 +33,9 @@ import {
   useDuplicateEquipmentMutation,
   useSaveEquipmentDraftMutation
 } from '#app/data/equipment/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
+import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeEquipmentForSubmit,
   toEquipmentFormValues
@@ -45,12 +49,11 @@ type ParsedEquipmentDraft = {
 }
 
 export function EquipmentEditPage() {
-  const route = getRouteApi('/_authed/equipment/$equipmentId/edit')
-  const { response, draft } = route.useLoaderData()
-  const equipmentId = route.useParams().equipmentId
+  const route = getRouteApi('/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit')
+  const { equipmentId, response, draft } = route.useLoaderData()
   const parsedDraft: ParsedEquipmentDraft = parseAuthoredDraftPayload(draft ?? null, equipmentAuthoredDtoSchema)
   const draftEquipment = parsedDraft.item
-  const activeEquipment = response?.item
+  const activeEquipment = response?.item ?? undefined
 
   if (!response) {
     if (!draftEquipment) {
@@ -103,6 +106,7 @@ function EquipmentEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
 }) {
@@ -115,6 +119,20 @@ function EquipmentEditAuthoring({
   const [formValues] = useState(() => toEquipmentFormValues(equipment))
   const readOnly = permissions?.canEdit === false && !draft
   const canCopy = Boolean(permissions?.canCopy && equipmentId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.equipment.deleteActive,
+    deleteDraft: api.content.equipment.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.equipment.detailRoot(equipmentId),
+    domainLabel: 'Equipment',
+    domainQueryKey: queryKeys.content.equipment.all(),
+    draftQueryKey: queryKeys.content.equipment.draft(equipmentId),
+    onDeleted: async () => navigate({ to: '/equipment' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/equipment' })
@@ -127,8 +145,11 @@ function EquipmentEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Equipment activated.' })
 
-      if (response?.item.id && response.item.id !== equipmentId) {
-        await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: response.item.id } })
+      if (response?.item?.id && response.item.id !== equipmentId) {
+        await navigate({
+          params: buildEquipmentRouteParams(response.publicId, response.item.label),
+          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+        })
         return
       }
 
@@ -178,7 +199,10 @@ function EquipmentEditAuthoring({
       notifications.show({ color: 'green', message: 'Equipment duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: copied.subjectId } })
+        await navigate({
+          params: buildEquipmentRouteParams(copied.publicId, copied.label),
+          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that equipment yet.' })
@@ -206,11 +230,26 @@ function EquipmentEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: equipmentId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Equipment'
+    })
+  }, [
+    draft,
+    equipmentId,
+    formValues.label,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Equipment',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeEquipment),
+    isDraft: Boolean(draft),
     mapId: 'equipment',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -218,13 +257,16 @@ function EquipmentEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Equipment',
     subjectLabel: formValues.label || 'Untitled Equipment',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeEquipment,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -233,12 +275,15 @@ function EquipmentEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -260,6 +305,7 @@ function EquipmentEditAuthoring({
         <AuthoringFormLayout>
           <EquipmentAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

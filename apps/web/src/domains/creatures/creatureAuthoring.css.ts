@@ -15,14 +15,14 @@ export const contentWide = style({
 export const fieldGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: foundationVars.space[4]
-    }
-  },
-  '@media': {
-    [mobile]: {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(2, minmax(0, 1fr))',
+      'gap': foundationVars.space[4],
+      '@media': {
+        [mobile]: {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -38,14 +38,14 @@ export const wide = style({
 export const scoreGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-      gap: foundationVars.space[4]
-    }
-  },
-  '@media': {
-    [mobile]: {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
+      'gap': foundationVars.space[4],
+      '@media': {
+        [mobile]: {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })

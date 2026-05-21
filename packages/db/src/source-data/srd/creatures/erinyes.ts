@@ -105,6 +105,7 @@ export const erinyes: CreatureAuthored = {
                         range: { id: S.actionId(98, 8), rangeKind: S.RANGE_KIND.SPECIAL },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -149,6 +150,7 @@ export const erinyes: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

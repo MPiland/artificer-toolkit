@@ -18,6 +18,7 @@ function CharacterSheetHpControls({
   return (
     <div className={styles.hpControls}>
       <NumberInput
+        classNames={{ input: styles.hpControlTarget }}
         disabled={pending}
         label='Amount'
         min={0}
@@ -25,6 +26,7 @@ function CharacterSheetHpControls({
         onChange={(value) => setHitPointDelta(toNumber(value))}
       />
       <Button
+        className={styles.hpControlTarget}
         disabled={pending || hitPointDelta <= 0}
         onClick={() => submitCommand({
           type: 'ADJUST_HIT_POINTS',
@@ -36,6 +38,7 @@ function CharacterSheetHpControls({
         Apply Damage
       </Button>
       <Button
+        className={styles.hpControlTarget}
         disabled={pending || hitPointDelta <= 0}
         variant='default'
         onClick={() => submitCommand({
@@ -48,6 +51,7 @@ function CharacterSheetHpControls({
         Heal
       </Button>
       <NumberInput
+        classNames={{ input: styles.hpControlTarget }}
         disabled={pending}
         label='Temp HP'
         min={0}
@@ -55,6 +59,7 @@ function CharacterSheetHpControls({
         onChange={(value) => setTempHitPoints(toNumber(value))}
       />
       <NumberInput
+        classNames={{ input: styles.hpControlTarget }}
         disabled={pending}
         label='Max HP override'
         min={0}
@@ -63,6 +68,7 @@ function CharacterSheetHpControls({
         onChange={setMaxOverride}
       />
       <Button
+        className={styles.hpControlTarget}
         disabled={pending}
         variant='default'
         onClick={() => submitCommand({
@@ -100,6 +106,7 @@ function CharacterSheetExhaustionControls({
       </div>
       <div className={styles.compactActions}>
         <Button
+          className={styles.compactActionControl}
           disabled={pending || sheet.overview.exhaustionLevel <= 0}
           size='xs'
           variant='default'
@@ -112,6 +119,7 @@ function CharacterSheetExhaustionControls({
           Reduce
         </Button>
         <Button
+          className={styles.compactActionControl}
           disabled={pending || sheet.overview.exhaustionLevel >= 6}
           size='xs'
           onClick={() => submitCommand({
@@ -137,6 +145,7 @@ function CharacterSheetExhaustionControls({
               />
               <div className={styles.compactActions}>
                 <Button
+                  className={styles.compactActionControl}
                   disabled={pending}
                   size='xs'
                   variant='default'

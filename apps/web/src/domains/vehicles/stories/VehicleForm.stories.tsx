@@ -93,7 +93,7 @@ const meta = {
   parameters: {
     docs: {
       description: {
-        component: 'Phase 9.12 Vehicle authoring form using route-loader data, shared authored form layout, node-runtime options, draft sidecar behavior, and locked-master copy affordances.'
+        component: 'Vehicle authoring form using route-loader data, shared authored form layout, node-runtime options, draft sidecar behavior, and locked-master copy affordances.'
       }
     }
   },

@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import * as S from './shared.js';
 import { conditionTypeId } from '../equipment/shared.js';
 export const ancientRedDragon: CreatureAuthored = {
@@ -74,7 +74,8 @@ export const ancientRedDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -151,7 +152,8 @@ export const ancientRedDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -207,7 +209,8 @@ export const ancientRedDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -257,8 +260,9 @@ export const ancientRedDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(21, 33),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.WISDOM
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.WISDOM,
+                            baseDc: 21
                         },
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -309,8 +313,9 @@ export const ancientRedDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(21, 30),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 24
                         },
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(21, 31), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -424,8 +429,9 @@ export const ancientRedDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.legendaryActionId(21, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 25
                         },
                         activation: { code: S.ACTIVATION_CODE.FREE },
                         range: { id: S.legendaryActionId(21, 29), rangeKind: S.RANGE_KIND.SPECIAL }

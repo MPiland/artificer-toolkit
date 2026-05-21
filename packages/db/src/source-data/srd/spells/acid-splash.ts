@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, ABILITY_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, TARGET_SELECTION_KIND, SCALING, SCALING_SOURCE, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, ABILITY_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, SCALING, SCALING_SOURCE, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const acidSplash: SpellAuthored = {
@@ -9,6 +9,7 @@ export const acidSplash: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 0,
     classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('CONJURATION'),
     effects: [
         {
@@ -18,7 +19,7 @@ export const acidSplash: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x214, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.DEXTERITY
                 },
                 activation: {
@@ -33,6 +34,7 @@ export const acidSplash: SpellAuthored = {
                 },
                 targeting: {
                     selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY,
                     maxTargets: 2
                 }
             },

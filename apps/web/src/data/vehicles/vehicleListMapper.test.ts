@@ -22,12 +22,11 @@ describe('vehicle list mapper', () => {
     expect(items[1]?.sourceLabel).toBe('SRD')
   })
 
-  it('builds category, status, and source filters', () => {
+  it('builds category and source filters', () => {
     const filters = buildVehicleListFilters(createVehicleListResponse())
 
     expect(filters.map((filter) => filter.key)).toEqual([
       'category',
-      'status',
       'source'
     ])
     expect(filters[0]?.options.map((option) => option.label)).toContain('Spelljammer')
@@ -44,6 +43,7 @@ function createVehicleListResponse(): VehicleListResponseDto {
     items: [
       {
         id: 'vehicle-1',
+        publicId: 'vehicle-1',
         label: 'Sky Skiff',
         description: '<p>Fast transport.</p>',
         status: 'DRAFT',
@@ -60,6 +60,7 @@ function createVehicleListResponse(): VehicleListResponseDto {
       },
       {
         id: 'vehicle-2',
+        publicId: 'vehicle-2',
         label: 'Spelljammer',
         description: null,
         status: 'ACTIVE',
@@ -75,6 +76,7 @@ function createVehicleListResponse(): VehicleListResponseDto {
         }
       }
     ],
+    drafts: [],
     meta: {}
   }
 }

@@ -1,15 +1,19 @@
 import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 
 export function CharacterSheetDraftOnlyState({
   characterId,
+  characterPublicId,
   label
 }: {
   characterId: string
+  characterPublicId: string
   label?: string
 }) {
   const navigate = useNavigate()
   const displayLabel = label?.trim() || 'Untitled character'
+  const characterParams = buildCharacterRouteParams(characterPublicId, displayLabel)
 
   return (
     <Stack>
@@ -21,7 +25,7 @@ export function CharacterSheetDraftOnlyState({
         </Text>
       </Alert>
       <Group>
-        <Button onClick={() => navigate({ to: '/characters/$characterId/edit', params: { characterId } })}>
+        <Button onClick={() => navigate({ to: '/characters/$characterPublicId/$characterSlug/edit', params: characterParams })}>
           Resume Builder
         </Button>
         <Button variant='default' onClick={() => navigate({ to: '/characters' })}>Back to characters</Button>

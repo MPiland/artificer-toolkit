@@ -109,14 +109,6 @@ export async function upsertVehicle(
   const trx = await db.startTransaction().execute()
 
   try {
-    for (const detail of json_data.details ?? []) {
-      await upsertDetail(trx, detail)
-    }
-
-    for (const feature of json_data.features ?? []) {
-      await upsertFeature(trx, feature, json_data.systemId)
-    }
-
     await trx
       .insertInto('vehicles')
       .values(row)
@@ -132,6 +124,14 @@ export async function upsertVehicle(
       .deleteFrom('vehicle_features')
       .where('vehicle_id', '=', json_data.id)
       .execute()
+
+    for (const detail of json_data.details ?? []) {
+      await upsertDetail(trx, detail)
+    }
+
+    for (const feature of json_data.features ?? []) {
+      await upsertFeature(trx, feature, json_data.systemId)
+    }
 
     if (detailRows.length > 0) {
       await trx

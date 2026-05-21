@@ -34,31 +34,31 @@ export const roper: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(7072, 1),
+            id: S.featureId(239, 1),
             label: 'False Appearance',
             description: 'False Appearance. While the roper remains motionless, it is indistinguishable from a normal stalagmite.',
             order: 1
         },
         {
-            id: S.featureId(7072, 2),
+            id: S.featureId(239, 2),
             label: 'Grasping Tendrils',
             description: 'Grasping Tendrils. The roper has six tendrils, each of which can be attacked (AC 20; 10 hit points; immunity to poison and psychic damage). Regaining hit points for a destroyed tendril does not restore it. A tendril can be severed by any source that deals 10 or more slashing damage to it in a single hit. A destroyed tendril regrows at the start of the roper\'s next turn.',
             order: 2
         },
         {
-            id: S.featureId(7072, 3),
+            id: S.featureId(239, 3),
             label: 'Spider Climb',
             description: 'Spider Climb. The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
             order: 3
         },
         {
-            id: S.featureId(7072, 4),
+            id: S.featureId(239, 4),
             label: 'Multiattack',
             description: 'The roper makes four attacks with its tendrils, uses Reel, and makes one bite attack.',
             order: 4
         },
         {
-            id: S.featureId(7072, 5),
+            id: S.featureId(239, 5),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 22 (4d8 + 4) piercing damage.',
             effects: [
@@ -78,7 +78,8 @@ export const roper: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -117,7 +118,7 @@ export const roper: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(7072, 6),
+            id: S.featureId(239, 6),
             label: 'Tendril',
             description: 'Tendril. Melee Weapon Attack: +7 to hit, reach 50 ft., one target. Hit: The target is grappled (escape DC 15) if it is a Large or smaller creature. Until the grapple ends, the target is restrained and has disadvantage on Strength checks and Strength saving throws, and the roper cannot use the same tendril on another target.',
             effects: [
@@ -137,7 +138,8 @@ export const roper: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -183,7 +185,7 @@ export const roper: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(7072, 7),
+            id: S.featureId(239, 7),
             label: 'Reel',
             description: 'Reel. The roper pulls each creature grappled by it up to 25 feet straight toward it.',
             effects: [

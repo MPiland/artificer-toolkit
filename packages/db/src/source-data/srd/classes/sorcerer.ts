@@ -14,24 +14,18 @@ import {
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
-  SRD_LANGUAGES,
   SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+import { classSpellcastingDetails } from './spellcasting-details.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
-  return entry.id
-}
-
-function languageId(code: string): string {
-  const entry = SRD_LANGUAGES.find((l) => l.code === code)
-  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -151,6 +145,32 @@ export const sorcerer: ClassAuthored = {
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+    details: classSpellcastingDetails(S, [
+      {
+        label: 'Spellcasting',
+        description: '<p>An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic. This font of magic, whatever its origin, fuels your spells.</p>'
+      },
+      {
+        label: 'Cantrips',
+        description: '<p>At 1st level, you know four cantrips of your choice from the sorcerer spell list. You learn additional sorcerer cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Sorcerer table.</p>'
+      },
+      {
+        label: 'Spell Slots',
+        description: '<p>The Sorcerer table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these sorcerer spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>burning hands</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>burning hands</em> using either slot.</p>'
+      },
+      {
+        label: 'Spells Known of 1st Level and Higher',
+        description: '<p>You know two 1st-level spells of your choice from the sorcerer spell list.</p><p>The Spells Known column of the Sorcerer table shows when you learn more sorcerer spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the sorcerer spells you know and replace it with another spell from the sorcerer spell list, which also must be of a level for which you have spell slots.</p>'
+      },
+      {
+        label: 'Spellcasting Ability',
+        description: '<p>Charisma is your spellcasting ability for your sorcerer spells, since the power of your magic relies on your ability to project your will into the world. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a sorcerer spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+      },
+      {
+        label: 'Spellcasting Focus',
+        description: '<p>You can use an arcane focus as a spellcasting focus for your sorcerer spells.</p>'
+      }
+    ]),
     charges: sorcererSlotCharge,
     spellLimits: sorcererSpellLimits
   },

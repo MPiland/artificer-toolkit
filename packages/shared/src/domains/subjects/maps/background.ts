@@ -16,11 +16,11 @@ const DETAIL_SECTIONS = {
 const detailNode = buildNodeMap<DetailAuthored>()
 
 export const BACKGROUND_DETAIL_NODE_MAP = detailNode.define('detail', ({ map, nodes }) => {
-  const { text, number } = nodes
+  const { text, richText, number } = nodes
 
   map
     .set('label', text(['label'], 'Name', { section: DETAIL_SECTIONS.details, order: 10 }))
-    .set('description', text(['description'], 'Description', { section: DETAIL_SECTIONS.details, order: 20 }))
+    .set('description', richText(['description'], 'Description', { section: DETAIL_SECTIONS.details, order: 20 }))
     .set('order', number(['order'], 'Order', { section: DETAIL_SECTIONS.details, order: 30 }))
 })
 

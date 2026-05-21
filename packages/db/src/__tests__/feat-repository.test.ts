@@ -12,9 +12,12 @@ function createFakeDb(rowsByTable: RowMap) {
                 select() {
                     return builder;
                 },
-                where(column: string, _op: string, value: string) {
+                where(column: string, _op: string, value: string | string[]) {
                     state.filtered = state.filtered.filter((row) => {
                         const record = row as Record<string, unknown>;
+                        if (_op === 'in') {
+                            return Array.isArray(value) && value.includes(record[column] as string);
+                        }
                         return record[column] === value;
                     });
                     return builder;
@@ -48,7 +51,6 @@ describe('createFeatRepository', () => {
                     user_id: 'user-1',
                     label: 'Arcane Initiate',
                     description: 'Learns a trick.',
-                    detail: 'Once per day.',
                     prerequisite_id: null,
                     charge_id: 'charge-1'
                 }
@@ -80,6 +82,12 @@ describe('createFeatRepository', () => {
             ],
             feat_modifier_grants: [],
             feat_effects: [],
+            feat_details: [
+                { feat_id: 'feat-1', detail_id: 'feat-detail-1', sort_order: 1 }
+            ],
+            details: [
+                { id: 'feat-detail-1', label: 'Detail', description: 'Once per day.', sort_order: 1 }
+            ],
             feat_features: [
                 { feat_id: 'feat-1', feature_id: 'feature-1', sort_order: 1 }
             ],
@@ -88,7 +96,6 @@ describe('createFeatRepository', () => {
                     id: 'feature-1',
                     label: 'Bonus Cantrip',
                     description: 'Learn an extra trick.',
-                    detail: null,
                     charge_id: null,
                     restriction_id: null,
                     sort_order: 1,
@@ -96,6 +103,7 @@ describe('createFeatRepository', () => {
                 }
             ],
             feature_effects: [],
+            feature_details: [],
             feature_attributes: [],
             feature_feat_grants: [],
             feature_modifier_grants: [],
@@ -174,7 +182,15 @@ describe('createFeatRepository', () => {
             id: 'feat-1',
             label: 'Arcane Initiate',
             description: 'Learns a trick.',
-            detail: 'Once per day.',
+            status: 'DRAFT',
+            details: [
+                {
+                    id: 'feat-detail-1',
+                    label: 'Detail',
+                    description: 'Once per day.',
+                    order: 1
+                }
+            ],
             prerequisites: undefined,
             effects: undefined,
             charges: {
@@ -191,7 +207,7 @@ describe('createFeatRepository', () => {
                     label: 'Bonus Cantrip',
                     description: 'Learn an extra trick.',
                     attributes: undefined,
-                    detail: undefined,
+                    details: undefined,
                     effects: undefined,
                     charges: undefined,
                     grants: undefined,
@@ -264,7 +280,6 @@ describe('createFeatRepository', () => {
                     user_id: 'user-1',
                     label: 'Tough',
                     description: 'Hardier than most.',
-                    detail: null,
                     prerequisite_id: null,
                     charge_id: null
                 }
@@ -273,6 +288,7 @@ describe('createFeatRepository', () => {
             feat_sense_grants: [],
             feat_spell_grants: [],
             feat_modifier_grants: [],
+            feat_details: [],
             feat_effects: [],
             feat_features: []
         }) as never);
@@ -280,8 +296,11 @@ describe('createFeatRepository', () => {
             id: 'feat-2',
             label: 'Tough',
             description: 'Hardier than most.',
-            detail: undefined,
+            status: 'DRAFT',
+            details: undefined,
             prerequisites: undefined,
+            effects: undefined,
+            features: undefined,
             charges: undefined,
             grants: undefined,
             userId: 'user-1',
@@ -297,7 +316,6 @@ describe('createFeatRepository', () => {
                     user_id: 'user-1',
                     label: 'Broken Feat',
                     description: 'Oops.',
-                    detail: null,
                     prerequisite_id: null,
                     charge_id: null
                 }
@@ -308,6 +326,7 @@ describe('createFeatRepository', () => {
             feat_sense_grants: [],
             feat_spell_grants: [],
             feat_modifier_grants: [],
+            feat_details: [],
             feat_effects: [],
             feat_features: [],
             proficiency_grants: [],
@@ -331,7 +350,6 @@ describe('createFeatRepository', () => {
                     user_id: 'user-1',
                     label: 'Agile Striker',
                     description: 'Quick on the draw.',
-                    detail: null,
                     prerequisite_id: null,
                     charge_id: null
                 }
@@ -339,6 +357,7 @@ describe('createFeatRepository', () => {
             feat_proficiency_grants: [],
             feat_sense_grants: [],
             feat_spell_grants: [],
+            feat_details: [],
             feat_modifier_grants: [{ feat_id: 'feat-with-modifier', modifier_grant_id: 'modifier-1', sort_order: 1 }],
             feat_effects: [],
             feat_features: [],
@@ -398,8 +417,11 @@ describe('createFeatRepository', () => {
             id: 'feat-with-modifier',
             label: 'Agile Striker',
             description: 'Quick on the draw.',
-            detail: undefined,
+            status: 'DRAFT',
+            details: undefined,
             prerequisites: undefined,
+            effects: undefined,
+            features: undefined,
             charges: undefined,
             grants: {
                 modifiers: [
@@ -417,8 +439,11 @@ describe('createFeatRepository', () => {
                         scope: 'SOURCE',
                         payload: {
                             ability: 'DEXTERITY',
+                            min: undefined,
+                            max: undefined,
                             multiplier: 1
-                        }
+                        },
+                        restrictions: undefined
                     }
                 ],
                 proficiencies: undefined,
@@ -462,7 +487,7 @@ describe('createFeatRepository', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'feat-PATH_CODE-1__result',
+                                id: 'feat-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -486,7 +511,7 @@ describe('createFeatRepository', () => {
             id: 'feat-effects-1',
             label: 'Blazing Initiate',
             description: 'Carries a direct effect.',
-            detail: undefined,
+            details: undefined,
             prerequisites: undefined,
             effects: [
                 {
@@ -512,7 +537,7 @@ describe('createFeatRepository', () => {
                             pathCode: 'ON_HIT',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'feat-PATH_CODE-1__result',
+                                id: 'feat-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {

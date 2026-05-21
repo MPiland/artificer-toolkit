@@ -6,6 +6,7 @@ const draftBase = {
   id: 'draft-1',
   subjectKind: 'SPELL',
   subjectId: 'spell-1',
+  publicId: '1',
   userId: 'user-1',
   systemId: 'system-1',
   label: 'Fire Lace',

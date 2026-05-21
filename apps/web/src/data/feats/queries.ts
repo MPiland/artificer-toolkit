@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getFeatList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.feats.list(),
-    queryFn: async () => await client.content.feats.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const featQueries = createAuthoredContentQueries(
+  (client) => client.content.feats,
+  queryKeys.content.feats
+)
+
+export function getFeatList(client?: Api) {
+  return featQueries.getList(client)
 }
 
 export function useGetFeatList() {
-  return useSuspenseQuery(getFeatList())
+  return featQueries.useList()
 }
 
-export function getFeat(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.feats.detail(id),
-    queryFn: async () => await client.content.feats.get(id)
-  })
+export function getFeat(input: DetailInput, client?: Api) {
+  return featQueries.getDetail(input, client)
 }
 
-export function useGetFeat(id: string) {
-  return useSuspenseQuery(getFeat(id))
+export function useGetFeat(input: DetailInput) {
+  return featQueries.useDetail(input)
 }
 
-export function getFeatDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.feats.draft(id),
-    queryFn: async () => await client.content.feats.getDraft(id)
-  })
+export function getFeatDraft(id: string, client?: Api) {
+  return featQueries.getDraft(id, client)
 }

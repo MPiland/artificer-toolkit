@@ -28,10 +28,10 @@ describe('equipment list mapper', () => {
     })
   })
 
-  it('builds category, status, and source filters', () => {
+  it('builds category and source filters', () => {
     const filters = buildEquipmentListFilters(equipmentListResponseFixture)
 
-    expect(filters.map((filter) => filter.key)).toEqual(['category', 'status', 'source'])
+    expect(filters.map((filter) => filter.key)).toEqual(['category', 'source'])
     expect(filters[0]?.options.map((option) => option.label)).toContain('Variant')
   })
 

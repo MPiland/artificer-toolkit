@@ -123,7 +123,10 @@ CREATE TABLE IF NOT EXISTS public.race_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -251,7 +254,10 @@ CREATE TABLE IF NOT EXISTS public.race_ancestry_option_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 

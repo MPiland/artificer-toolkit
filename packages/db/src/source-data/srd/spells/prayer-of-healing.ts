@@ -1,14 +1,15 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared'
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const prayerOfHealing: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.PRAYER_OF_HEALING,
   label: 'Prayer of Healing',
-  description: 'Up to six creatures you can see within range regain hit points, though the spell has no effect on undead or constructs.',
+  description: '<p>Up to six creatures you can see within range regain hit points, though the spell has no effect on undead or constructs.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, the healing increases by 1d8 for each slot level above 2nd.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 10 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC],
+  components: [SPELL_COMPONENT.VERBAL],
   magicSchoolId: schoolId('EVOCATION'),
   effects: [
     {
@@ -28,6 +29,7 @@ export const prayerOfHealing: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
           maxTargets: 6,
           excludedCreatureTypeIds: [creatureTypeId('UNDEAD'), creatureTypeId('CONSTRUCT')]
         }

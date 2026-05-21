@@ -17,7 +17,7 @@ export function createEmptyFeat({
     label: '',
     description: '',
     status: 'DRAFT',
-    detail: '',
+    details: [],
     effects: [],
     features: [],
     systemId
@@ -33,7 +33,7 @@ export function normalizeFeatForSubmit(feat: FeatAuthoringInputDto | FeatAuthore
     ...feat,
     label: feat.label.trim() || 'Untitled Feat',
     description: feat.description ?? '',
-    detail: feat.detail ?? '',
+    details: feat.details ?? [],
     status: feat.status ?? 'DRAFT',
     effects: feat.effects ?? [],
     features: feat.features ?? [],

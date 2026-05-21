@@ -28,13 +28,13 @@ export const rugOfSmothering: CreatureAuthored = {
     xp: 450,
     features: [
         {
-            id: S.featureId(7705, 1),
+            id: S.featureId(240, 1),
             label: 'False Appearance',
             description: 'False Appearance. While the rug remains motionless, it is indistinguishable from a normal rug.',
             order: 1
         },
         {
-            id: S.featureId(7705, 2),
+            id: S.featureId(240, 2),
             label: 'Smother',
             description: 'Smother. The rug targets one Medium or smaller creature within 5 feet of it. On a hit, the target is grappled (escape DC 13), and while grappled by the rug it is restrained and blinded. If the rug moves, the grappled target moves with it. If the target is still grappled at the start of the rug’s turn, the target takes bludgeoning damage and begins suffocating.',
             effects: [
@@ -54,7 +54,8 @@ export const rugOfSmothering: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

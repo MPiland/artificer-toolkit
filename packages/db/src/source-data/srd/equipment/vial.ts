@@ -7,7 +7,7 @@ export const vial: EquipmentAuthored = {
     label: S.EQUIPMENT_PROPERTY_CODE.VIAL,
     description: "A small glass container suitable for holding potions, inks, or reagents.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER, S.EQUIPMENT_PROPERTY_CODE.VIAL],
     cost: S.gp(1),
     weight: S.lbs(0),
     capacity: { amount: 4, unit: S.MEASUREMENT_UNIT_CODE.OUNCES },

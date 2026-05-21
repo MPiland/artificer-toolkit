@@ -28,13 +28,13 @@ export const warhorse: CreatureAuthored = {
     xp: 100,
     features: [
         {
-            id: S.featureId(1917, 1),
+            id: S.featureId(283, 1),
             label: 'Trampling Charge',
             description: 'Trampling Charge. If the warhorse moves at least 20 feet straight toward a target and then hits it with a hooves attack on the same turn, the target must succeed on a Strength saving throw or be knocked prone. If the target is prone, the warhorse can make one hooves attack against it as a bonus action.',
             order: 1
         },
         {
-            id: S.featureId(1917, 2),
+            id: S.featureId(283, 2),
             label: 'Hooves',
             description: 'Hooves. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage.',
             effects: [
@@ -54,7 +54,8 @@ export const warhorse: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

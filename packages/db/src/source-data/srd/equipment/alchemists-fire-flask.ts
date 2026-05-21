@@ -4,9 +4,9 @@ export const alchemistsFireFlask: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(120),
     label: "Alchemist's Fire (flask)",
-    description: "A sticky, adhesive fluid that ignites on contact with air and is difficult to extinguish.",
+    description: "This sticky, adhesive fluid ignites when exposed to air. As an action, you can throw this flask up to 20 feet, shattering it on impact. Make a ranged attack against a creature or object, treating the alchemist's fire as an improvised weapon. On a hit, the target takes 1d4 fire damage at the start of each of its turns. A creature can end this damage by using its action to make a DC 10 Dexterity check to extinguish the flames.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.FLASK],
     effects: [
         {
             id: S.equipmentChildId(S.equipId(120), 0x210, 1),
@@ -22,7 +22,8 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.SPECIAL
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

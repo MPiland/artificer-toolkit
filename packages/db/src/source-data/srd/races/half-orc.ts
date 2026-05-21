@@ -48,11 +48,38 @@ const halfOrcWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNI
 export const halfOrc: RaceAuthored = {
   id: RACE_IDS.HALF_ORC,
   label: 'Half-Orc',
+  description: '<p>Your half-orc character has certain traits deriving from your orc ancestry.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: halfOrcWalk30,
   heritageIds: [SRD_HUMAN_HERITAGE_ID, SRD_ORCISH_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(8, 0, 1),
+      label: 'Age',
+      description: 'Half-orcs mature a little faster than humans, reaching adulthood around age 14. They age noticeably faster and rarely live longer than 75 years.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(8, 0, 2),
+      label: 'Alignment',
+      description: 'Half-orcs inherit a tendency toward chaos from their orc parents and are not strongly inclined toward good. Half-orcs raised among orcs and willing to live out their lives among them are usually evil.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(8, 0, 3),
+      label: 'Size',
+      description: 'Half-orcs are somewhat larger and bulkier than humans, ranging from 5 to well over 6 feet tall. Your size is Medium.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(8, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 30 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -92,7 +119,7 @@ export const halfOrc: RaceAuthored = {
     {
       id: raceFeatureId(8, 2, 1),
       label: 'Darkvision',
-      description: 'Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.',
+      description: 'Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 1,
       grants: {

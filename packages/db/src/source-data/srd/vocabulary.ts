@@ -1,7 +1,9 @@
 import type { SystemSeedRecord } from '../content.js'
 
 export const SRD_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
-export const SRD_USER_ID = '00000000-0000-0000-0000-000000000000'
+const SRD_FALLBACK_USER_ID = '00000000-0000-0000-0000-000000000000'
+
+export const SRD_USER_ID = process.env.SEED_OWNER_USER_ID ?? SRD_FALLBACK_USER_ID
 
 // ─── Vocabulary ID helpers ────────────────────────────────────────────────────
 // IDs are stable UUIDs derived from a simple prefix+index scheme so they are

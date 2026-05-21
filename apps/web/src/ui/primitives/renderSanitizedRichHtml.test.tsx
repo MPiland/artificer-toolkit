@@ -24,4 +24,29 @@ describe('renderSanitizedRichHtml', () => {
     expect(html).not.toContain('style=')
     expect(html).not.toContain('javascript:')
   })
+
+  it('keeps safe table width styles and removes unsafe table styles', () => {
+    const html = renderToStaticMarkup(renderSanitizedRichHtml(`
+      <table style="width: 100%; background: url(javascript:alert(1))">
+        <colgroup>
+          <col style="width: 5rem; color: red" />
+          <col style="min-width: 24ch" />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style="width: 25%">d8</td>
+            <td style="position: fixed">Trait</td>
+          </tr>
+        </tbody>
+      </table>
+    `))
+
+    expect(html).toContain('style="width:100%"')
+    expect(html).toContain('style="width:5rem"')
+    expect(html).toContain('style="min-width:24ch"')
+    expect(html).toContain('style="width:25%"')
+    expect(html).not.toContain('background')
+    expect(html).not.toContain('position')
+    expect(html).not.toContain('javascript:')
+  })
 })

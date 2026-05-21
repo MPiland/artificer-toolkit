@@ -31,25 +31,25 @@ export const shamblingMound: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(4581, 1),
+            id: S.featureId(251, 1),
             label: 'False Appearance',
             description: 'False Appearance. While the mound remains motionless, it is indistinguishable from a hump of wet earth.',
             order: 1
         },
         {
-            id: S.featureId(4581, 2),
+            id: S.featureId(251, 2),
             label: 'Lightning Absorption',
             description: 'Lightning Absorption. Whenever the mound is subjected to lightning damage, it takes no damage and regains hit points instead.',
             order: 2
         },
         {
-            id: S.featureId(4581, 3),
+            id: S.featureId(251, 3),
             label: 'Engulf',
             description: 'Engulf. If the mound moves through a creature’s space, that creature must make a Dexterity saving throw or be engulfed. An engulfed creature is restrained, blinded, and unable to breathe, and it takes bludgeoning damage at the start of each of the mound’s turns until it escapes.',
             order: 3
         },
         {
-            id: S.featureId(4581, 4),
+            id: S.featureId(251, 4),
             label: 'Slam',
             description: 'Slam. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage.',
             effects: [
@@ -69,7 +69,8 @@ export const shamblingMound: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

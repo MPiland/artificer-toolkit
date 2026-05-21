@@ -7,7 +7,7 @@ export const flaskOrTankard: EquipmentAuthored = {
     label: 'Flask or Tankard',
     description: "A metal flask or ceramic tankard for drinking water, ale, or other beverages.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER, S.EQUIPMENT_PROPERTY_CODE.FLASK, S.EQUIPMENT_PROPERTY_CODE.DRINK],
     cost: S.cp(2),
     weight: S.lbs(1),
     capacity: { amount: 0.5, unit: S.MEASUREMENT_UNIT_CODE.QUARTS },

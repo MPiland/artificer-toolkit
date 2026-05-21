@@ -4,9 +4,9 @@ export const antitoxinVial: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(121),
     label: 'Antitoxin (vial)',
-    description: "A vial of medicine that grants advantage on saving throws against poison for 1 hour.",
+    description: "A creature that drinks this vial of liquid gains advantage on saving throws against poison for 1 hour. It confers no benefit to undead or constructs.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL, S.EQUIPMENT_PROPERTY_CODE.DRINK],
     effects: [
         {
             id: S.equipmentChildId(S.equipId(121), 0x210, 1),
@@ -22,7 +22,8 @@ export const antitoxinVial: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

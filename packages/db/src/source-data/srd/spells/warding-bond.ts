@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, DURATION_KIND, RANGE_KIND, SUBJECT, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, DURATION_KIND, RANGE_KIND, SUBJECT, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const wardingBond: SpellAuthored = {
@@ -9,8 +9,9 @@ export const wardingBond: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 2,
     classIds: [CLASS_IDS.CLERIC],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a pair of platinum rings worth at least 50 gp each, which you and the target must wear for the duration",
     magicSchoolId: schoolId('ABJURATION'),
-    materialDescription: 'a pair of platinum rings worth at least 50 gp each, which you and the target must wear for the duration',
     effects: [
         {
             id: spellChildId(SPELL_IDS.WARDING_BOND, 0x210, 1),

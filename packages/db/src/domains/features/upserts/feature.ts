@@ -5,7 +5,7 @@ import {
   type FeatureAuthored
 } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
-import { upsertCharge } from '../../shared/upserts/index.js'
+import { upsertCharge, upsertDetail } from '../../shared/upserts/index.js'
 import {
   upsertFeatGrant,
   upsertModifierGrant,
@@ -20,11 +20,16 @@ type FeatureRow = {
   id: string
   label: string
   description: string
-  detail: string | null
   charge_id: string | null
   restriction_id: string | null
   sort_order: number
   available_at_level: number | null
+}
+
+type FeatureDetailRow = {
+  feature_id: string
+  detail_id: string
+  sort_order: number
 }
 
 type FeatureAttributeRow = {
@@ -93,7 +98,6 @@ function mapFeatureRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>)
     id: json_data.id,
     label: json_data.label,
     description: json_data.description,
-    detail: json_data.detail ?? null,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
     sort_order: json_data.order,
@@ -118,7 +122,6 @@ async function upsertFeatureRow(
     .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
       label: ref('excluded.label'),
       description: ref('excluded.description'),
-      detail: ref('excluded.detail'),
       charge_id: ref('excluded.charge_id'),
       restriction_id: ref('excluded.restriction_id'),
       sort_order: ref('excluded.sort_order'),
@@ -148,6 +151,11 @@ export async function upsertFeature<N extends NodeSubjectCode>(
   json_data: FeatureAuthored<N>,
   systemId?: string
 ): Promise<void> {
+  const detailRows: FeatureDetailRow[] = (json_data.details ?? []).map((detail) => ({
+    feature_id: json_data.id,
+    detail_id: detail.id,
+    sort_order: detail.order
+  }))
   const attributeRows: FeatureAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
     feature_id: json_data.id,
     attribute_code: requireFeatureAttribute(json_data.id, attribute),
@@ -221,6 +229,8 @@ export async function upsertFeature<N extends NodeSubjectCode>(
 
     await trx.deleteFrom('feature_attributes').where('feature_id', '=', json_data.id)
       .execute()
+    await trx.deleteFrom('feature_details').where('feature_id', '=', json_data.id)
+      .execute()
     await trx.deleteFrom('feature_feat_grants').where('feature_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('feature_modifier_grants').where('feature_id', '=', json_data.id)
@@ -253,6 +263,10 @@ export async function upsertFeature<N extends NodeSubjectCode>(
 
     for (const effect of authoredEffects) {
       await upsertEffect(trx, effect)
+    }
+
+    for (const detail of json_data.details ?? []) {
+      await upsertDetail(trx, detail)
     }
 
     for (const grant of json_data.grants?.feats ?? []) {
@@ -293,6 +307,11 @@ export async function upsertFeature<N extends NodeSubjectCode>(
 
     if (attributeRows.length > 0) {
       await trx.insertInto('feature_attributes').values(attributeRows)
+        .execute()
+    }
+
+    if (detailRows.length > 0) {
+      await trx.insertInto('feature_details').values(detailRows)
         .execute()
     }
 

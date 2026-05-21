@@ -9,7 +9,7 @@ import {
 } from '../grants/index.js'
 import { effectDtoSchema } from '../effects/index.js'
 import { featureDtoSchema } from '../features/index.js'
-import { chargeDtoSchema, facetDtoSchema } from '../shared/index.js'
+import { chargeDtoSchema, detailDtoSchema, facetDtoSchema } from '../shared/index.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'
 
 export const featAuthoredDtoSchema = z.object({
@@ -17,7 +17,8 @@ export const featAuthoredDtoSchema = z.object({
   label: z.string(),
   description: z.string(),
   status: authoredRecordStatusSchema.optional(),
-  detail: z.string().optional(),
+  detail: z.never().optional(),
+  details: z.array(detailDtoSchema).optional(),
   prerequisites: facetDtoSchema.optional(),
   effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),

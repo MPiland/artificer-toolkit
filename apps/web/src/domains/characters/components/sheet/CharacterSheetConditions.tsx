@@ -27,6 +27,7 @@ function CharacterSheetConditionRow({
       </div>
       <div className={styles.compactActions}>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Edit ${condition.label} notes`}
           disabled={pending}
           size='xs'
@@ -36,6 +37,7 @@ function CharacterSheetConditionRow({
           Notes
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Remove ${condition.label} condition`}
           disabled={pending}
           size='xs'
@@ -62,6 +64,7 @@ function CharacterSheetConditionRow({
           />
           <div className={styles.compactActions}>
             <Button
+              className={styles.compactActionControl}
               disabled={pending}
               size='xs'
               onClick={() => submitCommand({
@@ -103,6 +106,7 @@ export function CharacterSheetConditions({
         <div className={styles.compactActions}>
           <Select
             aria-label='Add condition'
+            classNames={{ input: styles.compactActionControl }}
             data={sheet.reference.conditionOptions.map((option) => ({
               value: option.id,
               label: option.label
@@ -115,12 +119,14 @@ export function CharacterSheetConditions({
           />
           <TextInput
             aria-label='Condition notes'
+            classNames={{ input: styles.compactActionControl }}
             disabled={pending}
             placeholder='Notes'
             value={conditionNotes}
             onChange={(event) => setConditionNotes(event.currentTarget.value)}
           />
           <Button
+            className={styles.compactActionControl}
             disabled={pending || !conditionTypeId}
             size='xs'
             onClick={() => {

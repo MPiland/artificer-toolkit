@@ -16,7 +16,8 @@ import {
   PATH_ROLL_TABLE_KIND,
   PATH_CODES_BY_TRIGGER,
   RANGE_KIND,
-  SAVING_THROW_KIND,
+  SAVING_THROW_DC_BONUS_KIND,
+  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALABLE_SCALING_KIND,
   SCALING_SOURCE,
@@ -35,6 +36,7 @@ import {
   type RangeAuthored,
   type ScalableValueAuthored,
   type SavingThrowAuthored,
+  type SavingThrowDcBonusAuthored,
   type ShapeAuthored,
   type ShapeMeasurementAuthored,
   type TargetingAuthored,
@@ -43,9 +45,54 @@ import {
 import type { DBLike, Json } from '#types'
 import { upsertEffect } from '../upserts/effect.js'
 import type { EffectRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 type DamageBonus = NonNullable<DamageAuthored['bonuses']>[number]
 type EffectPath = NonNullable<EffectAuthored['paths']>[number]
 type ResultBlock = Extract<EffectPath, { selectionKind: 'FIXED' }>['resultBlock']
+type DbNumeric = number | string
+type DamageRow = {
+  id: string
+  damage_type_id: string
+  value_kind: string
+  scaling_kind: string
+  scaling_source: string | null
+  class_id: string | null
+}
+type DamageValueRow = {
+  damage_id: string
+  amount: DbNumeric | null
+  dice: string | null
+  multiplier: DbNumeric | null
+  min: DbNumeric | null
+  max: DbNumeric | null
+}
+type DamageScalingLevelRow = {
+  id: string
+  damage_id: string
+  level: number
+  sort_order: number
+  amount: DbNumeric | null
+  dice: string | null
+}
+type DamageBonusRow = {
+  id: string
+  damage_id: string
+  bonus_kind: string
+  ability_code: string | null
+  skill_id: string | null
+  multiplier: DbNumeric | null
+  min: DbNumeric | null
+  max: DbNumeric | null
+  sort_order: number
+}
+type SavingThrowDcBonusRow = {
+  id: string
+  saving_throw_id: string
+  bonus_kind: string
+  ability_code: string | null
+  amount: DbNumeric | null
+  sort_order: number
+}
 
 function readScalableValue<TValue extends Record<string, unknown>>(value: Json | null | undefined): ScalableValueAuthored<TValue> | undefined {
   return value == null
@@ -59,6 +106,59 @@ function requireLinkedRecord<T>(value: T | null | undefined, message: string): T
   }
 
   return value
+}
+
+function indexRowsById<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
+  return new Map(rows.map((row) => [row.id, row]))
+}
+
+function groupRowsByKey<T, K extends string>(
+  rows: readonly T[],
+  getKey: (row: T) => K
+): Map<K, T[]> {
+  const grouped = new Map<K, T[]>()
+
+  for (const row of rows) {
+    const key = getKey(row)
+    const group = grouped.get(key)
+
+    if (group) {
+      group.push(row)
+    } else {
+      grouped.set(key, [row])
+    }
+  }
+
+  return grouped
+}
+
+function readNumericValue(ownerId: string, value: DbNumeric, field: string): number {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error(`Owned row "${ownerId}" has invalid ${field} "${String(value)}".`)
+  }
+
+  return numericValue
+}
+
+function readOptionalNumericValue(
+  ownerId: string,
+  value: DbNumeric | null | undefined,
+  field: string
+): number | undefined {
+  return value == null
+    ? undefined
+    : readNumericValue(ownerId, value, field)
+}
+
+function requireNumericValue(
+  ownerId: string,
+  value: DbNumeric | null | undefined,
+  field: string,
+  message: string
+): number {
+  return readNumericValue(ownerId, requireLinkedRecord(value, message), field)
 }
 
 function buildActivation(
@@ -128,12 +228,20 @@ function requireDurationKind(characteristicId: string, value: string) {
   return value as keyof typeof DURATION_KIND
 }
 
-function requireSavingThrowKind(savingThrowId: string, value: string) {
-  if (!(value in SAVING_THROW_KIND)) {
-    throw new Error(`Saving throw "${savingThrowId}" has invalid kind "${value}".`)
+function requireSavingThrowDcMethod(savingThrowId: string, value: string) {
+  if (!(value in SAVING_THROW_DC_METHOD)) {
+    throw new Error(`Saving throw "${savingThrowId}" has invalid DC method "${value}".`)
   }
 
-  return value as keyof typeof SAVING_THROW_KIND
+  return value as keyof typeof SAVING_THROW_DC_METHOD
+}
+
+function requireSavingThrowDcBonusKind(bonusId: string, value: string) {
+  if (!(value in SAVING_THROW_DC_BONUS_KIND)) {
+    throw new Error(`Saving throw DC bonus "${bonusId}" has invalid kind "${value}".`)
+  }
+
+  return value as keyof typeof SAVING_THROW_DC_BONUS_KIND
 }
 
 function requirePathCode(effectId: string, triggerCode: Trigger, value: string) {
@@ -340,7 +448,7 @@ async function hydrateRangeById(db: DBLike, id: string) {
     return {
       id,
       rangeKind: kind,
-      amount: requireLinkedRecord(range.min, `Range characteristic "${id}" is missing amount.`),
+      amount: requireNumericValue(id, range.min, 'range.min', `Range characteristic "${id}" is missing amount.`),
       unit: requireMeasurementUnit(id, requireLinkedRecord(range.unit_code, `Range characteristic "${id}" is missing unit_code.`)),
       scaling: readScalableValue<{
         amount: number
@@ -372,7 +480,7 @@ async function hydrateDurationById(db: DBLike, id: string): Promise<DurationAuth
   return {
     id,
     durationKind: kind,
-    amount: requireLinkedRecord(duration.amount, `Duration characteristic "${id}" is missing amount.`),
+    amount: requireNumericValue(id, duration.amount, 'duration.amount', `Duration characteristic "${id}" is missing amount.`),
     scaling: readScalableValue<{ amount: number }>(duration.scaling)
   } as DurationAuthored
 }
@@ -399,7 +507,7 @@ async function hydrateShapeById(db: DBLike, id: string): Promise<ShapeAuthored> 
     const row = requireLinkedRecord(dimensions.get(dimension), `Shape characteristic "${id}" is missing dimension "${dimension}".`)
 
     return {
-      amount: row.amount,
+      amount: requireNumericValue(id, row.amount, `shape.${dimension}.amount`, `Shape characteristic "${id}" is missing ${dimension} amount.`),
       unit: requireMeasurementUnit(id, row.unit_code),
       scaling: readScalableValue<{
         amount: number
@@ -455,29 +563,308 @@ async function hydrateShapeById(db: DBLike, id: string): Promise<ShapeAuthored> 
   }
 }
 
-async function hydrateSavingThrowById(db: DBLike, id: string) {
-  const row = await db
-    .selectFrom('saving_throws')
-    .select(['saving_throw_kind', 'ability_code', 'dc'])
-    .where('id', '=', id)
-    .executeTakeFirst()
+function buildSavingThrowDcBonus(row: SavingThrowDcBonusRow): SavingThrowDcBonusAuthored {
+  const bonusKind = requireSavingThrowDcBonusKind(row.id, row.bonus_kind)
 
-  const savingThrow = requireLinkedRecord(row, `Saving throw "${id}" is missing.`)
-  const kind = requireSavingThrowKind(id, savingThrow.saving_throw_kind)
-
-  if (kind === SAVING_THROW_KIND.SOURCE_SAVE_DC) {
+  if (bonusKind === SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER) {
     return {
-      id,
-      savingThrowKind: kind
+      id: row.id,
+      bonusKind,
+      ability: requireAbilityCode(row.id, requireLinkedRecord(row.ability_code, `Saving throw DC bonus "${row.id}" is missing ability_code.`))
+    }
+  }
+
+  if (bonusKind === SAVING_THROW_DC_BONUS_KIND.STATIC_BONUS) {
+    return {
+      id: row.id,
+      bonusKind,
+      amount: requireNumericValue(
+        row.id,
+        row.amount,
+        'amount',
+        `Saving throw DC bonus "${row.id}" is missing amount.`
+      )
     }
   }
 
   return {
-    id,
-    savingThrowKind: kind,
-    ability: requireAbilityCode(id, requireLinkedRecord(savingThrow.ability_code, `Saving throw "${id}" is missing ability_code.`)),
-    dc: requireLinkedRecord(savingThrow.dc, `Saving throw "${id}" is missing dc.`)
+    id: row.id,
+    bonusKind
   }
+}
+
+async function hydrateSavingThrowBonusesBySavingThrowIds(
+  db: DBLike,
+  ids: readonly string[]
+): Promise<Map<string, SavingThrowDcBonusAuthored[]>> {
+  const distinctIds = uniqueIds(ids)
+  const rows = distinctIds.length > 0
+    ? await db
+      .selectFrom('saving_throw_dc_bonuses')
+      .select(['id', 'saving_throw_id', 'bonus_kind', 'ability_code', 'amount', 'sort_order'])
+      .where('saving_throw_id', 'in', distinctIds)
+      .orderBy('sort_order')
+      .execute() as SavingThrowDcBonusRow[]
+    : []
+  const groupedRows = groupRowsByKey(rows, (row) => row.saving_throw_id)
+  const bonuses = new Map<string, SavingThrowDcBonusAuthored[]>()
+
+  for (const id of distinctIds) {
+    bonuses.set(id, (groupedRows.get(id) ?? []).map(buildSavingThrowDcBonus))
+  }
+
+  return bonuses
+}
+
+async function hydrateSavingThrowById(db: DBLike, id: string) {
+  const [row, bonusesBySavingThrowId] = await Promise.all([
+    db
+      .selectFrom('saving_throws')
+      .select(['dc_method', 'ability_code', 'base_dc'])
+      .where('id', '=', id)
+      .executeTakeFirst(),
+    hydrateSavingThrowBonusesBySavingThrowIds(db, [id])
+  ])
+
+  const savingThrow = requireLinkedRecord(row, `Saving throw "${id}" is missing.`)
+  const dcMethod = requireSavingThrowDcMethod(id, savingThrow.dc_method)
+
+  if (dcMethod === SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC) {
+    return {
+      id,
+      dcMethod,
+      ability: requireAbilityCode(id, requireLinkedRecord(savingThrow.ability_code, `Saving throw "${id}" is missing ability_code.`))
+    }
+  }
+
+  const bonuses = bonusesBySavingThrowId.get(id) ?? []
+
+  return {
+    id,
+    dcMethod,
+    ability: requireAbilityCode(id, requireLinkedRecord(savingThrow.ability_code, `Saving throw "${id}" is missing ability_code.`)),
+    baseDc: requireLinkedRecord(savingThrow.base_dc, `Saving throw "${id}" is missing base_dc.`),
+    bonuses: dcMethod === SAVING_THROW_DC_METHOD.DERIVED_DC
+      ? bonuses
+      : bonuses.length > 0
+        ? bonuses
+        : undefined
+  } as SavingThrowAuthored
+}
+
+async function hydrateRangesByIds(db: DBLike, ids: readonly string[]): Promise<Map<string, RangeAuthored>> {
+  const distinctIds = uniqueIds(ids)
+  const rows = distinctIds.length > 0
+    ? await db
+      .selectFrom('characteristic_ranges')
+      .select([
+        'characteristic_id', 'kind', 'min', 'unit_code', 'scaling'
+      ])
+      .where('characteristic_id', 'in', distinctIds)
+      .execute()
+    : []
+  const ranges = new Map<string, RangeAuthored>()
+
+  for (const id of distinctIds) {
+    const row = requireLinkedRecord(
+      rows.find((range) => range.characteristic_id === id),
+      `Range characteristic "${id}" is missing.`
+    )
+    const kind = requireRangeKind(id, row.kind)
+
+    ranges.set(
+      id,
+      kind === RANGE_KIND.DISTANCE
+        ? {
+            id,
+            rangeKind: kind,
+            amount: requireNumericValue(id, row.min, 'range.min', `Range characteristic "${id}" is missing amount.`),
+            unit: requireMeasurementUnit(id, requireLinkedRecord(row.unit_code, `Range characteristic "${id}" is missing unit_code.`)),
+            scaling: readScalableValue<{
+              amount: number
+              unit: keyof typeof MEASUREMENT_UNIT_CODE
+            }>(row.scaling)
+          } as RangeAuthored
+        : {
+            id,
+            rangeKind: kind
+          }
+    )
+  }
+
+  return ranges
+}
+
+async function hydrateDurationsByIds(db: DBLike, ids: readonly string[]): Promise<Map<string, DurationAuthored>> {
+  const distinctIds = uniqueIds(ids)
+  const rows = distinctIds.length > 0
+    ? await db
+      .selectFrom('characteristic_durations')
+      .select(['characteristic_id', 'kind', 'amount', 'scaling'])
+      .where('characteristic_id', 'in', distinctIds)
+      .execute()
+    : []
+  const durations = new Map<string, DurationAuthored>()
+
+  for (const id of distinctIds) {
+    const row = requireLinkedRecord(
+      rows.find((duration) => duration.characteristic_id === id),
+      `Duration characteristic "${id}" is missing.`
+    )
+    const kind = requireDurationKind(id, row.kind)
+
+    durations.set(
+      id,
+      kind === DURATION_KIND.INSTANTANEOUS
+        ? { id, durationKind: kind }
+        : {
+            id,
+            durationKind: kind,
+            amount: requireNumericValue(id, row.amount, 'duration.amount', `Duration characteristic "${id}" is missing amount.`),
+            scaling: readScalableValue<{ amount: number }>(row.scaling)
+          } as DurationAuthored
+    )
+  }
+
+  return durations
+}
+
+async function hydrateShapesByIds(db: DBLike, ids: readonly string[]): Promise<Map<string, ShapeAuthored>> {
+  const distinctIds = uniqueIds(ids)
+  const [shapeRows, dimensionRows] = distinctIds.length > 0
+    ? await Promise.all([
+      db.selectFrom('characteristic_shapes')
+        .select(['characteristic_id', 'kind'])
+        .where('characteristic_id', 'in', distinctIds)
+        .execute(),
+      db.selectFrom('characteristic_shape_dimensions')
+        .select([
+          'characteristic_id', 'dimension', 'amount', 'unit_code', 'scaling'
+        ])
+        .where('characteristic_id', 'in', distinctIds)
+        .execute()
+    ])
+    : [[], []]
+  const shapes = new Map<string, ShapeAuthored>()
+  const dimensionsByShapeId = groupRowsByKey(dimensionRows, (row) => row.characteristic_id)
+
+  for (const id of distinctIds) {
+    const shape = requireLinkedRecord(
+      shapeRows.find((row) => row.characteristic_id === id),
+      `Shape characteristic "${id}" is missing.`
+    )
+    const kind = requireShapeKind(id, shape.kind)
+    const dimensions = new Map((dimensionsByShapeId.get(id) ?? []).map((row) => [row.dimension, row]))
+    const measurement = (dimension: string) => {
+      const row = requireLinkedRecord(dimensions.get(dimension), `Shape characteristic "${id}" is missing dimension "${dimension}".`)
+
+      return {
+        amount: requireNumericValue(id, row.amount, `shape.${dimension}.amount`, `Shape characteristic "${id}" is missing ${dimension} amount.`),
+        unit: requireMeasurementUnit(id, row.unit_code),
+        scaling: readScalableValue<{
+          amount: number
+          unit: keyof typeof MEASUREMENT_UNIT_CODE
+        }>(row.scaling)
+      } as ShapeMeasurementAuthored
+    }
+
+    switch (kind) {
+      case SHAPE_KIND.LINE:
+      case SHAPE_KIND.CONE:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          length: measurement('LENGTH')
+        })
+        break
+
+      case SHAPE_KIND.CUBE:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          edgeLength: measurement('EDGE_LENGTH')
+        })
+        break
+
+      case SHAPE_KIND.CYLINDER:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          radius: measurement('RADIUS'),
+          height: dimensions.has('HEIGHT') ? measurement('HEIGHT') : undefined
+        })
+        break
+
+      case SHAPE_KIND.SPHERE:
+      case SHAPE_KIND.CIRCLE:
+      case SHAPE_KIND.DOME:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          radius: measurement('RADIUS')
+        })
+        break
+
+      case SHAPE_KIND.WALL:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          length: measurement('LENGTH'),
+          height: measurement('HEIGHT'),
+          thickness: dimensions.has('THICKNESS') ? measurement('THICKNESS') : undefined
+        })
+        break
+
+      default:
+        kind satisfies never
+    }
+  }
+
+  return shapes
+}
+
+async function hydrateSavingThrowsByIds(db: DBLike, ids: readonly string[]): Promise<Map<string, SavingThrowAuthored>> {
+  const distinctIds = uniqueIds(ids)
+  const [rows, bonusesBySavingThrowId] = distinctIds.length > 0
+    ? await Promise.all([
+      db
+        .selectFrom('saving_throws')
+        .select(['id', 'dc_method', 'ability_code', 'base_dc'])
+        .where('id', 'in', distinctIds)
+        .execute(),
+      hydrateSavingThrowBonusesBySavingThrowIds(db, distinctIds)
+    ])
+    : [[], new Map<string, SavingThrowDcBonusAuthored[]>()] as const
+  const savingThrows = new Map<string, SavingThrowAuthored>()
+
+  for (const id of distinctIds) {
+    const row = requireLinkedRecord(rows.find((savingThrow) => savingThrow.id === id), `Saving throw "${id}" is missing.`)
+    const dcMethod = requireSavingThrowDcMethod(id, row.dc_method)
+    const bonuses = bonusesBySavingThrowId.get(id) ?? []
+
+    savingThrows.set(
+      id,
+      dcMethod === SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
+        ? {
+            id,
+            dcMethod,
+            ability: requireAbilityCode(id, requireLinkedRecord(row.ability_code, `Saving throw "${id}" is missing ability_code.`))
+          }
+        : {
+            id,
+            dcMethod,
+            ability: requireAbilityCode(id, requireLinkedRecord(row.ability_code, `Saving throw "${id}" is missing ability_code.`)),
+            baseDc: requireLinkedRecord(row.base_dc, `Saving throw "${id}" is missing base_dc.`),
+            bonuses: dcMethod === SAVING_THROW_DC_METHOD.DERIVED_DC
+              ? bonuses
+              : bonuses.length > 0
+                ? bonuses
+                : undefined
+          } as SavingThrowAuthored
+    )
+  }
+
+  return savingThrows
 }
 
 async function hydrateConditionById(db: DBLike, id: string): Promise<ConditionAuthored | null> {
@@ -578,9 +965,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
               id: bonus.id,
               bonusKind: kind,
               ability: requireAbilityCode(bonus.id, requireLinkedRecord(bonus.ability_code, `Damage bonus "${bonus.id}" is missing ability_code.`)),
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -589,9 +976,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
               id: bonus.id,
               bonusKind: kind,
               skillId: requireLinkedRecord(bonus.skill_id, `Damage bonus "${bonus.id}" is missing skill_id.`),
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -599,9 +986,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
             return {
               id: bonus.id,
               bonusKind: kind,
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -626,7 +1013,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           bonuses,
           valueKind,
           scalingKind: SCALING.NONE,
-          amount: requireLinkedRecord(value.amount, `Damage "${id}" FIXED payload is missing amount.`)
+          amount: requireNumericValue(id, value.amount, 'damage_values.amount', `Damage "${id}" FIXED payload is missing amount.`)
         }
 
       case DAMAGE_VALUE_KIND.DICE:
@@ -648,7 +1035,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           bonuses,
           valueKind,
           scalingKind: SCALING.NONE,
-          amount: requireLinkedRecord(value.amount, `Damage "${id}" POOL payload is missing amount.`)
+          amount: requireNumericValue(id, value.amount, 'damage_values.amount', `Damage "${id}" POOL payload is missing amount.`)
         }
 
       default:
@@ -675,10 +1062,10 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
         scalingKind: SCALING.PER_LEVEL,
         scalingSource,
         classId: requireLinkedRecord(row.class_id, `Damage "${id}" CLASS_LEVEL scaling is missing class_id.`),
-        amount: value.amount ?? undefined,
-        multiplier: value.multiplier ?? undefined,
-        min: value.min ?? undefined,
-        max: value.max ?? undefined
+        amount: readOptionalNumericValue(id, value.amount, 'damage_values.amount'),
+        multiplier: readOptionalNumericValue(id, value.multiplier, 'damage_values.multiplier'),
+        min: readOptionalNumericValue(id, value.min, 'damage_values.min'),
+        max: readOptionalNumericValue(id, value.max, 'damage_values.max')
       }
     }
 
@@ -690,10 +1077,10 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
       valueKind,
       scalingKind: SCALING.PER_LEVEL,
       scalingSource,
-      amount: value.amount ?? undefined,
-      multiplier: value.multiplier ?? undefined,
-      min: value.min ?? undefined,
-      max: value.max ?? undefined
+      amount: readOptionalNumericValue(id, value.amount, 'damage_values.amount'),
+      multiplier: readOptionalNumericValue(id, value.multiplier, 'damage_values.multiplier'),
+      min: readOptionalNumericValue(id, value.min, 'damage_values.min'),
+      max: readOptionalNumericValue(id, value.max, 'damage_values.max')
     }
   }
 
@@ -718,7 +1105,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
             level: level.level,
             order: level.sort_order,
             value: {
-              amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+              amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
             }
           }))
         }
@@ -737,7 +1124,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           level: level.level,
           order: level.sort_order,
           value: {
-            amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+            amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
           }
         }))
       }
@@ -757,7 +1144,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           id: level.id,
           level: level.level,
           order: level.sort_order,
-          amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+          amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
         }))
       }
     }
@@ -774,7 +1161,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
         id: level.id,
         level: level.level,
         order: level.sort_order,
-        amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+        amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
       }))
     }
   }
@@ -854,6 +1241,132 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
       diceConfig: requireLinkedRecord(level.dice, `Damage level "${level.id}" is missing dice.`)
     }))
   }
+}
+
+function hydrateDamageBonus(row: DamageBonusRow): DamageBonus {
+  const kind = requireDamageBonusKind(row.damage_id, row.bonus_kind)
+
+  switch (kind) {
+    case DAMAGE_BONUS_KIND.ABILITY_BONUS:
+      return {
+        id: row.id,
+        bonusKind: kind,
+        ability: requireAbilityCode(row.id, requireLinkedRecord(row.ability_code, `Damage bonus "${row.id}" is missing ability_code.`)),
+        multiplier: readOptionalNumericValue(row.id, row.multiplier, 'damage_bonus.multiplier'),
+        min: readOptionalNumericValue(row.id, row.min, 'damage_bonus.min'),
+        max: readOptionalNumericValue(row.id, row.max, 'damage_bonus.max'),
+        order: row.sort_order
+      }
+
+    case DAMAGE_BONUS_KIND.SKILL_BONUS:
+      return {
+        id: row.id,
+        bonusKind: kind,
+        skillId: requireLinkedRecord(row.skill_id, `Damage bonus "${row.id}" is missing skill_id.`),
+        multiplier: readOptionalNumericValue(row.id, row.multiplier, 'damage_bonus.multiplier'),
+        min: readOptionalNumericValue(row.id, row.min, 'damage_bonus.min'),
+        max: readOptionalNumericValue(row.id, row.max, 'damage_bonus.max'),
+        order: row.sort_order
+      }
+
+    case DAMAGE_BONUS_KIND.PROFICIENCY_BONUS:
+      return {
+        id: row.id,
+        bonusKind: kind,
+        multiplier: readOptionalNumericValue(row.id, row.multiplier, 'damage_bonus.multiplier'),
+        min: readOptionalNumericValue(row.id, row.min, 'damage_bonus.min'),
+        max: readOptionalNumericValue(row.id, row.max, 'damage_bonus.max'),
+        order: row.sort_order
+      }
+
+    default:
+      return kind satisfies never
+  }
+}
+
+async function hydratePerLevelDiceDamagesByIds(
+  db: DBLike,
+  ids: readonly string[]
+): Promise<Map<string, DamageAuthored> | null> {
+  const distinctIds = uniqueIds(ids)
+
+  if (distinctIds.length === 0) {
+    return new Map()
+  }
+
+  const [damageRows, scalingRows, bonusRows] = await Promise.all([
+    db.selectFrom('damages')
+      .select([
+        'id',
+        'damage_type_id',
+        'value_kind',
+        'scaling_kind',
+        'scaling_source',
+        'class_id'
+      ])
+      .where('id', 'in', distinctIds)
+      .execute() as Promise<DamageRow[]>,
+    db.selectFrom('damage_scaling_levels')
+      .select([
+        'id', 'damage_id', 'level', 'sort_order', 'amount', 'dice'
+      ])
+      .where('damage_id', 'in', distinctIds)
+      .orderBy('sort_order')
+      .execute() as Promise<DamageScalingLevelRow[]>,
+    db.selectFrom('damage_bonuses')
+      .select([
+        'id', 'damage_id', 'bonus_kind', 'ability_code', 'skill_id', 'multiplier', 'min', 'max', 'sort_order'
+      ])
+      .where('damage_id', 'in', distinctIds)
+      .orderBy('sort_order')
+      .execute() as Promise<DamageBonusRow[]>
+  ])
+  const damageRowsById = indexRowsById(damageRows)
+  const scalingRowsByDamageId = groupRowsByKey(scalingRows, (row) => row.damage_id)
+  const bonusRowsByDamageId = groupRowsByKey(bonusRows, (row) => row.damage_id)
+  const damages = new Map<string, DamageAuthored>()
+
+  for (const id of distinctIds) {
+    const row = damageRowsById.get(id)
+
+    if (!row) {
+      return null
+    }
+
+    if (
+      requireDamageValueKind(id, row.value_kind) !== DAMAGE_VALUE_KIND.DICE
+      || requireScalingKind(id, row.scaling_kind) !== SCALING.PER_LEVEL
+      || requireScalingSource(id, requireLinkedRecord(row.scaling_source, `Damage "${id}" is missing scaling_source.`)) !== SCALING_SOURCE.CHARACTER_LEVEL
+      || row.class_id !== null
+    ) {
+      return null
+    }
+
+    const levels = scalingRowsByDamageId.get(id) ?? []
+
+    if (levels.length === 0) {
+      return null
+    }
+
+    const bonuses = (bonusRowsByDamageId.get(id) ?? []).map(hydrateDamageBonus)
+    damages.set(id, {
+      id,
+      effectKind: EFFECT_KIND.DAMAGE,
+      damageTypeId: row.damage_type_id,
+      bonuses: bonuses.length > 0 ? bonuses : undefined,
+      valueKind: DAMAGE_VALUE_KIND.DICE,
+      scalingKind: SCALING.PER_LEVEL,
+      scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
+      levels: levels.map((level) => ({
+        id: level.id,
+        level: level.level,
+        order: level.sort_order,
+        diceConfig: requireLinkedRecord(level.dice, `Damage level "${level.id}" is missing dice.`)
+      }))
+    })
+  }
+
+  return damages
 }
 
 function requireSelectionKind(effectId: string, value: string): EffectPath['selectionKind'] {
@@ -1178,6 +1691,247 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
   }
 }
 
+async function hydrateSimpleFixedEffectsByIds(
+  db: DBLike,
+  ids: readonly string[]
+): Promise<Map<string, EffectAuthored> | null> {
+  const distinctIds = uniqueIds(ids)
+
+  if (distinctIds.length === 0) {
+    return new Map()
+  }
+
+  const [effectRows, invocationRows, pathRows] = await Promise.all([
+    db.selectFrom('effects')
+      .select(['id', 'sort_order'])
+      .where('id', 'in', distinctIds)
+      .execute(),
+    db.selectFrom('effect_invocations')
+      .select([
+        'effect_id',
+        'trigger_code',
+        'activation_type',
+        'activation_value',
+        'range_characteristic_id',
+        'shape_characteristic_id',
+        'saving_throw_id',
+        'target_selection_kind',
+        'target_disposition_kind',
+        'max_targets',
+        'max_targets_scaling',
+        'excluded_creature_type_ids'
+      ])
+      .where('effect_id', 'in', distinctIds)
+      .execute(),
+    db.selectFrom('effect_paths')
+      .select([
+        'effect_id',
+        'id',
+        'sort_order',
+        'path_code',
+        'group_type',
+        'selection_kind',
+        'origin_kind',
+        'range_override_characteristic_id',
+        'target_selection_kind',
+        'target_disposition_kind',
+        'max_targets',
+        'max_targets_scaling',
+        'excluded_creature_type_ids',
+        'result_block_id',
+        'roll_table_kind',
+        'die'
+      ])
+      .where('effect_id', 'in', distinctIds)
+      .orderBy('sort_order')
+      .execute()
+  ])
+  const effectRowsById = indexRowsById(effectRows)
+  const invocationRowsByEffectId = new Map(invocationRows.map((row) => [row.effect_id, row]))
+  const pathRowsByEffectId = groupRowsByKey(pathRows, (row) => row.effect_id)
+
+  if (
+    effectRows.length !== distinctIds.length
+    || invocationRows.length !== distinctIds.length
+    || pathRows.some((row) => row.selection_kind !== 'FIXED')
+  ) {
+    return null
+  }
+
+  const resultBlockIds = uniqueIds(pathRows.flatMap((row) => row.result_block_id ? [row.result_block_id] : []))
+  const [resultBlockRows, outcomeRows] = resultBlockIds.length > 0
+    ? await Promise.all([
+      db.selectFrom('effect_result_blocks')
+        .select([
+          'id',
+          'result_kind',
+          'duration_id',
+          'lifecycle_recurring_kind',
+          'lifecycle_consume_on_first_event',
+          'lifecycle_end_on_events'
+        ])
+        .where('id', 'in', resultBlockIds)
+        .execute(),
+      db.selectFrom('effect_result_block_outcomes')
+        .select(['result_block_id', 'outcome_id', 'effect_kind', 'sort_order'])
+        .where('result_block_id', 'in', resultBlockIds)
+        .orderBy('sort_order')
+        .execute()
+    ])
+    : [[], []]
+
+  if (
+    resultBlockRows.length !== resultBlockIds.length
+    || outcomeRows.some((row) => row.effect_kind !== EFFECT_KIND.DAMAGE)
+  ) {
+    return null
+  }
+
+  const damageIds = outcomeRows.map((row) => row.outcome_id)
+  const damagesById = await hydratePerLevelDiceDamagesByIds(db, damageIds)
+
+  if (!damagesById) {
+    return null
+  }
+
+  const durationIds = resultBlockRows.flatMap((row) => row.duration_id ? [row.duration_id] : [])
+  const rangeIds = [
+    ...invocationRows.map((row) => row.range_characteristic_id),
+    ...pathRows.flatMap((row) => row.range_override_characteristic_id ? [row.range_override_characteristic_id] : [])
+  ]
+  const [durationsById, rangesById, shapesById, savingThrowsById] = await Promise.all([
+    hydrateDurationsByIds(db, durationIds),
+    hydrateRangesByIds(db, rangeIds),
+    hydrateShapesByIds(db, invocationRows.flatMap((row) => row.shape_characteristic_id ? [row.shape_characteristic_id] : [])),
+    hydrateSavingThrowsByIds(db, invocationRows.flatMap((row) => row.saving_throw_id ? [row.saving_throw_id] : []))
+  ])
+  const outcomeRowsByResultBlockId = groupRowsByKey(outcomeRows, (row) => row.result_block_id)
+  const resultBlocksById = new Map<string, ResultBlock>()
+
+  for (const row of resultBlockRows) {
+    const outcomes = (outcomeRowsByResultBlockId.get(row.id) ?? []).map((outcomeRow) => requireLinkedRecord(
+      damagesById.get(outcomeRow.outcome_id),
+      `Effect result block "${row.id}" is linked to missing damage "${outcomeRow.outcome_id}".`
+    ))
+    const lifecycle = buildLifecycle(
+      row.id,
+      row.lifecycle_recurring_kind,
+      row.lifecycle_consume_on_first_event,
+      row.lifecycle_end_on_events
+    )
+
+    resultBlocksById.set(row.id, {
+      id: row.id,
+      resultKind: requireResultKind(row.id, row.result_kind),
+      ...(row.duration_id ? { duration: requireLinkedRecord(durationsById.get(row.duration_id), `Effect result block "${row.id}" is missing duration "${row.duration_id}".`) } : {}),
+      ...(lifecycle ? { lifecycle } : {}),
+      outcomes
+    })
+  }
+
+  const effects = new Map<string, EffectAuthored>()
+
+  for (const id of distinctIds) {
+    const row = requireLinkedRecord(effectRowsById.get(id), `Effect "${id}" is missing.`)
+    const invocation = requireLinkedRecord(invocationRowsByEffectId.get(id), `Effect "${id}" is missing invocation row.`)
+    const triggerCode = requireTriggerCode(id, invocation.trigger_code)
+    const range = requireLinkedRecord(
+      rangesById.get(invocation.range_characteristic_id),
+      `Effect "${id}" is missing range "${invocation.range_characteristic_id}".`
+    )
+    const shape = invocation.shape_characteristic_id
+      ? requireLinkedRecord(shapesById.get(invocation.shape_characteristic_id), `Effect "${id}" is missing shape "${invocation.shape_characteristic_id}".`)
+      : undefined
+    const hydratedSavingThrow = invocation.saving_throw_id
+      ? requireLinkedRecord(savingThrowsById.get(invocation.saving_throw_id), `Effect "${id}" is missing saving throw "${invocation.saving_throw_id}".`)
+      : undefined
+    const targeting = buildTargeting(id, invocation.target_selection_kind, invocation.target_disposition_kind, invocation.max_targets, invocation.max_targets_scaling, invocation.excluded_creature_type_ids)
+    const passive = isPassiveInvocation(invocation.activation_type, invocation.activation_value)
+    const activation = passive
+      ? undefined
+      : buildActivation(id, invocation.activation_type, invocation.activation_value)
+    const authoredInvocation: EffectAuthored['invocation'] = passive
+      ? triggerCode === TRIGGER.SAVING_THROW
+        ? {
+            kind: EFFECT_INVOCATION_KIND.PASSIVE,
+            triggerCode,
+            savingThrow: requireLinkedRecord(hydratedSavingThrow, `Effect "${id}" passive SAVING_THROW invocation is missing saving throw "${invocation.saving_throw_id}".`),
+            range,
+            ...(shape ? { shape } : {}),
+            ...(targeting ? { targeting } : {})
+          }
+        : {
+            kind: EFFECT_INVOCATION_KIND.PASSIVE,
+            triggerCode,
+            range,
+            ...(shape ? { shape } : {}),
+            ...(targeting ? { targeting } : {})
+          }
+      : triggerCode === TRIGGER.SAVING_THROW
+        ? {
+            kind: EFFECT_INVOCATION_KIND.ACTION,
+            triggerCode,
+            savingThrow: requireLinkedRecord(hydratedSavingThrow, `Effect "${id}" SAVING_THROW invocation is missing saving throw "${invocation.saving_throw_id}".`),
+            activation: requireLinkedRecord(activation, `Effect "${id}" is missing activation payload.`),
+            range,
+            ...(shape ? { shape } : {}),
+            ...(targeting ? { targeting } : {})
+          }
+        : {
+            kind: EFFECT_INVOCATION_KIND.ACTION,
+            triggerCode,
+            activation: requireLinkedRecord(activation, `Effect "${id}" is missing activation payload.`),
+            range,
+            ...(shape ? { shape } : {}),
+            ...(targeting ? { targeting } : {})
+          }
+    const paths = (pathRowsByEffectId.get(id) ?? []).map((pathRow) => {
+      const pathCode = requirePathCode(id, triggerCode, pathRow.path_code)
+      const groupType = requirePathGroupType(id, pathRow.group_type)
+      const selectionKind = requireSelectionKind(id, pathRow.selection_kind)
+      const targetingOverride = buildTargeting(pathRow.id, pathRow.target_selection_kind, pathRow.target_disposition_kind, pathRow.max_targets, pathRow.max_targets_scaling, pathRow.excluded_creature_type_ids)
+      const originKind = pathRow.origin_kind
+        ? requirePathOriginKind(id, pathRow.origin_kind)
+        : undefined
+      const rangeOverride = pathRow.range_override_characteristic_id
+        ? requireLinkedRecord(rangesById.get(pathRow.range_override_characteristic_id), `Effect "${id}" path "${pathRow.id}" is missing range override "${pathRow.range_override_characteristic_id}".`)
+        : undefined
+
+      if (selectionKind !== 'FIXED') {
+        throw new Error(`Effect "${id}" batch hydration only supports fixed paths.`)
+      }
+
+      return {
+        id: pathRow.id,
+        order: pathRow.sort_order,
+        pathCode,
+        groupType,
+        selectionKind,
+        resultBlock: requireLinkedRecord(
+          resultBlocksById.get(requireLinkedRecord(pathRow.result_block_id, `Effect "${id}" fixed path "${pathRow.id}" is missing result_block_id.`)),
+          `Effect "${id}" fixed path "${pathRow.id}" is linked to missing result block "${pathRow.result_block_id}".`
+        ),
+        ...(originKind ? { originKind } : {}),
+        ...(rangeOverride ? { rangeOverride } : {}),
+        ...(targetingOverride ? { targetingOverride } : {})
+      } satisfies EffectPath
+    })
+
+    if (paths.length === 0) {
+      throw new Error(`Effect "${id}" is missing native paths.`)
+    }
+
+    effects.set(id, {
+      id: row.id,
+      order: row.sort_order,
+      invocation: authoredInvocation,
+      paths
+    })
+  }
+
+  return effects
+}
+
 export function createEffectRepository(db: DBLike): EffectRepository {
   return {
     async upsert(entity) {
@@ -1188,6 +1942,11 @@ export function createEffectRepository(db: DBLike): EffectRepository {
       return hydrateEffectById(db, id)
     },
 
+    async findByIds(ids) {
+      return await hydrateSimpleFixedEffectsByIds(db, ids)
+        ?? hydrateByIds(ids, (id) => hydrateEffectById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('effects')
@@ -1195,8 +1954,10 @@ export function createEffectRepository(db: DBLike): EffectRepository {
         .orderBy('sort_order')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateEffectById(db, row.id)))
-      return records.filter((record): record is EffectAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateEffectById(db, id))
+      )
     }
   }
 }

@@ -12,9 +12,12 @@ function createFakeDb(rowsByTable: RowMap) {
                 select() {
                     return builder;
                 },
-                where(column: string, _op: string, value: string) {
+                where(column: string, _op: string, value: string | string[]) {
                     state.filtered = state.filtered.filter((row) => {
                         const record = row as Record<string, unknown>;
+                        if (_op === 'in') {
+                            return Array.isArray(value) && value.includes(record[column] as string);
+                        }
                         return record[column] === value;
                     });
                     return builder;
@@ -46,7 +49,6 @@ describe('createFeatureRepository', () => {
                     id: 'feature-1',
                     label: 'Fighting Style',
                     description: 'Choose a technique.',
-                    detail: 'Applies at level 2.',
                     charge_id: null,
                     restriction_id: null,
                     sort_order: 2,
@@ -54,6 +56,12 @@ describe('createFeatureRepository', () => {
                 }
             ],
             feature_effects: [],
+            feature_details: [
+                { feature_id: 'feature-1', detail_id: 'feature-detail-1', sort_order: 1 }
+            ],
+            details: [
+                { id: 'feature-detail-1', label: 'Detail', description: 'Applies at level 2.', sort_order: 1 }
+            ],
             feature_attributes: [
                 { feature_id: 'feature-1', attribute_code: 'LIMITED_USE', sort_order: 1 }
             ],
@@ -73,13 +81,13 @@ describe('createFeatureRepository', () => {
                     id: 'option-1',
                     label: 'Defense',
                     description: 'Gain a defensive bonus.',
-                    detail: null,
                     sort_order: 1,
                     charge_id: null,
                     restriction_id: null
                 }
             ],
             option_effects: [],
+            option_details: [],
             option_attributes: [
                 { option_id: 'option-1', attribute_code: 'HIDDEN_ON_SHEET', sort_order: 1 }
             ],
@@ -94,7 +102,14 @@ describe('createFeatureRepository', () => {
             label: 'Fighting Style',
             description: 'Choose a technique.',
             attributes: ['LIMITED_USE'],
-            detail: 'Applies at level 2.',
+            details: [
+                {
+                    id: 'feature-detail-1',
+                    label: 'Detail',
+                    description: 'Applies at level 2.',
+                    order: 1
+                }
+            ],
             effects: undefined,
             charges: undefined,
             grants: undefined,
@@ -114,7 +129,7 @@ describe('createFeatureRepository', () => {
                     label: 'Defense',
                     description: 'Gain a defensive bonus.',
                     attributes: ['HIDDEN_ON_SHEET'],
-                    detail: undefined,
+                    details: undefined,
                     effects: undefined,
                     charges: undefined,
                     grants: undefined,
@@ -131,7 +146,6 @@ describe('createFeatureRepository', () => {
                     id: 'feature-missing-option',
                     label: 'Broken Feature',
                     description: 'Oops.',
-                    detail: null,
                     charge_id: null,
                     restriction_id: null,
                     sort_order: 1,
@@ -139,6 +153,8 @@ describe('createFeatureRepository', () => {
                 }
             ],
             feature_effects: [],
+            feature_details: [],
+            details: [],
             feature_attributes: [],
             feature_feat_grants: [],
             feature_modifier_grants: [],
@@ -151,6 +167,7 @@ describe('createFeatureRepository', () => {
             feature_option_levels: [],
             options: [],
             option_effects: [],
+            option_details: [],
             option_attributes: [],
             option_feat_grants: [],
             option_modifier_grants: [],
@@ -194,7 +211,7 @@ describe('createFeatureRepository', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'feature-effect-PATH_CODE-1__result',
+                                id: 'feature-effect-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -237,7 +254,7 @@ describe('createFeatureRepository', () => {
                                     groupType: 'SINGLE',
                                     selectionKind: 'FIXED',
                                     resultBlock: {
-                                        id: 'option-effect-PATH_CODE-1__result',
+                                        id: 'option-effect-PATH_CODE-1',
                                         resultKind: 'SINGLE',
                                         outcomes: [
                                             {
@@ -259,7 +276,7 @@ describe('createFeatureRepository', () => {
             label: 'Reactive Ward',
             description: 'Feature with effects.',
             attributes: undefined,
-            detail: undefined,
+            details: undefined,
             effects: [
                 {
                     id: 'feature-effect-1',
@@ -284,7 +301,7 @@ describe('createFeatureRepository', () => {
                             pathCode: 'ON_HIT',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'feature-effect-PATH_CODE-1__result',
+                                id: 'feature-effect-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -313,7 +330,7 @@ describe('createFeatureRepository', () => {
                     label: 'Shielding Choice',
                     description: 'Nested option effect.',
                     attributes: undefined,
-                    detail: undefined,
+                    details: undefined,
                     effects: [
                         {
                             id: 'option-effect-1',
@@ -332,7 +349,7 @@ describe('createFeatureRepository', () => {
                                     pathCode: 'PASSIVE',
                                     selectionKind: 'FIXED',
                                     resultBlock: {
-                                        id: 'option-effect-PATH_CODE-1__result',
+                                        id: 'option-effect-PATH_CODE-1',
                                         resultKind: 'SINGLE',
                                         outcomes: [
                                             {
@@ -476,7 +493,7 @@ describe('createFeatureRepository', () => {
         await expect(repository.findById('feature-restrictions-1')).resolves.toEqual({
             ...feature,
             attributes: undefined,
-            detail: undefined,
+            details: undefined,
             effects: undefined,
             charges: undefined,
             grants: undefined,
@@ -486,7 +503,7 @@ describe('createFeatureRepository', () => {
                 {
                     ...feature.options[0],
                     attributes: undefined,
-                    detail: undefined,
+                    details: undefined,
                     effects: undefined,
                     charges: undefined,
                     grants: undefined

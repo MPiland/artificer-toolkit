@@ -17,7 +17,13 @@ const draftRepositoryMock = vi.hoisted(() => ({
   delete: vi.fn()
 }))
 
+const routeIdRepositoryMock = vi.hoisted(() => ({
+  ensure: vi.fn(),
+  ensureMany: vi.fn()
+}))
+
 vi.mock('@artificer-toolkit/db', () => ({
+  createAuthoredRouteIdRepository: () => routeIdRepositoryMock,
   createAuthoredSubjectDraftRepository: () => draftRepositoryMock
 }))
 
@@ -62,9 +68,29 @@ describe('authored content draft helpers', () => {
     draftRepositoryMock.listByUser.mockReset()
     draftRepositoryMock.save.mockReset()
     draftRepositoryMock.delete.mockReset()
+    routeIdRepositoryMock.ensure.mockReset()
+    routeIdRepositoryMock.ensureMany.mockReset()
+    routeIdRepositoryMock.ensure.mockImplementation(async ({ subjectId }: { subjectId: string }) => ({
+      subjectKind: 'SPELL',
+      subjectId,
+      routeNumber: '1',
+      publicId: `${subjectId}-public`,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    }))
+    routeIdRepositoryMock.ensureMany.mockImplementation(async (_subjectKind: string, subjectIds: string[]) => (
+      new Map(subjectIds.map((subjectId) => [subjectId, {
+        subjectKind: 'SPELL',
+        subjectId,
+        routeNumber: '1',
+        publicId: `${subjectId}-public`,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }]))
+    ))
   })
 
-  it('merges owned drafts into active list rows and appends draft-only rows', async () => {
+  it('keeps active rows active and exposes owned drafts separately', async () => {
     draftRepositoryMock.listByUser.mockResolvedValue([
       createDraft(),
       createDraft({
@@ -94,21 +120,22 @@ describe('authored content draft helpers', () => {
       'SPELL'
     )
 
-    expect(response.items).toHaveLength(2)
+    expect(response.items).toHaveLength(1)
     expect(response.items[0]).toMatchObject({
       id: 'spell-1',
-      label: 'Draft Spell',
-      status: 'DRAFT',
+      label: 'Active Spell',
+      publicId: 'spell-1-public',
+      status: 'ACTIVE',
       permissions: { canEdit: true, canDelete: true },
-      draft: { draftState: 'ACTIVE_WITH_DRAFT' }
+      draft: { draftState: 'ACTIVE_WITH_DRAFT', publicId: 'spell-1-public' }
     })
-    expect(response.items[1]).toMatchObject({
-      id: 'spell-2',
+    expect(response.drafts).toHaveLength(2)
+    expect(response.drafts[1]).toMatchObject({
+      subjectId: 'spell-2',
       label: 'New Draft Spell',
+      publicId: 'spell-2-public',
       status: 'DRAFT',
-      provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
-      permissions: { canEdit: true, canCopy: true, canDelete: true },
-      draft: { draftState: 'DRAFT_ONLY' }
+      draftState: 'DRAFT_ONLY'
     })
   })
 
@@ -143,10 +170,14 @@ describe('authored content draft helpers', () => {
       payload: {
         id: 'client-controlled-id',
         label: 'Client Controlled Label',
+        status: 'ACTIVE',
         userId: 'client-controlled-user',
         systemId: 'client-controlled-system'
       }
-    }, 'server-user')).resolves.toEqual(draft)
+    }, 'server-user')).resolves.toEqual({
+      ...draft,
+      publicId: 'spell-1-public'
+    })
 
     expect(draftRepositoryMock.save).toHaveBeenCalledWith({
       subjectKind: 'SPELL',
@@ -157,6 +188,7 @@ describe('authored content draft helpers', () => {
       payload: {
         id: 'spell-1',
         label: 'Client Draft',
+        status: 'DRAFT',
         userId: 'server-user',
         systemId: 'system-1'
       },
@@ -196,6 +228,7 @@ describe('authored content draft helpers', () => {
     expect(normalizeStoredDraftPayloadForActivation(draft, 'server-user')).toEqual({
       id: 'server-subject-id',
       label: 'Server Label',
+      status: 'DRAFT',
       userId: 'server-user',
       systemId: 'server-system'
     })

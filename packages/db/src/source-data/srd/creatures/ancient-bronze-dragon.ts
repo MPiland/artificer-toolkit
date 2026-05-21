@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const ancientBronzeDragon: CreatureAuthored = {
@@ -37,13 +37,13 @@ export const ancientBronzeDragon: CreatureAuthored = {
     xp: 41000,
     features: [
         {
-            id: S.featureId(5407, 1),
+            id: S.featureId(17, 1),
             label: 'Amphibious',
             description: 'Amphibious. The dragon can breathe air and water.',
             order: 1
         },
         {
-            id: S.featureId(5407, 2),
+            id: S.featureId(17, 2),
             label: 'Legendary Resistance (3/Day)',
             description: 'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -57,7 +57,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(5407, 3),
+            id: S.featureId(17, 3),
             label: 'Multiattack',
             description: 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
             effects: [
@@ -99,7 +99,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(5407, 4),
+            id: S.featureId(17, 4),
             label: 'Bite',
             description: 'Melee Weapon Attack: +16 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 9) piercing damage.',
             effects: [
@@ -119,7 +119,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -158,7 +159,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(5407, 5),
+            id: S.featureId(17, 5),
             label: 'Claw',
             description: 'Melee Weapon Attack: +16 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 9) slashing damage.',
             effects: [
@@ -178,7 +179,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -217,7 +219,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(5407, 6),
+            id: S.featureId(17, 6),
             label: 'Tail',
             description: 'Melee Weapon Attack: +16 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 9) bludgeoning damage.',
             effects: [
@@ -237,7 +239,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -276,7 +279,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(5407, 7),
+            id: S.featureId(17, 7),
             label: 'Frightful Presence',
             description: "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 20 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
             effects: [
@@ -287,8 +290,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5407, 33),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.WISDOM
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.WISDOM,
+                            baseDc: 20
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -331,7 +335,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 7
         },
         {
-            id: S.featureId(5407, 8),
+            id: S.featureId(17, 8),
             label: 'Lightning Breath (Recharge 5-6)',
             description: 'The dragon exhales lightning in a 120-foot line that is 10 feet wide. Each creature in that line must make a DC 23 Dexterity saving throw, taking 88 (16d10) lightning damage on a failed save, or half as much damage on a successful one.',
             effects: [
@@ -342,8 +346,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5407, 29),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 23
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -404,7 +409,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 8
         },
         {
-            id: S.featureId(5407, 9),
+            id: S.featureId(17, 9),
             label: 'Repulsion Breath (Recharge 5-6)',
             description: 'The dragon exhales repulsion energy in a 30-foot cone. Each creature in that area must succeed on a DC 23 Strength saving throw. On a failed save, the creature is pushed 60 feet away from the dragon.',
             effects: [
@@ -415,8 +420,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5407, 36),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.STRENGTH
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.STRENGTH,
+                            baseDc: 23
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -451,7 +457,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 9
         },
         {
-            id: S.featureId(5407, 10),
+            id: S.featureId(17, 10),
             label: 'Change Shape',
             description: "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features, legendary actions, and lair actions of that form.",
             effects: [
@@ -493,7 +499,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
             order: 10
         },
         {
-            id: S.featureId(5407, 11),
+            id: S.featureId(17, 11),
             label: 'Legendary Actions',
             description: "The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The dragon regains spent legendary actions at the start of its turn.",
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -553,7 +559,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -595,8 +602,9 @@ export const ancientBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.legendaryActionId(5407, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 24
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.FREE

@@ -13,13 +13,19 @@ export type AppSelectOptionGroup = {
 
 export type AppSelectData = AppSelectOption[] | AppSelectOptionGroup[]
 
-export type AppSelectProps = Omit<SelectProps, 'data' | 'value' | 'onChange'> & {
+export type AppSelectProps = Omit<
+  SelectProps,
+  'data' | 'styles' | 'value' | 'onChange'
+> & {
   data: AppSelectData
   value: string | null | undefined
   onChange: (value: string | null) => void
 }
 
-export type AppMultiSelectProps = Omit<MultiSelectProps, 'data' | 'value' | 'onChange'> & {
+export type AppMultiSelectProps = Omit<
+  MultiSelectProps,
+  'data' | 'styles' | 'value' | 'onChange'
+> & {
   data: AppSelectData
   value: string[] | null | undefined
   onChange: (value: string[]) => void

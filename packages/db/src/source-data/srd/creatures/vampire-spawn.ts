@@ -35,25 +35,25 @@ export const vampireSpawn: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(1668, 1),
+            id: S.featureId(278, 1),
             label: 'Regeneration',
             description: 'Regeneration. The vampire spawn regains hit points at the start of its turn unless it is in sunlight or running water.',
             order: 1
         },
         {
-            id: S.featureId(1668, 2),
+            id: S.featureId(278, 2),
             label: 'Spider Climb',
             description: 'Spider Climb. The vampire spawn can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
             order: 2
         },
         {
-            id: S.featureId(1668, 3),
+            id: S.featureId(278, 3),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one willing creature, or a creature that is grappled by the vampire spawn, incapacitated, or restrained. Hit: 7 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage. The target’s hit point maximum is reduced by an amount equal to the necrotic damage taken.',
             order: 3
         },
         {
-            id: S.featureId(1668, 4),
+            id: S.featureId(278, 4),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 8 (2d4 + 4) slashing damage.',
             effects: [
@@ -73,7 +73,8 @@ export const vampireSpawn: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

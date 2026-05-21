@@ -17,22 +17,22 @@ export const marketingRoot = style({
 export const marketingHeader = style({
   '@layer': {
     [app]: {
-      position: 'sticky',
-      top: 0,
-      zIndex: 20,
-      display: 'flex',
-      alignItems: 'center',
-      gap: foundationVars.space[6],
-      minHeight: '72px',
-      padding: `0 ${foundationVars.space[12]}`,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.header
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      padding: `0 ${foundationVars.space[5]}`,
-      gap: foundationVars.space[3]
+      'position': 'sticky',
+      'top': 0,
+      'zIndex': 20,
+      'display': 'flex',
+      'alignItems': 'center',
+      'gap': foundationVars.space[6],
+      'minHeight': '72px',
+      'padding': `0 ${foundationVars.space[12]}`,
+      'borderBottom': `1px solid ${foundationVars.color.border.subtle}`,
+      'backgroundColor': foundationVars.color.surface.header,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          padding: `0 ${foundationVars.space[5]}`,
+          gap: foundationVars.space[3]
+        }
+      }
     }
   }
 })
@@ -64,16 +64,16 @@ export const logoMark = style({
 export const desktopNav = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      flex: 1,
-      gap: foundationVars.space[6]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      display: 'none'
+      'display': 'flex',
+      'alignItems': 'center',
+      'justifyContent': 'flex-end',
+      'flex': 1,
+      'gap': foundationVars.space[6],
+      '@media': {
+        'screen and (max-width: 760px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -81,14 +81,14 @@ export const desktopNav = style({
 export const headerActions = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: foundationVars.space[3]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      marginLeft: 'auto'
+      'display': 'flex',
+      'alignItems': 'center',
+      'gap': foundationVars.space[3],
+      '@media': {
+        'screen and (max-width: 760px)': {
+          marginLeft: 'auto'
+        }
+      }
     }
   }
 })
@@ -162,13 +162,13 @@ export const secondaryLink = style({
 export const mobileMenu = style({
   '@layer': {
     [app]: {
-      display: 'none',
-      position: 'relative'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      display: 'block'
+      'display': 'none',
+      'position': 'relative',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          display: 'block'
+        }
+      }
     }
   }
 })
@@ -209,25 +209,25 @@ export const mobileNavPanel = style({
 export const heroSection = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0, 0.9fr) minmax(460px, 1.1fr)',
-      alignItems: 'center',
-      gap: foundationVars.space[12],
-      padding: `${foundationVars.space[14]} ${foundationVars.space[8]} ${foundationVars.space[12]}`,
-      maxWidth: '1320px',
-      margin: '0 auto'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      gridTemplateColumns: '1fr',
-      justifyItems: 'center',
-      gap: foundationVars.space[7],
-      padding: `${foundationVars.space[9]} ${foundationVars.space[6]} ${foundationVars.space[10]}`,
-      textAlign: 'center'
-    },
-    'screen and (max-width: 760px)': {
-      padding: `${foundationVars.space[6]} ${foundationVars.space[5]} ${foundationVars.space[9]}`
+      'display': 'grid',
+      'gridTemplateColumns': 'minmax(0, 0.9fr) minmax(460px, 1.1fr)',
+      'alignItems': 'center',
+      'gap': foundationVars.space[12],
+      'padding': `${foundationVars.space[14]} ${foundationVars.space[8]} ${foundationVars.space[12]}`,
+      'maxWidth': '1320px',
+      'margin': '0 auto',
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          gridTemplateColumns: '1fr',
+          justifyItems: 'center',
+          gap: foundationVars.space[7],
+          padding: `${foundationVars.space[9]} ${foundationVars.space[6]} ${foundationVars.space[10]}`,
+          textAlign: 'center'
+        },
+        'screen and (max-width: 760px)': {
+          padding: `${foundationVars.space[6]} ${foundationVars.space[5]} ${foundationVars.space[9]}`
+        }
+      }
     }
   }
 })
@@ -235,16 +235,16 @@ export const heroSection = style({
 export const heroContent = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gap: foundationVars.space[5],
-      justifyItems: 'start',
-      alignContent: 'center',
-      maxWidth: '690px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      justifyItems: 'center'
+      'display': 'grid',
+      'gap': foundationVars.space[5],
+      'justifyItems': 'start',
+      'alignContent': 'center',
+      'maxWidth': '690px',
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          justifyItems: 'center'
+        }
+      }
     }
   }
 })
@@ -270,21 +270,21 @@ export const eyebrow = style({
 export const heroTitle = style({
   '@layer': {
     [app]: {
-      maxWidth: '760px',
-      margin: 0,
-      color: foundationVars.color.text.primary,
-      fontSize: '4.5rem',
-      fontWeight: 800,
-      lineHeight: 1.02
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      maxWidth: '680px',
-      fontSize: '3.75rem'
-    },
-    'screen and (max-width: 760px)': {
-      fontSize: '2.75rem'
+      'maxWidth': '760px',
+      'margin': 0,
+      'color': foundationVars.color.text.primary,
+      'fontSize': '4.5rem',
+      'fontWeight': 800,
+      'lineHeight': 1.02,
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          maxWidth: '680px',
+          fontSize: '3.75rem'
+        },
+        'screen and (max-width: 760px)': {
+          fontSize: '2.75rem'
+        }
+      }
     }
   }
 })
@@ -304,15 +304,15 @@ export const heroCopy = style({
 export const ctaRow = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: foundationVars.space[4]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      justifyContent: 'center'
+      'display': 'flex',
+      'alignItems': 'center',
+      'flexWrap': 'wrap',
+      'gap': foundationVars.space[4],
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          justifyContent: 'center'
+        }
+      }
     }
   }
 })
@@ -320,22 +320,22 @@ export const ctaRow = style({
 export const heroHighlightGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-      gap: foundationVars.space[2],
-      width: '100%',
-      maxWidth: '660px',
-      marginTop: foundationVars.space[3],
-      paddingTop: foundationVars.space[4],
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      maxWidth: '760px'
-    },
-    'screen and (max-width: 820px)': {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
+      'gap': foundationVars.space[2],
+      'width': '100%',
+      'maxWidth': '660px',
+      'marginTop': foundationVars.space[3],
+      'paddingTop': foundationVars.space[4],
+      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          maxWidth: '760px'
+        },
+        'screen and (max-width: 820px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -376,20 +376,20 @@ export const heroHighlightCopy = style({
 export const heroMockup = style({
   '@layer': {
     [app]: {
-      justifySelf: 'end',
-      width: '100%',
-      minHeight: '620px',
-      overflow: 'hidden',
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xxl,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card,
-      transform: 'rotate(0.7deg)'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1040px)': {
-      width: 'min(680px, 100%)'
+      'justifySelf': 'end',
+      'width': '100%',
+      'minHeight': '620px',
+      'overflow': 'hidden',
+      'border': `1px solid ${foundationVars.color.border.subtle}`,
+      'borderRadius': foundationVars.radius.xxl,
+      'backgroundColor': foundationVars.color.surface.panel,
+      'boxShadow': foundationVars.shadow.card,
+      'transform': 'rotate(0.7deg)',
+      '@media': {
+        'screen and (max-width: 1040px)': {
+          width: 'min(680px, 100%)'
+        }
+      }
     }
   }
 })
@@ -459,15 +459,15 @@ export const mockupBrandIcon = style({
 export const mockupTopNav = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: foundationVars.space[3],
-      justifySelf: 'center'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 640px)': {
-      display: 'none'
+      'display': 'flex',
+      'alignItems': 'center',
+      'gap': foundationVars.space[3],
+      'justifySelf': 'center',
+      '@media': {
+        'screen and (max-width: 640px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -579,16 +579,16 @@ export const mockupHeader = style({
 export const mockupStage = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      minHeight: '420px',
-      marginTop: foundationVars.space[3]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 960px)': {
-      display: 'grid',
-      gap: foundationVars.space[4],
-      minHeight: 'auto'
+      'position': 'relative',
+      'minHeight': '420px',
+      'marginTop': foundationVars.space[3],
+      '@media': {
+        'screen and (max-width: 960px)': {
+          display: 'grid',
+          gap: foundationVars.space[4],
+          minHeight: 'auto'
+        }
+      }
     }
   }
 })
@@ -596,20 +596,20 @@ export const mockupStage = style({
 export const mockupSurface = style({
   '@layer': {
     [app]: {
-      position: 'absolute',
-      display: 'grid',
-      gap: foundationVars.space[3],
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xl,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card
-    }
-  },
-  '@media': {
-    'screen and (max-width: 960px)': {
-      position: 'relative',
-      inset: 'auto'
+      'position': 'absolute',
+      'display': 'grid',
+      'gap': foundationVars.space[3],
+      'padding': foundationVars.space[4],
+      'border': `1px solid ${foundationVars.color.border.subtle}`,
+      'borderRadius': foundationVars.radius.xl,
+      'backgroundColor': foundationVars.color.surface.panel,
+      'boxShadow': foundationVars.shadow.card,
+      '@media': {
+        'screen and (max-width: 960px)': {
+          position: 'relative',
+          inset: 'auto'
+        }
+      }
     }
   }
 })
@@ -617,19 +617,19 @@ export const mockupSurface = style({
 export const mockupSurfaceList = style({
   '@layer': {
     [app]: {
-      top: foundationVars.space[4],
-      left: 0,
-      width: '36%',
-      minHeight: '282px',
-      zIndex: 1
-    }
-  },
-  '@media': {
-    'screen and (max-width: 960px)': {
-      top: 'auto',
-      left: 'auto',
-      width: '100%',
-      minHeight: 'auto'
+      'top': foundationVars.space[4],
+      'left': 0,
+      'width': '36%',
+      'minHeight': '282px',
+      'zIndex': 1,
+      '@media': {
+        'screen and (max-width: 960px)': {
+          top: 'auto',
+          left: 'auto',
+          width: '100%',
+          minHeight: 'auto'
+        }
+      }
     }
   }
 })
@@ -637,19 +637,19 @@ export const mockupSurfaceList = style({
 export const mockupSurfaceEditor = style({
   '@layer': {
     [app]: {
-      top: 0,
-      right: 0,
-      width: '66%',
-      minHeight: '310px',
-      zIndex: 2
-    }
-  },
-  '@media': {
-    'screen and (max-width: 960px)': {
-      top: 'auto',
-      right: 'auto',
-      width: '100%',
-      minHeight: 'auto'
+      'top': 0,
+      'right': 0,
+      'width': '66%',
+      'minHeight': '310px',
+      'zIndex': 2,
+      '@media': {
+        'screen and (max-width: 960px)': {
+          top: 'auto',
+          right: 'auto',
+          width: '100%',
+          minHeight: 'auto'
+        }
+      }
     }
   }
 })
@@ -657,19 +657,19 @@ export const mockupSurfaceEditor = style({
 export const mockupSurfaceSheet = style({
   '@layer': {
     [app]: {
-      left: '16%',
-      bottom: 0,
-      width: '60%',
-      minHeight: '188px',
-      zIndex: 3
-    }
-  },
-  '@media': {
-    'screen and (max-width: 960px)': {
-      left: 'auto',
-      bottom: 'auto',
-      width: '100%',
-      minHeight: 'auto'
+      'left': '16%',
+      'bottom': 0,
+      'width': '60%',
+      'minHeight': '188px',
+      'zIndex': 3,
+      '@media': {
+        'screen and (max-width: 960px)': {
+          left: 'auto',
+          bottom: 'auto',
+          width: '100%',
+          minHeight: 'auto'
+        }
+      }
     }
   }
 })
@@ -772,14 +772,14 @@ export const mockupListMeta = style({
 export const mockupFieldGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: foundationVars.space[3]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 560px)': {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(2, minmax(0, 1fr))',
+      'gap': foundationVars.space[3],
+      '@media': {
+        'screen and (max-width: 560px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -833,14 +833,14 @@ export const mockupTextAreaValue = style([
 export const mockupSheetStats = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-      gap: foundationVars.space[3]
-    }
-  },
-  '@media': {
-    'screen and (max-width: 560px)': {
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(4, minmax(0, 1fr))',
+      'gap': foundationVars.space[3],
+      '@media': {
+        'screen and (max-width: 560px)': {
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+        }
+      }
     }
   }
 })
@@ -902,17 +902,17 @@ export const mockupPill = style({
 export const section = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      justifyItems: 'center',
-      gap: foundationVars.space[10],
-      padding: `${foundationVars.space[14]} ${foundationVars.space[12]}`,
-      backgroundColor: foundationVars.color.surface.raised,
-      scrollMarginTop: '88px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      padding: `${foundationVars.space[10]} ${foundationVars.space[5]}`
+      'display': 'grid',
+      'justifyItems': 'center',
+      'gap': foundationVars.space[10],
+      'padding': `${foundationVars.space[14]} ${foundationVars.space[12]}`,
+      'backgroundColor': foundationVars.color.surface.raised,
+      'scrollMarginTop': '88px',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          padding: `${foundationVars.space[10]} ${foundationVars.space[5]}`
+        }
+      }
     }
   }
 })
@@ -928,18 +928,18 @@ export const sectionAlt = style({
 export const sectionHeader = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      justifyItems: 'start',
-      gap: foundationVars.space[3],
-      maxWidth: '840px',
-      width: '100%',
-      textAlign: 'left'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      justifyItems: 'center',
-      textAlign: 'center'
+      'display': 'grid',
+      'justifyItems': 'start',
+      'gap': foundationVars.space[3],
+      'maxWidth': '840px',
+      'width': '100%',
+      'textAlign': 'left',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          justifyItems: 'center',
+          textAlign: 'center'
+        }
+      }
     }
   }
 })
@@ -959,16 +959,16 @@ export const sectionLabel = style({
 export const sectionTitle = style({
   '@layer': {
     [app]: {
-      margin: 0,
-      color: foundationVars.color.text.primary,
-      fontSize: '2.5rem',
-      fontWeight: 800,
-      lineHeight: 1.2
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      fontSize: '2rem'
+      'margin': 0,
+      'color': foundationVars.color.text.primary,
+      'fontSize': '2.5rem',
+      'fontWeight': 800,
+      'lineHeight': 1.2,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          fontSize: '2rem'
+        }
+      }
     }
   }
 })
@@ -987,16 +987,16 @@ export const sectionCopy = style({
 export const featureGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-      gap: foundationVars.space[5],
-      width: '100%',
-      maxWidth: '1112px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(12, minmax(0, 1fr))',
+      'gap': foundationVars.space[5],
+      'width': '100%',
+      'maxWidth': '1112px',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -1026,13 +1026,13 @@ export const featureCard = style({
 export const featureCardWide = style({
   '@layer': {
     [app]: {
-      gridColumn: 'span 7',
-      minHeight: '340px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      gridColumn: 'auto'
+      'gridColumn': 'span 7',
+      'minHeight': '340px',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          gridColumn: 'auto'
+        }
+      }
     }
   }
 })
@@ -1040,13 +1040,13 @@ export const featureCardWide = style({
 export const featureCardNarrow = style({
   '@layer': {
     [app]: {
-      gridColumn: 'span 5',
-      minHeight: '300px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      gridColumn: 'auto'
+      'gridColumn': 'span 5',
+      'minHeight': '300px',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          gridColumn: 'auto'
+        }
+      }
     }
   }
 })
@@ -1152,17 +1152,17 @@ export const featureBulletMarker = style({
 export const pricingGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 320px))',
-      gap: foundationVars.space[6],
-      alignItems: 'stretch'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1100px)': {
-      gridTemplateColumns: '1fr',
-      width: '100%',
-      maxWidth: '420px'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(3, minmax(0, 320px))',
+      'gap': foundationVars.space[6],
+      'alignItems': 'stretch',
+      '@media': {
+        'screen and (max-width: 1100px)': {
+          gridTemplateColumns: '1fr',
+          width: '100%',
+          maxWidth: '420px'
+        }
+      }
     }
   }
 })
@@ -1301,20 +1301,20 @@ export const finalCta = style({
 export const finalCtaPanel = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      justifyItems: 'center',
-      gap: foundationVars.space[5],
-      width: 'min(920px, 100%)',
-      padding: `${foundationVars.space[12]} ${foundationVars.space[8]}`,
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      borderRadius: foundationVars.radius.xxl,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      padding: `${foundationVars.space[8]} ${foundationVars.space[5]}`
+      'display': 'grid',
+      'justifyItems': 'center',
+      'gap': foundationVars.space[5],
+      'width': 'min(920px, 100%)',
+      'padding': `${foundationVars.space[12]} ${foundationVars.space[8]}`,
+      'border': `1px solid ${foundationVars.color.accent.border}`,
+      'borderRadius': foundationVars.radius.xxl,
+      'backgroundColor': foundationVars.color.surface.panel,
+      'boxShadow': foundationVars.shadow.card,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          padding: `${foundationVars.space[8]} ${foundationVars.space[5]}`
+        }
+      }
     }
   }
 })
@@ -1322,21 +1322,21 @@ export const finalCtaPanel = style({
 export const marketingFooter = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      minHeight: '64px',
-      padding: `0 ${foundationVars.space[12]}`,
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.header,
-      color: foundationVars.color.text.muted,
-      fontSize: '0.75rem'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      justifyContent: 'center',
-      padding: `0 ${foundationVars.space[5]}`,
-      textAlign: 'center'
+      'display': 'flex',
+      'justifyContent': 'flex-end',
+      'minHeight': '64px',
+      'padding': `0 ${foundationVars.space[12]}`,
+      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
+      'backgroundColor': foundationVars.color.surface.header,
+      'color': foundationVars.color.text.muted,
+      'fontSize': '0.75rem',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          justifyContent: 'center',
+          padding: `0 ${foundationVars.space[5]}`,
+          textAlign: 'center'
+        }
+      }
     }
   }
 })

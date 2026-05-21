@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getRaceList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.races.list(),
-    queryFn: async () => await client.content.races.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const raceQueries = createAuthoredContentQueries(
+  (client) => client.content.races,
+  queryKeys.content.races
+)
+
+export function getRaceList(client?: Api) {
+  return raceQueries.getList(client)
 }
 
 export function useGetRaceList() {
-  return useSuspenseQuery(getRaceList())
+  return raceQueries.useList()
 }
 
-export function getRace(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.races.detail(id),
-    queryFn: async () => await client.content.races.get(id)
-  })
+export function getRace(input: DetailInput, client?: Api) {
+  return raceQueries.getDetail(input, client)
 }
 
-export function useGetRace(id: string) {
-  return useSuspenseQuery(getRace(id))
+export function useGetRace(input: DetailInput) {
+  return raceQueries.useDetail(input)
 }
 
-export function getRaceDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.races.draft(id),
-    queryFn: async () => await client.content.races.getDraft(id)
-  })
+export function getRaceDraft(id: string, client?: Api) {
+  return raceQueries.getDraft(id, client)
 }

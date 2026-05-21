@@ -12,6 +12,7 @@ export const handlers = [
     items: [
       {
         id: 'magic-missile',
+        publicId: '1',
         label: 'Magic Missile',
         description: 'Force darts that strike unerringly.',
         status: 'ACTIVE',
@@ -33,10 +34,11 @@ export const handlers = [
         }
       }
     ],
+    drafts: [],
     meta: {}
   })),
-  http.get('*/api/trpc/nodeRuntime.resolve', ({ request }) => {
-    const body = readSearchInput<NodeRuntimeResolveRequestDto>(request)
+  http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
+    const body = readBatchedInput<NodeRuntimeResolveRequestDto>(await request.json())
 
     if (body.mapId === 'spell') {
       return trpcJson(buildSpellRuntimeResponse(body))
@@ -54,18 +56,12 @@ function trpcJson(data: unknown) {
   return HttpResponse.json([{ result: { data } }])
 }
 
-function readSearchInput<TInput>(request: Request): TInput {
-  const rawInput = new URL(request.url).searchParams.get('input')
-  if (!rawInput) {
-    throw new Error('Expected tRPC input search parameter.')
-  }
-
-  const parsed = JSON.parse(rawInput) as unknown
-  if (typeof parsed !== 'object' || parsed === null || !('0' in parsed)) {
+function readBatchedInput<TInput>(body: unknown): TInput {
+  if (typeof body !== 'object' || body === null || !('0' in body)) {
     throw new Error('Expected batched tRPC input.')
   }
 
-  return (parsed as { 0: TInput })[0]
+  return (body as { 0: TInput })[0]
 }
 
 function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRuntimeResolveResponseDto {

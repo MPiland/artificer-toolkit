@@ -1,4 +1,4 @@
-import { ATTACK_DOMAIN_CODE, ABILITY_CODE, ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, DAMAGE_VALUE_KIND, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, VALUE_DOMAIN_CODE, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ATTACK_DOMAIN_CODE, ABILITY_CODE, ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, DAMAGE_VALUE_KIND, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, VALUE_DOMAIN_CODE, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const viciousMockery: SpellAuthored = {
@@ -9,6 +9,7 @@ export const viciousMockery: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 0,
     classIds: [CLASS_IDS.BARD],
+    components: [SPELL_COMPONENT.VERBAL],
     magicSchoolId: schoolId('ENCHANTMENT'),
     effects: [
         {
@@ -18,7 +19,7 @@ export const viciousMockery: SpellAuthored = {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.VICIOUS_MOCKERY, 0x211, 1),
-                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    dcMethod: 'SOURCE_SAVE_DC',
                     ability: ABILITY_CODE.WISDOM
                 },
                 activation: {
@@ -32,7 +33,8 @@ export const viciousMockery: SpellAuthored = {
                     unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

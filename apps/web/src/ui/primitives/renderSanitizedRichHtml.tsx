@@ -27,6 +27,9 @@ const BLOCKED_TAGS = new Set([
 
 const URL_ATTRIBUTES = new Set(['action', 'formaction', 'href', 'src', 'xlink:href'])
 const VOID_TAGS = new Set(['area', 'br', 'col', 'hr', 'img', 'source', 'track', 'wbr'])
+const TABLE_STYLE_TAGS = new Set(['col', 'table', 'td', 'th'])
+const TABLE_STYLE_PROPERTIES = new Set(['min-width', 'width'])
+const TABLE_SIZE_VALUE_PATTERN = /^(?:\d+(?:\.\d+)?(?:ch|em|px|rem|%)|auto)$/i
 
 function isElementNode(domNode: DOMNode): domNode is Element {
   const candidate = domNode as Partial<Element>
@@ -51,14 +54,43 @@ function isSafeUrl(value: string): boolean {
   }
 }
 
-function sanitizeAttributes(attributes: Record<string, string | undefined>): Record<string, string> {
+function sanitizeStyleAttribute(tagName: string, value: string): string | null {
+  if (!TABLE_STYLE_TAGS.has(tagName)) return null
+
+  const declarations = value
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .flatMap((declaration) => {
+      const separatorIndex = declaration.indexOf(':')
+      if (separatorIndex < 1) return []
+
+      const property = declaration.slice(0, separatorIndex).trim().toLowerCase()
+      const propertyValue = declaration.slice(separatorIndex + 1).trim()
+      if (!TABLE_STYLE_PROPERTIES.has(property) || !TABLE_SIZE_VALUE_PATTERN.test(propertyValue)) {
+        return []
+      }
+
+      return [`${property}: ${propertyValue}`]
+    })
+
+  return declarations.length ? declarations.join('; ') : null
+}
+
+function sanitizeAttributes(tagName: string, attributes: Record<string, string | undefined>): Record<string, string> {
   const sanitized: Record<string, string> = {}
 
   for (const [name, value] of Object.entries(attributes)) {
     if (value === undefined) continue
 
     const normalizedName = name.toLowerCase()
-    if (normalizedName.startsWith('on') || normalizedName === 'style' || normalizedName === 'srcdoc') {
+    if (normalizedName.startsWith('on') || normalizedName === 'srcdoc') {
+      continue
+    }
+
+    if (normalizedName === 'style') {
+      const safeStyle = sanitizeStyleAttribute(tagName, value)
+      if (safeStyle) sanitized.style = safeStyle
       continue
     }
 
@@ -83,7 +115,7 @@ const options: HTMLReactParserOptions = {
       return <></>
     }
 
-    const props = attributesToProps(sanitizeAttributes(domNode.attribs))
+    const props = attributesToProps(sanitizeAttributes(tagName, domNode.attribs))
     if (VOID_TAGS.has(tagName)) {
       return createElement(tagName, props)
     }

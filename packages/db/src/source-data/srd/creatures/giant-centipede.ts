@@ -51,6 +51,7 @@ export const giantCentipede: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

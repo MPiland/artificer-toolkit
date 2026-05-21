@@ -13,21 +13,8 @@ export function AppSelect({
   comboboxProps,
   classNames,
   clearButtonProps,
-  styles,
   ...props
 }: AppSelectProps) {
-  const inputVisualStyles = disabled
-    ? {
-        backgroundColor: 'var(--at-color-input-background-disabled)',
-        borderColor: 'var(--at-color-input-border-disabled)',
-        color: 'var(--at-color-text-secondary)'
-      }
-    : {
-        backgroundColor: 'var(--at-color-input-background-default)',
-        borderColor: 'var(--at-color-input-border-default)',
-        color: 'var(--at-color-text-primary)'
-      }
-
   return (
     <Select
       data={toComboboxData(data)}
@@ -36,7 +23,9 @@ export function AppSelect({
       disabled={disabled}
       clearable={clearable}
       clearButtonProps={{
-        'aria-label': props.label ? `Clear ${props.label}` : 'Clear selected option',
+        'aria-label': props.label
+          ? `Clear ${props.label}`
+          : 'Clear selected option',
         ...clearButtonProps
       }}
       searchable={searchable}
@@ -50,14 +39,11 @@ export function AppSelect({
         root: selectStyles.root,
         label: selectStyles.label,
         description: selectStyles.description,
+        required: selectStyles.required,
         input: selectStyles.input,
         dropdown: selectStyles.dropdown,
         option: selectStyles.option,
         ...classNames
-      }}
-      styles={{
-        input: inputVisualStyles,
-        ...styles
       }}
       {...props}
     />

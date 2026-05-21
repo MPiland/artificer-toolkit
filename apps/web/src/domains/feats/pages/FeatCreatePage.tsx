@@ -23,6 +23,7 @@ import {
   useActivateFeatMutation,
   useSaveFeatDraftMutation
 } from '#app/data/feats/mutations'
+import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyFeat,
   normalizeFeatForSubmit,
@@ -61,8 +62,11 @@ function FeatCreateAuthoring({ systemId }: { systemId: string }) {
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Feat activated.' })
 
-      if (response?.item.id) {
-        await navigate({ to: '/feats/$featId', params: { featId: response.item.id } })
+      if (response?.item?.id) {
+        await navigate({
+          params: buildFeatRouteParams(response.publicId, response.item.label),
+          to: '/feats/$featPublicId/$featSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that feat yet.' })
@@ -83,7 +87,10 @@ function FeatCreateAuthoring({ systemId }: { systemId: string }) {
     try {
       const draft = await draftMutation.mutateAsync(normalizeFeatForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Feat draft saved.' })
-      await navigate({ to: '/feats/$featId/edit', params: { featId: draft.subjectId } })
+      await navigate({
+        params: buildFeatRouteParams(draft.publicId, draft.label),
+        to: '/feats/$featPublicId/$featSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

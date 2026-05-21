@@ -15,10 +15,12 @@ import { isCharacterSheetTabId } from './characterSheet.utils'
 import type { CharacterSheet, CharacterSheetTabId } from './CharacterSheet.types'
 
 export function CharacterSheetView({
+  characterPublicId,
   hasDraft,
   initialTab = 'overview',
   sheet
 }: {
+  characterPublicId: string
   hasDraft: boolean
   initialTab?: CharacterSheetTabId
   sheet: CharacterSheet
@@ -38,7 +40,7 @@ export function CharacterSheetView({
 
   return (
     <div className={styles.shell}>
-      <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+      <CharacterSheetHero characterPublicId={characterPublicId} hasDraft={hasDraft} sheet={sheet} />
       {hasDraft
         ? (
             <Alert color='yellow'>

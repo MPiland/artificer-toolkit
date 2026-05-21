@@ -30,6 +30,8 @@ import {
 
 export interface CompiledClassResource {
   id: string
+  label: string
+  description?: string
   availableAtLevel: number
   charges: CompiledCharge
 }
@@ -133,6 +135,8 @@ export function compileResource(
 ): CompiledClassResource {
   return {
     id: authored.id,
+    label: authored.label,
+    description: authored.description,
     availableAtLevel: authored.availableAtLevel,
     charges: compileCharge(authored.charges)
   }

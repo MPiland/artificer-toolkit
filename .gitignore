@@ -31,7 +31,7 @@ playwright-report/
 *.sw?
 
 # misc
-.env
+.env*
 
 !jest.config.js
 *.d.ts

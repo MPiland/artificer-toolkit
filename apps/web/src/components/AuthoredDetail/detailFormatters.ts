@@ -70,6 +70,15 @@ export function stripHtml(html: string | null | undefined): string {
     .trim()
 }
 
+export function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 export function summarizeHtml(html: string | null | undefined, fallback: string): string {
   const text = stripHtml(html)
   if (!text) return fallback

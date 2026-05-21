@@ -5,7 +5,7 @@ import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query
 import { getGlobalStartContext } from '@tanstack/react-start'
 import type { User } from '@supabase/supabase-js'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
-import { RouteErrorState, RouteNotFound } from '#app/routeStates'
+import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 
 export interface AppRouterContext {
   nonce?: string
@@ -36,6 +36,9 @@ export function getRouter(user: User | null) {
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,
     defaultNotFoundComponent: RouteNotFound,
+    defaultPendingComponent: RouteLoadingState,
+    defaultPendingMs: 120,
+    defaultPendingMinMs: 160,
     scrollRestoration: true,
     ssr: { nonce }
   })

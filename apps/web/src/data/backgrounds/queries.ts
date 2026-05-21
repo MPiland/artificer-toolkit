@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getBackgroundList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.backgrounds.list(),
-    queryFn: async () => await client.content.backgrounds.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const backgroundQueries = createAuthoredContentQueries(
+  (client) => client.content.backgrounds,
+  queryKeys.content.backgrounds
+)
+
+export function getBackgroundList(client?: Api) {
+  return backgroundQueries.getList(client)
 }
 
 export function useGetBackgroundList() {
-  return useSuspenseQuery(getBackgroundList())
+  return backgroundQueries.useList()
 }
 
-export function getBackground(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.backgrounds.detail(id),
-    queryFn: async () => await client.content.backgrounds.get(id)
-  })
+export function getBackground(input: DetailInput, client?: Api) {
+  return backgroundQueries.getDetail(input, client)
 }
 
-export function useGetBackground(id: string) {
-  return useSuspenseQuery(getBackground(id))
+export function useGetBackground(input: DetailInput) {
+  return backgroundQueries.useDetail(input)
 }
 
-export function getBackgroundDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.backgrounds.draft(id),
-    queryFn: async () => await client.content.backgrounds.getDraft(id)
-  })
+export function getBackgroundDraft(id: string, client?: Api) {
+  return backgroundQueries.getDraft(id, client)
 }

@@ -8,7 +8,12 @@ export const ownedFeatFixture: FeatAuthoredDto = {
   id: 'battlefield-reader',
   label: 'Battlefield Reader',
   description: 'You have learned to read a dangerous room before the first blade is drawn.',
-  detail: 'This feat rewards careful positioning and quick tactical reads.',
+  details: [{
+    id: 'battlefield-reader-detail',
+    label: 'Detail',
+    description: 'This feat rewards careful positioning and quick tactical reads.',
+    order: 1
+  }],
   status: 'DRAFT',
   effects: [],
   features: [
@@ -28,7 +33,12 @@ export const masterFeatFixture: FeatAuthoredDto = {
   id: 'grappler',
   label: 'Grappler',
   description: 'You have developed the skills necessary to hold your own in close-quarters grappling.',
-  detail: 'Prerequisite: Strength 13 or higher.',
+  details: [{
+    id: 'grappler-detail',
+    label: 'Detail',
+    description: 'Prerequisite: Strength 13 or higher.',
+    order: 1
+  }],
   status: 'ACTIVE',
   userId: 'master'
 }
@@ -37,6 +47,7 @@ export const featListResponseFixture: FeatListResponseDto = {
   items: [
     {
       id: masterFeatFixture.id,
+      publicId: masterFeatFixture.id,
       label: masterFeatFixture.label,
       description: masterFeatFixture.description,
       status: 'ACTIVE',
@@ -55,6 +66,7 @@ export const featListResponseFixture: FeatListResponseDto = {
     },
     {
       id: ownedFeatFixture.id,
+      publicId: ownedFeatFixture.id,
       label: ownedFeatFixture.label,
       description: ownedFeatFixture.description,
       status: 'DRAFT',
@@ -72,10 +84,12 @@ export const featListResponseFixture: FeatListResponseDto = {
       }
     }
   ],
+  drafts: [],
   meta: {}
 }
 
 export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
+  publicId: ownedFeatFixture.id,
   item: ownedFeatFixture,
   provenance: {
     kind: 'OWNED',
@@ -90,6 +104,7 @@ export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
 }
 
 export const masterFeatResponseFixture: NonNullable<FeatResponseDto> = {
+  publicId: masterFeatFixture.id,
   item: masterFeatFixture,
   provenance: {
     kind: 'MASTER',

@@ -5,19 +5,35 @@ import { toAuthoringFieldName } from '../utils/pathUtils'
 
 export interface ResolvedNodeClearableForm<TValues extends object> {
   state: {
+    isDirty?: boolean
     values: TValues
   }
+  reset?: (values?: TValues, opts?: { keepDefaultValues?: boolean }) => void
   setFieldValue: <TField extends DeepKeys<TValues>>(
     field: TField,
     value: Updater<DeepValue<TValues, TField>>
   ) => void
 }
 
+export interface ClearResolvedNodeFormPathsOptions {
+  preservePristine?: boolean
+}
+
 export function clearResolvedNodeFormPaths<TValues extends object>(
   form: ResolvedNodeClearableForm<TValues>,
-  paths: readonly NodeRuntimePathDto[]
+  paths: readonly NodeRuntimePathDto[],
+  options: ClearResolvedNodeFormPathsOptions = {}
 ) {
-  for (const path of applyResolvedNodeClearPaths(toResolvedNodeValues(form.state.values), paths).clearedPaths) {
+  const normalized = applyResolvedNodeClearPaths(toResolvedNodeValues(form.state.values), paths)
+
+  if (normalized.clearedPaths.length === 0) return
+
+  if (options.preservePristine !== false && form.state.isDirty === false && form.reset) {
+    form.reset(normalized.values as TValues)
+    return
+  }
+
+  for (const path of normalized.clearedPaths) {
     clearResolvedNodeFormPath(form, toAuthoringFieldName(undefined, path) as DeepKeys<TValues>)
   }
 }

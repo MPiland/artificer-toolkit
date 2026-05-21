@@ -13,7 +13,7 @@ import ISack from '#assets/icons/ISack'
 export interface AppShellNavItem {
   label: string
   href?: string
-  icon: ComponentType<{ className?: string }>
+  icon: ComponentType<{ className?: string, size?: number }>
 }
 
 export interface AppShellNavGroup {
@@ -34,12 +34,12 @@ export const platformNavigation: AppShellNavGroup[] = [
         label: 'Characters',
         href: '/characters',
         icon: IChar
-      },
-      {
-        label: 'Systems',
-        href: '/systems',
-        icon: ICategory
-      },
+      }
+    ]
+  },
+  {
+    label: 'Content',
+    items: [
       {
         label: 'Spells',
         href: '/spells',

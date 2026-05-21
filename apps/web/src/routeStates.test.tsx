@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { TestRouterProvider } from '#test/TestRouterProvider'
-import { RouteErrorState, RouteNotFound } from './routeStates'
+import { RouteErrorState, RouteLoadingState, RouteNotFound } from './routeStates'
 
 const signedInUser = {
   id: 'user-1',
@@ -29,6 +29,12 @@ describe('route states', () => {
     renderRouteNotFound({ user: signedInUser })
 
     expect(screen.getByRole('link', { name: /return home/i })).toHaveAttribute('href', '/home')
+  })
+
+  it('renders the route loading state with live progress copy', () => {
+    renderWithRouter(<RouteLoadingState />, null)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Forging weapons...')
   })
 })
 

@@ -6,9 +6,8 @@ import { CharacterSheetDraftOnlyState } from '../components/sheet/CharacterSheet
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
 export function CharacterSheetPage() {
-  const route = getRouteApi('/_authed/characters/$characterId/')
-  const { draft, fallbackCharacter } = route.useLoaderData()
-  const { characterId } = route.useParams()
+  const route = getRouteApi('/_authed/characters/$characterPublicId/$characterSlug/')
+  const { characterId, characterPublicId, draft, fallbackCharacter } = route.useLoaderData()
   const navigate = useNavigate()
   const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterId))
 
@@ -16,6 +15,7 @@ export function CharacterSheetPage() {
     return (
       <CharacterSheetDraftOnlyState
         characterId={characterId}
+        characterPublicId={draft?.publicId ?? fallbackCharacter?.publicId ?? characterPublicId}
         label={draft?.label ?? fallbackCharacter?.character.label}
       />
     )
@@ -30,5 +30,11 @@ export function CharacterSheetPage() {
     )
   }
 
-  return <CharacterSheetView hasDraft={Boolean(draft ?? sheet.meta.hasBuilderDraft)} sheet={sheet} />
+  return (
+    <CharacterSheetView
+      characterPublicId={sheet.publicId ?? characterPublicId}
+      hasDraft={Boolean(draft ?? sheet.meta.hasBuilderDraft)}
+      sheet={sheet}
+    />
+  )
 }

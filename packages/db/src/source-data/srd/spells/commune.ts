@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const commune: SpellAuthored = {
@@ -9,6 +9,8 @@ export const commune: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 5,
     classIds: [CLASS_IDS.CLERIC],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "incense and a vial of holy or unholy water",
     magicSchoolId: schoolId('DIVINATION'),
     attributes: [SPELL_ATTRIBUTE.RITUAL],
     effects: [
@@ -50,7 +52,6 @@ export const commune: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: 'incense and a vial of holy or unholy water',
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID,
 };

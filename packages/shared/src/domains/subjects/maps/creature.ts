@@ -33,24 +33,24 @@ export const CREATURE_SECTIONS = {
 const detailNode = buildNodeMap<DetailAuthored>()
 
 export const CREATURE_DETAIL_NODE_MAP = detailNode.define('creatureDetail', ({ map, nodes }) => {
-  const { text, number } = nodes
+  const { text, richText, number } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('description', richText(['description'], 'Description'))
     .set('order', number(['order'], 'Order'))
 })
 
 const actionNode = buildNodeMap<CreatureActionAuthored>()
 
 export const CREATURE_ACTION_NODE_MAP = actionNode.define('creatureAction', ({ map, nodes }) => {
-  const { text, number } = nodes
+  const { text, richText, number } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('description', richText(['description'], 'Description'))
     .set('attackBonus', number(['attackBonus'], 'Attack Bonus'))
     .set('damage', text(['damage'], 'Damage'))
     .set('recharge', text(['recharge'], 'Recharge'))
@@ -170,7 +170,7 @@ export const CREATURE_CAPACITY_NODE_MAP = capacityNode.define('creatureCapacity'
 const creatureNode = buildNodeMap<CreatureAuthored>()
 
 export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, cond, data, logic }) => {
-  const { text, number, selectMulti, selectSingle, groupArray, groupObject } = nodes
+  const { text, richText, number, selectMulti, selectSingle, groupArray, groupObject } = nodes
   const { table } = data
   const local = cond.local()
   const { or } = logic
@@ -193,8 +193,8 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     // Identity
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', { section: CREATURE_SECTIONS.basics, order: 10 }))
-    .set('quote', text(['quote'], 'Quote', { section: CREATURE_SECTIONS.basics, order: 20 }))
-    .set('description', text(['description'], 'Description', { section: CREATURE_SECTIONS.basics, order: 30 }))
+    .set('quote', richText(['quote'], 'Quote', { section: CREATURE_SECTIONS.basics, order: 20 }))
+    .set('description', richText(['description'], 'Description', { section: CREATURE_SECTIONS.basics, order: 30 }))
     .set('details', groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 10 }))
     .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 20 }))
     .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 30 }))

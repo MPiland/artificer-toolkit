@@ -1,8 +1,8 @@
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
-import type { AuthoredDetailAction } from './AuthoredDetail.types'
+import type { AuthoredDetailAction, AuthoredDetailSectionModel } from './AuthoredDetail.types'
 import type { AuthoredDetailViewMode } from './authoredDetailState'
-import { formatEnumLabel } from './detailFormatters'
+import { formatEnumLabel, stripHtml } from './detailFormatters'
 
 export interface LabelDescriptionRecord {
   id?: string
@@ -33,7 +33,6 @@ export function toDetailItems(records: readonly LabelDescriptionRecord[] | null 
 }
 
 export function buildDetailStatusLabels({
-  draft,
   mode,
   provenance,
   status
@@ -43,13 +42,14 @@ export function buildDetailStatusLabels({
   provenance: AuthoredContentProvenanceDto
   status?: string
 }) {
+  const statusLabel = status ? formatEnumLabel(status) : null
   const labels = [
-    provenance.kind === 'MASTER' ? 'Master' : 'Owned',
-    status ? formatEnumLabel(status) : null
+    provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
+    mode === 'draft' && statusLabel === 'Draft' ? null : statusLabel
   ]
 
   if (mode === 'draft') {
-    labels.unshift(draft?.draftState === 'ACTIVE_WITH_DRAFT' ? 'Draft Preview' : 'Draft Only')
+    labels.unshift('Draft')
   }
 
   if (mode === 'invalid-draft-only') {
@@ -63,4 +63,14 @@ export function compactAuthoredDetailActions(
   actions: (AuthoredDetailAction | null | undefined)[]
 ): AuthoredDetailAction[] {
   return actions.filter((action): action is AuthoredDetailAction => Boolean(action))
+}
+
+export function compactAuthoredDetailSections(
+  sections: (AuthoredDetailSectionModel | null | undefined)[]
+): AuthoredDetailSectionModel[] {
+  return sections.filter((section): section is AuthoredDetailSectionModel => Boolean(section))
+}
+
+export function hasDetailText(value: string | null | undefined): boolean {
+  return stripHtml(value).length > 0
 }

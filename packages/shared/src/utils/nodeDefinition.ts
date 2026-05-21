@@ -1353,6 +1353,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
+      requiredIf: meta?.requiredIf,
       nodes: child
     }),
 
@@ -1366,6 +1367,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
+      requiredIf: meta?.requiredIf,
       nodes: child
     })
   }

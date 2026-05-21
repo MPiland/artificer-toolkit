@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const adultBrassDragon: CreatureAuthored = {
@@ -73,7 +73,8 @@ export const adultBrassDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -129,7 +130,8 @@ export const adultBrassDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -185,7 +187,8 @@ export const adultBrassDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -235,8 +238,9 @@ export const adultBrassDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5, 99),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.WISDOM
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.WISDOM,
+                            baseDc: 16
                         },
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -293,8 +297,9 @@ export const adultBrassDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 18
                         },
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(5, 32), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -360,8 +365,9 @@ export const adultBrassDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5, 36),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.CONSTITUTION
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION,
+                            baseDc: 18
                         },
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(5, 37), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -398,7 +404,7 @@ export const adultBrassDragon: CreatureAuthored = {
         {
             id: S.featureId(5, 10),
             label: 'Legendary Actions',
-            description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
+            description: '<p>The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.</p><p><strong>Detect.</strong> The dragon makes a Wisdom (Perception) check.</p><p><strong>Tail Attack.</strong> The dragon makes a tail attack.</p><p><strong>Wing Attack (Costs 2 Actions).</strong> The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.</p>',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
             charges: {
                 id: S.legendaryActionId(5, 21),
@@ -421,7 +427,8 @@ export const adultBrassDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -463,8 +470,9 @@ export const adultBrassDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.legendaryActionId(5, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 19
                         },
                         activation: { code: S.ACTIVATION_CODE.FREE },
                         range: { id: S.legendaryActionId(5, 29), rangeKind: S.RANGE_KIND.SPECIAL }

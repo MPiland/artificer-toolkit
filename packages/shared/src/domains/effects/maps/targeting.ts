@@ -42,7 +42,7 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored>
         order: 1,
         requiredIf: true
       }))
-      .set('dispositionKind', selectSingle(['dispositionKind'], 'Disposition', {
+      .set('dispositionKind', selectSingle(['dispositionKind'], 'Target Eligibility', {
         kind: 'INLINE',
         options: TARGET_DISPOSITION_KIND_OPTIONS
       }, {

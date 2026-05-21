@@ -30,6 +30,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateBackgroundMutation,
@@ -37,10 +38,13 @@ import {
   useDuplicateBackgroundMutation,
   useSaveBackgroundDraftMutation
 } from '#app/data/backgrounds/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import {
   normalizeBackgroundForSubmit
 } from '../backgroundAuthoring.utils'
 import { BackgroundAuthoringRenderer } from '../components/BackgroundAuthoringRenderer'
+import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 
 type ParsedBackgroundDraft = {
   draft: AuthoredDraftDto | null
@@ -49,12 +53,11 @@ type ParsedBackgroundDraft = {
 }
 
 export function BackgroundEditPage() {
-  const route = getRouteApi('/_authed/backgrounds/$backgroundId')
-  const { draft, response } = route.useLoaderData()
-  const { backgroundId } = route.useParams()
+  const route = getRouteApi('/_authed/backgrounds/$backgroundPublicId/$backgroundSlug')
+  const { backgroundId, draft, response } = route.useLoaderData()
   const parsedDraft: ParsedBackgroundDraft = parseAuthoredDraftPayload(draft ?? null, backgroundAuthoringInputDtoSchema)
   const draftBackground = parsedDraft.item
-  const activeBackground = response?.item
+  const activeBackground = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -101,6 +104,7 @@ function BackgroundEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   background: BackgroundAuthoringInputDto | BackgroundAuthoredDto
@@ -115,6 +119,20 @@ function BackgroundEditAuthoring({
   const [formValues] = useState<BackgroundAuthoringInputDto>(() => normalizeBackgroundForSubmit(background))
   const readOnly = Boolean(activeBackground && permissions?.canEdit === false)
   const canCopy = Boolean(permissions?.canCopy && backgroundId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.backgrounds.deleteActive,
+    deleteDraft: api.content.backgrounds.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.backgrounds.detailRoot(backgroundId),
+    domainLabel: 'Background',
+    domainQueryKey: queryKeys.content.backgrounds.all(),
+    draftQueryKey: queryKeys.content.backgrounds.draft(backgroundId),
+    onDeleted: async () => navigate({ to: '/backgrounds' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/backgrounds' })
@@ -127,8 +145,11 @@ function BackgroundEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Background activated.' })
 
-      if (response?.item.id && response.item.id !== backgroundId) {
-        await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: response.item.id } })
+      if (response?.item?.id && response.item.id !== backgroundId) {
+        await navigate({
+          params: buildBackgroundRouteParams(response.publicId, response.item.label),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
+        })
         return
       }
 
@@ -178,7 +199,10 @@ function BackgroundEditAuthoring({
       notifications.show({ color: 'green', message: 'Background duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: copied.subjectId } })
+        await navigate({
+          params: buildBackgroundRouteParams(copied.publicId, copied.label),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
@@ -206,11 +230,26 @@ function BackgroundEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: backgroundId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Background'
+    })
+  }, [
+    backgroundId,
+    draft,
+    formValues.label,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Background',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeBackground),
+    isDraft: Boolean(draft),
     mapId: 'background',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -218,13 +257,16 @@ function BackgroundEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Background',
     subjectLabel: formValues.label || 'Untitled Background',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeBackground,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -233,12 +275,15 @@ function BackgroundEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -260,6 +305,7 @@ function BackgroundEditAuthoring({
         <AuthoringFormLayout>
           <BackgroundAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

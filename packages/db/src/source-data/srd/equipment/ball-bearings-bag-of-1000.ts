@@ -4,7 +4,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(122),
     label: 'Ball Bearings (bag of 1000)',
-    description: "A bag of 1,000 small metal balls that can be scattered to trip creatures moving across them.",
+    description: "As an action, you can spill these tiny metal balls from their pouch to cover a level, square area that is 10 feet on a side. A creature moving across the covered area must succeed on a DC 10 Dexterity saving throw or fall prone. A creature moving through the area at half speed doesn't need to make the save.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     effects: [
@@ -22,7 +22,8 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS
+                    selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

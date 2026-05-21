@@ -10,7 +10,7 @@ import { TableKit } from '@tiptap/extension-table'
 import Placeholder from '@tiptap/extension-placeholder'
 import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
-import { editor_table, editor_table_th, editor_table_td } from './RichTextEditor.css'
+import * as editorStyles from './RichTextEditor.css'
 
 export interface RichTextEditorProps {
   value: string
@@ -47,7 +47,7 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
       TableKit.configure({
         table: {
           HTMLAttributes: {
-            class: editor_table
+            class: editorStyles.editor_table
           },
           resizable: true
         },
@@ -56,12 +56,12 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
       }),
       CustomTableHeader.configure({
         HTMLAttributes: {
-          class: editor_table_th
+          class: editorStyles.editor_table_th
         }
       }),
       CustomTableCell.configure({
         HTMLAttributes: {
-          class: editor_table_td
+          class: editorStyles.editor_table_td
         }
       }),
       Placeholder.configure({ placeholder: placeholder ?? '' })
@@ -72,11 +72,12 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
       attributes: editorAttributes
     },
     onUpdate: ({ editor }) => {
-      if (!readOnly) onChange(editor.getHTML())
+      const nextValue = normalizeRichTextValue(editor.getHTML())
+      if (!readOnly && !areRichTextValuesEquivalent(nextValue, value)) onChange(nextValue)
     },
     onBlur: ({ editor }) => {
       if (onBlur) {
-        onBlur({ target: { name: name, value: editor.getHTML() } })
+        onBlur({ target: { name: name, value: normalizeRichTextValue(editor.getHTML()) } })
       }
     }
   })
@@ -86,15 +87,33 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
   }, [editor, readOnly])
 
   useEffect(() => {
-    if (editor && editor.getHTML() !== value) {
+    if (editor && !areRichTextValuesEquivalent(editor.getHTML(), value)) {
       editor.commands.setContent(value, { emitUpdate: false })
     }
   }, [editor, value])
 
   return (
     <>
-      {label && <span id={labelId}>{required ? `${label} *` : label}</span>}
-      <MantineRichTextEditor editor={editor}>
+      {label
+        ? (
+            <span id={labelId} className={editorStyles.editorLabel}>
+              {label}
+              {required ? <span className={editorStyles.editorRequired}> *</span> : null}
+            </span>
+          )
+        : null}
+      <MantineRichTextEditor
+        editor={editor}
+        classNames={{
+          root: editorStyles.editorRoot,
+          toolbar: editorStyles.editorToolbar,
+          content: editorStyles.editorContent,
+          control: editorStyles.editorControl,
+          controlIcon: editorStyles.editorControlIcon,
+          controlsGroup: editorStyles.editorControlsGroup,
+          Typography: editorStyles.editorTypography
+        }}
+      >
         {!readOnly
           ? (
               <MantineRichTextEditor.Toolbar>
@@ -148,6 +167,29 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
       </MantineRichTextEditor>
     </>
   )
+}
+
+function normalizeRichTextValue(value: string): string {
+  const trimmed = value.trim()
+  return trimmed === '<p></p>' || trimmed === '<p><br></p>' ? '' : value
+}
+
+function areRichTextValuesEquivalent(left: string, right: string): boolean {
+  return toComparableRichTextValue(left) === toComparableRichTextValue(right)
+}
+
+function toComparableRichTextValue(value: string): string {
+  const normalized = normalizeRichTextValue(value).trim()
+  if (normalized.length === 0) return ''
+  if (/<[a-z][\s\S]*>/i.test(normalized)) return normalized
+  return `<p>${escapeHtml(normalized)}</p>`
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 export default RichTextEditor

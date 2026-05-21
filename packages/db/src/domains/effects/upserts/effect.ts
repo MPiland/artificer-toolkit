@@ -49,6 +49,10 @@ async function upsertGenericOutcome(
   await db
     .insertInto('effect_generic_outcomes')
     .values(mapEffectGenericOutcomeRow(outcome))
+    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+      effect_kind: ref('excluded.effect_kind'),
+      json_data: ref('excluded.json_data')
+    })))
     .execute()
 }
 

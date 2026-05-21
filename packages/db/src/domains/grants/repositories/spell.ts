@@ -7,6 +7,7 @@ import { upsertSpellGrant } from '../upserts/spell.js'
 import { hydrateFacetById } from '../../shared/facets.js'
 import { hydrateChargeById } from './helpers.js'
 import type { SpellGrantRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
 function requireChosenCount(value: number | null, message: string): number {
   if (value == null) {
@@ -158,7 +159,7 @@ async function hydrateSpellGrantById(
 
   if (!root) return null
 
-  const [attributeRows, rootSpells, scalingLevels, scalingLevelSpells, charge, restrictions, filters] = await Promise.all([
+  const [attributeRows, rootSpells, scalingLevels, charge, restrictions, filters] = await Promise.all([
     db.selectFrom('spell_grant_attributes')
       .select(['attribute_code', 'sort_order'])
       .where('spell_grant_id', '=', id)
@@ -173,13 +174,17 @@ async function hydrateSpellGrantById(
       .where('spell_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('spell_grant_scaling_level_spells')
-      .select(['scaling_level_id', 'spell_id'])
-      .execute(),
     root.charge_id ? hydrateChargeById(db, root.charge_id) : Promise.resolve(null),
     root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null),
     root.filter_id ? hydrateFacetById(db, root.filter_id) : Promise.resolve(null)
   ])
+  const scalingLevelIds = scalingLevels.map((level) => level.id)
+  const scalingLevelSpells = scalingLevelIds.length
+    ? await db.selectFrom('spell_grant_scaling_level_spells')
+        .select(['scaling_level_id', 'spell_id'])
+        .where('scaling_level_id', 'in', scalingLevelIds)
+        .execute()
+    : []
 
   const spellsByLevel = new Map<string, string[]>()
   for (const row of scalingLevelSpells) {
@@ -298,6 +303,10 @@ export function createSpellGrantRepository(db: DBLike): SpellGrantRepository {
       return hydrateSpellGrantById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateSpellGrantById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('spell_grants')
@@ -305,8 +314,10 @@ export function createSpellGrantRepository(db: DBLike): SpellGrantRepository {
         .orderBy('sort_order')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateSpellGrantById(db, row.id)))
-      return records.filter((record): record is SpellGrantAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSpellGrantById(db, id))
+      )
     }
   }
 }

@@ -15,6 +15,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
+import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
   SRD_CURRENCIES,
   SRD_SKILLS,
@@ -165,6 +166,24 @@ export const ranger: ClassAuthored = {
     ability: ABILITY_CODE.WISDOM,
     maxSpellLevel: 5,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+    details: classSpellcastingDetails(RA, [
+      {
+        label: 'Spellcasting',
+        description: '<p>By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells, much as a druid does.</p>'
+      },
+      {
+        label: 'Spell Slots',
+        description: '<p>The Ranger table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>animal friendship</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>animal friendship</em> using either slot.</p>'
+      },
+      {
+        label: 'Spells Known of 1st Level and Higher',
+        description: '<p>You know two 1st-level spells of your choice from the ranger spell list.</p><p>The Spells Known column of the Ranger table shows when you learn more ranger spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 5th level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the ranger spells you know and replace it with another spell from the ranger spell list, which also must be of a level for which you have spell slots.</p>'
+      },
+      {
+        label: 'Spellcasting Ability',
+        description: '<p>Wisdom is your spellcasting ability for your ranger spells, since your magic draws on your attunement to nature. You use your Wisdom whenever a spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a ranger spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Wisdom modifier</p>'
+      }
+    ]),
     charges: rangerSlotCharge,
     spellLimits: rangerSpellLimits
   },

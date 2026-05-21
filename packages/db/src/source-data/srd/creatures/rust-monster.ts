@@ -29,19 +29,19 @@ export const rustMonster: CreatureAuthored = {
     xp: 100,
     features: [
         {
-            id: S.featureId(3591, 1),
+            id: S.featureId(241, 1),
             label: 'Iron Scent',
             description: 'Iron Scent. The rust monster can pinpoint, by scent, the location of ferrous metal within 30 feet of it.',
             order: 1
         },
         {
-            id: S.featureId(3591, 2),
+            id: S.featureId(241, 2),
             label: 'Antennae',
             description: 'Antennae. A hit from the rust monster’s antennae corrodes a nonmagical ferrous metal weapon or armor. A metal weapon takes a cumulative and permanent penalty to damage rolls, and a metal armor takes a cumulative and permanent penalty to AC, until the item is destroyed or repaired by magic.',
             order: 2
         },
         {
-            id: S.featureId(3591, 3),
+            id: S.featureId(241, 3),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 5 (1d8 + 1) piercing damage.',
             effects: [
@@ -61,7 +61,8 @@ export const rustMonster: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [

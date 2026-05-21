@@ -36,13 +36,13 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
     xp: 450,
     features: [
         {
-            id: S.featureId(6062, 1),
+            id: S.featureId(54, 1),
             label: 'Amphibious',
             description: 'Amphibious. The dragon can breathe air and water.',
             order: 1
         },
         {
-            id: S.featureId(6062, 2),
+            id: S.featureId(54, 2),
             label: 'Bite',
             description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage.',
             effects: [
@@ -62,7 +62,8 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -101,7 +102,7 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(6062, 3),
+            id: S.featureId(54, 3),
             label: 'Breath Weapons (Recharge 5-6)',
             description: 'The dragon uses one of the following breath weapons.',
             effects: [
@@ -112,8 +113,9 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6062, 6),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 12
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -177,8 +179,9 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6062, 11),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.STRENGTH
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.STRENGTH,
+                            baseDc: 12
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,

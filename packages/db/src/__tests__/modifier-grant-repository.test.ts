@@ -185,6 +185,69 @@ describe('createModifierGrantRepository', () => {
     })
   })
 
+  it('hydrates Postgres numeric strings as numbers', async () => {
+    const repository = createModifierGrantRepository(createFakeDb({
+      modifier_grants: [{
+        id: 'modifier-numeric-string',
+        sort_order: 1,
+        selection_kind: 'GRANTED',
+        count: null,
+        value_domain_code: 'ABILITY_SCORE',
+        modifier_kind: 'BONUS',
+        scope: 'GLOBAL',
+        restriction_id: null
+      }],
+      modifier_grant_domain_params: [{
+        modifier_grant_id: 'modifier-numeric-string',
+        value_domain_code: 'ABILITY_SCORE',
+        attack_domain_code: null,
+        ability_code: 'STRENGTH',
+        skill_id: null,
+        speed_id: null,
+        sense_code: null,
+        spell_level: null
+      }],
+      modifier_grant_payloads: [{
+        modifier_grant_id: 'modifier-numeric-string',
+        modifier_kind: 'BONUS',
+        value_domain_code: 'ABILITY_SCORE',
+        numeric_value_kind: 'FIXED',
+        numeric_amount: '2',
+        numeric_multiplier: null,
+        numeric_ability_code: null,
+        numeric_min: null,
+        numeric_max: null,
+        numeric_skill_id: null,
+        numeric_class_id: null,
+        set_amount: null,
+        charge_limit_kind: null,
+        charge_scaling_kind: null,
+        charge_amount: null,
+        charge_multiplier: null,
+        charge_min: null,
+        charge_max: null,
+        dice: null,
+        damage_type_id: null,
+        condition_type_id: null,
+        movement_mode_id: null,
+        attribute_id: null,
+        range_kind: null,
+        duration_kind: null,
+        shape_kind: null,
+        reset_kind: null
+      }],
+      modifier_grant_charge_levels: [],
+      modifier_grant_optional_abilities: []
+    }) as never)
+
+    await expect(repository.findById('modifier-numeric-string')).resolves.toMatchObject({
+      payload: {
+        valueKind: 'FIXED',
+        amount: 2
+      }
+    })
+  })
+
   it('fails loudly when a granted modifier grant persists count', async () => {
     const repository = createModifierGrantRepository(createFakeDb({
       modifier_grants: [{

@@ -48,6 +48,7 @@ function createEffectReferenceApi(): EffectReferenceApi {
           items: [
             {
               id: 'creature-a',
+              publicId: 'creature-a',
               label: 'Creature A',
               description: null,
               status: 'ACTIVE',
@@ -58,6 +59,7 @@ function createEffectReferenceApi(): EffectReferenceApi {
             },
             {
               id: 'creature-b',
+              publicId: 'creature-b',
               label: 'Creature B',
               description: null,
               status: 'ACTIVE',
@@ -67,6 +69,7 @@ function createEffectReferenceApi(): EffectReferenceApi {
               permissions
             }
           ],
+          drafts: [],
           meta: {}
         })
       }

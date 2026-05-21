@@ -38,6 +38,7 @@ export interface RepositoryFindAllOptions {
 export interface AuthoredRepository<TAuthored, TFilter = RepositoryFindAllOptions> {
   upsert(entity: TAuthored): Promise<void>
   findById(id: string, filter?: TFilter): Promise<TAuthored | null>
+  findByIds(ids: readonly string[], filter?: TFilter): Promise<Map<string, TAuthored>>
   findAll(filter?: TFilter): Promise<TAuthored[]>
 }
 

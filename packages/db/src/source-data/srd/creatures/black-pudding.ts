@@ -31,25 +31,25 @@ export const blackPudding: CreatureAuthored = {
     xp: 1100,
     features: [
         {
-            id: S.featureId(5665, 1),
+            id: S.featureId(47, 1),
             label: 'Amorphous',
             description: 'Amorphous. The pudding can move through a space as narrow as 1 inch wide without squeezing.',
             order: 1
         },
         {
-            id: S.featureId(5665, 2),
+            id: S.featureId(47, 2),
             label: 'Corrosive Form',
             description: 'Corrosive Form. A creature that hits the pudding with a melee attack roll takes 4 (1d8) acid damage. Nonmagical ammunition is destroyed immediately after hitting the pudding and dealing any damage. Any nonmagical weapon takes a cumulative -1 penalty to attack rolls immediately after dealing damage to the pudding and coming into contact with it. The weapon is destroyed if the penalty reaches -5. The penalty can be removed by casting the mending spell on the weapon. In 1 minute, the pudding can eat through 2 feet of nonmagical wood or metal.',
             order: 2
         },
         {
-            id: S.featureId(5665, 3),
+            id: S.featureId(47, 3),
             label: 'Spider Climb',
             description: 'Spider Climb. The pudding can climb difficult surfaces, including along ceilings, without needing to make an ability check.',
             order: 3
         },
         {
-            id: S.featureId(5665, 4),
+            id: S.featureId(47, 4),
             label: 'Dissolving Pseudopod',
             description: 'Dissolving Pseudopod. Melee Attack Roll: +5, reach 10 ft. Hit: 17 (4d6 + 3) acid damage. Nonmagical armor worn by the target takes a -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10. The penalty can be removed by casting the mending spell on the armor.',
             effects: [
@@ -69,7 +69,8 @@ export const blackPudding: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -125,7 +126,7 @@ export const blackPudding: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(5665, 5),
+            id: S.featureId(47, 5),
             label: 'Split',
             description: 'Split. While the pudding is Large or Medium and has 10 or more hit points, it becomes Bloodied or is subjected to lightning or slashing damage, it splits into two new black puddings. Each new pudding is one size smaller than the original pudding and acts on its own initiative. The original pudding\'s hit points are divided evenly between the new puddings, round down.',
             effects: [

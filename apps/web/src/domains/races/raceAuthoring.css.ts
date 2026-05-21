@@ -15,14 +15,14 @@ export const contentWide = style({
 export const fieldGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: foundationVars.space[4]
-    }
-  },
-  '@media': {
-    [mobile]: {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(2, minmax(0, 1fr))',
+      'gap': foundationVars.space[4],
+      '@media': {
+        [mobile]: {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -30,12 +30,12 @@ export const fieldGrid = style({
 export const singleField = style({
   '@layer': {
     [app]: {
-      width: 'min(100%, 280px)'
-    }
-  },
-  '@media': {
-    [mobile]: {
-      width: '100%'
+      'width': 'min(100%, 280px)',
+      '@media': {
+        [mobile]: {
+          width: '100%'
+        }
+      }
     }
   }
 })
@@ -131,14 +131,14 @@ export const inheritedPanel = style({
 export const inheritedGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-      gap: foundationVars.space[4]
-    }
-  },
-  '@media': {
-    [mobile]: {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
+      'gap': foundationVars.space[4],
+      '@media': {
+        [mobile]: {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -192,17 +192,17 @@ export const modalShell = style({
 export const modalHeader = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: '64px',
-      padding: `0 ${foundationVars.space[13]}`,
-      borderBottom: `1px solid ${foundationVars.color.border.strong}`
-    }
-  },
-  '@media': {
-    [mobile]: {
-      padding: `0 ${foundationVars.space[4]}`
+      'display': 'flex',
+      'alignItems': 'center',
+      'justifyContent': 'space-between',
+      'minHeight': '64px',
+      'padding': `0 ${foundationVars.space[13]}`,
+      'borderBottom': `1px solid ${foundationVars.color.border.strong}`,
+      '@media': {
+        [mobile]: {
+          padding: `0 ${foundationVars.space[4]}`
+        }
+      }
     }
   }
 })
@@ -210,18 +210,18 @@ export const modalHeader = style({
 export const modalContent = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      alignContent: 'start',
-      gap: foundationVars.space[5],
-      width: '100%',
-      maxWidth: '900px',
-      padding: `${foundationVars.space[8]} ${foundationVars.space[13]}`,
-      overflow: 'auto'
-    }
-  },
-  '@media': {
-    [mobile]: {
-      padding: foundationVars.space[4]
+      'display': 'grid',
+      'alignContent': 'start',
+      'gap': foundationVars.space[5],
+      'width': '100%',
+      'maxWidth': '900px',
+      'padding': `${foundationVars.space[8]} ${foundationVars.space[13]}`,
+      'overflow': 'auto',
+      '@media': {
+        [mobile]: {
+          padding: foundationVars.space[4]
+        }
+      }
     }
   }
 })
@@ -229,18 +229,18 @@ export const modalContent = style({
 export const modalFooter = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3],
-      minHeight: '56px',
-      padding: `${foundationVars.space[2]} ${foundationVars.space[13]}`,
-      borderTop: `1px solid ${foundationVars.color.border.strong}`,
-      background: foundationVars.color.surface.header
-    }
-  },
-  '@media': {
-    [mobile]: {
-      padding: foundationVars.space[4]
+      'display': 'flex',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[3],
+      'minHeight': '56px',
+      'padding': `${foundationVars.space[2]} ${foundationVars.space[13]}`,
+      'borderTop': `1px solid ${foundationVars.color.border.strong}`,
+      'background': foundationVars.color.surface.header,
+      '@media': {
+        [mobile]: {
+          padding: foundationVars.space[4]
+        }
+      }
     }
   }
 })

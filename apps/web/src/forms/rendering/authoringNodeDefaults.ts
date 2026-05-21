@@ -111,6 +111,7 @@ export function createDefaultAuthoringNodeValue(
     case 'classSpellcasting':
       return {
         spellLimits: [],
+        details: [],
         maxSpellLevel: 9,
         attributes: [],
         charges: createChargeRules()
@@ -293,7 +294,18 @@ export function createDefaultAuthoringNodeValue(
     case 'range':
       return createRange('DISTANCE')
     case 'savingThrow':
-      return { ability: 'DEXTERITY' }
+      return {
+        id: crypto.randomUUID(),
+        ability: 'DEXTERITY',
+        dcMethod: 'FIXED_DC',
+        baseDc: 10,
+        bonuses: []
+      }
+    case 'savingThrowDcBonus':
+      return {
+        id: crypto.randomUUID(),
+        bonusKind: 'PROFICIENCY_BONUS'
+      }
     case 'senseGrant':
       return createScalingGrant('SENSE_GRANT', order)
     case 'senseGrantLevel':
@@ -594,14 +606,63 @@ export function createOutcome(kind: string, references: EffectEditorReferenceDat
 }
 
 export function formatEffectSummary(effect: EffectDto): string {
-  const invocation = toTitleCase(effect.invocation.triggerCode.replaceAll('_', ' '))
-  const outcomes = (effect.paths as PathDto[]).flatMap((path) => getPathOutcomes(path)).length
-  const pathText = `${effect.paths.length} path${effect.paths.length === 1 ? '' : 's'}`
-  const outcomeText = outcomes === 0
-    ? 'no outcomes yet'
-    : `${outcomes} outcome${outcomes === 1 ? '' : 's'}`
+  return toTitleCase(effect.invocation.triggerCode.replaceAll('_', ' '))
+}
 
-  return `${invocation}, ${pathText}, ${outcomeText}`
+export function formatEffectDescription(effect: EffectDto): string | undefined {
+  if (effect.paths.length === 0) return 'No outcome paths configured'
+
+  return effect.paths
+    .map((path) => `${formatPathResultLabel(path.pathCode)}: ${formatPathOutcomeSummary(path)}`)
+    .join('; ')
+}
+
+export function formatResultBlockSummary(resultBlock: unknown): string | undefined {
+  const outcomes = getOutcomesFromResultBlock(resultBlock)
+  if (outcomes.length === 0) return undefined
+
+  return outcomes
+    .map(formatOutcomeSummary)
+    .filter((summary, index, summaries) => summaries.indexOf(summary) === index)
+    .join(', ')
+}
+
+function formatPathResultLabel(pathCode: PathDto['pathCode']): string {
+  switch (pathCode) {
+    case 'ON_SAVE_FAIL':
+      return 'Failed'
+    case 'ON_SAVE_SUCCESS':
+      return 'Success'
+    case 'ON_HIT':
+      return 'Hit'
+    case 'ON_MISS':
+      return 'Miss'
+    case 'ON_CRIT':
+      return 'Critical'
+    default:
+      return toTitleCase(String(pathCode).replaceAll('_', ' '))
+  }
+}
+
+function formatPathOutcomeSummary(path: PathDto): string {
+  const outcomes = getPathOutcomes(path)
+  if (outcomes.length === 0) return 'No effect'
+
+  return formatResultBlockSummary({ outcomes }) ?? 'No effect'
+}
+
+function formatOutcomeSummary(outcome: OutcomeDraft): string {
+  const effectKind = typeof outcome.effectKind === 'string' ? outcome.effectKind : 'RULE'
+
+  if (effectKind === 'DAMAGE') {
+    return outcome.amountKind === 'HALF' ? 'Half damage' : 'Damage'
+  }
+
+  if (effectKind === 'HEAL') return 'Healing'
+  if (effectKind === 'CONDITION') return 'Condition'
+  if (effectKind === 'APPLY_GRANT') return 'Grant'
+
+  return toTitleCase(effectKind.replaceAll('_', ' '))
 }
 
 export function getPathOutcomes(path: PathDto): OutcomeDraft[] {
@@ -671,6 +732,7 @@ function createFeatureLike(order: number) {
     label: '',
     description: '',
     order,
+    details: [],
     effects: [],
     optionChoices: [],
     options: []
@@ -683,6 +745,7 @@ function createOption(order: number) {
     label: '',
     description: '',
     order,
+    details: [],
     effects: []
   }
 }

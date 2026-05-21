@@ -7,6 +7,7 @@ import { facetDtoSchema } from '../shared/facet.js'
 import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import {
   authoredDraftDtoSchema,
@@ -81,6 +82,46 @@ function choicePath(
   }
 }
 
+describe('saving throw DTOs', () => {
+  it('accepts fixed, source, and derived DC methods', () => {
+    expect(savingThrowDtoSchema.parse({
+      id: 'fixed-save',
+      dcMethod: 'FIXED_DC',
+      ability: 'DEXTERITY',
+      baseDc: 15,
+      bonuses: [
+        { id: 'fixed-save-static', bonusKind: 'STATIC_BONUS', amount: 1 }
+      ]
+    })).toMatchObject({ dcMethod: 'FIXED_DC', baseDc: 15 })
+
+    expect(savingThrowDtoSchema.parse({
+      id: 'source-save',
+      dcMethod: 'SOURCE_SAVE_DC',
+      ability: 'WISDOM'
+    })).toMatchObject({ dcMethod: 'SOURCE_SAVE_DC' })
+
+    expect(savingThrowDtoSchema.parse({
+      id: 'derived-save',
+      dcMethod: 'DERIVED_DC',
+      ability: 'CONSTITUTION',
+      baseDc: 8,
+      bonuses: [
+        { id: 'derived-save-ability', bonusKind: 'ABILITY_MODIFIER', ability: 'CONSTITUTION' },
+        { id: 'derived-save-proficiency', bonusKind: 'PROFICIENCY_BONUS' }
+      ]
+    })).toMatchObject({ dcMethod: 'DERIVED_DC', baseDc: 8 })
+  })
+
+  it('rejects legacy sourceAbility payloads', () => {
+    expect(() => savingThrowDtoSchema.parse({
+      id: 'legacy-save',
+      dcMethod: 'SOURCE_SAVE_DC',
+      ability: 'DEXTERITY',
+      sourceAbility: 'CONSTITUTION'
+    })).toThrow()
+  })
+})
+
 function exactRollTablePath(
   id: string,
   order: number,
@@ -137,6 +178,7 @@ describe('schema package parsing', () => {
     })
     const draft = authoredDraftDtoSchema.parse({
       id: 'draft-1',
+      publicId: 'draft-1',
       ...saveRequest,
       userId: 'user-1',
       status: 'DRAFT',
@@ -186,9 +228,9 @@ describe('schema package parsing', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'dex-save',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'DEXTERITY',
-          dc: 13
+          baseDc: 13
         },
         activation: {
           code: 'ACTION',
@@ -232,9 +274,9 @@ describe('schema package parsing', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'spirit-guardians-save',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'WISDOM',
-          dc: 15
+          baseDc: 15
         },
         range: {
           id: 'spirit-guardians-range',
@@ -406,9 +448,9 @@ describe('schema package parsing', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'wis-save',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'WISDOM',
-          dc: 14
+          baseDc: 14
         },
         activation: {
           code: 'ACTION',
@@ -957,6 +999,14 @@ describe('schema package parsing', () => {
       id: 'fighting-style',
       label: 'Fighting Style',
       description: 'Choose a style.',
+      details: [
+        {
+          id: 'fighting-style-detail',
+          label: 'Detail',
+          description: 'Choose one of the following options.',
+          order: 1
+        }
+      ],
       order: 1,
       grants: {
         feats: [
@@ -982,7 +1032,18 @@ describe('schema package parsing', () => {
     })
 
     expect(parsed.grants?.feats?.[0]?.grantKind).toBe('FEAT_GRANT')
+    expect(parsed.details?.[0]?.label).toBe('Detail')
     expect(parsed.options?.[0]?.label).toBe('Archery')
+  })
+
+  it('rejects legacy singular feature detail fields', () => {
+    expect(() => featureDtoSchema.parse({
+      id: 'legacy-feature',
+      label: 'Legacy Feature',
+      description: 'Old shape.',
+      detail: 'Old prose.',
+      order: 1
+    })).toThrow()
   })
 
   it('parses recursive facet restrictions with predicate and exists conditions', () => {
@@ -1096,6 +1157,24 @@ describe('schema package parsing', () => {
 
     expect(parsed.valueDomainCode).toBe('ATTACK_ROLL')
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
+  })
+
+  it('parses attack roll advantage modifiers without payloads', () => {
+    const parsed = modifierGrantDtoSchema.parse({
+      grantKind: 'MODIFIER_GRANT',
+      id: 'heavy-weapon-disadvantage',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'ATTACK_ROLL',
+      domain: {
+        attackDomain: 'MELEE'
+      },
+      modifierKind: 'DISADVANTAGE',
+      scope: 'SOURCE'
+    })
+
+    expect(parsed.valueDomainCode).toBe('ATTACK_ROLL')
+    expect(parsed.modifierKind).toBe('DISADVANTAGE')
   })
 
   it('parses explicit ALL grant authoring mode', () => {
@@ -1266,6 +1345,14 @@ describe('schema package parsing', () => {
             slots: [{ spellLevel: 1, slotCount: 2 }]
           }
         ],
+        details: [
+          {
+            id: 'wizard-spellcasting-detail',
+            label: 'Spellbook',
+            description: 'Your spellbook contains wizard spells.',
+            order: 1
+          }
+        ],
         maxSpellLevel: 9,
         charges: {
           id: 'wizard-casting-charge',
@@ -1311,10 +1398,11 @@ describe('schema package parsing', () => {
           ]
         }
       }
-    }) as { category?: string, features?: Array<{ id?: string }> }
+    }) as { category?: string, features?: Array<{ id?: string }>, spellcasting?: { details?: Array<{ label?: string }> } }
 
     expect(parsed.category).toBe('BASE')
     expect(parsed.features?.[0]?.id).toBe('arcane-recovery')
+    expect(parsed.spellcasting?.details?.[0]?.label).toBe('Spellbook')
   })
 
   it('parses a spell with effect-owned range/shape and structured scaling', () => {
@@ -1338,7 +1426,7 @@ describe('schema package parsing', () => {
             triggerCode: 'SAVING_THROW',
             savingThrow: {
               id: 'burning-hands-save',
-              savingThrowKind: 'SOURCE_SAVE_DC',
+              dcMethod: 'SOURCE_SAVE_DC',
               ability: 'DEXTERITY'
             },
             activation: {
@@ -1489,9 +1577,9 @@ describe('schema package parsing', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'dex-save',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'DEXTERITY',
-          dc: 13
+          baseDc: 13
         },
         activation: {
           code: 'ACTION',
@@ -1606,6 +1694,14 @@ describe('schema package parsing', () => {
       id: 'feat-chain',
       label: 'Feat Chain',
       description: 'Unlocks a related feat.',
+      details: [
+        {
+          id: 'feat-chain-detail',
+          label: 'Detail',
+          description: 'Feat prose.',
+          order: 1
+        }
+      ],
       grants: {
         feats: [
           {
@@ -1627,6 +1723,15 @@ describe('schema package parsing', () => {
       grantKind: 'FEAT_GRANT',
       featIds: ['grappler']
     })
+    expect(feat.details?.[0]?.label).toBe('Detail')
+    expect(() => featAuthoredDtoSchema.parse({
+      id: 'legacy-feat',
+      label: 'Legacy Feat',
+      description: 'Old shape.',
+      detail: 'Old prose.',
+      userId: 'user-1',
+      systemId: 'system-1'
+    })).toThrow()
   })
 
   it('parses race heritage memberships', () => {
@@ -1697,6 +1802,7 @@ describe('schema package parsing', () => {
       items: [
         {
           id: 'acolyte',
+          publicId: 'acolyte',
           label: 'Acolyte',
           description: 'Temple-trained background.',
           status: 'ACTIVE',
@@ -1714,6 +1820,7 @@ describe('schema package parsing', () => {
           }
         }
       ],
+      drafts: [],
       meta: {
         total: 1
       }
@@ -1727,6 +1834,7 @@ describe('schema package parsing', () => {
     }) as { label?: string }
 
     const spell = spellResponseDtoSchema.parse({
+      publicId: 'magic-missile',
       item: {
         kind: 'SPELL',
         id: 'magic-missile',
@@ -1754,9 +1862,39 @@ describe('schema package parsing', () => {
       }
     }) as { item?: { id?: string }, permissions?: { canEdit?: boolean } }
 
+    const draftOnlySpell = spellResponseDtoSchema.parse({
+      publicId: 'draft-spell',
+      item: null,
+      draft: {
+        id: 'draft-1',
+        subjectKind: 'SPELL',
+        subjectId: 'draft-spell-id',
+        publicId: 'draft-spell',
+        userId: 'user-1',
+        systemId: 'dnd-5e-srd',
+        label: 'Broken Draft Spell',
+        status: 'DRAFT',
+        draftState: 'DRAFT_ONLY',
+        baseActiveUpdatedAt: null,
+        payload: {}
+      },
+      provenance: {
+        kind: 'OWNED',
+        ownerUserId: 'user-1'
+      },
+      permissions: {
+        canView: true,
+        canEdit: true,
+        canCopy: false,
+        canDelete: true
+      }
+    }) as { item?: unknown, draft?: { label?: string } }
+
     expect(list.items[0]?.id).toBe('acolyte')
     expect(feature?.label).toBe('Fighting Style')
     expect(spell?.permissions?.canEdit).toBe(false)
+    expect(draftOnlySpell?.item).toBeNull()
+    expect(draftOnlySpell?.draft?.label).toBe('Broken Draft Spell')
   })
 
   it('parses node runtime resolve and normalize contracts', () => {

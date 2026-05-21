@@ -5,12 +5,16 @@ vi.mock('../domains/grants/upserts/proficiency.js', () => ({
 }))
 
 import { createProficiencyGrantRepository } from '../repositories/index.js'
+import type { DBLike } from '#types'
 
 type RowMap = Record<string, unknown[]>
 
 function createFakeDb(rowsByTable: RowMap) {
+  const queryCounts = new Map<string, number>()
   return {
+    queryCounts,
     selectFrom(table: string) {
+      queryCounts.set(table, (queryCounts.get(table) ?? 0) + 1)
       const state = {
         filtered: [...(rowsByTable[table] ?? [])]
       }
@@ -19,9 +23,12 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, _op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (_op === 'in') {
+              return Array.isArray(value) && value.includes(record[column] as string)
+            }
             return record[column] === value
           })
           return builder
@@ -48,6 +55,70 @@ function createFakeDb(rowsByTable: RowMap) {
 }
 
 describe('createProficiencyGrantRepository', () => {
+  it('batches findByIds while preserving requested order and omitting inaccessible rows', async () => {
+    const db = createFakeDb({
+      proficiency_grants: [
+        {
+          id: 'grant-1',
+          sort_order: 1,
+          proficiency_kind: 'SKILL',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        },
+        {
+          id: 'grant-2',
+          sort_order: 2,
+          proficiency_kind: 'LANGUAGE',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        },
+        {
+          id: 'grant-unrequested',
+          sort_order: 3,
+          proficiency_kind: 'SKILL',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        }
+      ],
+      proficiency_grant_skills: [
+        { proficiency_grant_id: 'grant-1', skill_id: 'arcana' },
+        { proficiency_grant_id: 'grant-unrequested', skill_id: 'stealth' }
+      ],
+      proficiency_grant_save_abilities: [],
+      proficiency_grant_languages: [
+        { proficiency_grant_id: 'grant-2', language_id: 'elvish' }
+      ],
+      proficiency_grant_equipment: [],
+      proficiency_grant_equipment_filters: [],
+      proficiency_grant_equipment_filter_properties: [],
+      proficiency_grant_equipment_properties: [],
+      proficiency_grant_equipment_property_filters: []
+    })
+    const repository = createProficiencyGrantRepository(db as unknown as DBLike)
+
+    const results = await repository.findByIds(['grant-2', 'grant-missing', 'grant-1', 'grant-2'])
+
+    expect(Array.from(results.keys())).toEqual(['grant-2', 'grant-1'])
+    expect(results.get('grant-2')).toMatchObject({ languageIds: ['elvish'] })
+    expect(results.get('grant-1')).toMatchObject({ skillIds: ['arcana'] })
+    expect(results.has('grant-missing')).toBe(false)
+    expect(results.has('grant-unrequested')).toBe(false)
+    expect(db.queryCounts.get('proficiency_grants')).toBe(1)
+    expect(db.queryCounts.get('proficiency_grant_skills')).toBe(1)
+  })
+
   it('hydrates an equipment proficiency grant with filters', async () => {
     const repository = createProficiencyGrantRepository(createFakeDb({
       proficiency_grants: [

@@ -5,7 +5,7 @@ import {
   type OptionAuthored
 } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
-import { upsertCharge } from '../../shared/upserts/index.js'
+import { upsertCharge, upsertDetail } from '../../shared/upserts/index.js'
 import {
   upsertFeatGrant,
   upsertModifierGrant,
@@ -19,10 +19,15 @@ type OptionRow = {
   id: string
   label: string
   description: string
-  detail: string | null
   sort_order: number
   charge_id: string | null
   restriction_id: string | null
+}
+
+type OptionDetailRow = {
+  option_id: string
+  detail_id: string
+  sort_order: number
 }
 
 type OptionAttributeRow = {
@@ -77,7 +82,6 @@ function mapOptionRow<N extends NodeSubjectCode>(json_data: OptionAuthored<N>): 
     id: json_data.id,
     label: json_data.label,
     description: json_data.description,
-    detail: json_data.detail ?? null,
     sort_order: json_data.order,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null
@@ -101,7 +105,6 @@ async function upsertOptionRow(
     .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
       label: ref('excluded.label'),
       description: ref('excluded.description'),
-      detail: ref('excluded.detail'),
       sort_order: ref('excluded.sort_order'),
       charge_id: ref('excluded.charge_id'),
       restriction_id: ref('excluded.restriction_id')
@@ -125,6 +128,11 @@ export async function upsertOption<N extends NodeSubjectCode>(
   json_data: OptionAuthored<N>,
   systemId?: string
 ): Promise<void> {
+  const detailRows: OptionDetailRow[] = (json_data.details ?? []).map((detail) => ({
+    option_id: json_data.id,
+    detail_id: detail.id,
+    sort_order: detail.order
+  }))
   const attributeRows: OptionAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
     option_id: json_data.id,
     attribute_code: requireFeatureAttribute(json_data.id, attribute),
@@ -186,6 +194,8 @@ export async function upsertOption<N extends NodeSubjectCode>(
 
     await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id)
       .execute()
+    await trx.deleteFrom('option_details').where('option_id', '=', json_data.id)
+      .execute()
     await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id)
@@ -214,6 +224,10 @@ export async function upsertOption<N extends NodeSubjectCode>(
 
     for (const effect of authoredEffects) {
       await upsertEffect(trx, effect)
+    }
+
+    for (const detail of json_data.details ?? []) {
+      await upsertDetail(trx, detail)
     }
 
     for (const grant of json_data.grants?.feats ?? []) {
@@ -250,6 +264,11 @@ export async function upsertOption<N extends NodeSubjectCode>(
 
     if (attributeRows.length > 0) {
       await trx.insertInto('option_attributes').values(attributeRows)
+        .execute()
+    }
+
+    if (detailRows.length > 0) {
+      await trx.insertInto('option_details').values(detailRows)
         .execute()
     }
 

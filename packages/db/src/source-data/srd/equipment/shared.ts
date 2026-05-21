@@ -1,7 +1,7 @@
-import { ACTIVATION_CODE, ATTACK_DOMAIN_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, SUBJECT, TRIGGER, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared'
+import { ACTIVATION_CODE, ATTACK_DOMAIN_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, SUBJECT, TRIGGER, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import type { AbilityCode, FacetConditionAuthored, ModifierGrantAuthored, SizeCode } from '@artificer-toolkit/shared'
 import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-export { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, SUBJECT, TRIGGER, SRD_SYSTEM_ID, SRD_USER_ID }
+export { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, SUBJECT, TRIGGER, SRD_SYSTEM_ID, SRD_USER_ID }
 export function equipId(index: number): string {
   const hex = index.toString(16).padStart(4, '0')
   return `00000000-0000-0000-0060-${hex}00000000`
@@ -534,7 +534,8 @@ export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode:
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, dice1h)]
@@ -547,7 +548,8 @@ export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode:
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [damagePath(equipmentId, 0x222, damageTypeCode, dice2h)]
@@ -590,7 +592,8 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, dice1h)]
@@ -603,7 +606,8 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [damagePath(equipmentId, 0x222, damageTypeCode, dice2h)]

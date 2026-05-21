@@ -21,14 +21,21 @@ export const authoredContentPermissionsDtoSchema = z.object({
   canDelete: z.boolean()
 })
 
-export function authoredResourceResponseDtoSchema<TSchema extends z.ZodTypeAny>(
-  itemSchema: TSchema
+export function authoredResourceResponseDtoSchema<
+  TSchema extends z.ZodTypeAny,
+  TExtrasShape extends z.ZodRawShape
+>(
+  itemSchema: TSchema,
+  extrasSchema: z.ZodObject<TExtrasShape>
 ) {
-  return z.object({
-    item: itemSchema,
+  const base = z.object({
+    item: itemSchema.nullable(),
+    publicId: z.string(),
     provenance: authoredContentProvenanceDtoSchema,
     permissions: authoredContentPermissionsDtoSchema
-  }).nullable()
+  })
+
+  return base.merge(extrasSchema).nullable()
 }
 
 export function listResponseDtoSchema<TSchema extends z.ZodTypeAny>(

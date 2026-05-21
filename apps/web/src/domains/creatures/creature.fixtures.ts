@@ -147,7 +147,8 @@ export const summonFixture: CreatureAuthoredDto = {
   }
 }
 
-export const ownedCreatureResponseFixture: CreatureResponseDto = {
+export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
+  publicId: ownedMonsterFixture.id,
   item: ownedMonsterFixture,
   provenance: {
     kind: 'OWNED',
@@ -161,7 +162,8 @@ export const ownedCreatureResponseFixture: CreatureResponseDto = {
   }
 }
 
-export const masterCreatureResponseFixture: CreatureResponseDto = {
+export const masterCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
+  publicId: 'master-owlbear',
   item: {
     ...ownedMonsterFixture,
     id: 'master-owlbear',
@@ -184,6 +186,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
   items: [
     {
       id: ownedMonsterFixture.id,
+      publicId: ownedMonsterFixture.id,
       label: ownedMonsterFixture.label,
       description: ownedMonsterFixture.description,
       status: 'ACTIVE',
@@ -195,6 +198,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     },
     {
       id: beastMountFixture.id,
+      publicId: beastMountFixture.id,
       label: beastMountFixture.label,
       description: beastMountFixture.description,
       status: 'DRAFT',
@@ -206,6 +210,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
       draft: {
         subjectKind: 'CREATURE',
         subjectId: beastMountFixture.id,
+        publicId: beastMountFixture.id,
         userId: beastMountFixture.userId,
         systemId: beastMountFixture.systemId,
         label: beastMountFixture.label,
@@ -215,6 +220,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     },
     {
       id: npcFixture.id,
+      publicId: npcFixture.id,
       label: npcFixture.label,
       description: npcFixture.description,
       status: 'ACTIVE',
@@ -226,6 +232,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     },
     {
       id: companionFixture.id,
+      publicId: companionFixture.id,
       label: companionFixture.label,
       description: companionFixture.description,
       status: 'ACTIVE',
@@ -237,6 +244,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     },
     {
       id: summonFixture.id,
+      publicId: summonFixture.id,
       label: summonFixture.label,
       description: summonFixture.description,
       status: 'ACTIVE',
@@ -247,17 +255,19 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
       permissions: ownedCreatureResponseFixture.permissions
     },
     {
-      id: masterCreatureResponseFixture.item.id,
-      label: masterCreatureResponseFixture.item.label,
-      description: masterCreatureResponseFixture.item.description,
+      id: masterCreatureResponseFixture.item!.id,
+      publicId: masterCreatureResponseFixture.publicId,
+      label: masterCreatureResponseFixture.item!.label,
+      description: masterCreatureResponseFixture.item!.description,
       status: 'ACTIVE',
-      systemId: masterCreatureResponseFixture.item.systemId,
+      systemId: masterCreatureResponseFixture.item!.systemId,
       userId: 'master',
-      category: masterCreatureResponseFixture.item.category,
+      category: masterCreatureResponseFixture.item!.category,
       provenance: masterCreatureResponseFixture.provenance,
       permissions: masterCreatureResponseFixture.permissions
     }
   ],
+  drafts: [],
   meta: {}
 }
 

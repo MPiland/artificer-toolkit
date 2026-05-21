@@ -25,6 +25,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateVehicleMutation,
@@ -32,6 +33,9 @@ import {
   useDuplicateVehicleMutation,
   useSaveVehicleDraftMutation
 } from '#app/data/vehicles/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
+import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeVehicleForSubmit,
   toVehicleFormValues
@@ -45,12 +49,11 @@ type ParsedVehicleDraft = {
 }
 
 export function VehicleEditPage() {
-  const route = getRouteApi('/_authed/vehicles/$vehicleId/edit')
-  const { response, draft } = route.useLoaderData()
-  const vehicleId = route.useParams().vehicleId
+  const route = getRouteApi('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit')
+  const { response, draft, vehicleId } = route.useLoaderData()
   const parsedDraft: ParsedVehicleDraft = parseAuthoredDraftPayload(draft ?? null, vehicleAuthoredDtoSchema)
   const draftVehicle = parsedDraft.item
-  const activeVehicle = response?.item
+  const activeVehicle = response?.item ?? undefined
 
   if (!response) {
     if (!draftVehicle) {
@@ -101,6 +104,7 @@ function VehicleEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   vehicle: VehicleAuthoredDto
@@ -115,6 +119,20 @@ function VehicleEditAuthoring({
   const [formValues] = useState(() => toVehicleFormValues(vehicle))
   const readOnly = permissions?.canEdit === false && !draft
   const canCopy = Boolean(permissions?.canCopy && vehicleId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.vehicles.deleteActive,
+    deleteDraft: api.content.vehicles.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.vehicles.detailRoot(vehicleId),
+    domainLabel: 'Vehicle',
+    domainQueryKey: queryKeys.content.vehicles.all(),
+    draftQueryKey: queryKeys.content.vehicles.draft(vehicleId),
+    onDeleted: async () => navigate({ to: '/vehicles' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/vehicles' })
@@ -127,8 +145,11 @@ function VehicleEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Vehicle activated.' })
 
-      if (response?.item.id && response.item.id !== vehicleId) {
-        await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: response.item.id } })
+      if (response?.item?.id && response.item.id !== vehicleId) {
+        await navigate({
+          params: buildVehicleRouteParams(response.publicId, response.item.label),
+          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+        })
         return
       }
 
@@ -178,7 +199,10 @@ function VehicleEditAuthoring({
       notifications.show({ color: 'green', message: 'Vehicle duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: copied.subjectId } })
+        await navigate({
+          params: buildVehicleRouteParams(copied.publicId, copied.label),
+          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that vehicle yet.' })
@@ -206,11 +230,26 @@ function VehicleEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: vehicleId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Vehicle'
+    })
+  }, [
+    draft,
+    formValues.label,
+    requestDelete,
+    vehicleId
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Vehicle',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeVehicle),
+    isDraft: Boolean(draft),
     mapId: 'vehicle',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -218,13 +257,16 @@ function VehicleEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Vehicle',
     subjectLabel: formValues.label || 'Untitled Vehicle',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeVehicle,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -233,12 +275,15 @@ function VehicleEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -260,6 +305,7 @@ function VehicleEditAuthoring({
         <AuthoringFormLayout>
           <VehicleAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

@@ -14,9 +14,13 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op === 'in' && Array.isArray(value)) {
+              return value.includes(String(record[column]))
+            }
+
             return record[column] === value
           })
           return builder
@@ -67,7 +71,6 @@ describe('createRaceRepository', () => {
           id: 'feature-1',
           label: 'Fey Ancestry',
           description: 'Harder to charm.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 1,
@@ -77,7 +80,6 @@ describe('createRaceRepository', () => {
           id: 'feature-2',
           label: 'Fire Breath',
           description: 'Breathe fire.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 1,
@@ -151,7 +153,7 @@ describe('createRaceRepository', () => {
           label: 'Fey Ancestry',
           description: 'Harder to charm.',
           attributes: undefined,
-          detail: undefined,
+          details: undefined,
           effects: undefined,
           charges: undefined,
           grants: undefined,
@@ -164,6 +166,7 @@ describe('createRaceRepository', () => {
       ],
       userId: 'user-1',
       systemId: 'system-1',
+      status: 'DRAFT',
       category: 'BASE',
       selectionMode: 'REQUIRES_SUBRACE',
       ancestry: {
@@ -182,7 +185,7 @@ describe('createRaceRepository', () => {
                 label: 'Fire Breath',
                 description: 'Breathe fire.',
                 attributes: undefined,
-                detail: undefined,
+                details: undefined,
                 effects: undefined,
                 charges: undefined,
                 grants: undefined,
@@ -235,11 +238,11 @@ describe('createRaceRepository', () => {
       label: 'High Elf',
       quote: undefined,
       description: undefined,
-      heritageIds: undefined,
       details: undefined,
       features: undefined,
       userId: 'user-1',
       systemId: 'system-1',
+      status: 'DRAFT',
       category: 'SUBRACE',
       parentRaceId: 'race-1'
     })
@@ -320,7 +323,6 @@ describe('createRaceRepository', () => {
           id: 'feature-1',
           label: 'Keen Senses',
           description: 'Parent feature.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 1,
@@ -330,7 +332,6 @@ describe('createRaceRepository', () => {
           id: 'feature-2',
           label: 'Fleet of Foot',
           description: 'Child feature.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 1,

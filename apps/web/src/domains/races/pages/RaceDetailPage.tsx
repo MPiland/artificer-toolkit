@@ -1,5 +1,3 @@
-import {
-  useState } from 'react'
 import { Alert,
   Button,
   Stack } from '@mantine/core'
@@ -11,42 +9,41 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import {
-  AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,
   AuthoredDetailLayout,
   AuthoredDetailProse,
   buildAuthoredDetailNotice,
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
-  formatCount,
-  formatEnumLabel,
-  formatReference,
-  formatReferenceLabel,
-  formatReferenceLabelList,
+  compactAuthoredDetailSections,
+  escapeHtml,
+  hasDetailText,
   resolveAuthoredDetailState,
-  summarizeHtml,
   toDetailItems,
   useAuthoredDetailActions,
-  type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 
 export function RaceDetailPage({
   draft,
+  parentResponse,
   raceId,
-  references,
-  response
+  response,
+  view
 }: {
   draft: AuthoredDraftDto | null
+  parentResponse?: RaceResponseDto | null
   raceId: string
-  references: Pick<AuthoredContentReferenceData, 'heritages' | 'races' | 'speeds'>
+  references: Pick<AuthoredContentReferenceData, 'speeds'>
   response: RaceResponseDto
+  view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
-  const [viewActive, setViewActive] = useState(false)
+  const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
     response,
@@ -54,26 +51,41 @@ export function RaceDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.races.deleteActive,
     discard: api.content.races.discardDraft,
-    detailQueryKey: queryKeys.content.races.detail(raceId),
+    detailSubjectQueryKey: queryKeys.content.races.detailRoot(raceId),
     domainLabel: 'Race',
     domainQueryKey: queryKeys.content.races.all(),
     draftQueryKey: queryKeys.content.races.draft(raceId),
     duplicate: api.content.races.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: raceId,
-    navigateEdit: async (id) => navigate({ to: '/races/$raceId/edit', params: { raceId: id } }),
+    navigateEdit: async (subject) => navigate({
+      params: buildRaceRouteParams(subject.publicId, subject.label),
+      to: '/races/$racePublicId/$raceSlug/edit'
+    }),
     navigateList: async () => navigate({ to: '/races' })
   })
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This race draft cannot be previewed. Discard it to return to the race list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This race draft cannot be previewed. Delete it to return to the race list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: raceId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'race draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -87,142 +99,218 @@ export function RaceDetailPage({
   }
 
   const item = detailState.item
+  const parentRace = parentResponse?.item?.category === 'BASE' ? parentResponse.item : null
+  const raceParams = buildRaceRouteParams(draft?.publicId ?? response?.publicId ?? raceId, item.label)
   const pageActions = compactAuthoredDetailActions([
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/races/new' }) },
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/races/$raceId/edit', params: { raceId } }) }
+      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams }) }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/races/$raceId/edit', params: { raceId } }) }
+        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams }) }
         : null,
-    detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
-      : null
+    detailState.mode === 'active' && detailState.draft
+      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams, search: { view: 'draft' } }) }
+      : null,
+    detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: raceId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
+      : null,
+    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/races/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      description={summarizeHtml(item.description, 'A race reference entry ready for table use.')}
-      eyebrow={item.category === 'SUBRACE' ? 'Subrace' : 'Race'}
-      facts={getRaceFacts(item, references)}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
-        domainLabel: 'Race',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => setViewActive(true),
-        onViewDraft: () => setViewActive(false)
-      })}
-      sections={getRaceSections(item, references)}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        eyebrow='Race'
+        facts={[]}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Race',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams }),
+          onViewDraft: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getRaceSections(item, parentRace)}
+        status={[
+          ...buildDetailStatusLabels({
+            draft: detailState.draft,
+            mode: detailState.mode,
+            provenance: detailState.provenance,
+            status: item.status
+          }),
+          ...(isPlayableRace(item) ? ['Playable'] : [])
+        ]}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
-}
-
-function getRaceFacts(
-  race: RaceAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'heritages' | 'races'>
-): AuthoredDetailFact[] {
-  if (race.category === 'SUBRACE') {
-    return [
-      { label: 'Category', value: 'Subrace' },
-      { label: 'Parent', value: formatReferenceLabel(race.parentRaceId, 'Parent race selected', references.races) },
-      { label: 'Details', value: formatCount(race.details?.length, 'detail') },
-      { label: 'Features', value: formatCount(race.features?.length, 'feature') }
-    ]
-  }
-
-  return [
-    { label: 'Category', value: 'Base Race' },
-    { label: 'Selection', value: formatEnumLabel(race.selectionMode) },
-    { label: 'Size', value: formatReference(race.size, 'Size selected') },
-    { label: 'Speeds', value: formatCount(race.speeds.length, 'speed') },
-    { label: 'Heritages', value: formatReferenceLabelList(race.heritageIds, 'heritage', references.heritages) },
-    { label: 'Features', value: formatCount(race.features?.length, 'feature') }
-  ]
 }
 
 function getRaceSections(
   race: RaceAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'speeds'>
+  parentRace?: Extract<RaceAuthoredDto, { category: 'BASE' }> | null
 ): AuthoredDetailSectionModel[] {
-  const sharedSections: AuthoredDetailSectionModel[] = [
-    {
+  const parentDetailItems = parentRace ? toDetailItems(parentRace.details) : []
+  const detailItems = [
+    ...parentDetailItems,
+    ...toDetailItems(race.details)
+  ]
+  const parentFeatureItems = parentRace ? toDetailItems(parentRace.features) : []
+  const featureItems = [
+    ...parentFeatureItems,
+    ...toDetailItems(race.features)
+  ].map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description
+  }))
+  const descriptions = [
+    parentRace?.description,
+    race.description
+  ].filter(hasDetailText)
+  const ancestry = parentRace?.ancestry ?? (race.category === 'BASE' ? race.ancestry : undefined)
+
+  return compactAuthoredDetailSections([
+    descriptions.length ? {
       id: 'description',
       title: 'Description',
-      content: <AuthoredDetailProse html={race.description} />
-    },
-    {
-      id: 'details',
-      title: 'Details',
-      content: <AuthoredDetailItemList empty='No race details have been added.' items={toDetailItems(race.details)} />
-    },
-    {
-      id: 'features',
-      title: 'Features',
-      content: <AuthoredDetailItemList empty='No race features have been added.' items={toDetailItems(race.features)} />
-    }
-  ]
-
-  if (race.category === 'SUBRACE') {
-    return [
-      {
-        id: 'lineage',
-        title: 'Lineage',
-        content: <AuthoredDetailEmptyBlock>Parent race content is inherited from the selected base race.</AuthoredDetailEmptyBlock>
-      },
-      ...sharedSections
-    ]
-  }
-
-  return [
-    ...sharedSections.slice(0, 1),
-    {
+      content: (
+        <Stack gap='md'>
+          {descriptions.map((description, index) => (
+            <AuthoredDetailProse html={description} fallback='' key={index} />
+          ))}
+        </Stack>
+      )
+    } : null,
+    ancestry && hasAncestryContent(ancestry) ? {
       id: 'ancestry',
       title: 'Ancestry',
-      content: race.ancestry
-        ? (
-            <AuthoredDetailItemList
-              empty='No ancestry options have been added.'
-              items={[
-                {
-                  id: race.ancestry.id,
-                  title: race.ancestry.label,
-                  description: race.ancestry.description
-                },
-                ...race.ancestry.options.map((option) => ({
-                  id: option.id,
-                  title: option.label,
-                  meta: `Option ${option.order}`,
-                  description: option.description
-                }))
-              ]}
-            />
-          )
-        : <AuthoredDetailEmptyBlock>No ancestry has been added.</AuthoredDetailEmptyBlock>
-    },
-    {
-      id: 'speeds',
-      title: 'Speeds',
-      content: (
-        <AuthoredDetailItemList
-          empty='No speeds have been added.'
-          items={race.speeds.map((speed, index) => ({
-            id: `${speed.speedId}-${index}`,
-            title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
-            meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
-          }))}
-        />
-      )
-    },
-    ...sharedSections.slice(1)
-  ]
+      content: <RaceAncestryContent ancestry={ancestry} />
+    } : null,
+    detailItems.length ? {
+      id: 'details',
+      title: 'Details',
+      content: <AuthoredDetailItemList empty='No race details have been added.' items={detailItems} />
+    } : null,
+    featureItems.length ? {
+      id: 'features',
+      title: 'Features',
+      content: <AuthoredDetailItemList empty='No race features have been added.' items={featureItems} />
+    } : null
+  ])
+}
+
+function isPlayableRace(race: RaceAuthoredDto): boolean {
+  return race.category === 'SUBRACE' || race.selectionMode === 'DIRECT'
+}
+
+type RaceAncestry = NonNullable<Extract<RaceAuthoredDto, { category: 'BASE' }>['ancestry']>
+type RaceAncestryOption = RaceAncestry['options'][number]
+
+function RaceAncestryContent({ ancestry }: { ancestry: RaceAncestry }) {
+  const optionsTableHtml = buildAncestryOptionsTableHtml(ancestry.options)
+  const descriptionHtml = toParagraphHtml(ancestry.description)
+
+  if (optionsTableHtml) {
+    return <AuthoredDetailProse html={`${descriptionHtml}${optionsTableHtml}`} />
+  }
+
+  return (
+    <Stack gap='md'>
+      {descriptionHtml ? <AuthoredDetailProse html={descriptionHtml} fallback='' /> : null}
+      <AuthoredDetailItemList
+        empty='No ancestry options have been added.'
+        items={ancestry.options.map((option) => ({
+          id: option.id,
+          title: option.label,
+          description: option.description
+        }))}
+      />
+    </Stack>
+  )
+}
+
+function hasAncestryContent(ancestry: RaceAncestry): boolean {
+  return hasDetailText(ancestry.description) || ancestry.options.length > 0
+}
+
+function buildAncestryOptionsTableHtml(options: RaceAncestryOption[]): string {
+  const rows = options.map(parseDragonbornAncestryOption)
+
+  if (rows.length < 4 || rows.some((row) => row === null)) {
+    return ''
+  }
+
+  return `
+    <table style="width: 100%">
+      <colgroup>
+        <col style="width: 28%" />
+        <col style="width: 22%" />
+        <col />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">Dragon</th>
+          <th scope="col">Damage Type</th>
+          <th scope="col">Breath Weapon</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => row ? `
+          <tr>
+            <td>${escapeHtml(row.dragon)}</td>
+            <td>${escapeHtml(row.damage)}</td>
+            <td>${escapeHtml(row.breathWeapon)}</td>
+          </tr>
+        ` : '').join('')}
+      </tbody>
+    </table>
+  `
+}
+
+function parseDragonbornAncestryOption(option: RaceAncestryOption): {
+  breathWeapon: string
+  damage: string
+  dragon: string
+} | null {
+  const labelMatch = option.label.match(/^(.+?)\s*\((.+?)\)$/)
+  const breathMarker = 'Breath weapon:'
+  const breathMarkerIndex = option.description.toLowerCase().indexOf(breathMarker.toLowerCase())
+
+  if (!labelMatch || breathMarkerIndex === -1) return null
+
+  const breathWeapon = option.description
+    .slice(breathMarkerIndex + breathMarker.length)
+    .trim()
+    .replace(/\.$/, '')
+
+  return {
+    breathWeapon,
+    damage: labelMatch[2],
+    dragon: labelMatch[1]
+  }
+}
+
+function toParagraphHtml(value: string | null | undefined): string {
+  const trimmed = value?.trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('<') ? trimmed : `<p>${escapeHtml(trimmed)}</p>`
 }

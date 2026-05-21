@@ -1,18 +1,28 @@
 /// <reference types="vite/client" />
 import '#css/foundations.css'
-import mantineStyles from '#css/main.css?url'
+import layers from '#css/main.css?url'
 import mantineNotificationStyles from '@mantine/notifications/styles.layer.css?url'
 import mantineLayers from '@mantine/core/styles.layer.css?url'
 import mantineTiptapStyles from '@mantine/tiptap/styles.layer.css?url'
 import { ColorSchemeScript } from '@mantine/core'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { Suspense } from 'react'
+import { Suspense, lazy } from 'react'
 import { AppProviders } from '#app/providers/AppProviders'
-import { RouteErrorState, RouteNotFound } from '#app/routeStates'
+import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import type { AppRouterContext } from '#app/router'
+
+const RouterDevtools = import.meta.env.DEV
+  ? lazy(() => import('@tanstack/react-router-devtools').then((module) => ({
+      default: module.TanStackRouterDevtools
+    })))
+  : null
+
+const QueryDevtools = import.meta.env.DEV
+  ? lazy(() => import('@tanstack/react-query-devtools').then((module) => ({
+      default: module.ReactQueryDevtools
+    })))
+  : null
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
   beforeLoad: async () => {
@@ -25,13 +35,13 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
       { title: 'Artificer Toolkit' },
       {
         name: 'description',
-        content: 'Phase 9 frontend platform foundation for the Artificer Toolkit rebuild.'
+        content: 'Artificer Toolkit MVP for tabletop RPG authoring and play support.'
       }
     ],
     links: [
-      { rel: 'stylesheet', href: mantineStyles },
-      { rel: 'stylesheet', href: mantineNotificationStyles },
+      { rel: 'stylesheet', href: layers },
       { rel: 'stylesheet', href: mantineLayers },
+      { rel: 'stylesheet', href: mantineNotificationStyles },
       { rel: 'stylesheet', href: mantineTiptapStyles }
     ]
   }),
@@ -54,16 +64,30 @@ function RootDocument() {
       </head>
       <body>
         <AppProviders queryClient={queryClient}>
-          <Outlet />
+          <Suspense fallback={<RouteLoadingState />}>
+            <Outlet />
+          </Suspense>
         </AppProviders>
-        <Suspense fallback={null}>
-          <TanStackRouterDevtools position='bottom-right' />
-        </Suspense>
-        <Suspense fallback={null}>
-          <ReactQueryDevtools buttonPosition='bottom-left' styleNonce={nonce} />
-        </Suspense>
+        <RootDevtools nonce={nonce} />
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function RootDevtools({ nonce }: { nonce?: string }) {
+  if (!RouterDevtools || !QueryDevtools) {
+    return null
+  }
+
+  return (
+    <>
+      <Suspense fallback={null}>
+        <RouterDevtools position='bottom-right' />
+      </Suspense>
+      <Suspense fallback={null}>
+        <QueryDevtools buttonPosition='bottom-left' styleNonce={nonce} />
+      </Suspense>
+    </>
   )
 }

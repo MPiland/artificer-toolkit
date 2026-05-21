@@ -13,7 +13,7 @@ export function useActivateVehicleMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.vehicles.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.vehicles.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.vehicles.draft(response.item.id) })
       }

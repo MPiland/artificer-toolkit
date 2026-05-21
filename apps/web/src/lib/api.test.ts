@@ -5,6 +5,7 @@ import { server } from '#test/msw/server'
 
 const spellItem = {
   id: 'magic-missile',
+  publicId: '1',
   label: 'Magic Missile',
   description: 'Force darts that strike unerringly.',
   status: 'ACTIVE',
@@ -27,6 +28,7 @@ const spellItem = {
 }
 
 const spellDetail = {
+  publicId: '2',
   item: {
     kind: 'SPELL',
     id: 'copy-spell',
@@ -59,6 +61,7 @@ const spellDraft = {
   id: 'draft-1',
   subjectKind: 'SPELL',
   subjectId: 'copy-spell',
+  publicId: '2',
   userId: 'test-user',
   systemId: 'dnd5e-2014',
   label: 'Magic Missile Copy',
@@ -83,15 +86,6 @@ function readBatchedInput<TInput>(body: unknown): TInput {
   }
 
   return (body as { 0: TInput })[0]
-}
-
-function readSearchInput<TInput>(request: Request): TInput {
-  const rawInput = new URL(request.url).searchParams.get('input')
-  if (!rawInput) {
-    throw new Error('Expected tRPC input search parameter.')
-  }
-
-  return readBatchedInput<TInput>(JSON.parse(rawInput) as unknown)
 }
 
 function expectNoSerializedAuth(request: Request) {
@@ -150,6 +144,9 @@ describe('tRPC api adapter', () => {
     if (!response) {
       throw new Error('Expected activate draft response.')
     }
+    if (!response.item) {
+      throw new Error('Expected activated spell item.')
+    }
 
     expect(response.item.label).toBe('Magic Missile Copy')
   })
@@ -171,9 +168,9 @@ describe('tRPC api adapter', () => {
   it('resolves node runtime models through the tRPC adapter', async () => {
     expect.assertions(7)
     server.use(
-      http.get('*/api/trpc/nodeRuntime.resolve', ({ request }) => {
+      http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
         expectNoSerializedAuth(request)
-        expect(readSearchInput<{ mapId: string }>(request).mapId).toBe('spell')
+        expect(readBatchedInput<{ mapId: string }>(await request.json()).mapId).toBe('spell')
         return trpcJson({
           mapId: 'spell',
           clearPaths: [],

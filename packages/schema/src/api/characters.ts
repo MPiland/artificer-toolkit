@@ -108,6 +108,7 @@ export const characterBuilderDraftStateDtoSchema = z.enum([
 
 export const characterBuilderDraftSummaryDtoSchema = z.object({
   characterId: z.string(),
+  publicId: z.string(),
   userId: z.string(),
   systemId: z.string(),
   label: z.string(),
@@ -121,6 +122,7 @@ export const characterBuilderDraftSummaryDtoSchema = z.object({
 
 export const characterListItemDtoSchema = z.object({
   id: z.string(),
+  publicId: z.string(),
   label: z.string(),
   status: authoredRecordStatusSchema,
   systemId: z.string(),
@@ -347,6 +349,7 @@ export const characterBuilderViewDtoSchema = z.object({
 })
 
 export const characterBuilderPayloadDtoSchema = z.object({
+  publicId: z.string().optional(),
   character: characterAuthoredDtoSchema,
   resolution: characterBuilderResolutionDtoSchema,
   references: characterBuilderReferencesDtoSchema,
@@ -616,6 +619,7 @@ export const characterSheetNotesDtoSchema = z.object({
 })
 
 export const characterSheetResponseDtoSchema = z.object({
+  publicId: z.string().optional(),
   meta: characterSheetMetaDtoSchema,
   identity: characterSheetIdentityDtoSchema,
   overview: characterSheetOverviewDtoSchema,

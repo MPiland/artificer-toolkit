@@ -86,6 +86,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
   items: [
     {
       id: masterEquipmentFixture.id,
+      publicId: masterEquipmentFixture.id,
       label: masterEquipmentFixture.label,
       description: masterEquipmentFixture.description,
       status: 'ACTIVE',
@@ -105,6 +106,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     },
     {
       id: ownedVariantEquipmentFixture.id,
+      publicId: ownedVariantEquipmentFixture.id,
       label: ownedVariantEquipmentFixture.label,
       description: ownedVariantEquipmentFixture.description,
       status: 'DRAFT',
@@ -123,10 +125,12 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
       }
     }
   ],
+  drafts: [],
   meta: {}
 }
 
 export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  publicId: ownedEquipmentFixture.id,
   item: ownedEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -141,6 +145,7 @@ export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = 
 }
 
 export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  publicId: ownedVariantEquipmentFixture.id,
   item: ownedVariantEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -155,6 +160,7 @@ export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponse
 }
 
 export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  publicId: masterEquipmentFixture.id,
   item: masterEquipmentFixture,
   provenance: {
     kind: 'MASTER',

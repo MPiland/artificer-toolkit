@@ -14,6 +14,7 @@ import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import type { CreatureRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(value: T | null, message: string): T {
@@ -174,15 +175,15 @@ async function hydrateCreatureById(
   const featureRepository = createFeatureRepository(db, row.system_id)
   const proficiencyGrantRepository = createProficiencyGrantRepository(db)
 
-  const [details, features, proficiencies] = await Promise.all([
-    Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id))),
-    Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id))),
-    Promise.all(proficiencyLinks.map((link) => proficiencyGrantRepository.findById(link.proficiency_grant_id))),
+  const [detailsById, featuresById, proficienciesById] = await Promise.all([
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id)),
+    proficiencyGrantRepository.findByIds(proficiencyLinks.map((link) => link.proficiency_grant_id)),
   ])
 
-  const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Creature "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Creature "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
-  const authoredProficiencies = proficiencies.map((proficiency, index) => requireLinkedRecord(proficiency, `Creature "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`))
+  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(detailsById.get(link.detail_id) ?? null, `Creature "${id}" is linked to missing detail "${link.detail_id}".`))
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(featuresById.get(link.feature_id) ?? null, `Creature "${id}" is linked to missing feature "${link.feature_id}".`))
+  const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(proficienciesById.get(link.proficiency_grant_id) ?? null, `Creature "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`))
 
   const authoredSpeeds = speedRows.map((speed) => ({
     speedId: speed.speed_id,
@@ -261,6 +262,10 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
       return hydrateCreatureById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateCreatureById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('creatures')
@@ -275,8 +280,10 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateCreatureById(db, row.id)))
-      return records.filter((record): record is CreatureAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateCreatureById(db, id))
+      )
     }
   }
 }

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
-import { SPELLCASTING_ATTRIBUTE } from '@artificer-toolkit/shared/core'
+import {
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  SPELLCASTING_ATTRIBUTE,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
 import {
@@ -2036,6 +2044,89 @@ describe('character sheet command application', () => {
         recovery: 'SHORT_REST',
         remaining: 3,
         used: 1
+      })
+    ])
+  })
+
+  it('uses engine-resolved resource recovery when charge reset modifiers apply', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 5 }]
+    character.intent.featureAcquisitions = [
+      {
+        id: 'font-of-inspiration',
+        featureId: 'font-of-inspiration',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-1', classLevel: 5 },
+        timing: { kind: 'CLASS_LEVEL', classId: 'class-1', classLevel: 5 }
+      }
+    ]
+
+    const resolution = createResolution()
+    resolution.registry.classes = resolution.registry.classes.map((classRecord) => ({
+      ...classRecord,
+      resources: classRecord.resources
+        ? {
+            ...classRecord.resources,
+            charges: {
+              ...classRecord.resources.charges,
+              resetKind: 'LONG_REST'
+            }
+          }
+        : classRecord.resources
+    }))
+    resolution.registry.features = [
+      {
+        id: 'font-of-inspiration',
+        label: 'Font of Inspiration',
+        description: '',
+        order: 1,
+        grants: {
+          modifiers: [
+            {
+              id: 'font-of-inspiration-reset',
+              grantKind: GRANT_KIND.MODIFIER_GRANT,
+              order: 1,
+              valueDomainCode: VALUE_DOMAIN_CODE.CHARGE_RESET,
+              domain: {},
+              modifierKind: MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND,
+              scope: MODIFIER_SCOPE_KIND.SOURCE,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              payload: { resetKind: 'SHORT_REST' },
+              restrictions: {
+                id: 'font-of-inspiration-reset-restriction',
+                groups: [
+                  {
+                    id: 'font-of-inspiration-reset-restriction-group',
+                    order: 1,
+                    contexts: [
+                      {
+                        id: 'font-of-inspiration-reset-resource',
+                        order: 1,
+                        subject: 'RESOURCE',
+                        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                        resourceIds: ['resource-1']
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.resources.items).toEqual([
+      expect.objectContaining({
+        id: 'resource-1',
+        recovery: 'SHORT_REST'
       })
     ])
   })

@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS public.feats (
   user_id uuid REFERENCES auth.users (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   status text NOT NULL DEFAULT 'DRAFT',
   prerequisite_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -76,6 +75,34 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["prerequisite_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.feat_details (
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feat_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feat_details_feat ON public.feat_details (feat_id);
+
+ALTER TABLE public.feat_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feat_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feat_details_owned
+    AFTER DELETE ON public.feat_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -235,7 +262,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, feature_id)
 );

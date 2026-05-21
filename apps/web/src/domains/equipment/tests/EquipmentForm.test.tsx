@@ -52,7 +52,7 @@ const modalRuntimeFixture = {
 describe('EquipmentAuthoringRenderer', () => {
   it('renders locked master view as read-only with duplicate affordance', () => {
     renderEquipmentAuthoringHarness({
-      equipment: toEquipmentFormValues(masterEquipmentResponseFixture.item),
+      equipment: toEquipmentFormValues(masterEquipmentResponseFixture.item!),
       model: equipmentRuntimeFixture,
       readOnly: true,
       canCopy: true
@@ -67,7 +67,7 @@ describe('EquipmentAuthoringRenderer', () => {
     const user = userEvent.setup()
 
     renderEquipmentAuthoringHarness({
-      equipment: toEquipmentFormValues(ownedVariantEquipmentResponseFixture.item),
+      equipment: toEquipmentFormValues(ownedVariantEquipmentResponseFixture.item!),
       model: variantRuntimeFixture,
       readOnly: false
     })
@@ -84,7 +84,7 @@ describe('EquipmentAuthoringRenderer', () => {
     const user = userEvent.setup()
 
     renderEquipmentAuthoringHarness({
-      equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item),
+      equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item!),
       model: modalRuntimeFixture,
       readOnly: false
     })
@@ -103,7 +103,7 @@ describe('EquipmentAuthoringRenderer', () => {
     const user = userEvent.setup()
 
     renderEquipmentAuthoringHarness({
-      equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item),
+      equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item!),
       model: modalRuntimeFixture,
       readOnly: false
     })

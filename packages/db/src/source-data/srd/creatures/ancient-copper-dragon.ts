@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const ancientCopperDragon: CreatureAuthored = {
@@ -37,7 +37,7 @@ export const ancientCopperDragon: CreatureAuthored = {
     xp: 33000,
     features: [
         {
-            id: S.featureId(5710, 1),
+            id: S.featureId(18, 1),
             label: 'Legendary Resistance (3/Day)',
             description: 'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -51,7 +51,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 1
         },
         {
-            id: S.featureId(5710, 2),
+            id: S.featureId(18, 2),
             label: 'Multiattack',
             description: 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
             effects: [
@@ -93,7 +93,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(5710, 3),
+            id: S.featureId(18, 3),
             label: 'Bite',
             description: 'Melee Weapon Attack: +15 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 8) piercing damage.',
             effects: [
@@ -113,7 +113,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -152,7 +153,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(5710, 4),
+            id: S.featureId(18, 4),
             label: 'Claw',
             description: 'Melee Weapon Attack: +15 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
             effects: [
@@ -172,7 +173,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -211,7 +213,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(5710, 5),
+            id: S.featureId(18, 5),
             label: 'Tail',
             description: 'Melee Weapon Attack: +15 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 8) bludgeoning damage.',
             effects: [
@@ -231,7 +233,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -270,7 +273,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(5710, 6),
+            id: S.featureId(18, 6),
             label: 'Frightful Presence',
             description: "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 19 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
             effects: [
@@ -281,8 +284,9 @@ export const ancientCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5710, 26),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.WISDOM
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.WISDOM,
+                            baseDc: 19
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -325,13 +329,13 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(5710, 7),
+            id: S.featureId(18, 7),
             label: 'Breath Weapons (Recharge 5-6)',
             description: 'The dragon uses one of the following breath weapons.',
             order: 7
         },
         {
-            id: S.featureId(5710, 8),
+            id: S.featureId(18, 8),
             label: 'Acid Breath (Recharge 5-6)',
             description: 'The dragon exhales acid in a 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 63 (14d8) acid damage on a failed save, or half as much damage on a successful one.',
             effects: [
@@ -342,8 +346,9 @@ export const ancientCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5710, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 22
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -404,7 +409,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 8
         },
         {
-            id: S.featureId(5710, 9),
+            id: S.featureId(18, 9),
             label: 'Slowing Breath (Recharge 5-6)',
             description: "The dragon exhales gas in a 90-foot cone. Each creature in that area must succeed on a DC 22 Constitution saving throw. On a failed save, the creature can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the creature can use either an action or a bonus action on its turn, but not both. These effects last for 1 minute. The creature can repeat the saving throw at the end of each of its turns, ending the effect on itself with a successful save.",
             effects: [
@@ -415,8 +420,9 @@ export const ancientCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(5710, 36),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.CONSTITUTION
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION,
+                            baseDc: 22
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -451,7 +457,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 9
         },
         {
-            id: S.featureId(5710, 10),
+            id: S.featureId(18, 10),
             label: 'Change Shape',
             description: "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features or legendary actions of that form.",
             effects: [
@@ -493,7 +499,7 @@ export const ancientCopperDragon: CreatureAuthored = {
             order: 10
         },
         {
-            id: S.featureId(5710, 11),
+            id: S.featureId(18, 11),
             label: 'Legendary Actions',
             description: "The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The dragon regains spent legendary actions at the start of its turn.",
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -553,7 +559,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                             unit: S.MEASUREMENT_UNIT_CODE.FEET
                         },
                         targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -595,8 +602,9 @@ export const ancientCopperDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.legendaryActionId(5710, 31),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 23
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.FREE

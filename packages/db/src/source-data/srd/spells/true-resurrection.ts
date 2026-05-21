@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const trueResurrection: SpellAuthored = {
@@ -9,6 +9,8 @@ export const trueResurrection: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
     level: 9,
     classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a sprinkle of holy water and diamonds worth at least 25,000 gp, which the spell consumes",
     magicSchoolId: schoolId('NECROMANCY'),
     effects: [
         {
@@ -25,7 +27,8 @@ export const trueResurrection: SpellAuthored = {
                     rangeKind: RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [
@@ -49,7 +52,6 @@ export const trueResurrection: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: 'a sprinkle of holy water and diamonds worth at least 25,000 gp, which the spell consumes',
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID
 };

@@ -60,24 +60,6 @@ export async function upsertBackground(
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
 
-    if (json_data.details) {
-      for (const detail of json_data.details) {
-        await upsertDetail(trx, detail)
-      }
-    }
-
-    if (json_data.proficiencies) {
-      for (const proficiencyGrant of json_data.proficiencies) {
-        await upsertProficiencyGrant(trx, proficiencyGrant)
-      }
-    }
-
-    if (json_data.features) {
-      for (const feature of json_data.features) {
-        await upsertFeature(trx, feature, json_data.systemId)
-      }
-    }
-
     await trx
       .insertInto('backgrounds')
       .values(mapBackgroundRow(json_data))
@@ -105,6 +87,24 @@ export async function upsertBackground(
       .deleteFrom('background_proficiency_grants')
       .where('background_id', '=', json_data.id)
       .execute()
+
+    if (json_data.details) {
+      for (const detail of json_data.details) {
+        await upsertDetail(trx, detail)
+      }
+    }
+
+    if (json_data.proficiencies) {
+      for (const proficiencyGrant of json_data.proficiencies) {
+        await upsertProficiencyGrant(trx, proficiencyGrant)
+      }
+    }
+
+    if (json_data.features) {
+      for (const feature of json_data.features) {
+        await upsertFeature(trx, feature, json_data.systemId)
+      }
+    }
 
     const detailRows: BackgroundDetailRow[] = (json_data.details ?? []).map((detail) => ({
       background_id: json_data.id,

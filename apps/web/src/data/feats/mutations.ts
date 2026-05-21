@@ -14,7 +14,7 @@ export function useActivateFeatMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.feats.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(response.item.id) })
       }

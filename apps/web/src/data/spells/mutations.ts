@@ -14,7 +14,7 @@ export function useActivateSpellMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.spells.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(response.item.id) })
       }

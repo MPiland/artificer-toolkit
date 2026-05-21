@@ -7,7 +7,8 @@ import type {
   SenseGrantAuthored,
   SpellGrantAuthored,
   FeatureAuthored,
-  ChargeAuthored
+  ChargeAuthored,
+  DetailAuthored
 } from '#authored'
 
 export interface FeatAuthored {
@@ -15,7 +16,7 @@ export interface FeatAuthored {
   label: string
   description: string
   status?: import('#core').AuthoredRecordStatus
-  detail?: string
+  details?: DetailAuthored[]
   prerequisites?: FacetAuthored<'CHARACTER'>
   effects?: EffectAuthored[]
   charges?: ChargeAuthored

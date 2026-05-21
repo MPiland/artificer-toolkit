@@ -1,9 +1,14 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
+import { routeLoadingMessages } from './routeLoadingMessages'
+import { loadingCopy, loadingOverlay, loadingPanel, loadingSpinner } from './routeStates.css'
+
+const routeLoadingIntervalMs = 1800
 
 export function RouteNotFound() {
   const homeRoute = useHomeRoute()
@@ -13,8 +18,7 @@ export function RouteNotFound() {
       <IMapOff size={48} />
       <Title order={1}>Route not found</Title>
       <Text c='dimmed' ta='center' maw={420}>
-        The Phase 9 app shell is active, so some provisional legacy routes are intentionally offline while
-        we rebuild the frontend foundation.
+        This route is not available in the MVP UAT build.
       </Text>
       <Button component={Link} to={homeRoute} leftSection={<IArrowLeft size={16} />}>
         Return home
@@ -45,6 +49,28 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
         </Button>
       </Group>
     </Stack>
+  )
+}
+
+export function RouteLoadingState() {
+  const [messageIndex, setMessageIndex] = useState(0)
+  const message = routeLoadingMessages[messageIndex] ?? routeLoadingMessages[0]
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setMessageIndex((current) => (current + 1) % routeLoadingMessages.length)
+    }, routeLoadingIntervalMs)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
+  return (
+    <div className={loadingOverlay}>
+      <div className={loadingPanel} role='status' aria-live='polite'>
+        <span className={loadingSpinner} aria-hidden='true' />
+        <p className={loadingCopy}>{message}</p>
+      </div>
+    </div>
   )
 }
 

@@ -14,7 +14,7 @@ export function useActivateCreatureMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.creatures.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.draft(response.item.id) })
       }

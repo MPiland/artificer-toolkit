@@ -11,7 +11,11 @@ import RichTextEditor from '#ui/primitives/RichTextEditor'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import { useFieldContext } from '../app-form/AppForm.context'
-import { getFieldError, toInputValue, type SelectOption } from '../utils/formUtils'
+import {
+  getFieldError,
+  toInputValue,
+  type SelectOption
+} from '../utils/formUtils'
 
 export type AppFieldProps = {
   label?: string
@@ -28,6 +32,7 @@ export type AppSelectFieldProps = AppFieldProps & {
 const fieldClassNames = {
   label: inputStyles.label,
   description: inputStyles.description,
+  required: inputStyles.required,
   input: inputStyles.input
 }
 
@@ -38,7 +43,13 @@ const pillsFieldClassNames = {
   inputField: inputStyles.inputField
 }
 
-export function TextField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function TextField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -60,7 +71,13 @@ export function TextField({ label, description, placeholder, required, readOnly 
   )
 }
 
-export function TextareaField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function TextareaField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -84,7 +101,13 @@ export function TextareaField({ label, description, placeholder, required, readO
   )
 }
 
-export function NumberField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function NumberField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<number | undefined>()
 
   return (
@@ -101,13 +124,21 @@ export function NumberField({ label, description, placeholder, required, readOnl
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(value) => {
-        if (!readOnly) field.handleChange(typeof value === 'number' ? value : undefined)
+        if (!readOnly)
+          field.handleChange(typeof value === 'number' ? value : undefined)
       }}
     />
   )
 }
 
-export function SelectField({ label, description, placeholder, required, readOnly, data }: AppSelectFieldProps) {
+export function SelectField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly,
+  data
+}: AppSelectFieldProps) {
   const field = useFieldContext<string | undefined>()
 
   return (
@@ -130,7 +161,14 @@ export function SelectField({ label, description, placeholder, required, readOnl
   )
 }
 
-export function MultiSelectField({ label, description, placeholder, required, readOnly, data }: AppSelectFieldProps) {
+export function MultiSelectField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly,
+  data
+}: AppSelectFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -153,7 +191,13 @@ export function MultiSelectField({ label, description, placeholder, required, re
   )
 }
 
-export function TagsField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function TagsField({
+  label,
+  description,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -175,7 +219,12 @@ export function TagsField({ label, description, placeholder, required, readOnly 
   )
 }
 
-export function RichTextField({ label, placeholder, required, readOnly }: AppFieldProps) {
+export function RichTextField({
+  label,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string>()
 
   return (

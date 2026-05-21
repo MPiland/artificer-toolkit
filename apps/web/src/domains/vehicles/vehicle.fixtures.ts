@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/content'
 
 export const ownedVehicleResponseFixture = {
+  publicId: 'vehicle-owned',
   item: {
     id: 'vehicle-owned',
     label: 'Sky Skiff',
@@ -57,6 +58,7 @@ export const ownedVehicleResponseFixture = {
 } satisfies VehicleResponseDto
 
 export const masterVehicleResponseFixture = {
+  publicId: 'vehicle-master',
   item: {
     id: 'vehicle-master',
     label: 'Galley',
@@ -87,6 +89,7 @@ export const vehicleListFixture = {
   items: [
     {
       id: ownedVehicleResponseFixture.item.id,
+      publicId: ownedVehicleResponseFixture.publicId,
       label: ownedVehicleResponseFixture.item.label,
       description: ownedVehicleResponseFixture.item.description,
       status: 'ACTIVE',
@@ -98,6 +101,7 @@ export const vehicleListFixture = {
     },
     {
       id: masterVehicleResponseFixture.item.id,
+      publicId: masterVehicleResponseFixture.publicId,
       label: masterVehicleResponseFixture.item.label,
       description: masterVehicleResponseFixture.item.description,
       status: 'ACTIVE',
@@ -108,6 +112,7 @@ export const vehicleListFixture = {
       permissions: masterVehicleResponseFixture.permissions
     }
   ],
+  drafts: [],
   meta: {}
 } satisfies VehicleListResponseDto
 

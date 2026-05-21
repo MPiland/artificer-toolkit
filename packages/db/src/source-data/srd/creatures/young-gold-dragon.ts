@@ -35,31 +35,31 @@ export const youngGoldDragon: CreatureAuthored = {
   xp: 5900,
   features: [
     {
-      id: S.featureId(9907, 1),
+      id: S.featureId(306, 1),
       label: 'Amphibious',
       description: 'Amphibious. The dragon can breathe air and water.',
       order: 1
     },
     {
-      id: S.featureId(9907, 2),
+      id: S.featureId(306, 2),
       label: 'Fire Breath',
       description: 'Fire Breath. The dragon exhales fire in a cone. Each creature in that area must make a Dexterity saving throw, taking fire damage on a failed save, or half as much damage on a successful one.',
       order: 2
     },
     {
-      id: S.featureId(9907, 3),
+      id: S.featureId(306, 3),
       label: 'Multiattack',
       description: 'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
       order: 3
     },
     {
-      id: S.featureId(9907, 4),
+      id: S.featureId(306, 4),
       label: 'Bite',
       description: 'Bite. Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus fire damage.',
       order: 4
     },
     {
-      id: S.featureId(9907, 5),
+      id: S.featureId(306, 5),
       label: 'Claw',
       description: 'Claw. Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
       order: 5

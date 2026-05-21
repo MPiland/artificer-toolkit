@@ -47,11 +47,38 @@ const tieflingWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UN
 export const tiefling: RaceAuthored = {
   id: RACE_IDS.TIEFLING,
   label: 'Tiefling',
+  description: '<p>Tieflings are derived from human bloodlines, and in the broadest possible sense, they still look human. Their infernal heritage has left a clear imprint on their appearance.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: tieflingWalk30,
   heritageIds: [SRD_INFERNAL_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(9, 0, 1),
+      label: 'Age',
+      description: 'Tieflings mature at the same rate as humans but live a few years longer.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(9, 0, 2),
+      label: 'Alignment',
+      description: 'Tieflings might not have an innate tendency toward evil, but many of them end up there. Evil or not, an independent nature inclines many tieflings toward a chaotic alignment.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(9, 0, 3),
+      label: 'Size',
+      description: 'Tieflings are about the same size and build as humans. Your size is Medium.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(9, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 30 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -91,7 +118,7 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 2, 1),
       label: 'Darkvision',
-      description: 'Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.',
+      description: 'Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 1,
       grants: {

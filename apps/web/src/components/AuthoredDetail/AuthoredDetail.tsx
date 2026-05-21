@@ -1,20 +1,27 @@
-import { Badge, Button, Group, Text, Title } from '@mantine/core'
+import { Button, Group, Loader, Modal, Stack, Text, Title } from '@mantine/core'
+import clsx from 'clsx'
+import type { CSSProperties, ReactNode } from 'react'
 import * as styles from './AuthoredDetail.css'
 import type {
   AuthoredDetailAction,
   AuthoredDetailFact,
   AuthoredDetailNotice,
+  AuthoredDetailPendingOperation,
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
 import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
 
 interface AuthoredDetailLayoutProps {
   actions?: AuthoredDetailAction[]
+  actionsDisabled?: boolean
+  afterFacts?: ReactNode
   description?: string
-  eyebrow: string
+  eyebrow?: string
   facts: AuthoredDetailFact[]
   notice?: AuthoredDetailNotice
+  pendingOperation?: AuthoredDetailPendingOperation | null
   sections: AuthoredDetailSectionModel[]
+  showSectionNav?: boolean
   status: string[]
   title: string
 }
@@ -50,47 +57,93 @@ interface AuthoredDetailItemListProps {
   }[]
 }
 
+interface AuthoredDetailPillListProps {
+  items: string[]
+  label: string
+}
+
 export function AuthoredDetailLayout({
   actions = [],
+  actionsDisabled = false,
+  afterFacts,
   description,
   eyebrow,
   facts,
   notice,
+  pendingOperation,
   sections,
+  showSectionNav = true,
   status,
   title
 }: AuthoredDetailLayoutProps) {
+  const hasStatus = status.length > 0
+  const hasActions = actions.length > 0
+  const shouldShowSectionNav = showSectionNav && sections.length > 0
+
   return (
-    <article className={styles.layout}>
+    <article className={styles.layout} aria-busy={pendingOperation ? true : undefined}>
+      <Modal
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        opened={Boolean(pendingOperation)}
+        title={pendingOperation?.title ?? 'Working'}
+        withCloseButton={false}
+        onClose={() => undefined}
+      >
+        {pendingOperation
+          ? (
+              <Stack align='center' gap='md'>
+                <Loader size='sm' />
+                <Text ta='center' size='sm'>{pendingOperation.body}</Text>
+              </Stack>
+            )
+          : null}
+      </Modal>
       <header className={styles.hero}>
+        {hasStatus || hasActions
+          ? (
+              <div className={styles.heroToolbar}>
+                {hasStatus
+                  ? (
+                      <Group className={styles.statusRow}>
+                        {status.map((label) => (
+                          <span key={label} className={getStatusChipClassName(label)}>
+                            {label}
+                          </span>
+                        ))}
+                      </Group>
+                    )
+                  : <span />}
+                {hasActions
+                  ? (
+                      <div className={styles.actionBar}>
+                        {actions.map((action) => (
+                          <Button
+                            className={action.tone === 'danger' ? styles.dangerActionButton : undefined}
+                            key={action.label}
+                            disabled={actionsDisabled || action.disabled}
+                            loading={action.loading}
+                            size='sm'
+                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : action.tone === 'danger' ? 'default' : 'light'}
+                            onClick={action.onClick}
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                      </div>
+                    )
+                  : null}
+              </div>
+            )
+          : null}
         <div className={styles.heroMain}>
-          <Text className={styles.eyebrow}>{eyebrow}</Text>
+          {eyebrow ? <Text className={styles.eyebrow}>{eyebrow}</Text> : null}
           <Title className={styles.title}>{title}</Title>
           {description ? <Text className={styles.summary}>{description}</Text> : null}
-          {actions.length
-            ? (
-                <div className={styles.actionBar}>
-                  {actions.map((action) => (
-                    <Button
-                      key={action.label}
-                      disabled={action.disabled}
-                      size='sm'
-                      variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : 'light'}
-                      onClick={action.onClick}
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
-                </div>
-              )
-            : null}
         </div>
-        <aside className={styles.metaRail} aria-label='Record summary'>
-          <Group className={styles.statusRow}>
-            {status.map((label) => <Badge key={label} variant='light'>{label}</Badge>)}
-          </Group>
-          <AuthoredDetailFactGrid facts={facts} />
-        </aside>
+        {facts.length ? <AuthoredDetailFactGrid facts={facts} /> : null}
+        {afterFacts ? <div className={styles.afterFacts}>{afterFacts}</div> : null}
       </header>
 
       {notice
@@ -103,8 +156,11 @@ export function AuthoredDetailLayout({
               {notice.action
                 ? (
                     <Button
+                      className={notice.action.tone === 'danger' ? styles.dangerActionButton : undefined}
+                      disabled={actionsDisabled || notice.action.disabled}
+                      loading={notice.action.loading}
                       size='sm'
-                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : 'light'}
+                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : notice.action.tone === 'danger' ? 'default' : 'light'}
                       onClick={notice.action.onClick}
                     >
                       {notice.action.label}
@@ -115,13 +171,22 @@ export function AuthoredDetailLayout({
           )
         : null}
 
-      <div className={styles.contentLayout}>
-        <AuthoredDetailNav sections={sections} />
+      <div className={clsx(styles.contentLayout, !shouldShowSectionNav && styles.contentLayoutNoNav)}>
+        {shouldShowSectionNav ? <AuthoredDetailNav sections={sections} /> : null}
         <div className={styles.sectionStack}>
           {sections.map((section) => <AuthoredDetailSection key={section.id} section={section} />)}
         </div>
       </div>
     </article>
+  )
+}
+
+function getStatusChipClassName(label: string): string {
+  return clsx(
+    styles.statusChip,
+    label === 'SRD' && styles.statusChipSrd,
+    label === 'Homebrew' && styles.statusChipHomebrew,
+    label.toLowerCase().includes('draft') && styles.statusChipDraft
   )
 }
 
@@ -134,6 +199,21 @@ export function AuthoredDetailNav({ sections }: AuthoredDetailNavProps) {
         </a>
       ))}
     </nav>
+  )
+}
+
+export function AuthoredDetailPillList({ items, label }: AuthoredDetailPillListProps) {
+  if (!items.length) {
+    return null
+  }
+
+  return (
+    <section className={styles.pillList} aria-label={label}>
+      <Text className={styles.pillListLabel}>{label}</Text>
+      <div className={styles.pillListItems}>
+        {items.map((item) => <span className={styles.pill} key={item}>{item}</span>)}
+      </div>
+    </section>
   )
 }
 
@@ -157,7 +237,7 @@ export function AuthoredDetailFactGrid({ facts }: AuthoredDetailFactGridProps) {
   }
 
   return (
-    <dl className={styles.factGrid}>
+    <dl className={styles.factGrid} style={{ '--authored-detail-fact-grid-columns': getFactGridColumnCount(facts.length) } as CSSProperties}>
       {facts.map((fact) => (
         <div key={fact.label} className={styles.fact}>
           <dt className={styles.factLabel}>{fact.label}</dt>
@@ -166,6 +246,10 @@ export function AuthoredDetailFactGrid({ facts }: AuthoredDetailFactGridProps) {
       ))}
     </dl>
   )
+}
+
+function getFactGridColumnCount(factCount: number): number {
+  return Math.min(6, Math.max(1, Math.ceil(factCount / 2)))
 }
 
 export function AuthoredDetailProse({ html, fallback = 'No description has been added yet.' }: AuthoredDetailProseProps) {

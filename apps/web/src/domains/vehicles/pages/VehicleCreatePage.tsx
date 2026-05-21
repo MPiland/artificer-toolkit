@@ -15,6 +15,7 @@ import {
   useActivateVehicleMutation,
   useSaveVehicleDraftMutation
 } from '#app/data/vehicles/mutations'
+import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyVehicle,
   normalizeVehicleForSubmit,
@@ -57,8 +58,11 @@ function VehicleCreateAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Vehicle activated.' })
 
-      if (response?.item.id) {
-        await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: response.item.id } })
+      if (response?.item?.id) {
+        await navigate({
+          params: buildVehicleRouteParams(response.publicId, response.item.label),
+          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that vehicle yet.' })
@@ -79,7 +83,10 @@ function VehicleCreateAuthoring({
     try {
       const draft = await draftMutation.mutateAsync(normalizeVehicleForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Vehicle draft saved.' })
-      await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: draft.subjectId } })
+      await navigate({
+        params: buildVehicleRouteParams(draft.publicId, draft.label),
+        to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

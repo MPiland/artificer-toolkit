@@ -4,18 +4,21 @@ import { app } from '#css/layers.css'
 
 const narrow = 'screen and (max-width: 900px)'
 const mobile = 'screen and (max-width: 640px)'
+const shellHeaderHeight = '48px'
+const stickyNavTop = `calc(${shellHeaderHeight} + ${foundationVars.space[5]})`
+const sectionScrollMarginTop = `calc(${shellHeaderHeight} + ${foundationVars.space[8]})`
 
 export const storyCanvas = style({
   '@layer': {
     [app]: {
-      minHeight: '100dvh',
-      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
-      backgroundColor: foundationVars.color.surface.canvas
-    }
-  },
-  '@media': {
-    [mobile]: {
-      padding: foundationVars.space[4]
+      'minHeight': '100dvh',
+      'padding': `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+      'backgroundColor': foundationVars.color.surface.canvas,
+      '@media': {
+        [mobile]: {
+          padding: foundationVars.space[4]
+        }
+      }
     }
   }
 })
@@ -36,21 +39,34 @@ export const layout = style({
 export const hero = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 360px)',
-      gap: foundationVars.space[6],
-      alignItems: 'end',
-      padding: `${foundationVars.space[8]} ${foundationVars.space[8]} ${foundationVars.space[6]}`,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xxl,
-      background: `linear-gradient(145deg, ${foundationVars.color.surface.panel} 0%, ${foundationVars.color.surface.raised} 58%, ${foundationVars.color.surface.subtle} 100%)`,
-      boxShadow: foundationVars.shadow.card
+      'display': 'grid',
+      'gap': foundationVars.space[5],
+      'padding': foundationVars.space[6],
+      'border': `1px solid ${foundationVars.color.border.subtle}`,
+      'borderRadius': foundationVars.radius.xl,
+      'backgroundColor': foundationVars.color.surface.panel,
+      'boxShadow': foundationVars.shadow.card,
+      '@media': {
+        [narrow]: {
+          padding: foundationVars.space[5]
+        }
+      }
     }
-  },
-  '@media': {
-    [narrow]: {
-      gridTemplateColumns: '1fr',
-      padding: foundationVars.space[5]
+  }
+})
+
+export const heroToolbar = style({
+  '@layer': {
+    [app]: {
+      'display': 'flex',
+      'alignItems': 'flex-start',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[3],
+      '@media': {
+        [mobile]: {
+          display: 'grid'
+        }
+      }
     }
   }
 })
@@ -59,8 +75,9 @@ export const heroMain = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[3],
-      minWidth: 0
+      gap: foundationVars.space[2],
+      minWidth: 0,
+      maxWidth: '76ch'
     }
   }
 })
@@ -81,14 +98,18 @@ export const eyebrow = style({
 export const title = style({
   '@layer': {
     [app]: {
-      margin: 0,
-      maxWidth: '13ch',
-      color: foundationVars.color.text.primary,
-      fontFamily: foundationVars.font.display,
-      fontSize: 'clamp(2.35rem, 6vw, 4.85rem)',
-      fontWeight: foundationVars.fontWeight.heavy,
-      letterSpacing: '-0.045em',
-      lineHeight: 0.94
+      'margin': 0,
+      'color': foundationVars.color.text.primary,
+      'fontFamily': foundationVars.font.display,
+      'fontSize': '2.75rem',
+      'fontWeight': foundationVars.fontWeight.heavy,
+      'letterSpacing': '0',
+      'lineHeight': 1.08,
+      '@media': {
+        [mobile]: {
+          fontSize: '2rem'
+        }
+      }
     }
   }
 })
@@ -108,26 +129,42 @@ export const summary = style({
 export const actionBar = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: foundationVars.space[2],
-      alignItems: 'center',
-      justifyContent: 'flex-end'
-    }
-  },
-  '@media': {
-    [narrow]: {
-      justifyContent: 'flex-start'
+      'display': 'flex',
+      'flexWrap': 'wrap',
+      'gap': foundationVars.space[2],
+      'alignItems': 'center',
+      'justifyContent': 'flex-end',
+      'marginLeft': 'auto',
+      '@media': {
+        [narrow]: {
+          justifyContent: 'flex-start'
+        }
+      }
     }
   }
 })
 
-export const metaRail = style({
+export const dangerActionButton = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gap: foundationVars.space[3],
-      alignSelf: 'stretch'
+      'vars': {
+        '--button-bg': foundationVars.color.input.background.default,
+        '--button-bd': `1px solid ${foundationVars.color.status.danger}`,
+        '--button-color': foundationVars.color.status.danger,
+        '--button-hover': foundationVars.color.status.dangerSoft,
+        '--button-hover-color': foundationVars.color.status.danger
+      },
+      'borderColor': foundationVars.color.status.danger,
+      'borderRadius': foundationVars.radius.sm,
+      'backgroundColor': foundationVars.color.input.background.default,
+      'color': foundationVars.color.status.danger,
+      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+
+      ':hover': {
+        borderColor: foundationVars.color.status.danger,
+        backgroundColor: foundationVars.color.status.dangerSoft,
+        color: foundationVars.color.status.danger
+      }
     }
   }
 })
@@ -138,12 +175,54 @@ export const statusRow = style({
       display: 'flex',
       flexWrap: 'wrap',
       gap: foundationVars.space[2],
-      justifyContent: 'flex-end'
-    }
-  },
-  '@media': {
-    [narrow]: {
       justifyContent: 'flex-start'
+    }
+  }
+})
+
+export const statusChip = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      minHeight: '24px',
+      padding: `3px ${foundationVars.space[2]}`,
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.caption.fontSize,
+      lineHeight: '18px'
+    }
+  }
+})
+
+export const statusChipSrd = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.border.strong,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.text.secondary
+    }
+  }
+})
+
+export const statusChipHomebrew = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.accent.border,
+      backgroundColor: foundationVars.color.accent.soft,
+      color: foundationVars.color.text.accent
+    }
+  }
+})
+
+export const statusChipDraft = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.status.warning,
+      backgroundColor: foundationVars.color.status.warningSoft,
+      color: foundationVars.color.status.warning
     }
   }
 })
@@ -151,16 +230,25 @@ export const statusRow = style({
 export const contentLayout = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: '190px minmax(0, 1fr)',
-      gap: foundationVars.space[8],
-      alignItems: 'start'
+      'display': 'grid',
+      'gridTemplateColumns': '190px minmax(0, 1fr)',
+      'gap': foundationVars.space[8],
+      'alignItems': 'start',
+      '@media': {
+        [narrow]: {
+          gridTemplateColumns: '1fr',
+          gap: foundationVars.space[5]
+        }
+      }
     }
-  },
-  '@media': {
-    [narrow]: {
-      gridTemplateColumns: '1fr',
-      gap: foundationVars.space[5]
+  }
+})
+
+export const contentLayoutNoNav = style({
+  '@layer': {
+    [app]: {
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      gap: foundationVars.space[6]
     }
   }
 })
@@ -168,21 +256,24 @@ export const contentLayout = style({
 export const nav = style({
   '@layer': {
     [app]: {
-      position: 'sticky',
-      top: foundationVars.space[5],
-      display: 'grid',
-      gap: foundationVars.space[1],
-      paddingTop: foundationVars.space[1]
-    }
-  },
-  '@media': {
-    [narrow]: {
-      position: 'static',
-      display: 'flex',
-      gap: foundationVars.space[2],
-      overflowX: 'auto',
-      paddingBottom: foundationVars.space[1],
-      scrollbarWidth: 'thin'
+      'position': 'sticky',
+      'top': stickyNavTop,
+      'display': 'grid',
+      'gap': foundationVars.space[1],
+      'maxHeight': `calc(100dvh - ${stickyNavTop} - ${foundationVars.space[5]})`,
+      'overflowY': 'auto',
+      'paddingTop': foundationVars.space[1],
+      'overscrollBehavior': 'contain',
+      '@media': {
+        [narrow]: {
+          position: 'static',
+          display: 'flex',
+          gap: foundationVars.space[2],
+          overflowX: 'auto',
+          paddingBottom: foundationVars.space[1],
+          scrollbarWidth: 'thin'
+        }
+      }
     }
   }
 })
@@ -222,7 +313,7 @@ export const sectionStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[8],
+      gap: foundationVars.space[7],
       minWidth: 0
     }
   }
@@ -233,7 +324,7 @@ export const section = style({
     [app]: {
       display: 'grid',
       gap: foundationVars.space[4],
-      scrollMarginTop: foundationVars.space[8]
+      scrollMarginTop: sectionScrollMarginTop
     }
   }
 })
@@ -281,44 +372,210 @@ export const prose = style({
       maxWidth: '74ch',
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.body.fontSize,
-      lineHeight: '1.72'
+      lineHeight: '1.72',
+      overflowX: 'auto'
     }
   }
 })
 
 globalStyle(`${prose} p`, {
-  margin: `0 0 ${foundationVars.space[4]}`
+  '@layer': {
+    [app]: {
+      margin: `0 0 ${foundationVars.space[4]}`
+    }
+  }
 })
 
 globalStyle(`${prose} p:last-child`, {
-  marginBottom: 0
+  '@layer': {
+    [app]: {
+      marginBottom: 0
+    }
+  }
 })
 
 globalStyle(`${prose} ul, ${prose} ol`, {
-  margin: `0 0 ${foundationVars.space[4]}`,
-  paddingLeft: foundationVars.space[5]
+  '@layer': {
+    [app]: {
+      margin: `0 0 ${foundationVars.space[4]}`,
+      paddingLeft: foundationVars.space[5]
+    }
+  }
 })
 
 globalStyle(`${prose} strong`, {
-  color: foundationVars.color.text.primary,
-  fontWeight: foundationVars.fontWeight.semibold
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontWeight: foundationVars.fontWeight.semibold
+    }
+  }
+})
+
+globalStyle(`${prose} h3`, {
+  '@layer': {
+    [app]: {
+      margin: `${foundationVars.space[5]} 0 ${foundationVars.space[2]}`,
+      color: foundationVars.color.text.primary,
+      fontSize: foundationVars.typography.body.fontSize,
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '0'
+    }
+  }
+})
+
+globalStyle(`${prose} h3:first-child`, {
+  '@layer': {
+    [app]: {
+      marginTop: 0
+    }
+  }
+})
+
+globalStyle(`${prose} table`, {
+  '@layer': {
+    [app]: {
+      width: '100%',
+      margin: `0 0 ${foundationVars.space[5]}`,
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderCollapse: 'separate',
+      borderRadius: foundationVars.radius.md,
+      borderSpacing: 0,
+      backgroundColor: foundationVars.color.surface.panel,
+      tableLayout: 'fixed'
+    }
+  }
+})
+
+globalStyle(`${prose} table:last-child`, {
+  '@layer': {
+    [app]: {
+      marginBottom: 0
+    }
+  }
+})
+
+globalStyle(`${prose}:has(table[data-detail-table='class-progression'])`, {
+  '@layer': {
+    [app]: {
+      maxWidth: '100%'
+    }
+  }
+})
+
+globalStyle(`${prose} th, ${prose} td`, {
+  '@layer': {
+    [app]: {
+      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      lineHeight: '1.55',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      wordBreak: 'normal',
+      overflowWrap: 'anywhere'
+    }
+  }
+})
+
+globalStyle(`${prose} th`, {
+  '@layer': {
+    [app]: {
+      backgroundColor: foundationVars.color.surface.raised,
+      color: foundationVars.color.text.primary,
+      fontFamily: foundationVars.font.mono,
+      fontSize: '0.68rem',
+      fontWeight: foundationVars.fontWeight.semibold,
+      letterSpacing: '0.07em',
+      textTransform: 'uppercase'
+    }
+  }
+})
+
+globalStyle(`${prose} td + td, ${prose} th + th`, {
+  '@layer': {
+    [app]: {
+      borderLeft: `1px solid ${foundationVars.color.border.subtle}`
+    }
+  }
+})
+
+globalStyle(`${prose} tr:last-child td`, {
+  '@layer': {
+    [app]: {
+      borderBottom: 0
+    }
+  }
+})
+
+globalStyle(`${prose} table[data-detail-table='class-progression']`, {
+  '@layer': {
+    [app]: {
+      minWidth: '980px',
+      tableLayout: 'auto',
+      fontVariantNumeric: 'tabular-nums'
+    }
+  }
+})
+
+globalStyle(`${prose} table[data-detail-table='class-progression'] th, ${prose} table[data-detail-table='class-progression'] td`, {
+  '@layer': {
+    [app]: {
+      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+      fontSize: '0.82rem',
+      lineHeight: '1.38',
+      overflowWrap: 'normal',
+      wordBreak: 'normal'
+    }
+  }
+})
+
+globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='features'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='features']`, {
+  '@layer': {
+    [app]: {
+      minWidth: '18rem'
+    }
+  }
+})
+
+globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='slot']`, {
+  '@layer': {
+    [app]: {
+      textAlign: 'center',
+      whiteSpace: 'nowrap'
+    }
+  }
+})
+
+globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot-group']`, {
+  '@layer': {
+    [app]: {
+      textAlign: 'center'
+    }
+  }
 })
 
 export const factGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: '1px',
-      overflow: 'hidden',
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xl,
-      backgroundColor: foundationVars.color.border.subtle
-    }
-  },
-  '@media': {
-    [mobile]: {
-      gridTemplateColumns: '1fr'
+      'display': 'grid',
+      'gridTemplateColumns':
+        'repeat(var(--authored-detail-fact-grid-columns, 4), minmax(0, 1fr))',
+      'gap': 0,
+      'overflow': 'hidden',
+      'border': `1px solid ${foundationVars.color.border.subtle}`,
+      'borderRadius': foundationVars.radius.lg,
+      'backgroundColor': foundationVars.color.surface.panel,
+      '@media': {
+        [narrow]: {
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+        },
+        [mobile]: {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -328,9 +585,69 @@ export const fact = style({
     [app]: {
       display: 'grid',
       gap: '2px',
-      minHeight: '68px',
+      minHeight: '76px',
       padding: foundationVars.space[3],
-      backgroundColor: foundationVars.color.surface.panel
+      backgroundColor: foundationVars.color.surface.panel,
+      boxShadow: `inset -1px -1px 0 ${foundationVars.color.border.subtle}`
+    }
+  }
+})
+
+export const afterFacts = style({
+  '@layer': {
+    [app]: {
+      paddingTop: foundationVars.space[1]
+    }
+  }
+})
+
+export const pillList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const pillListLabel = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      color: foundationVars.color.text.muted,
+      fontFamily: foundationVars.font.mono,
+      fontSize: '0.68rem',
+      fontWeight: foundationVars.fontWeight.semibold,
+      letterSpacing: '0.07em',
+      textTransform: 'uppercase'
+    }
+  }
+})
+
+export const pillListItems = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const pill = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      minHeight: '28px',
+      padding: `0 ${foundationVars.space[3]}`,
+      border: `1px solid ${foundationVars.color.accent.border}`,
+      borderRadius: foundationVars.radius.pill,
+      backgroundColor: foundationVars.color.accent.soft,
+      color: foundationVars.color.text.primary,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: 1
     }
   }
 })
@@ -390,18 +707,18 @@ export const notice = styleVariants({
 export const noticeBase = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3],
-      padding: foundationVars.space[4],
-      border: '1px solid',
-      borderRadius: foundationVars.radius.xl
-    }
-  },
-  '@media': {
-    [mobile]: {
-      display: 'grid'
+      'display': 'flex',
+      'alignItems': 'center',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[3],
+      'padding': foundationVars.space[4],
+      'border': '1px solid',
+      'borderRadius': foundationVars.radius.xl,
+      '@media': {
+        [mobile]: {
+          display: 'grid'
+        }
+      }
     }
   }
 })
@@ -454,9 +771,8 @@ export const itemList = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: 0,
-      maxWidth: '78ch',
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`
+      gap: foundationVars.space[5],
+      maxWidth: '78ch'
     }
   }
 })
@@ -466,8 +782,7 @@ export const item = style({
     [app]: {
       display: 'grid',
       gap: foundationVars.space[2],
-      padding: `${foundationVars.space[4]} 0`,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+      padding: 0
     }
   }
 })
@@ -475,15 +790,9 @@ export const item = style({
 export const itemHeader = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3]
-    }
-  },
-  '@media': {
-    [mobile]: {
-      display: 'grid'
+      display: 'grid',
+      gap: '2px',
+      minWidth: 0
     }
   }
 })
@@ -509,7 +818,7 @@ export const itemMeta = style({
       fontWeight: foundationVars.fontWeight.semibold,
       letterSpacing: '0.04em',
       textTransform: 'uppercase',
-      whiteSpace: 'nowrap'
+      lineHeight: 1.35
     }
   }
 })

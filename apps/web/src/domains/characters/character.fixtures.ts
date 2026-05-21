@@ -102,6 +102,7 @@ export const characterFixture = {
 } satisfies CharacterAuthoredDto
 
 export const characterBuilderPayloadFixture = {
+  publicId: 'character-owned',
   character: characterFixture,
   resolution: {
     mode: 'edit',
@@ -293,6 +294,7 @@ export const characterBuilderPayloadFixture = {
 
 export const characterBuilderDraftPayloadFixture = {
   ...characterBuilderPayloadFixture,
+  publicId: 'character-draft',
   character: {
     ...characterFixture,
     id: 'character-draft',
@@ -359,6 +361,7 @@ export const characterPreviewFixture = {
 } satisfies CharacterBuilderPreviewPayloadDto
 
 export const characterSheetFixture = {
+  publicId: 'character-owned',
   meta: {
     characterId: characterFixture.id,
     systemId: characterFixture.systemId,
@@ -650,6 +653,7 @@ export const characterListFixture = {
   items: [
     {
       id: characterFixture.id,
+      publicId: 'character-owned',
       label: characterFixture.label,
       status: AUTHORED_RECORD_STATUS.ACTIVE,
       systemId: characterFixture.systemId,
@@ -657,12 +661,14 @@ export const characterListFixture = {
     },
     {
       id: 'character-draft',
+      publicId: 'character-draft',
       label: '',
       status: AUTHORED_RECORD_STATUS.DRAFT,
       systemId: characterFixture.systemId,
       streamVersion: 0,
       draft: {
         characterId: 'character-draft',
+        publicId: 'character-draft',
         userId: 'user-1',
         systemId: characterFixture.systemId,
         label: '',

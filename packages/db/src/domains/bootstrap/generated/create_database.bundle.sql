@@ -2595,30 +2595,57 @@ CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_type_items_condition
 CREATE TABLE IF NOT EXISTS public.saving_throws (
   id uuid PRIMARY KEY,
 
-  saving_throw_kind text NOT NULL,          -- SAVING_THROW_KIND (string)
-  ability_code text,                -- ABILITY_CODE (FIXED_VALUE only)
+  dc_method text NOT NULL,
+  ability_code text NOT NULL,                -- ABILITY_CODE rolled by the target
 
-  dc integer,                        -- only for FIXED_VALUE
+  base_dc integer,
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT saving_throws_kind_chk CHECK (
-    saving_throw_kind IN ('SOURCE_SAVE_DC', 'FIXED_VALUE')
+  CONSTRAINT saving_throws_dc_method_chk CHECK (
+    dc_method IN ('SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC')
   ),
   CONSTRAINT saving_throws_payload_chk CHECK (
-    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NULL AND dc IS NULL)
-    OR (saving_throw_kind = 'FIXED_VALUE' AND ability_code IS NOT NULL AND dc IS NOT NULL)
+    (dc_method = 'SOURCE_SAVE_DC' AND base_dc IS NULL)
+    OR (dc_method IN ('FIXED_DC', 'DERIVED_DC') AND base_dc IS NOT NULL)
   )
 );
 
 ALTER TABLE public.saving_throws ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_saving_throws_kind
-  ON public.saving_throws (saving_throw_kind);
+CREATE INDEX IF NOT EXISTS idx_saving_throws_dc_method
+  ON public.saving_throws (dc_method);
 
 CREATE INDEX IF NOT EXISTS idx_saving_throws_ability
   ON public.saving_throws (ability_code);
+
+CREATE TABLE IF NOT EXISTS public.saving_throw_dc_bonuses (
+  id uuid PRIMARY KEY,
+  saving_throw_id uuid NOT NULL REFERENCES public.saving_throws(id) ON DELETE CASCADE,
+  sort_order integer NOT NULL,
+
+  bonus_kind text NOT NULL,
+  ability_code text,
+  amount integer,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT saving_throw_dc_bonuses_kind_chk CHECK (
+    bonus_kind IN ('ABILITY_MODIFIER', 'PROFICIENCY_BONUS', 'STATIC_BONUS')
+  ),
+  CONSTRAINT saving_throw_dc_bonuses_payload_chk CHECK (
+    (bonus_kind = 'ABILITY_MODIFIER' AND ability_code IS NOT NULL AND amount IS NULL)
+    OR (bonus_kind = 'PROFICIENCY_BONUS' AND ability_code IS NULL AND amount IS NULL)
+    OR (bonus_kind = 'STATIC_BONUS' AND ability_code IS NULL AND amount IS NOT NULL)
+  )
+);
+
+ALTER TABLE public.saving_throw_dc_bonuses ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_saving_throw_dc_bonuses_saving_throw
+  ON public.saving_throw_dc_bonuses (saving_throw_id, sort_order);
 -- END INCLUDE: src\domains\shared\tables\saving_throws.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\starting_equipment.sql
 /* ──────────────────────────────────────────────
@@ -3423,7 +3450,6 @@ CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
@@ -3466,6 +3492,35 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["restriction_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.feature_details (
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feature_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feature_details_feature ON public.feature_details (feature_id);
+
+ALTER TABLE public.feature_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feature_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feature_details_owned
+    AFTER DELETE ON public.feature_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -3725,7 +3780,6 @@ CREATE TABLE IF NOT EXISTS public.options (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   sort_order integer NOT NULL,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -3769,6 +3823,34 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["restriction_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.option_details (
+  option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (option_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_option_details_option ON public.option_details (option_id);
+
+ALTER TABLE public.option_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_option_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_option_details_owned
+    AFTER DELETE ON public.option_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -5048,7 +5130,10 @@ CREATE TABLE IF NOT EXISTS public.background_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5314,7 +5399,10 @@ CREATE TABLE IF NOT EXISTS public.class_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5555,6 +5643,45 @@ BEGIN
     EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[{
       "table": "public.charges",
       "columns": ["charge_id"]
+    }]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.class_spellcasting_details (
+  spellcasting_id uuid NOT NULL
+    REFERENCES public.class_spellcasting(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  detail_id uuid NOT NULL
+    REFERENCES public.details(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (spellcasting_id, detail_id)
+);
+
+ALTER TABLE public.class_spellcasting_details ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_details_sc
+  ON public.class_spellcasting_details(spellcasting_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_class_spellcasting_details_owned'
+      AND tgrelid = 'public.class_spellcasting_details'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_class_spellcasting_details_owned
+    AFTER DELETE ON public.class_spellcasting_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
     }]');
   END IF;
 END;
@@ -5996,7 +6123,10 @@ CREATE TABLE IF NOT EXISTS public.creature_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6216,7 +6346,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   status text NOT NULL DEFAULT 'DRAFT',
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount numeric,
+  cost_amount integer,
   cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric,
   weight_unit text,
@@ -6403,7 +6533,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );
@@ -6499,7 +6629,6 @@ CREATE TABLE IF NOT EXISTS public.feats (
   user_id uuid REFERENCES auth.users (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   status text NOT NULL DEFAULT 'DRAFT',
   prerequisite_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -6552,6 +6681,34 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["prerequisite_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.feat_details (
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feat_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feat_details_feat ON public.feat_details (feat_id);
+
+ALTER TABLE public.feat_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feat_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feat_details_owned
+    AFTER DELETE ON public.feat_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -6711,7 +6868,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, feature_id)
 );
@@ -6862,7 +7019,10 @@ CREATE TABLE IF NOT EXISTS public.race_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6990,7 +7150,10 @@ CREATE TABLE IF NOT EXISTS public.race_ancestry_option_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -7304,7 +7467,10 @@ CREATE TABLE IF NOT EXISTS public.vehicle_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -7819,6 +7985,46 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.character_hit_dice_state ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_spell_slot_state (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  slot_key text NOT NULL,
+  used integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, slot_key),
+  CONSTRAINT character_spell_slot_state_used_chk CHECK (used >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_spell_slot_state_character_id
+  ON public.character_spell_slot_state (character_id);
+
+ALTER TABLE IF EXISTS public.character_spell_slot_state ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_conditions (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  condition_type_id uuid NOT NULL REFERENCES public.condition_types (id) ON DELETE CASCADE DEFERRABLE,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, condition_type_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_conditions_condition_type_id
+  ON public.character_conditions (condition_type_id);
+
+ALTER TABLE IF EXISTS public.character_conditions ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_exhaustion (
+  character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  level integer NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_exhaustion_level_chk CHECK (level >= 0 AND level <= 6)
+);
+
+ALTER TABLE IF EXISTS public.character_exhaustion ENABLE ROW LEVEL SECURITY;
 
 
 DO $$

@@ -2,8 +2,12 @@ import { globalStyle } from '@vanilla-extract/css'
 import { reset } from './layers.css'
 
 globalStyle('html, body', {
-  margin: 0,
-  padding: 0
+  '@layer': {
+    [reset]: {
+      margin: 0,
+      padding: 0
+    }
+  }
 })
 
 /**

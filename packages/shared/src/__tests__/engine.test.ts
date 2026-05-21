@@ -417,3 +417,96 @@ describe('runEngine determinism', () => {
   })
 })
 
+describe('runEngine - class resources', () => {
+  it('applies charge reset replacement modifiers to matching resources', () => {
+    const snapshot = makeSnapshot({
+      totalLevel: 5,
+      classes: [{ classId: 'bard', level: 5 }],
+      abilities: { CHA: 16 },
+      features: [
+        {
+          featureId: 'font-of-inspiration',
+          source: { kind: 'CLASS', classId: 'bard' },
+          timing: { kind: 'CLASS_LEVEL', classId: 'bard', classLevel: 5 }
+        }
+      ]
+    })
+    const registry: CharacterAssemblyRegistry = {
+      ...makeEmptyRegistry(),
+      classes: {
+        bard: {
+          id: 'bard',
+          category: 'BASE',
+          resources: {
+            id: 'bardic-inspiration',
+            label: 'Bardic Inspiration',
+            availableAtLevel: 1,
+            charges: {
+              id: 'bardic-inspiration-charge',
+              resetKind: 'LONG_REST',
+              limitKind: 'ABILITY_MODIFIER',
+              scalingKind: 'NONE',
+              ability: 'CHA',
+              min: 1
+            }
+          },
+          startingGold: { multiplier: 5, currencyId: 'gp', dieConfig: '5d4' },
+          startingEquipment: { groups: [] } as never,
+          hitpoint: { ability: 'CON', dieConfig: '1d8' },
+          multiclass: {
+            id: 'bard-multiclass',
+            requirementGroups: { id: 'bard-multiclass', groups: [] }
+          }
+        } as never
+      },
+      features: {
+        'font-of-inspiration': {
+          id: 'font-of-inspiration',
+          modifiers: [
+            {
+              id: 'font-reset',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'CHARGE_RESET',
+              domain: {},
+              modifierKind: 'REPLACE_CHARGE_RESET_KIND',
+              scope: 'SOURCE',
+              selectionKind: 'GRANTED',
+              payload: { resetKind: 'SHORT_REST' },
+              order: 0,
+              restrictions: {
+                id: 'font-reset-restriction',
+                groups: [
+                  {
+                    id: 'font-reset-group',
+                    order: 0,
+                    contexts: [
+                      {
+                        id: 'font-reset-context',
+                        order: 0,
+                        subject: 'RESOURCE',
+                        resourceIds: ['bardic-inspiration'],
+                        conditions: []
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        } as never
+      }
+    }
+
+    const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
+
+    expect(output.resources).toEqual([
+      expect.objectContaining({
+        resourceId: 'bardic-inspiration',
+        label: 'Bardic Inspiration',
+        maxCount: 3,
+        rechargeOn: 'SHORT_REST'
+      })
+    ])
+  })
+})
+

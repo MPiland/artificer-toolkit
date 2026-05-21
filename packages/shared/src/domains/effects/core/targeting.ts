@@ -62,20 +62,20 @@ export const TARGET_DISPOSITION_KIND_REGISTRY: Record<
 > = {
   [TARGET_DISPOSITION_KIND.ANY]: {
     code: TARGET_DISPOSITION_KIND.ANY,
-    label: 'Any',
-    tooltip: 'Any valid target can be selected.',
+    label: 'Any valid target',
+    tooltip: 'Any valid target can be affected.',
     description: 'Any valid target can be selected.'
   },
   [TARGET_DISPOSITION_KIND.WILLING]: {
     code: TARGET_DISPOSITION_KIND.WILLING,
-    label: 'Willing',
-    tooltip: 'Only willing targets can be selected.',
+    label: 'Willing targets only',
+    tooltip: 'Only willing targets can be affected.',
     description: 'Only willing targets can be selected.'
   },
   [TARGET_DISPOSITION_KIND.HOSTILE]: {
     code: TARGET_DISPOSITION_KIND.HOSTILE,
-    label: 'Hostile',
-    tooltip: 'Only hostile targets can be selected.',
+    label: 'Hostile targets only',
+    tooltip: 'Only hostile targets can be affected.',
     description: 'Only hostile targets can be selected.'
   }
 } as const

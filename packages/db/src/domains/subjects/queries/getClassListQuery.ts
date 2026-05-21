@@ -9,6 +9,7 @@ interface ClassListItem {
   status: string
   systemId: string
   category: string | null
+  parentClassId: string | null
   details: unknown
   userId: string
   ownerUserId: string | null
@@ -37,6 +38,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       'status',
       'system_id as systemId',
       'category',
+      'parent_class_id as parentClassId',
       'user_id as ownerUserId',
       'is_master as isMaster',
       details(eb, (eb2) => eb2

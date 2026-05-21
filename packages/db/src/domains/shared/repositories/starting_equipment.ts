@@ -12,6 +12,7 @@ import {
 import type { DBLike } from '#types'
 import { upsertStartingEquipment } from '../upserts/starting_equipment.js'
 import type { StartingEquipmentRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
 type StartingEquipmentItemEquipmentRow = {
   option_item_id: string
@@ -217,8 +218,7 @@ function hydrateEquipmentItem(
   }
 
   if (authoringModeKind === 'SELECTED' && selectionKind === 'CHOSEN') {
-    requireNoGrantedCount(item)
-    requireNoChosenQuantity({ ...item, quantity: item.quantity })
+    requireNoChosenQuantity(item)
     return {
       ...base,
       authoringModeKind: 'SELECTED',
@@ -276,46 +276,71 @@ async function hydrateStartingEquipmentById(
     .where('starting_equipment_id', '=', id)
     .orderBy('sort_order')
     .execute()
+  const setIds = sets.map((set) => set.id)
 
-  const groups = await db
-    .selectFrom('starting_equipment_groups')
-    .select(['id', 'equipment_set_id', 'sort_order'])
-    .execute()
+  const groups = setIds.length
+    ? await db
+        .selectFrom('starting_equipment_groups')
+        .select(['id', 'equipment_set_id', 'sort_order'])
+        .where('equipment_set_id', 'in', setIds)
+        .orderBy('sort_order')
+        .execute()
+    : []
+  const groupIds = groups.map((group) => group.id)
 
-  const options = await db
-    .selectFrom('starting_equipment_options')
-    .select(['id', 'equipment_group_id', 'sort_order'])
-    .execute()
+  const options = groupIds.length
+    ? await db
+        .selectFrom('starting_equipment_options')
+        .select(['id', 'equipment_group_id', 'sort_order'])
+        .where('equipment_group_id', 'in', groupIds)
+        .orderBy('sort_order')
+        .execute()
+    : []
+  const optionIds = options.map((option) => option.id)
 
-  const items = await db
-    .selectFrom('starting_equipment_option_items')
-    .select([
-      'id',
-      'equipment_option_id',
-      'starting_equipment_kind',
-      'authoring_mode_kind',
-      'selection_kind',
-      'category_code',
-      'count',
-      'quantity',
-      'sort_order'
-    ])
-    .execute()
+  const items = optionIds.length
+    ? await db
+        .selectFrom('starting_equipment_option_items')
+        .select([
+          'id',
+          'equipment_option_id',
+          'starting_equipment_kind',
+          'authoring_mode_kind',
+          'selection_kind',
+          'category_code',
+          'count',
+          'quantity',
+          'sort_order'
+        ])
+        .where('equipment_option_id', 'in', optionIds)
+        .orderBy('sort_order')
+        .execute()
+    : []
+  const itemIds = items.map((item) => item.id)
 
-  const itemEquipment = await db
-    .selectFrom('starting_equipment_option_item_equipment')
-    .select(['option_item_id', 'equipment_id'])
-    .execute() as StartingEquipmentItemEquipmentRow[]
+  const itemEquipment = itemIds.length
+    ? await db
+        .selectFrom('starting_equipment_option_item_equipment')
+        .select(['option_item_id', 'equipment_id'])
+        .where('option_item_id', 'in', itemIds)
+        .execute() as StartingEquipmentItemEquipmentRow[]
+    : []
 
-  const itemProperties = await db
-    .selectFrom('starting_equipment_option_item_properties')
-    .select(['option_item_id', 'property_code'])
-    .execute() as StartingEquipmentItemPropertyRow[]
+  const itemProperties = itemIds.length
+    ? await db
+        .selectFrom('starting_equipment_option_item_properties')
+        .select(['option_item_id', 'property_code'])
+        .where('option_item_id', 'in', itemIds)
+        .execute() as StartingEquipmentItemPropertyRow[]
+    : []
 
-  const currencies = await db
-    .selectFrom('starting_equipment_currencies')
-    .select(['option_item_id', 'currency_id', 'amount'])
-    .execute() as StartingEquipmentCurrencyRow[]
+  const currencies = itemIds.length
+    ? await db
+        .selectFrom('starting_equipment_currencies')
+        .select(['option_item_id', 'currency_id', 'amount'])
+        .where('option_item_id', 'in', itemIds)
+        .execute() as StartingEquipmentCurrencyRow[]
+    : []
 
   const itemEquipmentById = new Map<string, string[]>()
   for (const row of itemEquipment) {
@@ -410,6 +435,10 @@ export function createStartingEquipmentRepository(db: DBLike): StartingEquipment
       return hydrateStartingEquipmentById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateStartingEquipmentById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('starting_equipment')
@@ -417,8 +446,10 @@ export function createStartingEquipmentRepository(db: DBLike): StartingEquipment
         .orderBy('id')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateStartingEquipmentById(db, row.id)))
-      return records.filter((record): record is StartingEquipmentAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateStartingEquipmentById(db, id))
+      )
     }
   }
 }

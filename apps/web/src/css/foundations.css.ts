@@ -7,6 +7,10 @@ export const foundationVars = createGlobalThemeContract({
       hover: null,
       soft: null,
       border: null,
+      tertiarySolid: null,
+      tertiaryHover: null,
+      tertiarySoft: null,
+      tertiaryBorder: null,
       emphasisBorder: null,
       focus: null,
       contrast: null
@@ -82,6 +86,16 @@ export const foundationVars = createGlobalThemeContract({
       warningSoft: null,
       danger: null,
       dangerSoft: null
+    },
+    school: {
+      abjuration: null,
+      conjuration: null,
+      divination: null,
+      enchantment: null,
+      evocation: null,
+      illusion: null,
+      necromancy: null,
+      transmutation: null
     },
     icon: {
       default: null,
@@ -265,11 +279,11 @@ export const sharedFoundationTokens = {
     xxl: '24px',
     pill: '9999px'
   },
-  shadow: {
-    card: '0 18px 50px rgba(7, 16, 20, 0.16)',
-    cardHover: '0 24px 64px rgba(7, 16, 20, 0.22)',
-    focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
-  },
+    shadow: {
+      card: 'none',
+      cardHover: 'none',
+      focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
+    },
   motion: {
     fast: '120ms',
     base: '180ms',
@@ -328,6 +342,10 @@ export const lightFoundationTokens = {
       hover: '#0ea5c5',
       soft: 'rgba(8, 145, 178, 0.16)',
       border: '#0891b2',
+      tertiarySolid: '#4f46e5',
+      tertiaryHover: '#6366f1',
+      tertiarySoft: 'rgba(79, 70, 229, 0.12)',
+      tertiaryBorder: '#4f46e5',
       emphasisBorder: '#0e7490',
       focus: 'rgba(8, 145, 178, 0.24)',
       contrast: '#ffffff'
@@ -404,6 +422,16 @@ export const lightFoundationTokens = {
       danger: '#ea6846',
       dangerSoft: '#fee7e2'
     },
+    school: {
+      abjuration: '#3f6fda',
+      conjuration: '#b7822e',
+      divination: '#b59a2e',
+      enchantment: '#bf4f8d',
+      evocation: '#c15336',
+      illusion: '#2d8fba',
+      necromancy: '#7856bf',
+      transmutation: '#2f9b63'
+    },
     icon: {
       default: '#20262d',
       accent: '#4f46e5',
@@ -456,6 +484,10 @@ export const darkFoundationTokens = {
       hover: '#38bdd6',
       soft: 'rgba(14, 165, 197, 0.2)',
       border: '#0b8aaa',
+      tertiarySolid: '#818cf8',
+      tertiaryHover: '#a5b4fc',
+      tertiarySoft: 'rgba(99, 102, 241, 0.22)',
+      tertiaryBorder: '#6366f1',
       emphasisBorder: '#0b8aaa',
       focus: 'rgba(14, 165, 197, 0.32)',
       contrast: '#0f1418'
@@ -531,6 +563,16 @@ export const darkFoundationTokens = {
       warningSoft: '#3a2c10',
       danger: '#e88b6e',
       dangerSoft: '#3a1612'
+    },
+    school: {
+      abjuration: '#7da2f0',
+      conjuration: '#e2b663',
+      divination: '#ddc66e',
+      enchantment: '#e187b7',
+      evocation: '#ec8768',
+      illusion: '#73c3e2',
+      necromancy: '#a68ae0',
+      transmutation: '#69c488'
     },
     icon: {
       default: '#d7e0e4',
