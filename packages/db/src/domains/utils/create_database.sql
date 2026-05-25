@@ -54,3 +54,4 @@ SET CONSTRAINTS ALL DEFERRED;
 SELECT
   public.apply_updated_at_triggers ();
 
+\i :etl_root'/bootstrap/security/public_api_access.sql'

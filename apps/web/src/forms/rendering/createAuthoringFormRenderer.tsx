@@ -56,7 +56,8 @@ const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
 const EMPTY_ANCESTORS: readonly Record<string, unknown>[] = []
 const INLINE_OBJECT_GROUP_CHILD_MAP_IDS = new Set(['charges', 'facet', 'featureGrants', 'raceAncestry'])
 const DETAIL_CHILD_MAP_IDS = new Set(['backgroundDetail', 'classDetail', 'creatureDetail', 'detail', 'raceDetail', 'vehicleDetail'])
-const INLINE_ARRAY_GROUP_CHILD_MAP_IDS = new Set([...DETAIL_CHILD_MAP_IDS, 'speed'])
+const COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS = new Set(['raceAncestryOption'])
+const INLINE_ARRAY_GROUP_CHILD_MAP_IDS = new Set([...DETAIL_CHILD_MAP_IDS, 'raceAncestryOption', 'speed'])
 const EFFECT_EDITOR_MAP_IDS = new Set(['effect'])
 const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
 const PROSE_FIELD_KEYS = new Set(['description', 'detail', 'quote'])
@@ -459,6 +460,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               fields={toTypedAuthoringGroupFieldName<AuthoringGroupValues, AuthoringGroupValues>(undefined, [...node.path, index])}
                                               ancestors={childAncestors}
                                               editorController={editorController}
+                                              editorBreadcrumbs={buildEditorBreadcrumbs(editorBreadcrumbs, inlineObject ? undefined : currentStepLabel, node.label, title)}
                                               effectEditor={isEffectEditor}
                                               inlineObject
                                               mapId={node.childMapId!}
@@ -1143,6 +1145,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               fields={toTypedAuthoringGroupFieldName<TValues, AuthoringGroupValues>(resolvedFieldPathPrefix, [...node.path, index])}
                                               ancestors={EMPTY_ANCESTORS}
                                               editorController={editorController}
+                                              editorBreadcrumbs={buildEditorBreadcrumbs(rootBreadcrumbs, currentStepLabel, node.label, title)}
                                               effectEditor={isEffectEditor}
                                               inlineObject
                                               mapId={node.childMapId!}
@@ -1677,9 +1680,9 @@ function shouldRenderInlineArrayGroup(node: NodeRuntimeNodeDto, effectEditor: bo
 }
 
 function shouldCollapseInlineArrayGroup(node: NodeRuntimeNodeDto, effectEditor: boolean) {
-  return effectEditor
-    && node.groupKind === 'ARRAY'
+  return node.groupKind === 'ARRAY'
     && Boolean(node.childMapId)
+    && (effectEditor || COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS.has(node.childMapId ?? ''))
 }
 
 function getArrayItemTitle(node: NodeRuntimeNodeDto, item: unknown, index: number) {
@@ -1850,10 +1853,10 @@ function hasConfiguredFacetValue(value: Record<string, unknown>): boolean {
 }
 
 function formatFacetSummary(value: Record<string, unknown>): string | undefined {
-  const conditionCount = toRuntimeArray(value.groups).reduce((total, groupValue) => {
+  const conditionCount = toRuntimeArray(value.groups).reduce<number>((total, groupValue) => {
     if (!isRuntimeRecord(groupValue)) return total
 
-    return total + toRuntimeArray(groupValue.contexts).reduce((contextTotal, contextValue) => {
+    return total + toRuntimeArray(groupValue.contexts).reduce<number>((contextTotal, contextValue) => {
       if (!isRuntimeRecord(contextValue)) return contextTotal
       return contextTotal + toRuntimeArray(contextValue.conditions).length
     }, 0)

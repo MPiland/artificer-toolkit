@@ -31,36 +31,36 @@ CREATE POLICY "Systems are readable by owner or public."
   ON public.systems FOR SELECT TO authenticated
   USING (
     user_id IS NULL
-    OR user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    OR user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can insert own systems." ON public.systems;
 CREATE POLICY "Users can insert own systems."
   ON public.systems FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can update own systems." ON public.systems;
 CREATE POLICY "Users can update own systems."
   ON public.systems FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can delete own systems." ON public.systems;
 CREATE POLICY "Users can delete own systems."
   ON public.systems FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE INDEX IF NOT EXISTS idx_systems_user

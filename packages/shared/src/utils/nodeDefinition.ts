@@ -1220,7 +1220,7 @@ export type NodeInput<NLocal extends object>
   })
 
 export type NodeGroupObject<NLocal extends object, K extends GroupKey<NLocal>>
-  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf'> & {
+  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf' | 'requiredIf'> & {
     kind: typeof NODE_KIND.GROUP
     groupKind: 'OBJECT'
     path: readonly [K]
@@ -1228,7 +1228,7 @@ export type NodeGroupObject<NLocal extends object, K extends GroupKey<NLocal>>
   }
 
 export type NodeGroupArray<NLocal extends object, K extends GroupKey<NLocal>>
-  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf'> & {
+  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf' | 'requiredIf'> & {
     kind: typeof NODE_KIND.GROUP
     groupKind: 'ARRAY'
     path: readonly [K]

@@ -2031,6 +2031,62 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@supabase/cli-darwin-arm64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-darwin-arm64@npm:2.101.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-darwin-x64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-darwin-x64@npm:2.101.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-linux-arm64-musl@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-linux-arm64-musl@npm:2.101.0"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-linux-arm64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-linux-arm64@npm:2.101.0"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-linux-x64-musl@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-linux-x64-musl@npm:2.101.0"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-linux-x64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-linux-x64@npm:2.101.0"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-windows-arm64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-windows-arm64@npm:2.101.0"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@supabase/cli-windows-x64@npm:2.101.0":
+  version: 2.101.0
+  resolution: "@supabase/cli-windows-x64@npm:2.101.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@supabase/functions-js@npm:2.105.3":
   version: 2.105.3
   resolution: "@supabase/functions-js@npm:2.105.3"
@@ -4061,6 +4117,7 @@ __metadata:
     prettier-plugin-sql: "npm:^0.20.0"
     prettier-plugin-sql-cst: "npm:^0.22.1"
     rimraf: "npm:^6.1.3"
+    supabase: "npm:^2.101.0"
     ts-node: "npm:^10.9.2"
     tsx: "npm:^4.21.0"
     typescript: "npm:^6.0.3"
@@ -8525,6 +8582,41 @@ __metadata:
   peerDependencies:
     postcss: ^8.3.3
   checksum: 10c0/479d0b194bdb731000a323a0addcd1ffe29e4b7a93eb5cbe3efc34f01beb4ef0397d448f3b654ba5afa4a0e526d6758bcce4f41713806cb6a5a9383982eda6c8
+  languageName: node
+  linkType: hard
+
+"supabase@npm:^2.101.0":
+  version: 2.101.0
+  resolution: "supabase@npm:2.101.0"
+  dependencies:
+    "@supabase/cli-darwin-arm64": "npm:2.101.0"
+    "@supabase/cli-darwin-x64": "npm:2.101.0"
+    "@supabase/cli-linux-arm64": "npm:2.101.0"
+    "@supabase/cli-linux-arm64-musl": "npm:2.101.0"
+    "@supabase/cli-linux-x64": "npm:2.101.0"
+    "@supabase/cli-linux-x64-musl": "npm:2.101.0"
+    "@supabase/cli-windows-arm64": "npm:2.101.0"
+    "@supabase/cli-windows-x64": "npm:2.101.0"
+  dependenciesMeta:
+    "@supabase/cli-darwin-arm64":
+      optional: true
+    "@supabase/cli-darwin-x64":
+      optional: true
+    "@supabase/cli-linux-arm64":
+      optional: true
+    "@supabase/cli-linux-arm64-musl":
+      optional: true
+    "@supabase/cli-linux-x64":
+      optional: true
+    "@supabase/cli-linux-x64-musl":
+      optional: true
+    "@supabase/cli-windows-arm64":
+      optional: true
+    "@supabase/cli-windows-x64":
+      optional: true
+  bin:
+    supabase: dist/supabase.js
+  checksum: 10c0/2f4643b595e9cbc8ed16a24111809df673b645af5580c5fc8d88faf0c54459813e4ae137228d221374b4e81356c322bed9ce0e58b2a7c7d314d774d933161ed3
   languageName: node
   linkType: hard
 

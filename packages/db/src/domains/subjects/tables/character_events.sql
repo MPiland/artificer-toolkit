@@ -15,5 +15,7 @@ CREATE TABLE IF NOT EXISTS public.character_events (
   occurred_at    timestamptz NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY;
+
 CREATE INDEX IF NOT EXISTS idx_character_events_character_id
   ON public.character_events (character_id, occurred_at);

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import pg from 'pg'
 import { pathToFileURL } from 'node:url'
 
 import { loadDbScriptEnv } from './loadScriptEnv.js'
@@ -7,6 +8,12 @@ loadDbScriptEnv()
 
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
 const USERS_PER_PAGE = 1000
+const { Client } = pg
+
+type SeedOwnerUser = {
+  id: string
+  email?: string
+}
 
 function requireSupabaseAdminEnv() {
   const url = process.env.SUPABASE_URL
@@ -37,12 +44,37 @@ function createSupabaseAdminClient() {
   })
 }
 
+function requireDatabaseConnectionString() {
+  const connectionString = process.env.DATABASE_URL ?? process.env.DATABASE_CONNECTION_STRING
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL or DATABASE_CONNECTION_STRING is required to promote the seed owner user.')
+  }
+
+  return connectionString
+}
+
 function createSeedOwnerPassword() {
   return crypto.randomUUID() + crypto.randomUUID()
 }
 
+async function updateSeedOwnerPassword(
+  user: SeedOwnerUser,
+  password: string
+) {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.auth.admin.updateUserById(user.id, {
+    email_confirm: true,
+    password
+  })
+
+  if (error) throw error
+
+  return data.user ?? user
+}
+
 async function findUser(
-  predicate: (user: { id: string, email?: string }) => boolean
+  predicate: (user: SeedOwnerUser) => boolean
 ) {
   const supabase = createSupabaseAdminClient()
   let page = 1
@@ -73,20 +105,46 @@ export async function findSeedOwnerUserById(userId: string) {
   return findUser((user) => user.id === userId)
 }
 
+async function promoteSeedOwnerToSuperAdmin(user: SeedOwnerUser) {
+  const client = new Client({ connectionString: requireDatabaseConnectionString() })
+
+  await client.connect()
+
+  try {
+    const result = await client.query(
+      'UPDATE auth.users SET is_super_admin = true WHERE id = $1',
+      [user.id]
+    )
+
+    if (result.rowCount !== 1) {
+      throw new Error(`Expected to promote seed owner "${user.id}", updated ${result.rowCount ?? 0} users.`)
+    }
+  } finally {
+    await client.end()
+  }
+
+  return user
+}
+
 export async function ensureSeedOwnerUser() {
   const email = process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL
+  const password = process.env.SEED_OWNER_PASSWORD
   const normalizedEmail = email.toLowerCase()
   const existingUser = await findUser((user) => user.email?.toLowerCase() === normalizedEmail)
 
   if (existingUser) {
-    return existingUser
+    const user = password
+      ? updateSeedOwnerPassword(existingUser, password)
+      : existingUser
+
+    return promoteSeedOwnerToSuperAdmin(await user)
   }
 
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
-    password: createSeedOwnerPassword(),
+    password: password ?? createSeedOwnerPassword(),
     user_metadata: {
       purpose: 'Artificer Toolkit master seed data owner'
     }
@@ -97,7 +155,7 @@ export async function ensureSeedOwnerUser() {
     throw new Error(`Supabase did not return a user after creating seed owner "${email}".`)
   }
 
-  return data.user
+  return promoteSeedOwnerToSuperAdmin(data.user)
 }
 
 async function main() {

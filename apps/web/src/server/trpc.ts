@@ -37,6 +37,26 @@ function getDatabaseConnectionString(): string | undefined {
   return process.env.DATABASE_CONNECTION_STRING ?? process.env.DATABASE_URL
 }
 
+function isTrueClaim(value: unknown): boolean {
+  return value === true || value === 'true'
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function getSubjectClaim(claims: unknown): string | null {
+  if (!isRecord(claims)) return null
+  return typeof claims.sub === 'string' ? claims.sub : null
+}
+
+function getSuperAdminClaim(claims: unknown): boolean {
+  if (!isRecord(claims)) return false
+  const appMetadata = claims.app_metadata
+  if (!isRecord(appMetadata)) return false
+  return isTrueClaim(appMetadata.admin)
+}
+
 export async function handleTrpcRequest(request: Request): Promise<Response> {
   if (!isTrustedSameOriginRequest(request)) {
     return crossSiteRequestResponse()
@@ -58,11 +78,14 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
     }
   )
 
-  const { data: userData } = await supabase.auth.getUser()
-  const userId = userData.user?.id ?? null
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const claims = claimsData?.claims
+  const userId = getSubjectClaim(claims)
+  const isSuperAdmin = getSuperAdminClaim(claims)
 
   const response = await handleTrpcFetchRequest(request, {
     databaseConnectionString: getDatabaseConnectionString(),
+    isSuperAdmin,
     userId
   })
 

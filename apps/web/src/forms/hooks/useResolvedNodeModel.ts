@@ -43,12 +43,24 @@ export function useResolvedNodeModel({
   }, [debounceMs, debouncedRequestFingerprint, request, requestFingerprint])
 
   const query = useNodeRuntimeResolve(debouncedRequest, enabled)
-  const clearPathKey = query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? ''
+  const model = useMemo(() => {
+    if (!query.data) return undefined
+    if (!query.isPlaceholderData) return query.data
+
+    return {
+      ...query.data,
+      clearPaths: []
+    }
+  }, [query.data, query.isPlaceholderData])
+  const clearPathKey = query.isPlaceholderData
+    ? ''
+    : query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? ''
 
   useEffect(() => {
+    if (query.isPlaceholderData) return
     if (!onClearPaths || !query.data?.clearPaths.length) return
     onClearPaths(query.data.clearPaths)
-  }, [clearPathKey, onClearPaths, query.data])
+  }, [clearPathKey, onClearPaths, query.data, query.isPlaceholderData])
 
-  return query.data
+  return model
 }

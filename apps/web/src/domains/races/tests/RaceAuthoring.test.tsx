@@ -138,24 +138,38 @@ describe('Race authoring renderer', () => {
 
     expect(screen.queryByRole('heading', { level: 2, name: /details/i })).not.toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /^name$/i })).toHaveValue('Draconic Ancestry')
-    expect(screen.getByLabelText(/description/i).tagName).not.toBe('INPUT')
-    expect(screen.getByRole('button', { name: /edit red/i })).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/description/i).some((field) => field.tagName === 'INPUT')).toBe(false)
+    expect(screen.getByRole('button', { name: /^red$/i })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: /edit red/i })).not.toBeInTheDocument()
     expect(screen.queryByText('Option 1')).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /^id$/i })).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/edit ancestry/i)).not.toBeInTheDocument()
   })
 
-  it('opens ancestry option editors with the full root breadcrumb trail and nested step footer', async () => {
+  it('renders ancestry option basics inline and opens nested feature editors with the full root breadcrumb trail', async () => {
     const user = userEvent.setup()
 
     renderWithAppProviders(
       <RaceAuthoringHarness
         model={ancestryRuntimeFixture}
-        race={masterRaceFixture}
+        race={dragonbornRaceWithBreathWeapon}
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /edit red/i }))
+    await user.click(screen.getByRole('button', { name: /^red$/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox', { name: /^name$/i }).some((input) => (
+        input instanceof HTMLInputElement && input.value === 'Red'
+      ))).toBe(true)
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /edit breath weapon/i })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('spinbutton', { name: /order/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /edit breath weapon/i }))
 
     const editorLocation = screen.getByRole('navigation', { name: /editor location/i })
     expect(editorLocation).toHaveTextContent('Races')
@@ -163,14 +177,8 @@ describe('Race authoring renderer', () => {
     expect(editorLocation).toHaveTextContent('Ancestry')
     expect(editorLocation).toHaveTextContent('Options')
     expect(editorLocation).toHaveTextContent('Red')
-    expect(editorLocation).not.toHaveTextContent('Details')
-    expect(screen.queryByRole('spinbutton', { name: /order/i })).not.toBeInTheDocument()
-
-    const redEditor = within(screen.getAllByRole('dialog').at(-1)!)
-    await user.click(redEditor.getByRole('button', { name: /^next$/i }))
-
-    expect(redEditor.getByRole('button', { name: /add feature/i })).toBeInTheDocument()
-    expect(redEditor.getByRole('navigation', { name: /form sections/i })).toHaveTextContent('Features')
+    expect(editorLocation).toHaveTextContent('Features')
+    expect(editorLocation).toHaveTextContent('Breath Weapon')
   })
 
   it('hydrates ancestry option feature values before reset step is used', async () => {
@@ -183,10 +191,11 @@ describe('Race authoring renderer', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /edit red/i }))
-    const redEditor = within(screen.getAllByRole('dialog').at(-1)!)
-    await user.click(redEditor.getByRole('button', { name: /^next$/i }))
-    await user.click(redEditor.getByRole('button', { name: /edit breath weapon/i }))
+    await user.click(screen.getByRole('button', { name: /^red$/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /edit breath weapon/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('button', { name: /edit breath weapon/i }))
 
     await waitFor(() => {
       const activeEditor = within(screen.getAllByRole('dialog').at(-1)!)

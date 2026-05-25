@@ -32,23 +32,23 @@ ALTER TABLE public.character_builder_drafts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can select own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can select own character builder drafts"
   ON public.character_builder_drafts FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can insert own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can insert own character builder drafts"
   ON public.character_builder_drafts FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can update own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can update own character builder drafts"
   ON public.character_builder_drafts FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can delete own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can delete own character builder drafts"
   ON public.character_builder_drafts FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 CREATE INDEX IF NOT EXISTS idx_character_builder_drafts_user
   ON public.character_builder_drafts(user_id);

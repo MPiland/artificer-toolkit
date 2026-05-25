@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query'
 import { api, type Api, type NodeRuntimeResolveRequestDto } from '#lib/api'
 import { queryKeys } from '#lib/queryKeys'
 
@@ -30,7 +30,8 @@ export function getNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, clien
 export function useNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabled = true) {
   return useQuery({
     ...getNodeRuntimeResolve(input),
-    enabled
+    enabled,
+    placeholderData: keepPreviousData
   })
 }
 
