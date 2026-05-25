@@ -20,6 +20,9 @@ REVOKE EXECUTE
   ON ALL ROUTINES IN SCHEMA public
   FROM public, anon, authenticated;
 
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
+
 DO $$
 DECLARE
   r record;
