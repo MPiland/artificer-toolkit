@@ -36,13 +36,29 @@ describe('authored route ids', () => {
     expect(ensure).not.toContain('do update')
   })
 
-  it('does not grant client update access to authored route identities', () => {
-    const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260510123258_authored_route_ids.sql'), 'utf8')
+  it('keeps direct client access closed for authored route identities', () => {
+    const routeMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260510123258_authored_route_ids.sql'), 'utf8')
+    const hardeningMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260521183629_harden_public_api_access.sql'), 'utf8')
 
-    expect(migration).toContain('DROP POLICY IF EXISTS "Route identities can be updated for visible subjects"')
-    expect(migration).not.toContain('CREATE POLICY "Route identities can be updated for visible subjects"')
-    expect(migration).toContain('GRANT SELECT, INSERT, DELETE ON public.authored_route_ids TO authenticated')
-    expect(migration).not.toContain('GRANT SELECT, INSERT, UPDATE, DELETE ON public.authored_route_ids TO authenticated')
+    expect(routeMigration).toContain('DROP POLICY IF EXISTS "Route identities can be updated for visible subjects"')
+    expect(routeMigration).not.toContain('CREATE POLICY "Route identities can be updated for visible subjects"')
+    expect(routeMigration).not.toContain('GRANT SELECT, INSERT, UPDATE, DELETE ON public.authored_route_ids TO authenticated')
+    expect(hardeningMigration).toContain('REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+    expect(hardeningMigration).toContain('ON ALL TABLES IN SCHEMA public')
+    expect(hardeningMigration).toContain('FROM anon, authenticated')
+    expect(hardeningMigration).toContain('REVOKE EXECUTE')
+    expect(hardeningMigration).toContain('ON ALL ROUTINES IN SCHEMA public')
+    expect(hardeningMigration).toContain('FROM public, anon, authenticated')
+    expect(hardeningMigration).toContain('CREATE POLICY %I ON %I.%I AS RESTRICTIVE FOR ALL TO anon, authenticated')
+    expect(hardeningMigration).toContain('USING (false) WITH CHECK (false)')
+  })
+
+  it('enables RLS for the character event log', () => {
+    const source = readFileSync(join(process.cwd(), 'packages/db/src/domains/subjects/tables/character_events.sql'), 'utf8')
+    const hardeningMigration = readFileSync(join(process.cwd(), 'supabase/migrations/20260521183629_harden_public_api_access.sql'), 'utf8')
+
+    expect(source).toContain('ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY')
+    expect(hardeningMigration).toContain('ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY')
   })
 
   it('keeps authored detail UUID fallbacks behind the user-scoped route-id resolver', () => {

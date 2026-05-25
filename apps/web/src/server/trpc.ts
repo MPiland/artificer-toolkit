@@ -37,6 +37,10 @@ function getDatabaseConnectionString(): string | undefined {
   return process.env.DATABASE_CONNECTION_STRING ?? process.env.DATABASE_URL
 }
 
+function isTrueClaim(value: unknown): boolean {
+  return value === true || value === 'true'
+}
+
 export async function handleTrpcRequest(request: Request): Promise<Response> {
   if (!isTrustedSameOriginRequest(request)) {
     return crossSiteRequestResponse()
@@ -60,9 +64,11 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
 
   const { data: userData } = await supabase.auth.getUser()
   const userId = userData.user?.id ?? null
+  const isSuperAdmin = isTrueClaim(userData.user?.app_metadata?.admin)
 
   const response = await handleTrpcFetchRequest(request, {
     databaseConnectionString: getDatabaseConnectionString(),
+    isSuperAdmin,
     userId
   })
 

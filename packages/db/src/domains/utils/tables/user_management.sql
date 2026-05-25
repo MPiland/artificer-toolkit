@@ -3,9 +3,8 @@
  *
  * Defines:
  *   - profiles              (public user profile, mirrors auth.users)
- *   - admins                (admin flag table for set_admin_claims)
  *   - handle_new_user()     (trigger: auto-create profile on signup)
- *   - set_admin_claims()    (auth hook: injects admin flag into JWT)
+ *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
  *       (user_id column, is_master flag).
@@ -56,25 +55,7 @@ CREATE POLICY "Users can update own profile."
 
 
 /* ──────────────────────────────────────────────
- * ADMINS
- *
- * Stores which users have admin privileges.
- * Referenced by set_admin_claims().
  * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.admins (
-  user_id  uuid PRIMARY KEY
-    REFERENCES auth.users ON DELETE CASCADE,
-  is_admin boolean NOT NULL DEFAULT true
-);
-
-ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can view admin flags." ON public.admins;
-CREATE POLICY "Admins can view admin flags."
-  ON public.admins FOR SELECT TO authenticated
-  USING ((auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true');
-
 
 /* ──────────────────────────────────────────────
  * TRIGGER: auto-create profile on signup
@@ -113,13 +94,13 @@ $$;
 
 
 /* ──────────────────────────────────────────────
- * AUTH HOOK: inject admin flag into JWT
+ * AUTH HOOK: inject is_super_admin into JWT
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.set_admin_claims(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public, pg_catalog
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   claims   jsonb;
@@ -127,11 +108,18 @@ DECLARE
 BEGIN
   claims := COALESCE(event -> 'claims', '{}');
 
-  SELECT EXISTS(
-    SELECT 1 FROM public.admins
-    WHERE user_id = (event ->> 'user_id')::uuid
-      AND is_admin = true
-  ) INTO is_admin;
+  SELECT COALESCE(u.is_super_admin, false)
+  INTO is_admin
+  FROM auth.users u
+  WHERE u.id = (event ->> 'user_id')::uuid;
+
+  is_admin := COALESCE(is_admin, false);
+
+  claims := jsonb_set(
+    claims,
+    '{app_metadata}',
+    COALESCE(claims -> 'app_metadata', '{}') - 'admin'
+  );
 
   IF is_admin THEN
     claims := jsonb_set(
@@ -146,6 +134,10 @@ BEGIN
   RETURN event;
 END;
 $$;
+
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+REVOKE EXECUTE ON FUNCTION public.set_admin_claims(jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
 
 
 /* ──────────────────────────────────────────────
@@ -165,7 +157,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -179,7 +171,7 @@ BEGIN
     $fmt$
       CREATE POLICY "Users can select own rows" ON public.%s
       FOR SELECT TO authenticated
-      USING (user_id = auth.uid() OR (%s));
+      USING (user_id = (SELECT auth.uid()) OR (%s));
     $fmt$,
     safe_table, admin_check
   );
@@ -190,7 +182,7 @@ BEGIN
       CREATE POLICY "Users can insert own rows" ON public.%s
       FOR INSERT TO authenticated
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -203,11 +195,11 @@ BEGIN
       CREATE POLICY "Users can update own rows" ON public.%s
       FOR UPDATE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       )
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -220,7 +212,7 @@ BEGIN
       CREATE POLICY "Users can delete own rows" ON public.%s
       FOR DELETE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -250,7 +242,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -270,7 +262,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               %s.is_master = true
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -288,7 +280,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -305,7 +297,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       )
@@ -313,7 +305,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -330,7 +322,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -346,7 +338,7 @@ $$;
  *
  * For lookup tables with (system_id) and no is_master column.
  * Rows are readable when their owning system is visible.
- * Writes are limited to the owner of the system or admins.
+ * Writes are limited to the owner of the system or super admins.
  *
  * Usage: SELECT public.apply_system_vocabulary_policies('skills');
  * -------------------------------------------------- */
@@ -358,7 +350,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -377,7 +369,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               s.user_id IS NULL
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -395,7 +387,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -413,7 +405,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -423,7 +415,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -441,7 +433,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )

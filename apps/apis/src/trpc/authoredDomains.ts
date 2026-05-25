@@ -59,7 +59,10 @@ import {
   requireAuthoredDraft,
   saveAuthoredDraft,
   AuthoredContentNotFoundError,
+  AuthoredContentOwnershipError,
   type AuthoredListRow,
+  type AuthoredContentAuthz,
+  type AuthoredOwnership,
   type AuthoredRecord
 } from '../routes/authoredContent.js'
 
@@ -207,16 +210,18 @@ export function getDetailItem<TInput extends AuthoredContentInput>(detail: unkno
 export async function listAuthoredDomain(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
-  return normalizeAuthoredListResponseWithDrafts(db, await config.listQuery(db), userId, config.subjectKind)
+  return normalizeAuthoredListResponseWithDrafts(db, await config.listQuery(db), userId, config.subjectKind, authz)
 }
 
 export async function getAuthoredDomain(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
   input: AuthoredDetailRequestDto,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
   const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, input.id)
   if (!subjectId) return null
@@ -227,7 +232,13 @@ export async function getAuthoredDomain(
     if (draftDetail?.item) return draftDetail
   }
 
-  const response = await normalizeAuthoredDetailResponse(db, config.table, await config.findById(db, subjectId), userId)
+  const response = await normalizeAuthoredDetailResponse(
+    db,
+    config.table,
+    await config.findById(db, subjectId),
+    userId,
+    authz
+  )
   if (!response) return draftDetail
 
   const draftPromise = draftDetail
@@ -357,9 +368,10 @@ export async function saveAuthoredDomainDraft(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
   body: AuthoredDraftSaveRequestDto,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
-  await assertWritableAuthoredSubject(db, config.table, config.subjectKind, body.subjectId, userId)
+  await assertWritableAuthoredSubject(db, config.table, config.subjectKind, body.subjectId, userId, authz)
   return saveAuthoredDraft(db, {
     ...body,
     subjectKind: config.subjectKind
@@ -422,40 +434,56 @@ export async function activateAuthoredDomainDraft(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
   subjectId: string,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
   const draft = await requireAuthoredDraft(db, config.subjectKind, subjectId, userId)
-  await assertWritableAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
-  const input = config.schema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
+  const ownership = await assertWritableAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId, authz)
+  const activationUserId = getActivationUserId(config.subjectKind, subjectId, ownership, userId)
+  const input = config.schema.parse(normalizeStoredDraftPayloadForActivation(draft, activationUserId))
   const normalized = await normalizeNodeRuntimeValues(db, {
     mapId: config.mapId,
     values: { ...input }
   })
   const normalizedBody = config.schema.parse(normalized.values)
-  const result = await config.createService(db).execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+  const result = await config.createService(db).execute(normalizeActivatedAuthoringInput(normalizedBody, activationUserId))
   await discardAuthoredDraft(db, config.subjectKind, subjectId, userId)
-  return normalizeAuthoringResult(db, config.table, result, userId)
+  return normalizeAuthoringResult(db, config.table, result, userId, authz)
 }
 
 export async function activateAuthoredDomainInput<TInput extends AuthoredContentInput>(
   db: DBLike,
   config: DirectAuthoredDomainConfig,
   body: TInput,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
-  await assertWritableAuthoredSubject(db, config.table, config.subjectKind, body.id, userId)
+  const ownership = await assertWritableAuthoredSubject(db, config.table, config.subjectKind, body.id, userId, authz)
+  const activationUserId = getActivationUserId(config.subjectKind, body.id, ownership, userId)
   const input = config.schema.parse({
     ...body,
-    userId
+    userId: activationUserId
   })
   const normalized = await normalizeNodeRuntimeValues(db, {
     mapId: config.mapId,
     values: { ...input }
   })
   const normalizedBody = config.schema.parse(normalized.values)
-  const result = await config.createService(db).execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+  const result = await config.createService(db).execute(normalizeActivatedAuthoringInput(normalizedBody, activationUserId))
   await discardAuthoredDraft(db, config.subjectKind, normalizedBody.id, userId)
-  return normalizeAuthoringResult(db, config.table, result, userId)
+  return normalizeAuthoringResult(db, config.table, result, userId, authz)
+}
+
+function getActivationUserId(
+  subjectKind: AuthoredSubjectKindDto,
+  subjectId: string,
+  ownership: AuthoredOwnership | null,
+  userId: string
+): string {
+  if (!ownership?.isMaster) return userId
+  if (ownership.ownerUserId) return ownership.ownerUserId
+
+  throw new AuthoredContentOwnershipError(subjectKind, subjectId)
 }
 
 function hasMetaKey(keys: Set<string>, key: string) {

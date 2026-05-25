@@ -186,6 +186,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_body_selection_items_pkey PRIMARY KEY (facet_body_id, sort_order),
+
   CONSTRAINT facet_body_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -207,9 +209,6 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 );
 
 ALTER TABLE public.facet_body_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_body_selection_items_body_id
-  ON public.facet_body_selection_items (facet_body_id);
 
 -- =============================================================================
 -- 5) Conditions (AND list within a body group)
@@ -334,6 +333,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_exists_selection_items_pkey PRIMARY KEY (facet_condition_id, sort_order),
+
   CONSTRAINT facet_exists_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -355,9 +356,6 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 );
 
 ALTER TABLE public.facet_exists_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_exists_selection_items_condition_id
-  ON public.facet_exists_selection_items (facet_condition_id);
 
 -- =============================================================================
 -- 7) Predicate payloads (normalized)

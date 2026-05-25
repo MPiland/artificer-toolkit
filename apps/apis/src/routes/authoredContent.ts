@@ -22,9 +22,13 @@ type AuthoredContentTable =
   | 'spells'
   | 'vehicles'
 
-interface AuthoredOwnership {
+export interface AuthoredOwnership {
   isMaster: boolean
   ownerUserId: string | null
+}
+
+export interface AuthoredContentAuthz {
+  canManageMasterContent?: boolean
 }
 
 export interface AuthoredListRow {
@@ -45,12 +49,13 @@ export interface AuthoringPipelineResult<TRecord extends AuthoredRecord> {
   authored: TRecord
 }
 
-function getPermissions(ownership: AuthoredOwnership, userId: string) {
+function getPermissions(ownership: AuthoredOwnership, userId: string, authz: AuthoredContentAuthz = {}) {
   const ownsRecord = !ownership.isMaster && ownership.ownerUserId === userId
+  const canManageMaster = ownership.isMaster && authz.canManageMasterContent === true
 
   return {
     canView: true,
-    canEdit: ownsRecord,
+    canEdit: ownsRecord || canManageMaster,
     canCopy: true,
     canDelete: ownsRecord
   }
@@ -68,7 +73,7 @@ function getListOwnership(row: AuthoredListRow): AuthoredOwnership {
 
   return {
     isMaster,
-    ownerUserId: isMaster ? null : row.ownerUserId ?? row.userId
+    ownerUserId: row.ownerUserId ?? (row.userId === 'master' ? null : row.userId)
   }
 }
 
@@ -77,7 +82,8 @@ export function normalizeAuthoredListResponse<
   TResponse extends { items: TItem[], meta: unknown }
 >(
   response: TResponse,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
   return {
     ...response,
@@ -87,7 +93,7 @@ export function normalizeAuthoredListResponse<
       return {
         ...item,
         provenance: getProvenance(ownership),
-        permissions: getPermissions(ownership, userId)
+        permissions: getPermissions(ownership, userId, authz)
       }
     })
   }
@@ -154,9 +160,10 @@ export async function normalizeAuthoredListResponseWithDrafts<
   db: DBLike,
   response: TResponse,
   userId: string,
-  subjectKind: AuthoredSubjectDraftKind
+  subjectKind: AuthoredSubjectDraftKind,
+  authz: AuthoredContentAuthz = {}
 ) {
-  const normalized = normalizeAuthoredListResponse(response, userId)
+  const normalized = normalizeAuthoredListResponse(response, userId, authz)
   const drafts = await createAuthoredSubjectDraftRepository(db).listByUser({
     userId,
     subjectKind
@@ -223,7 +230,7 @@ export async function getAuthoredOwnership(
 
   return {
     isMaster: row.isMaster,
-    ownerUserId: row.isMaster ? null : row.ownerUserId
+    ownerUserId: row.ownerUserId
   }
 }
 
@@ -231,7 +238,8 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
   db: DBLike,
   table: AuthoredContentTable,
   item: TRecord | null,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
   if (!item) return null
 
@@ -247,7 +255,7 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
     item,
     publicId: routeIdentity.publicId,
     provenance: getProvenance(ownership),
-    permissions: getPermissions(ownership, userId)
+    permissions: getPermissions(ownership, userId, authz)
   }
 }
 
@@ -357,14 +365,22 @@ export async function assertWritableAuthoredSubject(
   table: AuthoredContentTable,
   subjectKind: AuthoredSubjectDraftKind,
   subjectId: string,
-  userId: string
-): Promise<void> {
+  userId: string,
+  authz: AuthoredContentAuthz = {}
+): Promise<AuthoredOwnership | null> {
   const ownership = await getAuthoredOwnership(db, table, subjectId)
-  if (!ownership) return
+  if (!ownership) return null
 
-  if (ownership.isMaster || ownership.ownerUserId !== userId) {
+  if (ownership.isMaster) {
+    if (authz.canManageMasterContent === true) return ownership
     throw new AuthoredContentOwnershipError(subjectKind, subjectId)
   }
+
+  if (ownership.ownerUserId !== userId) {
+    throw new AuthoredContentOwnershipError(subjectKind, subjectId)
+  }
+
+  return ownership
 }
 
 export async function activeAuthoredSubjectExists(
@@ -574,7 +590,8 @@ export async function normalizeAuthoringResult<TRecord extends AuthoredRecord>(
   db: DBLike,
   table: AuthoredContentTable,
   result: AuthoringPipelineResult<TRecord>,
-  userId: string
+  userId: string,
+  authz: AuthoredContentAuthz = {}
 ) {
-  return normalizeAuthoredDetailResponse(db, table, result.authored, userId)
+  return normalizeAuthoredDetailResponse(db, table, result.authored, userId, authz)
 }

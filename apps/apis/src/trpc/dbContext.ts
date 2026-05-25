@@ -4,7 +4,13 @@ import { createDb, withUserContext, type DBLike, type KyselyDatabase } from '@ar
 
 export interface TrpcContext {
   databaseConnectionString?: string
+  isSuperAdmin?: boolean
   userId: string | null
+}
+
+export interface AuthenticatedTrpcContext {
+  isSuperAdmin: boolean
+  userId: string
 }
 
 const defaultConnectionKey = '__default__'
@@ -79,13 +85,17 @@ export function toTrpcError(error: unknown): TRPCError {
 
 export async function withAuthenticatedDb<TResult>(
   ctx: TrpcContext,
-  callback: (db: DBLike, userId: string) => Promise<TResult>
+  callback: (db: DBLike, userId: string, auth: AuthenticatedTrpcContext) => Promise<TResult>
 ): Promise<TResult> {
   const userId = requireUserId(ctx)
   const db = getSharedDb(ctx.databaseConnectionString)
+  const auth = {
+    isSuperAdmin: ctx.isSuperAdmin === true,
+    userId
+  }
 
   try {
-    return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId))
+    return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId, auth))
   } catch (error) {
     throw toTrpcError(error)
   }

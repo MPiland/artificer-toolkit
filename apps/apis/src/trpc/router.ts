@@ -204,15 +204,15 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
   return createTRPCRouter({
     list: authenticatedProcedure
       .output(config.listSchema)
-      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId) => config.listSchema.parse(
-        await listAuthoredDomain(db, config.runtime, userId)
+      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.listSchema.parse(
+        await listAuthoredDomain(db, config.runtime, userId, { canManageMasterContent: auth.isSuperAdmin })
       ))),
 
     get: authenticatedProcedure
       .input(authoredDetailRequestDtoSchema)
       .output(config.responseSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await getAuthoredDomain(db, config.runtime, input, userId)
+      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+        await getAuthoredDomain(db, config.runtime, input, userId, { canManageMasterContent: auth.isSuperAdmin })
       ))),
 
     getDraft: authenticatedProcedure
@@ -225,8 +225,14 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
     saveDraft: authenticatedProcedure
       .input(config.inputSchema)
       .output(authoredDraftDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.parse(
-        await saveAuthoredDomainDraft(db, config.runtime, buildDraftRequest(config.runtime.subjectKind, input), userId)
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => authoredDraftDtoSchema.parse(
+        await saveAuthoredDomainDraft(
+          db,
+          config.runtime,
+          buildDraftRequest(config.runtime.subjectKind, input),
+          userId,
+          { canManageMasterContent: auth.isSuperAdmin }
+        )
       ))),
 
     discardDraft: authenticatedProcedure
@@ -246,30 +252,54 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
     activateDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await activateAuthoredDomainDraft(db, config.runtime, input.id, userId)
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+        await activateAuthoredDomainDraft(
+          db,
+          config.runtime,
+          input.id,
+          userId,
+          { canManageMasterContent: auth.isSuperAdmin }
+        )
       ))),
 
     activate: authenticatedProcedure
       .input(config.inputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await activateAuthoredDomainInput(db, config.runtime, input, userId)
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+        await activateAuthoredDomainInput(
+          db,
+          config.runtime,
+          input,
+          userId,
+          { canManageMasterContent: auth.isSuperAdmin }
+        )
       ))),
 
     upsert: authenticatedProcedure
       .input(config.inputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await activateAuthoredDomainInput(db, config.runtime, input, userId)
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+        await activateAuthoredDomainInput(
+          db,
+          config.runtime,
+          input,
+          userId,
+          { canManageMasterContent: auth.isSuperAdmin }
+        )
       ))),
 
     duplicate: authenticatedProcedure
       .input(idInputSchema)
       .output(authoredDraftDtoSchema.nullable())
       .mutation(async ({ ctx, input }) => {
-        return withAuthenticatedDb(ctx, async (db, userId) => {
-          const detail = config.responseSchema.parse(await getAuthoredDomain(db, config.runtime, { id: input.id }, userId))
+        return withAuthenticatedDb(ctx, async (db, userId, auth) => {
+          const detail = config.responseSchema.parse(await getAuthoredDomain(
+            db,
+            config.runtime,
+            { id: input.id },
+            userId,
+            { canManageMasterContent: auth.isSuperAdmin }
+          ))
           const item = getDetailItem<TInput>(detail)
           if (!item) return null
 
@@ -277,7 +307,8 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
             db,
             config.runtime,
             buildDraftRequest(config.runtime.subjectKind, cloneAuthoredItem(item)),
-            userId
+            userId,
+            { canManageMasterContent: auth.isSuperAdmin }
           ))
         })
       })

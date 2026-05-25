@@ -1850,10 +1850,10 @@ function hasConfiguredFacetValue(value: Record<string, unknown>): boolean {
 }
 
 function formatFacetSummary(value: Record<string, unknown>): string | undefined {
-  const conditionCount = toRuntimeArray(value.groups).reduce((total, groupValue) => {
+  const conditionCount = toRuntimeArray(value.groups).reduce<number>((total, groupValue) => {
     if (!isRuntimeRecord(groupValue)) return total
 
-    return total + toRuntimeArray(groupValue.contexts).reduce((contextTotal, contextValue) => {
+    return total + toRuntimeArray(groupValue.contexts).reduce<number>((contextTotal, contextValue) => {
       if (!isRuntimeRecord(contextValue)) return contextTotal
       return contextTotal + toRuntimeArray(contextValue.conditions).length
     }, 0)

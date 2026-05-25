@@ -3,6 +3,7 @@ import type { AuthoredSubjectDraft, DBLike } from '@artificer-toolkit/db'
 import {
   normalizeActivatedAuthoringInput,
   normalizeStoredDraftPayloadForActivation,
+  normalizeAuthoredListResponse,
   normalizeAuthoredListResponseWithDrafts,
   resolveDraftActivationSubjectId,
   requireAuthoredDraft,
@@ -139,6 +140,32 @@ describe('authored content draft helpers', () => {
     })
   })
 
+  it('keeps master rows read-only for normal users and editable for super admins', () => {
+    const response = {
+      items: [{
+        id: 'spell-1',
+        label: 'SRD Spell',
+        status: 'ACTIVE',
+        userId: 'master',
+        ownerUserId: 'srd-owner',
+        isMaster: true,
+        systemId: 'system-1'
+      }],
+      meta: {}
+    }
+
+    expect(normalizeAuthoredListResponse(response, 'user-1').items[0]).toMatchObject({
+      provenance: { kind: 'MASTER', ownerUserId: null },
+      permissions: { canEdit: false, canDelete: false }
+    })
+    expect(normalizeAuthoredListResponse(response, 'admin-user', {
+      canManageMasterContent: true
+    }).items[0]).toMatchObject({
+      provenance: { kind: 'MASTER', ownerUserId: null },
+      permissions: { canEdit: true, canDelete: false }
+    })
+  })
+
   it('loads list draft overlays only for the authenticated user', async () => {
     draftRepositoryMock.listByUser.mockResolvedValue([])
 
@@ -272,15 +299,27 @@ describe('authored content draft helpers', () => {
     )
   })
 
-  it('rejects writes to master or foreign authored records', async () => {
+  it('rejects writes to master or foreign authored records unless the caller can manage master content', async () => {
     await expect(assertWritableAuthoredSubject(
-      createOwnershipDb({ isMaster: true, ownerUserId: null }),
+      createOwnershipDb({ isMaster: true, ownerUserId: 'srd-owner' }),
       'creatures',
       'CREATURE',
       'master-creature',
       'user-1'
     )).rejects.toMatchObject({
       name: 'AuthoredContentOwnershipError'
+    })
+
+    await expect(assertWritableAuthoredSubject(
+      createOwnershipDb({ isMaster: true, ownerUserId: 'srd-owner' }),
+      'creatures',
+      'CREATURE',
+      'master-creature',
+      'admin-user',
+      { canManageMasterContent: true }
+    )).resolves.toMatchObject({
+      isMaster: true,
+      ownerUserId: 'srd-owner'
     })
 
     await expect(assertWritableAuthoredSubject(
@@ -299,6 +338,9 @@ describe('authored content draft helpers', () => {
       'CREATURE',
       'owned-creature',
       'user-1'
-    )).resolves.toBeUndefined()
+    )).resolves.toMatchObject({
+      isMaster: false,
+      ownerUserId: 'user-1'
+    })
   })
 })

@@ -94,36 +94,36 @@ DROP POLICY IF EXISTS "Character owners can read" ON public.characters;
 CREATE POLICY "Character owners can read"
   ON public.characters FOR SELECT TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can insert" ON public.characters;
 CREATE POLICY "Character owners can insert"
   ON public.characters FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can update" ON public.characters;
 CREATE POLICY "Character owners can update"
   ON public.characters FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can delete" ON public.characters;
 CREATE POLICY "Character owners can delete"
   ON public.characters FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE TABLE IF NOT EXISTS public.character_advancement (

@@ -179,9 +179,8 @@ $$;
  *
  * Defines:
  *   - profiles              (public user profile, mirrors auth.users)
- *   - admins                (admin flag table for set_admin_claims)
  *   - handle_new_user()     (trigger: auto-create profile on signup)
- *   - set_admin_claims()    (auth hook: injects admin flag into JWT)
+ *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
  *       (user_id column, is_master flag).
@@ -232,25 +231,7 @@ CREATE POLICY "Users can update own profile."
 
 
 /* ──────────────────────────────────────────────
- * ADMINS
- *
- * Stores which users have admin privileges.
- * Referenced by set_admin_claims().
  * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.admins (
-  user_id  uuid PRIMARY KEY
-    REFERENCES auth.users ON DELETE CASCADE,
-  is_admin boolean NOT NULL DEFAULT true
-);
-
-ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can view admin flags." ON public.admins;
-CREATE POLICY "Admins can view admin flags."
-  ON public.admins FOR SELECT TO authenticated
-  USING ((auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true');
-
 
 /* ──────────────────────────────────────────────
  * TRIGGER: auto-create profile on signup
@@ -289,13 +270,13 @@ $$;
 
 
 /* ──────────────────────────────────────────────
- * AUTH HOOK: inject admin flag into JWT
+ * AUTH HOOK: inject is_super_admin into JWT
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.set_admin_claims(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public, pg_catalog
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   claims   jsonb;
@@ -303,11 +284,18 @@ DECLARE
 BEGIN
   claims := COALESCE(event -> 'claims', '{}');
 
-  SELECT EXISTS(
-    SELECT 1 FROM public.admins
-    WHERE user_id = (event ->> 'user_id')::uuid
-      AND is_admin = true
-  ) INTO is_admin;
+  SELECT COALESCE(u.is_super_admin, false)
+  INTO is_admin
+  FROM auth.users u
+  WHERE u.id = (event ->> 'user_id')::uuid;
+
+  is_admin := COALESCE(is_admin, false);
+
+  claims := jsonb_set(
+    claims,
+    '{app_metadata}',
+    COALESCE(claims -> 'app_metadata', '{}') - 'admin'
+  );
 
   IF is_admin THEN
     claims := jsonb_set(
@@ -322,6 +310,10 @@ BEGIN
   RETURN event;
 END;
 $$;
+
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+REVOKE EXECUTE ON FUNCTION public.set_admin_claims(jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
 
 
 /* ──────────────────────────────────────────────
@@ -341,7 +333,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -355,7 +347,7 @@ BEGIN
     $fmt$
       CREATE POLICY "Users can select own rows" ON public.%s
       FOR SELECT TO authenticated
-      USING (user_id = auth.uid() OR (%s));
+      USING (user_id = (SELECT auth.uid()) OR (%s));
     $fmt$,
     safe_table, admin_check
   );
@@ -366,7 +358,7 @@ BEGIN
       CREATE POLICY "Users can insert own rows" ON public.%s
       FOR INSERT TO authenticated
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -379,11 +371,11 @@ BEGIN
       CREATE POLICY "Users can update own rows" ON public.%s
       FOR UPDATE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       )
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -396,7 +388,7 @@ BEGIN
       CREATE POLICY "Users can delete own rows" ON public.%s
       FOR DELETE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -426,7 +418,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -446,7 +438,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               %s.is_master = true
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -464,7 +456,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -481,7 +473,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       )
@@ -489,7 +481,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -506,7 +498,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -522,7 +514,7 @@ $$;
  *
  * For lookup tables with (system_id) and no is_master column.
  * Rows are readable when their owning system is visible.
- * Writes are limited to the owner of the system or admins.
+ * Writes are limited to the owner of the system or super admins.
  *
  * Usage: SELECT public.apply_system_vocabulary_policies('skills');
  * -------------------------------------------------- */
@@ -534,7 +526,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -553,7 +545,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               s.user_id IS NULL
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -571,7 +563,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -589,7 +581,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -599,7 +591,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -617,7 +609,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -671,36 +663,36 @@ CREATE POLICY "Systems are readable by owner or public."
   ON public.systems FOR SELECT TO authenticated
   USING (
     user_id IS NULL
-    OR user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    OR user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can insert own systems." ON public.systems;
 CREATE POLICY "Users can insert own systems."
   ON public.systems FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can update own systems." ON public.systems;
 CREATE POLICY "Users can update own systems."
   ON public.systems FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can delete own systems." ON public.systems;
 CREATE POLICY "Users can delete own systems."
   ON public.systems FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE INDEX IF NOT EXISTS idx_systems_user
@@ -1279,23 +1271,23 @@ ALTER TABLE public.authored_subject_drafts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can select own authored drafts" ON public.authored_subject_drafts;
 CREATE POLICY "Users can select own authored drafts"
   ON public.authored_subject_drafts FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can insert own authored drafts" ON public.authored_subject_drafts;
 CREATE POLICY "Users can insert own authored drafts"
   ON public.authored_subject_drafts FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can update own authored drafts" ON public.authored_subject_drafts;
 CREATE POLICY "Users can update own authored drafts"
   ON public.authored_subject_drafts FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can delete own authored drafts" ON public.authored_subject_drafts;
 CREATE POLICY "Users can delete own authored drafts"
   ON public.authored_subject_drafts FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 CREATE INDEX IF NOT EXISTS idx_authored_subject_drafts_user
   ON public.authored_subject_drafts(user_id);
@@ -1341,23 +1333,23 @@ ALTER TABLE public.character_builder_drafts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can select own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can select own character builder drafts"
   ON public.character_builder_drafts FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can insert own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can insert own character builder drafts"
   ON public.character_builder_drafts FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can update own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can update own character builder drafts"
   ON public.character_builder_drafts FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can delete own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can delete own character builder drafts"
   ON public.character_builder_drafts FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()));
 
 CREATE INDEX IF NOT EXISTS idx_character_builder_drafts_user
   ON public.character_builder_drafts(user_id);
@@ -1825,6 +1817,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_body_selection_items_pkey PRIMARY KEY (facet_body_id, sort_order),
+
   CONSTRAINT facet_body_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -1846,9 +1840,6 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 );
 
 ALTER TABLE public.facet_body_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_body_selection_items_body_id
-  ON public.facet_body_selection_items (facet_body_id);
 
 -- =============================================================================
 -- 5) Conditions (AND list within a body group)
@@ -1973,6 +1964,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_exists_selection_items_pkey PRIMARY KEY (facet_condition_id, sort_order),
+
   CONSTRAINT facet_exists_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -1994,9 +1987,6 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 );
 
 ALTER TABLE public.facet_exists_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_exists_selection_items_condition_id
-  ON public.facet_exists_selection_items (facet_condition_id);
 
 -- =============================================================================
 -- 7) Predicate payloads (normalized)
@@ -7596,36 +7586,36 @@ DROP POLICY IF EXISTS "Character owners can read" ON public.characters;
 CREATE POLICY "Character owners can read"
   ON public.characters FOR SELECT TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can insert" ON public.characters;
 CREATE POLICY "Character owners can insert"
   ON public.characters FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can update" ON public.characters;
 CREATE POLICY "Character owners can update"
   ON public.characters FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can delete" ON public.characters;
 CREATE POLICY "Character owners can delete"
   ON public.characters FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE TABLE IF NOT EXISTS public.character_advancement (
@@ -9092,6 +9082,8 @@ CREATE TABLE IF NOT EXISTS public.character_events (
   occurred_at    timestamptz NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY;
+
 CREATE INDEX IF NOT EXISTS idx_character_events_character_id
   ON public.character_events (character_id, occurred_at);
 -- END INCLUDE: src\domains\subjects\tables\character_events.sql
@@ -9923,4 +9915,69 @@ $$;
 
 SELECT
   public.apply_updated_at_triggers ();
+
+-- BEGIN INCLUDE: src\domains\bootstrap\security\public_api_access.sql
+/*
+ * PUBLIC API ACCESS
+ *
+ * apps/web uses Supabase for Auth/session only. Product data is served through
+ * apps/apis and server-side packages, so browser Supabase roles should not be
+ * able to discover or call database objects directly through REST or GraphQL.
+ */
+
+REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON ALL TABLES IN SCHEMA public
+  FROM anon, authenticated;
+
+REVOKE USAGE, SELECT, UPDATE
+  ON ALL SEQUENCES IN SCHEMA public
+  FROM anon, authenticated;
+
+REVOKE EXECUTE
+  ON ALL ROUTINES IN SCHEMA public
+  FROM public, anon, authenticated;
+
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind = 'r'
+      AND c.relrowsecurity = true
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON %I.%I',
+      'No direct browser API access',
+      r.schema_name,
+      r.table_name
+    );
+
+    EXECUTE format(
+      'CREATE POLICY %I ON %I.%I AS RESTRICTIVE FOR ALL TO anon, authenticated USING (false) WITH CHECK (false)',
+      'No direct browser API access',
+      r.schema_name,
+      r.table_name
+    );
+  END LOOP;
+END;
+$$;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES
+  FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE USAGE, SELECT, UPDATE ON SEQUENCES
+  FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE EXECUTE ON FUNCTIONS
+  FROM public, anon, authenticated;
+-- END INCLUDE: src\domains\bootstrap\security\public_api_access.sql
 -- END INCLUDE: src\domains\utils\create_database.sql

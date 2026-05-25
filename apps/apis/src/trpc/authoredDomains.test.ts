@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { AuthoredSubjectDraft, DBLike } from '@artificer-toolkit/db'
 import type { AuthoredRecord } from '../routes/authoredContent.js'
 import {
+  activateAuthoredDomainInput,
   cloneAuthoredItem,
   deleteAuthoredDomainActive,
   discardAuthoredDomainDraft,
@@ -31,6 +32,22 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     ...actual,
     createAuthoredRouteIdRepository: () => domainMocks.routeIdRepository,
     createAuthoredSubjectDraftRepository: () => domainMocks.draftRepository
+  }
+})
+
+const nodeRuntimeMock = vi.hoisted(() => ({
+  normalizeNodeRuntimeValues: vi.fn(async (_db: unknown, request: { values: Record<string, unknown> }) => ({
+    clearedPaths: [],
+    values: request.values
+  }))
+}))
+
+vi.mock('@artificer-toolkit/functions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@artificer-toolkit/functions')>()
+
+  return {
+    ...actual,
+    normalizeNodeRuntimeValues: nodeRuntimeMock.normalizeNodeRuntimeValues
   }
 })
 
@@ -194,6 +211,80 @@ describe('getAuthoredDomain', () => {
   })
 })
 
+describe('authored domain activation', () => {
+  beforeEach(() => {
+    domainMocks.draftRepository.delete.mockReset()
+    domainMocks.draftRepository.findBySubject.mockReset()
+    domainMocks.findById.mockReset()
+    domainMocks.routeIdRepository.canAccessSubjectForUser.mockReset()
+    domainMocks.routeIdRepository.delete.mockReset()
+    domainMocks.routeIdRepository.ensure.mockReset()
+    domainMocks.routeIdRepository.resolveByPublicIdForUser.mockReset()
+    domainMocks.routeIdRepository.resolveBySubjectForUser.mockReset()
+    nodeRuntimeMock.normalizeNodeRuntimeValues.mockClear()
+    domainMocks.routeIdRepository.ensure.mockResolvedValue({
+      subjectKind: 'SPELL',
+      subjectId: 'spell-1',
+      routeNumber: '1',
+      publicId: 'spell-public',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+  })
+
+  it('preserves master ownership when a super admin activates an SRD edit', async () => {
+    const { db: fakeDb } = createFakeDb({
+      spells: [{ id: 'spell-1', isMaster: true, ownerUserId: 'srd-owner' }]
+    })
+
+    const response = await activateAuthoredDomainInput(fakeDb, createConfig(), {
+      id: 'spell-1',
+      label: 'Edited SRD Spell',
+      requiredText: 'Required text',
+      systemId: 'system-1',
+      userId: 'client-controlled-user'
+    }, 'admin-user', { canManageMasterContent: true })
+
+    expect(response).toMatchObject({
+      item: {
+        id: 'spell-1',
+        label: 'Edited SRD Spell',
+        requiredText: 'Required text',
+        status: 'ACTIVE',
+        userId: 'srd-owner'
+      },
+      permissions: {
+        canEdit: true,
+        canDelete: false
+      },
+      provenance: {
+        kind: 'MASTER',
+        ownerUserId: null
+      },
+      publicId: 'spell-public'
+    })
+    expect(domainMocks.draftRepository.delete).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectId: 'spell-1',
+      userId: 'admin-user'
+    })
+  })
+
+  it('rejects normal-user activation of master rows', async () => {
+    const { db: fakeDb } = createFakeDb({
+      spells: [{ id: 'spell-1', isMaster: true, ownerUserId: 'srd-owner' }]
+    })
+
+    await expect(activateAuthoredDomainInput(fakeDb, createConfig(), {
+      id: 'spell-1',
+      label: 'Edited SRD Spell',
+      requiredText: 'Required text',
+      systemId: 'system-1',
+      userId: 'client-controlled-user'
+    }, 'user-1')).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+  })
+})
+
 describe('authored domain deletes', () => {
   beforeEach(() => {
     domainMocks.draftRepository.delete.mockReset()
@@ -269,6 +360,9 @@ describe('authored domain deletes', () => {
     domainMocks.draftRepository.findBySubject.mockResolvedValue(null)
 
     await expect(deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'user-1'))
+      .rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+
+    await expect(deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'admin-user'))
       .rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
 
     const foreign = createFakeDb({
