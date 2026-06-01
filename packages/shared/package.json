@@ -83,7 +83,9 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "vitest run src/__tests__"
   },
   "devDependencies": {
     "type-fest": "^5.6.0",

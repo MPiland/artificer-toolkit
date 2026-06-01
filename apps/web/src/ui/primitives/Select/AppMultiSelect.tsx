@@ -11,23 +11,28 @@ import * as selectStyles from './Select.css.ts'
 
 const renderAppMultiSelectPill: NonNullable<AppMultiSelectProps['renderPill']> = ({
   option,
+  value,
   onRemove,
   disabled
-}) => (
-  <Pill
-    classNames={{
-      root: selectStyles.pill,
-      label: selectStyles.pillLabel,
-      remove: selectStyles.pillRemove
-    }}
-    disabled={disabled}
-    onRemove={onRemove}
-    removeButtonProps={{ 'aria-label': `Remove ${option.label}` }}
-    withRemoveButton={Boolean(onRemove) && !disabled}
-  >
-    {option.label}
-  </Pill>
-)
+}) => {
+  const label = option?.label ?? String(value ?? '')
+
+  return (
+    <Pill
+      classNames={{
+        root: selectStyles.pill,
+        label: selectStyles.pillLabel,
+        remove: selectStyles.pillRemove
+      }}
+      disabled={disabled}
+      onRemove={onRemove}
+      removeButtonProps={{ 'aria-label': label ? `Remove ${label}` : 'Remove selected option' }}
+      withRemoveButton={Boolean(onRemove) && !disabled}
+    >
+      {label || 'Unknown option'}
+    </Pill>
+  )
+}
 
 export function AppMultiSelect({
   data,

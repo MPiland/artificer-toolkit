@@ -4,8 +4,8 @@ import {
   httpBatchLink,
   isTRPCClientError
 } from '@trpc/client'
-import type { AnyRouter } from '@trpc/server'
 import { createIsomorphicFn } from '@tanstack/react-start'
+import type { AnyRouter } from '@trpc/server'
 import {
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
@@ -352,6 +352,7 @@ function createProcedureProxy(rawClient: ReturnType<typeof createTRPCUntypedClie
 }
 
 const getServerRequestInfo = createIsomorphicFn()
+  .client(() => null)
   .server(async () => {
     const { getRequest } = await import('@tanstack/react-start/server')
     const request = getRequest()
@@ -361,7 +362,6 @@ const getServerRequestInfo = createIsomorphicFn()
       url: request.url
     }
   })
-  .client(async () => null)
 
 async function trpcFetch(input: FetchInput, init?: FetchInit): Promise<Response> {
   const headers = applySameOriginRequestHeader(new Headers(init?.headers))

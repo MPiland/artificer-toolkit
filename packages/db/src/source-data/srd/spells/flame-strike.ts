@@ -24,6 +24,7 @@ export const flameStrike: SpellAuthored = {
             id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x211, 1),
@@ -51,6 +52,7 @@ export const flameStrike: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x213, 1) + "__result",
@@ -72,6 +74,7 @@ export const flameStrike: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x213, 2) + "__result",
@@ -93,6 +96,7 @@ export const flameStrike: SpellAuthored = {
                     order: 3,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x214, 1) + "__result",
@@ -115,6 +119,7 @@ export const flameStrike: SpellAuthored = {
                     order: 4,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x214, 2) + "__result",

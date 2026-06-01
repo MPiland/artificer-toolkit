@@ -16,6 +16,7 @@ export const meteorSwarm: SpellAuthored = {
             id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
@@ -51,6 +52,7 @@ export const meteorSwarm: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x213, 1) + "__result",
@@ -72,6 +74,7 @@ export const meteorSwarm: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1) + "__result",
@@ -93,6 +96,7 @@ export const meteorSwarm: SpellAuthored = {
                     order: 3,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x215, 1) + "__result",
@@ -115,6 +119,7 @@ export const meteorSwarm: SpellAuthored = {
                     order: 4,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x216, 1) + "__result",

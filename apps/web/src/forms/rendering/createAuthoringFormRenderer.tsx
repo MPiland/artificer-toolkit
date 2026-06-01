@@ -7,7 +7,7 @@ import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import { ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 import ITrash from '#assets/icons/ITrash'
-import { AuthoringEditorModal } from '../editors/AuthoringEditorModal'
+import { AuthoringFocusedWorkspace } from '../editors/AuthoringFocusedWorkspace'
 import { useAuthoringEditorFooterState, useAuthoringEditorStepNav } from '../editors/AuthoringEditorHeaderContext'
 import { AuthoringFormSectionRow } from '../components/AuthoringFormSectionRow'
 import { useAuthoringForm, useAuthoringFormRegistration } from '../components/AuthoringFormContext'
@@ -35,6 +35,10 @@ import {
 import {
   fieldGrid,
   formShell,
+  compactInlineArrayItem,
+  compactInlineArrayItemContent,
+  damageScalingArrayList,
+  damageScalingItem,
   inlineArrayItemActions,
   inlineArrayItemBody,
   inlineArrayItemChevron,
@@ -48,16 +52,47 @@ import {
   inlineObjectSection,
   inlineObjectStack,
   sectionStack,
+  startingEquipmentArrayList,
+  startingEquipmentGroupItem,
+  startingEquipmentItemRow,
+  startingEquipmentOptionItem,
+  startingEquipmentSetBody,
+  startingEquipmentSetItem,
   wideField
 } from '../components/formStyles.css'
 import * as styles from '../layout/AuthoringFormLayout.css'
 
 const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
 const EMPTY_ANCESTORS: readonly Record<string, unknown>[] = []
-const INLINE_OBJECT_GROUP_CHILD_MAP_IDS = new Set(['charges', 'facet', 'featureGrants', 'raceAncestry'])
+const INLINE_OBJECT_GROUP_CHILD_MAP_IDS = new Set(['charges', 'facet', 'featureGrants', 'raceAncestry', 'startingEquipment'])
 const DETAIL_CHILD_MAP_IDS = new Set(['backgroundDetail', 'classDetail', 'creatureDetail', 'detail', 'raceDetail', 'vehicleDetail'])
-const COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS = new Set(['raceAncestryOption'])
-const INLINE_ARRAY_GROUP_CHILD_MAP_IDS = new Set([...DETAIL_CHILD_MAP_IDS, 'raceAncestryOption', 'speed'])
+const EFFECT_ARRAY_CHILD_MAP_IDS = new Set(['effect'])
+const GRANT_ARRAY_CHILD_MAP_IDS = new Set(['featGrant', 'modifierGrant', 'proficiencyGrant', 'senseGrant', 'spellGrant'])
+const OPTION_ARRAY_CHILD_MAP_IDS = new Set(['featureOptionChoice', 'option', 'raceAncestryOption'])
+const STARTING_EQUIPMENT_ARRAY_CHILD_MAP_IDS = new Set([
+  'startingEquipmentCurrency',
+  'startingEquipmentGroup',
+  'startingEquipmentItem',
+  'startingEquipmentOption',
+  'startingEquipmentSet'
+])
+const COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS = new Set([
+  ...EFFECT_ARRAY_CHILD_MAP_IDS,
+  ...GRANT_ARRAY_CHILD_MAP_IDS,
+  ...OPTION_ARRAY_CHILD_MAP_IDS,
+  ...STARTING_EQUIPMENT_ARRAY_CHILD_MAP_IDS
+])
+const INLINE_ARRAY_GROUP_CHILD_MAP_IDS = new Set([
+  ...DETAIL_CHILD_MAP_IDS,
+  ...EFFECT_ARRAY_CHILD_MAP_IDS,
+  ...GRANT_ARRAY_CHILD_MAP_IDS,
+  ...OPTION_ARRAY_CHILD_MAP_IDS,
+  ...STARTING_EQUIPMENT_ARRAY_CHILD_MAP_IDS,
+  'speed'
+])
+const DIRECT_INLINE_OBJECT_CHILD_MAP_IDS = new Set(['raceAncestry'])
+const EFFECT_EDITOR_DIRECT_INLINE_OBJECT_CHILD_MAP_IDS = new Set(['nonManifestResultBlock', 'resultBlock'])
+const EFFECT_EDITOR_MODAL_ARRAY_CHILD_MAP_IDS = new Set(['nonManifestOutcome', 'outcome'])
 const EFFECT_EDITOR_MAP_IDS = new Set(['effect'])
 const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
 const PROSE_FIELD_KEYS = new Set(['description', 'detail', 'quote'])
@@ -85,7 +120,9 @@ const FEATURE_GRANT_CONFIGS = [
 ] as const
 
 type ActiveGroupNode = {
+  activeStepId?: string
   breadcrumbs: readonly string[]
+  effectEditor?: boolean
   itemTitle?: string
   node: NodeRuntimeNodeDto
   onRemove?: () => void
@@ -110,6 +147,7 @@ type SharedRendererProps = {
 }
 
 type GroupRendererProps = {
+  activeStepId?: string
   ancestors?: readonly Record<string, unknown>[]
   debounceMs?: number
   editorController?: AuthoringEditorController
@@ -120,6 +158,7 @@ type GroupRendererProps = {
   parentValues?: Record<string, unknown>
   pathPrefix?: readonly (string | number)[]
   readOnly?: boolean
+  onActiveStepChange?: (stepId: string | undefined) => void
   renderStepNavInHeader?: boolean
   resolveModel?: boolean
   systemId?: string
@@ -138,6 +177,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
     defaultValues: {} as AuthoringGroupValues,
     props: {} as GroupRendererProps,
     render: function AuthoringGroupRenderer({
+      activeStepId,
       ancestors = EMPTY_ANCESTORS,
       debounceMs = 100,
       editorController,
@@ -146,6 +186,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
       group,
       inlineObject = false,
       mapId,
+      onActiveStepChange,
       parentValues,
       pathPrefix = [],
       readOnly,
@@ -168,9 +209,28 @@ export function createAuthoringFormRenderer<TValues extends object>({
       })
       const visibleSteps = getVisibleAuthoringSteps(activeModel)
       const isEffectEditor = effectEditor || EFFECT_EDITOR_MAP_IDS.has(mapId)
-      const [internalStepId, setInternalStepId] = useState<string | undefined>()
+      const visibleStepIds = visibleSteps.map((step) => step.id)
+      const visibleStepIdKey = visibleStepIds.join('|')
+      const [internalStepId, setInternalStepIdState] = useState<string | undefined>(() => activeStepId)
       const [activeEditor, setActiveEditor] = useState<ActiveGroupNode | null>(null)
       const [expandedInlineRows, setExpandedInlineRows] = useState<ReadonlySet<string>>(() => new Set())
+      const setInternalStepId = useCallback((stepId: string | undefined) => {
+        setInternalStepIdState(stepId)
+        onActiveStepChange?.(stepId)
+      }, [onActiveStepChange])
+      useEffect(() => {
+        if (activeStepId === undefined) return
+
+        const nextStepId = visibleStepIds.includes(activeStepId)
+          ? activeStepId
+          : visibleStepIds[0]
+        setInternalStepIdState((current) => (current === nextStepId ? current : nextStepId))
+        if (nextStepId !== activeStepId) onActiveStepChange?.(nextStepId)
+      }, [
+        activeStepId,
+        onActiveStepChange,
+        visibleStepIdKey
+      ])
       const openEditor = useCallback((editor: ActiveGroupNode) => {
         if (editorController) {
           editorController.openEditor(editor)
@@ -179,6 +239,12 @@ export function createAuthoringFormRenderer<TValues extends object>({
 
         setActiveEditor(editor)
       }, [editorController])
+      const updateActiveEditorStepId = useCallback((stepId: string | undefined) => {
+        setActiveEditor((current) => {
+          if (!current || current.activeStepId === stepId) return current
+          return { ...current, activeStepId: stepId }
+        })
+      }, [])
       const closeEditor = useCallback(() => {
         if (editorController) {
           editorController.closeEditor()
@@ -211,21 +277,31 @@ export function createAuthoringFormRenderer<TValues extends object>({
       const resetCurrentStep = useCallback(() => {
         resetVisibleStepFields(group, currentStep?.sections ?? [])
       }, [currentStep, group])
-      const stepNav = useMemo(() => (!inlineObject && visibleSteps.length > 1 && currentStep
-        ? (
-            <AuthoringFormStepNav
-              activeStep={currentStep.id}
-              onStepChange={setInternalStepId}
-              steps={visibleSteps}
-            />
-          )
-        : null), [currentStep, inlineObject, visibleSteps])
       const visibleSections = inlineObject
         ? visibleSteps.flatMap((step) => step.sections)
         : currentStep?.sections ?? []
       const clearPaths = activeModel?.clearPaths ?? EMPTY_CLEAR_PATHS
       const clearPathKey = clearPaths.map((path) => path.join('.')).join('|')
       const rootHasChanges = useStore(group.form.store, (state) => state.isDirty)
+      const currentStepHasChanges = useStore(group.form.store, (state) => (
+        hasVisibleStepChanges(group, currentStep?.sections ?? [], undefined, state.fieldMeta)
+      ))
+      const stepStatuses = useMemo(() => (
+        currentStep?.id && currentStepHasChanges
+          ? { [currentStep.id]: 'dirty' as const }
+          : undefined
+      ), [currentStep?.id, currentStepHasChanges])
+      const stepNav = useMemo(() => (!inlineObject && visibleSteps.length > 1 && currentStep
+        ? (
+            <AuthoringFormStepNav
+              activeStep={currentStep.id}
+              onStepChange={setInternalStepId}
+              stepStatuses={stepStatuses}
+              steps={visibleSteps}
+              variant={renderStepNavInHeader ? 'rail' : 'inline'}
+            />
+          )
+        : null), [currentStep, inlineObject, renderStepNavInHeader, setInternalStepId, stepStatuses, visibleSteps])
 
       useEffect(() => {
         if (!rootHasChanges) return
@@ -242,6 +318,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
         ? {
             canGoBack: currentIndex > 0,
             canGoNext: !isLastStep,
+            hasStepChanges: currentStepHasChanges,
             onNext: goToNextStep,
             onPrevious: goToPreviousStep,
             onResetStep: resetCurrentStep,
@@ -252,6 +329,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
         currentStep,
         goToNextStep,
         goToPreviousStep,
+        currentStepHasChanges,
         isLastStep,
         readOnly,
         renderStepNavInHeader,
@@ -448,12 +526,13 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                             )
                                           : null}
                                       </Group>
-                                      <div className={inlineArrayList}>
+                                      <div className={getInlineArrayListClassName(node)}>
                                         {items.map((item, index) => {
                                           const title = isSpeedArrayNode(node) ? singularizeLabel(node.label) : getArrayItemTitle(node, item, index)
                                           const description = getArrayItemDescription(node, item)
                                           const rowKey = getInlineArrayItemKey(node, item, index)
                                           const opened = expandedInlineRows.has(rowKey)
+                                          const childIsEffectEditor = isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(node.childMapId ?? '')
                                           const content = (
                                             <GroupRenderer
                                               form={group}
@@ -461,7 +540,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               ancestors={childAncestors}
                                               editorController={editorController}
                                               editorBreadcrumbs={buildEditorBreadcrumbs(editorBreadcrumbs, inlineObject ? undefined : currentStepLabel, node.label, title)}
-                                              effectEditor={isEffectEditor}
+                                              effectEditor={childIsEffectEditor}
                                               inlineObject
                                               mapId={node.childMapId!}
                                               parentValues={values}
@@ -473,8 +552,31 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           )
 
                                           if (!collapseRows) {
+                                            if (isCompactInlineArrayRowsNode(node)) {
+                                              return (
+                                                <div className={clsx(getInlineArrayItemClassName(node), compactInlineArrayItem)} key={rowKey}>
+                                                  <div className={compactInlineArrayItemContent}>{content}</div>
+                                                  {!nodeReadOnly
+                                                    ? (
+                                                        <Tooltip label='Remove' withArrow>
+                                                          <ActionIcon
+                                                            aria-label={`Remove ${title}`}
+                                                            color='red'
+                                                            type='button'
+                                                            variant='subtle'
+                                                            onClick={() => field.removeValue(index)}
+                                                          >
+                                                            <ITrash size={16} />
+                                                          </ActionIcon>
+                                                        </Tooltip>
+                                                      )
+                                                    : null}
+                                                </div>
+                                              )
+                                            }
+
                                             return (
-                                              <div className={inlineArrayItem} key={rowKey}>
+                                              <div className={getInlineArrayItemClassName(node)} key={rowKey}>
                                                 <div className={inlineArrayItemHeader}>
                                                   <Text className={inlineArrayItemTitle}>{title}</Text>
                                                   {description
@@ -502,7 +604,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           }
 
                                           return (
-                                            <div className={inlineArrayItem} key={rowKey}>
+                                            <div className={getInlineArrayItemClassName(node)} key={rowKey}>
                                               <div className={inlineArrayItemHeader}>
                                                 <button
                                                   aria-expanded={opened}
@@ -541,7 +643,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                                 </div>
                                               </div>
                                               <Collapse expanded={opened}>
-                                                <div className={inlineArrayItemBody}>{content}</div>
+                                                <div className={getInlineArrayItemBodyClassName(node)}>{content}</div>
                                               </Collapse>
                                             </div>
                                           )
@@ -566,6 +668,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                                 field.pushValue(nextItem as Parameters<typeof field.pushValue>[0])
                                                 openEditor(createArrayEditorState({
                                                   currentStepLabel: inlineObject ? undefined : currentStepLabel,
+                                                  effectEditor: isEffectEditor,
                                                   item: nextItem,
                                                   index: nextIndex,
                                                   node,
@@ -595,6 +698,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           onOpen={node.childMapId
                                             ? () => openEditor(createArrayEditorState({
                                                 currentStepLabel: inlineObject ? undefined : currentStepLabel,
+                                                effectEditor: isEffectEditor,
                                                 item,
                                                 index,
                                                 node,
@@ -629,7 +733,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                   node.required
                                   || objectConfigured
                                   || objectOpened
-                                  || isDirectInlineObjectNode(node)
+                                  || shouldRenderDirectInlineObjectNode(node, isEffectEditor)
                                 )
                                 const objectDescription = getObjectGroupDescription(node, field.state.value)
 
@@ -637,7 +741,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                   <div className={wideField}>
                                     {shouldShowObject
                                       ? (
-                                          isFeatureGrantsObjectNode(node) || isDirectInlineObjectNode(node)
+                                          isFeatureGrantsObjectNode(node) || shouldRenderDirectInlineObjectNode(node, isEffectEditor)
                                             ? (
                                                 <GroupRenderer
                                                   form={group}
@@ -791,6 +895,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                         }
                                         openEditor({
                                           breadcrumbs: buildEditorBreadcrumbs(editorBreadcrumbs, inlineObject ? undefined : currentStepLabel, node.label),
+                                          effectEditor: isEffectEditor,
                                           node,
                                           path: toEditorPath(node.path),
                                           readOnly: nodeReadOnly
@@ -912,7 +1017,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
           </div>
           {!editorController && activeEditor?.node.childMapId
             ? (
-                <AuthoringEditorModal
+                <AuthoringFocusedWorkspace
                   breadcrumbs={activeEditor.breadcrumbs}
                   opened
                   readOnly={activeEditor.readOnly}
@@ -927,19 +1032,21 @@ export function createAuthoringFormRenderer<TValues extends object>({
                 >
                   <GroupRenderer
                     key={activeEditor.path.join('.')}
+                    activeStepId={activeEditor.activeStepId}
                     form={group}
                     fields={toTypedAuthoringGroupFieldName<AuthoringGroupValues, AuthoringGroupValues>(undefined, activeEditor.path)}
                     ancestors={childAncestors}
                     editorBreadcrumbs={activeEditor.breadcrumbs}
-                    effectEditor={isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(activeEditor.node.childMapId)}
+                    effectEditor={Boolean(activeEditor.effectEditor || isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(activeEditor.node.childMapId))}
                     mapId={activeEditor.node.childMapId}
                     parentValues={values}
                     readOnly={activeEditor.readOnly}
+                    onActiveStepChange={updateActiveEditorStepId}
                     renderStepNavInHeader
                     resolveModel={resolveModel}
                     systemId={systemId}
                   />
-                </AuthoringEditorModal>
+                </AuthoringFocusedWorkspace>
               )
             : null}
         </div>
@@ -999,6 +1106,16 @@ export function createAuthoringFormRenderer<TValues extends object>({
       const closeAllEditors = useCallback(() => {
         setEditorStack([])
       }, [])
+      const updateActiveEditorStepId = useCallback((stepId: string | undefined) => {
+        setEditorStack((current) => {
+          const activeIndex = current.length - 1
+          if (activeIndex < 0 || current[activeIndex]?.activeStepId === stepId) return current
+
+          return current.map((editor, index) => (
+            index === activeIndex ? { ...editor, activeStepId: stepId } : editor
+          ))
+        })
+      }, [])
       const editorController = useMemo<AuthoringEditorController>(() => ({
         closeAllEditors,
         closeEditor,
@@ -1008,6 +1125,9 @@ export function createAuthoringFormRenderer<TValues extends object>({
       const currentStepLabel = currentStep?.label
       const currentIndex = currentStep ? visibleSteps.findIndex((step) => step.id === currentStep.id) : 0
       const isLastStep = currentIndex === visibleSteps.length - 1
+      const currentStepHasChanges = useStore(form.store, (state) => (
+        hasVisibleStepChanges(form, currentStep?.sections ?? [], resolvedFieldPathPrefix, state.fieldMeta)
+      ))
       const rootBreadcrumbs = useMemo(() => buildRootBreadcrumbs(
         authoring.subjectKindLabel,
         authoring.subjectLabel
@@ -1028,6 +1148,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
         canSubmit: submitState.canSubmit,
         fieldPathPrefix: resolvedFieldPathPrefix,
         hasChanges: submitState.hasChanges,
+        hasStepChanges: currentStepHasChanges,
         isLastStep,
         isSubmitting: submitState.isSubmitting,
         readOnly: resolvedReadOnly,
@@ -1042,6 +1163,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
         resolvedFieldPathPrefix,
         resolvedReadOnly,
         resolvedSystemId,
+        currentStepHasChanges,
         submitState.canSubmit,
         submitState.hasChanges,
         submitState.isSubmitting
@@ -1133,12 +1255,13 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                             )
                                           : null}
                                       </Group>
-                                      <div className={inlineArrayList}>
+                                      <div className={getInlineArrayListClassName(node)}>
                                         {items.map((item, index) => {
                                           const title = isSpeedArrayNode(node) ? singularizeLabel(node.label) : getArrayItemTitle(node, item, index)
                                           const description = getArrayItemDescription(node, item)
                                           const rowKey = getInlineArrayItemKey(node, item, index)
                                           const opened = expandedInlineRows.has(rowKey)
+                                          const childIsEffectEditor = isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(node.childMapId ?? '')
                                           const content = (
                                             <GroupRenderer
                                               form={form}
@@ -1146,7 +1269,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               ancestors={EMPTY_ANCESTORS}
                                               editorController={editorController}
                                               editorBreadcrumbs={buildEditorBreadcrumbs(rootBreadcrumbs, currentStepLabel, node.label, title)}
-                                              effectEditor={isEffectEditor}
+                                              effectEditor={childIsEffectEditor}
                                               inlineObject
                                               mapId={node.childMapId!}
                                               parentValues={values}
@@ -1158,8 +1281,31 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           )
 
                                           if (!collapseRows) {
+                                            if (isCompactInlineArrayRowsNode(node)) {
+                                              return (
+                                                <div className={clsx(getInlineArrayItemClassName(node), compactInlineArrayItem)} key={rowKey}>
+                                                  <div className={compactInlineArrayItemContent}>{content}</div>
+                                                  {!nodeReadOnly
+                                                    ? (
+                                                        <Tooltip label='Remove' withArrow>
+                                                          <ActionIcon
+                                                            aria-label={`Remove ${title}`}
+                                                            color='red'
+                                                            type='button'
+                                                            variant='subtle'
+                                                            onClick={() => field.removeValue(index)}
+                                                          >
+                                                            <ITrash size={16} />
+                                                          </ActionIcon>
+                                                        </Tooltip>
+                                                      )
+                                                    : null}
+                                                </div>
+                                              )
+                                            }
+
                                             return (
-                                              <div className={inlineArrayItem} key={rowKey}>
+                                              <div className={getInlineArrayItemClassName(node)} key={rowKey}>
                                                 <div className={inlineArrayItemHeader}>
                                                   <Text className={inlineArrayItemTitle}>{title}</Text>
                                                   {description
@@ -1187,7 +1333,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           }
 
                                           return (
-                                            <div className={inlineArrayItem} key={rowKey}>
+                                            <div className={getInlineArrayItemClassName(node)} key={rowKey}>
                                               <div className={inlineArrayItemHeader}>
                                                 <button
                                                   aria-expanded={opened}
@@ -1226,7 +1372,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                                 </div>
                                               </div>
                                               <Collapse expanded={opened}>
-                                                <div className={inlineArrayItemBody}>{content}</div>
+                                                <div className={getInlineArrayItemBodyClassName(node)}>{content}</div>
                                               </Collapse>
                                             </div>
                                           )
@@ -1251,6 +1397,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                                 field.pushValue(nextItem as Parameters<typeof field.pushValue>[0])
                                                 openEditor(createArrayEditorState({
                                                   currentStepLabel,
+                                                  effectEditor: isEffectEditor,
                                                   item: nextItem,
                                                   index: nextIndex,
                                                   node,
@@ -1280,6 +1427,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                           onOpen={node.childMapId
                                             ? () => openEditor(createArrayEditorState({
                                                 currentStepLabel,
+                                                effectEditor: isEffectEditor,
                                                 item,
                                                 index,
                                                 node,
@@ -1314,7 +1462,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                   node.required
                                   || objectConfigured
                                   || objectOpened
-                                  || isDirectInlineObjectNode(node)
+                                  || shouldRenderDirectInlineObjectNode(node, isEffectEditor)
                                 )
                                 const objectDescription = getObjectGroupDescription(node, field.state.value)
 
@@ -1322,7 +1470,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                   <div className={wideField}>
                                     {shouldShowObject
                                       ? (
-                                          isFeatureGrantsObjectNode(node) || isDirectInlineObjectNode(node)
+                                          isFeatureGrantsObjectNode(node) || shouldRenderDirectInlineObjectNode(node, isEffectEditor)
                                             ? (
                                                 <GroupRenderer
                                                   form={form}
@@ -1474,6 +1622,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                         }
                                         openEditor({
                                           breadcrumbs: buildEditorBreadcrumbs(rootBreadcrumbs, currentStepLabel, node.label),
+                                          effectEditor: isEffectEditor,
                                           node,
                                           path: node.path,
                                           readOnly: nodeReadOnly
@@ -1573,7 +1722,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
           </div>
           {activeEditor?.node.childMapId
             ? (
-                <AuthoringEditorModal
+                <AuthoringFocusedWorkspace
                   breadcrumbs={activeEditor.breadcrumbs}
                   opened
                   readOnly={activeEditor.readOnly}
@@ -1588,21 +1737,23 @@ export function createAuthoringFormRenderer<TValues extends object>({
                 >
                   <GroupRenderer
                     key={activeEditor.path.join('.')}
+                    activeStepId={activeEditor.activeStepId}
                     form={form}
                     fields={toTypedAuthoringGroupFieldName<TValues, AuthoringGroupValues>(resolvedFieldPathPrefix, activeEditor.path)}
                     ancestors={EMPTY_ANCESTORS}
                     editorController={editorController}
                     editorBreadcrumbs={activeEditor.breadcrumbs}
-                    effectEditor={isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(activeEditor.node.childMapId)}
+                    effectEditor={Boolean(activeEditor.effectEditor || isEffectEditor || EFFECT_EDITOR_MAP_IDS.has(activeEditor.node.childMapId))}
                     mapId={activeEditor.node.childMapId}
                     parentValues={values}
                     pathPrefix={activeEditor.path}
                     readOnly={activeEditor.readOnly}
+                    onActiveStepChange={updateActiveEditorStepId}
                     renderStepNavInHeader
                     resolveModel={resolvedResolveModel}
                     systemId={resolvedSystemId}
                   />
-                </AuthoringEditorModal>
+                </AuthoringFocusedWorkspace>
               )
             : null}
         </div>
@@ -1619,7 +1770,17 @@ function getRequiredValidators(type: NodeRuntimeNodeDto['type'], label: string) 
 }
 
 type ResettableFieldApi<TValues extends object> = {
+  form?: unknown
+  getFormFieldName?: <TField extends DeepKeys<TValues>>(field: TField) => string
+  state?: unknown
   resetField: <TField extends DeepKeys<TValues>>(field: TField) => void
+}
+
+type RootResettableFieldApi = {
+  state: {
+    fieldMeta?: Partial<Record<string, unknown>>
+  }
+  resetField: (field: string) => void
 }
 
 function resetVisibleStepFields<TValues extends object>(
@@ -1627,15 +1788,95 @@ function resetVisibleStepFields<TValues extends object>(
   sections: readonly NodeRuntimeSectionDto[],
   fieldPathPrefix?: string
 ) {
+  const rootForm = getRootResettableFieldApi(form)
+  const registeredFieldNames = Object.keys(rootForm?.state.fieldMeta ?? {})
+
   for (const section of sections) {
     for (const node of section.nodes) {
       if (!node.visible) continue
       if (isSystemManagedFieldNode(node)) continue
       if (node.readOnly || node.disabled) continue
 
-      form.resetField(toTypedAuthoringFieldName<TValues>(fieldPathPrefix, node.path))
+      const fieldName = toTypedAuthoringFieldName<TValues>(fieldPathPrefix, node.path)
+      const resolvedFieldName = getResolvedFormFieldName(form, fieldName)
+      form.resetField(fieldName)
+
+      for (const registeredFieldName of registeredFieldNames) {
+        if (isDescendantFieldName(registeredFieldName, resolvedFieldName)) {
+          rootForm?.resetField(registeredFieldName)
+        }
+      }
     }
   }
+}
+
+function hasVisibleStepChanges<TValues extends object>(
+  form: ResettableFieldApi<TValues>,
+  sections: readonly NodeRuntimeSectionDto[],
+  fieldPathPrefix: string | undefined,
+  fieldMeta: Partial<Record<string, unknown>> | undefined
+) {
+  for (const section of sections) {
+    for (const node of section.nodes) {
+      if (!node.visible) continue
+      if (isSystemManagedFieldNode(node)) continue
+      if (node.readOnly || node.disabled) continue
+
+      const fieldName = toTypedAuthoringFieldName<TValues>(fieldPathPrefix, node.path)
+      const resolvedFieldName = getResolvedFormFieldName(form, fieldName)
+
+      if (hasDirtyFieldForPath(fieldMeta, resolvedFieldName)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+function hasDirtyFieldForPath(
+  fieldMeta: Partial<Record<string, unknown>> | undefined,
+  fieldName: string
+) {
+  return Object.entries(fieldMeta ?? {}).some(([registeredFieldName, meta]) => (
+    (registeredFieldName === fieldName || isDescendantFieldName(registeredFieldName, fieldName))
+    && isDirtyFieldMeta(meta)
+  ))
+}
+
+function isDirtyFieldMeta(value: unknown): value is { isDirty: true } {
+  return typeof value === 'object'
+    && value !== null
+    && 'isDirty' in value
+    && value.isDirty === true
+}
+
+function getRootResettableFieldApi<TValues extends object>(
+  form: ResettableFieldApi<TValues>
+): RootResettableFieldApi | undefined {
+  if (isRootResettableFieldApi(form.form)) return form.form
+  if (isRootResettableFieldApi(form)) return form
+  return undefined
+}
+
+function isRootResettableFieldApi(value: unknown): value is RootResettableFieldApi {
+  return typeof value === 'object'
+    && value !== null
+    && 'state' in value
+    && 'resetField' in value
+    && typeof value.resetField === 'function'
+}
+
+function getResolvedFormFieldName<TValues extends object>(
+  form: ResettableFieldApi<TValues>,
+  fieldName: DeepKeys<TValues>
+): string {
+  return form.getFormFieldName ? form.getFormFieldName(fieldName) : String(fieldName)
+}
+
+function isDescendantFieldName(fieldName: string, parentFieldName: string) {
+  return fieldName.startsWith(`${parentFieldName}.`)
+    || fieldName.startsWith(`${parentFieldName}[`)
 }
 
 function getEffectiveInputType(node: NodeRuntimeNodeDto): NodeRuntimeNodeDto['type'] {
@@ -1673,16 +1914,64 @@ function shouldRenderInlineObjectGroup(node: NodeRuntimeNodeDto, effectEditor: b
 }
 
 function shouldRenderInlineArrayGroup(node: NodeRuntimeNodeDto, effectEditor: boolean) {
+  const childMapId = node.childMapId ?? ''
+
   return node.groupKind === 'ARRAY'
-    && Boolean(node.childMapId)
-    && (INLINE_ARRAY_GROUP_CHILD_MAP_IDS.has(node.childMapId ?? '')
-      || effectEditor)
+    && Boolean(childMapId)
+    && (INLINE_ARRAY_GROUP_CHILD_MAP_IDS.has(childMapId)
+      || (effectEditor && !EFFECT_EDITOR_MODAL_ARRAY_CHILD_MAP_IDS.has(childMapId)))
 }
 
 function shouldCollapseInlineArrayGroup(node: NodeRuntimeNodeDto, effectEditor: boolean) {
+  const childMapId = node.childMapId ?? ''
+
+  if (STARTING_EQUIPMENT_ARRAY_CHILD_MAP_IDS.has(childMapId)) {
+    return childMapId === 'startingEquipmentSet'
+  }
+
+  if (isCompactInlineArrayRowsNode(node)) {
+    return false
+  }
+
   return node.groupKind === 'ARRAY'
-    && Boolean(node.childMapId)
-    && (effectEditor || COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS.has(node.childMapId ?? ''))
+    && Boolean(childMapId)
+    && (effectEditor || COLLAPSIBLE_INLINE_ARRAY_CHILD_MAP_IDS.has(childMapId))
+}
+
+function isCompactInlineArrayRowsNode(node: NodeRuntimeNodeDto) {
+  return node.childMapId === 'damageLevelScalingEntry'
+}
+
+function getInlineArrayListClassName(node: NodeRuntimeNodeDto) {
+  return clsx(
+    inlineArrayList,
+    node.childMapId === 'damageLevelScalingEntry' && damageScalingArrayList,
+    isStartingEquipmentArrayNode(node) && startingEquipmentArrayList
+  )
+}
+
+function getInlineArrayItemClassName(node: NodeRuntimeNodeDto) {
+  const childMapId = node.childMapId ?? ''
+
+  return clsx(
+    inlineArrayItem,
+    childMapId === 'damageLevelScalingEntry' && damageScalingItem,
+    childMapId === 'startingEquipmentSet' && startingEquipmentSetItem,
+    childMapId === 'startingEquipmentGroup' && startingEquipmentGroupItem,
+    childMapId === 'startingEquipmentOption' && startingEquipmentOptionItem,
+    (childMapId === 'startingEquipmentItem' || childMapId === 'startingEquipmentCurrency') && startingEquipmentItemRow
+  )
+}
+
+function getInlineArrayItemBodyClassName(node: NodeRuntimeNodeDto) {
+  return clsx(
+    inlineArrayItemBody,
+    node.childMapId === 'startingEquipmentSet' && startingEquipmentSetBody
+  )
+}
+
+function isStartingEquipmentArrayNode(node: NodeRuntimeNodeDto) {
+  return STARTING_EQUIPMENT_ARRAY_CHILD_MAP_IDS.has(node.childMapId ?? '')
 }
 
 function getArrayItemTitle(node: NodeRuntimeNodeDto, item: unknown, index: number) {
@@ -1726,6 +2015,7 @@ function toggleSetValue(values: ReadonlySet<string>, value: string): ReadonlySet
 
 function createArrayEditorState({
   currentStepLabel,
+  effectEditor,
   item,
   index,
   node,
@@ -1735,6 +2025,7 @@ function createArrayEditorState({
   readOnly
 }: {
   currentStepLabel: string | undefined
+  effectEditor: boolean
   item: unknown
   index: number
   node: NodeRuntimeNodeDto
@@ -1747,6 +2038,7 @@ function createArrayEditorState({
 
   return {
     breadcrumbs: buildEditorBreadcrumbs(parentBreadcrumbs, currentStepLabel, node.label, itemTitle),
+    effectEditor,
     itemTitle,
     node,
     onRemove: isDetailArrayNode(node) ? onRemove : undefined,
@@ -1810,8 +2102,11 @@ function isFeatureGrantsObjectNode(node: NodeRuntimeNodeDto) {
   return node.childMapId === 'featureGrants'
 }
 
-function isDirectInlineObjectNode(node: NodeRuntimeNodeDto) {
-  return node.childMapId === 'raceAncestry'
+function shouldRenderDirectInlineObjectNode(node: NodeRuntimeNodeDto, effectEditor: boolean) {
+  const childMapId = node.childMapId ?? ''
+
+  return DIRECT_INLINE_OBJECT_CHILD_MAP_IDS.has(childMapId)
+    || (effectEditor && EFFECT_EDITOR_DIRECT_INLINE_OBJECT_CHILD_MAP_IDS.has(childMapId))
 }
 
 function hasConfiguredObjectGroupValue(node: NodeRuntimeNodeDto, value: unknown): boolean {

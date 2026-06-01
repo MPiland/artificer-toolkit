@@ -468,6 +468,7 @@ function damagePath(equipmentId: string, pathBucket: number, damageTypeCode: str
     order: 1,
     pathCode: PATH_CODE.ON_HIT,
     groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE' as const,
     selectionKind: 'FIXED' as const,
     resultBlock: {
       id: equipmentChildId(equipmentId, pathBucket, 1) + '__result',
@@ -491,6 +492,7 @@ function fixedDamagePath(equipmentId: string, pathBucket: number, damageTypeCode
     order: 1,
     pathCode: PATH_CODE.ON_HIT,
     groupType: PATH_GROUP_TYPE.SINGLE,
+    originKind: 'SOURCE' as const,
     selectionKind: 'FIXED' as const,
     resultBlock: {
       id: equipmentChildId(equipmentId, pathBucket, 1) + '__result',
@@ -515,6 +517,7 @@ export function meleeWeaponEffects(equipmentId: string, damageTypeCode: string, 
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210)
@@ -530,6 +533,7 @@ export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode:
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
@@ -544,6 +548,7 @@ export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode:
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
@@ -563,6 +568,7 @@ export function thrownWeaponEffects(equipmentId: string, damageTypeCode: string,
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210)
@@ -573,6 +579,7 @@ export function thrownWeaponEffects(equipmentId: string, damageTypeCode: string,
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: distanceRange(equipmentId, 0x220, normalRangeFt)
@@ -588,6 +595,7 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
@@ -602,6 +610,7 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
       id: equipmentChildId(equipmentId, 0x220, 1),
       order: 2,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
@@ -616,6 +625,7 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
       id: equipmentChildId(equipmentId, 0x230, 1),
       order: 3,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: distanceRange(equipmentId, 0x230, normalRangeFt)
@@ -631,6 +641,7 @@ export function meleeReachWeaponEffects(equipmentId: string, damageTypeCode: str
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: reachRange(equipmentId, 0x210)
@@ -646,6 +657,7 @@ export function rangedWeaponEffects(equipmentId: string, damageTypeCode: string,
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: distanceRange(equipmentId, 0x210, normalRangeFt)
@@ -661,6 +673,7 @@ export function rangedFixedDamageWeaponEffects(equipmentId: string, damageTypeCo
       id: equipmentChildId(equipmentId, 0x210, 1),
       order: 1,
       invocation: {
+        kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: distanceRange(equipmentId, 0x210, normalRangeFt)

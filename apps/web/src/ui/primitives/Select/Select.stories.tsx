@@ -1,5 +1,5 @@
 import { Paper, Stack, Text } from '@mantine/core'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { AppMultiSelect, AppSelect } from '.'

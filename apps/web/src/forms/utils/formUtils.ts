@@ -23,3 +23,16 @@ export function getFieldError(field: {
 export function toInputValue(value: unknown) {
   return value === undefined || value === null ? '' : String(value)
 }
+
+export function uniqueSelectOptions(options: readonly SelectOption[]): SelectOption[] {
+  const seen = new Set<string>()
+  const uniqueOptions: SelectOption[] = []
+
+  for (const option of options) {
+    if (seen.has(option.value)) continue
+    seen.add(option.value)
+    uniqueOptions.push(option)
+  }
+
+  return uniqueOptions
+}

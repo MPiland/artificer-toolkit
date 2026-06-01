@@ -5,16 +5,20 @@ import { type ReactNode, useState } from 'react'
 import { resolver, theme } from '#css/theme'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 
+type ForcedColorScheme = Extract<MantineColorScheme, 'dark' | 'light'>
+
 interface AppProvidersProps {
   children: ReactNode
   queryClient?: QueryClient
   defaultColorScheme?: MantineColorScheme
+  forceColorScheme?: ForcedColorScheme
 }
 
 export function AppProviders({
   children,
   queryClient,
-  defaultColorScheme = 'auto'
+  defaultColorScheme = 'auto',
+  forceColorScheme
 }: AppProvidersProps) {
   const [fallbackQueryClient] = useState(createAppQueryClient)
   const activeQueryClient = queryClient ?? fallbackQueryClient
@@ -25,6 +29,7 @@ export function AppProviders({
         theme={theme}
         cssVariablesResolver={resolver}
         defaultColorScheme={defaultColorScheme}
+        forceColorScheme={forceColorScheme}
       >
         <Notifications position='top-right' zIndex={9999} />
         {children}

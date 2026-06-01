@@ -28,6 +28,25 @@ import { featAuthoredDtoSchema } from '../subjects/feat.js'
 import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 
+type ParsedEffectForAssertions = {
+  invocation: {
+    kind?: string
+    triggerCode?: string
+    savingThrow?: unknown
+  }
+  paths: Array<{
+    pathCode?: string
+    options?: Array<Record<string, unknown>>
+    rows?: Array<Record<string, unknown>>
+    resultBlock?: {
+      outcomes?: Array<Record<string, unknown> & {
+        bonuses?: Array<Record<string, unknown>>
+      }>
+      lifecycle?: Record<string, unknown>
+    }
+  }>
+}
+
 function singleResultBlock(id: string, outcome: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   return {
     id,
@@ -256,13 +275,13 @@ describe('schema package parsing', () => {
           })
         )
       ]
-    }) as any
+    }) as unknown as ParsedEffectForAssertions
 
     expect(parsed.paths).toHaveLength(1)
     expect(parsed.invocation.triggerCode).toBe('SAVING_THROW')
     expect(parsed.paths[0]).toMatchObject({
       pathCode: 'ON_SAVE_FAIL'
-    }) as any
+    })
   })
 
   it('parses passive effects with saving throw invocations', () => {
@@ -319,7 +338,7 @@ describe('schema package parsing', () => {
           })
         )
       ]
-    }) as any
+    }) as unknown as ParsedEffectForAssertions
 
     expect(parsed.invocation.kind).toBe('PASSIVE')
     expect(parsed.invocation.triggerCode).toBe('SAVING_THROW')
@@ -372,12 +391,12 @@ describe('schema package parsing', () => {
           }
         ])
       ]
-    }) as any
+    }) as unknown as ParsedEffectForAssertions
 
     expect(parsed.paths[0].options[0]).toMatchObject({
       label: 'Primary Result',
       description: 'The main outcome when the effect resolves.'
-    }) as any
+    })
 
     expect(parsed.paths[1].rows[0]).not.toHaveProperty('label')
     expect(parsed.paths[1].rows[0]).not.toHaveProperty('description')
@@ -435,7 +454,7 @@ describe('schema package parsing', () => {
           })
         )
       ]
-    }) as any
+    }) as unknown as ParsedEffectForAssertions
 
     expect(parsed.paths).toHaveLength(2)
   })
@@ -511,7 +530,7 @@ describe('schema package parsing', () => {
     expect(parsed.paths?.[0]?.resultBlock).toMatchObject({
       outcomes: [{ effectKind: 'DAMAGE' }, { effectKind: 'FORCED_MOVEMENT' }],
       lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
-    }) as any
+    }) as unknown as ParsedEffectForAssertions
   })
 
   it('parses activated feature-style effects with on-use healing bonuses', () => {
@@ -864,8 +883,10 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect((parsed as any).paths[0].rows[0]).not.toHaveProperty('label')
-    expect((parsed as any).paths[0].rows[0]).not.toHaveProperty('description')
+    const row = (parsed as unknown as ParsedEffectForAssertions).paths[0].rows?.[0]
+
+    expect(row).not.toHaveProperty('label')
+    expect(row).not.toHaveProperty('description')
   })
 
   it('strips creature manifest inline behaviors', () => {
@@ -901,11 +922,13 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect((parsed as any).paths[0].resultBlock.outcomes[0]).toMatchObject({
+    const outcome = (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]
+
+    expect(outcome).toMatchObject({
       manifestKind: 'CREATURE',
       creatureId: 'owl'
     })
-    expect((parsed as any).paths[0].resultBlock.outcomes[0]).not.toHaveProperty('behaviors')
+    expect(outcome).not.toHaveProperty('behaviors')
   })
 
   it('parses summon manifests with authored stat block data', () => {
@@ -964,7 +987,7 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect((parsed as any).paths[0].resultBlock.outcomes[0]).toMatchObject({
+    expect((parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]).toMatchObject({
       manifestKind: 'SUMMON',
       statBlock: {
         size: 'LARGE',
@@ -1681,7 +1704,7 @@ describe('schema package parsing', () => {
       },
       userId: 'master',
       systemId: 'system-1'
-    }) as any
+    })
 
     expect(feat.prerequisites?.groups[0]?.contexts[0]?.conditions?.[0]).toMatchObject({
       predicateCode: 'HERITAGE',
@@ -1752,7 +1775,7 @@ describe('schema package parsing', () => {
           unit: 'FEET'
         }
       ]
-    }) as any
+    })
 
     expect(race.heritageIds).toEqual(['heritage-human', 'heritage-elven'])
   })

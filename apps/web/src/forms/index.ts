@@ -27,7 +27,7 @@ export type {
 export { AuthoringFormProvider } from './components/AuthoringFormProvider'
 export { AuthoringFormSectionRow } from './components/AuthoringFormSectionRow'
 export { InvalidDraftAlert } from './components/InvalidDraftAlert'
-export { AuthoringEditorModal } from './editors/AuthoringEditorModal'
+export { AuthoringFocusedWorkspace } from './editors/AuthoringFocusedWorkspace'
 export { AuthoringFormLayout } from './layout/AuthoringFormLayout'
 export type { AuthoringFormLayoutProps } from './layout/AuthoringFormLayout'
 export { storyCanvas as authoringFormStoryCanvas } from './layout/AuthoringFormLayout.css'

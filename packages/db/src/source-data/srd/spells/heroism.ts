@@ -17,6 +17,7 @@ export const heroism: SpellAuthored = {
             id: spellChildId(SPELL_IDS.HEROISM, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.ACTIVATED,
                 activation: {
                     code: ACTIVATION_CODE.ACTION,
@@ -37,6 +38,7 @@ export const heroism: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_USE,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.HEROISM, 0x212, 1) + "__result",
@@ -76,6 +78,7 @@ export const heroism: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_USE,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.HEROISM, 0x215, 1) + "__result",

@@ -45,7 +45,8 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
     const local = cond.local()
     const { selectSingle, number, selectMulti, groupArray } = nodes
     const { condition } = data
-    const { not } = logic
+    const { and, not } = logic
+    const isEquipment = local.field(['startingEquipmentKind']).eq('EQUIPMENT')
 
     const equipmentPropertyOptionGroups = buildRegistryOptionGroups(EQUIPMENT_PROPERTY_REGISTRY, PROPERTIES_BY_CATEGORY, (category) => local.field(['category']).eq(category), local.field(['category']).empty())
 
@@ -62,23 +63,31 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         options: AUTHORING_SELECTION_OPTIONS
       }, {
         order: 2,
-        requiredIf: true
+        requiredIf: true,
+        showIf: isEquipment
       }))
       .set('quantity', number(['quantity'], 'Quantity', {
         order: 3,
         requiredIf: true,
-        showIf: local.field(['selectionKind']).eq('GRANTED')
+        showIf: and([
+          isEquipment,
+          local.field(['selectionKind']).eq('GRANTED')
+        ])
       }))
       .set('count', number(['count'], 'Count', {
         order: 3,
         requiredIf: true,
-        showIf: local.field(['selectionKind']).eq('CHOSEN')
+        showIf: and([
+          isEquipment,
+          local.field(['selectionKind']).eq('CHOSEN')
+        ])
       }))
       .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
         kind: 'INLINE',
         options: AUTHORING_MODE_KIND_OPTIONS
       }, {
-        order: 3
+        order: 3,
+        showIf: isEquipment
       }))
       .set('category', selectSingle(['category'], 'Category', {
         kind: 'INLINE',
@@ -108,13 +117,15 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
             .end())
         }
       }, {
-        order: 4
+        order: 4,
+        showIf: isEquipment
       }))
       .set('properties', selectMulti(['properties'], 'Properties', {
         kind: 'INLINE',
         optionGroups: equipmentPropertyOptionGroups
       }, {
-        order: 5
+        order: 5,
+        showIf: isEquipment
       }))
       .set('equipmentIds', selectMulti(['equipmentIds'], 'Equipment', {
         kind: 'DATA',
@@ -165,7 +176,10 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
             }))
           .end())
       }, {
-        showIf: local.field(['authoringModeKind']).eq('SELECTED')
+        showIf: and([
+          isEquipment,
+          local.field(['authoringModeKind']).eq('SELECTED')
+        ])
       }))
       .set('currencies', groupArray(['currencies'], 'Currencies', () => STARTING_EQUIPMENT_CURRENCY_NODE_MAP, {
         order: 3,

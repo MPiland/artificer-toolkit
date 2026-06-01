@@ -16,6 +16,7 @@ export const removeCurse: SpellAuthored = {
             id: spellChildId(SPELL_IDS.REMOVE_CURSE, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.ACTIVATED,
                 activation: {
                     code: ACTIVATION_CODE.ACTION,
@@ -36,6 +37,7 @@ export const removeCurse: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_USE,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.REMOVE_CURSE, 0x212, 1) + "__result",

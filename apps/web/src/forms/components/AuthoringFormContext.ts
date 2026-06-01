@@ -42,6 +42,7 @@ export type AuthoringFormRegistration = {
   deleteLabel?: string
   fieldPathPrefix?: string
   hasChanges?: boolean
+  hasStepChanges?: boolean
   hasActiveDraft?: boolean
   isDraft?: boolean
   isLastStep?: boolean
@@ -77,6 +78,7 @@ export type AuthoringFormSessionState = {
   deleteLabel: string
   fieldPathPrefix?: string
   hasChanges: boolean
+  hasStepChanges: boolean
   hasActiveDraft: boolean
   isDraft: boolean
   isLastStep: boolean

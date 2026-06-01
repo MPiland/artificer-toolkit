@@ -1,0 +1,515 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Ember Lance - Upcast Scaling Editor | Black Forge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#353a39",
+                        "on-primary-fixed-variant": "#005049",
+                        "surface-container-highest": "#303635",
+                        "background": "#0f1413",
+                        "on-tertiary": "#3f008e",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#00201d",
+                        "secondary": "#ffb690",
+                        "tertiary-fixed-dim": "#d2bbff",
+                        "secondary-container": "#ec6a06",
+                        "surface-container-low": "#171d1c",
+                        "primary-fixed": "#89f5e7",
+                        "on-tertiary-fixed-variant": "#5a00c6",
+                        "on-tertiary-container": "#36007d",
+                        "secondary-fixed": "#ffdbca",
+                        "outline": "#879391",
+                        "on-secondary-fixed": "#341100",
+                        "inverse-primary": "#006a61",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#00302b",
+                        "on-primary": "#003732",
+                        "on-surface": "#dee4e1",
+                        "on-secondary-container": "#4a1c00",
+                        "tertiary": "#d2bbff",
+                        "surface-container-high": "#262b2a",
+                        "on-secondary-fixed-variant": "#783200",
+                        "on-error-container": "#ffdad6",
+                        "surface-variant": "#303635",
+                        "tertiary-fixed": "#eaddff",
+                        "on-error": "#690005",
+                        "surface-container": "#1b2120",
+                        "on-background": "#dee4e1",
+                        "surface-tint": "#6bd8cb",
+                        "surface": "#0f1413",
+                        "on-tertiary-fixed": "#25005a",
+                        "primary-container": "#29a195",
+                        "secondary-fixed-dim": "#ffb690",
+                        "inverse-on-surface": "#2c3130",
+                        "tertiary-container": "#a476ff",
+                        "on-secondary": "#552100",
+                        "outline-variant": "#3d4947",
+                        "surface-container-lowest": "#0a0f0e",
+                        "primary": "#ec6a06",
+                        "on-surface-variant": "#bcc9c6",
+                        "inverse-surface": "#dee4e1",
+                        "surface-dim": "#0f1413",
+                        "brand-orange": "#ec6a06"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "0.5rem",
+                        "sidebar_width": "280px",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "xs": "0.25rem",
+                        "inspector_width": "320px",
+                        "lg": "1.5rem",
+                        "gutter": "1px"
+                    },
+                    "fontFamily": {
+                        "code-sm": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-sm": ["16px", {"lineHeight": "1.5", "fontWeight": "600"}],
+                        "display": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0f0e; }
+        ::-webkit-scrollbar-thumb { background: #3d4947; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #879391; }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen flex flex-col overflow-hidden antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface-container-low text-on-surface flex justify-between items-center w-full px-md h-12 z-50 border-b border-outline-variant shrink-0">
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex items-center gap-sm">
+<img alt="Artificer Toolkit" class="w-6 h-6 rounded-sm brightness-110" src="https://lh3.googleusercontent.com/aida/ADBb0ugkuxFLQHlw9BiQPDNcRpnHOlnQYENmN34h-_u2Kvh1CLARBX3PIIhb-_rzLILEoaBrKOuaMCTvTYV-c_hMv5Rrg6J_sP6zdd4KHaJxh5-U3dkOhH3aE69KlyvZt7lofwc2S66wHPNDQERoUgAeiN1J3kRgpVJHfMNI-392usFN-2xDM6SA5F0YOSQwi0fLB4bu69bXJkxdQOCret34M1IECxELAsQ8X69IV-cTpwSiq1myFOmIRgDChLiP">
+<div class="font-display text-[18px] text-on-surface tracking-tight">Artificer Toolkit</div>
+</div>
+<div class="h-4 w-px bg-outline-variant mx-sm"></div>
+<nav class="flex items-center text-sm">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Spells</a>
+<span class="material-symbols-outlined text-outline mx-xs text-[16px]" data-icon="chevron_right">chevron_right</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Ember Lance</span>
+</nav>
+<span class="bg-surface-variant text-on-surface-variant font-label-md text-label-md px-2 py-0.5 rounded-sm ml-sm flex items-center gap-xs border border-outline-variant/50">
+<span class="material-symbols-outlined text-[14px]" data-icon="edit_document">edit_document</span>
+                Draft
+            </span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="flex items-center bg-surface-container-highest rounded-sm border border-outline-variant px-2 h-8 w-64 mr-md">
+<span class="material-symbols-outlined text-outline mr-sm text-[18px]" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface font-body-sm text-body-sm w-full p-0 h-full placeholder:text-outline outline-none" placeholder="Search..." type="text">
+</div>
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform w-8 h-8 flex items-center justify-center rounded-sm hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform w-8 h-8 flex items-center justify-center rounded-sm hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="h-4 w-px bg-outline-variant mx-xs"></div>
+<button class="flex items-center gap-sm hover:bg-surface-container-highest p-1 rounded-sm transition-colors border border-transparent hover:border-outline-variant">
+<div class="w-6 h-6 rounded-sm bg-brand-orange text-white flex items-center justify-center font-label-md text-label-md">
+                    AT
+                </div>
+<span class="font-label-md text-label-md text-on-surface hidden md:block pr-xs">Account</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<aside class="w-sidebar_width bg-surface-container-lowest border-r border-outline-variant flex flex-col z-40 shrink-0 hidden md:flex">
+<div class="p-md border-b border-outline-variant/50 flex justify-between items-start">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Structure</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Ember Lance</p>
+</div>
+<button class="bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md px-2 py-1 rounded-sm transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="add">add</span>
+                    New
+                </button>
+</div>
+<div class="flex-1 overflow-y-auto p-sm font-body-sm text-body-sm">
+<div class="flex flex-col gap-[2px]">
+<div class="flex items-center py-1 px-2 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1 transition-transform group-hover:text-on-surface" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="auto_stories">auto_stories</span>
+<span class="flex-1">Spell</span>
+<div class="w-2 h-2 rounded-full bg-error ml-2" title="Critical Issue"></div>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="description">description</span>
+<span class="flex-1">Basics</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="front_hand">front_hand</span>
+<span class="flex-1">Casting</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1 transition-transform group-hover:text-on-surface" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="route">route</span>
+<span class="flex-1">Delivery</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-10 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1 transition-transform group-hover:text-on-surface" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="bolt">bolt</span>
+<span class="flex-1">Effects</span>
+<div class="w-2 h-2 rounded-full bg-tertiary ml-2" title="Incomplete"></div>
+</div>
+<div class="flex items-center py-1 px-2 pl-14 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="target">target</span>
+<span class="flex-1">Spell Attack</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-14 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1 transition-transform group-hover:text-on-surface" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="check_circle">check_circle</span>
+<span class="flex-1">On Hit</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-[72px] hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1 transition-transform group-hover:text-on-surface" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="local_fire_department">local_fire_department</span>
+<span class="flex-1">Fire Damage</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-[90px] bg-surface-container-high text-brand-orange rounded-sm group cursor-pointer relative">
+<div class="absolute left-0 top-0 bottom-0 w-[3px] bg-brand-orange rounded-l-sm"></div>
+<span class="material-symbols-outlined text-[16px] mr-2" data-icon="trending_up">trending_up</span>
+<span class="flex-1 font-bold">Upcast Scaling</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-[72px] hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-transparent mr-1" data-icon="chevron_right">chevron_right</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="rule">rule</span>
+<span class="flex-1">Conditions</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-14 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1" data-icon="chevron_right">chevron_right</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="cancel">cancel</span>
+<span class="flex-1">On Miss</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-10 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-transparent mr-1" data-icon="chevron_right">chevron_right</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="hourglass_empty">hourglass_empty</span>
+<span class="flex-1">Duration</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant mt-2">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="fact_check">fact_check</span>
+<span class="flex-1">Review</span>
+</div>
+</div>
+</div>
+<div class="p-sm border-t border-outline-variant/50">
+<div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md px-2">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-error"></div> 1 Critical</span>
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-tertiary"></div> 2 Warn</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col relative min-w-0 bg-background overflow-y-auto">
+<div class="p-lg max-w-5xl mx-auto w-full pb-24">
+<!-- Header -->
+<div class="flex justify-between items-start mb-xl pb-md border-b border-outline-variant">
+<div>
+<div class="flex items-center gap-sm mb-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="">Ember Lance</span>
+<span class="text-outline">/</span>
+<span class="">On Hit</span>
+<span class="text-outline">/</span>
+<span class="">Fire Damage</span>
+</div>
+<div class="flex items-center gap-md mt-1">
+<h1 class="font-display text-[28px] text-on-surface tracking-tight">Upcast Scaling</h1>
+<span class="bg-surface-container-high border border-outline-variant text-on-surface-variant font-label-md text-label-md px-2 py-0.5 rounded-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="extension">extension</span>
+                                Spell Mechanic
+                            </span>
+<span class="bg-brand-orange text-white font-label-md text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-xs">
+<div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+                                Affects rule preview
+                            </span>
+</div>
+</div>
+<button class="bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-sm transition-colors flex items-center gap-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+                        Field Guide
+                    </button>
+</div>
+<!-- Content Sections -->
+<div class="flex flex-col gap-lg">
+<!-- Scaling Model -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm relative group hover:border-outline-variant transition-colors">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="tune">tune</span>
+                                Scaling Model
+                            </h3>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Scaling Source <span class="material-symbols-outlined text-[14px] text-outline cursor-help group/tooltip ml-1" data-icon="info" title="Determine what triggers the scaling (e.g., Spell Slot Level).">info</span></label>
+<select class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full appearance-none">
+<option>Spell Slot Level</option>
+<option>Character Level</option>
+<option>Class Level</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Scaling Rule <span class="material-symbols-outlined text-[14px] text-outline cursor-help group/tooltip ml-1" data-icon="info" title="Choose how the effect increases (e.g., adding dice or fixed values).">info</span></label>
+<select class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full appearance-none">
+<option>Add Dice</option>
+<option>Add Flat Modifier</option>
+<option>Multiply Base</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Starts at level <span class="material-symbols-outlined text-[14px] text-outline cursor-help group/tooltip ml-1" data-icon="info" title="The minimum level required for the first scaling increment.">info</span></label>
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-code-sm text-code-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full" type="number" value="2">
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Increment every <span class="material-symbols-outlined text-[14px] text-outline cursor-help group/tooltip ml-1" data-icon="info" title="How many levels between each scaling step.">info</span></label>
+<div class="flex items-center gap-2">
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-code-sm text-code-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-16" type="number" value="1">
+<span class="font-body-sm text-body-sm text-on-surface-variant">slots</span>
+</div>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-lg">
+<!-- Scaling Rows -->
+<div class="xl:col-span-2 flex flex-col gap-md">
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm relative group hover:border-outline-variant transition-colors flex-1">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="table_rows">table_rows</span>
+                                        Scaling Progression
+                                    </h3>
+<div class="w-2 h-2 rounded-full bg-tertiary" title="Warning: Row 5 missing note"></div>
+</div>
+<div class="border border-outline-variant/50 rounded-sm overflow-hidden mb-sm bg-surface-container-lowest">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead class="bg-surface-container-high text-on-surface-variant font-label-md text-label-md border-b border-outline-variant/50">
+<tr>
+<th class="py-2 px-3 font-medium w-24">Slot Lvl</th>
+<th class="py-2 px-3 font-medium w-32">Added Dice</th>
+<th class="py-2 px-3 font-medium w-32">Total Dmg</th>
+<th class="py-2 px-3 font-medium">Notes</th>
+<th class="py-2 px-3 font-medium w-10"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/30">
+<tr class="hover:bg-surface-container-highest transition-colors">
+<td class="py-2 px-3 font-code-sm text-code-sm">2</td>
+<td class="py-2 px-3 font-code-sm text-code-sm text-on-surface-variant">+0d8</td>
+<td class="py-2 px-3 font-code-sm text-code-sm font-semibold text-brand-orange">2d8</td>
+<td class="py-2 px-3 text-on-surface-variant">Base level</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[16px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-highest transition-colors">
+<td class="py-2 px-3 font-code-sm text-code-sm">3</td>
+<td class="py-2 px-3 font-code-sm text-code-sm text-on-surface-variant">+1d8</td>
+<td class="py-2 px-3 font-code-sm text-code-sm font-semibold text-brand-orange">3d8</td>
+<td class="py-2 px-3 text-on-surface-variant">
+<input class="bg-transparent border-none focus:ring-0 w-full p-0 h-full text-on-surface font-body-sm placeholder:text-outline/50 outline-none" placeholder="Optional note..." type="text">
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[16px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-highest transition-colors">
+<td class="py-2 px-3 font-code-sm text-code-sm">4</td>
+<td class="py-2 px-3 font-code-sm text-code-sm text-on-surface-variant">+2d8</td>
+<td class="py-2 px-3 font-code-sm text-code-sm font-semibold text-brand-orange">4d8</td>
+<td class="py-2 px-3 text-on-surface-variant">
+<input class="bg-transparent border-none focus:ring-0 w-full p-0 h-full text-on-surface font-body-sm placeholder:text-outline/50 outline-none" placeholder="Optional note..." type="text">
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[16px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-highest transition-colors bg-tertiary/5 border-l-2 border-l-tertiary">
+<td class="py-2 px-3 font-code-sm text-code-sm">5</td>
+<td class="py-2 px-3 font-code-sm text-code-sm text-on-surface-variant">+3d8</td>
+<td class="py-2 px-3 font-code-sm text-code-sm font-semibold text-brand-orange">5d8</td>
+<td class="py-2 px-3 text-on-surface-variant">
+<input class="bg-transparent border-none focus:ring-0 w-full p-0 h-full text-on-surface font-body-sm placeholder:text-outline/50 outline-none" placeholder="Optional note..." type="text">
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-[16px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<button class="w-full border border-dashed border-outline-variant/60 hover:border-brand-orange/60 hover:bg-brand-orange/5 text-on-surface-variant hover:text-brand-orange font-label-md text-label-md py-2 rounded-sm transition-colors flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="add">add</span>
+                                    Add Row
+                                </button>
+</section>
+<!-- Exceptions -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<div class="flex items-center justify-between mb-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="alt_route">alt_route</span>
+                                        Exceptions
+                                    </h3>
+</div>
+<div class="bg-surface-container-lowest border border-dashed border-outline-variant/50 rounded-sm p-lg flex flex-col items-center justify-center text-center gap-sm">
+<span class="material-symbols-outlined text-outline/50 text-[32px]" data-icon="mediation">mediation</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm">No conditional overrides configured. Add an exception if this scaling rule changes based on class features or specific targets.</p>
+<button class="bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-sm transition-colors flex items-center gap-xs mt-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="add">add</span>
+                                        Add Exception
+                                    </button>
+</div>
+</section>
+</div>
+<!-- Right Column (Context & Preview) -->
+<div class="flex flex-col gap-md">
+<!-- Outcome Context -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md border-b border-outline-variant/30 pb-2">Outcome Context</h3>
+<div class="flex flex-col gap-sm font-body-sm text-body-sm">
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Damage Type</span>
+<span class="text-secondary font-medium flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="local_fire_department">local_fire_department</span> Fire</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Attack Model</span>
+<span class="text-on-surface font-medium">Spell Attack</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Trigger</span>
+<span class="text-on-surface font-medium">On Hit (Applies Dmg)</span>
+</div>
+</div>
+</section>
+<!-- Rule Preview Panel -->
+<aside class="bg-surface-container-low border border-outline-variant/40 rounded-lg shadow-sm flex flex-col overflow-hidden h-full">
+<div class="bg-surface-container-high border-b border-outline-variant/50 p-3 flex justify-between items-center">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="preview">preview</span>
+                                        Rule Preview
+                                    </h3>
+</div>
+<div class="p-md font-body-sm text-body-sm text-on-surface-variant leading-relaxed overflow-y-auto flex-1 bg-surface-container-lowest/50">
+<p class="mb-4 text-on-surface">You hurl a lance of crackling fire at a creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes <strong class="text-brand-orange font-bold">2d8</strong> fire damage.</p>
+<div class="mt-4 pt-4 border-t border-outline-variant/30">
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-2 italic">At Higher Levels.</h4>
+<p class="mb-3">When you cast this spell using a spell slot of 3rd level or higher, the damage increases by <strong class="text-brand-orange font-semibold">1d8</strong> for each slot level above 2nd.</p>
+<div class="bg-surface-container-low border border-outline-variant/50 rounded-sm p-2 mt-2">
+<table class="w-full text-left font-code-sm text-[11px]">
+<thead>
+<tr class="text-outline border-b border-outline-variant/30">
+<th class="pb-1 font-normal w-1/2">Slot Level</th>
+<th class="pb-1 font-normal w-1/2 text-right">Fire Damage</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10 text-on-surface">
+<tr>
+<td class="py-1">2nd</td>
+<td class="py-1 text-right">2d8</td>
+</tr>
+<tr>
+<td class="py-1">3rd</td>
+<td class="py-1 text-right text-brand-orange">3d8</td>
+</tr>
+<tr>
+<td class="py-1">4th</td>
+<td class="py-1 text-right text-brand-orange">4d8</td>
+</tr>
+<tr class="text-tertiary">
+<td class="py-1">5th</td>
+<td class="py-1 text-right">5d8</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</div>
+<!-- Onboarding Walkthrough (Positioned like the original) -->
+<div class="fixed bottom-20 right-6 w-80 bg-surface-container-highest border border-brand-orange/40 rounded-lg shadow-2xl z-[60] overflow-hidden flex flex-col" id="onboarding-walkthrough">
+<div class="p-3 bg-brand-orange/10 border-b border-brand-orange/20 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="auto_awesome">auto_awesome</span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Quick Start</h4>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface" onclick="document.getElementById('onboarding-walkthrough').remove()">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Define how your spell improves at higher levels. Changes in the <span class="text-brand-orange font-semibold">Scaling Model</span> are instantly reflected in the <span class="text-brand-orange font-semibold">Rule Preview</span>.
+                    </p>
+<div class="flex items-center justify-between mt-2">
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+<button class="bg-brand-orange text-white font-label-md text-label-md px-3 py-1 rounded-sm hover:brightness-110">
+                            Next
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Persistent Action Bar (Footer) -->
+<footer class="fixed bottom-0 left-0 right-0 flex justify-between items-center px-lg py-3 z-50 bg-surface-container-low/95 backdrop-blur-md border-t border-outline-variant shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:ml-sidebar_width">
+<button class="text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_back">arrow_back</span>
+            Back to Effects
+        </button>
+<div class="flex items-center gap-md">
+<button class="text-error hover:text-error-container font-label-md text-label-md transition-colors mr-2">
+                Reset object
+            </button>
+<button class="bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md px-4 py-1.5 rounded-sm transition-colors shadow-sm">
+                Save draft
+            </button>
+<button class="bg-brand-orange hover:brightness-110 text-white font-label-md text-label-md px-5 py-1.5 rounded-sm transition-colors shadow-sm font-bold">
+                Done
+            </button>
+</div>
+</footer>
+</body></html>

@@ -70,7 +70,9 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
-    "generate:zod": "tsx generateZod.ts"
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "generate:zod": "tsx generateZod.ts",
+    "test": "vitest run src/__tests__"
   },
   "dependencies": {
     "zod": "^4.4.3"

@@ -99,7 +99,7 @@ describe('Feat authoring renderer', () => {
 
     expect(screen.getByText(/locked for direct editing/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /duplicate to edit/i })).toBeEnabled()
-    expect(screen.getByRole('textbox', { name: /name/i })).toHaveAttribute('readonly')
+    expect(screen.getAllByRole('textbox', { name: /name/i })[0]).toHaveAttribute('readonly')
   })
 
   it('adds and edits a feat-owned feature basics item', async () => {
@@ -119,12 +119,14 @@ describe('Feat authoring renderer', () => {
     await user.click(screen.getByRole('button', { name: /next/i }))
     await user.click(screen.getByRole('button', { name: /add feature/i }))
 
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByRole('heading', { name: /feats \/ battlefield reader \/ features \/ feature 1/i })).toBeInTheDocument()
-    expect(within(dialog).queryByRole('heading', { name: /^features$/i })).not.toBeInTheDocument()
-    await user.type(within(dialog).getByRole('textbox', { name: /name/i }), 'Opening Read')
-    expect(within(dialog).getByLabelText(/description/i)).toHaveAttribute('contenteditable', 'true')
-    await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
+    const workspace = within(await screen.findByRole('region', {
+      name: /feats \/ battlefield reader \/ features \/ feature 1/i
+    }))
+    expect(workspace.getByRole('heading', { name: /feats \/ battlefield reader \/ features \/ feature 1/i })).toBeInTheDocument()
+    expect(workspace.queryByRole('heading', { name: /^features$/i })).not.toBeInTheDocument()
+    await user.type(workspace.getByRole('textbox', { name: /name/i }), 'Opening Read')
+    expect(workspace.getByLabelText(/description/i)).toHaveAttribute('contenteditable', 'true')
+    await user.click(workspace.getByRole('button', { name: /close editor/i }))
 
     expect(screen.getByRole('button', { name: /edit opening read/i })).toBeInTheDocument()
   }, 10000)

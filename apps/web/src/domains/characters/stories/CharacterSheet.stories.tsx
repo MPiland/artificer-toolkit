@@ -1,6 +1,6 @@
 import { Alert } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { HttpResponse, http } from 'msw'
 import { useEffect } from 'react'
 import {
@@ -197,7 +197,12 @@ function CharacterSheetStoryHarness({
 
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
-      <CharacterSheetView hasDraft={hasDraft} initialTab={initialTab} sheet={liveSheet} />
+      <CharacterSheetView
+        characterPublicId={getCharacterPublicId(liveSheet)}
+        hasDraft={hasDraft}
+        initialTab={initialTab}
+        sheet={liveSheet}
+      />
     </div>
   )
 }
@@ -214,7 +219,7 @@ function CharacterSheetCommandPendingPreview({
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
       <div className={styles.shell}>
-        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <CharacterSheetHero characterPublicId={getCharacterPublicId(sheet)} hasDraft={hasDraft} sheet={sheet} />
         <Alert color='blue'>
           A sheet command is being applied. Controls stay visible, but editing and command actions are temporarily disabled.
         </Alert>
@@ -240,7 +245,7 @@ function CharacterSheetInventoryPendingPreview({
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
       <div className={styles.shell}>
-        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <CharacterSheetHero characterPublicId={getCharacterPublicId(sheet)} hasDraft={hasDraft} sheet={sheet} />
         <Alert color='blue'>
           Inventory command pending. Add, edit, equip, attune, and currency controls are temporarily disabled.
         </Alert>
@@ -266,7 +271,7 @@ function CharacterSheetNotesPendingPreview({
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
       <div className={styles.shell}>
-        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <CharacterSheetHero characterPublicId={getCharacterPublicId(sheet)} hasDraft={hasDraft} sheet={sheet} />
         <Alert color='blue'>
           Notes command pending. Background notes remain readable, and session note editing is temporarily locked.
         </Alert>
@@ -292,7 +297,7 @@ function CharacterSheetCommandErrorPreview({
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
       <div className={styles.shell}>
-        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <CharacterSheetHero characterPublicId={getCharacterPublicId(sheet)} hasDraft={hasDraft} sheet={sheet} />
         <Alert color='red'>
           This character changed in another tab. Refresh the sheet, then try the command again.
         </Alert>
@@ -304,6 +309,10 @@ function CharacterSheetCommandErrorPreview({
       </div>
     </div>
   )
+}
+
+function getCharacterPublicId(sheet: CharacterSheetResponseDto) {
+  return sheet.publicId ?? sheet.meta.characterId
 }
 
 function createConditionHeavySheet(): CharacterSheetResponseDto {

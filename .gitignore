@@ -16,6 +16,9 @@ storybook-static/
 
 # Local tool state and generated test artifacts
 .codex/
+.turbo/
+.cache/
+apps/*/.cache/
 test-results/
 playwright-report/
 

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import type {
   RaceAuthoringInputDto,
   RaceAuthoredDto
@@ -17,7 +17,8 @@ import {
 import {
   createEmptyRace,
   normalizeRaceForSubmit,
-  toRaceFormValues
+  toRaceFormValues,
+  type RaceFormValues
 } from '../raceAuthoring.utils'
 import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
 import {
@@ -28,7 +29,7 @@ import {
 } from '../race.fixtures'
 
 interface RaceAuthoringStoryProps {
-  initialRace?: RaceAuthoringInputDto | RaceAuthoredDto
+  initialRace?: RaceAuthoringInputDto | RaceAuthoredDto | RaceFormValues
   readOnly?: boolean
 }
 

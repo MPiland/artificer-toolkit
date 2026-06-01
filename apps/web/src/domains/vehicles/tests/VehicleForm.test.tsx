@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -20,7 +20,7 @@ import {
 } from '../vehicleAuthoring.utils'
 import { VehicleAuthoringRenderer } from '../components/VehicleAuthoringRenderer'
 
-const modalRuntimeFixture = {
+const focusedWorkspaceRuntimeFixture = {
   mapId: 'vehicle',
   clearPaths: [],
   steps: [
@@ -54,7 +54,7 @@ describe('VehicleAuthoringRenderer', () => {
 
     expect(screen.getByText(/locked for direct editing/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /duplicate to edit/i })).toBeEnabled()
-    expect(screen.getByRole('textbox', { name: /category/i })).toHaveAttribute('readonly')
+    expect(screen.getAllByRole('textbox', { name: /name/i })[0]).toHaveAttribute('readonly')
   })
 
   it('renders the shared vehicle flow from resolved steps', async () => {
@@ -66,52 +66,54 @@ describe('VehicleAuthoringRenderer', () => {
       vehicle: toVehicleFormValues(ownedVehicleResponseFixture.item)
     })
 
-    expect(screen.getByRole('heading', { level: 2, name: /basics/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /stats/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /next/i }))
 
-    expect(screen.getByRole('heading', { level: 2, name: /stats/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /stats/i })).toBeInTheDocument()
   })
 
-  it('edits object groups through the shared modal renderer', async () => {
+  it('edits object groups through the shared focused workspace renderer', async () => {
     const user = userEvent.setup()
 
     renderVehicleAuthoringHarness({
-      model: modalRuntimeFixture,
+      model: focusedWorkspaceRuntimeFixture,
       readOnly: false,
       vehicle: toVehicleFormValues(ownedVehicleResponseFixture.item)
     })
 
     await user.click(screen.getByRole('button', { name: /edit cost/i }))
-    const amountField = await screen.findByLabelText(/amount/i)
+    const costWorkspace = within(await screen.findByRole('region', { name: /vehicles .* cost/i }))
+    const amountField = await costWorkspace.findByLabelText(/amount/i)
     await user.clear(amountField)
     await user.type(amountField, '7500')
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(costWorkspace.getByRole('button', { name: /close editor/i }))
     await user.click(screen.getByRole('button', { name: /edit cost/i }))
 
     expect(await screen.findByLabelText(/amount/i)).toHaveValue('7500')
   })
 
-  it('adds and removes array groups through TanStack array fields', async () => {
+  it('adds and removes array groups through TanStack array fields in the focused workspace', async () => {
     const user = userEvent.setup()
 
     renderVehicleAuthoringHarness({
-      model: modalRuntimeFixture,
+      model: focusedWorkspaceRuntimeFixture,
       readOnly: false,
       vehicle: toVehicleFormValues(ownedVehicleResponseFixture.item)
     })
 
-    await user.click(screen.getByRole('button', { name: /add features/i }))
-    expect(screen.getByRole('heading', { level: 2, name: /features/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /add feature/i }))
+    const featureWorkspace = within(await screen.findByRole('region', { name: /vehicles .* features .* feature 2/i }))
+    expect(featureWorkspace.getByRole('heading', { level: 2, name: /features/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(featureWorkspace.getByRole('button', { name: /close editor/i }))
 
-    expect(screen.getByRole('button', { name: /edit features 2/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit feature 2/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /remove features 2/i }))
+    await user.click(screen.getByRole('button', { name: /remove feature 2/i }))
 
-    expect(screen.queryByRole('button', { name: /edit features 2/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit feature 2/i })).not.toBeInTheDocument()
   })
 })
 

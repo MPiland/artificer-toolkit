@@ -67,6 +67,17 @@ export const chargeDtoSchema = z.union([
     id: z.string(),
     resetKind: chargeResetKindSchema,
     bonuses: z.array(chargeBonusDtoSchema).optional(),
+    limitKind: z.literal(chargeLimitKindSchema.enum.ABILITY_MODIFIER),
+    scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    ability: abilityCodeSchema,
+    multiplier: z.number().optional(),
+    min: z.number().optional(),
+    max: z.number().optional()
+  }),
+  z.object({
+    id: z.string(),
+    resetKind: chargeResetKindSchema,
+    bonuses: z.array(chargeBonusDtoSchema).optional(),
     limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
     scalingKind: z.literal(scalingKindSchema.enum.NONE),
     amount: z.number()

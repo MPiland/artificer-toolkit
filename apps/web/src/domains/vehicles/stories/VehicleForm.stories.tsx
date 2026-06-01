@@ -1,6 +1,6 @@
 import type {
   Meta,
-  StoryObj } from '@storybook/react-vite'
+  StoryObj } from '@storybook/tanstack-react'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormLayout,

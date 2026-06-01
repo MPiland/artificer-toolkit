@@ -87,6 +87,34 @@ export const foundationVars = createGlobalThemeContract({
       danger: null,
       dangerSoft: null
     },
+    damage: {
+      acid: null,
+      acidSoft: null,
+      bludgeoning: null,
+      bludgeoningSoft: null,
+      cold: null,
+      coldSoft: null,
+      fire: null,
+      fireSoft: null,
+      force: null,
+      forceSoft: null,
+      lightning: null,
+      lightningSoft: null,
+      necrotic: null,
+      necroticSoft: null,
+      piercing: null,
+      piercingSoft: null,
+      poison: null,
+      poisonSoft: null,
+      psychic: null,
+      psychicSoft: null,
+      radiant: null,
+      radiantSoft: null,
+      slashing: null,
+      slashingSoft: null,
+      thunder: null,
+      thunderSoft: null
+    },
     school: {
       abjuration: null,
       conjuration: null,
@@ -279,11 +307,11 @@ export const sharedFoundationTokens = {
     xxl: '24px',
     pill: '9999px'
   },
-    shadow: {
-      card: 'none',
-      cardHover: 'none',
-      focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
-    },
+  shadow: {
+    card: 'none',
+    cardHover: 'none',
+    focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
+  },
   motion: {
     fast: '120ms',
     base: '180ms',
@@ -338,43 +366,43 @@ export const sharedFoundationTokens = {
 export const lightFoundationTokens = {
   color: {
     accent: {
-      solid: '#0891b2',
-      hover: '#0ea5c5',
-      soft: 'rgba(8, 145, 178, 0.16)',
-      border: '#0891b2',
-      tertiarySolid: '#4f46e5',
-      tertiaryHover: '#6366f1',
-      tertiarySoft: 'rgba(79, 70, 229, 0.12)',
-      tertiaryBorder: '#4f46e5',
-      emphasisBorder: '#0e7490',
+      solid: '#ec6a06',
+      hover: '#f97316',
+      soft: 'rgba(236, 106, 6, 0.13)',
+      border: '#c95704',
+      tertiarySolid: '#0891b2',
+      tertiaryHover: '#0ea5c5',
+      tertiarySoft: 'rgba(8, 145, 178, 0.12)',
+      tertiaryBorder: '#0e7490',
+      emphasisBorder: '#ec6a06',
       focus: 'rgba(8, 145, 178, 0.24)',
-      contrast: '#ffffff'
+      contrast: '#241002'
     },
     button: {
       primary: {
-        background: '#0891b2',
-        border: '#0e7490',
-        hover: '#0ea5c5',
-        active: '#0e7490',
-        text: '#ffffff'
+        background: '#ec6a06',
+        border: '#c95704',
+        hover: '#f97316',
+        active: '#b84a04',
+        text: '#241002'
       },
       secondary: {
-        background: '#f0f1f4',
-        border: '#d7dbe4',
-        hover: '#e9ebf0',
-        active: '#dee1e8',
-        text: '#55626d'
+        background: '#ffffff',
+        border: '#dfe4ea',
+        hover: '#f1f5f9',
+        active: '#e8edf3',
+        text: '#475569'
       }
     },
     card: {
       background: {
         default: '#ffffff',
-        hover: '#f3f4f7',
-        active: '#edeff4'
+        hover: '#f8fafc',
+        active: '#f1f5f9'
       },
       border: {
-        default: '#d7dbe4',
-        selected: '#4f46e5'
+        default: '#dfe4ea',
+        selected: '#ec6a06'
       }
     },
     input: {
@@ -399,28 +427,56 @@ export const lightFoundationTokens = {
       muted: '#8a97a1',
       dim: '#8a97a1',
       inverse: '#eef4f6',
-      accent: '#0891b2'
+      accent: '#b84a04'
     },
     surface: {
-      canvas: '#f3f4f6',
-      subtle: '#ebedf2',
+      canvas: '#f7f9fb',
+      subtle: '#eef2f6',
       panel: '#ffffff',
-      raised: '#fafafc',
-      recessed: '#e0e2e9',
-      sidebar: '#e8e9ee',
-      header: '#ebedf2'
+      raised: '#fbfcfd',
+      recessed: '#e5eaf0',
+      sidebar: '#f1f5f9',
+      header: '#ffffff'
     },
     border: {
-      subtle: '#d7dbe4',
-      strong: '#ced1db'
+      subtle: '#dfe4ea',
+      strong: '#cbd5e1'
     },
     status: {
       success: '#2f9b63',
       successSoft: '#e3f6ea',
-      warning: '#b7822e',
-      warningSoft: '#fff2d8',
-      danger: '#ea6846',
+      warning: '#8a5a00',
+      warningSoft: '#fff4cc',
+      danger: '#c15336',
       dangerSoft: '#fee7e2'
+    },
+    damage: {
+      acid: '#4f8f3a',
+      acidSoft: '#e7f5df',
+      bludgeoning: '#6b7280',
+      bludgeoningSoft: '#eef0f3',
+      cold: '#1d8fc2',
+      coldSoft: '#e0f4fb',
+      fire: '#d9480f',
+      fireSoft: '#fee6d5',
+      force: '#7c3aed',
+      forceSoft: '#ede7ff',
+      lightning: '#b7791f',
+      lightningSoft: '#fff1c2',
+      necrotic: '#6d28d9',
+      necroticSoft: '#eee7ff',
+      piercing: '#64748b',
+      piercingSoft: '#edf1f5',
+      poison: '#2f855a',
+      poisonSoft: '#def4e8',
+      psychic: '#be3f8f',
+      psychicSoft: '#fae3f1',
+      radiant: '#b98500',
+      radiantSoft: '#fff2be',
+      slashing: '#737373',
+      slashingSoft: '#eeeeee',
+      thunder: '#2563eb',
+      thunderSoft: '#e2ecff'
     },
     school: {
       abjuration: '#3f6fda',
@@ -434,18 +490,18 @@ export const lightFoundationTokens = {
     },
     icon: {
       default: '#20262d',
-      accent: '#4f46e5',
+      accent: '#ec6a06',
       muted: '#78858f',
       hover: '#0e7490',
-      selected: '#0891b2'
+      selected: '#ec6a06'
     },
     logo: {
-      background: '#0891b2',
-      icon: '#ffffff'
+      background: '#ec6a06',
+      icon: '#241002'
     },
     nav: {
-      pillHover: 'rgba(8, 145, 178, 0.1)',
-      pillActive: 'rgba(8, 145, 178, 0.16)'
+      pillHover: 'rgba(236, 106, 6, 0.08)',
+      pillActive: 'rgba(236, 106, 6, 0.13)'
     },
     tooltip: {
       background: '#1a2127',
@@ -458,13 +514,13 @@ export const lightFoundationTokens = {
         text: '#999ead'
       },
       current: {
-        border: '#0891b2',
-        background: '#0891b2',
-        text: '#0891b2'
+        border: '#ec6a06',
+        background: '#ec6a06',
+        text: '#b84a04'
       },
       completed: {
-        border: '#4f46e5',
-        background: '#4f46e5',
+        border: '#0891b2',
+        background: '#0891b2',
         icon: '#ffffff'
       },
       error: {
@@ -480,134 +536,162 @@ export const lightFoundationTokens = {
 export const darkFoundationTokens = {
   color: {
     accent: {
-      solid: '#0ea5c5',
-      hover: '#38bdd6',
-      soft: 'rgba(14, 165, 197, 0.2)',
-      border: '#0b8aaa',
-      tertiarySolid: '#818cf8',
-      tertiaryHover: '#a5b4fc',
-      tertiarySoft: 'rgba(99, 102, 241, 0.22)',
-      tertiaryBorder: '#6366f1',
-      emphasisBorder: '#0b8aaa',
-      focus: 'rgba(14, 165, 197, 0.32)',
-      contrast: '#0f1418'
+      solid: '#ec6a06',
+      hover: '#ff7f1f',
+      soft: 'rgba(236, 106, 6, 0.18)',
+      border: '#c95704',
+      tertiarySolid: '#6bd8cb',
+      tertiaryHover: '#8ee7dc',
+      tertiarySoft: 'rgba(107, 216, 203, 0.14)',
+      tertiaryBorder: '#29a195',
+      emphasisBorder: '#ec6a06',
+      focus: 'rgba(14, 165, 197, 0.3)',
+      contrast: '#241002'
     },
     button: {
       primary: {
-        background: '#0ea5c5',
-        border: '#0b8aaa',
-        hover: '#38bdd6',
-        active: '#0b8aaa',
-        text: '#0f1418'
+        background: '#ec6a06',
+        border: '#c95704',
+        hover: '#ff7f1f',
+        active: '#b84a04',
+        text: '#241002'
       },
       secondary: {
-        background: '#1c242b',
-        border: '#2e3942',
-        hover: '#232d35',
-        active: '#141a20',
-        text: '#a6b3bc'
+        background: '#12161c',
+        border: '#2a3038',
+        hover: '#191e25',
+        active: '#0b0f14',
+        text: '#b7bdc4'
       }
     },
     card: {
       background: {
-        default: '#17202a',
-        hover: '#202830',
-        active: '#263039'
+        default: '#171d1c',
+        hover: '#1b2120',
+        active: '#262b2a'
       },
       border: {
-        default: '#2e3942',
-        selected: '#6366f1'
+        default: '#2f3836',
+        selected: '#ec6a06'
       }
     },
     input: {
       background: {
-        default: '#13191e',
-        hover: '#182027',
-        active: '#1c252c',
-        disabled: '#161c21'
+        default: '#0a0f0e',
+        hover: '#111716',
+        active: '#171d1c',
+        disabled: '#101513'
       },
       border: {
-        default: '#334049',
+        default: '#3d4947',
         focus: '#0ea5c5',
-        error: '#ec8768',
-        disabled: '#283038'
+        error: '#e8795f',
+        disabled: '#2f3836'
       },
-      placeholder: '#73818c',
-      sideButton: '#253038'
+      placeholder: '#7e8790',
+      sideButton: '#262b2a'
     },
     text: {
-      primary: '#eef4f6',
-      secondary: '#a6b3bc',
-      muted: '#75828c',
-      dim: '#75828c',
-      inverse: '#0f1418',
-      accent: '#0ea5c5'
+      primary: '#f2f4f0',
+      secondary: '#b7bdc4',
+      muted: '#858d96',
+      dim: '#777f89',
+      inverse: '#071014',
+      accent: '#ffb690'
     },
     surface: {
-      canvas: '#0d1117',
-      subtle: '#171d22',
-      panel: '#17202a',
-      raised: '#131920',
-      recessed: '#0b1014',
-      sidebar: '#12181d',
-      header: '#171d22'
+      canvas: '#0a0f0e',
+      subtle: '#1b2120',
+      panel: '#171d1c',
+      raised: '#262b2a',
+      recessed: '#050806',
+      sidebar: '#0f1413',
+      header: '#0f1413'
     },
     border: {
-      subtle: '#2e3942',
-      strong: '#334049'
+      subtle: '#2f3836',
+      strong: '#3d4947'
     },
     status: {
-      success: '#69c488',
-      successSoft: '#103019',
-      warning: '#e2b663',
-      warningSoft: '#3a2c10',
-      danger: '#e88b6e',
-      dangerSoft: '#3a1612'
+      success: '#6fca8b',
+      successSoft: '#0f2a18',
+      warning: '#f5c75d',
+      warningSoft: '#2f260d',
+      danger: '#e8795f',
+      dangerSoft: '#32130f'
+    },
+    damage: {
+      acid: '#8bd66f',
+      acidSoft: '#142915',
+      bludgeoning: '#a1a1aa',
+      bludgeoningSoft: '#202227',
+      cold: '#73d2f2',
+      coldSoft: '#0e2630',
+      fire: '#ff7f1f',
+      fireSoft: '#351808',
+      force: '#c4a7ff',
+      forceSoft: '#21153d',
+      lightning: '#ffd166',
+      lightningSoft: '#2e260b',
+      necrotic: '#b794f6',
+      necroticSoft: '#24163b',
+      piercing: '#a7b0bd',
+      piercingSoft: '#20242a',
+      poison: '#6fca8b',
+      poisonSoft: '#102a1a',
+      psychic: '#f08ac2',
+      psychicSoft: '#341528',
+      radiant: '#ffe08a',
+      radiantSoft: '#31270b',
+      slashing: '#b8b8b8',
+      slashingSoft: '#242424',
+      thunder: '#8cb4ff',
+      thunderSoft: '#14223d'
     },
     school: {
       abjuration: '#7da2f0',
-      conjuration: '#e2b663',
-      divination: '#ddc66e',
+      conjuration: '#d8953a',
+      divination: '#d5b75c',
       enchantment: '#e187b7',
-      evocation: '#ec8768',
+      evocation: '#e8795f',
       illusion: '#73c3e2',
-      necromancy: '#a68ae0',
-      transmutation: '#69c488'
+      necromancy: '#a78bfa',
+      transmutation: '#6fca8b'
     },
     icon: {
-      default: '#d7e0e4',
-      accent: '#6366f1',
-      muted: '#7f8c96',
-      hover: '#38bdd6',
-      selected: '#0ea5c5'
+      default: '#d9dde0',
+      accent: '#ec6a06',
+      muted: '#7f8790',
+      hover: '#ff7f1f',
+      selected: '#ec6a06'
     },
     logo: {
-      background: '#0ea5c5',
-      icon: '#0f1418'
+      background: '#ec6a06',
+      icon: '#241002'
     },
     nav: {
-      pillHover: 'rgba(14, 165, 197, 0.13)',
-      pillActive: 'rgba(14, 165, 197, 0.2)'
+      pillHover: 'rgba(236, 106, 6, 0.1)',
+      pillActive: 'rgba(236, 106, 6, 0.17)'
     },
     tooltip: {
-      background: '#eef4f6',
-      text: '#0f1418'
+      background: '#f2f4f0',
+      text: '#071014'
     },
     steps: {
       default: {
-        border: '#4a5168',
-        background: '#1e2530',
-        text: '#666f84'
+        border: '#333941',
+        background: '#10151b',
+        text: '#858d96'
       },
       current: {
-        border: '#0ea5c5',
-        background: '#0ea5c5',
-        text: '#9be8f5'
+        border: '#ec6a06',
+        background: '#ec6a06',
+        text: '#ffb690'
       },
       completed: {
-        border: '#6366f1',
-        background: '#6366f1',
-        icon: '#ffffff'
+        border: '#29a195',
+        background: '#29a195',
+        icon: '#071014'
       },
       error: {
         border: '#dc3545',
@@ -620,16 +704,16 @@ export const darkFoundationTokens = {
 } as const
 
 export const brandColorScale = [
-  '#eefbfd',
-  '#d8f6fb',
-  '#b7edf5',
-  '#84ddec',
-  '#38bdd6',
-  '#0ea5c5',
-  '#0891b2',
-  '#0e7490',
-  '#155e75',
-  '#164e63'
+  '#fff7ed',
+  '#ffedd5',
+  '#fed7aa',
+  '#fdba74',
+  '#fb923c',
+  '#f97316',
+  '#ec6a06',
+  '#c95704',
+  '#9a3412',
+  '#7c2d12'
 ] as const
 
 createGlobalTheme(':root', foundationVars, {

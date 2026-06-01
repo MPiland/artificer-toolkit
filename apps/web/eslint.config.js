@@ -25,9 +25,15 @@ export default [...base, globalIgnores([
   rules: {
     ...reactHooks.configs['recommended-latest'].rules,
     ...reactRefresh.configs.vite.rules,
+    'react-hooks/set-state-in-effect': 'off',
   },
 }, {
   files: ['src/routes/**/*.{ts,tsx}'],
+  rules: {
+    'react-refresh/only-export-components': 'off',
+  },
+}, {
+  files: ['src/forms/editors/AuthoringEditorHeaderContext.tsx'],
   rules: {
     'react-refresh/only-export-components': 'off',
   },

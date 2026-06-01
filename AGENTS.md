@@ -234,6 +234,10 @@ Common repo commands:
 - `yarn test:web`
 - `yarn test:web:browser`
 - `yarn test:web:e2e`
+- `yarn turbo:test:authoring`
+- `yarn turbo:typecheck:web`
+- `yarn turbo:affected:test`
+- `yarn turbo:affected:typecheck`
 - `yarn storybook:web`
 
 Web workspace commands:
@@ -246,7 +250,10 @@ Web workspace commands:
 - `yarn workspace @artificer-toolkit/web typecheck:diagnostics`
 - `yarn workspace @artificer-toolkit/web storybook`
 - `yarn workspace @artificer-toolkit/web test`
+- `yarn workspace @artificer-toolkit/web test:forms`
+- `yarn workspace @artificer-toolkit/web test:authoring`
 - `yarn workspace @artificer-toolkit/web test:e2e:app`
+- `yarn workspace @artificer-toolkit/web test:e2e:authoring-storybook`
 - `yarn workspace @artificer-toolkit/web test:e2e:storybook`
 
 ## TypeScript Quality Rules

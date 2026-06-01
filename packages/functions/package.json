@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "node -e \"console.log('No tests configured for @artificer-toolkit/functions')\"",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
     "@artificer-toolkit/db": "workspace:^",

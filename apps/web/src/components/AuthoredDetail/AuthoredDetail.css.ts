@@ -148,15 +148,14 @@ export const dangerActionButton = style({
   '@layer': {
     [app]: {
       'vars': {
-        '--button-bg': foundationVars.color.input.background.default,
+        '--button-bg': foundationVars.color.status.dangerSoft,
         '--button-bd': `1px solid ${foundationVars.color.status.danger}`,
         '--button-color': foundationVars.color.status.danger,
         '--button-hover': foundationVars.color.status.dangerSoft,
         '--button-hover-color': foundationVars.color.status.danger
       },
       'borderColor': foundationVars.color.status.danger,
-      'borderRadius': foundationVars.radius.sm,
-      'backgroundColor': foundationVars.color.input.background.default,
+      'backgroundColor': foundationVars.color.status.dangerSoft,
       'color': foundationVars.color.status.danger,
       'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
 

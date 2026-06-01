@@ -17,6 +17,7 @@ export const callLightning: SpellAuthored = {
             id: spellChildId(SPELL_IDS.CALL_LIGHTNING, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.ACTIVATED,
                 activation: {
                     code: ACTIVATION_CODE.ACTION,
@@ -49,6 +50,7 @@ export const callLightning: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_USE,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.CALL_LIGHTNING, 0x213, 1) + "__result",

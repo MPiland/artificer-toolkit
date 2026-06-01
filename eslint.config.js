@@ -2,16 +2,11 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
-import stylistic from '@stylistic/eslint-plugin'
 
 export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  stylistic.configs.recommended,
   {
-    plugins: {
-      '@stylistic': stylistic,
-    },
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -19,30 +14,11 @@ export default [
       globals: globals.node,
     },
     rules: {
-      '@stylistic/newline-per-chained-call': [
-        'error',
-        { ignoreChainWithDepth: 2 },
-      ],
-      '@stylistic/implicit-arrow-linebreak': ['error', 'beside'],
-      '@stylistic/arrow-parens': ['error', 'always'],
-      '@stylistic/brace-style': ['error', '1tbs'],
-      '@stylistic/array-bracket-newline': ['error', { minItems: 4, multiline: true }],
-      '@stylistic/array-element-newline': [
-        'error',
-        {
-          ArrayExpression: 'consistent',
-          ArrayPattern: { minItems: 4, multiline: true },
-        },
-      ],
-      '@stylistic/function-call-argument-newline': ['error', 'never'],
-      '@stylistic/function-paren-newline': ['error', 'multiline-arguments'],
-      '@stylistic/comma-dangle': ['error', 'never'],
-      '@stylistic/multiline-ternary': ['error', 'always-multiline'],
-      '@stylistic/jsx-quotes': ['error', 'prefer-single'],
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {

@@ -129,13 +129,18 @@ export const inlineArrayItemTrigger = style({
     [app]: {
       display: 'inline-flex',
       alignItems: 'center',
+      alignSelf: 'stretch',
+      flex: '1 1 auto',
       gap: foundationVars.space['2'],
       minWidth: 0,
-      padding: 0,
+      width: '100%',
+      paddingBlock: foundationVars.space['1'],
+      paddingInline: 0,
       border: 0,
       background: 'transparent',
       color: foundationVars.color.text.primary,
       cursor: 'pointer',
+      justifyContent: 'flex-start',
       textAlign: 'left'
     }
   }
@@ -198,7 +203,128 @@ export const inlineArrayItemChevronOpen = style({
 export const inlineArrayItemBody = style({
   '@layer': {
     [app]: {
-      paddingTop: foundationVars.space['2']
+      marginTop: foundationVars.space['2'],
+      padding: foundationVars.space['4'],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      background: foundationVars.color.surface.raised
+    }
+  }
+})
+
+export const compactInlineArrayItem = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      alignItems: 'end',
+      gap: foundationVars.space['3'],
+      paddingBlock: foundationVars.space['3'],
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+    }
+  }
+})
+
+export const compactInlineArrayItemContent = style({
+  '@layer': {
+    [app]: {
+      minWidth: 0
+    }
+  }
+})
+
+export const damageScalingArrayList = style({
+  '@layer': {
+    [app]: {
+      gap: 0,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      background: foundationVars.color.surface.panel,
+      overflow: 'hidden'
+    }
+  }
+})
+
+export const damageScalingItem = style({
+  '@layer': {
+    [app]: {
+      'padding': foundationVars.space['3'],
+      'background': foundationVars.color.surface.panel,
+
+      ':last-child': {
+        borderBottom: 0
+      },
+
+      selectors: {
+        '&:focus-within': {
+          background: foundationVars.color.accent.soft
+        }
+      }
+    }
+  }
+})
+
+export const startingEquipmentArrayList = style({
+  '@layer': {
+    [app]: {
+      gap: foundationVars.space['4']
+    }
+  }
+})
+
+export const startingEquipmentSetItem = style({
+  '@layer': {
+    [app]: {
+      padding: foundationVars.space['4'],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      background: foundationVars.color.surface.panel
+    }
+  }
+})
+
+export const startingEquipmentSetBody = style({
+  '@layer': {
+    [app]: {
+      marginTop: foundationVars.space['2'],
+      paddingTop: foundationVars.space['4'],
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`
+    }
+  }
+})
+
+export const startingEquipmentGroupItem = style({
+  '@layer': {
+    [app]: {
+      padding: foundationVars.space['4'],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      background: foundationVars.color.surface.raised
+    }
+  }
+})
+
+export const startingEquipmentOptionItem = style({
+  '@layer': {
+    [app]: {
+      paddingBlock: foundationVars.space['4'],
+      borderBottom: '0',
+
+      selectors: {
+        '&:not(:first-child)': {
+          borderTop: `1px solid ${foundationVars.color.border.subtle}`
+        }
+      }
+    }
+  }
+})
+
+export const startingEquipmentItemRow = style({
+  '@layer': {
+    [app]: {
+      gap: foundationVars.space['2'],
+      paddingBlock: foundationVars.space['2'],
+      borderBottom: '0'
     }
   }
 })

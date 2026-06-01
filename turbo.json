@@ -1,0 +1,89 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": [
+    "package.json",
+    "yarn.lock",
+    ".yarnrc.yml",
+    "tsconfig*.json",
+    "apps/*/tsconfig*.json",
+    "packages/*/tsconfig*.json"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        "storybook-static/**",
+        ".output/**"
+      ]
+    },
+    "build-storybook": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "storybook-static/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "storybook": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "outputs": []
+    },
+    "test:authoring": {
+      "outputs": []
+    },
+    "test:browser": {
+      "outputs": []
+    },
+    "test:e2e": {
+      "outputs": [
+        "playwright-report/**",
+        "test-results/**"
+      ]
+    },
+    "test:e2e:authoring-storybook": {
+      "outputs": [
+        "playwright-report/**",
+        "test-results/**"
+      ]
+    },
+    "test:forms": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": [
+        ".cache/tsc/*.tsbuildinfo"
+      ]
+    },
+    "typecheck:app": {
+      "outputs": [
+        ".cache/tsc/typecheck.app.tsbuildinfo"
+      ]
+    },
+    "typecheck:config": {
+      "outputs": [
+        ".cache/tsc/typecheck.config.tsbuildinfo"
+      ]
+    },
+    "typecheck:stories": {
+      "outputs": [
+        ".cache/tsc/typecheck.stories.tsbuildinfo"
+      ]
+    },
+    "typecheck:tests": {
+      "outputs": [
+        ".cache/tsc/typecheck.tests.tsbuildinfo"
+      ]
+    }
+  }
+}

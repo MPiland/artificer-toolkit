@@ -170,7 +170,8 @@ export const chargeLimitKindSchema = z.enum([
   'CHARACTER_LEVEL',
   'CLASS_LEVEL',
   'PARENT_CLASS_LEVEL',
-  'SPELL_CAST_LEVEL'
+  'SPELL_CAST_LEVEL',
+  'ABILITY_MODIFIER'
 ])
 export const chargeBonusKindSchema = z.enum([
   'PROFICIENCY_BONUS',

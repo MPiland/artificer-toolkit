@@ -43,6 +43,7 @@ export const wayOfTheOpenHand: ClassAuthored = {
                     id: classRowId(M, 11, 21),
                     order: 0,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: TRIGGER.ACTIVATED,
                         activation: {
                             code: ACTIVATION_CODE.ACTION,
@@ -62,6 +63,7 @@ export const wayOfTheOpenHand: ClassAuthored = {
                             order: 1,
                             pathCode: PATH_CODE.ON_USE,
                             groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: classRowId(M, 11, 23) + "__result",

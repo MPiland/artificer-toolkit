@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import type {
   CreatureAuthoringInputDto,
   CreatureAuthoredDto
@@ -119,7 +119,11 @@ const meta = {
 export default meta
 
 type Story = StoryObj<typeof meta>
-const masterCreatureStoryResponse = masterCreatureResponseFixture
+const masterCreature = masterCreatureResponseFixture.item
+
+if (!masterCreature) {
+  throw new Error('Expected master creature story fixture item.')
+}
 
 export const CreateMonster: Story = {}
 
@@ -155,7 +159,7 @@ export const SummonProfile: Story = {
 
 export const LockedMasterReadonly: Story = {
   args: {
-    initialCreature: masterCreatureStoryResponse.item,
+    initialCreature: masterCreature,
     readOnly: true
   }
 }

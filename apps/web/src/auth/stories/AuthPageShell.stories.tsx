@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { AuthPageShell, SignInForm, ResetPasswordForm, SignUpForm, UpdatePasswordForm } from '../components'
 import * as ResetPasswordFormStories from './ResetPasswordForm.stories'
 import * as SignInFormStories from './SignInForm.stories'
