@@ -58,6 +58,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -74,6 +75,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 12) + "__result",
@@ -100,6 +102,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 13),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -122,6 +125,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 15) + "__result",
@@ -160,6 +164,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 17),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -182,6 +187,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 19) + "__result",
@@ -220,6 +226,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 21),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -242,6 +249,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 23) + "__result",
@@ -280,6 +288,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 25),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -298,6 +307,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 27) + "__result",
@@ -324,6 +334,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 28),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7, 29),
@@ -346,6 +357,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 31) + "__result",
@@ -367,6 +379,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 32) + "__result",
@@ -398,6 +411,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.actionId(7, 33),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(7, 34),
@@ -420,6 +434,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(7, 36) + "__result",
@@ -454,6 +469,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.legendaryActionId(7, 22),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -469,6 +485,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(7, 24) + "__result",
@@ -487,6 +504,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.legendaryActionId(7, 25),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -502,6 +520,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(7, 27) + "__result",
@@ -520,6 +539,7 @@ export const adultCopperDragon: CreatureAuthored = {
                     id: S.legendaryActionId(7, 28),
                     order: 3,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -535,6 +555,7 @@ export const adultCopperDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(7, 30) + "__result",

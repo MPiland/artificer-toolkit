@@ -1,0 +1,77 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "node_modules/**",
+    ".yarn/**",
+    ".codex/**",
+    ".agents/**",
+    ".claude/**",
+    ".cursor/**",
+    "dist/**",
+    "dist-ssr/**",
+    "storybook-static/**",
+    "apps/**/dist/**",
+    "apps/**/storybook-static/**",
+    "test-results/**",
+    "playwright-report/**",
+    "**/*.d.ts",
+    "**/routeTree.gen.ts"
+  ],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "maxWarnings": 0
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "settings": {
+    "react": {
+      "version": "19.2.6"
+    }
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-await-in-loop": "off",
+    "no-underscore-dangle": "off",
+    "typescript/no-explicit-any": "error",
+    "unicorn/no-array-sort": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "packages/db/src/source-data/srd/**/*.ts"
+      ],
+      "rules": {
+        "no-unused-vars": "off"
+      }
+    },
+    {
+      "files": [
+        "packages/shared/src/domains/**/maps/**/*.ts"
+      ],
+      "rules": {
+        "typescript/unbound-method": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/routes/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ]
+}

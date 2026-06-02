@@ -45,6 +45,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                     id: S.actionId(254, 1),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -67,6 +68,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(254, 3) + "__result",
@@ -105,6 +107,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                     id: S.actionId(254, 5),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(254, 6),
@@ -127,6 +130,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(254, 8) + "__result",
@@ -148,6 +152,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(254, 9) + "__result",
@@ -171,6 +176,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                     id: S.actionId(254, 10),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(254, 11),
@@ -193,6 +199,7 @@ export const silverDragonWyrmling: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(254, 13) + "__result",

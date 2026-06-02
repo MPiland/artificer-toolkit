@@ -64,6 +64,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -80,6 +81,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 12) + "__result",
@@ -106,6 +108,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 13),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -128,6 +131,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 15) + "__result",
@@ -166,6 +170,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 17),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -188,6 +193,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 19) + "__result",
@@ -226,6 +232,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 21),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -248,6 +255,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 23) + "__result",
@@ -286,6 +294,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 25),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -304,6 +313,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 27) + "__result",
@@ -330,6 +340,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 28),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6, 29),
@@ -352,6 +363,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 31) + "__result",
@@ -373,6 +385,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 32) + "__result",
@@ -404,6 +417,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 33),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6, 34),
@@ -426,6 +440,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 36) + "__result",
@@ -452,6 +467,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.actionId(6, 37),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -468,6 +484,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(6, 39) + "__result",
@@ -502,6 +519,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.legendaryActionId(6, 22),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -517,6 +535,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(6, 24) + "__result",
@@ -535,6 +554,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.legendaryActionId(6, 25),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -550,6 +570,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(6, 27) + "__result",
@@ -568,6 +589,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                     id: S.legendaryActionId(6, 28),
                     order: 3,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -583,6 +605,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(6, 30) + "__result",

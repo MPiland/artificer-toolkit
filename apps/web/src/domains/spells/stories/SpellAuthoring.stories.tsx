@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type {
   Meta,
   StoryObj
-} from '@storybook/react-vite'
+} from '@storybook/tanstack-react'
 import type {
   SpellAuthoringInputDto,
   SpellAuthoredDto
@@ -53,6 +53,7 @@ function SpellAuthoringStoryContent({
   })
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Spell',
+    canCopy: readOnly,
     canSaveDraft: !readOnly,
     hasActiveDraft: false,
     mapId: 'spell',
@@ -71,8 +72,12 @@ function SpellAuthoringStoryContent({
   const actions = useMemo<AuthoringFormActionHandlers>(() => ({
     onActivate: () => form.handleSubmit(),
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
-    onSaveDraft: () => undefined
-  }), [form])
+    onCopy: readOnly ? () => undefined : undefined,
+    onSaveDraft: readOnly ? undefined : () => undefined
+  }), [
+    form,
+    readOnly
+  ])
 
   useAuthoringFormRegistration(registration, actions)
 

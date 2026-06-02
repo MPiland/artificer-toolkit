@@ -1,6 +1,6 @@
 import type {
   Meta,
-  StoryObj } from '@storybook/react-vite'
+  StoryObj } from '@storybook/tanstack-react'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormLayout,
@@ -110,6 +110,13 @@ const meta = {
 export default meta
 
 type Story = StoryObj<typeof meta>
+const ownedEquipment = ownedEquipmentResponseFixture.item
+const ownedVariantEquipment = ownedVariantEquipmentResponseFixture.item
+const masterEquipment = masterEquipmentResponseFixture.item
+
+if (!ownedEquipment || !ownedVariantEquipment || !masterEquipment) {
+  throw new Error('Expected equipment story fixture items.')
+}
 
 export const CreateBaseEquipment: Story = {
   args: {
@@ -119,20 +126,20 @@ export const CreateBaseEquipment: Story = {
 
 export const EditBaseEquipment: Story = {
   args: {
-    equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item)
+    equipment: toEquipmentFormValues(ownedEquipment)
   }
 }
 
 export const EditVariantEquipment: Story = {
   args: {
-    equipment: toEquipmentFormValues(ownedVariantEquipmentResponseFixture.item)
+    equipment: toEquipmentFormValues(ownedVariantEquipment)
   }
 }
 
 export const LockedMasterReadonly: Story = {
   args: {
     canCopy: true,
-    equipment: toEquipmentFormValues(masterEquipmentResponseFixture.item),
+    equipment: toEquipmentFormValues(masterEquipment),
     readOnly: true
   }
 }

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useMemo } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -32,6 +33,9 @@ type TestFormValues = {
   notes: string
   category: string | undefined
   features: Record<string, unknown>[]
+  options: Record<string, unknown>[]
+  proficiencies: Record<string, unknown>[]
+  startingEquipment?: Record<string, unknown>
   paths: Record<string, unknown>[]
   systemId: string
   userId?: string
@@ -81,6 +85,53 @@ const testFormDefaults: TestFormValues = {
   notes: '',
   category: undefined,
   features: [],
+  options: [
+    {
+      id: 'option-1',
+      label: 'Battle Trance',
+      description: 'Choose the battle trance benefit.',
+      order: 1,
+      effects: []
+    }
+  ],
+  proficiencies: [
+    {
+      id: 'proficiency-1',
+      order: 1,
+      grantKind: 'PROFICIENCY_GRANT'
+    }
+  ],
+  startingEquipment: {
+    id: 'starting-equipment-1',
+    sets: [
+      {
+        id: 'set-1',
+        order: 1,
+        groups: [
+          {
+            id: 'group-1',
+            order: 1,
+            options: [
+              {
+                id: 'option-1',
+                order: 1,
+                items: [
+                  {
+                    id: 'item-1',
+                    order: 1,
+                    startingEquipmentKind: 'EQUIPMENT',
+                    selectionKind: 'GRANTED',
+                    quantity: 1,
+                    authoringModeKind: 'ALL'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   grants: undefined,
   charges: undefined,
   restrictions: {
@@ -97,6 +148,76 @@ const testFormDefaults: TestFormValues = {
   ],
   systemId: 'system-1',
   userId: 'user-1'
+}
+
+const manifestBehaviorDefaults: TestFormValues = {
+  ...testFormDefaults,
+  effects: [
+    {
+      id: 'effect-manifest-1',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'ACTION', amount: 1 },
+        range: { rangeKind: 'SELF' }
+      },
+      paths: [
+        {
+          id: 'manifest-path-1',
+          order: 1,
+          pathCode: 'ON_USE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'manifest-result-1',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'manifest-outcome-1',
+                effectKind: 'MANIFEST',
+                manifestKind: 'ZONE',
+                label: 'Burning Aura',
+                behaviors: [
+                  {
+                    id: 'manifest-behavior-1',
+                    order: 1,
+                    invocation: {
+                      kind: 'ACTION',
+                      triggerCode: 'ACTIVATED',
+                      activation: { code: 'ACTION', amount: 1 },
+                      range: { rangeKind: 'SELF' }
+                    },
+                    paths: [
+                      {
+                        id: 'manifest-behavior-path-1',
+                        order: 1,
+                        pathCode: 'ON_USE',
+                        selectionKind: 'FIXED',
+                        resultBlock: {
+                          id: 'manifest-behavior-result-1',
+                          resultKind: 'SINGLE',
+                          outcomes: [
+                            {
+                              id: 'manifest-behavior-damage-1',
+                              effectKind: 'DAMAGE',
+                              valueKind: 'DICE',
+                              scalingKind: 'NONE',
+                              diceConfig: '1d4',
+                              damageTypeId: 'acid'
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
 }
 
 const resolvedModel = {
@@ -353,6 +474,87 @@ const grantsResolvedModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
+const optionRowsResolvedModel = {
+  ...resolvedModel,
+  steps: [
+    {
+      ...resolvedModel.steps[0],
+      sections: [
+        {
+          ...resolvedModel.steps[0].sections[0],
+          nodes: [
+            {
+              id: 'options',
+              path: ['options'],
+              label: 'Options',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'option',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const directGrantRowsResolvedModel = {
+  ...resolvedModel,
+  steps: [
+    {
+      ...resolvedModel.steps[0],
+      sections: [
+        {
+          ...resolvedModel.steps[0].sections[0],
+          nodes: [
+            {
+              id: 'proficiencies',
+              path: ['proficiencies'],
+              label: 'Proficiencies',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'proficiencyGrant',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const startingEquipmentResolvedModel = {
+  ...resolvedModel,
+  steps: [
+    {
+      ...resolvedModel.steps[0],
+      sections: [
+        {
+          ...resolvedModel.steps[0].sections[0],
+          nodes: [
+            {
+              id: 'startingEquipment',
+              path: ['startingEquipment'],
+              label: 'Starting Equipment',
+              kind: 'GROUP',
+              groupKind: 'OBJECT',
+              childMapId: 'startingEquipment',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
 const mechanicsResolvedModel = {
   ...resolvedModel,
   steps: [
@@ -425,6 +627,7 @@ const TestAuthoringRenderer = createAuthoringFormRenderer({
 function TestForm({
   canDelete = false,
   canSaveDraft = false,
+  defaultValues = testFormDefaults,
   hasActiveDraft = false,
   isDraft = false,
   mode = 'edit',
@@ -435,6 +638,7 @@ function TestForm({
 }: {
   canDelete?: boolean
   canSaveDraft?: boolean
+  defaultValues?: TestFormValues
   hasActiveDraft?: boolean
   isDraft?: boolean
   mode?: 'create' | 'view' | 'edit'
@@ -443,8 +647,10 @@ function TestForm({
   onSaveDraft?: () => void
   onSubmit?: (value: TestFormValues) => void
 }) {
+  const clonedDefaultValues = useMemo(() => structuredClone(defaultValues), [defaultValues])
+  const clonedModel = useMemo(() => structuredClone(model), [model])
   const form = useAppForm({
-    defaultValues: testFormDefaults,
+    defaultValues: clonedDefaultValues,
     onSubmit: async ({ value }) => onSubmit(value)
   })
 
@@ -458,7 +664,7 @@ function TestForm({
           isDraft={isDraft}
           form={form}
           mode={mode}
-          model={model}
+          model={clonedModel}
           onDelete={onDelete}
           onSaveDraft={onSaveDraft}
         />
@@ -651,15 +857,14 @@ describe('authoring form platform', () => {
     await user.click(screen.getByRole('button', { name: /edit on save failure/i }))
     await user.click(screen.getByRole('button', { name: /edit range override/i }))
 
-    const editorLocation = screen.getAllByRole('navigation', { name: /editor location/i }).at(-1)
-    expect(editorLocation).toHaveTextContent('Outcome Paths')
-    expect(editorLocation).toHaveTextContent('On Save Failure')
-    expect(editorLocation).toHaveTextContent('Range Override')
+    expect(screen.getByRole('heading', {
+      name: /outcome paths.*on save failure.*range override/i
+    })).toBeInTheDocument()
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it('renders effect-owned child groups inline inside the effect editor', async () => {
+  it('renders effect rows and outcome paths inline on the owning page', async () => {
     const user = userEvent.setup()
     const onSaveDraft = vi.fn()
 
@@ -672,24 +877,57 @@ describe('authoring form platform', () => {
     const saveDraftButton = screen.getByRole('button', { name: /save draft/i })
     expect(saveDraftButton).toBeDisabled()
 
-    await user.click(screen.getByRole('button', { name: /edit activated/i }))
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(screen.getByRole('button', { name: /^activated/i }))
 
-    expect(screen.getByRole('navigation', { name: /editor location/i })).toHaveTextContent('Effects')
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(screen.getByText('Failed: Damage')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit range override/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
+
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(await screen.findByRole('combobox', { name: /outcome path/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /selection model/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /outcome type/i })).toBeInTheDocument()
+
     await user.click(screen.getByRole('button', { name: /^range override$/i }))
 
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
     expect(screen.getByText('Outcomes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /result.*damage/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit damage/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove activation/i })).not.toBeInTheDocument()
     expect(saveDraftButton).toBeDisabled()
   })
 
-  it('removes effect-owned optional sections without closing the effect editor', async () => {
+  it('renders manifest behavior outcome paths inline inside the outcome editor', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestForm defaultValues={manifestBehaviorDefaults} model={effectResolvedModel} />
+      </TestRouterProvider>
+    )
+
+    await user.click(screen.getByRole('button', { name: /^activated/i }))
+    await user.click(screen.getByRole('button', { name: /^on use$/i }))
+    await user.click(screen.getByRole('button', { name: /edit burning aura/i }))
+
+    const outcomeEditor = within(getActiveEditorWorkspace())
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(outcomeEditor.getByRole('button', { name: /^behavior 1$/i }))
+    await user.click(outcomeEditor.getByRole('button', { name: /^on use$/i }))
+
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(await outcomeEditor.findByRole('combobox', { name: /behavior path/i })).toBeInTheDocument()
+    expect(outcomeEditor.getByRole('combobox', { name: /selection model/i })).toBeInTheDocument()
+    expect(outcomeEditor.getByRole('combobox', { name: /outcome type/i })).toBeInTheDocument()
+    expect(outcomeEditor.getAllByText('Outcomes').length).toBeGreaterThan(0)
+    expect(outcomeEditor.getByRole('button', { name: /edit damage/i })).toBeInTheDocument()
+  })
+
+  it('removes effect-owned optional sections without leaving the inline effect row', async () => {
     const user = userEvent.setup()
 
     render(
@@ -698,11 +936,11 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /edit activated/i }))
+    await user.click(screen.getByRole('button', { name: /^activated/i }))
     await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
-    await user.click(screen.getByRole('button', { name: /remove range override/i }))
+    await user.click(await screen.findByRole('button', { name: /remove range override/i }))
 
-    expect(screen.getByRole('navigation', { name: /editor location/i })).toHaveTextContent('Effects')
+    expect(screen.getByRole('button', { name: /^activated/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove range override/i })).not.toBeInTheDocument()
   })
@@ -740,6 +978,60 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('button', { name: /edit grants/i })).not.toBeInTheDocument()
   })
 
+  it('renders option rows inline instead of opening a separate editor first', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestForm model={optionRowsResolvedModel} />
+      </TestRouterProvider>
+    )
+
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(screen.getByRole('button', { name: /^battle trance$/i }))
+
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(await screen.findByRole('textbox', { name: /label/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit battle trance/i })).not.toBeInTheDocument()
+  })
+
+  it('renders direct grant arrays inline across authored domains', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestForm model={directGrantRowsResolvedModel} />
+      </TestRouterProvider>
+    )
+
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(screen.getByRole('button', { name: /^proficiency 1$/i }))
+
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(screen.queryByRole('button', { name: /edit proficiency 1/i })).not.toBeInTheDocument()
+  })
+
+  it('renders starting equipment rows inline on the owning step', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestForm model={startingEquipmentResolvedModel} />
+      </TestRouterProvider>
+    )
+
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(screen.getByRole('button', { name: /^starting equipment$/i }))
+    await user.click(await screen.findByRole('button', { name: /^set 1$/i }))
+
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(await screen.findByText('Group 1')).toBeInTheDocument()
+    expect(screen.getByText('Option 1')).toBeInTheDocument()
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^group 1$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit starting equipment/i })).not.toBeInTheDocument()
+  })
+
   it('resets only the current step fields', async () => {
     const user = userEvent.setup()
 
@@ -757,13 +1049,21 @@ describe('authoring form platform', () => {
     await user.type(nameInput, 'Fire Lace')
     expect(resetStepButton).toBeEnabled()
 
+    await user.click(screen.getByRole('button', { name: /^next$/i }))
+
+    expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reset step/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /^back$/i }))
+    expect(resetStepButton).toBeEnabled()
+
     await user.click(resetStepButton)
 
-    expect(nameInput).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: /name/i })).toHaveValue('')
     expect(resetStepButton).toBeDisabled()
   })
 
-  it('uses the header step list for direct step navigation', async () => {
+  it('uses the structure rail for direct step navigation', async () => {
     const user = userEvent.setup()
 
     render(
@@ -781,7 +1081,8 @@ describe('authoring form platform', () => {
     const saveDraftButton = screen.getByRole('button', { name: /save draft/i })
     const breadcrumb = screen.getByLabelText('Current section')
     expect(within(breadcrumb).queryByText('Edit')).not.toBeInTheDocument()
-    expect(within(breadcrumb).getByRole('navigation', { name: /test form steps/i })).toBeInTheDocument()
+    expect(within(breadcrumb).queryByRole('navigation', { name: /test form steps/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /test form steps/i })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^back$/i })).not.toBeInTheDocument()
@@ -826,3 +1127,15 @@ describe('authoring form platform', () => {
     })
   })
 })
+
+function getEditorWorkspaces() {
+  return screen.queryAllByRole('region').filter((region) => (
+    within(region).queryByRole('button', { name: /close editor/i }) != null
+  ))
+}
+
+function getActiveEditorWorkspace() {
+  const workspace = getEditorWorkspaces().at(-1)
+  if (!workspace) throw new Error('Expected an active editor workspace.')
+  return workspace
+}

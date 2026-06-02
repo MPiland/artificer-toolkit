@@ -10,7 +10,11 @@ export const root = style({
       'display': 'grid',
       'alignItems': 'center',
       'minHeight': '56px',
-      'borderTop': `1px solid ${foundationVars.color.border.strong}`
+      'border': `1px solid ${foundationVars.color.border.strong}`,
+      'borderRight': 0,
+      'borderBottom': 0,
+      'borderTopLeftRadius': foundationVars.radius.md,
+      'overflow': 'hidden'
     }
   }
 })
@@ -18,7 +22,7 @@ export const root = style({
 export const padded = style({
   '@layer': {
     [app]: {
-      'padding': `${foundationVars.space[2]} ${foundationVars.space[13]}`,
+      'padding': `${foundationVars.space[2]} ${foundationVars.space[3]}`,
       '@media': {
         [mobile]: {
           padding: foundationVars.space[4]
@@ -65,11 +69,11 @@ export const inner = style({
       'alignItems': 'center',
       'gap': foundationVars.space[3],
       'width': '100%',
-      'maxWidth': '900px',
+      'maxWidth': 'var(--at-authoring-action-max-width, none)',
       'marginInline': 'auto',
       '@media': {
         [mobile]: {
-          gridTemplateColumns: '1fr'
+          gridTemplateColumns: '1fr auto'
         }
       }
     }
@@ -79,8 +83,14 @@ export const inner = style({
 export const start = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      justifyContent: 'flex-start'
+      'display': 'flex',
+      'justifyContent': 'flex-start',
+      '@media': {
+        [mobile]: {
+          gridColumn: '1',
+          gridRow: '1'
+        }
+      }
     }
   }
 })
@@ -93,7 +103,9 @@ export const center = style({
       'gap': foundationVars.space[2],
       '@media': {
         [mobile]: {
-          justifyContent: 'stretch'
+          gridColumn: '1 / -1',
+          gridRow: '2',
+          justifyContent: 'flex-start'
         }
       }
     }
@@ -107,6 +119,8 @@ export const end = style({
       'justifyContent': 'flex-end',
       '@media': {
         [mobile]: {
+          gridColumn: '2',
+          gridRow: '1',
           justifyContent: 'stretch'
         }
       }

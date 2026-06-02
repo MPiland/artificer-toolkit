@@ -53,6 +53,7 @@ export const lizardfolk: CreatureAuthored = {
                     id: S.actionId(186, 4),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -75,6 +76,7 @@ export const lizardfolk: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(186, 6) + "__result",
@@ -105,6 +107,7 @@ export const lizardfolk: CreatureAuthored = {
                     id: S.actionId(186, 7),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -127,6 +130,7 @@ export const lizardfolk: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(186, 9) + "__result",
@@ -157,6 +161,7 @@ export const lizardfolk: CreatureAuthored = {
                     id: S.actionId(186, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -179,6 +184,7 @@ export const lizardfolk: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(186, 12) + "__result",
@@ -201,6 +207,7 @@ export const lizardfolk: CreatureAuthored = {
                     id: S.actionId(186, 16),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -221,6 +228,7 @@ export const lizardfolk: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(186, 18) + "__result",
@@ -251,6 +259,7 @@ export const lizardfolk: CreatureAuthored = {
                     id: S.actionId(186, 13),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -273,6 +282,7 @@ export const lizardfolk: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(186, 15) + "__result",

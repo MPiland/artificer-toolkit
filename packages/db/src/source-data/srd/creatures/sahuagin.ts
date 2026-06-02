@@ -73,6 +73,7 @@ export const sahuagin: CreatureAuthored = {
                     id: S.actionId(243, 7),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -95,6 +96,7 @@ export const sahuagin: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(243, 9) + "__result",
@@ -125,6 +127,7 @@ export const sahuagin: CreatureAuthored = {
                     id: S.actionId(243, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -147,6 +150,7 @@ export const sahuagin: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(243, 12) + "__result",
@@ -177,6 +181,7 @@ export const sahuagin: CreatureAuthored = {
                     id: S.actionId(243, 14),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -199,6 +204,7 @@ export const sahuagin: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(243, 16) + "__result",
@@ -229,6 +235,7 @@ export const sahuagin: CreatureAuthored = {
                     id: S.actionId(243, 18),
                     order: 3,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -249,6 +256,7 @@ export const sahuagin: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(243, 20) + "__result",

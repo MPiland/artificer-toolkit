@@ -64,6 +64,7 @@ export const erinyes: CreatureAuthored = {
                     id: S.actionId(98, 4),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(98, 5), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -74,6 +75,7 @@ export const erinyes: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(98, 6) + "__result",
@@ -100,6 +102,7 @@ export const erinyes: CreatureAuthored = {
                     id: S.actionId(98, 7),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(98, 8), rangeKind: S.RANGE_KIND.SPECIAL },
@@ -114,6 +117,7 @@ export const erinyes: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(98, 9) + "__result",
@@ -140,6 +144,7 @@ export const erinyes: CreatureAuthored = {
                     id: S.actionId(98, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -159,6 +164,7 @@ export const erinyes: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(98, 12) + "__result",
@@ -188,6 +194,7 @@ export const erinyes: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(98, 14) + "__result",
@@ -209,6 +216,7 @@ export const erinyes: CreatureAuthored = {
                             order: 3,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(98, 15) + "__result",
@@ -235,6 +243,7 @@ export const erinyes: CreatureAuthored = {
                     id: S.reactionId(98, 1),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.REACTION, amount: 1 },
                         range: { id: S.reactionId(98, 2), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -245,6 +254,7 @@ export const erinyes: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.reactionId(98, 3) + "__result",

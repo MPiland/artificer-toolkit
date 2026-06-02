@@ -24,6 +24,7 @@ export const compulsion: SpellAuthored = {
             id: spellChildId(SPELL_IDS.COMPULSION, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.COMPULSION, 0x214, 1),
@@ -51,6 +52,7 @@ export const compulsion: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.COMPULSION, 0x212, 1) + "__result",
@@ -73,6 +75,7 @@ export const compulsion: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.COMPULSION, 0x215, 1) + "__result",

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { fn } from 'storybook/test'
 import { SignInForm } from '../components'
 import { createMockAuthClient } from './authStories.utils'

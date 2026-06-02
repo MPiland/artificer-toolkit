@@ -1,7 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "incremental": true,
     "noEmit": true,
+    "tsBuildInfoFile": ".cache/tsc/typecheck.app.tsbuildinfo",
     "types": [
       "vite/client",
       "node"

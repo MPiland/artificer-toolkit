@@ -52,6 +52,7 @@ export const ochreJelly: CreatureAuthored = {
                     id: S.actionId(1864, 1),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -74,6 +75,7 @@ export const ochreJelly: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(1864, 3) + "__result",
@@ -103,6 +105,7 @@ export const ochreJelly: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(1864, 5) + "__result",
@@ -133,6 +136,7 @@ export const ochreJelly: CreatureAuthored = {
                     id: S.reactionId(1864, 1),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.REACTION,
@@ -149,6 +153,7 @@ export const ochreJelly: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.reactionId(1864, 3) + "__result",

@@ -17,6 +17,7 @@ export const freezingSphere: SpellAuthored = {
             id: spellChildId(SPELL_IDS.FREEZING_SPHERE, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.FREEZING_SPHERE, 0x211, 1),
@@ -52,6 +53,7 @@ export const freezingSphere: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FREEZING_SPHERE, 0x214, 1) + "__result",
@@ -73,6 +75,7 @@ export const freezingSphere: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FREEZING_SPHERE, 0x215, 1) + "__result",

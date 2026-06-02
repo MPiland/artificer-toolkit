@@ -5,7 +5,6 @@ import {
   authoringModeKindSchema,
   authoringSelectionKindSchema,
   scalingKindSchema,
-  scalingSourceSchema
 } from '../shared/enums.js'
 
 export const staticGrantBaseDtoSchema = z.object({

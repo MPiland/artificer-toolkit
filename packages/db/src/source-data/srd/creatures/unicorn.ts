@@ -78,6 +78,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.actionId(276, 2),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -100,6 +101,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(276, 9) + "__result",
@@ -138,6 +140,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.actionId(276, 3),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -160,6 +163,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(276, 12) + "__result",
@@ -206,6 +210,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.actionId(276, 4),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -226,6 +231,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(276, 16) + "__result",
@@ -263,6 +269,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.actionId(276, 5),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -279,6 +286,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(276, 19) + "__result",
@@ -315,6 +323,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.legendaryActionId(276, 2),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -336,6 +345,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(276, 5) + "__result",
@@ -366,6 +376,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.legendaryActionId(276, 6),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -381,6 +392,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(276, 8) + "__result",
@@ -422,6 +434,7 @@ export const unicorn: CreatureAuthored = {
                     id: S.legendaryActionId(276, 9),
                     order: 3,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: {
                             code: S.ACTIVATION_CODE.FREE
@@ -437,6 +450,7 @@ export const unicorn: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(276, 11) + "__result",

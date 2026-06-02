@@ -319,14 +319,14 @@ const facetConditionSchema: z.ZodTypeAny = z.union([
 const facetBodyGroupSchema: z.ZodTypeAny = z.object({
   id: z.string(),
   order: z.number(),
-  conditions: z.array(facetConditionSchema)
+  conditions: z.array(facetConditionSchema).optional()
 })
 
 const facetContextSchema: z.ZodTypeAny = z.object({
   id: z.string(),
   order: z.number(),
   subject: nodeSubjectCodeSchema,
-  conditions: z.array(facetConditionSchema)
+  conditions: z.array(facetConditionSchema).optional()
 }).and(subjectSelectionSchema.partial({
   authoringModeKind: true
 }))

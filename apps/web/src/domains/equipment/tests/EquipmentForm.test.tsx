@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -26,7 +26,7 @@ const variantRuntimeFixture = {
   steps: equipmentRuntimeFixture.steps.filter((step) => step.id !== 'contents')
 }
 
-const modalRuntimeFixture = {
+const focusedWorkspaceRuntimeFixture = {
   mapId: 'equipment',
   clearPaths: [],
   steps: [
@@ -60,7 +60,7 @@ describe('EquipmentAuthoringRenderer', () => {
 
     expect(screen.getByText(/locked for direct editing/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /duplicate to edit/i })).toBeEnabled()
-    expect(screen.getByRole('textbox', { name: /category/i })).toHaveAttribute('readonly')
+    expect(screen.getByRole('combobox', { name: /category/i })).toHaveAttribute('readonly')
   })
 
   it('uses variant flow without inventory and contents steps', async () => {
@@ -77,47 +77,49 @@ describe('EquipmentAuthoringRenderer', () => {
 
     await user.click(screen.getByRole('button', { name: /next/i }))
 
-    expect(screen.getByRole('heading', { level: 2, name: /cost and weight/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /cost and weight/i })).toBeInTheDocument()
   })
 
-  it('edits object groups through the shared modal renderer', async () => {
+  it('edits object groups through the shared focused workspace renderer', async () => {
     const user = userEvent.setup()
 
     renderEquipmentAuthoringHarness({
       equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item!),
-      model: modalRuntimeFixture,
+      model: focusedWorkspaceRuntimeFixture,
       readOnly: false
     })
 
     await user.click(screen.getByRole('button', { name: /edit weight/i }))
-    const amountField = await screen.findByLabelText(/amount/i)
+    const weightWorkspace = within(await screen.findByRole('region', { name: /equipment .* weight/i }))
+    const amountField = await weightWorkspace.findByLabelText(/amount/i)
     await user.clear(amountField)
     await user.type(amountField, '22')
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(weightWorkspace.getByRole('button', { name: /close editor/i }))
     await user.click(screen.getByRole('button', { name: /edit weight/i }))
 
     expect(await screen.findByLabelText(/amount/i)).toHaveValue('22')
   })
 
-  it('adds and removes array groups through TanStack array fields', async () => {
+  it('adds and removes array groups through TanStack array fields in the focused workspace', async () => {
     const user = userEvent.setup()
 
     renderEquipmentAuthoringHarness({
       equipment: toEquipmentFormValues(ownedEquipmentResponseFixture.item!),
-      model: modalRuntimeFixture,
+      model: focusedWorkspaceRuntimeFixture,
       readOnly: false
     })
 
-    await user.click(screen.getByRole('button', { name: /add features/i }))
-    expect(screen.getByRole('heading', { level: 2, name: /features/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /add feature/i }))
+    const featureWorkspace = within(await screen.findByRole('region', { name: /equipment .* features .* feature 2/i }))
+    expect(featureWorkspace.getByRole('heading', { level: 2, name: /features/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    await user.click(featureWorkspace.getByRole('button', { name: /close editor/i }))
 
-    expect(screen.getByRole('button', { name: /edit features 2/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit feature 2/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /remove features 2/i }))
+    await user.click(screen.getByRole('button', { name: /remove feature 2/i }))
 
-    expect(screen.queryByRole('button', { name: /edit features 2/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit feature 2/i })).not.toBeInTheDocument()
   })
 })
 

@@ -12,6 +12,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             id: S.equipmentChildId(S.equipId(120), 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
                 activation: {
                     code: S.ACTIVATION_CODE.ACTION,
@@ -32,6 +33,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                     order: 1,
                     pathCode: S.PATH_CODE.ON_HIT,
                     groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: S.equipmentChildId(S.equipId(120), 0x212, 1) + "__result",
@@ -53,6 +55,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                     order: 2,
                     pathCode: S.PATH_CODE.ON_HIT,
                     groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: S.equipmentChildId(S.equipId(120), 0x213, 1) + "__result",
@@ -70,6 +73,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                     order: 3,
                     pathCode: S.PATH_CODE.ON_MISS,
                     groupType: S.PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: S.equipmentChildId(S.equipId(120), 0x214, 1) + "__result",

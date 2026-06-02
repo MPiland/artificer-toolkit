@@ -78,6 +78,7 @@ export const drider: CreatureAuthored = {
                     id: S.actionId(87, 4),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -100,6 +101,7 @@ export const drider: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(87, 6) + "__result",
@@ -121,6 +123,7 @@ export const drider: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(87, 7) + "__result",
@@ -151,6 +154,7 @@ export const drider: CreatureAuthored = {
                     id: S.actionId(87, 8),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -173,11 +177,14 @@ export const drider: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.CHOICE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "CHOICE" as const,
                             options: [
                                 {
                                     id: S.actionId(87, 10),
                                     order: 1,
+                                    label: 'One-Handed',
+                                    description: 'The drider deals 1d8 + 3 slashing damage.',
                                     resultBlock: {
                                         id: S.actionId(87, 10) + "__result",
                                         resultKind: "SINGLE" as const,
@@ -200,11 +207,14 @@ export const drider: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.CHOICE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "CHOICE" as const,
                             options: [
                                 {
                                     id: S.actionId(87, 11),
                                     order: 1,
+                                    label: 'Two-Handed',
+                                    description: 'The drider deals 1d10 + 3 slashing damage when using the longsword with two hands.',
                                     resultBlock: {
                                         id: S.actionId(87, 11) + "__result",
                                         resultKind: "SINGLE" as const,
@@ -236,6 +246,7 @@ export const drider: CreatureAuthored = {
                     id: S.actionId(87, 12),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -258,6 +269,7 @@ export const drider: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(87, 14) + "__result",
@@ -279,6 +291,7 @@ export const drider: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(87, 15) + "__result",

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { screen, within } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type {
   BackgroundAuthoringInputDto,
@@ -117,14 +117,11 @@ describe('Background authoring renderer', () => {
     )
 
     await user.click(screen.getByRole('button', { name: /next/i }))
-    await user.click(screen.getByRole('button', { name: /add details/i }))
+    await user.click(screen.getByRole('button', { name: /add detail/i }))
 
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getAllByRole('heading', { name: /^details$/i }).length).toBeGreaterThan(0)
-    await user.type(within(dialog).getByRole('textbox', { name: /name/i }), 'Local Friend')
-    await user.type(within(dialog).getByRole('textbox', { name: /description/i }), 'Someone nearby owes you a favor.')
-    await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
+    const detailNameFields = screen.getAllByRole('textbox', { name: /name/i })
+    await user.type(detailNameFields[detailNameFields.length - 1], 'Local Friend')
 
-    expect(screen.getByRole('button', { name: /edit details 1/i })).toBeInTheDocument()
+    expect(detailNameFields[detailNameFields.length - 1]).toHaveValue('Local Friend')
   }, 10000)
 })

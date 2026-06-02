@@ -16,6 +16,7 @@ export const acidSplash: SpellAuthored = {
             id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x214, 1),
@@ -44,6 +45,7 @@ export const acidSplash: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x212, 1) + "__result",

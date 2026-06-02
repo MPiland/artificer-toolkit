@@ -125,7 +125,7 @@ export function AuthoredDetailLayout({
                             disabled={actionsDisabled || action.disabled}
                             loading={action.loading}
                             size='sm'
-                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : action.tone === 'danger' ? 'default' : 'light'}
+                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : 'light'}
                             onClick={action.onClick}
                           >
                             {action.label}
@@ -160,7 +160,7 @@ export function AuthoredDetailLayout({
                       disabled={actionsDisabled || notice.action.disabled}
                       loading={notice.action.loading}
                       size='sm'
-                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : notice.action.tone === 'danger' ? 'default' : 'light'}
+                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : 'light'}
                       onClick={notice.action.onClick}
                     >
                       {notice.action.label}

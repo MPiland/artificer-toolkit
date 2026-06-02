@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "node_modules/**",
+    ".yarn/**",
+    ".codex/**",
+    ".agents/**",
+    ".claude/**",
+    ".cursor/**",
+    "dist/**",
+    "dist-ssr/**",
+    "storybook-static/**",
+    "apps/**/dist/**",
+    "apps/**/storybook-static/**",
+    "test-results/**",
+    "playwright-report/**",
+    "**/*.d.ts",
+    "**/routeTree.gen.ts"
+  ],
+  "printWidth": 100,
+  "semi": false,
+  "singleQuote": true,
+  "jsxSingleQuote": true,
+  "trailingComma": "none"
+}

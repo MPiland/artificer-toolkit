@@ -4,6 +4,7 @@ import * as styles from './AuthoringActionBar.css'
 
 type AuthoringActionBarProps = {
   center?: ReactNode
+  className?: string
   end?: ReactNode
   padding?: 'flush' | 'padded'
   start?: ReactNode
@@ -12,6 +13,7 @@ type AuthoringActionBarProps = {
 
 export function AuthoringActionBar({
   center,
+  className,
   end,
   padding = 'flush',
   start,
@@ -22,7 +24,8 @@ export function AuthoringActionBar({
       className={clsx(
         styles.root,
         padding === 'padded' ? styles.padded : styles.flush,
-        surface === 'header' ? styles.headerSurface : styles.canvasSurface
+        surface === 'header' ? styles.headerSurface : styles.canvasSurface,
+        className
       )}
       data-testid='authoring-action-bar'
     >

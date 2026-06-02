@@ -1,1 +1,0 @@
-export { FullscreenModal } from './Modal'

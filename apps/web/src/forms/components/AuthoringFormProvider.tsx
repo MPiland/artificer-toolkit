@@ -23,6 +23,7 @@ const DEFAULT_SESSION: AuthoringFormSessionState = {
   cancelLabel: 'Cancel',
   deleteLabel: 'Delete',
   hasChanges: false,
+  hasStepChanges: false,
   hasActiveDraft: false,
   isDraft: false,
   isLastStep: true,
@@ -183,6 +184,7 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     && left.deleteLabel === right.deleteLabel
     && left.fieldPathPrefix === right.fieldPathPrefix
     && left.hasChanges === right.hasChanges
+    && left.hasStepChanges === right.hasStepChanges
     && left.hasActiveDraft === right.hasActiveDraft
     && left.isDraft === right.isDraft
     && left.isLastStep === right.isLastStep

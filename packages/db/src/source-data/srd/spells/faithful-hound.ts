@@ -17,6 +17,7 @@ export const faithfulHound: SpellAuthored = {
             id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.ACTIVATED,
                 activation: {
                     code: ACTIVATION_CODE.ACTION,
@@ -39,6 +40,7 @@ export const faithfulHound: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_USE,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x212, 1) + "__result",
@@ -58,6 +60,7 @@ export const faithfulHound: SpellAuthored = {
                                         id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x214, 1),
                                         order: 1,
                                         invocation: {
+                                            kind: 'ACTION' as const,
                                             triggerCode: TRIGGER.ENTER_AREA,
                                             activation: {
                                                 code: ACTIVATION_CODE.FREE
@@ -77,6 +80,7 @@ export const faithfulHound: SpellAuthored = {
                                                 order: 1,
                                                 pathCode: PATH_CODE.PASSIVE,
                                                 groupType: PATH_GROUP_TYPE.SINGLE,
+                                                originKind: 'SOURCE' as const,
                                                 selectionKind: "FIXED" as const,
                                                 resultBlock: {
                                                     id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x216, 1) + "__result",

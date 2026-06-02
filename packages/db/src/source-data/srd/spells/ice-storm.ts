@@ -17,6 +17,7 @@ export const iceStorm: SpellAuthored = {
             id: spellChildId(SPELL_IDS.ICE_STORM, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1),
@@ -56,6 +57,7 @@ export const iceStorm: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.ICE_STORM, 0x213, 1) + "__result",
@@ -77,6 +79,7 @@ export const iceStorm: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.ICE_STORM, 0x214, 1) + "__result",

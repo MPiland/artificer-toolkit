@@ -57,6 +57,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 10),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(22, 11), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -67,6 +68,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 12) + "__result",
@@ -93,6 +95,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 13),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -112,6 +115,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 15) + "__result",
@@ -150,6 +154,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 17),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -169,6 +174,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 19) + "__result",
@@ -207,6 +213,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 21),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -226,6 +233,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_HIT,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 23) + "__result",
@@ -264,6 +272,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 25),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: {
@@ -279,6 +288,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 27) + "__result",
@@ -305,6 +315,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 28),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(22, 29), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -315,6 +326,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 30) + "__result",
@@ -341,6 +353,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 31),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(22, 32),
@@ -357,6 +370,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 34) + "__result",
@@ -378,6 +392,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 2,
                             pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 35) + "__result",
@@ -409,6 +424,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 36),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(22, 37),
@@ -425,6 +441,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_SAVE_FAIL,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 39) + "__result",
@@ -451,6 +468,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.actionId(22, 40),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
                         range: { id: S.actionId(22, 41), rangeKind: S.RANGE_KIND.SELF }
@@ -461,6 +479,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.actionId(22, 42) + "__result",
@@ -495,6 +514,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.legendaryActionId(22, 22),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.FREE },
                         range: { id: S.legendaryActionId(22, 23), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -505,6 +525,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(22, 24) + "__result",
@@ -523,6 +544,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.legendaryActionId(22, 25),
                     order: 2,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.FREE },
                         range: { id: S.legendaryActionId(22, 26), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -533,6 +555,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(22, 27) + "__result",
@@ -551,6 +574,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                     id: S.legendaryActionId(22, 28),
                     order: 3,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: S.TRIGGER.ACTIVATED,
                         activation: { code: S.ACTIVATION_CODE.FREE },
                         range: { id: S.legendaryActionId(22, 29), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -561,6 +585,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                             order: 1,
                             pathCode: S.PATH_CODE.ON_USE,
                             groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: S.legendaryActionId(22, 30) + "__result",

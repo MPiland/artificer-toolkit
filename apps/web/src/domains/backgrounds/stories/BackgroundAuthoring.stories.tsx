@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Decorator, StoryObj } from '@storybook/tanstack-react'
 import type {
   BackgroundAuthoringInputDto,
   BackgroundAuthoredDto
@@ -44,8 +44,9 @@ function BackgroundAuthoringStoryContent({
   initialBackground,
   readOnly
 }: Required<BackgroundAuthoringStoryProps>) {
+  const background = normalizeBackgroundForSubmit(initialBackground)
   const form = useAppForm({
-    defaultValues: initialBackground,
+    defaultValues: background,
     onSubmit: async ({ value }) => {
       normalizeBackgroundForSubmit(value)
     }
@@ -61,11 +62,11 @@ function BackgroundAuthoringStoryContent({
     resolveModel: false,
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Background',
-    subjectLabel: initialBackground.label || 'Untitled Background',
-    systemId: initialBackground.systemId
+    subjectLabel: background.label || 'Untitled Background',
+    systemId: background.systemId
   }), [
-    initialBackground.label,
-    initialBackground.systemId,
+    background.label,
+    background.systemId,
     readOnly
   ])
   const actions = useMemo<AuthoringFormActionHandlers>(() => ({
@@ -89,6 +90,12 @@ function BackgroundAuthoringStoryContent({
   )
 }
 
+const authoringCanvasDecorator: Decorator = (Story) => (
+  <div className={authoringFormStoryCanvas}>
+    <Story />
+  </div>
+)
+
 const meta = {
   title: 'Domains/Backgrounds/Authoring',
   component: BackgroundAuthoringStory,
@@ -99,18 +106,12 @@ const meta = {
       }
     }
   },
-  decorators: [
-    (Story) => (
-      <div className={authoringFormStoryCanvas}>
-        <Story />
-      </div>
-    )
-  ]
-} satisfies Meta<typeof BackgroundAuthoringStory>
+  decorators: [authoringCanvasDecorator]
+}
 
 export default meta
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<BackgroundAuthoringStoryProps>
 
 export const Create: Story = {}
 

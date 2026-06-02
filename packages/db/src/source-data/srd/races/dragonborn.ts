@@ -52,6 +52,7 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
                     id: ancestryFeatureId(optionIndex, 3),
                     order: 1,
                     invocation: {
+                        kind: 'ACTION' as const,
                         triggerCode: TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: ancestryFeatureId(optionIndex, 4),
@@ -106,6 +107,7 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
                             order: 1,
                             pathCode: PATH_CODE.ON_SAVE_FAIL,
                             groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: ancestryFeatureId(optionIndex, 7) + "__result",
@@ -133,6 +135,7 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
                             order: 2,
                             pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                             groupType: PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
                             selectionKind: "FIXED" as const,
                             resultBlock: {
                                 id: ancestryFeatureId(optionIndex, 12) + "__result",

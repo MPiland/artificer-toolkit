@@ -2,23 +2,24 @@
 name: Artificer Toolkit
 description: Playful tabletop RPG authoring and reliable play support across desktop and mobile.
 colors:
-  primary: "#0891b2"
-  primary-hover: "#0ea5c5"
-  primary-deep: "#0e7490"
-  primary-dark: "#0ea5c5"
-  secondary-accent: "#4f46e5"
+  primary: "#ec6a06"
+  primary-hover: "#f97316"
+  primary-deep: "#c95704"
+  primary-dark: "#ec6a06"
+  secondary-accent: "#0891b2"
+  warm-accent: "#ec6a06"
   text-strong: "#151b20"
   text-muted: "#55626d"
   border-subtle: "#d7dbe4"
-  surface-canvas-light: "#f3f4f6"
+  surface-canvas-light: "#f7f9fb"
   surface-panel-light: "#ffffff"
-  surface-subtle-light: "#ebedf2"
-  surface-canvas-dark: "#0d1117"
-  surface-panel-dark: "#17202a"
-  surface-subtle-dark: "#171d22"
+  surface-subtle-light: "#eef2f6"
+  surface-canvas-dark: "#0a0f0e"
+  surface-panel-dark: "#171d1c"
+  surface-subtle-dark: "#1b2120"
   success: "#2f9b63"
-  warning: "#b7822e"
-  danger: "#ea6846"
+  warning: "#8a5a00"
+  danger: "#c15336"
 typography:
   display:
     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif"
@@ -106,11 +107,11 @@ components:
 
 ## Overview
 
-**Creative North Star: "Playful Creation, Reliable Play"**
+**Creative North Star: "Forge Clarity, Reliable Play"**
 
 Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.
 
-The visual language is structured, but not monotonous. A cyan-led accent system gives the product a recognizable identity, while selective secondary color, lively icons, tactile empty states, and small feedback moments keep the app from feeling sterile. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
+The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
 
 This system explicitly rejects the anti-references captured in [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
 
@@ -124,29 +125,30 @@ This system explicitly rejects the anti-references captured in [PRODUCT.md](/c:/
 
 ## Colors
 
-The palette is identity-led and task-aware. Cyan carries the main brand signal, indigo is reserved for selective emphasis, and the bulk of dense authoring remains built from slightly cooled neutrals rather than blank black-and-white contrast. The app should not be monochrome by habit: use controlled accent moments to make creation feel alive, especially in onboarding, empty states, progress cues, domain headers, and playful feedback.
+The palette is identity-led and task-aware. Black Forge uses near-black canvas and charcoal panels; White Forge uses white, cool gray, and crisp ink. Forge Orange is the main brand/action color for primary CTAs, active creation states, draft/progress moments, and dice/data highlights. Teal is secondary and functional: focus rings, technical selection, and supportive navigation. Purple stays rare for arcane emphasis. The app should not become blue-on-blue or monochrome by habit: use controlled accent moments to make creation feel alive, especially in onboarding, empty states, progress cues, domain headers, and playful feedback.
 
 ### Primary
-- **Workshop Cyan** (`#0891b2`): The main action and orientation color in light mode. Use it for primary buttons, active emphasis, selected borders, and the strongest navigational cues.
-- **Lifted Cyan** (`#0ea5c5`): The hover and active-lift state for primary actions. It adds movement without changing the character of the interface.
-- **Deep Cyan** (`#0e7490`): The pressed or structural anchor for primary actions and accent borders when a sharper edge is needed.
+- **Forge Orange** (`#ec6a06`): The main action and brand color. Use it for primary buttons, active authoring states, progress/craft moments, and high-value data highlights.
+- **Lifted Orange** (`#f97316`): The hover and active-lift state for primary actions. It adds warmth without turning the workspace into a warning surface.
+- **Deep Orange** (`#c95704`): The pressed or structural anchor for primary actions and accent borders when a sharper edge is needed.
 
 ### Secondary
-- **Signal Indigo** (`#4f46e5`): Reserved for selected-state accents, completion states, and small pockets of alternate emphasis. This is not a co-primary.
+- **Workshop Teal** (`#0891b2`): Reserved for focus, technical selection, secondary navigation, and precision states. This is not the general CTA color.
+- **Arcane Purple** (`#8b5cf6`): Reserved for rare magic-adjacent emphasis and special states. This is not a co-primary.
 
 ### Neutral
 - **Slate Ink** (`#151b20`): Primary text on light surfaces.
 - **Steel Copy** (`#55626d`): Secondary text, body support copy, and quiet inline actions.
 - **Mist Border** (`#d7dbe4`): Default light-theme borders and separators.
-- **Paper Canvas** (`#f3f4f6`): Light-theme page canvas.
+- **Paper Canvas** (`#f7f9fb`): Light-theme page canvas.
 - **Panel White** (`#ffffff`): Light-theme cards, forms, and raised working surfaces.
-- **Frost Surface** (`#ebedf2`): Light-theme headers, sidebars, and subtle framing bands.
-- **Night Canvas** (`#0d1117`): Dark-theme page canvas.
-- **Forge Panel** (`#17202a`): Dark-theme card and shell surface.
-- **Night Header** (`#171d22`): Dark-theme header and framing band.
+- **Frost Surface** (`#eef2f6`): Light-theme headers, sidebars, and subtle framing bands.
+- **Night Canvas** (`#0a0f0e`): Dark-theme page canvas.
+- **Forge Panel** (`#171d1c`): Dark-theme card and shell surface.
+- **Night Header** (`#0f1413`): Dark-theme header and framing band.
 
 ### Named Rules
-**The Purposeful Accent Rule.** Cyan is the primary directional signal, not wallpaper. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.
+**The Purposeful Accent Rule.** Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.
 
 **The Dual-Surface Rule.** Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.
 
@@ -190,13 +192,13 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 
 ### Buttons
 - **Shape:** Softly rounded, not pillowy (`8px` default, `12px` on certain auth CTAs).
-- **Primary:** Cyan fill with strong contrast text, `40px` tall, medium-to-bold text, compact horizontal padding (`20px`). This is for the main task on a surface, not every action in sight.
-- **Hover / Focus:** Hover moves to lifted cyan. Focus uses the cyan halo, never a browser-default mismatch.
+- **Primary:** Orange fill with strong contrast text, `40px` tall, medium-to-bold text, compact horizontal padding (`20px`). This is for the main task on a surface, not every action in sight.
+- **Hover / Focus:** Hover moves to lifted orange. Focus uses the teal halo, never a browser-default mismatch.
 - **Secondary / Ghost:** Secondary actions prefer bordered neutrals with restrained text. Use them to support the primary path, not compete with it.
 - **Reward Moments:** Completion buttons and first-run calls to action may use slightly more expressive copy or icon support when it helps the action feel satisfying.
 
 ### Chips
-- **Style:** Accent chips and badges use soft cyan backgrounds with cyan borders and compact text. They read as state or filtering aids, not as decorative pills.
+- **Style:** Accent chips and badges use soft orange or teal backgrounds with matching borders and compact text. Orange marks craft, draft, and primary action states; teal marks technical focus or precision states.
 - **State:** Active chips get clearer background and border contrast. Inactive chips stay quiet.
 
 ### Cards / Containers
@@ -208,12 +210,12 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 
 ### Inputs / Fields
 - **Style:** Inputs are neutral fields with a clear stroke, quiet background, and `8px` radius.
-- **Focus:** Focus is a border shift to cyan plus the focus halo. Visibility matters more than cleverness.
+- **Focus:** Focus is a border shift to teal plus the focus halo. Visibility matters more than cleverness.
 - **Error / Disabled:** Error borders move warm, disabled fields flatten toward the surface.
 
 ### Navigation
 - **Style:** Navigation items are compact framed pills with an icon tile, strong label, quieter description, and explicit active fill.
-- **Active State:** Active items use cyan-tinted background plus border emphasis. Hover uses a lighter cyan tint instead of inventing a separate visual language.
+- **Active State:** Active authoring items use orange-tinted background plus border emphasis. Technical or secondary navigation may use teal when the state is about focus rather than action.
 - **Mobile Treatment:** Mobile keeps the same structure inside drawers or compact menus. It is the same system, not a reduced afterthought.
 
 ### Empty / First-Run States
@@ -228,7 +230,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 
 ### Theme Toggle
 - **Style:** Circular `40px` control with panel fill, subtle border, and card shadow.
-- **State:** Dark-mode active state uses soft cyan fill plus accent border so the mode feels chosen, not merely switched.
+- **State:** Dark-mode active state uses a soft accent fill plus border so the mode feels chosen, not merely switched.
 
 ### Mantine-First Implementation
 - **Default:** Use Mantine components where they provide accessible behavior, keyboard support, focus management, or cross-browser interaction patterns out of the box.
@@ -240,7 +242,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 
 ### Do:
 - **Do** make authored screens feel creative and approachable, with enough structure to stay readable.
-- **Do** use cyan for action, focus, and state, and use selective secondary accents for domain identity or progress where helpful.
+- **Do** use orange for primary action and craft momentum, teal for focus and technical state, and selective secondary accents for domain identity or progress where helpful.
 - **Do** preserve the same information hierarchy across light and dark themes.
 - **Do** use framed surfaces only when they clarify structure or interaction.
 - **Do** make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.

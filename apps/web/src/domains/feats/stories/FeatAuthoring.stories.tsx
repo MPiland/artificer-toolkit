@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Decorator, StoryObj } from '@storybook/tanstack-react'
 import type {
   FeatAuthoringInputDto,
   FeatAuthoredDto
@@ -44,8 +44,9 @@ function FeatAuthoringStoryContent({
   initialFeat,
   readOnly
 }: Required<FeatAuthoringStoryProps>) {
+  const feat = normalizeFeatForSubmit(initialFeat)
   const form = useAppForm({
-    defaultValues: initialFeat,
+    defaultValues: feat,
     onSubmit: async ({ value }) => {
       normalizeFeatForSubmit(value)
     }
@@ -61,11 +62,11 @@ function FeatAuthoringStoryContent({
     resolveModel: false,
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Feat',
-    subjectLabel: initialFeat.label || 'Untitled Feat',
-    systemId: initialFeat.systemId
+    subjectLabel: feat.label || 'Untitled Feat',
+    systemId: feat.systemId
   }), [
-    initialFeat.label,
-    initialFeat.systemId,
+    feat.label,
+    feat.systemId,
     readOnly
   ])
   const actions = useMemo<AuthoringFormActionHandlers>(() => ({
@@ -89,6 +90,12 @@ function FeatAuthoringStoryContent({
   )
 }
 
+const authoringCanvasDecorator: Decorator = (Story) => (
+  <div className={authoringFormStoryCanvas}>
+    <Story />
+  </div>
+)
+
 const meta = {
   title: 'Domains/Feats/Authoring',
   component: FeatAuthoringStory,
@@ -99,18 +106,12 @@ const meta = {
       }
     }
   },
-  decorators: [
-    (Story) => (
-      <div className={authoringFormStoryCanvas}>
-        <Story />
-      </div>
-    )
-  ]
-} satisfies Meta<typeof FeatAuthoringStory>
+  decorators: [authoringCanvasDecorator]
+}
 
 export default meta
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<FeatAuthoringStoryProps>
 
 export const Create: Story = {}
 

@@ -14,6 +14,7 @@ import { useFieldContext } from '../app-form/AppForm.context'
 import {
   getFieldError,
   toInputValue,
+  uniqueSelectOptions,
   type SelectOption
 } from '../utils/formUtils'
 
@@ -147,7 +148,7 @@ export function SelectField({
       description={description}
       placeholder={placeholder}
       required={required}
-      data={data}
+      data={uniqueSelectOptions(data)}
       name={field.name}
       value={field.state.value ?? null}
       error={getFieldError(field)}
@@ -177,7 +178,7 @@ export function MultiSelectField({
       description={description}
       placeholder={placeholder}
       required={required}
-      data={data}
+      data={uniqueSelectOptions(data)}
       name={field.name}
       value={field.state.value ?? []}
       error={getFieldError(field)}

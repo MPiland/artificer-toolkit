@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Button, SimpleGrid, Stack, Text } from '@mantine/core'
 import { AppShellFrame, PageHeader } from './AppShellFrame'
 import { storybookNavigation } from './navigation'

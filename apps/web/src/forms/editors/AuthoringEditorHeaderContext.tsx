@@ -8,6 +8,7 @@ type AuthoringEditorHeaderContextValue = {
 export type AuthoringEditorFooterState = {
   canGoBack: boolean
   canGoNext: boolean
+  hasStepChanges: boolean
   onNext: () => void
   onPrevious: () => void
   onResetStep: () => void

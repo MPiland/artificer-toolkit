@@ -1,0 +1,533 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Tail Sweep - Action Editor | Black Forge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#353a39",
+                        "on-primary-fixed-variant": "#005049",
+                        "surface-container-highest": "#303635",
+                        "background": "#0f1413",
+                        "on-tertiary": "#3f008e",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#00201d",
+                        "secondary": "#ffb690",
+                        "tertiary-fixed-dim": "#d2bbff",
+                        "secondary-container": "#ec6a06",
+                        "surface-container-low": "#171d1c",
+                        "primary-fixed": "#89f5e7",
+                        "on-tertiary-fixed-variant": "#5a00c6",
+                        "on-tertiary-container": "#36007d",
+                        "secondary-fixed": "#ffdbca",
+                        "outline": "#879391",
+                        "on-secondary-fixed": "#341100",
+                        "inverse-primary": "#006a61",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#00302b",
+                        "on-primary": "#003732",
+                        "on-surface": "#dee4e1",
+                        "on-secondary-container": "#4a1c00",
+                        "tertiary": "#d2bbff",
+                        "surface-container-high": "#262b2a",
+                        "on-secondary-fixed-variant": "#783200",
+                        "on-error-container": "#ffdad6",
+                        "surface-variant": "#303635",
+                        "tertiary-fixed": "#eaddff",
+                        "on-error": "#690005",
+                        "surface-container": "#1b2120",
+                        "on-background": "#dee4e1",
+                        "surface-tint": "#6bd8cb",
+                        "surface": "#0f1413",
+                        "on-tertiary-fixed": "#25005a",
+                        "primary-container": "#29a195",
+                        "secondary-fixed-dim": "#ffb690",
+                        "inverse-on-surface": "#2c3130",
+                        "tertiary-container": "#a476ff",
+                        "on-secondary": "#552100",
+                        "outline-variant": "#3d4947",
+                        "surface-container-lowest": "#0a0f0e",
+                        "primary": "#ec6a06",
+                        "on-surface-variant": "#bcc9c6",
+                        "inverse-surface": "#dee4e1",
+                        "surface-dim": "#0f1413",
+                        "brand-orange": "#ec6a06"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "0.5rem",
+                        "sidebar_width": "280px",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "xs": "0.25rem",
+                        "inspector_width": "340px",
+                        "lg": "1.5rem",
+                        "gutter": "1px"
+                    },
+                    "fontFamily": {
+                        "code-sm": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "display": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-sm": ["16px", {"lineHeight": "1.5", "fontWeight": "600"}],
+                        "display": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0f0e; }
+        ::-webkit-scrollbar-thumb { background: #3d4947; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #879391; }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen flex flex-col overflow-hidden antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface-container-low text-on-surface flex justify-between items-center w-full px-md h-12 z-50 border-b border-outline-variant shrink-0">
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex items-center gap-sm">
+<img alt="Artificer Toolkit" class="w-6 h-6 rounded-sm brightness-110" src="https://lh3.googleusercontent.com/aida/ADBb0ugkuxFLQHlw9BiQPDNcRpnHOlnQYENmN34h-_u2Kvh1CLARBX3PIIhb-_rzLILEoaBrKOuaMCTvTYV-c_hMv5Rrg6J_sP6zdd4KHaJxh5-U3dkOhH3aE69KlyvZt7lofwc2S66wHPNDQERoUgAeiN1J3kRgpVJHfMNI-392usFN-2xDM6SA5F0YOSQwi0fLB4bu69bXJkxdQOCret34M1IECxELAsQ8X69IV-cTpwSiq1myFOmIRgDChLiP">
+<div class="font-display text-[18px] text-on-surface tracking-tight">Artificer Toolkit</div>
+</div>
+<div class="h-4 w-px bg-outline-variant mx-sm"></div>
+<nav class="flex items-center text-sm">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Creatures</a>
+<span class="material-symbols-outlined text-outline mx-xs text-[16px]" data-icon="chevron_right">chevron_right</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Cinder Drake</span>
+</nav>
+<span class="bg-surface-variant text-on-surface-variant font-label-md text-label-md px-2 py-0.5 rounded-sm ml-sm flex items-center gap-xs border border-outline-variant/50">
+<span class="material-symbols-outlined text-[14px]" data-icon="edit_document">edit_document</span>
+            Draft
+        </span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="flex items-center bg-surface-container-highest rounded-sm border border-outline-variant px-2 h-8 w-64 mr-md">
+<span class="material-symbols-outlined text-outline mr-sm text-[18px]" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface font-body-sm text-body-sm w-full p-0 h-full placeholder:text-outline outline-none" placeholder="Search commands..." type="text">
+</div>
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform w-8 h-8 flex items-center justify-center rounded-sm hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface scale-95 active:scale-90 transition-transform w-8 h-8 flex items-center justify-center rounded-sm hover:bg-surface-container-highest">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="h-4 w-px bg-outline-variant mx-xs"></div>
+<button class="flex items-center gap-sm hover:bg-surface-container-highest p-1 rounded-sm transition-colors border border-transparent hover:border-outline-variant">
+<div class="w-6 h-6 rounded-sm bg-brand-orange text-white flex items-center justify-center font-label-md text-label-md">
+                AT
+            </div>
+<span class="font-label-md text-label-md text-on-surface hidden md:block pr-xs">Account</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Sidebar (Structure) -->
+<aside class="w-sidebar_width bg-surface-container-lowest border-r border-outline-variant flex flex-col z-40 shrink-0 hidden md:flex">
+<div class="p-md border-b border-outline-variant/50 flex justify-between items-start">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Structure</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Cinder Drake</p>
+</div>
+<button class="bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md px-2 py-1 rounded-sm transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="add">add</span>
+                New
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto p-sm font-body-sm text-body-sm">
+<div class="flex flex-col gap-[2px]">
+<div class="flex items-center py-1 px-2 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="description">description</span>
+<span class="flex-1">Creature</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="info">info</span>
+<span class="flex-1">Basics</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="equalizer">equalizer</span>
+<span class="flex-1">Stats</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="shield">shield</span>
+<span class="flex-1">Defenses</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-1" data-icon="expand_more">expand_more</span>
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="bolt">bolt</span>
+<span class="flex-1">Actions</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-10 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="sports_martial_arts">sports_martial_arts</span>
+<span class="flex-1">Bite</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-10 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="local_fire_department">local_fire_department</span>
+<span class="flex-1">Ember Breath</span>
+</div>
+<div class="flex items-center py-1 px-2 pl-10 bg-surface-container-high text-brand-orange rounded-sm group cursor-pointer relative">
+<div class="absolute left-0 top-0 bottom-0 w-[3px] bg-brand-orange rounded-l-sm"></div>
+<span class="material-symbols-outlined text-[16px] mr-2" data-icon="edit">edit</span>
+<span class="flex-1 font-bold">Tail Sweep</span>
+<div class="w-2 h-2 rounded-full bg-error ml-2" title="Critical Issue"></div>
+</div>
+<div class="flex items-center py-1 px-2 pl-6 hover:bg-surface-container-low rounded-sm group cursor-pointer text-on-surface-variant mt-2">
+<span class="material-symbols-outlined text-[16px] text-outline mr-2" data-icon="fact_check">fact_check</span>
+<span class="flex-1">Review</span>
+</div>
+</div>
+</div>
+<div class="p-sm border-t border-outline-variant/50">
+<div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md px-2">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-error"></div> 1 Critical</span>
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-tertiary"></div> 2 Warn</span>
+</div>
+</div>
+</aside>
+<!-- Main Editor Canvas -->
+<main class="flex-1 flex flex-col relative min-w-0 bg-background overflow-y-auto">
+<div class="p-lg max-w-5xl mx-auto w-full pb-24">
+<!-- Header -->
+<div class="flex justify-between items-start mb-xl pb-md border-b border-outline-variant">
+<div>
+<div class="flex items-center gap-sm mb-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="">Cinder Drake</span>
+<span class="text-outline">/</span>
+<span class="">Actions</span>
+</div>
+<div class="flex items-center gap-md mt-1">
+<h1 class="font-display text-[28px] text-on-surface tracking-tight">Tail Sweep</h1>
+<span class="bg-surface-container-high border border-outline-variant text-on-surface-variant font-label-md text-label-md px-2 py-0.5 rounded-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="sports_martial_arts">sports_martial_arts</span>
+                            Action
+                        </span>
+<span class="bg-brand-orange text-white font-label-md text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-xs">
+<div class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+                            Affects preview
+                        </span>
+</div>
+</div>
+<button class="bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 text-on-surface font-label-md text-label-md px-3 py-1.5 rounded-sm transition-colors flex items-center gap-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+                    Field Guide
+                </button>
+</div>
+<!-- Content Sections -->
+<div class="flex flex-col gap-lg">
+<!-- Warning Banner -->
+<div class="bg-error-container/10 border border-error/30 rounded-lg p-md flex items-center gap-md">
+<div class="w-10 h-10 bg-error-container/20 rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error" data-icon="warning">warning</span>
+</div>
+<div class="flex-1">
+<h4 class="text-error font-bold text-headline-sm mb-0.5">Incomplete Configuration</h4>
+<p class="text-on-surface-variant text-body-sm">Success behavior is missing. Actions with saving throws must define what happens on a successful save.</p>
+</div>
+<button class="text-error font-label-md text-label-md underline hover:text-error-container">Add Success State</button>
+</div>
+<!-- Quick Start Walkthrough Card -->
+<section class="bg-surface-container-low border border-brand-orange/20 rounded-lg p-md shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-brand-orange/5 rotate-45 translate-x-16 -translate-y-16"></div>
+<div class="flex gap-lg relative z-10">
+<div class="w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-brand-orange" data-icon="lightbulb">lightbulb</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">Quick Start: Sweep Mechanics</h3>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mb-md">Tail Sweep typically impacts multiple targets in a cone or radius. Ensure you specify if the damage is halved on a successful Dexterity save or if the target is knocked prone on failure.</p>
+<div class="flex gap-md">
+<button class="text-brand-orange font-label-md text-label-md flex items-center gap-xs hover:brightness-110">View Template <span class="material-symbols-outlined text-[16px]" data-icon="open_in_new">open_in_new</span></button>
+<button class="text-on-surface-variant font-label-md text-label-md hover:text-on-surface">Dismiss</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Basics -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="settings_input_component">settings_input_component</span>
+                            Action Basics
+                        </h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Action Name</label>
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full" type="text" value="Tail Sweep">
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Action Type</label>
+<select class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full appearance-none">
+<option selected="">Action</option>
+<option>Bonus Action</option>
+<option>Reaction</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Usage Frequency</label>
+<select class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full appearance-none">
+<option selected="">At Will</option>
+<option>Recharge 5-6</option>
+<option>1/Day</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Min Level/CR <span class="material-symbols-outlined text-[14px] text-outline cursor-help ml-1" data-icon="info" title="Minimum level required for this action.">info</span></label>
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-code-sm text-code-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full" placeholder="e.g. 5" type="text">
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-lg">
+<!-- Left Columns (Main Parameters) -->
+<div class="xl:col-span-2 flex flex-col gap-md">
+<!-- Attack Parameters -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="swords">swords</span>
+                                    Attack Parameters
+                                </h3>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Attack Model</label>
+<select class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full appearance-none">
+<option selected="">Melee Weapon Attack</option>
+<option>Ranged Weapon Attack</option>
+<option>Spell Attack</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Reach/Range</label>
+<div class="relative">
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full" type="text" value="10 ft">
+<span class="absolute right-2 top-1.5 text-outline material-symbols-outlined text-[18px]" data-icon="straighten">straighten</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Targeting</label>
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-full" type="text" value="One creature">
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Attack Bonus</label>
+<div class="flex items-center gap-2">
+<input class="bg-surface-container-lowest border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-code-sm text-code-sm font-bold text-brand-orange focus:border-brand-orange focus:ring-1 focus:ring-brand-orange outline-none transition-colors w-16 text-center" type="text" value="+6">
+<span class="text-on-surface-variant text-body-sm">From STR (18) + Prof (2)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Damage & Effects -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="conditions">conditions</span>
+                                    Damage &amp; Effects
+                                </h3>
+<button class="text-brand-orange font-label-md text-label-md flex items-center gap-xs hover:brightness-110">
+<span class="material-symbols-outlined text-[18px]" data-icon="add_circle">add_circle</span> Add Part
+                                </button>
+</div>
+<div class="space-y-md">
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-sm p-sm">
+<div class="grid grid-cols-[1fr_2fr_auto] gap-md items-end">
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Type</label>
+<select class="bg-surface-container-low border border-outline-variant/50 rounded-sm px-2 py-1 text-on-surface font-body-sm text-body-sm outline-none">
+<option selected="">Bludgeoning</option>
+<option>Fire</option>
+<option>Slashing</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Formula</label>
+<input class="bg-surface-container-low border border-outline-variant/50 rounded-sm px-2 py-1 text-on-surface font-code-sm text-code-sm font-bold text-brand-orange outline-none" type="text" value="2d8 + 3">
+</div>
+<button class="text-outline hover:text-error p-1"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span></button>
+</div>
+</div>
+<!-- Save Rider Area -->
+<div class="bg-surface-container-lowest border-l-2 border-l-brand-orange rounded-sm p-md space-y-md">
+<div class="flex items-center justify-between">
+<h4 class="font-label-md text-label-md text-brand-orange uppercase tracking-widest">Save Rider</h4>
+<span class="bg-brand-orange/10 text-brand-orange text-[10px] px-1.5 rounded-sm border border-brand-orange/20">CONFIGURING</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Stat Check</label>
+<div class="flex gap-2">
+<button class="flex-1 py-1 bg-surface-container-high text-on-surface font-bold text-label-md rounded-sm border border-outline-variant/50">STR</button>
+<button class="flex-1 py-1 bg-brand-orange text-white font-bold text-label-md rounded-sm">DEX</button>
+<button class="flex-1 py-1 bg-surface-container-high text-on-surface font-bold text-label-md rounded-sm border border-outline-variant/50">CON</button>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-label-md text-label-md text-on-surface-variant">Effect (Failed Save)</label>
+<input class="bg-surface-container-low border border-outline-variant/50 rounded-sm px-3 py-1.5 text-on-surface font-body-sm text-body-sm outline-none" type="text" value="Target is knocked prone">
+</div>
+</div>
+<div class="border border-dashed border-error/40 rounded-sm p-sm bg-error/5 flex flex-col items-center">
+<p class="text-error font-label-md text-label-md mb-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="add">add</span> Effect (Successful Save)
+                                        </p>
+<button class="bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface-variant text-xs py-1 px-4 rounded-sm transition-colors">Define Success Behavior</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column (Context & Preview) -->
+<div class="flex flex-col gap-md">
+<!-- Outcome Context -->
+<section class="bg-surface-container-low border border-outline-variant/40 rounded-lg p-md shadow-sm">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md border-b border-outline-variant/30 pb-2">Outcome Context</h3>
+<div class="flex flex-col gap-sm font-body-sm text-body-sm">
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Damage Type</span>
+<span class="text-secondary font-medium flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="swords">swords</span> Bludgeoning</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Attack Model</span>
+<span class="text-on-surface font-medium">Melee Weapon</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container-lowest px-2 py-1.5 rounded-sm border border-outline-variant/20">
+<span class="text-on-surface-variant">Reach</span>
+<span class="text-on-surface font-medium">10 ft</span>
+</div>
+</div>
+</section>
+<!-- Rule Preview Panel -->
+<aside class="bg-surface-container-low border border-outline-variant/40 rounded-lg shadow-sm flex flex-col overflow-hidden h-full">
+<div class="bg-surface-container-high border-b border-outline-variant/50 p-3 flex justify-between items-center">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="preview">preview</span>
+                                    Rule Preview
+                                </h3>
+<button class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="fullscreen">fullscreen</button>
+</div>
+<div class="p-md font-body-sm text-body-sm text-on-surface-variant leading-relaxed overflow-y-auto flex-1 bg-surface-container-lowest/50">
+<div class="border-b border-outline-variant/30 pb-3 mb-3">
+<h4 class="font-display text-[20px] text-brand-orange font-bold mb-1">Cinder Drake</h4>
+<p class="italic text-xs opacity-70">Medium Dragon, Chaotic Neutral</p>
+</div>
+<div class="space-y-4">
+<div>
+<h5 class="font-label-md text-label-md text-on-surface uppercase tracking-widest mb-1 opacity-60">Actions</h5>
+<div class="space-y-3">
+<p class=""><strong class="text-on-surface">Multiattack.</strong> The drake makes two attacks: one with its bite and one with its tail sweep.</p>
+<p class=""><strong class="text-on-surface">Bite.</strong> Melee Weapon Attack: +6 to hit, reach 5 ft., 1d10+4 piercing damage.</p>
+<div class="bg-brand-orange/10 border-l-2 border-l-brand-orange p-2 rounded-r-sm relative">
+<span class="material-symbols-outlined absolute top-2 right-2 text-brand-orange text-[14px]" data-icon="auto_awesome">auto_awesome</span>
+<p class="text-on-surface">
+<strong class="text-brand-orange">Tail Sweep (Draft).</strong> Melee Weapon Attack: +6 to hit, reach 10 ft., one creature. 
+                                                    <em>Hit:</em> <strong class="text-brand-orange">12 (2d8 + 3)</strong> bludgeoning damage. 
+                                                    The target must succeed on a DC 14 Dex save or be knocked prone. 
+                                                    <span class="bg-error/20 text-error border border-error/30 px-1 rounded inline-flex items-center gap-1 mx-0.5 mt-2">
+<span class="material-symbols-outlined text-[12px]" data-icon="warning">warning</span>
+                                                        [SUCCESS BEHAVIOR MISSING]
+                                                    </span>
+</p>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<img alt="Cinder Drake" class="w-full h-32 object-cover rounded-sm border border-outline-variant grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABE7Nbd1iUntcBTUGP0RxorqGoueTNmNd6tR2PnYvrkcj6mzkhDweLAqXwBGHA7euzIwsmULTbDwGeugyA_ewr4_QLqpKaRkizPsEY7vLP2lA4uT8KFBQu0aeBhQJuPmJvESQc7jCOp4IdYiWgX7geX4yTaHCZp7MdYX4tRIfQvtSilgYFnKWbCIAsfR0ef56cHt1sCpIN9KfeccuEai3y4_teZEJGdTeL9JW4AtNV20oJSDsP0aTQLY8hqq-qo0n9u2Jbudi6M-9s">
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Onboarding Walkthrough Card -->
+<div class="fixed bottom-20 right-6 w-80 bg-surface-container-highest border border-brand-orange/40 rounded-lg shadow-2xl z-[60] overflow-hidden flex flex-col" id="onboarding-walkthrough">
+<div class="p-3 bg-brand-orange/10 border-b border-brand-orange/20 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-orange text-[18px]" data-icon="auto_awesome">auto_awesome</span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Quick Start</h4>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface" onclick="document.getElementById('onboarding-walkthrough').remove()">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Define how this creature action functions. Changes in the <span class="text-brand-orange font-semibold">Editor</span> are instantly reflected in the <span class="text-brand-orange font-semibold">Rule Preview</span> on the right.
+        </p>
+<div class="flex items-center justify-between mt-2">
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+</div>
+<button class="bg-brand-orange text-white font-label-md text-label-md px-3 py-1 rounded-sm hover:brightness-110">
+                Next
+            </button>
+</div>
+</div>
+</div>
+<!-- Persistent Action Bar (Footer) -->
+<footer class="fixed bottom-0 left-0 right-0 flex justify-between items-center px-lg py-3 z-50 bg-surface-container-low/95 backdrop-blur-md border-t border-outline-variant shadow-[0_-4px_24px_rgba(0,0,0,0.5)] md:ml-sidebar_width">
+<button class="text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_back">arrow_back</span>
+        Back to Features
+    </button>
+<div class="flex items-center gap-md">
+<button class="text-error hover:text-error-container font-label-md text-label-md transition-colors mr-2">
+            Reset object
+        </button>
+<button class="bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md px-4 py-1.5 rounded-sm transition-colors shadow-sm">
+            Save draft
+        </button>
+<button class="bg-brand-orange hover:brightness-110 text-white font-label-md text-label-md px-5 py-1.5 rounded-sm transition-colors shadow-sm font-bold">
+            Done
+        </button>
+</div>
+</footer>
+<script>
+    // Simple micro-interactions for input focus
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            input.classList.add('border-brand-orange');
+        });
+        input.addEventListener('blur', () => {
+            input.classList.remove('border-brand-orange');
+        });
+    });
+</script>
+
+
+</body></html>

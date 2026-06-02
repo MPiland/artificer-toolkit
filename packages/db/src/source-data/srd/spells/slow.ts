@@ -18,6 +18,7 @@ export const slow: SpellAuthored = {
             id: spellChildId(SPELL_IDS.SLOW, 0x210, 1),
             order: 1,
             invocation: {
+                kind: 'ACTION' as const,
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: spellChildId(SPELL_IDS.SLOW, 0x211, 1),
@@ -53,6 +54,7 @@ export const slow: SpellAuthored = {
                     order: 1,
                     pathCode: PATH_CODE.ON_SAVE_FAIL,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.SLOW, 0x214, 1) + "__result",
@@ -75,6 +77,7 @@ export const slow: SpellAuthored = {
                     order: 2,
                     pathCode: PATH_CODE.ON_SAVE_SUCCESS,
                     groupType: PATH_GROUP_TYPE.SINGLE,
+                    originKind: 'SOURCE' as const,
                     selectionKind: "FIXED" as const,
                     resultBlock: {
                         id: spellChildId(SPELL_IDS.SLOW, 0x216, 1) + "__result",

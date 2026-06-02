@@ -857,8 +857,8 @@ function isAllowed<S extends NodeSubjectCode>(
 ): p is PredicateOption<SubjectPredicateCode<S>> {
   if (!p.subjects.includes(subject)) return false
   if (p.owners) {
-    // owners present => must have an owner and it must match
-    if (!owner) return false
+    // When owner context is available, owner-scoped predicates are narrowed to it.
+    if (!owner) return true
     if (!p.owners.includes(owner)) return false
   }
   return true
