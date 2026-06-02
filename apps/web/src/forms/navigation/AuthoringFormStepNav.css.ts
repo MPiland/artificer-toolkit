@@ -206,7 +206,7 @@ export const stepMarker = style({
       height: 8,
       justifySelf: 'center',
       border: `1px solid ${foundationVars.color.border.strong}`,
-      borderRadius: foundationVars.radius.xs,
+      borderRadius: foundationVars.radius.sm,
       backgroundColor: foundationVars.color.surface.recessed
     }
   }
