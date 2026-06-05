@@ -195,6 +195,42 @@ export const mobileFooterSlot = style({
   }
 })
 
+export const searchDrawerContent = style({
+  '@layer': {
+    [app]: {
+      borderBlockStart: `1px solid ${foundationVars.color.border.strong}`,
+      backgroundColor: foundationVars.color.surface.panel,
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
+export const searchDrawerHeader = style({
+  '@layer': {
+    [app]: {
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`
+    }
+  }
+})
+
+export const searchDrawerBody = style({
+  '@layer': {
+    [app]: {
+      padding: foundationVars.space[4]
+    }
+  }
+})
+
+export const searchDrawerStack = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[3]
+    }
+  }
+})
+
 export const userIconButton = style({
   '@layer': {
     [app]: {

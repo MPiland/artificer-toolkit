@@ -1,10 +1,10 @@
-import { ActionIcon, Button, Drawer, Group, Menu } from '@mantine/core'
+import { ActionIcon, Button, Drawer, Group, Menu, TextInput } from '@mantine/core'
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
-import { useHotkeys, useMediaQuery } from '@mantine/hooks'
+import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { type ReactNode, useMemo, useState } from 'react'
-import { BookOpen, LogOut, Moon, PlusCircle, Sun } from 'lucide-react'
+import { BookOpen, LogOut, Moon, PlusCircle, Search, Sun } from 'lucide-react'
 import IUser from '#assets/icons/IUser'
 import {
   ShellHeaderSupplementContext,
@@ -46,6 +46,7 @@ type NavigationMenuItem = {
 
 export function Shell({ breadcrumbs, navigation, currentPath, userEmail, children }: ShellProps) {
   const [headerSupplement, setHeaderSupplement] = useState<ShellHeaderSupplement | null>(null)
+  const [searchOpened, { close: closeSearch, open: openSearch }] = useDisclosure(false)
   const headerSupplementContext = useMemo(() => ({ setHeaderSupplement }), [])
   const authoringChrome = headerSupplement?.authoringChrome
   const isAuthoringMode = Boolean(authoringChrome)
@@ -72,10 +73,13 @@ export function Shell({ breadcrumbs, navigation, currentPath, userEmail, childre
   const createItems = useMemo(() => toCreateMenuItems(navigation), [navigation])
   const mobileFooterItems = useMemo(
     () => toMobileFooterItems({
+      accountMenuContent: <AccountMenuItems />,
       createItems,
-      libraryItems
+      libraryItems,
+      onSearchOpen: openSearch
     }),
     [
+      openSearch,
       createItems,
       libraryItems
     ]
@@ -150,6 +154,9 @@ export function Shell({ breadcrumbs, navigation, currentPath, userEmail, childre
             <MobileAppFooter items={mobileFooterItems} />
           </div>
         ) : null}
+        {hasMobileFooter ? (
+          <MobileSearchDrawer opened={searchOpened} onClose={closeSearch} />
+        ) : null}
       </div>
     </ShellHeaderSupplementContext>
   )
@@ -178,11 +185,6 @@ export function FooterActionBar({ summary, actions }: FooterActionBarProps) {
 }
 
 function UserMenu() {
-  const { setColorScheme } = useMantineColorScheme()
-  const computedColorScheme = useComputedColorScheme('dark')
-  const nextColorScheme = computedColorScheme === 'dark' ? 'light' : 'dark'
-  const ThemeIcon = nextColorScheme === 'dark' ? Moon : Sun
-
   return (
     <Menu position='bottom-end' width={220} withinPortal>
       <Menu.Target>
@@ -191,17 +193,59 @@ function UserMenu() {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item
-          leftSection={<ThemeIcon size={16} aria-hidden='true' />}
-          onClick={() => setColorScheme(nextColorScheme)}
-        >
-          Switch to {nextColorScheme} mode
-        </Menu.Item>
-        <Menu.Item component={Link} to='/logout' leftSection={<LogOut size={16} aria-hidden='true' />}>
-          Sign out
-        </Menu.Item>
+        <AccountMenuItems />
       </Menu.Dropdown>
     </Menu>
+  )
+}
+
+function AccountMenuItems() {
+  const { setColorScheme } = useMantineColorScheme()
+  const computedColorScheme = useComputedColorScheme('dark')
+  const nextColorScheme = computedColorScheme === 'dark' ? 'light' : 'dark'
+  const ThemeIcon = nextColorScheme === 'dark' ? Moon : Sun
+
+  return (
+    <>
+      <Menu.Item
+        leftSection={<ThemeIcon size={16} aria-hidden='true' />}
+        onClick={() => setColorScheme(nextColorScheme)}
+      >
+        Switch to {nextColorScheme} mode
+      </Menu.Item>
+      <Menu.Item component={Link} to='/logout' leftSection={<LogOut size={16} aria-hidden='true' />}>
+        Sign out
+      </Menu.Item>
+    </>
+  )
+}
+
+function MobileSearchDrawer({ onClose, opened }: { onClose: () => void, opened: boolean }) {
+  return (
+    <Drawer
+      classNames={{
+        body: styles.searchDrawerBody,
+        content: styles.searchDrawerContent,
+        header: styles.searchDrawerHeader
+      }}
+      opened={opened}
+      onClose={onClose}
+      position='bottom'
+      size='auto'
+      title='Search'
+      withinPortal
+    >
+      <div className={styles.searchDrawerStack}>
+        <TextInput
+          aria-label='Search the library'
+          leftSection={<Search size={16} aria-hidden='true' />}
+          placeholder='Search spells, races, classes...'
+        />
+        <Button type='button' disabled>
+          Search
+        </Button>
+      </div>
+    </Drawer>
   )
 }
 
@@ -317,11 +361,15 @@ function toCreateMenuItems(navigation: AppShellNavGroup[]): readonly NavigationM
 }
 
 function toMobileFooterItems({
+  accountMenuContent,
   createItems,
-  libraryItems
+  libraryItems,
+  onSearchOpen
 }: {
+  accountMenuContent: ReactNode
   createItems: readonly NavigationMenuItem[]
   libraryItems: readonly NavigationMenuItem[]
+  onSearchOpen: () => void
 }): readonly MobileAppFooterItem[] {
   return [
     {
@@ -339,12 +387,14 @@ function toMobileFooterItems({
     {
       icon: 'search',
       id: 'search',
-      label: 'Search'
+      label: 'Search',
+      onClick: onSearchOpen
     },
     {
       icon: 'account',
       id: 'account',
-      label: 'Account'
+      label: 'Account',
+      menuContent: accountMenuContent
     }
   ]
 }

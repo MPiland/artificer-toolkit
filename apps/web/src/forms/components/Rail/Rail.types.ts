@@ -22,6 +22,7 @@ export type Item = {
   isActive?: boolean
   label: string
   level?: 0 | 1 | 2 | 3
+  onSelect?: () => void
   status?: ItemStatus
   tone?: ItemTone
 }

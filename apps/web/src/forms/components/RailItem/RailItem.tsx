@@ -1,5 +1,5 @@
 import { Collapse, UnstyledButton } from '@mantine/core'
-import { useDisclosure, useCollapse } from '@mantine/hooks'
+import { useDisclosure } from '@mantine/hooks'
 import clsx from 'clsx'
 import {
   BookOpen,
@@ -20,6 +20,12 @@ export function RailItem({ item }: { item: Item }) {
   const [expanded, { toggle }] = useDisclosure(true)
   const children = item.children ?? []
   const hasChildren = children.length > 0
+  const canSelect = Boolean(item.onSelect || hasChildren)
+
+  const handleSelect = () => {
+    item.onSelect?.()
+    if (hasChildren) toggle()
+  }
 
   return (
     <div className={styles.itemBlock}>
@@ -31,7 +37,7 @@ export function RailItem({ item }: { item: Item }) {
           item.tone === 'muted' && styles.itemRowMuted
         )}
         aria-current={item.isActive ? 'step' : undefined}
-        onClick={hasChildren ? toggle : undefined}
+        onClick={canSelect ? handleSelect : undefined}
       >
         <span className={styles.expander} aria-hidden='true'>
           {hasChildren ? (

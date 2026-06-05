@@ -24,14 +24,14 @@ function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
       type='button'
       aria-label={item.label}
       aria-current={item.isActive ? 'page' : undefined}
-      onClick={item.menuItems?.length ? undefined : item.onClick}
+      onClick={item.menuItems?.length || item.menuContent ? undefined : item.onClick}
     >
       <MobileAppFooterIcon icon={item.icon} />
       <span className={styles.label}>{item.label}</span>
     </UnstyledButton>
   )
 
-  if (!item.menuItems?.length) return control
+  if (!item.menuItems?.length && !item.menuContent) return control
 
   return (
     <Menu position='top' width={230} withinPortal>
@@ -39,15 +39,15 @@ function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
         {control}
       </Menu.Target>
       <Menu.Dropdown>
-        {item.menuItems.map((menuItem) => (
+        {item.menuContent ?? item.menuItems?.map((menuItem) => (
           <Menu.Item
             key={menuItem.id}
             component={Link}
-            to={menuItem.href}
-            aria-current={menuItem.isActive ? 'page' : undefined}
-          >
-            <span className={styles.menuItemText}>
-              <span>{menuItem.label}</span>
+              to={menuItem.href}
+              aria-current={menuItem.isActive ? 'page' : undefined}
+            >
+              <span className={styles.menuItemText}>
+                <span>{menuItem.label}</span>
             </span>
           </Menu.Item>
         ))}

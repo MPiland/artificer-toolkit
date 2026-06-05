@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { ReactNode, SubmitEventHandler } from 'react'
-import { Alert, Button } from '@mantine/core'
+import { Alert, Button, Menu } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { MoreVertical, Trash2 } from 'lucide-react'
 import { useShellAuthoringChrome } from '#app/shell'
 import { ContextCard } from '../components/ContextCard/ContextCard'
 import * as contextStyles from '../components/ContextCard/ContextCard.css'
@@ -42,37 +43,52 @@ export function AuthoringWorkspaceLayout({
     if (!activeStepId || !authoring.hasStepChanges) return undefined
     return { [activeStepId]: 'dirty' }
   }, [activeStepId, authoring.hasStepChanges])
-  const railItems = useMemo(() => toRailItems({
+  const handleDesktopStepSelect = useCallback((stepId: string) => {
+    authoring.goToStep(stepId)
+  }, [authoring])
+  const handleMobileStepSelect = useCallback((stepId: string) => {
+    authoring.goToStep(stepId)
+    closeNavigation()
+  }, [authoring, closeNavigation])
+  const desktopRailItems = useMemo(() => toRailItems({
     activeSections,
     activeStepId,
+    onStepSelect: handleDesktopStepSelect,
     steps: visibleSteps,
     stepStatuses
-  }), [activeSections, activeStepId, stepStatuses, visibleSteps])
+  }), [activeSections, activeStepId, handleDesktopStepSelect, stepStatuses, visibleSteps])
+  const mobileRailItems = useMemo(() => toRailItems({
+    activeSections,
+    activeStepId,
+    onStepSelect: handleMobileStepSelect,
+    steps: visibleSteps,
+    stepStatuses
+  }), [activeSections, activeStepId, handleMobileStepSelect, stepStatuses, visibleSteps])
   const summaries = useMemo(() => toSummaries(visibleSteps.length, authoring.hasChanges), [
     authoring.hasChanges,
     visibleSteps.length
   ])
   const desktopRail = useMemo(() => (
     <Rail
-      items={railItems}
+      items={desktopRailItems}
       subtitle={subjectLabel}
       summaries={summaries}
     />
   ), [
-    railItems,
+    desktopRailItems,
     subjectLabel,
     summaries
   ])
   const mobileRail = useMemo(() => (
     <StructureRail
-      items={railItems}
+      items={mobileRailItems}
       onClose={closeNavigation}
       subtitle={subjectLabel}
       summaries={summaries}
     />
   ), [
     closeNavigation,
-    railItems,
+    mobileRailItems,
     subjectLabel,
     summaries
   ])
@@ -123,6 +139,18 @@ export function AuthoringWorkspaceLayout({
               ? (
                   <Alert className={styles.alertSlot} color='orange'>
                     {`This ${authoring.subjectKindLabel.toLowerCase()} is locked for direct editing. Duplicate it to make your own draft.`}
+                    {authoring.canCopy
+                      ? (
+                          <Button
+                            mt='sm'
+                            type='button'
+                            variant='filled'
+                            onClick={() => void authoring.copy()}
+                          >
+                            {authoring.copyLabel}
+                          </Button>
+                        )
+                      : null}
                   </Alert>
                 )
               : null}
@@ -170,6 +198,32 @@ export function AuthoringWorkspaceLayout({
                   >
                     {authoring.saveDraftLabel}
                   </Button>
+                )
+              : null}
+            {!authoring.readOnly && authoring.canDelete
+              ? (
+                  <Menu position='top' width={220} withinPortal>
+                    <Menu.Target>
+                      <Button
+                        aria-label='Form actions'
+                        loading={authoring.isDeleting}
+                        type='button'
+                        variant='default'
+                        leftSection={<MoreVertical size={16} aria-hidden='true' />}
+                      >
+                        Actions
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        color='red'
+                        leftSection={<Trash2 size={16} aria-hidden='true' />}
+                        onClick={() => void authoring.deleteRecord()}
+                      >
+                        {authoring.deleteLabel}
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 )
               : null}
           </>
@@ -248,11 +302,13 @@ function AuthoringWorkspaceInspector({ previewLabel }: { previewLabel: string })
 function toRailItems({
   activeSections,
   activeStepId,
+  onStepSelect,
   steps,
   stepStatuses
 }: {
   activeSections: readonly { id: string, label: string }[]
   activeStepId?: string
+  onStepSelect: (stepId: string) => void
   steps: readonly { id: string, label: string, description?: string }[]
   stepStatuses?: Partial<Record<string, AuthoringFormStepStatus>>
 }): readonly Item[] {
@@ -279,6 +335,7 @@ function toRailItems({
       isActive,
       label: step.label,
       level: 0,
+      onSelect: () => onStepSelect(step.id),
       status
     }
   })
@@ -293,8 +350,9 @@ function toRailStatus(status: AuthoringFormStepStatus | undefined): ItemStatus {
     case 'error':
       return 'error'
     case 'valid':
-    case undefined:
       return 'complete'
+    case undefined:
+      return 'empty'
   }
 }
 

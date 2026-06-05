@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 export type MobileAppFooterMenuItem = {
   href: string
   id: string
@@ -12,6 +14,7 @@ export type MobileAppFooterItem = {
   id: string
   isActive?: boolean
   label: string
+  menuContent?: ReactNode
   menuItems?: readonly MobileAppFooterMenuItem[]
   onClick?: () => void
 }
