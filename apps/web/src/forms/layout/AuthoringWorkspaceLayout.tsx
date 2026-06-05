@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import type { ReactNode, SubmitEventHandler } from 'react'
 import { Alert, Button, Menu } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { MoreVertical, Trash2 } from 'lucide-react'
 import { useShellAuthoringChrome } from '#app/shell'
 import { ContextCard } from '../components/ContextCard/ContextCard'
@@ -29,7 +29,15 @@ export function AuthoringWorkspaceLayout({
   showInspector = true
 }: AuthoringWorkspaceLayoutProps) {
   const authoring = useAuthoringForm()
-  const [navigationOpen, { close: closeNavigation, toggle: toggleNavigation }] = useDisclosure(true)
+  const usesOverlayRail = useMediaQuery(
+    '(max-width: 640px), (max-width: 900px) and (orientation: portrait)',
+    false
+  )
+  const [desktopNavigationOpen, { close: closeDesktopNavigation, toggle: toggleDesktopNavigation }] = useDisclosure(true)
+  const [overlayNavigationOpen, { close: closeOverlayNavigation, toggle: toggleOverlayNavigation }] = useDisclosure(false)
+  const navigationOpen = usesOverlayRail ? overlayNavigationOpen : desktopNavigationOpen
+  const closeNavigation = usesOverlayRail ? closeOverlayNavigation : closeDesktopNavigation
+  const toggleNavigation = usesOverlayRail ? toggleOverlayNavigation : toggleDesktopNavigation
   const title = authoring.activeStepLabel ?? authoring.subjectKindLabel
   const subjectLabel = readReactNodeText(authoring.subjectLabel) ?? authoring.subjectKindLabel
   const status = getAuthoringStatus(authoring.mode, authoring.isDraft || authoring.hasActiveDraft)

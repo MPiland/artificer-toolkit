@@ -6,8 +6,14 @@ import {
   AlignLeft,
   AlignRight,
   ChevronDown,
+  Columns3,
   Heading,
-  Pilcrow
+  Pilcrow,
+  Rows3,
+  Table,
+  TableCellsMerge,
+  TableCellsSplit,
+  Trash2
 } from 'lucide-react'
 import * as editorStyles from './RichTextEditor.css'
 
@@ -35,6 +41,8 @@ const Toolbar = () => {
         <MantineRichTextEditor.OrderedList />
       </MantineRichTextEditor.ControlsGroup>
 
+      <TableMenu />
+
       <MantineRichTextEditor.ControlsGroup>
         <MantineRichTextEditor.Link />
         <MantineRichTextEditor.Unlink />
@@ -61,6 +69,99 @@ const Toolbar = () => {
         <MantineRichTextEditor.Redo />
       </MantineRichTextEditor.ControlsGroup>
     </MantineRichTextEditor.Toolbar>
+  )
+}
+
+const TableMenu = () => {
+  const { editor } = useRichTextEditorContext()
+  const inTable = editor?.isActive('table') ?? false
+
+  return (
+    <MantineRichTextEditor.ControlsGroup>
+      <Menu position='bottom-start' width={190} withinPortal>
+        <Menu.Target>
+          <MantineRichTextEditor.Control
+            active={inTable}
+            aria-label='Table tools'
+            disabled={!editor}
+            title='Table tools'
+          >
+            <span className={editorStyles.editorMenuControlContent}>
+              <Table aria-hidden='true' className={editorStyles.editorMenuIcon} />
+              <ChevronDown aria-hidden='true' className={editorStyles.editorMenuChevron} />
+            </span>
+          </MantineRichTextEditor.Control>
+        </Menu.Target>
+        <Menu.Dropdown className={editorStyles.editorMenuDropdown}>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          >
+            Insert table
+          </Menu.Item>
+          <Menu.Divider />
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().addRowAfter().run()}
+          >
+            Add row
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().deleteRow().run()}
+          >
+            Delete row
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().addColumnAfter().run()}
+          >
+            Add column
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().deleteColumn().run()}
+          >
+            Delete column
+          </Menu.Item>
+          <Menu.Divider />
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<TableCellsMerge aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().mergeCells().run()}
+          >
+            Merge cells
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            disabled={!inTable}
+            leftSection={<TableCellsSplit aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().splitCell().run()}
+          >
+            Split cell
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            color='red'
+            disabled={!inTable}
+            leftSection={<Trash2 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().deleteTable().run()}
+          >
+            Delete table
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+    </MantineRichTextEditor.ControlsGroup>
   )
 }
 

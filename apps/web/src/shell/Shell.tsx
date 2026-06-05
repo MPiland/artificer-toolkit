@@ -106,6 +106,7 @@ export function Shell({ breadcrumbs, navigation, currentPath, userEmail, childre
         <Header
           accountControl={userEmail ? <UserMenu /> : <SignedOutActions />}
           accountLabel={userEmail ?? 'Sign in'}
+          actions={headerSupplement?.actions}
           crumbs={headerCrumbs}
           isNavigationOpen={isNavigationOpen}
           navigationActions={appNavigationActions}
