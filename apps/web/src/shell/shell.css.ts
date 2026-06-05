@@ -161,10 +161,13 @@ export const contentArea = style({
       marginInline: 'auto',
       padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
       '@media': {
+        [tabletPortrait]: {
+          paddingBlockEnd: 'calc(58px + env(safe-area-inset-bottom) + 24px)'
+        },
         [mobile]: {
           inlineSize: '100%',
           gap: foundationVars.space[6],
-          padding: `${foundationVars.space[4]} ${foundationVars.space[4]} ${foundationVars.space[8]}`
+          padding: `${foundationVars.space[4]} ${foundationVars.space[4]} calc(58px + env(safe-area-inset-bottom) + 24px)`
         }
       }
     }

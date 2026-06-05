@@ -2,7 +2,7 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
 
-const tablet = 'screen and (max-width: 900px)'
+const tabletPortrait = 'screen and (max-width: 900px) and (orientation: portrait)'
 const mobile = 'screen and (max-width: 640px)'
 
 export const root = style({
@@ -47,7 +47,10 @@ export const rightCluster = style({
       gap: foundationVars.space[2],
       flexShrink: 0,
       '@media': {
-        [tablet]: {
+        [tabletPortrait]: {
+          display: 'none'
+        },
+        [mobile]: {
           display: 'none'
         }
       }
@@ -235,7 +238,10 @@ export const navigationActions = style({
       gap: foundationVars.space[1],
       flexShrink: 0,
       '@media': {
-        [tablet]: {
+        [tabletPortrait]: {
+          display: 'none'
+        },
+        [mobile]: {
           display: 'none'
         }
       }

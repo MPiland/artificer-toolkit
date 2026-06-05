@@ -21,6 +21,7 @@ export interface ShellProps {
   navigation: AppShellNavGroup[]
   currentPath: string
   breadcrumbs?: string[]
+  isAuthenticated?: boolean
   userEmail?: string | null
   children: ReactNode
 }
@@ -44,13 +45,21 @@ type NavigationMenuItem = {
   label: string
 }
 
-export function Shell({ breadcrumbs, navigation, currentPath, userEmail, children }: ShellProps) {
+export function Shell({
+  breadcrumbs,
+  navigation,
+  currentPath,
+  isAuthenticated,
+  userEmail,
+  children
+}: ShellProps) {
   const [headerSupplement, setHeaderSupplement] = useState<ShellHeaderSupplement | null>(null)
   const [searchOpened, { close: closeSearch, open: openSearch }] = useDisclosure(false)
   const headerSupplementContext = useMemo(() => ({ setHeaderSupplement }), [])
   const authoringChrome = headerSupplement?.authoringChrome
   const isAuthoringMode = Boolean(authoringChrome)
-  const hasLibraryNavigation = Boolean(userEmail) && navigation.length > 0
+  const isSignedIn = isAuthenticated ?? Boolean(userEmail)
+  const hasLibraryNavigation = isSignedIn && navigation.length > 0
   const usesOverlayRail = useMediaQuery(
     '(max-width: 640px), (max-width: 900px) and (orientation: portrait)',
     false
@@ -104,8 +113,8 @@ export function Shell({ breadcrumbs, navigation, currentPath, userEmail, childre
     <ShellHeaderSupplementContext value={headerSupplementContext}>
       <div className={styles.canvas} data-testid='app-shell'>
         <Header
-          accountControl={userEmail ? <UserMenu /> : <SignedOutActions />}
-          accountLabel={userEmail ?? 'Sign in'}
+          accountControl={isSignedIn ? <UserMenu /> : <SignedOutActions />}
+          accountLabel={isSignedIn ? userEmail ?? 'Account' : 'Sign in'}
           actions={headerSupplement?.actions}
           crumbs={headerCrumbs}
           isNavigationOpen={isNavigationOpen}

@@ -31,6 +31,7 @@ function AuthedLayout() {
       breadcrumbs={breadcrumbs}
       navigation={platformNavigation}
       currentPath={location.pathname}
+      isAuthenticated={Boolean(user)}
       userEmail={user?.email}
     >
       <Outlet />
