@@ -30,6 +30,8 @@ export { InvalidDraftAlert } from './components/InvalidDraftAlert'
 export { AuthoringFocusedWorkspace } from './editors/AuthoringFocusedWorkspace'
 export { AuthoringFormLayout } from './layout/AuthoringFormLayout'
 export type { AuthoringFormLayoutProps } from './layout/AuthoringFormLayout'
+export { AuthoringWorkspaceLayout } from './layout/AuthoringWorkspaceLayout'
+export type { AuthoringWorkspaceLayoutProps } from './layout/AuthoringWorkspaceLayout'
 export { storyCanvas as authoringFormStoryCanvas } from './layout/AuthoringFormLayout.css'
 export { AuthoringFormStepNav } from './navigation/AuthoringFormStepNav'
 export type {

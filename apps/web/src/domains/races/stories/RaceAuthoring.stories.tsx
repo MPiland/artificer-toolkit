@@ -1,140 +1,139 @@
-import { useMemo } from 'react'
+import { Outlet } from '@tanstack/react-router'
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import type {
-  RaceAuthoringInputDto,
-  RaceAuthoredDto
-} from '@artificer-toolkit/schema/subjects/race'
 import {
-  AuthoringFormLayout,
-  AuthoringFormProvider,
-  authoringFormStoryCanvas,
-  clearResolvedNodeFormPaths,
-  useAppForm,
-  useAuthoringFormRegistration,
-  type AuthoringFormActionHandlers,
-  type AuthoringFormRegistration
-} from '#forms'
+  expect,
+  userEvent,
+  waitFor,
+  within
+} from 'storybook/test'
+import { routeTree } from '#app/routeTree.gen'
+import { RaceEditPage } from '../pages/RaceEditPage'
 import {
-  createEmptyRace,
-  normalizeRaceForSubmit,
-  toRaceFormValues,
-  type RaceFormValues
-} from '../raceAuthoring.utils'
-import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
-import {
-  masterRaceFixture,
-  ownedBaseRaceFixture,
-  ownedSubraceFixture,
-  raceRuntimeFixture
-} from '../race.fixtures'
+  activeLockedScenario,
+  authenticatedDraftEditScenario,
+  createRaceLoaderData,
+  draftSaveFailureScenario,
+  draftSaveSuccessScenario,
+  invalidDraftRecoveryScenario,
+  longEdgeContentScenario,
+  raceStoryHandlers,
+  raceStoryUser,
+  type RaceRouteStoryScenario
+} from './raceRouteStoryScenarios'
 
-interface RaceAuthoringStoryProps {
-  initialRace?: RaceAuthoringInputDto | RaceAuthoredDto | RaceFormValues
-  readOnly?: boolean
-}
+const routePath = '/races/$racePublicId/$raceSlug/edit' as const
+const parentRouteId = '/_authed/races/$racePublicId/$raceSlug' as const
 
-function RaceAuthoringStory({
-  initialRace = createEmptyRace({ systemId: 'dnd-5e-srd' }),
-  readOnly = false
-}: RaceAuthoringStoryProps) {
-  return (
-    <AuthoringFormProvider>
-      <RaceAuthoringStoryContent initialRace={initialRace} readOnly={readOnly} />
-    </AuthoringFormProvider>
-  )
-}
-
-function RaceAuthoringStoryContent({
-  initialRace,
-  readOnly
-}: Required<RaceAuthoringStoryProps>) {
-  const race = toRaceFormValues(initialRace)
-  const form = useAppForm({
-    defaultValues: race,
-    onSubmit: async ({ value }) => {
-      normalizeRaceForSubmit(value)
-    }
-  })
-  const registration = useMemo<AuthoringFormRegistration>(() => ({
-    activateLabel: 'Activate Race',
-    canCopy: readOnly,
-    canSaveDraft: !readOnly,
-    hasActiveDraft: false,
-    mapId: 'race',
-    mode: readOnly ? 'view' : 'edit',
-    providedModel: raceRuntimeFixture,
-    readOnly,
-    resolveModel: false,
-    saveDraftLabel: 'Save Draft',
-    subjectKindLabel: 'Race',
-    subjectLabel: race.label || 'Untitled Race',
-    systemId: race.systemId
-  }), [
-    race.label,
-    race.systemId,
-    readOnly
-  ])
-  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
-    onActivate: () => form.handleSubmit(),
-    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
-    onCopy: readOnly ? () => undefined : undefined,
-    onSaveDraft: readOnly ? undefined : () => undefined
-  }), [
-    form,
-    readOnly
-  ])
-
-  useAuthoringFormRegistration(registration, actions)
-
-  return (
-    <form.AppForm>
-      <AuthoringFormLayout>
-        <RaceAuthoringRenderer form={form} resolveModel={false} />
-      </AuthoringFormLayout>
-    </form.AppForm>
-  )
+function StoryRootDocument() {
+  return <Outlet />
 }
 
 const meta = {
-  title: 'Domains/Races/Authoring',
-  component: RaceAuthoringStory,
+  title: 'Domains/Races/Authoring Route',
+  component: RaceEditPage,
   parameters: {
     docs: {
       description: {
-        component: 'Race authoring rendered through the shared node-driven TanStack renderer.'
+        component: 'Route-backed race edit stories render the real TanStack route/page with mocked route loader data, query context, and MSW API behavior.'
       }
     }
-  },
-  decorators: [
-    (Story) => (
-      <div className={authoringFormStoryCanvas}>
-        <Story />
-      </div>
-    )
-  ]
-} satisfies Meta<typeof RaceAuthoringStory>
+  }
+} satisfies Meta<typeof RaceEditPage>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const CreateBaseRace: Story = {}
+function raceRouteParameters(scenario: RaceRouteStoryScenario): NonNullable<Story['parameters']> {
+  return {
+    layout: 'fullscreen',
+    msw: {
+      handlers: raceStoryHandlers(scenario)
+    },
+    tanstack: {
+      router: {
+        route: routeTree,
+        path: routePath,
+        params: scenario.params,
+        routeOverrides: {
+          __root__: {
+            beforeLoad: () => ({ user: raceStoryUser }),
+            component: StoryRootDocument
+          },
+          '/_authed': {
+            beforeLoad: () => undefined
+          },
+          [parentRouteId]: {
+            loader: () => createRaceLoaderData(scenario)
+          }
+        }
+      }
+    }
+  } as unknown as NonNullable<Story['parameters']>
+}
 
-export const EditBaseRace: Story = {
-  args: {
-    initialRace: ownedBaseRaceFixture
+export const AuthenticatedDraftEdit: Story = {
+  parameters: raceRouteParameters(authenticatedDraftEditScenario)
+}
+
+export const ActiveLockedReadonly: Story = {
+  parameters: raceRouteParameters(activeLockedScenario)
+}
+
+export const DraftSaveSuccess: Story = {
+  parameters: raceRouteParameters(draftSaveSuccessScenario),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const nameInput = await canvas.findByLabelText(/name/i)
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Dragonborn Copy Saved')
+    await userEvent.click(canvas.getByRole('button', { name: /save draft/i }))
+
+    await waitFor(() => {
+      expect(canvas.getByText(/race draft saved/i)).toBeInTheDocument()
+    })
   }
 }
 
-export const EditSubrace: Story = {
-  args: {
-    initialRace: ownedSubraceFixture
+export const DraftSaveFailure: Story = {
+  parameters: raceRouteParameters(draftSaveFailureScenario),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const nameInput = await canvas.findByLabelText(/name/i)
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Dragonborn Copy Failed')
+    await userEvent.click(canvas.getByRole('button', { name: /save draft/i }))
+
+    await waitFor(() => {
+      expect(canvas.getByText(/could not save that draft yet/i)).toBeInTheDocument()
+    })
   }
 }
 
-export const LockedMasterReadonly: Story = {
-  args: {
-    initialRace: masterRaceFixture,
-    readOnly: true
+export const InvalidDraftRecovery: Story = {
+  parameters: raceRouteParameters(invalidDraftRecoveryScenario),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(await canvas.findByText(/saved draft no longer matches/i)).toBeInTheDocument()
+  }
+}
+
+export const LongEdgeContentLayoutStress: Story = {
+  parameters: raceRouteParameters(longEdgeContentScenario)
+}
+
+export const MobileOpenStructureRail: Story = {
+  parameters: {
+    ...raceRouteParameters(authenticatedDraftEditScenario),
+    viewport: {
+      defaultViewport: 'mobile2'
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(await canvas.findByRole('button', { name: /structure/i }))
+
+    await expect(await canvas.findByText(/dragonborn copy/i)).toBeInTheDocument()
   }
 }

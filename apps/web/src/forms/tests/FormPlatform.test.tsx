@@ -16,7 +16,7 @@ import {
   useAuthoringFormRegistration,
   withForm
 } from '#forms'
-import { AppShellFrame, platformNavigation } from '#app/shell'
+import { Shell, platformNavigation } from '#app/shell'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { wideField } from '../components/formStyles.css'
 
@@ -696,23 +696,26 @@ const TestFormContent = withForm({
     onDelete,
     onSaveDraft
   }) {
-    useAuthoringFormRegistration({
-      activateLabel: 'Submit',
-      canDelete,
-      canSaveDraft,
-      hasActiveDraft,
-      isDraft,
-      mapId: 'test-form',
-      mode,
-      providedModel: model,
-      readOnly: false,
-      resolveModel: false,
-      subjectKindLabel: 'Test Form'
-    }, {
-      onActivate: () => form.handleSubmit(),
-      onDelete,
-      onSaveDraft
-    })
+    useAuthoringFormRegistration(
+      {
+        activateLabel: 'Submit',
+        canDelete,
+        canSaveDraft,
+        hasActiveDraft,
+        isDraft,
+        mapId: 'test-form',
+        mode,
+        providedModel: model,
+        readOnly: false,
+        resolveModel: false,
+        subjectKindLabel: 'Test Form'
+      },
+      {
+        onActivate: () => form.handleSubmit(),
+        onDelete,
+        onSaveDraft
+      }
+    )
 
     return (
       <AuthoringFormLayout>
@@ -857,9 +860,11 @@ describe('authoring form platform', () => {
     await user.click(screen.getByRole('button', { name: /edit on save failure/i }))
     await user.click(screen.getByRole('button', { name: /edit range override/i }))
 
-    expect(screen.getByRole('heading', {
-      name: /outcome paths.*on save failure.*range override/i
-    })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: /outcome paths.*on save failure.*range override/i
+      })
+    ).toBeInTheDocument()
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
     expect(onSubmit).not.toHaveBeenCalled()
   })
@@ -920,7 +925,9 @@ describe('authoring form platform', () => {
     await user.click(outcomeEditor.getByRole('button', { name: /^on use$/i }))
 
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
-    expect(await outcomeEditor.findByRole('combobox', { name: /behavior path/i })).toBeInTheDocument()
+    expect(
+      await outcomeEditor.findByRole('combobox', { name: /behavior path/i })
+    ).toBeInTheDocument()
     expect(outcomeEditor.getByRole('combobox', { name: /selection model/i })).toBeInTheDocument()
     expect(outcomeEditor.getByRole('combobox', { name: /outcome type/i })).toBeInTheDocument()
     expect(outcomeEditor.getAllByText('Outcomes').length).toBeGreaterThan(0)
@@ -972,7 +979,9 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('button', { name: /edit grants/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^add grant$/i }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: /add modifier grant/i, hidden: true }))
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /add modifier grant/i, hidden: true })
+    )
 
     expect(screen.getByRole('button', { name: /^modifier grants$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit grants/i })).not.toBeInTheDocument()
@@ -1029,7 +1038,9 @@ describe('authoring form platform', () => {
     expect(screen.getByText('Option 1')).toBeInTheDocument()
     expect(screen.getByText('Item 1')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^group 1$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /edit starting equipment/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /edit starting equipment/i })
+    ).not.toBeInTheDocument()
   })
 
   it('resets only the current step fields', async () => {
@@ -1068,20 +1079,22 @@ describe('authoring form platform', () => {
 
     render(
       <TestRouterProvider>
-        <AppShellFrame
+        <Shell
           breadcrumbs={['Test Forms', 'Fire Lace', 'Edit']}
           currentPath='/forms/fire-lace/edit'
           navigation={platformNavigation}
         >
           <TestForm canSaveDraft model={multiStepResolvedModel} />
-        </AppShellFrame>
+        </Shell>
       </TestRouterProvider>
     )
 
     const saveDraftButton = screen.getByRole('button', { name: /save draft/i })
     const breadcrumb = screen.getByLabelText('Current section')
     expect(within(breadcrumb).queryByText('Edit')).not.toBeInTheDocument()
-    expect(within(breadcrumb).queryByRole('navigation', { name: /test form steps/i })).not.toBeInTheDocument()
+    expect(
+      within(breadcrumb).queryByRole('navigation', { name: /test form steps/i })
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /test form steps/i })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
@@ -1100,28 +1113,36 @@ describe('authoring form platform', () => {
   it('reads resolved node helpers from step models', () => {
     expect(getResolvedNodeRequired(resolvedModel, 'label')).toBe(true)
     expect(getResolvedNodeVisible(resolvedModel, 'hiddenText')).toBe(false)
-    expect(getResolvedNodeOptions(resolvedModel, 'category', [])).toEqual([{ value: 'spell', label: 'Spell' }])
+    expect(getResolvedNodeOptions(resolvedModel, 'category', [])).toEqual([
+      { value: 'spell', label: 'Spell' }
+    ])
   })
 
   it('creates nested defaults from child map ids', () => {
-    const featureNode = resolvedModel.steps[0].sections[0].nodes.find((node) => node.id === 'features')
+    const featureNode = resolvedModel.steps[0].sections[0].nodes.find(
+      (node) => node.id === 'features'
+    )
 
     expect(featureNode).toBeDefined()
-    expect(createDefaultAuthoringArrayItem(featureNode!, 0)).toEqual(expect.objectContaining({
-      label: '',
-      order: 1
-    }))
-    expect(createDefaultAuthoringObjectItem({
-      id: 'cost',
-      path: ['cost'],
-      label: 'Cost',
-      kind: 'GROUP',
-      groupKind: 'OBJECT',
-      childMapId: 'cost',
-      visible: true,
-      required: false,
-      clearPaths: []
-    })).toEqual({
+    expect(createDefaultAuthoringArrayItem(featureNode!, 0)).toEqual(
+      expect.objectContaining({
+        label: '',
+        order: 1
+      })
+    )
+    expect(
+      createDefaultAuthoringObjectItem({
+        id: 'cost',
+        path: ['cost'],
+        label: 'Cost',
+        kind: 'GROUP',
+        groupKind: 'OBJECT',
+        childMapId: 'cost',
+        visible: true,
+        required: false,
+        clearPaths: []
+      })
+    ).toEqual({
       amount: 0,
       currencyId: ''
     })
@@ -1129,9 +1150,9 @@ describe('authoring form platform', () => {
 })
 
 function getEditorWorkspaces() {
-  return screen.queryAllByRole('region').filter((region) => (
-    within(region).queryByRole('button', { name: /close editor/i }) != null
-  ))
+  return screen
+    .queryAllByRole('region')
+    .filter((region) => within(region).queryByRole('button', { name: /close editor/i }) != null)
 }
 
 function getActiveEditorWorkspace() {

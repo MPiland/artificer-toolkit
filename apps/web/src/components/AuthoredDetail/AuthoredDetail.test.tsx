@@ -1,12 +1,22 @@
-import { screen } from '@testing-library/react'
+import { MantineProvider } from '@mantine/core'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
 import { vi } from 'vitest'
-import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { resolver, theme } from '#css/theme'
 import { AuthoredDetailItemList, AuthoredDetailLayout, AuthoredDetailProse } from './AuthoredDetail'
+
+function renderAuthoredDetail(ui: ReactElement) {
+  return render(
+    <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+      {ui}
+    </MantineProvider>
+  )
+}
 
 describe('AuthoredDetail', () => {
   it('renders a readable header, fact grid, navigation, and sections', () => {
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailLayout
         eyebrow='Spell'
         title='Sea Step'
@@ -35,7 +45,7 @@ describe('AuthoredDetail', () => {
   })
 
   it('can omit section navigation for compact detail pages', () => {
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailLayout
         title='Sea Step'
         status={['SRD']}
@@ -59,7 +69,7 @@ describe('AuthoredDetail', () => {
     const user = userEvent.setup()
     const onEdit = vi.fn()
 
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailLayout
         eyebrow='Feat'
         title='Tide Reader'
@@ -82,7 +92,7 @@ describe('AuthoredDetail', () => {
   })
 
   it('shows loading feedback for pending header actions', () => {
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailLayout
         title='Dragonborn'
         status={['SRD']}
@@ -100,7 +110,7 @@ describe('AuthoredDetail', () => {
     const onCreate = vi.fn()
     const onNoticeAction = vi.fn()
 
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailLayout
         actionsDisabled
         pendingOperation={{
@@ -132,7 +142,7 @@ describe('AuthoredDetail', () => {
   })
 
   it('uses empty blocks instead of blank repeated sections', () => {
-    renderWithAppProviders(
+    renderAuthoredDetail(
       <AuthoredDetailItemList
         empty='No features have been added.'
         items={[]}

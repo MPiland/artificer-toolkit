@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.auth.tsbuildinfo"
+  },
+  "include": [
+    "src/auth/**/*.test.ts",
+    "src/auth/**/*.test.tsx",
+    "src/auth/**/*.spec.ts",
+    "src/auth/**/*.spec.tsx",
+    "vite-env.d.ts"
+  ]
+}

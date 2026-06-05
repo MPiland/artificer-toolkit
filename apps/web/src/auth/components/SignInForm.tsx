@@ -14,9 +14,8 @@ import {
   inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
-import { Link } from '#ui/primitives/Link'
 import { AuthDivider } from './AuthDivider'
-import { Button, PasswordInput, TextInput } from '@mantine/core'
+import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import IArrowRight from '#assets/icons/IArrowRight'
 
 export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
@@ -76,9 +75,9 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         required
       />
       <div className={forgotRow}>
-        <Link className={inlineLink} to='/reset-password' type='anchor'>
+        <Anchor className={inlineLink} href='/reset-password'>
           Forgot password?
-        </Link>
+        </Anchor>
       </div>
       <Button className={authButton} type='submit' disabled={isSubmitting}>
         {isSubmitting ? 'Opening toolkit...' : 'Sign in'}
@@ -97,12 +96,12 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
       <AuthDivider />
       <div className={authFooterRow}>
         <span>{`Don't have an account?`}</span>
-        <Link className={inlineLink} to='/sign-up' type='anchor'>
+        <Anchor className={inlineLink} href='/sign-up'>
           Sign up
           <span className={inlineLinkIcon} aria-hidden='true'>
             <IArrowRight className={inlineLinkIconGlyph} size={14} />
           </span>
-        </Link>
+        </Anchor>
       </div>
     </form>
   )

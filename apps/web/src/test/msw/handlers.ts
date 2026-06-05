@@ -1,5 +1,12 @@
 import { http, HttpResponse } from 'msw'
 import type { NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { RaceAuthoringInputDto } from '@artificer-toolkit/schema/subjects/race'
+import {
+  ownedBaseRaceFixture,
+  ownedBaseRaceResponseFixture,
+  raceListResponseFixture,
+  raceRuntimeFixture
+} from '#domains/races/race.fixtures'
 
 export const handlers = [
   http.get('*/api/trpc/systems.list', () => trpcJson([
@@ -37,11 +44,32 @@ export const handlers = [
     drafts: [],
     meta: {}
   })),
+  http.get('*/api/trpc/content.races.list', () => trpcJson(raceListResponseFixture)),
+  http.get('*/api/trpc/content.races.get', () => trpcJson(ownedBaseRaceResponseFixture)),
+  http.get('*/api/trpc/content.races.getDraft', () => trpcJson(null)),
+  http.post('*/api/trpc/content.races.saveDraft', async ({ request }) => {
+    const race = readBatchedInput<RaceAuthoringInputDto>(await request.json())
+
+    return trpcJson(createRaceDraft(race))
+  }),
+  http.post('*/api/trpc/content.races.activate', () => trpcJson(ownedBaseRaceResponseFixture)),
+  http.post('*/api/trpc/content.races.activateDraft', () => trpcJson(ownedBaseRaceResponseFixture)),
+  http.post('*/api/trpc/content.races.deleteActive', () => trpcJson({ ok: true })),
+  http.post('*/api/trpc/content.races.discardDraft', () => trpcJson({ ok: true })),
+  http.post('*/api/trpc/content.races.duplicate', () => trpcJson(createRaceDraft({
+    ...ownedBaseRaceFixture,
+    id: `${ownedBaseRaceFixture.id}-copy`,
+    label: `${ownedBaseRaceFixture.label} Copy`
+  }))),
   http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
     const body = readBatchedInput<NodeRuntimeResolveRequestDto>(await request.json())
 
     if (body.mapId === 'spell') {
       return trpcJson(buildSpellRuntimeResponse(body))
+    }
+
+    if (body.mapId === 'race') {
+      return trpcJson(raceRuntimeFixture)
     }
 
     return trpcJson({
@@ -62,6 +90,26 @@ function readBatchedInput<TInput>(body: unknown): TInput {
   }
 
   return (body as { 0: TInput })[0]
+}
+
+function createRaceDraft(race: RaceAuthoringInputDto) {
+  return {
+    subjectKind: 'RACE',
+    subjectId: race.id,
+    publicId: race.id,
+    userId: race.userId ?? 'story-user',
+    systemId: race.systemId,
+    label: race.label,
+    description: race.description,
+    status: 'DRAFT',
+    category: race.category,
+    draftState: 'ACTIVE_WITH_DRAFT',
+    baseActiveUpdatedAt: null,
+    createdAt: '2024-04-01T12:00:00.000Z',
+    updatedAt: '2024-04-01T12:00:00.000Z',
+    id: `${race.id}-draft`,
+    payload: race
+  }
 }
 
 function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRuntimeResolveResponseDto {

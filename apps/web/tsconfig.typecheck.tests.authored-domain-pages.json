@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.authored-domain-pages.tsbuildinfo"
+  },
+  "include": [
+    "src/components/AuthoredDetail/AuthoredDomainDetailPages.test.tsx",
+    "vite-env.d.ts"
+  ]
+}

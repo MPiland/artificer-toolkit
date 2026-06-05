@@ -8,11 +8,15 @@ const config: StorybookConfig = {
     name: '@storybook/tanstack-react',
     options: {}
   },
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  staticDirs: ['../public'],
+  stories: [
+    '../src/**/*.stories.@(ts|tsx)'
+  ],
   addons: [
     getAbsolutePath('@storybook/addon-a11y'),
     getAbsolutePath('@storybook/addon-docs'),
     getAbsolutePath('@storybook/addon-themes'),
+    getAbsolutePath('@storybook/addon-vitest'),
     getAbsolutePath('@storybook/addon-mcp')
   ],
   viteFinal: async (config) => {

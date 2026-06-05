@@ -1,7 +1,17 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { MantineProvider } from '@mantine/core'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ReactElement } from 'react'
+import { resolver, theme } from '#css/theme'
 import { ResetPasswordForm, SignInForm, SignUpForm, UpdatePasswordForm } from './components'
 import type { AuthClient, AuthResult } from './authClient'
+
+function renderAuthForm(ui: ReactElement) {
+  return render(
+    <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+      {ui}
+    </MantineProvider>
+  )
+}
 
 function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
   return {
@@ -16,7 +26,7 @@ function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
 
 describe('AuthForms', () => {
   it('marks sign-in credentials for safe browser autofill without GET fallback', () => {
-    renderWithAppProviders(<SignInForm authClient={createAuthClient()} />)
+    renderAuthForm(<SignInForm authClient={createAuthClient()} />)
 
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
     const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
@@ -30,7 +40,7 @@ describe('AuthForms', () => {
     const signIn = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
-    renderWithAppProviders(
+    renderAuthForm(
       <SignInForm authClient={createAuthClient({ signIn })} onSuccess={onSuccess} />
     )
 
@@ -50,7 +60,7 @@ describe('AuthForms', () => {
   })
 
   it('marks sign-up credentials for account creation autofill', () => {
-    renderWithAppProviders(<SignUpForm authClient={createAuthClient()} />)
+    renderAuthForm(<SignUpForm authClient={createAuthClient()} />)
 
     const nameInput = screen.getByRole('textbox', { name: /name/i })
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
@@ -65,7 +75,7 @@ describe('AuthForms', () => {
   it('submits signup with the display name', async () => {
     const signUp = vi.fn(async () => ({ ok: true }))
 
-    renderWithAppProviders(<SignUpForm authClient={createAuthClient({ signUp })} />)
+    renderAuthForm(<SignUpForm authClient={createAuthClient({ signUp })} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: /name/i }), {
       target: { value: 'Morgan' }
@@ -102,7 +112,7 @@ describe('AuthForms', () => {
     const signUp = vi.fn(async () => ({ ok: true, session }))
     const onSuccess = vi.fn()
 
-    renderWithAppProviders(
+    renderAuthForm(
       <SignUpForm authClient={createAuthClient({ signUp })} onSuccess={onSuccess} />
     )
 
@@ -124,7 +134,7 @@ describe('AuthForms', () => {
   })
 
   it('marks reset-password email for browser autofill without GET fallback', () => {
-    renderWithAppProviders(<ResetPasswordForm authClient={createAuthClient()} />)
+    renderAuthForm(<ResetPasswordForm authClient={createAuthClient()} />)
 
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
 
@@ -135,7 +145,7 @@ describe('AuthForms', () => {
   it('requests a password reset', async () => {
     const requestPasswordReset = vi.fn(async () => ({ ok: true }))
 
-    renderWithAppProviders(
+    renderAuthForm(
       <ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />
     )
 
@@ -155,7 +165,7 @@ describe('AuthForms', () => {
       message: 'Unable to reach the reset service.'
     }))
 
-    renderWithAppProviders(
+    renderAuthForm(
       <ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />
     )
 
@@ -170,7 +180,7 @@ describe('AuthForms', () => {
   })
 
   it('marks update-password fields as new-password entries without GET fallback', () => {
-    renderWithAppProviders(<UpdatePasswordForm authClient={createAuthClient()} />)
+    renderAuthForm(<UpdatePasswordForm authClient={createAuthClient()} />)
 
     const newPasswordInput = screen.getByLabelText(/new password/i, { selector: 'input' })
     const confirmPasswordInput = screen.getByLabelText(/confirm password/i, { selector: 'input' })
@@ -184,7 +194,7 @@ describe('AuthForms', () => {
     const updatePassword = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
-    renderWithAppProviders(
+    renderAuthForm(
       <UpdatePasswordForm
         authClient={createAuthClient({ updatePassword })}
         onSuccess={onSuccess}

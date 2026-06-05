@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.routes.pure.tsbuildinfo"
+  },
+  "include": [
+    "src/routes/-authoredDetailRoutes.test.ts",
+    "src/routes/-guestAuthGuard.test.ts",
+    "src/routes/-guestRootRedirect.test.ts",
+    "src/routing/**/*.test.ts",
+    "src/routing/**/*.test.tsx",
+    "src/routing/**/*.spec.ts",
+    "src/routing/**/*.spec.tsx",
+    "src/routeStates.test.tsx",
+    "vite-env.d.ts"
+  ]
+}

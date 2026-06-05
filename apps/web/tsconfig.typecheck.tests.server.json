@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.server.tsbuildinfo"
+  },
+  "include": [
+    "src/server/**/*.test.ts",
+    "src/server/**/*.test.tsx",
+    "src/server/**/*.spec.ts",
+    "src/server/**/*.spec.tsx",
+    "vite-env.d.ts"
+  ]
+}

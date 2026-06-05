@@ -45,6 +45,19 @@
     "test:browser": {
       "outputs": []
     },
+    "test:coverage": {
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "test:coverage:storybook": {
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "test:storybook": {
+      "outputs": []
+    },
     "test:e2e": {
       "outputs": [
         "playwright-report/**",
@@ -82,7 +95,7 @@
     },
     "typecheck:tests": {
       "outputs": [
-        ".cache/tsc/typecheck.tests.tsbuildinfo"
+        ".cache/tsc/typecheck.tests*.tsbuildinfo"
       ]
     }
   }

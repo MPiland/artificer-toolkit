@@ -33,7 +33,6 @@
 				"org.graalvm.*",
 				"io.micrometer.shaded.*"
 			],
-			"eslint.workingDirectories": [],
 			"workbench.editorAssociations": {
 				"{git,gitlens,conflictResolution,vscode-local-history}:/**/*.tc.json": "default",
 				"*.svg": "default"
@@ -66,11 +65,6 @@
 				"**/*.css",
 				"**/*.scss"
 			],
-			"eslint.format.enable": false,
-			"editor.codeActionsOnSave": {
-				"source.fixAll.eslint": "explicit"
-			},
-			"eslint.useFlatConfig": true,
 			"[typescript]": {
 				"editor.defaultFormatter": "oxc.oxc-vscode"
 			},

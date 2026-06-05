@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from 'react'
 import { scrollToMarketingHash } from './marketing.utils'
 
@@ -38,9 +37,9 @@ export function MarketingHashLink({ href, onClick, ...props }: MarketingHashLink
 
 export function MarketingRouteLink({ className, children, to }: MarketingRouteLinkProps) {
   return (
-    <Link className={className} to={to}>
+    <a className={className} href={to}>
       {children}
-    </Link>
+    </a>
   )
 }
 

@@ -10,11 +10,11 @@ export const root = style({
       'display': 'grid',
       'alignItems': 'center',
       'minHeight': '56px',
-      'border': `1px solid ${foundationVars.color.border.strong}`,
+      'borderTop': `1px solid ${foundationVars.color.border.strong}`,
       'borderRight': 0,
       'borderBottom': 0,
-      'borderTopLeftRadius': foundationVars.radius.md,
-      'overflow': 'hidden'
+      'borderLeft': 0,
+      'overflow': 'visible'
     }
   }
 })

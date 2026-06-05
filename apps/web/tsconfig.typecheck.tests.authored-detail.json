@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.authored-detail.tsbuildinfo"
+  },
+  "include": [
+    "src/components/AuthoredDetail/**/*.test.ts",
+    "src/components/AuthoredDetail/**/*.test.tsx",
+    "src/components/AuthoredDetail/**/*.spec.ts",
+    "src/components/AuthoredDetail/**/*.spec.tsx",
+    "vite-env.d.ts"
+  ],
+  "exclude": [
+    "src/components/AuthoredDetail/AuthoredDomainDetailPages.test.tsx",
+    "src/components/AuthoredDetail/useAuthoredDetailActions.lifecycle.test.tsx"
+  ]
+}

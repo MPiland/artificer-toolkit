@@ -1,15 +1,10 @@
-export { AppShellFrame, FooterActionBar, PageHeader } from './AppShellFrame'
+export { Shell, FooterActionBar, PageHeader } from './Shell'
+export type { ShellProps, FooterActionBarProps, PageHeaderProps } from './Shell'
+export { isNavItemActive, platformNavigation } from './navigation'
+export { useShellAuthoringChrome, useShellHeaderSupplement } from './headerSupplement'
 export type {
-  AppShellFrameProps,
-  FooterActionBarProps,
-  PageHeaderProps
-} from './AppShellFrame'
-export {
-  isNavItemActive,
-  platformNavigation
-} from './navigation'
-export { useShellHeaderSupplement } from './headerSupplement'
-export type {
-  AppShellNavGroup,
-  AppShellNavItem
-} from './navigation'
+  ShellAuthoringChrome,
+  ShellHeaderSupplement,
+  ShellHeaderSupplementContextValue
+} from './headerSupplement'
+export type { AppShellNavGroup, AppShellNavItem } from './navigation'

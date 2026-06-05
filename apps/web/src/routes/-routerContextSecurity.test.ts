@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js'
+import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
-import { getRouter } from '#app/router'
+import { createAppRouterContext } from '#app/routerContext'
 
 describe('router context security', () => {
   it('does not serialize auth tokens into the route payload context', () => {
@@ -11,8 +12,11 @@ describe('router context security', () => {
       id: 'user-1',
       user_metadata: {}
     } as User
-    const router = getRouter(user)
-    const payload = JSON.stringify(router.options.context)
+    const context = createAppRouterContext({
+      queryClient: new QueryClient(),
+      user
+    })
+    const payload = JSON.stringify(context)
 
     expect(payload).not.toContain('accessToken')
     expect(payload).not.toContain('access_token')

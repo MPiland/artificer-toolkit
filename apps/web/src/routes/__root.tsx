@@ -10,7 +10,7 @@ import { Suspense, lazy } from 'react'
 import { AppProviders } from '#app/providers/AppProviders'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
-import type { AppRouterContext } from '#app/router'
+import type { AppRouterContext } from '#app/routerContext'
 
 const RouterDevtools = import.meta.env.DEV
   ? lazy(() => import('@tanstack/react-router-devtools').then((module) => ({

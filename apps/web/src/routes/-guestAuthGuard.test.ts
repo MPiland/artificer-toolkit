@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canAuthenticatedUserVisitGuestAuthPath } from './_guest/_auth'
+import { canAuthenticatedUserVisitGuestAuthPath } from './_guest/guestRouteGuards'
 
 describe('guest auth route guard', () => {
   it('allows authenticated users to complete password recovery', () => {
