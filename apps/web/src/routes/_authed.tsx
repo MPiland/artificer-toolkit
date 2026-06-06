@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, redirect, useLocation, useMatches } from '@tanstack/react-router'
-import { AppShellFrame, platformNavigation } from '#app/shell'
+import { Shell, platformNavigation } from '#app/shell'
 import { buildShellBreadcrumbs } from '#app/shell/breadcrumbs'
 
 export const Route = createFileRoute('/_authed')({
@@ -15,24 +15,26 @@ function AuthedLayout() {
   const { user } = Route.useRouteContext()
   const location = useLocation()
   const breadcrumbs = useMatches({
-    select: (matches) => buildShellBreadcrumbs({
-      currentPath: location.pathname,
-      matches: matches.map((match) => ({
-        loaderData: match.loaderData,
-        routeId: match.routeId
-      })),
-      navigation: platformNavigation
-    })
+    select: (matches) =>
+      buildShellBreadcrumbs({
+        currentPath: location.pathname,
+        matches: matches.map((match) => ({
+          loaderData: match.loaderData,
+          routeId: match.routeId
+        })),
+        navigation: platformNavigation
+      })
   })
 
   return (
-    <AppShellFrame
+    <Shell
       breadcrumbs={breadcrumbs}
       navigation={platformNavigation}
       currentPath={location.pathname}
+      isAuthenticated={Boolean(user)}
       userEmail={user?.email}
     >
       <Outlet />
-    </AppShellFrame>
+    </Shell>
   )
 }

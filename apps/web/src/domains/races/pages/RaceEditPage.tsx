@@ -21,8 +21,8 @@ import {
 } from '@artificer-toolkit/schema/subjects/race'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
-  AuthoringFormLayout,
   AuthoringFormProvider,
+  AuthoringWorkspaceLayout,
   InvalidDraftAlert,
   clearResolvedNodeFormPaths,
   useAppForm,
@@ -47,6 +47,7 @@ import {
   type RaceFormValues
 } from '../raceAuthoring.utils'
 import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
+import { RaceAuthoringPreview } from '../components/RaceAuthoringPreview'
 
 type ParsedRaceDraft = {
   draft: AuthoredDraftDto | null
@@ -294,21 +295,28 @@ function RaceEditAuthoring({
 
   return (
     <form.AppForm>
-      <Stack>
-        {hasInvalidDraft
-          ? (
-              <InvalidDraftAlert
-                domainLabel='race'
-                isDiscarding={discardDraftMutation.isPending}
-                onDiscard={() => void handleDiscardDraft()}
-              />
-            )
-          : null}
-        <AuthoringFormLayout>
+      <>
+        <AuthoringWorkspaceLayout
+          preview={(
+            <form.Subscribe selector={(state) => state.values}>
+              {(values) => <RaceAuthoringPreview values={values} />}
+            </form.Subscribe>
+          )}
+          previewLabel='Race preview'
+        >
+          {hasInvalidDraft
+            ? (
+                <InvalidDraftAlert
+                  domainLabel='race'
+                  isDiscarding={discardDraftMutation.isPending}
+                  onDiscard={() => void handleDiscardDraft()}
+                />
+              )
+            : null}
           <RaceAuthoringRenderer form={form} />
-        </AuthoringFormLayout>
+        </AuthoringWorkspaceLayout>
         {deleteConfirmation}
-      </Stack>
+      </>
     </form.AppForm>
   )
 }

@@ -141,7 +141,6 @@ export function AuthoredListPage({
     = viewMode === 'cards'
       ? Math.ceil(filteredItems.length / cardColumnCount)
       : filteredItems.length
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual intentionally owns virtualization callbacks here.
   const rowVirtualizer = useVirtualizer({
     count: virtualRowCount,
     getScrollElement: () => viewportRef.current,

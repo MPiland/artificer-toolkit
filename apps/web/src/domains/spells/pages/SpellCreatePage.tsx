@@ -6,8 +6,8 @@ import {
 import { notifications } from '@mantine/notifications'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
-  AuthoringFormLayout,
   AuthoringFormProvider,
+  AuthoringWorkspaceLayout,
   clearResolvedNodeFormPaths,
   useAppForm,
   useAuthoringFormRegistration,
@@ -132,9 +132,9 @@ function SpellCreateAuthoring({
 
   return (
     <form.AppForm>
-      <AuthoringFormLayout>
+      <AuthoringWorkspaceLayout>
         <SpellAuthoringRenderer form={form} />
-      </AuthoringFormLayout>
+      </AuthoringWorkspaceLayout>
     </form.AppForm>
   )
 }

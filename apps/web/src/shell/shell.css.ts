@@ -2,422 +2,108 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
-const mobileBreakpoint = 'screen and (max-width: 992px)'
+const tabletPortrait = 'screen and (max-width: 900px) and (orientation: portrait)'
+const mobile = 'screen and (max-width: 640px)'
 
-export const skipLink = style({
+export const canvas = style({
   '@layer': {
     [app]: {
-      'position': 'fixed',
-      'top': foundationVars.space[3],
-      'left': foundationVars.space[3],
-      'zIndex': 1000,
-      'transform': 'translateY(-150%)',
-      'padding': `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      'border': `1px solid ${foundationVars.color.accent.border}`,
-      'borderRadius': foundationVars.radius.md,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'color': foundationVars.color.text.primary,
-      'fontSize': foundationVars.typography.bodySm.fontSize,
-      'fontWeight': foundationVars.fontWeight.semibold,
-      'textDecoration': 'none',
-      'boxShadow': foundationVars.shadow.card,
-      'transition': `transform ${foundationVars.motion.fast} ease`,
-
-      ':focus-visible': {
-        transform: 'translateY(0)',
-        outline: `2px solid ${foundationVars.color.accent.solid}`,
-        outlineOffset: '2px'
-      }
-    }
-  }
-})
-
-export const shellRoot = style({
-  '@layer': {
-    [app]: {
-      minHeight: '100dvh',
+      display: 'grid',
+      gridTemplateRows: 'auto minmax(0, 1fr)',
+      blockSize: '100dvh',
+      minBlockSize: '100dvh',
+      overflow: 'hidden',
       backgroundColor: foundationVars.color.surface.canvas,
       color: foundationVars.color.text.primary
     }
   }
 })
 
-export const header = style({
-  '@layer': {
-    [app]: {
-      'position': 'fixed',
-      'top': 0,
-      'right': 0,
-      'left': 0,
-      'zIndex': 200,
-      'display': 'grid',
-      'gridTemplateColumns': '48px minmax(0, 1fr)',
-      'height': '48px',
-      'borderBottom': 0,
-      'backgroundColor': foundationVars.color.surface.header,
-
-      ':after': {
-        content: '""',
-        position: 'absolute',
-        right: 0,
-        bottom: 0,
-        left: 0,
-        height: '1px',
-        backgroundColor: foundationVars.color.border.subtle,
-        pointerEvents: 'none'
-      }
-    }
-  }
-})
-
-export const logoCell = style({
-  '@layer': {
-    [app]: {
-      'display': 'grid',
-      'width': '48px',
-      'height': '48px',
-      'placeItems': 'center',
-      'color': foundationVars.color.logo.icon,
-      'backgroundColor': foundationVars.color.surface.header,
-      'textDecoration': 'none',
-      'position': 'relative',
-
-      ':focus-visible': {
-        outline: `2px solid ${foundationVars.color.accent.solid}`,
-        outlineOffset: '-3px'
-      }
-    }
-  }
-})
-
-export const headerBar = style({
-  '@layer': {
-    [app]: {
-      'minWidth': 0,
-      'display': 'grid',
-      'gridTemplateColumns': 'minmax(0, 1fr) auto',
-      'alignItems': 'center',
-      'gap': foundationVars.space[4],
-      'padding': `0 ${foundationVars.space[6]}`,
-      '@media': {
-        [mobileBreakpoint]: {
-          gridTemplateColumns: 'auto minmax(0, 1fr) auto',
-          padding: `0 ${foundationVars.space[3]}`
-        }
-      }
-    }
-  }
-})
-
-export const mobileHeaderGroup = style({
-  '@layer': {
-    [app]: {
-      'display': 'none',
-      '@media': {
-        [mobileBreakpoint]: {
-          display: 'flex'
-        }
-      }
-    }
-  }
-})
-
-export const breadcrumb = style({
-  '@layer': {
-    [app]: {
-      minWidth: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: foundationVars.space[2],
-      color: foundationVars.color.text.secondary,
-      fontSize: foundationVars.typography.bodySm.fontSize,
-      lineHeight: foundationVars.typography.bodySm.lineHeight
-    }
-  }
-})
-
-export const breadcrumbSupplement = style({
-  '@layer': {
-    [app]: {
-      minWidth: 0,
-      display: 'inline-flex',
-      alignItems: 'center',
-      overflow: 'hidden'
-    }
-  }
-})
-
-export const breadcrumbSegment = style({
-  '@layer': {
-    [app]: {
-      minWidth: 0,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const breadcrumbRoot = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const breadcrumbSlash = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.muted
-    }
-  }
-})
-
-export const breadcrumbLeaf = style({
-  '@layer': {
-    [app]: {
-      overflow: 'hidden',
-      color: foundationVars.color.text.primary,
-      fontWeight: foundationVars.fontWeight.semibold,
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const headerActions = style({
-  '@layer': {
-    [app]: {
-      justifyContent: 'flex-end'
-    }
-  }
-})
-
-export const headerUserMenu = style({
-  '@layer': {
-    [app]: {
-      'display': 'none',
-      '@media': {
-        [mobileBreakpoint]: {
-          display: 'inline-flex'
-        }
-      }
-    }
-  }
-})
-
-export const navbar = style({
-  '@layer': {
-    [app]: {
-      'top': '48px',
-      'height': 'calc(100dvh - 48px)',
-      'display': 'grid',
-      'gridTemplateRows': 'minmax(0, 1fr) auto',
-      'alignItems': 'stretch',
-      'padding': `${foundationVars.space[3]} 0`,
-      'borderRight': `1px solid ${foundationVars.color.border.subtle}`,
-      'backgroundColor': foundationVars.color.surface.sidebar,
-      '@media': {
-        [mobileBreakpoint]: {
-          padding: foundationVars.space[4],
-          width: '18rem'
-        }
-      }
-    }
-  }
-})
-
-export const navScroll = style({
-  '@layer': {
-    [app]: {
-      minHeight: 0
-    }
-  }
-})
-
-export const navStack = style({
-  '@layer': {
-    [app]: {
-      'display': 'grid',
-      'justifyItems': 'center',
-      'gap': foundationVars.space[2],
-      '@media': {
-        [mobileBreakpoint]: {
-          justifyItems: 'stretch'
-        }
-      }
-    }
-  }
-})
-
-export const navGroup = style({
+export const workspace = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: '0.25rem',
-      paddingTop: foundationVars.space[2],
-      selectors: {
-        '& + &': {
-          marginTop: foundationVars.space[2],
-          paddingTop: foundationVars.space[3],
-          borderTop: `1px solid ${foundationVars.color.border.subtle}`
-        }
-      }
-    }
-  }
-})
-
-export const navGroupLabel = style({
-  '@layer': {
-    [app]: {
-      'width': '1px',
-      'height': '1px',
-      'position': 'absolute',
-      'overflow': 'hidden',
-      'clip': 'rect(0 0 0 0)',
-      'whiteSpace': 'nowrap',
+      gridTemplateAreas: '"rail main"',
+      gridTemplateColumns: 'minmax(16rem, 20rem) minmax(0, 1fr)',
+      gridTemplateRows: 'minmax(0, 1fr)',
+      blockSize: '100%',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      overflow: 'hidden',
       '@media': {
-        [mobileBreakpoint]: {
-          width: 'auto',
-          height: 'auto',
-          position: 'static',
-          clip: 'auto',
-          padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-          color: foundationVars.color.text.secondary,
-          fontSize: foundationVars.typography.caption.fontSize,
-          fontWeight: foundationVars.fontWeight.medium,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase'
+        [tabletPortrait]: {
+          gridTemplateAreas: '"main"',
+          gridTemplateColumns: 'minmax(0, 1fr)'
+        },
+        [mobile]: {
+          gridTemplateAreas: '"main"',
+          gridTemplateColumns: 'minmax(0, 1fr)'
         }
       }
     }
   }
 })
 
-export const navItem = style({
+export const workspaceNoRail = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': '40px',
-      'appearance': 'none',
-      'alignItems': 'center',
-      'justifyItems': 'center',
-      'width': '40px',
-      'minHeight': '40px',
-      'padding': 0,
-      'border': '1px solid transparent',
-      'borderRadius': foundationVars.radius.md,
-      'background': 'transparent',
-      'color': foundationVars.color.icon.muted,
-      'textDecoration': 'none',
-      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
-
-      ':focus-visible': {
-        outline: `2px solid ${foundationVars.color.accent.solid}`,
-        outlineOffset: '-2px'
-      },
-
-      ':disabled': {
-        cursor: 'not-allowed'
-      },
-      '@media': {
-        [mobileBreakpoint]: {
-          gridTemplateColumns: '48px minmax(0, 1fr)',
-          justifyItems: 'start',
-          width: '100%',
-          minHeight: '48px',
-          borderRadius: foundationVars.radius.lg
-        }
-      }
+      gridTemplateAreas: '"main"',
+      gridTemplateColumns: 'minmax(0, 1fr)'
     }
   }
 })
 
-export const navItemInteractive = style({
+export const railSlot = style({
   '@layer': {
     [app]: {
-      'cursor': 'pointer',
-      ':hover': {
-        color: foundationVars.color.icon.hover,
-        backgroundColor: foundationVars.color.nav.pillHover
-      }
+      gridArea: 'rail',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      overflow: 'hidden',
+      backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
 
-export const navItemActive = style({
+export const navigationDrawerContent = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.icon.selected,
-      backgroundColor: foundationVars.color.nav.pillActive,
-      borderColor: foundationVars.color.accent.border
+      display: 'flex',
+      flexDirection: 'column',
+      blockSize: '100%',
+      minBlockSize: 0,
+      overflow: 'hidden',
+      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.recessed,
+      color: foundationVars.color.text.primary
     }
   }
 })
 
-export const navItemDisabled = style({
+export const navigationDrawerBody = style({
   '@layer': {
     [app]: {
-      opacity: 0.54
+      display: 'flex',
+      flex: 1,
+      blockSize: '100%',
+      minBlockSize: 0,
+      overflow: 'hidden',
+      padding: 0,
+      backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
 
-export const navIcon = style({
+export const navigationDrawerRailMount = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'width': '40px',
-      'height': '40px',
-      'placeItems': 'center',
-      '@media': {
-        [mobileBreakpoint]: {
-          width: '48px'
-        }
-      }
-    }
-  }
-})
-
-export const navItemLabel = style({
-  '@layer': {
-    [app]: {
-      'display': 'none',
-      '@media': {
-        [mobileBreakpoint]: {
-          display: 'block',
-          color: foundationVars.color.text.primary,
-          fontSize: foundationVars.typography.bodySm.fontSize,
-          fontWeight: foundationVars.fontWeight.medium
-        }
-      }
-    }
-  }
-})
-
-export const sidebarFooter = style({
-  '@layer': {
-    [app]: {
-      'display': 'grid',
-      'placeItems': 'center',
-      'paddingTop': foundationVars.space[3],
-      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
-      '@media': {
-        [mobileBreakpoint]: {
-          display: 'none'
-        }
-      }
-    }
-  }
-})
-
-export const userIconButton = style({
-  '@layer': {
-    [app]: {
-      width: '40px',
-      height: '40px'
+      display: 'flex',
+      flex: 1,
+      blockSize: '100%',
+      inlineSize: '100%',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      overflow: 'hidden'
     }
   }
 })
@@ -425,9 +111,39 @@ export const userIconButton = style({
 export const main = style({
   '@layer': {
     [app]: {
-      minWidth: 0,
-      minHeight: 'calc(100dvh - 48px)',
-      backgroundColor: foundationVars.color.surface.canvas
+      gridArea: 'main',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      overflow: 'auto',
+      backgroundColor: foundationVars.color.surface.canvas,
+      ':focus': {
+        outline: 'none'
+      }
+    }
+  }
+})
+
+export const authoringMain = style({
+  '@layer': {
+    [app]: {
+      gridArea: 'main',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      overflow: 'hidden',
+      backgroundColor: foundationVars.color.surface.canvas,
+      ':focus': {
+        outline: 'none'
+      },
+      '@media': {
+        [tabletPortrait]: {
+          paddingBlockEnd: '58px',
+          overflow: 'auto'
+        },
+        [mobile]: {
+          paddingBlockEnd: '58px',
+          overflow: 'auto'
+        }
+      }
     }
   }
 })
@@ -435,32 +151,132 @@ export const main = style({
 export const contentArea = style({
   '@layer': {
     [app]: {
-      'vars': {
-        '--at-workspace-content-padding-block': foundationVars.space[8],
-        '--at-workspace-available-height': 'calc(100dvh - 48px - var(--at-workspace-content-padding-block) - var(--at-workspace-content-padding-block))'
-      },
-      'boxSizing': 'border-box',
-      'width': '100%',
-      'maxWidth': '1272px',
-      'minWidth': 0,
-      'display': 'grid',
-      'alignContent': 'start',
-      'gap': foundationVars.space[8],
-      'marginInline': 'auto',
-      'padding': `var(--at-workspace-content-padding-block) ${foundationVars.space[6]}`,
-
-      ':focus': {
-        outline: 'none'
-      },
+      boxSizing: 'border-box',
+      display: 'grid',
+      alignContent: 'start',
+      gap: foundationVars.space[8],
+      inlineSize: 'min(100%, 80rem)',
+      minBlockSize: '100%',
+      minInlineSize: 0,
+      marginInline: 'auto',
+      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
       '@media': {
-        [mobileBreakpoint]: {
-          vars: {
-            '--at-workspace-content-padding-block': foundationVars.space[4]
-          },
-          padding: foundationVars.space[4],
-          gap: foundationVars.space[6]
+        [tabletPortrait]: {
+          paddingBlockEnd: 'calc(58px + env(safe-area-inset-bottom) + 24px)'
+        },
+        [mobile]: {
+          inlineSize: '100%',
+          gap: foundationVars.space[6],
+          padding: `${foundationVars.space[4]} ${foundationVars.space[4]} calc(58px + env(safe-area-inset-bottom) + 24px)`
         }
       }
+    }
+  }
+})
+
+export const mobileFooterSlot = style({
+  '@layer': {
+    [app]: {
+      display: 'none',
+      '@media': {
+        [tabletPortrait]: {
+          position: 'fixed',
+          insetInline: 0,
+          insetBlockEnd: 0,
+          zIndex: 190,
+          display: 'block'
+        },
+        [mobile]: {
+          position: 'fixed',
+          insetInline: 0,
+          insetBlockEnd: 0,
+          zIndex: 190,
+          display: 'block'
+        }
+      }
+    }
+  }
+})
+
+export const searchDrawerContent = style({
+  '@layer': {
+    [app]: {
+      borderBlockStart: `1px solid ${foundationVars.color.border.strong}`,
+      backgroundColor: foundationVars.color.surface.panel,
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
+export const searchDrawerHeader = style({
+  '@layer': {
+    [app]: {
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`
+    }
+  }
+})
+
+export const searchDrawerBody = style({
+  '@layer': {
+    [app]: {
+      padding: foundationVars.space[4]
+    }
+  }
+})
+
+export const searchDrawerStack = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[3]
+    }
+  }
+})
+
+export const userIconButton = style({
+  '@layer': {
+    [app]: {
+      inlineSize: 36,
+      blockSize: 36,
+      borderRadius: foundationVars.radius.md
+    }
+  }
+})
+
+export const headerMenuButton = style({
+  '@layer': {
+    [app]: {
+      minBlockSize: 36,
+      blockSize: 36,
+      paddingInline: foundationVars.space[4],
+      border: `1px solid var(--shell-menu-button-border, ${foundationVars.color.button.primary.border})`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: `var(--shell-menu-button-background, ${foundationVars.color.button.primary.background})`,
+      color: `var(--shell-menu-button-text, ${foundationVars.color.button.primary.text})`,
+      fontSize: '0.875rem',
+      fontWeight: foundationVars.fontWeight.bold,
+      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+      ':hover': {
+        borderColor: `var(--shell-menu-button-hover-border, ${foundationVars.color.button.primary.border})`,
+        backgroundColor: `var(--shell-menu-button-hover-background, ${foundationVars.color.button.primary.hover})`,
+        color: `var(--shell-menu-button-hover-text, ${foundationVars.color.button.primary.text})`
+      },
+      ':focus-visible': {
+        outline: 'none',
+        boxShadow: foundationVars.shadow.focus
+      }
+    }
+  }
+})
+
+export const menuItemText = style({
+  '@layer': {
+    [app]: {
+      display: 'block',
+      minInlineSize: 0,
+      color: foundationVars.color.text.primary,
+      fontWeight: foundationVars.fontWeight.semibold
     }
   }
 })
@@ -468,12 +284,12 @@ export const contentArea = style({
 export const pageHeader = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'flex-end',
-      'justifyContent': 'space-between',
-      'gap': foundationVars.space[6],
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[6],
       '@media': {
-        [mobileBreakpoint]: {
+        [mobile]: {
           alignItems: 'stretch',
           flexDirection: 'column'
         }
@@ -487,7 +303,7 @@ export const pageHeaderCopy = style({
     [app]: {
       display: 'grid',
       gap: '0.25rem',
-      maxWidth: '44rem'
+      maxInlineSize: '44rem'
     }
   }
 })
@@ -528,23 +344,34 @@ export const pageDescription = style({
   }
 })
 
+export const headerActions = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
 export const footerActionBar = style({
   '@layer': {
     [app]: {
-      'position': 'sticky',
-      'bottom': foundationVars.space[4],
-      'zIndex': 5,
-      'display': 'flex',
-      'alignItems': 'center',
-      'justifyContent': 'space-between',
-      'gap': foundationVars.space[4],
-      'padding': foundationVars.space[4],
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.md,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'boxShadow': foundationVars.shadow.card,
+      position: 'sticky',
+      insetBlockEnd: foundationVars.space[4],
+      zIndex: 5,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[4],
+      padding: foundationVars.space[4],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.surface.panel,
+      boxShadow: foundationVars.shadow.card,
       '@media': {
-        [mobileBreakpoint]: {
+        [mobile]: {
           alignItems: 'stretch',
           flexDirection: 'column'
         }

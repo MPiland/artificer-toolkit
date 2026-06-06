@@ -5,9 +5,21 @@ export interface ShellHeaderSupplementContextValue {
   setHeaderSupplement: (supplement: ShellHeaderSupplement | null) => void
 }
 
+export interface ShellAuthoringChrome {
+  accountLabel?: string
+  crumbs: readonly { label: string }[]
+  desktopRail: ReactNode
+  isNavigationOpen: boolean
+  mobileRail: ReactNode
+  onNavigationClose: () => void
+  onNavigationToggle: () => void
+  statusLabel?: string
+}
+
 export interface ShellHeaderSupplement {
   actions?: ReactNode
-  content: ReactNode
+  authoringChrome?: ShellAuthoringChrome
+  content?: ReactNode
   hideBreadcrumbLeaf?: boolean
 }
 
@@ -31,6 +43,22 @@ export function useShellHeaderSupplement(
     content,
     context,
     hideBreadcrumbLeaf
+  ])
+
+  return Boolean(context)
+}
+
+export function useShellAuthoringChrome(chrome: ShellAuthoringChrome | null) {
+  const context = useContext(ShellHeaderSupplementContext)
+
+  useEffect(() => {
+    if (!context) return undefined
+    context.setHeaderSupplement(chrome ? { authoringChrome: chrome } : null)
+
+    return () => context.setHeaderSupplement(null)
+  }, [
+    chrome,
+    context
   ])
 
   return Boolean(context)

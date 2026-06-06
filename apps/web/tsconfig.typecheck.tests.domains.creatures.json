@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.domains.creatures.tsbuildinfo"
+  },
+  "include": [
+    "src/domains/creatures/**/*.test.ts",
+    "src/domains/creatures/**/*.test.tsx",
+    "src/domains/creatures/**/*.spec.ts",
+    "src/domains/creatures/**/*.spec.tsx",
+    "src/domains/creatures/**/tests/**/*",
+    "vite-env.d.ts"
+  ]
+}

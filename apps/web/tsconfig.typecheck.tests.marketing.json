@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.typecheck.tests.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/tsc/typecheck.tests.marketing.tsbuildinfo"
+  },
+  "include": [
+    "src/marketing/**/*.test.ts",
+    "src/marketing/**/*.test.tsx",
+    "src/marketing/**/*.spec.ts",
+    "src/marketing/**/*.spec.tsx",
+    "vite-env.d.ts"
+  ]
+}

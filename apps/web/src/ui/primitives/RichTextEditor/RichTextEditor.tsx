@@ -10,6 +10,7 @@ import { TableKit } from '@tiptap/extension-table'
 import Placeholder from '@tiptap/extension-placeholder'
 import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
+import Toolbar from './Toolbar'
 import * as editorStyles from './RichTextEditor.css'
 
 export interface RichTextEditorProps {
@@ -114,54 +115,7 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
           Typography: editorStyles.editorTypography
         }}
       >
-        {!readOnly
-          ? (
-              <MantineRichTextEditor.Toolbar>
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.Bold />
-                  <MantineRichTextEditor.Italic />
-                  <MantineRichTextEditor.Underline />
-                  <MantineRichTextEditor.Strikethrough />
-                  <MantineRichTextEditor.ClearFormatting />
-                  <MantineRichTextEditor.Highlight />
-                  <MantineRichTextEditor.Code />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.H1 />
-                  <MantineRichTextEditor.H2 />
-                  <MantineRichTextEditor.H3 />
-                  <MantineRichTextEditor.H4 />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.Blockquote />
-                  <MantineRichTextEditor.Hr />
-                  <MantineRichTextEditor.BulletList />
-                  <MantineRichTextEditor.OrderedList />
-                  <MantineRichTextEditor.Subscript />
-                  <MantineRichTextEditor.Superscript />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.Link />
-                  <MantineRichTextEditor.Unlink />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.AlignLeft />
-                  <MantineRichTextEditor.AlignCenter />
-                  <MantineRichTextEditor.AlignJustify />
-                  <MantineRichTextEditor.AlignRight />
-                </MantineRichTextEditor.ControlsGroup>
-
-                <MantineRichTextEditor.ControlsGroup>
-                  <MantineRichTextEditor.Undo />
-                  <MantineRichTextEditor.Redo />
-                </MantineRichTextEditor.ControlsGroup>
-              </MantineRichTextEditor.Toolbar>
-            )
-          : null}
+        {!readOnly ? <Toolbar /> : null}
 
         <MantineRichTextEditor.Content />
       </MantineRichTextEditor>

@@ -11,7 +11,7 @@ import { type ReactNode, useState } from 'react'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteNotFound } from '#app/routeStates'
-import type { AppRouterContext } from '#app/router'
+import type { AppRouterContext } from '#app/routerContext'
 
 interface TestRouterProviderProps {
   children: ReactNode

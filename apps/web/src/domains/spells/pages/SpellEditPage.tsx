@@ -21,8 +21,8 @@ import {
 } from '@artificer-toolkit/schema/subjects/spell'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
-  AuthoringFormLayout,
   AuthoringFormProvider,
+  AuthoringWorkspaceLayout,
   InvalidDraftAlert,
   clearResolvedNodeFormPaths,
   useAppForm,
@@ -295,21 +295,21 @@ function SpellEditAuthoring({
 
   return (
     <form.AppForm>
-      <Stack>
-        {hasInvalidDraft
-          ? (
-              <InvalidDraftAlert
-                domainLabel='spell'
-                isDiscarding={discardDraftMutation.isPending}
-                onDiscard={() => void handleDiscardDraft()}
-              />
-            )
-          : null}
-        <AuthoringFormLayout>
+      <>
+        <AuthoringWorkspaceLayout>
+          {hasInvalidDraft
+            ? (
+                <InvalidDraftAlert
+                  domainLabel='spell'
+                  isDiscarding={discardDraftMutation.isPending}
+                  onDiscard={() => void handleDiscardDraft()}
+                />
+              )
+            : null}
           <SpellAuthoringRenderer form={form} />
-        </AuthoringFormLayout>
+        </AuthoringWorkspaceLayout>
         {deleteConfirmation}
-      </Stack>
+      </>
     </form.AppForm>
   )
 }

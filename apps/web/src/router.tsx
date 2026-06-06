@@ -1,17 +1,11 @@
 import { createRouter } from '@tanstack/react-router'
-import type { QueryClient } from '@tanstack/react-query'
 import { routeTree } from './routeTree.gen'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { getGlobalStartContext } from '@tanstack/react-start'
 import type { User } from '@supabase/supabase-js'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
-
-export interface AppRouterContext {
-  nonce?: string
-  queryClient: QueryClient
-  user: User | null
-}
+import { createAppRouterContext, type AppRouterContext } from './routerContext'
 
 function getCspNonce() {
   if (typeof document !== 'undefined') {
@@ -32,7 +26,7 @@ export function getRouter(user: User | null) {
 
   const router = createRouter({
     routeTree,
-    context: { nonce, queryClient, user },
+    context: createAppRouterContext({ nonce, queryClient, user }),
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,
     defaultNotFoundComponent: RouteNotFound,

@@ -1,9 +1,10 @@
 import type { Preview } from '@storybook/tanstack-react'
 import { ColorSchemeScript } from '@mantine/core'
-import { handlers } from '#test/msw/handlers'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { initialize, mswLoader } from 'msw-storybook-addon'
+import MockDate from 'mockdate'
+import { mswHandlers } from './msw-handlers'
 import '#css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
@@ -40,6 +41,7 @@ const preview: Preview = {
 
       return (
         <AppProviders
+          key={colorScheme}
           defaultColorScheme={colorScheme}
           forceColorScheme={colorScheme}
           queryClient={queryClient}
@@ -51,6 +53,9 @@ const preview: Preview = {
     }
   ],
   loaders: [mswLoader],
+  async beforeEach() {
+    MockDate.set('2024-04-01T12:00:00Z')
+  },
   globalTypes: {
     theme: {
       name: 'Theme',
@@ -75,7 +80,7 @@ const preview: Preview = {
       expanded: true
     },
     msw: {
-      handlers
+      handlers: mswHandlers
     },
     tanstack: {
       router: {

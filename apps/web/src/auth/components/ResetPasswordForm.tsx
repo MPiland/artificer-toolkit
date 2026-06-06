@@ -1,6 +1,5 @@
 import { type SubmitEvent, useState } from 'react'
-import { Button, TextInput } from '@mantine/core'
-import { Link } from '#ui/primitives/Link'
+import { Anchor, Button, TextInput } from '@mantine/core'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
@@ -76,12 +75,12 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       )}
       <AuthDivider />
       <div className={authFooterRow}>
-        <Link className={inlineLink} to='/sign-in' type='anchor'>
+        <Anchor className={inlineLink} href='/sign-in'>
           <span className={inlineLinkIcon} aria-hidden='true'>
             <IArrowLeft className={inlineLinkIconGlyph} size={14} />
           </span>
           Back to sign in
-        </Link>
+        </Anchor>
       </div>
     </form>
   )

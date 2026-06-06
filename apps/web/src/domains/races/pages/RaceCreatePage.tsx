@@ -11,8 +11,8 @@ import {
 import { notifications } from '@mantine/notifications'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
-  AuthoringFormLayout,
   AuthoringFormProvider,
+  AuthoringWorkspaceLayout,
   clearResolvedNodeFormPaths,
   useAppForm,
   useAuthoringFormRegistration,
@@ -30,6 +30,7 @@ import {
   resolveCreateRaceSystemId
 } from '../raceAuthoring.utils'
 import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
+import { RaceAuthoringPreview } from '../components/RaceAuthoringPreview'
 
 export function RaceCreatePage() {
   const route = getRouteApi('/_authed/races/new')
@@ -132,9 +133,16 @@ function RaceCreateAuthoring({ systemId }: { systemId: string }) {
 
   return (
     <form.AppForm>
-      <AuthoringFormLayout>
+      <AuthoringWorkspaceLayout
+        preview={(
+          <form.Subscribe selector={(state) => state.values}>
+            {(values) => <RaceAuthoringPreview values={values} />}
+          </form.Subscribe>
+        )}
+        previewLabel='Race preview'
+      >
         <RaceAuthoringRenderer form={form} />
-      </AuthoringFormLayout>
+      </AuthoringWorkspaceLayout>
     </form.AppForm>
   )
 }

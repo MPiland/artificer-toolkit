@@ -1,13 +1,24 @@
+import { MantineProvider } from '@mantine/core'
 import { fireEvent, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import { vi } from 'vitest'
-import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { resolver, theme } from '#css/theme'
 import { MarketingHeader } from './components'
 import { isMarketingSectionEnabled } from './data/marketingContent'
 import { MarketingPage } from './pages'
 
+function renderMarketing(ui: ReactElement) {
+  return render(
+    <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+      {ui}
+    </MantineProvider>
+  )
+}
+
 describe('MarketingPage', () => {
   it('renders marketing sections with public navigation', () => {
-    renderWithAppProviders(<MarketingPage />)
+    renderMarketing(<MarketingPage />)
 
     expect(screen.getByTestId('marketing-page')).toBeInTheDocument()
     expect(
@@ -31,7 +42,7 @@ describe('MarketingPage', () => {
   })
 
   it('renders mobile menu links without client state', () => {
-    renderWithAppProviders(<MarketingHeader />)
+    renderMarketing(<MarketingHeader />)
 
     expect(screen.getByText('Menu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeInTheDocument()
@@ -53,7 +64,7 @@ describe('MarketingPage', () => {
 
     vi.stubGlobal('matchMedia', matchMedia)
 
-    renderWithAppProviders(<MarketingPage />)
+    renderMarketing(<MarketingPage />)
 
     const marketingPage = screen.getByTestId('marketing-page')
     const scrollTo = vi.fn()

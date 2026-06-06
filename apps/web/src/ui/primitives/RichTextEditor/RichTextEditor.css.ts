@@ -44,7 +44,9 @@ export const editorRequired = style({
 export const editorToolbar = style({
   '@layer': {
     [app]: {
-      gap: foundationVars.space[1]
+      gap: foundationVars.space[1],
+      padding: `${foundationVars.space[2]} ${foundationVars.space[2]}`,
+      rowGap: foundationVars.space[1]
     }
   }
 })
@@ -115,12 +117,14 @@ globalStyle(`${editorContent} .resize-cursor`, {
 export const editorControl = style({
   '@layer': {
     [app]: {
-      'minWidth': '32px',
-      'minHeight': '32px',
+      'borderRadius': foundationVars.radius.sm,
+      'minWidth': '28px',
+      'minHeight': '28px',
+      'padding': 0,
       '@media': {
         'screen and (max-width: 760px)': {
-          minWidth: '44px',
-          minHeight: '44px'
+          minWidth: '32px',
+          minHeight: '32px'
         }
       }
     }
@@ -130,8 +134,8 @@ export const editorControl = style({
 export const editorControlIcon = style({
   '@layer': {
     [app]: {
-      width: '1rem',
-      height: '1rem'
+      width: '0.875rem',
+      height: '0.875rem'
     }
   }
 })
@@ -139,7 +143,71 @@ export const editorControlIcon = style({
 export const editorControlsGroup = style({
   '@layer': {
     [app]: {
-      gap: 0
+      gap: 0,
+      overflow: 'hidden'
+    }
+  }
+})
+
+export const editorMenuControlContent = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'inline-flex',
+      gap: '2px',
+      justifyContent: 'center'
+    }
+  }
+})
+
+export const editorMenuIcon = style({
+  '@layer': {
+    [app]: {
+      blockSize: '0.875rem',
+      flexShrink: 0,
+      inlineSize: '0.875rem'
+    }
+  }
+})
+
+export const editorMenuChevron = style({
+  '@layer': {
+    [app]: {
+      blockSize: '0.625rem',
+      flexShrink: 0,
+      inlineSize: '0.625rem',
+      opacity: 0.75
+    }
+  }
+})
+
+export const editorMenuDropdown = style({
+  '@layer': {
+    [app]: {
+      background: foundationVars.color.surface.panel,
+      borderColor: foundationVars.color.border.subtle,
+      borderRadius: foundationVars.radius.md,
+      padding: foundationVars.space[1]
+    }
+  }
+})
+
+export const editorMenuItem = style({
+  '@layer': {
+    [app]: {
+      borderRadius: foundationVars.radius.sm,
+      color: foundationVars.color.text.primary,
+      fontSize: foundationVars.typography.label.fontSize
+    }
+  },
+  selectors: {
+    '&[data-active]': {
+      '@layer': {
+        [app]: {
+          background: foundationVars.color.accent.soft,
+          color: foundationVars.color.text.accent
+        }
+      }
     }
   }
 })

@@ -1,6 +1,5 @@
 import { type SubmitEvent, useState } from 'react'
-import { Button, PasswordInput, TextInput } from '@mantine/core'
-import { Link } from '#ui/primitives/Link'
+import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import IArrowRight from '#assets/icons/IArrowRight'
 import { browserAuthClient } from '../authClient'
 import {
@@ -119,12 +118,12 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
       <AuthDivider />
       <div className={authFooterRow}>
         <span>Already have an account?</span>
-        <Link className={inlineLink} to='/sign-in' type='anchor'>
+        <Anchor className={inlineLink} href='/sign-in'>
           Sign in
           <span className={inlineLinkIcon} aria-hidden='true'>
             <IArrowRight className={inlineLinkIconGlyph} size={14} />
           </span>
-        </Link>
+        </Anchor>
       </div>
     </form>
   )
