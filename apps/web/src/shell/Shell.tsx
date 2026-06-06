@@ -123,6 +123,7 @@ export function Shell({
           onNavigationToggle={authoringChrome?.onNavigationToggle ?? (() => undefined)}
           showNavigationButton={Boolean(authoringChrome)}
           statusLabel={authoringChrome?.statusLabel}
+          supplement={headerSupplement?.content}
         />
         {usesOverlayRail && authoringChrome ? (
           <Drawer

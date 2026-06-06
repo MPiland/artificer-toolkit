@@ -296,15 +296,6 @@ function RaceEditAuthoring({
   return (
     <form.AppForm>
       <>
-        {hasInvalidDraft
-          ? (
-              <InvalidDraftAlert
-                domainLabel='race'
-                isDiscarding={discardDraftMutation.isPending}
-                onDiscard={() => void handleDiscardDraft()}
-              />
-            )
-          : null}
         <AuthoringWorkspaceLayout
           preview={(
             <form.Subscribe selector={(state) => state.values}>
@@ -313,6 +304,15 @@ function RaceEditAuthoring({
           )}
           previewLabel='Race preview'
         >
+          {hasInvalidDraft
+            ? (
+                <InvalidDraftAlert
+                  domainLabel='race'
+                  isDiscarding={discardDraftMutation.isPending}
+                  onDiscard={() => void handleDiscardDraft()}
+                />
+              )
+            : null}
           <RaceAuthoringRenderer form={form} />
         </AuthoringWorkspaceLayout>
         {deleteConfirmation}

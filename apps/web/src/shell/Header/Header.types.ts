@@ -16,4 +16,5 @@ export type HeaderProps = {
   onNavigationToggle: () => void
   showNavigationButton?: boolean
   statusLabel?: string
+  supplement?: ReactNode
 }

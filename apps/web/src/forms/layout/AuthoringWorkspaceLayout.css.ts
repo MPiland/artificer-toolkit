@@ -10,7 +10,7 @@ export const shell = style({
     [app]: {
       display: 'grid',
       gridTemplateRows: 'minmax(0, 1fr) auto',
-      minBlockSize: 'calc(100dvh - 48px)',
+      minBlockSize: 'calc(100dvh - 56px)',
       minInlineSize: 0,
       overflow: 'hidden',
       backgroundColor: foundationVars.color.surface.canvas,

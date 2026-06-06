@@ -296,16 +296,16 @@ function SpellEditAuthoring({
   return (
     <form.AppForm>
       <>
-        {hasInvalidDraft
-          ? (
-              <InvalidDraftAlert
-                domainLabel='spell'
-                isDiscarding={discardDraftMutation.isPending}
-                onDiscard={() => void handleDiscardDraft()}
-              />
-            )
-          : null}
         <AuthoringWorkspaceLayout>
+          {hasInvalidDraft
+            ? (
+                <InvalidDraftAlert
+                  domainLabel='spell'
+                  isDiscarding={discardDraftMutation.isPending}
+                  onDiscard={() => void handleDiscardDraft()}
+                />
+              )
+            : null}
           <SpellAuthoringRenderer form={form} />
         </AuthoringWorkspaceLayout>
         {deleteConfirmation}

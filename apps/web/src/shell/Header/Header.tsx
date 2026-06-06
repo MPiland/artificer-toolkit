@@ -17,7 +17,8 @@ export function Header({
   navigationLabel = 'navigation',
   onNavigationToggle,
   showNavigationButton = true,
-  statusLabel
+  statusLabel,
+  supplement
 }: HeaderProps) {
   return (
     <header className={styles.root}>
@@ -57,6 +58,7 @@ export function Header({
             {statusLabel}
           </span>
         ) : null}
+        {supplement}
         {navigationActions ? <div className={styles.navigationActions}>{navigationActions}</div> : null}
       </div>
       <div className={styles.rightCluster}>

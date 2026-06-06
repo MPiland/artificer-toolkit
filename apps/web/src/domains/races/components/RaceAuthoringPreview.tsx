@@ -1,3 +1,4 @@
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import { ContextCard } from '#forms/components/ContextCard/ContextCard'
 import * as contextStyles from '#forms/components/ContextCard/ContextCard.css'
 import type { RaceFormValues } from '../raceAuthoring.utils'
@@ -23,9 +24,7 @@ export function RaceAuthoringPreview({ values }: RaceAuthoringPreviewProps) {
       {quote
         ? <p className={contextStyles.previewText}>{quote}</p>
         : null}
-      <p className={contextStyles.previewText}>
-        {description || 'Add a race description to preview how this will read.'}
-      </p>
+      <AuthoredDetailProse html={description} fallback='Add a race description to preview how this will read.' />
     </ContextCard>
   )
 }
