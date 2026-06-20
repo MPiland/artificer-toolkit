@@ -10,6 +10,7 @@ export const itemRow = style({
       alignItems: 'center',
       gap: foundationVars.space[1],
       paddingBlock: foundationVars.space[1],
+      paddingInlineStart: `calc(${foundationVars.space[2]} + (var(--authoring-rail-level, 0) * ${foundationVars.space[3]}))`,
       inlineSize: '100%',
       color: foundationVars.color.text.secondary,
       cursor: 'pointer',
@@ -41,37 +42,6 @@ export const itemRow = style({
     }
   }
 })
-
-export const levelClass = [
-  style({
-    '@layer': {
-      [app]: {
-        paddingInlineStart: foundationVars.space[2]
-      }
-    }
-  }),
-  style({
-    '@layer': {
-      [app]: {
-        paddingInlineStart: foundationVars.space[5]
-      }
-    }
-  }),
-  style({
-    '@layer': {
-      [app]: {
-        paddingInlineStart: foundationVars.space[8]
-      }
-    }
-  }),
-  style({
-    '@layer': {
-      [app]: {
-        paddingInlineStart: foundationVars.space[10]
-      }
-    }
-  })
-] as const
 
 export const itemRowMuted = style({
   '@layer': {

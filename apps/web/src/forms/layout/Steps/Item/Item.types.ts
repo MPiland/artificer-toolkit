@@ -14,7 +14,7 @@ export type ItemProps = {
   id: string
   isActive?: boolean
   label: string
-  level?: 0 | 1 | 2 | 3
+  level?: number
   onSelect?: () => void
   status?: ItemStatus
   tone?: ItemTone

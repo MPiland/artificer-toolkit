@@ -14,6 +14,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     subjectKindLabel,
     subjectLabel,
     hasActiveDraft,
+    activeNavigationTarget,
     activeStep,
     activeStepId,
     activeStepLabel,
@@ -36,7 +37,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const title = activeStepLabel ?? subjectKindLabel
   const label = readReactNodeText(subjectLabel) ?? subjectKindLabel
   const status = getAuthoringStatus(mode, isDraft || hasActiveDraft)
-  const stepId = activeStepId
+  const stepId = activeNavigationTarget?.id ?? activeStepId
   const [previewContent, setPreviewContent] = useState<AuthoringPreviewContent>()
   const [visitedStepIds, setVisitedStepIds] = useState<ReadonlySet<string>>(() => new Set())
   const activeSections = useMemo(
@@ -83,6 +84,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
       activeSections,
       visibleSteps,
       activeStep,
+      activeTarget: activeNavigationTarget,
       stepId
     }),
     [
@@ -103,6 +105,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
       setVisitedStepIds,
       activeSections,
       activeStep,
+      activeNavigationTarget,
       stepId,
       visibleSteps
     ]

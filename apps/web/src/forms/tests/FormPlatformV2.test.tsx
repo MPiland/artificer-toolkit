@@ -18,6 +18,8 @@ import {
   withForm
 } from '#forms'
 import { TestRouterProvider } from '#test/TestRouterProvider'
+import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
+import { getAuthoringProgress } from '../validation/authoringProgress'
 
 type TestFormValues = {
   category: string | undefined
@@ -345,7 +347,20 @@ describe('authoring form renderer v2', () => {
     expect(screen.getByLabelText('name value')).toHaveTextContent('Fire Lace')
   })
 
-  it('renders group nodes with add controls and nested child fields', async () => {
+  it('renders empty array groups as overview screens without item rows', () => {
+    render(
+      <TestRouterProvider>
+        <TestV2Form model={groupModel} />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeInTheDocument()
+    expect(screen.getByText('No features added yet.')).toBeInTheDocument()
+    expect(screen.queryByText('Feature 1')).not.toBeInTheDocument()
+  })
+
+  it('adds an array group item and selects its first child leaf', async () => {
     const user = userEvent.setup()
 
     render(
@@ -358,10 +373,74 @@ describe('authoring form renderer v2', () => {
 
     await user.click(screen.getByRole('button', { name: /^add$/i }))
 
-    expect(await screen.findByText('Feature 1')).toBeInTheDocument()
+    expect(screen.getAllByText('Feature 1').length).toBeGreaterThan(0)
     expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
   })
 
+})
+
+describe('authoring navigation tree', () => {
+  it('shows an overview leaf for empty arrays without item rows', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: groupModel.mapId,
+      model: groupModel,
+      values: { ...testDefaults, features: [] }
+    })
+
+    expect(navigation.navigationTargets).toContainEqual(
+      expect.objectContaining({
+        collectionFieldName: 'features',
+        kind: 'overview',
+        label: 'Overview'
+      })
+    )
+    expect(JSON.stringify(navigation.navigationTree)).not.toContain('Feature 1')
+  })
+
+  it('adds array item rows with child step leaves when values exist', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: groupModel.mapId,
+      model: groupModel,
+      values: { ...testDefaults, features: [{ label: '' }] }
+    })
+
+    expect(JSON.stringify(navigation.navigationTree)).toContain('Feature 1')
+    expect(navigation.navigationTargets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fieldPathPrefix: 'features[0]',
+          kind: 'step',
+          mapId: 'feature'
+        })
+      ])
+    )
+  })
+})
+
+describe('authoring progress', () => {
+  it('marks missing required group nodes incomplete', () => {
+    const requiredGroupModel = {
+      ...groupModel,
+      steps: groupModel.steps.map((step) => ({
+        ...step,
+        sections: step.sections.map((section) => ({
+          ...section,
+          nodes: section.nodes.map((node) => ({
+            ...node,
+            required: true
+          }))
+        }))
+      }))
+    } satisfies NodeRuntimeResolveResponseDto
+
+    const progress = getAuthoringProgress({
+      model: requiredGroupModel,
+      values: { ...testDefaults, features: [] }
+    })
+
+    expect(progress.stepStatuses.features).toBe('incomplete')
+    expect(progress.canFinalize).toBe(false)
+  })
 })
 
 describe('authoring default value helpers', () => {

@@ -17,6 +17,10 @@ import type {
 } from '../factories/authoredFormFactories.types'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { VisibleAuthoringStep, VisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
+import type {
+  AuthoringNavigationNode,
+  AuthoringNavigationTarget
+} from './authoringNavigation'
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
@@ -46,6 +50,7 @@ export type AuthoringDomainRegistration = {
 
 export type AuthoringFormStatePatch = {
   activeSectionId?: string
+  activeNavigationTargetId?: string
   activeStepId?: string
   activeStepLabel?: string
   authoredSession?: AuthoredFormSession
@@ -77,6 +82,8 @@ export type AuthoringFormStatePatch = {
   isLastStep?: boolean
   mapId?: string
   mode?: AuthoringFormMode
+  navigationTargets?: readonly AuthoringNavigationTarget[]
+  navigationTree?: readonly AuthoringNavigationNode[]
   providedModel?: NodeRuntimeResolveResponseDto
   readOnly?: boolean
   resolveModel?: boolean
@@ -99,6 +106,7 @@ export type AuthoringFormStatePatch = {
 export type AuthoringFormSessionState = Pick<
   AuthoringFormStatePatch,
   | 'activeSectionId'
+  | 'activeNavigationTargetId'
       | 'activeStepId'
       | 'activeStepLabel'
       | 'authoredSession'
@@ -112,6 +120,8 @@ export type AuthoringFormSessionState = Pick<
   | 'firstBlockingStatus'
   | 'firstBlockingStepId'
   | 'mapId'
+  | 'navigationTargets'
+  | 'navigationTree'
   | 'providedModel'
   | 'resolvedModel'
   | 'progressSummary'
@@ -157,12 +167,14 @@ export type AuthoringFormSessionState = Pick<
 export type AuthoringFormContextValue = AuthoringFormSessionState & {
   activate: AuthoringFormAction
   activateValues: AuthoringFormValuesAction
+  activeNavigationTarget: AuthoringNavigationTarget | undefined
   activeStep: VisibleAuthoringStep | undefined
   cancel: AuthoringFormAction
   clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction
   deleteRecord: AuthoringFormAction
   discardDraft: AuthoringFormAction
+  goToNavigationTarget: (targetId: string) => void
   goToStep: (stepId: string) => void
   goToNextStep: AuthoringFormAction
   goToPreviousStep: AuthoringFormAction

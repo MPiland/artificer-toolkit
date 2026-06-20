@@ -8,7 +8,7 @@ import { Content } from './Content/Content'
 import { Footer } from './Footer/Footer'
 import { Collapse, Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
-import { toAuthoringRailItems } from './Steps.utils'
+import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.utils'
 
 export function Steps() {
   const {
@@ -22,7 +22,13 @@ export function Steps() {
     isMobile
   } = useAuthoringLayout()
 
-  const { goToStep, mode, stepStatuses } = useAuthoringForm()
+  const {
+    goToNavigationTarget,
+    goToStep,
+    mode,
+    navigationTree,
+    stepStatuses
+  } = useAuthoringForm()
 
   const handleStepSelect = useCallback(
     (stepId: string) => {
@@ -39,21 +45,53 @@ export function Steps() {
     },
     [goToStep, isMobile, setVisitedStepIds, toggleStepsNavigation]
   )
+  const handleTargetSelect = useCallback(
+    (targetId: string) => {
+      setVisitedStepIds((current) => {
+        if (current.has(targetId)) return current
+        const next = new Set(current)
+        next.add(targetId)
+        return next
+      })
+      goToNavigationTarget(targetId)
+      if (isMobile) {
+        toggleStepsNavigation()
+      }
+    },
+    [goToNavigationTarget, isMobile, setVisitedStepIds, toggleStepsNavigation]
+  )
 
   const stepItems = useMemo(
     () =>
-      (
-        toAuthoringRailItems({
-          activeSections,
-          activeStepId: stepId,
-          mode,
-          onStepSelect: handleStepSelect,
-          steps: visibleSteps,
-          stepStatuses,
-          visitedStepIds
-        }) ?? []
+      (navigationTree?.length
+        ? toAuthoringNavigationRailItems({
+            activeTargetId: stepId,
+            mode,
+            navigationTree,
+            onTargetSelect: handleTargetSelect,
+            visitedStepIds
+          })
+        : toAuthoringRailItems({
+            activeSections,
+            activeStepId: stepId,
+            mode,
+            onStepSelect: handleStepSelect,
+            steps: visibleSteps,
+            stepStatuses,
+            visitedStepIds
+          })
       ).map((item) => <Item key={item.id} item={item} />),
-    [activeSections, stepId, mode, stepStatuses, handleStepSelect, visibleSteps, visitedStepIds]
+    [
+      activeSections,
+      handleStepSelect,
+      handleTargetSelect,
+      mode,
+      navigationTree,
+      stepId,
+      stepStatuses,
+      visibleSteps,
+      visitedStepIds
+    ]
   )
 
   return isMobile ? (

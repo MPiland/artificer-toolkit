@@ -78,11 +78,17 @@ export const CharacterBuilderRenderer = withForm({
     const goToPreviousStep = useCallback(() => {
       setActiveStepId(characterBuilderSteps[Math.max(activeIndex - 1, 0)].id)
     }, [activeIndex])
+    const goToStep = useCallback((stepId: string) => {
+      if (characterBuilderSteps.some((step) => step.id === stepId)) {
+        setActiveStepId(stepId as CharacterBuilderStepId)
+      }
+    }, [])
 
     const statePatch = useMemo(
       () => ({
         activeStepId: activeStep.id,
         activeStepLabel: activeStep.label,
+        canFinalize: submitState.canSubmit && payload.view.review.ready,
         canSubmit: submitState.canSubmit && payload.view.review.ready,
         isFirstStep: activeIndex === 0,
         isLastStep,
@@ -104,9 +110,10 @@ export const CharacterBuilderRenderer = withForm({
     const actions = useMemo(
       () => ({
         onNextStep: goToNextStep,
-        onPreviousStep: goToPreviousStep
+        onPreviousStep: goToPreviousStep,
+        onStepChange: goToStep
       }),
-      [goToNextStep, goToPreviousStep]
+      [goToNextStep, goToPreviousStep, goToStep]
     )
 
     useEffect(() => {

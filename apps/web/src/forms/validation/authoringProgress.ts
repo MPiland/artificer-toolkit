@@ -203,6 +203,7 @@ function hasFieldMetaForPath(
 function isUserEditableVisibleNode(node: NodeRuntimeNodeDto) {
   if (!node.visible) return false
   if (node.readOnly || node.disabled) return false
+  if (node.kind === 'GROUP') return true
   if (node.kind !== 'INPUT') return false
 
   const fieldKey = node.path[node.path.length - 1]

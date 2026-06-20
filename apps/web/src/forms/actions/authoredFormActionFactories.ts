@@ -30,7 +30,7 @@ export const authoredFormActionFactories = {
   }),
   class: createActionFactory({
     buildRouteParams: buildClassRouteParams,
-    activatePath: '/classes/$classPublicId/$classSlug/edit',
+    activatePath: '/classes/$classPublicId/$classSlug',
     editPath: '/classes/$classPublicId/$classSlug/edit',
     label: 'Class',
     listPath: '/classes'
@@ -44,7 +44,7 @@ export const authoredFormActionFactories = {
   }),
   equipment: createActionFactory({
     buildRouteParams: buildEquipmentRouteParams,
-    activatePath: '/equipment/$equipmentPublicId/$equipmentSlug/edit',
+    activatePath: '/equipment/$equipmentPublicId/$equipmentSlug',
     editPath: '/equipment/$equipmentPublicId/$equipmentSlug/edit',
     label: 'Equipment',
     listPath: '/equipment'
@@ -72,7 +72,7 @@ export const authoredFormActionFactories = {
   }),
   vehicle: createActionFactory({
     buildRouteParams: buildVehicleRouteParams,
-    activatePath: '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+    activatePath: '/vehicles/$vehiclePublicId/$vehicleSlug',
     editPath: '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
     label: 'Vehicle',
     listPath: '/vehicles'

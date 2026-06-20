@@ -2,6 +2,7 @@ import { ItemIcon, ItemStatus, ItemProps } from './Item/Item.types'
 import { AlertTriangle, CheckCircle2, Circle, GitBranch } from 'lucide-react'
 import type { AuthoringStepProgressStatus } from '../../validation/authoringProgress'
 import type { SummaryProps } from './StatusSummary/StatusSummary.types'
+import type { AuthoringNavigationNode } from '../authoringNavigation'
 
 export function statusLabel(status: ItemStatus) {
   switch (status) {
@@ -99,6 +100,30 @@ export function toAuthoringRailItems({
   })
 }
 
+export function toAuthoringNavigationRailItems({
+  activeTargetId,
+  mode,
+  navigationTree,
+  onTargetSelect,
+  visitedStepIds
+}: {
+  activeTargetId?: string
+  mode: string
+  navigationTree: readonly AuthoringNavigationNode[]
+  onTargetSelect: (targetId: string) => void
+  visitedStepIds: ReadonlySet<string>
+}): readonly ItemProps[] {
+  return navigationTree.map((node) =>
+    toNavigationRailItem({
+      activeTargetId,
+      mode,
+      node,
+      onTargetSelect,
+      visitedStepIds
+    })
+  )
+}
+
 export function toAuthoringRailSummaries({
   hasChanges,
   mode,
@@ -162,6 +187,66 @@ function toStepChildren(
     status: 'empty' as ItemStatus,
     tone: 'muted'
   }))
+}
+
+function toNavigationRailItem({
+  activeTargetId,
+  mode,
+  node,
+  onTargetSelect,
+  visitedStepIds
+}: {
+  activeTargetId?: string
+  mode: string
+  node: AuthoringNavigationNode
+  onTargetSelect: (targetId: string) => void
+  visitedStepIds: ReadonlySet<string>
+}): ItemProps {
+  const children = node.children?.map((child) =>
+    toNavigationRailItem({
+      activeTargetId,
+      mode,
+      node: child,
+      onTargetSelect,
+      visitedStepIds
+    })
+  )
+  const isActive = node.target?.id === activeTargetId
+  const hasActiveDescendant = children?.some(hasActiveRailDescendant) ?? false
+  const leafStatus = node.target
+    ? toRailStatus(node.status, {
+        mode,
+        visited: visitedStepIds.has(node.target.id)
+      })
+    : undefined
+  const status = leafStatus ?? aggregateRailStatus(children?.map((child) => child.status))
+
+  return {
+    children,
+    expanded: hasActiveDescendant || isActive,
+    icon: iconForStep(node.label),
+    id: node.id,
+    isActive,
+    label: node.label,
+    level: node.level,
+    onSelect: node.target ? () => onTargetSelect(node.target?.id ?? '') : undefined,
+    status
+  }
+}
+
+function hasActiveRailDescendant(item: ItemProps): boolean {
+  return Boolean(item.isActive || item.children?.some(hasActiveRailDescendant))
+}
+
+function aggregateRailStatus(statuses: readonly (ItemStatus | undefined)[] | undefined): ItemStatus {
+  const resolvedStatuses = statuses?.filter((status): status is ItemStatus => Boolean(status)) ?? []
+  if (resolvedStatuses.length === 0) return 'empty'
+  if (resolvedStatuses.includes('error')) return 'error'
+  if (resolvedStatuses.includes('warning')) return 'warning'
+  if (resolvedStatuses.includes('incomplete')) return 'incomplete'
+  if (resolvedStatuses.includes('empty')) return 'empty'
+  if (resolvedStatuses.includes('dirty')) return 'dirty'
+  return 'complete'
 }
 
 function normalizeRailLabel(value: string): string {

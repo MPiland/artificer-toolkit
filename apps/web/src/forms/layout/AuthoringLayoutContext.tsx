@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { VisibleAuthoringStep, VisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
+import type { AuthoringNavigationTarget } from './authoringNavigation'
 
 export type AuthoringPreviewContent = ReactNode | undefined
 
@@ -26,6 +27,7 @@ export type AuthoringLayoutConstants = {
   status: { label: string }
   visibleSteps: VisibleAuthoringSteps
   activeStep: VisibleAuthoringStep | undefined
+  activeTarget: AuthoringNavigationTarget | undefined
   stepId: string | undefined
   activeSections: VisibleAuthoringStep['sections']
   isMobile: boolean

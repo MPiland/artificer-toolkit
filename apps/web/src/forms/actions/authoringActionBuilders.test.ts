@@ -8,6 +8,7 @@ import {
   createDiscardDraftAction,
   createUpdateDraftAction
 } from './authoringActionBuilders'
+import { authoredFormActionFactories } from './authoredFormActionFactories'
 import type {
   AuthoringNavigate,
   AuthoringNotifier,
@@ -30,6 +31,16 @@ const messages = {
 }
 
 describe('authoring action builders', () => {
+  it('uses detail routes for activation targets', () => {
+    expect(authoredFormActionFactories.class.activatePath).toBe('/classes/$classPublicId/$classSlug')
+    expect(authoredFormActionFactories.equipment.activatePath).toBe(
+      '/equipment/$equipmentPublicId/$equipmentSlug'
+    )
+    expect(authoredFormActionFactories.vehicle.activatePath).toBe(
+      '/vehicles/$vehiclePublicId/$vehicleSlug'
+    )
+  })
+
   it('creates a cancel action that navigates to the list route', async () => {
     const navigate = createNavigate()
     const action = createCancelAction({ listPath: '/races', navigate })

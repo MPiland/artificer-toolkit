@@ -1,4 +1,5 @@
 import { useDisclosure } from '@mantine/hooks'
+import { useEffect, type CSSProperties } from 'react'
 import type { ItemIcon, ItemProps } from './Item.types'
 import { Collapse, UnstyledButton } from '@mantine/core'
 import * as styles from './Item.css'
@@ -40,7 +41,7 @@ function Icon({ icon = 'book' }: { icon?: ItemIcon }) {
 }
 
 export function Item({ item }: { item: ItemProps }) {
-  const [expanded, { toggle }] = useDisclosure(true)
+  const [expanded, { open, toggle }] = useDisclosure(item.expanded ?? true)
   const children = item.children ?? []
   const hasChildren = children.length > 0
   const canSelect = Boolean(item.onSelect || hasChildren)
@@ -50,21 +51,25 @@ export function Item({ item }: { item: ItemProps }) {
     if (hasChildren) toggle()
   }
 
+  useEffect(() => {
+    if (item.expanded) open()
+  }, [item.expanded, open])
+
   return (
     <Rail.Item>
       <UnstyledButton
         className={clsx(
           styles.itemRow,
-          styles.levelClass[item.level ?? 0],
           { ['active']: item.isActive },
           item.tone === 'muted' && styles.itemRowMuted
         )}
+        style={{ '--authoring-rail-level': item.level ?? 0 } as CSSProperties}
         aria-current={item.isActive ? 'step' : undefined}
         onClick={canSelect ? handleSelect : undefined}
       >
         <span className={styles.expander} aria-hidden='true'>
           {hasChildren ? (
-            item.expanded ? (
+            expanded ? (
               <ChevronDown size={16} />
             ) : (
               <ChevronRight size={16} />

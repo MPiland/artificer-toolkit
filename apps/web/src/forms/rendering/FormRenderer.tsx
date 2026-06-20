@@ -22,6 +22,11 @@ import {
   toTypedAuthoringFieldName
 } from '../utils/pathUtils'
 import {
+  buildAuthoringNavigationTree,
+  getFirstArrayItemNavigationTargetId,
+  type AuthoringNavigationTarget
+} from '../layout/authoringNavigation'
+import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem,
   type AuthoringGroupValues
@@ -43,6 +48,7 @@ export type FormRendererOptions<TValues extends object> = {
 }
 
 type SharedRendererProps = {
+  ancestors?: readonly Record<string, unknown>[]
   currentStepId?: string
   debounceMs?: number
   fieldPathPrefix?: string
@@ -71,6 +77,7 @@ export function FormRenderer<TValues extends object>({
     defaultValues,
     props: {} as SharedRendererProps,
     render: function Render({
+      ancestors,
       currentStepId,
       debounceMs = 150,
       fieldPathPrefix,
@@ -95,6 +102,7 @@ export function FormRenderer<TValues extends object>({
       const resolvedResolveModel = resolveModel ?? authoring.resolveModel
       const resolvedSystemId = systemId ?? authoring.systemId
       const formValues = useStore(form.store, (state) => state.values)
+      const rootValues = useMemo(() => toResolvedNodeValues(formValues), [formValues])
       const canSubmit = useStore(form.store, (state) => state.canSubmit)
       const fieldMeta = useStore(
         form.store,
@@ -103,13 +111,18 @@ export function FormRenderer<TValues extends object>({
       const hasChanges = useStore(form.store, (state) => state.isDirty)
       const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
       const values = useMemo(() => {
-        if (!resolvedFieldPathPrefix) return toResolvedNodeValues(formValues)
+        if (!resolvedFieldPathPrefix) return rootValues
 
         return toEditorValues(
-          getAuthoringFieldValue(toResolvedNodeValues(formValues), resolvedFieldPathPrefix)
+          getAuthoringFieldValue(rootValues, resolvedFieldPathPrefix)
         )
-      }, [formValues, resolvedFieldPathPrefix])
+      }, [resolvedFieldPathPrefix, rootValues])
+      const childAncestors = useMemo(
+        () => (parentValues ? [parentValues, ...(ancestors ?? [])] : ancestors),
+        [ancestors, parentValues]
+      )
       const { model: activeModel } = useAuthoringResolvedModel({
+        ancestors,
         debounceMs,
         mapId: resolvedMapId ?? 'pending',
         model: model ?? (mapId ? undefined : authoring.providedModel),
@@ -126,9 +139,43 @@ export function FormRenderer<TValues extends object>({
         () => (updateAuthoringState ? EMPTY_VISIBLE_STEPS : getVisibleAuthoringSteps(activeModel)),
         [activeModel, updateAuthoringState]
       )
+      const navigationState = useMemo(
+        () =>
+          updateAuthoringState && resolvedMapId && activeModel
+            ? buildAuthoringNavigationTree({
+                ancestors,
+                fieldMeta,
+                mapId: resolvedMapId,
+                model: activeModel,
+                parentValues,
+                values: rootValues,
+                warnings: authoring.stepWarnings
+              })
+            : undefined,
+        [
+          activeModel,
+          ancestors,
+          authoring.stepWarnings,
+          fieldMeta,
+          parentValues,
+          resolvedMapId,
+          rootValues,
+          updateAuthoringState
+        ]
+      )
+      const activeTarget = updateAuthoringState
+        ? authoring.activeNavigationTarget ?? navigationState?.navigationTargets[0]
+        : undefined
+      const targetStepId =
+        currentStepId ??
+        (activeTarget?.kind === 'step' &&
+        activeTarget.mapId === resolvedMapId &&
+        activeTarget.fieldPathPrefix === resolvedFieldPathPrefix
+          ? activeTarget.stepId
+          : undefined)
       const visibleSteps = updateAuthoringState ? authoring.visibleSteps : fallbackVisibleSteps
-      const currentStep = currentStepId
-        ? visibleSteps.find((step) => step.id === currentStepId)
+      const currentStep = targetStepId
+        ? visibleSteps.find((step) => step.id === targetStepId)
         : updateAuthoringState
           ? authoring.activeStep
           : visibleSteps[0]
@@ -179,7 +226,11 @@ export function FormRenderer<TValues extends object>({
       )
       const statePatch = useMemo(
         () => ({
-          canFinalize: canSubmit && progress.canFinalize,
+          canFinalize:
+            canSubmit &&
+            (navigationState
+              ? Object.values(navigationState.stepStatuses).every((status) => status === 'complete')
+              : progress.canFinalize),
           canResetForm: hasChanges && !resolvedReadOnly,
           canResetStep: currentStep != null && !resolvedReadOnly,
           canSubmit,
@@ -189,19 +240,22 @@ export function FormRenderer<TValues extends object>({
           hasChanges,
           hasStepChanges: currentStepHasChanges,
           isSubmitting,
-          progressSummary: progress.summary,
+          navigationTargets: navigationState?.navigationTargets,
+          navigationTree: navigationState?.navigationTree,
+          progressSummary: navigationState?.progressSummary ?? progress.summary,
           readOnly: resolvedReadOnly,
           resolvedModel: activeModel,
           resetFormLabel: 'Reset Form',
           resetStepLabel: 'Reset Step',
           stepDirty: progress.stepDirty,
-          stepStatuses: progress.stepStatuses,
+          stepStatuses: navigationState?.stepStatuses ?? progress.stepStatuses,
           systemId: resolvedSystemId
         }),
         [
           activeModel,
           currentStep,
           currentStepHasChanges,
+          navigationState,
           progress,
           resolvedFieldPathPrefix,
           resolvedReadOnly,
@@ -233,7 +287,36 @@ export function FormRenderer<TValues extends object>({
         updateAuthoringFormActions(actions)
       }, [actions, shouldUpdateAuthoringState, updateAuthoringFormActions])
 
-      if (!resolvedMapId || !activeModel || !currentStep) return null
+      if (!resolvedMapId || !activeModel) return null
+
+      if (
+        updateAuthoringState &&
+        activeTarget?.kind === 'step' &&
+        (activeTarget.mapId !== resolvedMapId ||
+          activeTarget.fieldPathPrefix !== resolvedFieldPathPrefix)
+      ) {
+        return (
+          <Renderer
+            form={form}
+            ancestors={activeTarget.ancestors}
+            currentStepId={activeTarget.stepId}
+            debounceMs={debounceMs}
+            fieldPathPrefix={activeTarget.fieldPathPrefix}
+            mapId={activeTarget.mapId}
+            parentValues={activeTarget.parentValues}
+            readOnly={resolvedReadOnly}
+            resolveModel={false}
+            systemId={resolvedSystemId}
+            updateAuthoringState={false}
+          />
+        )
+      }
+
+      if (updateAuthoringState && activeTarget?.kind === 'overview') {
+        return renderArrayOverview(activeTarget)
+      }
+
+      if (!currentStep) return null
       const renderedSteps = renderAllSteps ? visibleSteps : [currentStep]
 
       function renderNode<TValues extends object>({
@@ -310,6 +393,8 @@ export function FormRenderer<TValues extends object>({
         const fieldPrefix = toAuthoringFieldName(resolvedFieldPathPrefix, node.path)
 
         if (node.groupKind === 'ARRAY') {
+          if (!renderAllSteps) return null
+
           const fieldName = toTypedAuthoringArrayFieldName<TValues>(
             resolvedFieldPathPrefix,
             node.path
@@ -372,6 +457,7 @@ export function FormRenderer<TValues extends object>({
                               <div className={styles.inlineArrayItemBody}>
                                 <Renderer
                                   form={form}
+                                  ancestors={childAncestors}
                                   debounceMs={debounceMs}
                                   fieldPathPrefix={rowPrefix}
                                   mapId={node.childMapId}
@@ -407,27 +493,43 @@ export function FormRenderer<TValues extends object>({
                 <div className={styles.wideField}>
                   <Group justify='space-between' align='center' mb='xs'>
                     <Text fw={700}>{node.label}</Text>
-                    {!nodeReadOnly && !hasValue ? (
-                      <Button
-                        type='button'
-                        variant='default'
-                        size='xs'
-                        onClick={() => {
-                          field.handleChange(
-                            createDefaultAuthoringObjectItem(
-                              node
-                            ) as Parameters<typeof field.handleChange>[0]
-                          )
-                        }}
-                      >
-                        Add
-                      </Button>
+                    {!nodeReadOnly ? (
+                      hasValue && !node.required ? (
+                        <ActionIcon
+                          aria-label={`Remove ${node.label}`}
+                          color='red'
+                          variant='subtle'
+                          onClick={() =>
+                            field.handleChange(
+                              undefined as Parameters<typeof field.handleChange>[0]
+                            )
+                          }
+                        >
+                          <Trash2 size={16} aria-hidden='true' />
+                        </ActionIcon>
+                      ) : !hasValue ? (
+                        <Button
+                          type='button'
+                          variant='default'
+                          size='xs'
+                          onClick={() => {
+                            field.handleChange(
+                              createDefaultAuthoringObjectItem(
+                                node
+                              ) as Parameters<typeof field.handleChange>[0]
+                            )
+                          }}
+                        >
+                          Add
+                        </Button>
+                      ) : null
                     ) : null}
                   </Group>
                   {hasValue ? (
                     <div className={styles.nestedShell}>
                       <Renderer
                         form={form}
+                        ancestors={childAncestors}
                         debounceMs={debounceMs}
                         fieldPathPrefix={fieldPrefix}
                         mapId={node.childMapId}
@@ -442,6 +544,104 @@ export function FormRenderer<TValues extends object>({
                   ) : (
                     <Text size='sm' c='dimmed'>{`${node.label} has not been configured yet.`}</Text>
                   )}
+                </div>
+              )
+            }}
+          </form.AppField>
+        )
+      }
+
+      function renderArrayOverview(target: AuthoringNavigationTarget) {
+        const node = target.collectionNode
+        const collectionFieldName = target.collectionFieldName
+        if (!node || !collectionFieldName) return null
+
+        const nodeReadOnly = Boolean(resolvedReadOnly || node.readOnly || node.disabled)
+        const fieldName =
+          collectionFieldName as ReturnType<typeof toTypedAuthoringArrayFieldName<TValues>>
+
+        return (
+          <form.AppField key={target.id} name={fieldName} mode='array'>
+            {(field) => {
+              const rows = Array.isArray(field.state.value) ? field.state.value : []
+
+              return (
+                <div className={styles.sectionStack}>
+                  <section>
+                    <div className={styles.fieldGrid}>
+                      <div className={styles.wideField}>
+                        <Group justify='space-between' align='center' mb='xs'>
+                          <Text fw={700}>{node.label}</Text>
+                          {!nodeReadOnly ? (
+                            <Button
+                              type='button'
+                              variant='default'
+                              size='xs'
+                              onClick={() => {
+                                const rowIndex = rows.length
+                                field.pushValue(
+                                  createDefaultAuthoringArrayItem(
+                                    node,
+                                    rowIndex
+                                  ) as Parameters<typeof field.pushValue>[0]
+                                )
+                                const targetId = getFirstArrayItemNavigationTargetId({
+                                  collectionFieldName,
+                                  collectionNode: node,
+                                  rowIndex
+                                })
+                                if (targetId) authoring.goToNavigationTarget(targetId)
+                              }}
+                            >
+                              Add
+                            </Button>
+                          ) : null}
+                        </Group>
+                        {rows.length === 0 ? (
+                          <Text size='sm' c='dimmed'>{`No ${node.label.toLowerCase()} added yet.`}</Text>
+                        ) : (
+                          <div className={styles.inlineArrayList}>
+                            {rows.map((row, index) => {
+                              const label = getGroupRowLabel(node, row, index)
+                              const targetId = getFirstArrayItemNavigationTargetId({
+                                collectionFieldName,
+                                collectionNode: node,
+                                rowIndex: index
+                              })
+
+                              return (
+                                <div key={getGroupRowKey(row, index)} className={styles.inlineArrayItem}>
+                                  <div className={styles.inlineArrayItemHeader}>
+                                    <button
+                                      type='button'
+                                      className={styles.inlineArrayItemTrigger}
+                                      onClick={() => {
+                                        if (targetId) authoring.goToNavigationTarget(targetId)
+                                      }}
+                                    >
+                                      <Text className={styles.inlineArrayItemTitle}>
+                                        {label}
+                                      </Text>
+                                    </button>
+                                    {!nodeReadOnly ? (
+                                      <ActionIcon
+                                        aria-label={`Remove ${label}`}
+                                        color='red'
+                                        variant='subtle'
+                                        onClick={() => field.removeValue(index)}
+                                      >
+                                        <Trash2 size={16} aria-hidden='true' />
+                                      </ActionIcon>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </section>
                 </div>
               )
             }}

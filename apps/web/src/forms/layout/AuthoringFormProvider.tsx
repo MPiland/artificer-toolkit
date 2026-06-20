@@ -79,10 +79,18 @@ export function AuthoringFormProvider({
   const resolvedModel = session.resolvedModel
   const modelVisibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
   const visibleSteps = session.visibleSteps ?? modelVisibleSteps
+  const navigationTargets = session.navigationTargets ?? []
+  const activeNavigationTarget =
+    navigationTargets.find((target) => target.id === session.activeNavigationTargetId) ??
+    navigationTargets[0]
   const activeStep =
-    visibleSteps.find((step) => step.id === session.activeStepId) ?? visibleSteps[0]
+    visibleSteps.find((step) => step.id === (activeNavigationTarget?.stepId ?? session.activeStepId)) ??
+    visibleSteps[0]
   const activeStepIndex = activeStep
     ? visibleSteps.findIndex((step) => step.id === activeStep.id)
+    : -1
+  const activeNavigationTargetIndex = activeNavigationTarget
+    ? navigationTargets.findIndex((target) => target.id === activeNavigationTarget.id)
     : -1
   const activateMutation = useMutation({
     mutationFn: (payload: object) => operations.activate(payload),
@@ -324,7 +332,42 @@ export function AuthoringFormProvider({
     },
     [visibleSteps]
   )
+  const setActiveNavigationTarget = useCallback(
+    (targetId: string) => {
+      const target = navigationTargets.find((navigationTarget) => navigationTarget.id === targetId)
+      if (!target) return false
+
+      setSession((current) => {
+        const next = {
+          ...current,
+          activeNavigationTargetId: target.id,
+          activeStepId: target.stepId,
+          activeStepLabel: target.label,
+          fieldPathPrefix: target.fieldPathPrefix
+        }
+
+        return isSameSession(current, next) ? current : next
+      })
+
+      return true
+    },
+    [navigationTargets]
+  )
   const goToNextStep = useCallback(() => {
+    if (session.authoringKind === 'character-builder') {
+      void actionsRef.current.onNextStep?.()
+      return
+    }
+
+    if (navigationTargets.length > 0 && activeNavigationTargetIndex >= 0) {
+      const nextTarget =
+        navigationTargets[Math.min(activeNavigationTargetIndex + 1, navigationTargets.length - 1)]
+      if (nextTarget) {
+        setActiveNavigationTarget(nextTarget.id)
+        return
+      }
+    }
+
     if (visibleSteps.length > 0 && activeStepIndex >= 0) {
       const nextStep = visibleSteps[Math.min(activeStepIndex + 1, visibleSteps.length - 1)]
       if (nextStep) {
@@ -334,8 +377,30 @@ export function AuthoringFormProvider({
     }
 
     void actionsRef.current.onNextStep?.()
-  }, [activeStepIndex, setActiveProviderStep, visibleSteps])
+  }, [
+    activeNavigationTargetIndex,
+    activeStepIndex,
+    navigationTargets,
+    setActiveNavigationTarget,
+    setActiveProviderStep,
+    session.authoringKind,
+    visibleSteps
+  ])
   const goToPreviousStep = useCallback(() => {
+    if (session.authoringKind === 'character-builder') {
+      void actionsRef.current.onPreviousStep?.()
+      return
+    }
+
+    if (navigationTargets.length > 0 && activeNavigationTargetIndex >= 0) {
+      const previousTarget =
+        navigationTargets[Math.max(activeNavigationTargetIndex - 1, 0)]
+      if (previousTarget) {
+        setActiveNavigationTarget(previousTarget.id)
+        return
+      }
+    }
+
     if (visibleSteps.length > 0 && activeStepIndex >= 0) {
       const previousStep = visibleSteps[Math.max(activeStepIndex - 1, 0)]
       if (previousStep) {
@@ -345,25 +410,66 @@ export function AuthoringFormProvider({
     }
 
     void actionsRef.current.onPreviousStep?.()
-  }, [activeStepIndex, setActiveProviderStep, visibleSteps])
+  }, [
+    activeNavigationTargetIndex,
+    activeStepIndex,
+    navigationTargets,
+    setActiveNavigationTarget,
+    setActiveProviderStep,
+    session.authoringKind,
+    visibleSteps
+  ])
   const resetStep = useCallback(() => {
     void actionsRef.current.onResetStep?.()
   }, [])
   const resetForm = useCallback(() => {
     void actionsRef.current.onResetForm?.()
   }, [])
+  const goToNavigationTarget = useCallback((targetId: string) => {
+    if (setActiveNavigationTarget(targetId)) return
+
+    setSession((current) => {
+      const next = {
+        ...current,
+        activeNavigationTargetId: targetId
+      }
+
+      return isSameSession(current, next) ? current : next
+    })
+    actionsRef.current.onStepChange?.(targetId)
+  }, [setActiveNavigationTarget])
   const goToStep = useCallback((stepId: string) => {
+    if (session.authoringKind === 'character-builder') {
+      actionsRef.current.onStepChange?.(stepId)
+      return
+    }
+
+    const target = navigationTargets.find(
+      (navigationTarget) =>
+        navigationTarget.id === stepId || navigationTarget.stepId === stepId
+    )
+    if (target && setActiveNavigationTarget(target.id)) return
     if (setActiveProviderStep(stepId)) return
 
     actionsRef.current.onStepChange?.(stepId)
-  }, [setActiveProviderStep])
+  }, [navigationTargets, session.authoringKind, setActiveNavigationTarget, setActiveProviderStep])
   const saveDraft = useCallback(() => {
     void actionsRef.current.onSaveDraft?.()
   }, [])
   const contextSession = useMemo<AuthoringFormSessionState>(
     () => ({
       ...session,
-      ...(activeStep
+      ...(activeNavigationTarget
+        ? {
+            activeNavigationTargetId: activeNavigationTarget.id,
+            activeStepId: activeNavigationTarget.stepId,
+            activeStepLabel: activeNavigationTarget.label,
+            fieldPathPrefix: activeNavigationTarget.fieldPathPrefix,
+            isFirstStep: activeNavigationTargetIndex <= 0,
+            isLastStep:
+              activeNavigationTargetIndex === Math.max(navigationTargets.length - 1, 0)
+          }
+        : activeStep
         ? {
             activeStepId: activeStep.id,
             activeStepLabel: activeStep.label,
@@ -380,12 +486,15 @@ export function AuthoringFormProvider({
     }),
     [
       activateMutation.isPending,
+      activeNavigationTarget,
+      activeNavigationTargetIndex,
       activeStep,
       activeStepIndex,
       discardDraftMutation.isPending,
       isDeleting,
       saveDraftMutation.isPending,
       session,
+      navigationTargets.length,
       visibleSteps.length
     ]
   )
@@ -395,12 +504,14 @@ export function AuthoringFormProvider({
       ...contextSession,
       activate,
       activateValues,
+      activeNavigationTarget,
       activeStep,
       cancel,
       clearPaths: clearRegisteredPaths,
       copy,
       deleteRecord,
       discardDraft,
+      goToNavigationTarget,
       goToStep,
       goToNextStep,
       goToPreviousStep,
@@ -417,6 +528,7 @@ export function AuthoringFormProvider({
     [
       activate,
       activateValues,
+      activeNavigationTarget,
       activeStep,
       cancel,
       clearRegisteredPaths,
@@ -425,6 +537,7 @@ export function AuthoringFormProvider({
       deleteRecord,
       discardDraft,
       discardDraftMutation.isPending,
+      goToNavigationTarget,
       goToStep,
       goToNextStep,
       goToPreviousStep,
@@ -449,6 +562,7 @@ export function AuthoringFormProvider({
 
 function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSessionState) {
   return (
+    left.activeNavigationTargetId === right.activeNavigationTargetId &&
     left.activeSectionId === right.activeSectionId &&
     left.activeStepId === right.activeStepId &&
     left.activeStepLabel === right.activeStepLabel &&
@@ -483,6 +597,8 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     left.isSubmitting === right.isSubmitting &&
     left.mapId === right.mapId &&
     left.mode === right.mode &&
+    left.navigationTargets === right.navigationTargets &&
+    left.navigationTree === right.navigationTree &&
     left.providedModel === right.providedModel &&
     left.readOnly === right.readOnly &&
     left.resolveModel === right.resolveModel &&
@@ -512,6 +628,7 @@ function getDomainRegistration(
 
   return {
     activeSectionId: undefined,
+    activeNavigationTargetId: undefined,
     activeStepId: undefined,
     activeStepLabel: undefined,
     authoredSession,
@@ -521,6 +638,8 @@ function getDomainRegistration(
     domain,
     fallbackLabel: factory.fallbackLabel,
     mapId: factory.mapId,
+    navigationTargets: undefined,
+    navigationTree: undefined,
     providedModel: undefined,
     resolvedModel: undefined,
     subjectKindLabel: factory.subjectKindLabel,
@@ -576,6 +695,7 @@ function getCharacterBuilderRegistration(
 
   return {
     activeSectionId: undefined,
+    activeNavigationTargetId: undefined,
     activeStepId: undefined,
     activeStepLabel: undefined,
     activateLabel: 'Finalize Character',
@@ -605,6 +725,8 @@ function getCharacterBuilderRegistration(
     isLastStep: true,
     mapId: undefined,
     mode,
+    navigationTargets: undefined,
+    navigationTree: undefined,
     progressSummary: undefined,
     providedModel: undefined,
     readOnly: characterSession?.readOnly ?? false,
