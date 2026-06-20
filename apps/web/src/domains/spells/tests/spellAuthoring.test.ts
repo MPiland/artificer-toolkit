@@ -22,7 +22,19 @@ describe('Spell authoring runtime', () => {
     })
 
     expect(normalized.label).toBe('Untitled Spell')
-    expect(normalized.magicSchoolId).toBe('unknown-school')
+    expect(normalized.magicSchoolId).toBe('')
     expect(normalized.materialDescription).toBeUndefined()
+  })
+
+  it('uses the supplied system school fallback when the spell value is blank', () => {
+    const normalized = normalizeSpellForSubmit(
+      {
+        ...spellFixture,
+        magicSchoolId: ''
+      },
+      'school-evocation'
+    )
+
+    expect(normalized.magicSchoolId).toBe('school-evocation')
   })
 })

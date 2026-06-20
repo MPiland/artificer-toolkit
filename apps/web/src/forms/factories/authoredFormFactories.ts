@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
 import type { z } from 'zod'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import {
   backgroundAuthoringInputDtoSchema,
   BackgroundAuthoringInputDto,
@@ -104,6 +105,7 @@ import type {
 import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 
 export type AuthoredFormSystemCreateData = {
+  system?: SystemResponseDto | null
   systems: readonly { id: string }[]
 }
 
@@ -120,6 +122,7 @@ export type AuthoredFormEditData<TAuthored extends object> = {
   draft?: AuthoredDraftDto | null
   response?: AuthoredFormEditResponse<TAuthored> | null
   subjectId: string
+  system?: SystemResponseDto | null
 }
 
 type AuthoredFormDomainDataByDomain = {
@@ -482,10 +485,14 @@ const raceSessionConfig = {
 
 const spellSessionConfig = {
   actionFactory: authoredFormActionFactories.spell,
-  createEmptyValues: createEmptySpell,
+  createEmptyValues: ({ systemId }, context) =>
+    createEmptySpell({ magicSchoolId: context.magicSchoolId, systemId }),
   domain: 'spell',
+  getCreateContext: getSpellFormContext,
   getCreateSystems: (data) => data.systems,
-  normalizeForSubmit: (values) => normalizeSpellForSubmit(values),
+  getEditContext: getSpellFormContext,
+  normalizeForSubmit: (values, context) =>
+    normalizeSpellForSubmit(values, context.magicSchoolId),
   operations: {
     activate: api.content.spells.activate,
     deleteActive: api.content.spells.deleteActive,
@@ -499,13 +506,17 @@ const spellSessionConfig = {
   subjectKindLabel: 'Spell',
   toCreateData: toSystemCreateData,
   toEditData,
-  toFormValues: (record) => record
+  toFormValues: (record, context) => ({
+    ...record,
+    magicSchoolId: record.magicSchoolId || context.magicSchoolId || ''
+  })
 } satisfies AuthoredSessionConfig<
   SpellAuthoringInputDto | SpellAuthoredDto,
   SpellAuthoringInputDto,
   SpellAuthoredDto,
   AuthoredFormSystemCreateData,
-  AuthoredFormEditData<SpellAuthoredDto>
+  AuthoredFormEditData<SpellAuthoredDto>,
+  SpellFormContext
 >
 
 const vehicleSessionConfig = {
@@ -602,7 +613,7 @@ type AuthoredSessionConfig<
   TContext = undefined
 > = {
   actionFactory: typeof authoredFormActionFactories[AuthoredFormDomain]
-  createEmptyValues: (input: { systemId: string }) => TValues
+  createEmptyValues: (input: { systemId: string }, context: TContext) => TValues
   domain: AuthoredFormDomain
   getCreateContext?: (data: TCreateData) => TContext
   getCreateSystems: (data: TCreateData) => readonly { id: string }[]
@@ -651,7 +662,7 @@ function createAuthoredCreateSession<
   const createData = config.toCreateData(data)
   const context = getCreateContext(config, createData)
   const systemId = config.resolveCreateSystemId(config.getCreateSystems(createData), context) ?? ''
-  const initialValues = config.createEmptyValues({ systemId })
+  const initialValues = config.createEmptyValues({ systemId }, context)
 
   return createAuthoredSessionBase({
     config,
@@ -694,7 +705,10 @@ function createAuthoredEditSession<
   const record = draftItem ?? activeRecord ?? null
   const initialValues = record
     ? config.toFormValues(record, context)
-    : config.createEmptyValues({ systemId: activeRecord?.systemId ?? draftItem?.systemId ?? '' })
+    : config.createEmptyValues(
+        { systemId: activeRecord?.systemId ?? draftItem?.systemId ?? '' },
+        context
+      )
   const readOnly =
     requestedMode === 'view' || Boolean(activeRecord && editData.response?.permissions?.canEdit === false)
   const canCopy = Boolean(editData.response?.permissions?.canCopy && editData.subjectId)
@@ -878,7 +892,12 @@ function getEditContext<
 }
 
 function toSystemCreateData(data: unknown): AuthoredFormSystemCreateData {
-  if (isRecord(data) && Array.isArray(data.systems)) return { systems: data.systems as readonly { id: string }[] }
+  if (isRecord(data) && Array.isArray(data.systems)) {
+    return {
+      system: isSystemResponse(data.system) ? data.system : null,
+      systems: data.systems as readonly { id: string }[]
+    }
+  }
 
   return { systems: [] }
 }
@@ -897,4 +916,20 @@ function toEditData<TAuthored extends object>(data: unknown): AuthoredFormEditDa
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+type SpellFormContext = {
+  magicSchoolId: string
+}
+
+function getSpellFormContext(data: {
+  system?: SystemResponseDto | null
+}): SpellFormContext {
+  return {
+    magicSchoolId: data.system?.magicSchools[0]?.id ?? ''
+  }
+}
+
+function isSystemResponse(value: unknown): value is SystemResponseDto {
+  return value === null || isRecord(value)
 }

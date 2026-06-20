@@ -26,6 +26,7 @@ export interface AuthoredFormRouteLoaderData<TData = unknown> {
 }
 
 export interface AuthoredCreateData {
+  system?: SystemResponseDto | null
   systems: SystemListResponseDto
 }
 
@@ -107,6 +108,7 @@ export interface AuthoredEditData<TResponse> {
   draft: AuthoredDraftDto | null
   response: TResponse | null
   subjectId: string
+  system?: SystemResponseDto | null
 }
 
 export type BackgroundEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<BackgroundResponseDto>>

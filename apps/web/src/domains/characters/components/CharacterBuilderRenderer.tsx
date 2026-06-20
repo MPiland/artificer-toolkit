@@ -4,6 +4,7 @@ import { useStore } from '@tanstack/react-form'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import type { VisibleAuthoringSteps } from '#forms/hooks/useAuthoringResolvedModel'
 import {
   characterBuilderSteps,
   createFallbackCharacterFormValues,
@@ -48,6 +49,15 @@ export const CharacterBuilderRenderer = withForm({
       characterBuilderSteps.find((step) => step.id === activeStepId) ?? characterBuilderSteps[0]
     const activeIndex = characterBuilderSteps.findIndex((step) => step.id === activeStep.id)
     const isLastStep = activeIndex === characterBuilderSteps.length - 1
+    const visibleSteps = useMemo<VisibleAuthoringSteps>(
+      () =>
+        characterBuilderSteps.map((step, index) => ({
+          ...step,
+          order: index + 1,
+          sections: []
+        })),
+      []
+    )
 
     useEffect(() => {
       if (authoring.readOnly) return
@@ -76,7 +86,8 @@ export const CharacterBuilderRenderer = withForm({
         canSubmit: submitState.canSubmit && payload.view.review.ready,
         isFirstStep: activeIndex === 0,
         isLastStep,
-        isSubmitting: submitState.isSubmitting
+        isSubmitting: submitState.isSubmitting,
+        visibleSteps
       }),
       [
         activeIndex,
@@ -85,7 +96,8 @@ export const CharacterBuilderRenderer = withForm({
         isLastStep,
         payload.view.review.ready,
         submitState.canSubmit,
-        submitState.isSubmitting
+        submitState.isSubmitting,
+        visibleSteps
       ]
     )
 

@@ -91,6 +91,7 @@ export type AuthoringFormStatePatch = {
   subjectKindLabel?: string
   subjectLabel?: ReactNode
   systemId?: string
+  visibleSteps?: VisibleAuthoringSteps
   isSubmitting?: boolean
   isDeleting?: boolean
 }
@@ -115,7 +116,8 @@ export type AuthoringFormSessionState = Pick<
   | 'resolvedModel'
   | 'progressSummary'
   | 'subjectLabel'
-  | 'systemId'
+      | 'systemId'
+      | 'visibleSteps'
 > &
   Required<
     Pick<

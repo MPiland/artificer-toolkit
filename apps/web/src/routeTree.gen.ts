@@ -35,6 +35,7 @@ import { Route as AuthedSystemsSystemIdRouteImport } from './routes/_authed/syst
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellPublicIdRouteImport } from './routes/_authed/spells/$spellPublicId'
 import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
+import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
 import { Route as AuthedFeatsFeatPublicIdRouteImport } from './routes/_authed/feats/$featPublicId'
 import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
@@ -201,6 +202,11 @@ const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
   path: '/races/new',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedRacesRacePublicIdRoute = AuthedRacesRacePublicIdRouteImport.update({
+  id: '/races/$racePublicId',
+  path: '/races/$racePublicId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
   id: '/feats/new',
   path: '/feats/new',
@@ -279,9 +285,9 @@ const AuthedSpellsSpellPublicIdSpellSlugRoute =
   } as any)
 const AuthedRacesRacePublicIdRaceSlugRoute =
   AuthedRacesRacePublicIdRaceSlugRouteImport.update({
-    id: '/races/$racePublicId/$raceSlug',
-    path: '/races/$racePublicId/$raceSlug',
-    getParentRoute: () => AuthedRoute,
+    id: '/$raceSlug',
+    path: '/$raceSlug',
+    getParentRoute: () => AuthedRacesRacePublicIdRoute,
   } as any)
 const AuthedFeatsFeatPublicIdFeatSlugRoute =
   AuthedFeatsFeatPublicIdFeatSlugRouteImport.update({
@@ -427,6 +433,7 @@ export interface FileRoutesByFullPath {
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
@@ -488,6 +495,7 @@ export interface FileRoutesByTo {
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/_authed/equipment/new': typeof AuthedEquipmentNewRoute
   '/_authed/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
+  '/_authed/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/_authed/races/new': typeof AuthedRacesNewRoute
   '/_authed/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
@@ -611,6 +620,7 @@ export interface FileRouteTypes {
     | '/equipment/new'
     | '/feats/$featPublicId'
     | '/feats/new'
+    | '/races/$racePublicId'
     | '/races/new'
     | '/spells/$spellPublicId'
     | '/spells/new'
@@ -672,6 +682,7 @@ export interface FileRouteTypes {
     | '/equipment/new'
     | '/feats/$featPublicId'
     | '/feats/new'
+    | '/races/$racePublicId'
     | '/races/new'
     | '/spells/$spellPublicId'
     | '/spells/new'
@@ -731,6 +742,7 @@ export interface FileRouteTypes {
     | '/_authed/equipment/new'
     | '/_authed/feats/$featPublicId'
     | '/_authed/feats/new'
+    | '/_authed/races/$racePublicId'
     | '/_authed/races/new'
     | '/_authed/spells/$spellPublicId'
     | '/_authed/spells/new'
@@ -968,6 +980,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRacesNewRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/races/$racePublicId': {
+      id: '/_authed/races/$racePublicId'
+      path: '/races/$racePublicId'
+      fullPath: '/races/$racePublicId'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/feats/new': {
       id: '/_authed/feats/new'
       path: '/feats/new'
@@ -1068,10 +1087,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authed/races/$racePublicId/$raceSlug': {
       id: '/_authed/races/$racePublicId/$raceSlug'
-      path: '/races/$racePublicId/$raceSlug'
+      path: '/$raceSlug'
       fullPath: '/races/$racePublicId/$raceSlug'
       preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugRouteImport
-      parentRoute: typeof AuthedRoute
+      parentRoute: typeof AuthedRacesRacePublicIdRoute
     }
     '/_authed/feats/$featPublicId/$featSlug': {
       id: '/_authed/feats/$featPublicId/$featSlug'
@@ -1376,6 +1395,39 @@ const AuthedFeatsFeatPublicIdRouteWithChildren =
     AuthedFeatsFeatPublicIdRouteChildren,
   )
 
+interface AuthedRacesRacePublicIdRaceSlugRouteChildren {
+  AuthedRacesRacePublicIdRaceSlugEditRoute: typeof AuthedRacesRacePublicIdRaceSlugEditRoute
+  AuthedRacesRacePublicIdRaceSlugIndexRoute: typeof AuthedRacesRacePublicIdRaceSlugIndexRoute
+}
+
+const AuthedRacesRacePublicIdRaceSlugRouteChildren: AuthedRacesRacePublicIdRaceSlugRouteChildren =
+  {
+    AuthedRacesRacePublicIdRaceSlugEditRoute:
+      AuthedRacesRacePublicIdRaceSlugEditRoute,
+    AuthedRacesRacePublicIdRaceSlugIndexRoute:
+      AuthedRacesRacePublicIdRaceSlugIndexRoute,
+  }
+
+const AuthedRacesRacePublicIdRaceSlugRouteWithChildren =
+  AuthedRacesRacePublicIdRaceSlugRoute._addFileChildren(
+    AuthedRacesRacePublicIdRaceSlugRouteChildren,
+  )
+
+interface AuthedRacesRacePublicIdRouteChildren {
+  AuthedRacesRacePublicIdRaceSlugRoute: typeof AuthedRacesRacePublicIdRaceSlugRouteWithChildren
+}
+
+const AuthedRacesRacePublicIdRouteChildren: AuthedRacesRacePublicIdRouteChildren =
+  {
+    AuthedRacesRacePublicIdRaceSlugRoute:
+      AuthedRacesRacePublicIdRaceSlugRouteWithChildren,
+  }
+
+const AuthedRacesRacePublicIdRouteWithChildren =
+  AuthedRacesRacePublicIdRoute._addFileChildren(
+    AuthedRacesRacePublicIdRouteChildren,
+  )
+
 interface AuthedSpellsSpellPublicIdSpellSlugRouteChildren {
   AuthedSpellsSpellPublicIdSpellSlugEditRoute: typeof AuthedSpellsSpellPublicIdSpellSlugEditRoute
   AuthedSpellsSpellPublicIdSpellSlugIndexRoute: typeof AuthedSpellsSpellPublicIdSpellSlugIndexRoute
@@ -1427,24 +1479,6 @@ const AuthedVehiclesVehiclePublicIdRouteWithChildren =
     AuthedVehiclesVehiclePublicIdRouteChildren,
   )
 
-interface AuthedRacesRacePublicIdRaceSlugRouteChildren {
-  AuthedRacesRacePublicIdRaceSlugEditRoute: typeof AuthedRacesRacePublicIdRaceSlugEditRoute
-  AuthedRacesRacePublicIdRaceSlugIndexRoute: typeof AuthedRacesRacePublicIdRaceSlugIndexRoute
-}
-
-const AuthedRacesRacePublicIdRaceSlugRouteChildren: AuthedRacesRacePublicIdRaceSlugRouteChildren =
-  {
-    AuthedRacesRacePublicIdRaceSlugEditRoute:
-      AuthedRacesRacePublicIdRaceSlugEditRoute,
-    AuthedRacesRacePublicIdRaceSlugIndexRoute:
-      AuthedRacesRacePublicIdRaceSlugIndexRoute,
-  }
-
-const AuthedRacesRacePublicIdRaceSlugRouteWithChildren =
-  AuthedRacesRacePublicIdRaceSlugRoute._addFileChildren(
-    AuthedRacesRacePublicIdRaceSlugRouteChildren,
-  )
-
 interface AuthedRouteChildren {
   AuthedBackgroundsBackgroundPublicIdRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
@@ -1458,6 +1492,7 @@ interface AuthedRouteChildren {
   AuthedEquipmentNewRoute: typeof AuthedEquipmentNewRoute
   AuthedFeatsFeatPublicIdRoute: typeof AuthedFeatsFeatPublicIdRouteWithChildren
   AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
+  AuthedRacesRacePublicIdRoute: typeof AuthedRacesRacePublicIdRouteWithChildren
   AuthedRacesNewRoute: typeof AuthedRacesNewRoute
   AuthedSpellsSpellPublicIdRoute: typeof AuthedSpellsSpellPublicIdRouteWithChildren
   AuthedSpellsNewRoute: typeof AuthedSpellsNewRoute
@@ -1475,7 +1510,6 @@ interface AuthedRouteChildren {
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
   AuthedVehiclesIndexRoute: typeof AuthedVehiclesIndexRoute
-  AuthedRacesRacePublicIdRaceSlugRoute: typeof AuthedRacesRacePublicIdRaceSlugRouteWithChildren
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
@@ -1495,6 +1529,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedEquipmentNewRoute: AuthedEquipmentNewRoute,
   AuthedFeatsFeatPublicIdRoute: AuthedFeatsFeatPublicIdRouteWithChildren,
   AuthedFeatsNewRoute: AuthedFeatsNewRoute,
+  AuthedRacesRacePublicIdRoute: AuthedRacesRacePublicIdRouteWithChildren,
   AuthedRacesNewRoute: AuthedRacesNewRoute,
   AuthedSpellsSpellPublicIdRoute: AuthedSpellsSpellPublicIdRouteWithChildren,
   AuthedSpellsNewRoute: AuthedSpellsNewRoute,
@@ -1513,8 +1548,6 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
   AuthedVehiclesIndexRoute: AuthedVehiclesIndexRoute,
-  AuthedRacesRacePublicIdRaceSlugRoute:
-    AuthedRacesRacePublicIdRaceSlugRouteWithChildren,
 }
 
 const AuthedRouteWithChildren =

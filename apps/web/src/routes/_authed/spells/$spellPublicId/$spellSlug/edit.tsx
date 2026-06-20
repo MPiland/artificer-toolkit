@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { getSpell, getSpellDraft } from '#app/data/spells/queries'
+import { getSystem } from '#app/data/systems/queries'
 import type { SpellEditLoaderData } from '#app/routes/-routeLoaderData'
 import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -32,6 +33,10 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
       context.queryClient.ensureQueryData(getSpellDraft(spellId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(spellId, response, draft)
+    const systemId = response?.item?.systemId
+    const system = systemId
+      ? await context.queryClient.ensureQueryData(getSystem(systemId, client))
+      : null
 
     if (
       routeSubject &&
@@ -48,7 +53,8 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: spellId
+      subjectId: spellId,
+      system
     })
   },
   component: AuthoringLayout

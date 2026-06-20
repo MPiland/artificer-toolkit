@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getSystemList } from '#app/data/systems/queries'
+import { getSystem, getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
 import type { AuthoredCreateLoaderData } from '#app/routes/-routeLoaderData'
 import { AuthoringLayout } from '#forms'
@@ -11,9 +11,14 @@ import {
 export const Route = createFileRoute('/_authed/spells/new')({
   context: () => createAuthoredFormRouteContext('spell', 'create'),
   loader: async ({ context }): Promise<AuthoredCreateLoaderData> => {
-    const systems = await context.queryClient.ensureQueryData(getSystemList(createServerApi()))
+    const client = createServerApi()
+    const systems = await context.queryClient.ensureQueryData(getSystemList(client))
+    const systemId = systems[0]?.id
+    const system = systemId
+      ? await context.queryClient.ensureQueryData(getSystem(systemId, client))
+      : null
 
-    return createAuthoredFormRouteLoaderData({ systems })
+    return createAuthoredFormRouteLoaderData({ system, systems })
   },
   component: AuthoringLayout
 })

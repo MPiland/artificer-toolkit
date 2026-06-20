@@ -78,7 +78,8 @@ export function AuthoringFormProvider({
   const queryClient = useQueryClient()
   const operations = authoredSession?.operations ?? EMPTY_OPERATION_CONFIG
   const resolvedModel = session.resolvedModel
-  const visibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
+  const modelVisibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
+  const visibleSteps = session.visibleSteps ?? modelVisibleSteps
   const activeStep =
     visibleSteps.find((step) => step.id === session.activeStepId) ?? visibleSteps[0]
   const activeStepIndex = activeStep
@@ -504,7 +505,8 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     isSameProgressSummary(left.progressSummary, right.progressSummary) &&
     left.subjectKindLabel === right.subjectKindLabel &&
     left.subjectLabel === right.subjectLabel &&
-    left.systemId === right.systemId
+    left.systemId === right.systemId &&
+    left.visibleSteps === right.visibleSteps
   )
 }
 
@@ -533,9 +535,19 @@ function getDomainRegistration(
     subjectKindLabel: factory.subjectKindLabel,
     ...(authoredSession
       ? {
+          canCopy: authoredSession.canCopy,
+          canDelete: authoredSession.canDelete,
+          canSaveDraft: authoredSession.canSaveDraft,
           fallbackLabel: authoredSession.fallbackLabel,
+          hasActiveDraft: authoredSession.hasActiveDraft,
+          isDraft: authoredSession.isDraft,
           mapId: authoredSession.mapId,
           mode: authoredSession.mode,
+          readOnly: authoredSession.readOnly,
+          resolveModel:
+            !authoredSession.systemRequired &&
+            !authoredSession.notFound &&
+            !authoredSession.invalidDraftOnly,
           subjectKindLabel: authoredSession.subjectKindLabel,
           subjectLabel: authoredSession.subjectLabel,
           systemId: authoredSession.systemId
@@ -613,7 +625,8 @@ function getCharacterBuilderRegistration(
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Character',
     subjectLabel: characterSession?.subjectLabel,
-    systemId: characterSession?.systemId
+    systemId: characterSession?.systemId,
+    visibleSteps: undefined
   }
 }
 

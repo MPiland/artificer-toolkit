@@ -2,6 +2,7 @@ import { Text } from '@mantine/core'
 import { FilePenLine } from 'lucide-react'
 import * as styles from './Header.css'
 import {
+  AuthoringOverflowMenu,
   PreviewToggleAction,
   SaveDraftAction,
   ResetActionMenu,
@@ -28,6 +29,7 @@ export function Header() {
       <div className={styles.formActions}>
         <ResetActionMenu />
         <SaveDraftAction />
+        <AuthoringOverflowMenu position='bottom-end' />
         {status.label ? (
           <span className={styles.statusBadge} aria-label={`Current status: ${status.label}`}>
             <FilePenLine size={14} aria-hidden='true' />

@@ -38,8 +38,10 @@ export const spellComponentOptions = [
 export const emptyOption = { value: '', label: 'None yet' }
 
 export function createEmptySpell({
+  magicSchoolId,
   systemId
 }: {
+  magicSchoolId?: string
   systemId: string
 }): SpellAuthoringInputDto {
   return {
@@ -50,7 +52,7 @@ export function createEmptySpell({
     description: '',
     level: 0,
     classIds: [],
-    magicSchoolId: '',
+    magicSchoolId: magicSchoolId ?? '',
     castingTime: {
       amount: 1,
       unit: 'ROUND'
@@ -63,13 +65,14 @@ export function createEmptySpell({
 }
 
 export function normalizeSpellForSubmit(
-  spell: SpellAuthoringInputDto | SpellAuthoredDto
+  spell: SpellAuthoringInputDto | SpellAuthoredDto,
+  fallbackMagicSchoolId = ''
 ): SpellAuthoringInputDto {
   return {
     ...spell,
     label: spell.label.trim() || 'Untitled Spell',
     description: spell.description ?? '',
-    magicSchoolId: spell.magicSchoolId || 'unknown-school',
+    magicSchoolId: spell.magicSchoolId || fallbackMagicSchoolId,
     systemId: spell.systemId,
     castingTime: {
       amount: Number(spell.castingTime?.amount ?? 1),
