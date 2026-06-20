@@ -148,7 +148,7 @@ function isDescendantFieldName(fieldName: string, parentFieldName: string) {
 export function isRenderableNode(node: NodeRuntimeNodeDto) {
   if (!node.visible) return false
   if (isSystemManagedFieldNode(node)) return false
-  return node.kind === 'INPUT'
+  return node.kind === 'INPUT' || node.kind === 'GROUP'
 }
 
 function isResettableNode(node: NodeRuntimeNodeDto) {

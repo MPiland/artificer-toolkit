@@ -16,9 +16,16 @@ import { getAuthoringProgress, type FieldMetaSnapshot } from '../validation/auth
 import { withForm } from '../app-form/AppForm'
 import {
   getAuthoringFieldValue,
+  toAuthoringFieldName,
+  toTypedAuthoringArrayFieldName,
   prefixRuntimePaths,
   toTypedAuthoringFieldName
 } from '../utils/pathUtils'
+import {
+  createDefaultAuthoringArrayItem,
+  createDefaultAuthoringObjectItem,
+  type AuthoringGroupValues
+} from './authoringNodeDefaults'
 import {
   toEditorValues,
   hasVisibleStepChanges,
@@ -28,7 +35,8 @@ import {
   getRequiredValidators
 } from './FormRenderer.utils'
 import * as styles from './FormRenderer.css'
-import { Alert, Text } from '@mantine/core'
+import { ActionIcon, Alert, Button, Group, Text } from '@mantine/core'
+import { Trash2 } from 'lucide-react'
 
 export type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
@@ -40,7 +48,9 @@ type SharedRendererProps = {
   fieldPathPrefix?: string
   mapId?: string
   model?: NodeRuntimeResolveResponseDto
+  parentValues?: Record<string, unknown>
   readOnly?: boolean
+  renderAllSteps?: boolean
   resolveModel?: boolean
   systemId?: string
   updateAuthoringState?: boolean
@@ -57,7 +67,7 @@ const EMPTY_VISIBLE_STEPS: VisibleAuthoringSteps = []
 export function FormRenderer<TValues extends object>({
   defaultValues
 }: FormRendererOptions<TValues>) {
-  return withForm({
+  const Renderer = withForm({
     defaultValues,
     props: {} as SharedRendererProps,
     render: function Render({
@@ -67,7 +77,9 @@ export function FormRenderer<TValues extends object>({
       form,
       mapId,
       model,
+      parentValues,
       readOnly,
+      renderAllSteps = false,
       resolveModel,
       systemId,
       updateAuthoringState = true
@@ -106,6 +118,7 @@ export function FormRenderer<TValues extends object>({
           resolvedResolveModel &&
           !model &&
           !(mapId ? false : authoring.providedModel),
+        parentValues,
         systemId: resolvedSystemId,
         values
       })
@@ -221,6 +234,7 @@ export function FormRenderer<TValues extends object>({
       }, [actions, shouldUpdateAuthoringState, updateAuthoringFormActions])
 
       if (!resolvedMapId || !activeModel || !currentStep) return null
+      const renderedSteps = renderAllSteps ? visibleSteps : [currentStep]
 
       function renderNode<TValues extends object>({
         fieldName,
@@ -289,12 +303,162 @@ export function FormRenderer<TValues extends object>({
         )
       }
 
+      function renderGroupNode(node: NodeRuntimeNodeDto) {
+        if (node.kind !== 'GROUP' || !node.childMapId) return null
+
+        const nodeReadOnly = Boolean(resolvedReadOnly || node.readOnly || node.disabled)
+        const fieldPrefix = toAuthoringFieldName(resolvedFieldPathPrefix, node.path)
+
+        if (node.groupKind === 'ARRAY') {
+          const fieldName = toTypedAuthoringArrayFieldName<TValues>(
+            resolvedFieldPathPrefix,
+            node.path
+          )
+
+          return (
+            <form.AppField key={node.id} name={fieldName} mode='array'>
+              {(field) => {
+                const rows = Array.isArray(field.state.value) ? field.state.value : []
+
+                return (
+                  <div className={styles.wideField}>
+                    <Group justify='space-between' align='center' mb='xs'>
+                      <Text fw={700}>{node.label}</Text>
+                      {!nodeReadOnly ? (
+                        <Button
+                          type='button'
+                          variant='default'
+                          size='xs'
+                          onClick={() => {
+                            field.pushValue(
+                              createDefaultAuthoringArrayItem(
+                                node,
+                                rows.length
+                              ) as Parameters<typeof field.pushValue>[0]
+                            )
+                          }}
+                        >
+                          Add
+                        </Button>
+                      ) : null}
+                    </Group>
+                    {rows.length === 0 ? (
+                      <Text size='sm' c='dimmed'>{`No ${node.label.toLowerCase()} added yet.`}</Text>
+                    ) : (
+                      <div className={styles.inlineArrayList}>
+                        {rows.map((row, index) => {
+                          const rowPrefix = toAuthoringFieldName(
+                            resolvedFieldPathPrefix,
+                            [...node.path, index]
+                          )
+
+                          return (
+                            <div key={getGroupRowKey(row, index)} className={styles.inlineArrayItem}>
+                              <div className={styles.inlineArrayItemHeader}>
+                                <Text className={styles.inlineArrayItemTitle}>
+                                  {getGroupRowLabel(node, row, index)}
+                                </Text>
+                                {!nodeReadOnly ? (
+                                  <ActionIcon
+                                    aria-label={`Remove ${getGroupRowLabel(node, row, index)}`}
+                                    color='red'
+                                    variant='subtle'
+                                    onClick={() => field.removeValue(index)}
+                                  >
+                                    <Trash2 size={16} aria-hidden='true' />
+                                  </ActionIcon>
+                                ) : null}
+                              </div>
+                              <div className={styles.inlineArrayItemBody}>
+                                <Renderer
+                                  form={form}
+                                  debounceMs={debounceMs}
+                                  fieldPathPrefix={rowPrefix}
+                                  mapId={node.childMapId}
+                                  parentValues={values}
+                                  readOnly={nodeReadOnly}
+                                  renderAllSteps
+                                  resolveModel={resolvedResolveModel}
+                                  systemId={resolvedSystemId}
+                                  updateAuthoringState={false}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }}
+            </form.AppField>
+          )
+        }
+
+        return (
+          <form.AppField key={node.id} name={toTypedAuthoringFieldName<TValues>(
+            resolvedFieldPathPrefix,
+            node.path
+          )}>
+            {(field) => {
+              const hasValue = isGroupObjectValue(field.state.value)
+
+              return (
+                <div className={styles.wideField}>
+                  <Group justify='space-between' align='center' mb='xs'>
+                    <Text fw={700}>{node.label}</Text>
+                    {!nodeReadOnly && !hasValue ? (
+                      <Button
+                        type='button'
+                        variant='default'
+                        size='xs'
+                        onClick={() => {
+                          field.handleChange(
+                            createDefaultAuthoringObjectItem(
+                              node
+                            ) as Parameters<typeof field.handleChange>[0]
+                          )
+                        }}
+                      >
+                        Add
+                      </Button>
+                    ) : null}
+                  </Group>
+                  {hasValue ? (
+                    <div className={styles.nestedShell}>
+                      <Renderer
+                        form={form}
+                        debounceMs={debounceMs}
+                        fieldPathPrefix={fieldPrefix}
+                        mapId={node.childMapId}
+                        parentValues={values}
+                        readOnly={nodeReadOnly}
+                        renderAllSteps
+                        resolveModel={resolvedResolveModel}
+                        systemId={resolvedSystemId}
+                        updateAuthoringState={false}
+                      />
+                    </div>
+                  ) : (
+                    <Text size='sm' c='dimmed'>{`${node.label} has not been configured yet.`}</Text>
+                  )}
+                </div>
+              )
+            }}
+          </form.AppField>
+        )
+      }
+
       return (
         <div className={styles.sectionStack}>
-          {currentStep.sections
+          {renderedSteps.flatMap((step) => step.sections)
             .filter((section) => section.nodes.some(isRenderableNode))
             .map((section) => {
-              const showSectionHeader = currentStep.sections.length > 1
+              const sectionCount = renderedSteps.reduce(
+                (count, step) => count + step.sections.length,
+                0
+              )
+              const showSectionHeader = sectionCount > 1
 
               return (
                 <section
@@ -311,7 +475,7 @@ export function FormRenderer<TValues extends object>({
                   <div className={styles.fieldGrid}>
                     {section.nodes.map((node) => {
                       if (!isRenderableNode(node)) return null
-                      if (node.kind === 'GROUP') return null
+                      if (node.kind === 'GROUP') return renderGroupNode(node)
 
                       const fieldName = toTypedAuthoringFieldName<TValues>(
                         resolvedFieldPathPrefix,
@@ -337,4 +501,31 @@ export function FormRenderer<TValues extends object>({
       )
     }
   })
+
+  return Renderer
+}
+
+function getGroupRowKey(row: unknown, index: number) {
+  if (isRecord(row) && typeof row.id === 'string') return row.id
+  return String(index)
+}
+
+function getGroupRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
+  if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) {
+    return row.label
+  }
+
+  return `${toSingularLabel(node.label)} ${index + 1}`
+}
+
+function isGroupObjectValue(value: unknown): value is AuthoringGroupValues {
+  return isRecord(value)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toSingularLabel(label: string) {
+  return label.endsWith('s') ? label.slice(0, -1) : label
 }

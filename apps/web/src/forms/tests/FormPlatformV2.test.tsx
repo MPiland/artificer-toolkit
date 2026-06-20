@@ -22,6 +22,7 @@ import { TestRouterProvider } from '#test/TestRouterProvider'
 type TestFormValues = {
   category: string | undefined
   description: string
+  features?: Array<Record<string, unknown>>
   id: string
   level: number
   name: string
@@ -157,13 +158,50 @@ const testModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
+const groupModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'features',
+      label: 'Features',
+      order: 1,
+      sections: [
+        {
+          id: 'features-section',
+          label: 'Features',
+          order: 1,
+          nodes: [
+            {
+              id: 'features',
+              path: ['features'],
+              label: 'Features',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'feature',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
 const V2Renderer = FormRenderer({
   defaultValues: testDefaults
 })
 
-function TestV2Form({ onCancel = vi.fn() }: { onCancel?: () => void }) {
+function TestV2Form({
+  model: modelInput = testModel,
+  onCancel = vi.fn()
+}: {
+  model?: NodeRuntimeResolveResponseDto
+  onCancel?: () => void
+}) {
   const defaultValues = useMemo(() => structuredClone(testDefaults), [])
-  const model = useMemo(() => structuredClone(testModel), [])
+  const model = useMemo(() => structuredClone(modelInput), [modelInput])
   const form = useAppForm({
     defaultValues,
     onSubmit: async () => undefined
@@ -281,6 +319,8 @@ describe('authoring form renderer v2', () => {
       </TestRouterProvider>
     )
 
+    await user.type(screen.getByRole('textbox', { name: /name/i }), 'Fire Lace')
+
     const nextButton = screen.getByRole('button', { name: /^next$/i })
     expect(nextButton).toBeEnabled()
 
@@ -304,6 +344,24 @@ describe('authoring form renderer v2', () => {
 
     expect(screen.getByLabelText('name value')).toHaveTextContent('Fire Lace')
   })
+
+  it('renders group nodes with add controls and nested child fields', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestV2Form model={groupModel} />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getAllByText('Features').length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+
+    expect(await screen.findByText('Feature 1')).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
+  })
+
 })
 
 describe('authoring default value helpers', () => {

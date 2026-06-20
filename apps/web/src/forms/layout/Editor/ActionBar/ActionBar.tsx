@@ -1,7 +1,9 @@
 import clsx from 'clsx'
 import * as styles from './ActionBar.css'
 import { Button } from '@mantine/core'
+import { useCallback } from 'react'
 import { useAuthoringForm } from '../../AuthoringFormContext'
+import { useAuthoringLayout } from '../../AuthoringLayoutContext'
 
 type ActionBarProps = {
   className?: string
@@ -14,7 +16,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
     activate,
     activateLabel,
     cancel,
-    canSubmit,
+    canFinalize,
     goToNextStep,
     goToPreviousStep,
     isFirstStep,
@@ -22,6 +24,16 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
     isSubmitting,
     readOnly
   } = useAuthoringForm()
+  const { setVisitedStepIds, stepId } = useAuthoringLayout()
+  const handleNext = useCallback(() => {
+    setVisitedStepIds((current) => {
+      if (!stepId || current.has(stepId)) return current
+      const next = new Set(current)
+      next.add(stepId)
+      return next
+    })
+    void goToNextStep()
+  }, [goToNextStep, setVisitedStepIds, stepId])
 
   return (
     <footer
@@ -48,7 +60,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
             readOnly ? null : (
               <Button
                 type='button'
-                disabled={!canSubmit}
+                disabled={!canFinalize}
                 loading={isSubmitting}
                 onClick={() => void activate()}
               >
@@ -56,7 +68,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
               </Button>
             )
           ) : (
-            <Button type='button' onClick={() => void goToNextStep()}>
+            <Button type='button' onClick={handleNext}>
               Next
             </Button>
           )}

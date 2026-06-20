@@ -37,7 +37,6 @@ import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 
-const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
 const EMPTY_STEP_DIRTY = {}
 const EMPTY_STEP_STATUSES = {}
 const EMPTY_STEP_WARNINGS = {}
@@ -213,14 +212,6 @@ export function AuthoringFormProvider({
       return isSameSession(current, next) ? current : next
     })
   }, [])
-  const clearPaths = resolvedModel?.clearPaths ?? EMPTY_CLEAR_PATHS
-  const clearPathKey = clearPaths.map((path) => path.join('.')).join('|')
-
-  useEffect(() => {
-    if (clearPaths.length === 0) return
-    actionsRef.current.onClearPaths?.(clearPaths)
-  }, [clearPathKey, clearPaths])
-
   useEffect(() => {
     if (kind === 'character-builder') {
       setSession((current) => {
