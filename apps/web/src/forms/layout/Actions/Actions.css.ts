@@ -55,6 +55,15 @@ export const headerIconButton = style({
           backgroundColor: foundationVars.color.status.dangerSoft,
           color: foundationVars.color.status.danger
         },
+        '&[data-active="true"]': {
+          borderColor: foundationVars.color.accent.border,
+          backgroundColor: foundationVars.color.accent.soft,
+          color: foundationVars.color.text.accent
+        },
+        '&[data-active="true"]:hover': {
+          backgroundColor: foundationVars.color.accent.soft,
+          color: foundationVars.color.text.accent
+        },
         '&[data-disabled="true"]': {
           borderColor: 'transparent',
           backgroundColor: foundationVars.color.surface.subtle,

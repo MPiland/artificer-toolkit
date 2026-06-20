@@ -31,8 +31,7 @@ export function createActivateAction<
   navigate,
   notifier,
   readOnly = false,
-  router,
-  subjectId
+  router
 }: CreateActivateActionArgs<TSubmit, TItem>) {
   return async (payload: TSubmit) => {
     if (readOnly) return
@@ -41,7 +40,7 @@ export function createActivateAction<
       const response = await activateMutation.mutateAsync(payload)
       notifier.show({ color: 'green', message: messages.activateSuccess })
 
-      if (response?.item?.id && response.item.id !== subjectId) {
+      if (response?.item?.id) {
         await navigate({
           params: buildRouteParams(response.publicId, response.item.label),
           to: detailPath

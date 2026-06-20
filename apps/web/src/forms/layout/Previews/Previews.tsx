@@ -32,7 +32,7 @@ export function Previews() {
       opened={previewOpen}
       onClose={togglePreview}
       position={isMobile ? 'bottom' : 'right'}
-      size={isMobile ? '80%' : 380}
+      size={isMobile ? '80%' : '20rem'}
       withCloseButton={false}
     >
       <PreviewContent />

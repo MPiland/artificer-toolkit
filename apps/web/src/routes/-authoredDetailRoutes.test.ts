@@ -93,6 +93,49 @@ const authoredEditRoutes = [
   'src/routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit.tsx'
 ] as const
 
+const authoredLegacyEditRoutes = [
+  {
+    name: 'spell',
+    sourcePath: 'src/routes/_authed/spells/$spellPublicId/edit.tsx',
+    expectedTarget: 'to: \'/spells/$spellPublicId/$spellSlug/edit\''
+  },
+  {
+    name: 'background',
+    sourcePath: 'src/routes/_authed/backgrounds/$backgroundPublicId/edit.tsx',
+    expectedTarget: 'to: \'/backgrounds/$backgroundPublicId/$backgroundSlug/edit\''
+  },
+  {
+    name: 'feat',
+    sourcePath: 'src/routes/_authed/feats/$featPublicId/edit.tsx',
+    expectedTarget: 'to: \'/feats/$featPublicId/$featSlug/edit\''
+  },
+  {
+    name: 'race',
+    sourcePath: 'src/routes/_authed/races/$racePublicId/edit.tsx',
+    expectedTarget: 'to: \'/races/$racePublicId/$raceSlug/edit\''
+  },
+  {
+    name: 'creature',
+    sourcePath: 'src/routes/_authed/creatures/$creaturePublicId/edit.tsx',
+    expectedTarget: 'to: \'/creatures/$creaturePublicId/$creatureSlug/edit\''
+  },
+  {
+    name: 'equipment',
+    sourcePath: 'src/routes/_authed/equipment/$equipmentPublicId/edit.tsx',
+    expectedTarget: 'to: \'/equipment/$equipmentPublicId/$equipmentSlug/edit\''
+  },
+  {
+    name: 'vehicle',
+    sourcePath: 'src/routes/_authed/vehicles/$vehiclePublicId/edit.tsx',
+    expectedTarget: 'to: \'/vehicles/$vehiclePublicId/$vehicleSlug/edit\''
+  },
+  {
+    name: 'class',
+    sourcePath: 'src/routes/_authed/classes/$classPublicId/edit.tsx',
+    expectedTarget: 'to: \'/classes/$classPublicId/$classSlug/edit\''
+  }
+] as const
+
 describe('authored detail routes', () => {
   it.each(authoredDetailRoutes)('renders the $name detail index route instead of redirecting to edit', ({
     expectedPage,
@@ -120,5 +163,16 @@ describe('authored detail routes', () => {
 
     expect(source).toContain('resolveAuthoredRouteSubjectId')
     expect(source).not.toContain('parseAuthoredRouteId(params.')
+  })
+
+  it.each(authoredLegacyEditRoutes)('redirects legacy $name edit URLs to slugged edit routes', ({
+    expectedTarget,
+    sourcePath
+  }) => {
+    const source = readFileSync(join(process.cwd(), sourcePath), 'utf8')
+
+    expect(source).toContain('isLegacyAuthoredEditPath')
+    expect(source).toContain('parseAuthoredRouteId(params.')
+    expect(source).toContain(expectedTarget)
   })
 })

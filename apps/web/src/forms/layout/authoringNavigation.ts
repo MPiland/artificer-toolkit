@@ -154,9 +154,9 @@ function buildStepNode(
     section.nodes.filter((node) => node.visible && node.kind === 'GROUP' && node.childMapId)
   )
   const arrayNodes = groupNodes.filter((node) => node.groupKind === 'ARRAY')
-  const objectNodes = groupNodes.filter((node) => node.groupKind === 'OBJECT')
+  const hasDirectContent = hasDirectEditableContent(step)
 
-  if (hasDirectEditableContent(step)) {
+  if (hasDirectContent) {
     const directTarget = createStepTarget({
       context,
       label: getDirectStepLabel(step),
@@ -171,18 +171,15 @@ function buildStepNode(
     })
   }
 
-  for (const node of arrayNodes) {
-    const collectionNode = buildArrayCollectionNode(node, context)
-    if (collectionNode) children.push(collectionNode)
-  }
-
-  for (const node of objectNodes) {
-    const objectNode = buildObjectNavigationNode(node, context)
-    if (objectNode) children.push(objectNode)
+  if (!hasDirectContent) {
+    for (const node of arrayNodes) {
+      const collectionNode = buildArrayCollectionNode(node, context)
+      if (collectionNode) children.push(collectionNode)
+    }
   }
 
   if (children.length === 0) return undefined
-  if (children.length === 1 && !hasDirectEditableContent(step)) return children[0]
+  if (children.length === 1 && !hasDirectContent) return children[0]
 
   return {
     children,
@@ -273,59 +270,6 @@ function buildArrayRowNode({
     label: getRowLabel(node, row, index),
     level: 0
   } satisfies AuthoringNavigationNode
-}
-
-function buildObjectNavigationNode(
-  node: NodeRuntimeNodeDto,
-  context: BuildNavigationContext
-): AuthoringNavigationNode | undefined {
-  if (!node.childMapId) return undefined
-
-  const childModel = createStaticResolvedFormModel(node.childMapId)
-  if (!childModel) return undefined
-
-  const objectPrefix = toAuthoringFieldName(context.fieldPathPrefix, node.path)
-  const childContext: BuildNavigationContext = {
-    ...context,
-    fieldPathPrefix: objectPrefix,
-    mapId: node.childMapId,
-    model: childModel,
-    parentValues: getCurrentMapValues(context),
-    ancestors: getChildAncestors(context)
-  }
-  const children = getVisibleAuthoringSteps(childModel)
-    .map((step) => buildNestedCollectionBranches(step, childContext))
-    .filter(isNode)
-
-  if (children.length === 0) return undefined
-
-  return {
-    children,
-    id: `object:${objectPrefix}`,
-    label: node.label,
-    level: 0
-  }
-}
-
-function buildNestedCollectionBranches(
-  step: NodeRuntimeStepDto,
-  context: BuildNavigationContext
-): AuthoringNavigationNode | undefined {
-  const children = step.sections
-    .flatMap((section) => section.nodes)
-    .filter((node) => node.visible && node.kind === 'GROUP' && node.groupKind === 'ARRAY')
-    .map((node) => buildArrayCollectionNode(node, context))
-    .filter(isNode)
-
-  if (children.length === 0) return undefined
-  if (children.length === 1) return children[0]
-
-  return {
-    children,
-    id: `nested-collections:${context.mapId}:${context.fieldPathPrefix ?? 'root'}:${step.id}`,
-    label: step.label,
-    level: 0
-  }
 }
 
 function createStepTarget({

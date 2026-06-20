@@ -5,6 +5,7 @@ import type {
   NodeRuntimeStepDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { getAuthoringFieldValue, toAuthoringFieldName } from '../utils/pathUtils'
+import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 
 const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
 
@@ -163,12 +164,47 @@ function hasMissingRequiredFields(
   for (const section of sections) {
     for (const node of section.nodes) {
       if (!isUserEditableVisibleNode(node)) continue
-      if (!node.required) continue
-      if (isMissingRequiredValue(readNodeValue(values, node, fieldPathPrefix))) return true
+
+      const value = readNodeValue(values, node, fieldPathPrefix)
+      if (node.required && isMissingRequiredValue(value)) return true
+      if (node.kind === 'GROUP' && hasMissingRequiredGroupFields(node, value, values, fieldPathPrefix)) {
+        return true
+      }
     }
   }
 
   return false
+}
+
+function hasMissingRequiredGroupFields(
+  node: NodeRuntimeNodeDto,
+  value: unknown,
+  values: Record<string, unknown>,
+  fieldPathPrefix?: string
+) {
+  if (!node.childMapId) return false
+
+  const childModel = createStaticResolvedFormModel(node.childMapId)
+  if (!childModel) return false
+
+  const fieldName = toAuthoringFieldName(fieldPathPrefix, node.path)
+  const childSections = childModel.steps.flatMap((step) => step.sections)
+
+  if (node.groupKind === 'OBJECT') {
+    if (!isRecord(value)) return false
+
+    return hasMissingRequiredFields(childSections, values, fieldName)
+  }
+
+  if (!Array.isArray(value)) return false
+
+  return value.some((_, index) =>
+    hasMissingRequiredFields(childSections, values, `${fieldName}[${index}]`)
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function readNodeValue(

@@ -191,6 +191,48 @@ const groupModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
+const mixedGroupModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'traits',
+      label: 'Traits',
+      order: 1,
+      sections: [
+        {
+          id: 'traits-section',
+          label: 'Traits',
+          order: 1,
+          nodes: [
+            {
+              id: 'size',
+              path: ['size'],
+              label: 'Size',
+              kind: 'INPUT',
+              type: 'SELECT_SINGLE',
+              visible: true,
+              required: true,
+              options: [{ value: 'MEDIUM', label: 'Medium' }],
+              clearPaths: []
+            },
+            {
+              id: 'details',
+              path: ['details'],
+              label: 'Details',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'feature',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
 const V2Renderer = FormRenderer({
   defaultValues: testDefaults
 })
@@ -415,6 +457,36 @@ describe('authoring navigation tree', () => {
       ])
     )
   })
+
+  it('keeps arrays inline when the owning step has direct editable content', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: mixedGroupModel.mapId,
+      model: mixedGroupModel,
+      values: {
+        ...testDefaults,
+        details: [{ label: 'Size' }],
+        size: 'MEDIUM'
+      }
+    })
+
+    expect(navigation.navigationTargets).toHaveLength(1)
+    expect(navigation.navigationTargets[0]).toEqual(
+      expect.objectContaining({
+        kind: 'step',
+        label: 'Traits',
+        stepId: 'traits'
+      })
+    )
+    expect(navigation.navigationTargets).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          collectionFieldName: 'details',
+          kind: 'overview'
+        })
+      ])
+    )
+    expect(JSON.stringify(navigation.navigationTree)).not.toContain('Detail 1')
+  })
 })
 
 describe('authoring progress', () => {
@@ -439,6 +511,47 @@ describe('authoring progress', () => {
     })
 
     expect(progress.stepStatuses.features).toBe('incomplete')
+    expect(progress.canFinalize).toBe(false)
+  })
+
+  it('marks object groups incomplete when required child fields are missing', () => {
+    const requiredChildGroupModel = {
+      ...groupModel,
+      steps: [
+        {
+          id: 'charges',
+          label: 'Charges',
+          order: 1,
+          sections: [
+            {
+              id: 'charges-section',
+              label: 'Charges',
+              order: 1,
+              nodes: [
+                {
+                  id: 'charges',
+                  path: ['charges'],
+                  label: 'Charges',
+                  kind: 'GROUP',
+                  groupKind: 'OBJECT',
+                  childMapId: 'charges',
+                  visible: true,
+                  required: false,
+                  clearPaths: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } satisfies NodeRuntimeResolveResponseDto
+
+    const progress = getAuthoringProgress({
+      model: requiredChildGroupModel,
+      values: { ...testDefaults, charges: {} }
+    })
+
+    expect(progress.stepStatuses.charges).toBe('incomplete')
     expect(progress.canFinalize).toBe(false)
   })
 })

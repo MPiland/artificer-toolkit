@@ -7,9 +7,11 @@ export const shell = style({
     [app]: {
       border: `1px solid ${foundationVars.color.border.subtle}`,
       backgroundColor: foundationVars.color.surface.panel,
-      inlineSize: '100%',
+      inlineSize: '20rem',
+      maxInlineSize: '100%',
       '@media': {
         [media.tablet]: {
+          inlineSize: '100%',
           borderRadius: 'none'
         }
       }
@@ -20,8 +22,9 @@ export const shell = style({
 export const collapse = style({
   '@layer': {
     [app]: {
-      flex: '0 0 auto',
+      flex: '0 0 20rem',
       blockSize: '100%',
+      inlineSize: '20rem',
       minBlockSize: 0
     }
   }

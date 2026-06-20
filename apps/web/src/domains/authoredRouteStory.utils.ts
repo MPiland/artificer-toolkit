@@ -5,6 +5,7 @@ import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedMod
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
 import {
   authoredEditRouteLoaderData,
+  authoredRouteStorySystem,
   authoredRouteStorySystems
 } from './authoredRouteStory.fixtures'
 
@@ -26,6 +27,7 @@ export const authoredRouteNodeRuntimeHandlers = [
 
 export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: string) {
   const loader = async () => createAuthoredFormRouteLoaderData({
+    system: authoredRouteStorySystem,
     systems: authoredRouteStorySystems
   })
 

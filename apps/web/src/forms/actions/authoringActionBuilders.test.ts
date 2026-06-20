@@ -81,7 +81,7 @@ describe('authoring action builders', () => {
     expect(router.invalidate).not.toHaveBeenCalled()
   })
 
-  it('invalidates the current route after edit activation returns the same item', async () => {
+  it('navigates to detail after edit activation returns the same item', async () => {
     const navigate = createNavigate()
     const router = createRouter()
     const notifier = createNotifier()
@@ -104,8 +104,11 @@ describe('authoring action builders', () => {
 
     await action({ label: 'Race One' })
 
-    expect(navigate).not.toHaveBeenCalled()
-    expect(router.invalidate).toHaveBeenCalled()
+    expect(navigate).toHaveBeenCalledWith({
+      params: { racePublicId: 'race-one', raceSlug: 'race-one' },
+      to: '/races/$racePublicId/$raceSlug'
+    })
+    expect(router.invalidate).not.toHaveBeenCalled()
   })
 
   it('shows an activation failure notification', async () => {

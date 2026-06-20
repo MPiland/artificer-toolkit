@@ -8,7 +8,10 @@ import type {
   SpellResponseDto,
   VehicleResponseDto
 } from '@artificer-toolkit/schema/api/content'
-import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
+import type {
+  SystemListResponseDto,
+  SystemResponseDto
+} from '@artificer-toolkit/schema/api/systems'
 import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
@@ -47,7 +50,37 @@ export const authoredRouteStorySystems = [
   }
 ] satisfies SystemListResponseDto
 
+export const authoredRouteStorySystem = {
+  id: seedStorySystemId,
+  label: 'D&D 5e SRD',
+  description: 'Seed-derived SRD system used for authoring route stories.',
+  alignments: [],
+  challengeRatings: [],
+  conditionTypes: [],
+  creatureTypes: [],
+  currencies: [],
+  damageTypes: [],
+  heritages: [],
+  languages: [],
+  lifestyles: [],
+  magicSchools: [
+    {
+      id: '00000000-0000-0000-0007-000500000000',
+      code: 'EVOCATION',
+      label: 'Evocation'
+    }
+  ],
+  passives: [],
+  rarities: [],
+  senses: [],
+  skills: [],
+  speeds: [],
+  terrains: [],
+  userId: seedStoryUserId
+} satisfies NonNullable<SystemResponseDto>
+
 export const authoredCreateRouteLoaderData = createAuthoredFormRouteLoaderData({
+  system: authoredRouteStorySystem,
   systems: authoredRouteStorySystems
 })
 
@@ -426,6 +459,7 @@ function createEditLoaderData<TDomain extends AuthoredFormDomain>(domain: TDomai
     breadcrumbLabel: response.item.label,
     draft: null,
     response,
-    subjectId: response.item.id
+    subjectId: response.item.id,
+    system: authoredRouteStorySystem
   })
 }

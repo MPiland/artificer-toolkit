@@ -11,6 +11,7 @@ type HeaderIconActionProps = {
   ariaExpanded?: boolean
   children: ReactNode
   disabled?: boolean
+  isActive?: boolean
   isDestructive?: boolean
   label: string
   loading?: boolean
@@ -22,6 +23,7 @@ export function HeaderIconAction({
   ariaExpanded,
   children,
   disabled = false,
+  isActive = false,
   isDestructive = false,
   label,
   loading = false,
@@ -40,6 +42,7 @@ export function HeaderIconAction({
         aria-expanded={ariaExpanded}
         aria-disabled={disabled && !loading ? true : undefined}
         className={clsx(styles.headerIconButton, { ['isDestructive']: isDestructive })}
+        data-active={isActive ? true : undefined}
         data-disabled={disabled && !loading ? true : undefined}
         disabled={!isDestructive && disabled}
         loading={loading}
@@ -61,6 +64,7 @@ export function StepsNavigationAction() {
     <HeaderIconAction
       ariaControls='authoring-steps-navigation'
       ariaExpanded={stepsNavigationOpen}
+      isActive={stepsNavigationOpen}
       label={label}
       onClick={toggleStepsNavigation}
     >
@@ -129,6 +133,7 @@ export function PreviewToggleAction() {
     <HeaderIconAction
       ariaControls='authoring-preview'
       ariaExpanded={previewOpen}
+      isActive={previewOpen}
       label={label}
       onClick={togglePreview}
     >

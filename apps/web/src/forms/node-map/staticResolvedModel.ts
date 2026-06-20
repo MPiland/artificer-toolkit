@@ -83,6 +83,20 @@ const STATIC_NODE_MAP_ALIASES: Readonly<Record<string, string>> = {
   proficiencyGrant: PROFICIENCY_NODE_MAP.mapId
 }
 
+const STATIC_RELATIONSHIP_OPTIONS: Readonly<Record<string, readonly NodeRuntimeOptionDto[]>> = {
+  classes: [
+    { value: '00000000-0000-0000-0010-000a00000000', label: 'Sorcerer' },
+    { value: '00000000-0000-0000-0010-000c00000000', label: 'Wizard' },
+    { value: 'sorcerer', label: 'Sorcerer' },
+    { value: 'wizard', label: 'Wizard' }
+  ],
+  magic_schools: [
+    { value: '00000000-0000-0000-0007-000500000000', label: 'Evocation' },
+    { value: 'evocation', label: 'Evocation' },
+    { value: 'school-evocation', label: 'Evocation' }
+  ]
+}
+
 const STATIC_NODE_MAPS = buildStaticNodeMapRegistry(STATIC_ROOT_NODE_MAPS)
 
 export function createStaticResolvedFormModel(mapId: string): NodeRuntimeResolveResponseDto | undefined {
@@ -195,7 +209,7 @@ function toRuntimeNode<TValues extends object>(id: string, node: NodeEntry<TValu
     ...base,
     kind: 'INPUT',
     type: node.type,
-    options: getStaticInlineOptions(node)
+    options: getStaticInlineOptions(node) ?? getStaticRelationshipOptions(node)
   }
 }
 
@@ -209,6 +223,19 @@ function getStaticInlineOptions<TValues extends object>(node: NodeEntry<TValues>
   }
 
   return node.source.optionGroups.flatMap((group) => group.options.map(toRuntimeOption))
+}
+
+function getStaticRelationshipOptions<TValues extends object>(
+  node: NodeEntry<TValues>
+): NodeRuntimeOptionDto[] | undefined {
+  if (node.kind !== 'INPUT' || !('source' in node) || node.source.kind !== 'DATA') {
+    return undefined
+  }
+
+  const relationship = node.source.relationship
+  if (relationship.kind !== 'TABLE') return undefined
+
+  return STATIC_RELATIONSHIP_OPTIONS[relationship.table]?.map((option) => ({ ...option }))
 }
 
 function toRuntimeOption(option: { code: string, label: string, tooltip?: string | null }): NodeRuntimeOptionDto {

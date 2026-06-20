@@ -9,9 +9,20 @@ export const canvas = style({
       display: 'flex',
       flexDirection: 'column',
       inlineSize: '100%',
-      padding: `${foundationVars.space[4]} ${foundationVars.space[5]}`,
       minBlockSize: 0,
       minInlineSize: 0,
+      overflow: 'hidden'
+    }
+  }
+})
+
+export const content = style({
+  '@layer': {
+    [app]: {
+      flex: '1 1 auto',
+      minBlockSize: 0,
+      minInlineSize: 0,
+      padding: `${foundationVars.space[4]} ${foundationVars.space[5]}`,
       overflow: 'auto'
     }
   }

@@ -96,7 +96,7 @@ export function FormRenderer<TValues extends object>({
         updateAuthoringFormActions,
         updateAuthoringFormState
       } = authoring
-      const resolvedFieldPathPrefix = fieldPathPrefix ?? authoring.fieldPathPrefix
+      const resolvedFieldPathPrefix = fieldPathPrefix
       const resolvedMapId = mapId ?? authoring.mapId
       const resolvedReadOnly = readOnly ?? authoring.readOnly
       const resolvedResolveModel = resolveModel ?? authoring.resolveModel
@@ -216,14 +216,21 @@ export function FormRenderer<TValues extends object>({
       const clearPaths = useCallback(
         (paths: readonly NodeRuntimePathDto[]) => {
           if (resolvedFieldPathPrefix) {
-            authoring.clearPaths(prefixRuntimePaths(resolvedFieldPathPrefix, paths))
+            clearResolvedNodeFormPaths(form, prefixRuntimePaths(resolvedFieldPathPrefix, paths))
             return
           }
 
           clearResolvedNodeFormPaths(form, paths)
         },
-        [authoring, form, resolvedFieldPathPrefix]
+        [form, resolvedFieldPathPrefix]
       )
+      const runtimeClearPaths = activeModel?.clearPaths ?? []
+      const runtimeClearPathKey = runtimeClearPaths.map((path) => path.join('.')).join('|')
+
+      useEffect(() => {
+        if (updateAuthoringState || !hasChanges || runtimeClearPaths.length === 0) return
+        clearPaths(runtimeClearPaths)
+      }, [clearPaths, hasChanges, runtimeClearPathKey, runtimeClearPaths, updateAuthoringState])
       const statePatch = useMemo(
         () => ({
           canFinalize:
@@ -305,7 +312,7 @@ export function FormRenderer<TValues extends object>({
             mapId={activeTarget.mapId}
             parentValues={activeTarget.parentValues}
             readOnly={resolvedReadOnly}
-            resolveModel={false}
+            resolveModel={resolvedResolveModel}
             systemId={resolvedSystemId}
             updateAuthoringState={false}
           />
@@ -393,8 +400,6 @@ export function FormRenderer<TValues extends object>({
         const fieldPrefix = toAuthoringFieldName(resolvedFieldPathPrefix, node.path)
 
         if (node.groupKind === 'ARRAY') {
-          if (!renderAllSteps) return null
-
           const fieldName = toTypedAuthoringArrayFieldName<TValues>(
             resolvedFieldPathPrefix,
             node.path

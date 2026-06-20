@@ -9,17 +9,19 @@ export function Editor({ children }: { children: ReactNode }) {
 
   return (
     <section id='authoring-form' className={styles.canvas}>
-      {readOnly ? (
-        <Alert className={styles.alertSlot} color='orange'>
-          {`This ${subjectKindLabel.toLowerCase()} is locked for direct editing. Duplicate it to make your own draft.`}
-          {canCopy ? (
-            <Button mt='sm' type='button' variant='filled' onClick={() => void copy()}>
-              {copyLabel}
-            </Button>
-          ) : null}
-        </Alert>
-      ) : null}
-      {children}
+      <div className={styles.content}>
+        {readOnly ? (
+          <Alert className={styles.alertSlot} color='orange'>
+            {`This ${subjectKindLabel.toLowerCase()} is locked for direct editing. Duplicate it to make your own draft.`}
+            {canCopy ? (
+              <Button mt='sm' type='button' variant='filled' onClick={() => void copy()}>
+                {copyLabel}
+              </Button>
+            ) : null}
+          </Alert>
+        ) : null}
+        {children}
+      </div>
       <ActionBar className={styles.actionBarSlot} padding='padded' />
     </section>
   )
