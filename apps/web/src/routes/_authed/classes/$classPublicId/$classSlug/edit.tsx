@@ -5,14 +5,20 @@ import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
-  isCanonicalAuthoredRouteHandle,
+  isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
-import { ClassEditPage } from '#domains/classes'
+import type { ClassEditLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms'
+import {
+  createAuthoredFormRouteContext,
+  createAuthoredFormRouteLoaderData
+} from '#forms/layout/authoredFormRouteContext'
 
 export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug/edit')({
-  loader: async ({ context, params }) => {
+  context: () => createAuthoredFormRouteContext('class', 'edit'),
+  loader: async ({ context, params }): Promise<ClassEditLoaderData> => {
     const client = createServerApi()
     const classId = await resolveAuthoredRouteSubjectId({
       client,
@@ -27,7 +33,10 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
       context.queryClient.ensureQueryData(getClassDraft(classId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(classId, response, draft)
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.classPublicId, params.classSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.classPublicId, params.classSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildClassRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -35,12 +44,12 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
       })
     }
 
-    return {
+    return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,
-      classId,
       draft,
-      response
-    }
+      response,
+      subjectId: classId
+    })
   },
-  component: () => <ClassEditPage />
+  component: AuthoringLayout
 })

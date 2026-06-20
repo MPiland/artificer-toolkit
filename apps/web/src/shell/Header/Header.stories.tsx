@@ -1,20 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Box } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
 import { Header } from './Header'
 
 function HeaderStory() {
-  const [isNavigationOpen, { toggle: toggleNavigation }] = useDisclosure(true)
-
-  return (
-    <Header
-      accountLabel='Account'
-      crumbs={[{ label: 'Spells' }, { label: 'Ember Lance' }]}
-      isNavigationOpen={isNavigationOpen}
-      onNavigationToggle={toggleNavigation}
-      statusLabel='Draft'
-    />
-  )
+  return <Header accountLabel='Account' />
 }
 
 const meta = {
@@ -41,11 +30,7 @@ type Story = StoryObj<typeof meta>
 
 export const HeaderInContext: Story = {
   args: {
-    accountLabel: 'Account',
-    crumbs: [{ label: 'Spells' }, { label: 'Ember Lance' }],
-    isNavigationOpen: true,
-    onNavigationToggle: () => undefined,
-    statusLabel: 'Draft'
+    accountLabel: 'Account'
   },
   render: () => <HeaderStory />
 }

@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { canAuthenticatedUserVisitGuestAuthPath } from './guestRouteGuards'
+import { canAuthenticatedUserVisitGuestAuthPath } from './-guestRouteGuards'
 
 export const Route = createFileRoute('/_guest/_auth')({
   beforeLoad: ({ context, location }) => {

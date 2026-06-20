@@ -21,7 +21,7 @@ import type {
   CharacterBuilderReferencesDto,
   CharacterBuilderResolutionDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { SelectOption } from '#forms'
+import type { SelectOption } from '#forms/utils/formUtils'
 
 export type CharacterFormValues = CharacterBuilderFormDto
 export type CharacterStartingEquipmentDecision = CharacterStartingEquipmentDecisionDto

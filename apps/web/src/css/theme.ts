@@ -48,7 +48,7 @@ export const theme = createTheme({
 export const vars = themeToVars(theme)
 
 export const resolver: CSSVariablesResolver = () => ({
-  variables: { },
+  variables: {},
   light: {
     '--border-color': foundationVars.color.border.strong,
     '--mantine-color-text': foundationVars.color.text.primary,

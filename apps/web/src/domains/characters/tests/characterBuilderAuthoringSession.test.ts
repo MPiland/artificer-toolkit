@@ -1,0 +1,111 @@
+import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characters'
+import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
+import { createCharacterBuilderAuthoringSession } from '../characterBuilderAuthoringSession'
+import {
+  characterBuilderDraftPayloadFixture,
+  characterBuilderPayloadFixture,
+  characterFixture
+} from '../character.fixtures'
+
+const draftFixture = {
+  characterId: characterFixture.id,
+  id: 'draft-character-row',
+  publicId: 'character-draft',
+  userId: 'user-1',
+  systemId: characterFixture.systemId,
+  label: 'Astra Vale Draft',
+  status: AUTHORED_RECORD_STATUS.DRAFT,
+  draftState: 'ACTIVE_WITH_DRAFT',
+  mode: 'edit',
+  payload: {},
+  baseActiveUpdatedAt: '2026-05-03T10:15:30.000Z',
+  createdAt: '2026-05-04T10:15:30.000Z',
+  updatedAt: '2026-05-05T10:15:30.000Z'
+} satisfies CharacterBuilderDraftDto
+
+describe('createCharacterBuilderAuthoringSession', () => {
+  it('creates a ready create session from resolved character payload data', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        payload: characterBuilderPayloadFixture,
+        systems: []
+      },
+      mode: 'create'
+    })
+
+    expect(session.kind).toBe('character-builder')
+    expect(session.mode).toBe('create')
+    expect(session.systemRequired).toBe(false)
+    expect(session.initialValues?.id).toBe(characterFixture.id)
+    expect(session.subjectLabel).toBe(characterFixture.label)
+  })
+
+  it('creates a system-required create session when no payload is available', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        payload: null,
+        systems: []
+      },
+      mode: 'create'
+    })
+
+    expect(session.systemRequired).toBe(true)
+    expect(session.payload).toBeNull()
+    expect(session.initialValues).toBeUndefined()
+  })
+
+  it('prefers draft payloads for edit sessions with active drafts', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        breadcrumbLabel: draftFixture.label,
+        characterId: characterFixture.id,
+        draft: draftFixture,
+        draftPayload: characterBuilderDraftPayloadFixture,
+        response: characterBuilderPayloadFixture
+      },
+      mode: 'edit'
+    })
+
+    expect(session.mode).toBe('edit')
+    expect(session.hasActiveDraft).toBe(true)
+    expect(session.hasInvalidDraft).toBe(false)
+    expect(session.isDraft).toBe(true)
+    expect(session.baseActiveUpdatedAt).toBe(draftFixture.baseActiveUpdatedAt)
+    expect(session.payload).toBe(characterBuilderDraftPayloadFixture)
+    expect(session.initialValues?.builderIntent?.abilities).toBeDefined()
+  })
+
+  it('marks invalid draft-only edit sessions without creating form values', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        breadcrumbLabel: draftFixture.label,
+        characterId: characterFixture.id,
+        draft: draftFixture,
+        draftPayload: null,
+        response: null
+      },
+      mode: 'edit'
+    })
+
+    expect(session.invalidDraftOnly).toBe(true)
+    expect(session.notFound).toBe(false)
+    expect(session.payload).toBeNull()
+    expect(session.initialValues).toBeUndefined()
+  })
+
+  it('marks edit sessions as not found when no active record or draft exists', () => {
+    const session = createCharacterBuilderAuthoringSession({
+      data: {
+        breadcrumbLabel: null,
+        characterId: characterFixture.id,
+        draft: null,
+        draftPayload: null,
+        response: null
+      },
+      mode: 'edit'
+    })
+
+    expect(session.notFound).toBe(true)
+    expect(session.invalidDraftOnly).toBe(false)
+  })
+})

@@ -1,19 +1,24 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { getEquipment, getEquipmentDraft } from '#app/data/equipment/queries'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
-import { getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
-  isCanonicalAuthoredRouteHandle,
+  isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
-import { EquipmentEditPage } from '#domains/equipment'
+import type { EquipmentEditLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms'
+import {
+  createAuthoredFormRouteContext,
+  createAuthoredFormRouteLoaderData
+} from '#forms/layout/authoredFormRouteContext'
 
 export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit')({
-  loader: async ({ context, params }) => {
+  context: () => createAuthoredFormRouteContext('equipment', 'edit'),
+  loader: async ({ context, params }): Promise<EquipmentEditLoaderData> => {
     const client = createServerApi()
     const equipmentId = await resolveAuthoredRouteSubjectId({
       client,
@@ -23,13 +28,15 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       subjectKind: 'EQUIPMENT'
     })
     const activeEquipmentQuery = getEquipment(equipmentId, client)
-    const [response, draft, systems] = await Promise.all([
+    const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeEquipmentQuery),
-      context.queryClient.ensureQueryData(getEquipmentDraft(equipmentId, client)),
-      context.queryClient.ensureQueryData(getSystemList(client))
+      context.queryClient.ensureQueryData(getEquipmentDraft(equipmentId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(equipmentId, response, draft)
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.equipmentPublicId, params.equipmentSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.equipmentPublicId, params.equipmentSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildEquipmentRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -37,13 +44,12 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       })
     }
 
-    return {
+    return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,
       draft,
-      equipmentId,
       response,
-      systems
-    }
+      subjectId: equipmentId
+    })
   },
-  component: () => <EquipmentEditPage />
+  component: AuthoringLayout
 })

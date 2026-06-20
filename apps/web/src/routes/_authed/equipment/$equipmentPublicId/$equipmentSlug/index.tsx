@@ -6,11 +6,12 @@ import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
-  isCanonicalAuthoredRouteHandle,
+  isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import type { EquipmentDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { EquipmentDetailPage } from '#domains/equipment/pages/EquipmentDetailPage'
 
 const equipmentDetailMeta = ['equipment', 'rarities']
@@ -18,7 +19,7 @@ const equipmentDetailMeta = ['equipment', 'rarities']
 export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equipmentSlug/')({
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps: search, params }) => {
+  loader: async ({ context, deps: search, params }): Promise<EquipmentDetailLoaderData> => {
     const client = createServerApi()
     const equipmentId = await resolveAuthoredRouteSubjectId({
       client,
@@ -28,19 +29,28 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       subjectKind: 'EQUIPMENT'
     })
     const view = search.view ?? 'active'
-    const response = await ensureOptionalActiveContent(context.queryClient, getEquipment({
-      id: equipmentId,
-      includeDraft: true,
-      meta: equipmentDetailMeta,
-      view
-    }, client))
+    const response = await ensureOptionalActiveContent(
+      context.queryClient,
+      getEquipment(
+        {
+          id: equipmentId,
+          includeDraft: true,
+          meta: equipmentDetailMeta,
+          view
+        },
+        client
+      )
+    )
     const draft = response?.draft ?? null
     const references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'> = {
       equipment: response?.meta?.equipment ?? [],
       rarities: response?.meta?.rarities ?? []
     }
     const routeSubject = getAuthoredRouteSubject(equipmentId, response, draft)
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.equipmentPublicId, params.equipmentSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.equipmentPublicId, params.equipmentSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildEquipmentRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -54,9 +64,15 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
 })
 
 function EquipmentDetailRoute() {
-  const {
-    draft, equipmentId, references, response, view
-  } = Route.useLoaderData()
+  const { draft, equipmentId, references, response, view } = Route.useLoaderData()
 
-  return <EquipmentDetailPage draft={draft} equipmentId={equipmentId} references={references} response={response} view={view} />
+  return (
+    <EquipmentDetailPage
+      draft={draft}
+      equipmentId={equipmentId}
+      references={references}
+      response={response}
+      view={view}
+    />
+  )
 }

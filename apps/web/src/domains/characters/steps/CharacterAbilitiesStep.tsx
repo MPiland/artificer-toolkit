@@ -3,7 +3,7 @@ import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
-import { withForm } from '#forms'
+import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   abilityMethodOptions,

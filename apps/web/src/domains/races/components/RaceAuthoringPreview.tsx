@@ -1,6 +1,6 @@
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import { ContextCard } from '#forms/components/ContextCard/ContextCard'
-import * as contextStyles from '#forms/components/ContextCard/ContextCard.css'
+import { ContextCard } from '#app/ui/components/ContextCard/ContextCard'
+import * as contextStyles from '#ui/components/ContextCard/ContextCard.css'
 import type { RaceFormValues } from '../raceAuthoring.utils'
 
 type RaceAuthoringPreviewProps = {
@@ -9,22 +9,16 @@ type RaceAuthoringPreviewProps = {
 
 export function RaceAuthoringPreview({ values }: RaceAuthoringPreviewProps) {
   const description = values.description?.trim() ?? ''
-  const label = values.label?.trim() || 'Untitled Race'
   const quote = values.quote?.trim() ?? ''
 
   return (
-    <ContextCard
-      header={{ emphasized: true }}
-      title='Race preview'
-      titleId='race-authoring-preview'
-    >
-      <p className={contextStyles.previewText}>
-        <strong>{label}</strong>
-      </p>
-      {quote
-        ? <p className={contextStyles.previewText}>{quote}</p>
-        : null}
-      <AuthoredDetailProse html={description} fallback='Add a race description to preview how this will read.' />
+    <ContextCard title='Description' titleId='race-authoring-preview'>
+      <AuthoredDetailProse
+        html={description}
+        fallback='Add a race description to preview how this will read.'
+      >
+        {quote && <p className={contextStyles.body}>{quote}</p>}
+      </AuthoredDetailProse>
     </ContextCard>
   )
 }

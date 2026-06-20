@@ -1,16 +1,17 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useEffect, useMemo } from 'react'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
+import { useAppForm } from '#forms/app-form/AppForm'
+import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
 import {
-  AuthoringFormLayout,
-  AuthoringFormProvider,
-  useAppForm,
-  useAuthoringFormRegistration
-} from '#forms'
+  useAuthoringForm,
+  type AuthoringFormStatePatch
+} from '#forms/layout/AuthoringFormContext'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   characterBuilderDraftPayloadFixture,
@@ -35,7 +36,7 @@ describe('CharacterBuilderRenderer', () => {
     await user.click(screen.getByRole('button', { name: /next/i }))
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: /^race$/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /^race$/i })).toBeInTheDocument()
   })
 
   it('uses draft readiness from the backend view to keep finalize unavailable', async () => {
@@ -43,7 +44,11 @@ describe('CharacterBuilderRenderer', () => {
 
     renderCharacterBuilderHarness({ payload: characterBuilderDraftPayloadFixture })
 
-    await user.click(screen.getByRole('button', { name: /review/i }))
+    for (let index = 0; index < 8; index += 1) {
+      const nextButton = screen.queryByRole('button', { name: /next/i })
+      if (!nextButton) break
+      await user.click(nextButton)
+    }
 
     expect(screen.getByText(/needs attention/i)).toBeInTheDocument()
     expect(screen.getByText(/choose a race/i)).toBeInTheDocument()
@@ -106,7 +111,7 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /equipment/i })).toBeInTheDocument()
     expect(screen.getByText(/wizard starting equipment/i)).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: /group 1/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /group 1/i })).toBeInTheDocument()
   })
 
   it('renders resolver-provided source-local feature choices on the owning step', () => {
@@ -143,7 +148,7 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
     expect(screen.getByText(/feature choices/i)).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: /elven training choice/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /elven training choice/i })).toBeInTheDocument()
   })
 
   it('keeps class-owned feature choices selected when only class level changes', () => {
@@ -204,7 +209,7 @@ describe('CharacterBuilderRenderer', () => {
       }
     })
 
-    expect(screen.getByRole('textbox', { name: /arcane training choice/i })).toHaveValue('Arcana')
+    expect(screen.getByRole('combobox', { name: /arcane training choice/i })).toHaveValue('Arcana')
   })
 
   it('renders resolver-provided class spell choices on the class step', () => {
@@ -245,8 +250,8 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /classes/i })).toBeInTheDocument()
     expect(screen.getByText(/spell choices/i)).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: /choose 1 cantrip/i })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: /choose 1 spell/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /choose 1 cantrip/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /choose 1 spell/i })).toBeInTheDocument()
   })
 
   it('keeps class-owned spell choices selected when only class level changes', () => {
@@ -370,7 +375,9 @@ describe('CharacterBuilderRenderer', () => {
     const latestValues = resolvedValues.at(-1)
     expect(latestValues?.intent.startingEquipment?.class).toBeUndefined()
     expect(latestValues?.intent.startingEquipment?.background).toBeDefined()
-    expect(latestValues?.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['background-feature-choice'])
+    expect(latestValues?.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual([
+      'background-feature-choice'
+    ])
     expect(latestValues?.intent.spellSelections).toBeUndefined()
     expect(latestValues?.intent.resourceGrants).toBeUndefined()
   })
@@ -392,7 +399,8 @@ describe('CharacterBuilderRenderer', () => {
       }
     })
 
-    const classLevelInput = screen.getAllByLabelText(/class level/i)
+    const classLevelInput = screen
+      .getAllByLabelText(/class level/i)
       .find((element) => element instanceof HTMLInputElement)
     expect(classLevelInput).toBeDefined()
 
@@ -438,11 +446,11 @@ describe('CharacterBuilderRenderer', () => {
       showAncestrySelectionTestToggle: true
     })
 
-    expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Ocean')
+    expect(screen.getByRole('combobox', { name: /elven lineage/i })).toHaveValue('Ocean')
 
     await user.click(screen.getByRole('button', { name: /set forest ancestry/i }))
 
-    expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Forest')
+    expect(screen.getByRole('combobox', { name: /elven lineage/i })).toHaveValue('Forest')
   })
 
   it('renders hit point entries from fixed character options without placeholder totals', async () => {
@@ -570,7 +578,7 @@ function renderCharacterBuilderHarness({
   onResolve?: (character: CharacterFormValues) => Promise<void> | void
 }) {
   return renderWithAppProviders(
-    <AuthoringFormProvider>
+    <AuthoringLayout>
       <CharacterBuilderTestHarness
         onResolve={onResolve}
         payload={payload}
@@ -579,7 +587,7 @@ function renderCharacterBuilderHarness({
         showAncestrySelectionTestToggle={showAncestrySelectionTestToggle}
         showAbilityMethodTestToggle={showAbilityMethodTestToggle}
       />
-    </AuthoringFormProvider>
+    </AuthoringLayout>
   )
 }
 
@@ -598,79 +606,92 @@ function CharacterBuilderTestHarness({
   showAncestrySelectionTestToggle: boolean
   showAbilityMethodTestToggle: boolean
 }) {
+  const {
+    updateAuthoringFormActions,
+    updateAuthoringFormState
+  } = useAuthoringForm()
   const form = useAppForm({
     defaultValues: toCharacterFormValues(payload),
     onSubmit: async () => undefined
   })
 
-  useAuthoringFormRegistration({
-    activateLabel: 'Finalize Character',
-    canSaveDraft: !readOnly,
-    mode: readOnly ? 'view' : 'edit',
-    readOnly,
-    saveDraftLabel: 'Save Draft',
-    subjectKindLabel: 'Character',
-    subjectLabel: payload.character.label || 'Untitled Character',
-    systemId: payload.character.systemId
-  }, {
-    onActivate: () => form.handleSubmit(),
-    onSaveDraft: () => undefined
-  })
+  const statePatch = useMemo<AuthoringFormStatePatch>(
+    () => ({
+      activateLabel: 'Finalize Character',
+      canSaveDraft: !readOnly,
+      mode: readOnly ? 'view' : 'edit',
+      readOnly,
+      saveDraftLabel: 'Save Draft',
+      subjectKindLabel: 'Character',
+      subjectLabel: payload.character.label || 'Untitled Character',
+      systemId: payload.character.systemId
+    }),
+    [payload.character.label, payload.character.systemId, readOnly]
+  )
+  const actions = useMemo(
+    () => ({
+      onActivate: () => form.handleSubmit(),
+      onSaveDraft: () => undefined
+    }),
+    [form]
+  )
+
+  useEffect(() => {
+    updateAuthoringFormState(statePatch)
+  }, [statePatch, updateAuthoringFormState])
+
+  useEffect(() => {
+    updateAuthoringFormActions(actions)
+  }, [actions, updateAuthoringFormActions])
 
   return (
     <form.AppForm>
-      <AuthoringFormLayout>
-        {showAbilityMethodTestToggle
-          ? (
-              <button
-                type='button'
-                onClick={() => {
-                  form.setFieldValue('intent.abilities', {
-                    method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-                    assignments: [],
-                    state: {
-                      assignments: [],
-                      rollGroups: []
-                    }
-                  })
-                }}
-              >
-                Set Manual Ability Method
-              </button>
-            )
-          : null}
-        {showAncestrySelectionTestToggle
-          ? (
-              <button
-                type='button'
-                onClick={() => {
-                  form.setFieldValue('intent.ancestrySelections', [
-                    {
-                      id: 'ancestry-choice-forest',
-                      ancestryId: 'ancestry-elf',
-                      optionId: 'ancestry-forest',
-                      source: {
-                        kind: 'SUBRACE',
-                        subraceId: 'subrace-sea-elf'
-                      },
-                      timing: {
-                        kind: 'IMMEDIATE'
-                      }
-                    }
-                  ])
-                }}
-              >
-                Set Forest Ancestry
-              </button>
-            )
-          : null}
-        <CharacterBuilderRenderer
-          form={form}
-          payload={payload}
-          resolveDebounceMs={resolveDebounceMs}
-          onResolve={onResolve}
-        />
-      </AuthoringFormLayout>
+      {showAbilityMethodTestToggle ? (
+        <button
+          type='button'
+          onClick={() => {
+            form.setFieldValue('intent.abilities', {
+              method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+              assignments: [],
+              state: {
+                assignments: [],
+                rollGroups: []
+              }
+            })
+          }}
+        >
+          Set Manual Ability Method
+        </button>
+      ) : null}
+      {showAncestrySelectionTestToggle ? (
+        <button
+          type='button'
+          onClick={() => {
+            form.setFieldValue('intent.ancestrySelections', [
+              {
+                id: 'ancestry-choice-forest',
+                ancestryId: 'ancestry-elf',
+                optionId: 'ancestry-forest',
+                source: {
+                  kind: 'SUBRACE',
+                  subraceId: 'subrace-sea-elf'
+                },
+                timing: {
+                  kind: 'IMMEDIATE'
+                }
+              }
+            ])
+          }}
+        >
+          Set Forest Ancestry
+        </button>
+      ) : null}
+      <CharacterBuilderRenderer
+        form={form}
+        payload={payload}
+        resolveDebounceMs={resolveDebounceMs}
+        onResolve={onResolve}
+      />
     </form.AppForm>
   )
 }

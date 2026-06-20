@@ -23,7 +23,9 @@ import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 const equipmentDetailMeta = ['equipment', 'rarities']
 
 export const Route = createFileRoute('/_authed/equipment/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getEquipmentList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getEquipmentList(createServerApi()))
+  },
   component: EquipmentRoute
 })
 

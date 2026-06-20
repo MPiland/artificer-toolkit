@@ -19,7 +19,9 @@ import {
 } from '#app/data/backgrounds/backgroundListMapper'
 
 export const Route = createFileRoute('/_authed/backgrounds/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getBackgroundList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getBackgroundList(createServerApi()))
+  },
   component: BackgroundsRoute
 })
 

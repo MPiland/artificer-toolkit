@@ -1,7 +1,4 @@
-import type {
-  ChargeDto,
-  StartingEquipmentDto
-} from '@artificer-toolkit/schema/shared'
+import type { ChargeDto, StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 import type {
   ClassAuthoringInputDto,
   ClassSpellcastingDto
@@ -23,7 +20,7 @@ import {
   CLASS_CATEGORY
 } from '@artificer-toolkit/shared/core'
 import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
-import { createEmptyStartingEquipment } from '#forms'
+import { createEmptyStartingEquipment } from '#app/forms/rendering/authoringNodeDefaults'
 
 export type ClassFormValues = ClassAuthoringInputDto
 
@@ -36,9 +33,7 @@ export interface ResolveClassEditReadOnlyInput {
   hasActiveClass: boolean
 }
 
-export function createEmptyClass({
-  systemId
-}: CreateEmptyClassInput): ClassFormValues {
+export function createEmptyClass({ systemId }: CreateEmptyClassInput): ClassFormValues {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -51,7 +46,9 @@ export function createEmptyClass({
   }
 }
 
-export function toClassFormValues(classRecord: ClassAuthoringInputDto | ClassAuthoredDto | ClassFormValues): ClassFormValues {
+export function toClassFormValues(
+  classRecord: ClassAuthoringInputDto | ClassAuthoredDto | ClassFormValues
+): ClassFormValues {
   return {
     ...classRecord,
     description: classRecord.description ?? '',
@@ -233,7 +230,9 @@ export function createEmptyPrepareLimit(): NonNullable<ClassSpellcastingDto['pre
   }
 }
 
-export function createEmptyPrepareLimitLevel(order: number): NonNullable<NonNullable<ClassSpellcastingDto['prepareLimit']>['perLevel']>[number] {
+export function createEmptyPrepareLimitLevel(
+  order: number
+): NonNullable<NonNullable<ClassSpellcastingDto['prepareLimit']>['perLevel']>[number] {
   return {
     classLevel: order,
     amount: 0

@@ -1,11 +1,4 @@
-import {
-  Group,
-  NumberInput,
-  Stack,
-  TagsInput,
-  TextInput,
-  Textarea
-} from '@mantine/core'
+import { Group, NumberInput, Stack, TagsInput, TextInput, Textarea } from '@mantine/core'
 import type { ReactNode } from 'react'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
@@ -30,6 +23,10 @@ export type AppSelectFieldProps = AppFieldProps & {
   data: SelectOption[]
 }
 
+type AppFieldRichTextProps = AppFieldProps & {
+  className?: string
+}
+
 const fieldClassNames = {
   label: inputStyles.label,
   description: inputStyles.description,
@@ -44,13 +41,7 @@ const pillsFieldClassNames = {
   inputField: inputStyles.inputField
 }
 
-export function TextField({
-  label,
-  description,
-  placeholder,
-  required,
-  readOnly
-}: AppFieldProps) {
+export function TextField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -125,8 +116,7 @@ export function NumberField({
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(value) => {
-        if (!readOnly)
-          field.handleChange(typeof value === 'number' ? value : undefined)
+        if (!readOnly) field.handleChange(typeof value === 'number' ? value : undefined)
       }}
     />
   )
@@ -192,13 +182,7 @@ export function MultiSelectField({
   )
 }
 
-export function TagsField({
-  label,
-  description,
-  placeholder,
-  required,
-  readOnly
-}: AppFieldProps) {
+export function TagsField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -224,8 +208,9 @@ export function RichTextField({
   label,
   placeholder,
   required,
-  readOnly
-}: AppFieldProps) {
+  readOnly,
+  className
+}: AppFieldRichTextProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -233,6 +218,7 @@ export function RichTextField({
       label={label}
       name={field.name}
       placeholder={placeholder}
+      className={className}
       required={required}
       value={toInputValue(field.state.value)}
       readOnly={readOnly}

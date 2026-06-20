@@ -1,5 +1,11 @@
 import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap'
-import { useEffect, useId } from 'react'
+import {
+  useEffect,
+  useId,
+  type ComponentPropsWithRef,
+  type DetailedHTMLProps,
+  type HTMLAttributes
+} from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -12,6 +18,8 @@ import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
 import Toolbar from './Toolbar'
 import * as editorStyles from './RichTextEditor.css'
+import type { EditorState } from '@tiptap/pm/state'
+import clsx from 'clsx'
 
 export interface RichTextEditorProps {
   value: string
@@ -19,19 +27,30 @@ export interface RichTextEditorProps {
   placeholder?: string
   label?: string
   required?: boolean
-  onBlur?: ({ target: { name, value } }: { target: { name: string, value: string } }) => void
+  onBlur?: ({ target: { name, value } }: { target: { name: string; value: string } }) => void
   name: string
   readOnly?: boolean
+  className?: string
 }
 
-const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur, name, readOnly }: RichTextEditorProps) => {
+const RichTextEditor = ({
+  value,
+  onChange,
+  placeholder,
+  label,
+  required,
+  onBlur,
+  name,
+  readOnly,
+  className
+}: RichTextEditorProps) => {
   const labelId = useId()
-  const editorAttributes: Record<string, string> = label
-    ? { 'aria-labelledby': labelId }
-    : { 'aria-label': name }
-
-  if (required) {
-    editorAttributes['aria-required'] = 'true'
+  const editorAttributes:
+    | { [name: string]: string }
+    | ((state: EditorState) => { [name: string]: string }) = {
+    'aria-labelledby': label ? labelId : '',
+    'aria-label': label ? '' : name,
+    'aria-required': required ? 'true' : 'false'
   }
 
   const editor = useEditor({
@@ -95,18 +114,16 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
 
   return (
     <>
-      {label
-        ? (
-            <span id={labelId} className={editorStyles.editorLabel}>
-              {label}
-              {required ? <span className={editorStyles.editorRequired}> *</span> : null}
-            </span>
-          )
-        : null}
+      {label ? (
+        <span id={labelId} className={editorStyles.editorLabel}>
+          {label}
+          {required ? <span className={editorStyles.editorRequired}> *</span> : null}
+        </span>
+      ) : null}
       <MantineRichTextEditor
         editor={editor}
         classNames={{
-          root: editorStyles.editorRoot,
+          root: clsx(editorStyles.editorRoot, className),
           toolbar: editorStyles.editorToolbar,
           content: editorStyles.editorContent,
           control: editorStyles.editorControl,
@@ -140,10 +157,7 @@ function toComparableRichTextValue(value: string): string {
 }
 
 function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export default RichTextEditor

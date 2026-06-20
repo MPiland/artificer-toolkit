@@ -1,6 +1,5 @@
-import { ActionIcon, Burger, TextInput, UnstyledButton } from '@mantine/core'
-import { ChevronRight, FilePenLine, Search } from 'lucide-react'
-import clsx from 'clsx'
+import { TextInput, UnstyledButton } from '@mantine/core'
+import { Search } from 'lucide-react'
 import ILogo from '#assets/icons/ILogo'
 import IUser from '#assets/icons/IUser'
 import type { HeaderProps } from './Header.types'
@@ -10,57 +9,20 @@ export function Header({
   accountControl,
   accountLabel = 'Account',
   actions,
-  crumbs,
-  isNavigationOpen,
+  mobileActions,
   navigationActions,
-  navigationButtonRef,
-  navigationLabel = 'navigation',
-  onNavigationToggle,
-  showNavigationButton = true,
-  statusLabel,
   supplement
 }: HeaderProps) {
   return (
     <header className={styles.root}>
       <div className={styles.leftCluster}>
-        {showNavigationButton ? (
-          <Burger
-            ref={navigationButtonRef}
-            className={clsx(styles.iconButton, isNavigationOpen && styles.iconButtonPressed)}
-            aria-controls='forge-structure-rail'
-            aria-expanded={isNavigationOpen}
-            aria-label={isNavigationOpen ? `Collapse ${navigationLabel}` : `Open ${navigationLabel}`}
-            opened={isNavigationOpen}
-            onClick={onNavigationToggle}
-            size='sm'
-          />
-        ) : null}
         <div className={styles.brand}>
           <ILogo className={styles.logo} size={36} aria-hidden='true' />
           <span className={styles.brandName}>Artificer Toolkit</span>
         </div>
-        <span className={styles.divider} aria-hidden='true' />
-        <nav className={styles.breadcrumbs} aria-label='Current location'>
-          {crumbs.map((crumb, index) => (
-            <span className={styles.crumbGroup} key={`${crumb.label}-${index}`}>
-              {index > 0 ? (
-                <ChevronRight className={styles.crumbSeparator} size={16} aria-hidden='true' />
-              ) : null}
-              <span className={index === crumbs.length - 1 ? styles.crumbCurrent : styles.crumb}>
-                {crumb.label}
-              </span>
-            </span>
-          ))}
-        </nav>
-        {statusLabel ? (
-          <span className={styles.statusBadge}>
-            <FilePenLine size={14} aria-hidden='true' />
-            {statusLabel}
-          </span>
-        ) : null}
         {supplement}
-        {navigationActions ? <div className={styles.navigationActions}>{navigationActions}</div> : null}
       </div>
+      {navigationActions ? <div className={styles.navigationActions}>{navigationActions}</div> : null}
       <div className={styles.rightCluster}>
         <TextInput
           aria-label='Search commands'
@@ -85,6 +47,7 @@ export function Header({
           </UnstyledButton>
         )}
       </div>
+      {mobileActions ? <div className={styles.mobileActionCluster}>{mobileActions}</div> : null}
     </header>
   )
 }

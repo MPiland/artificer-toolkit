@@ -1,0 +1,103 @@
+import type { ReactNode } from 'react'
+import type { QueryClient } from '@tanstack/react-query'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import type {
+  ActivatedAuthoringResponse,
+  DraftAuthoringResponse,
+  DuplicateAuthoringResponse
+} from '../actions'
+import type { AuthoredFormActionFactory } from '../actions/authoredFormActionFactories'
+import type { AuthoringFormMode } from '../layout/AuthoringFormContext'
+
+export type AuthoredFormDomain =
+  | 'background'
+  | 'class'
+  | 'creature'
+  | 'equipment'
+  | 'feat'
+  | 'race'
+  | 'spell'
+  | 'vehicle'
+
+export type AuthoredFormFactoryBase = {
+  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
+  domain: AuthoredFormDomain
+  fallbackLabel: string
+  mapId: AuthoredFormDomain
+  subjectKindLabel: string
+}
+
+export type AuthoredFormSessionInput = {
+  data: unknown
+  mode: AuthoringFormMode
+}
+
+export type AuthoredFormOperationConfig = {
+  activate: (payload: object) => Promise<ActivatedAuthoringResponse>
+  deleteActive?: (id: string) => Promise<void>
+  deleteDraft?: (id: string) => Promise<void>
+  discardDraft?: () => Promise<unknown>
+  duplicate?: (subjectId: string) => Promise<DuplicateAuthoringResponse | null | undefined>
+  onActivateSuccess?: (
+    queryClient: QueryClient,
+    response: ActivatedAuthoringResponse
+  ) => Promise<void> | void
+  onDiscardDraftSuccess?: (queryClient: QueryClient) => Promise<void> | void
+  onDuplicateSuccess?: (queryClient: QueryClient) => Promise<void> | void
+  onSaveDraftSuccess?: (
+    queryClient: QueryClient,
+    draft: DraftAuthoringResponse
+  ) => Promise<void> | void
+  saveDraft: (payload: object) => Promise<DraftAuthoringResponse>
+}
+
+export type AuthoredFormDeleteConfig = {
+  deleteActive: (id: string) => Promise<void>
+  deleteDraft: (id: string) => Promise<void>
+  detailSubjectQueryKey: readonly unknown[] | ((id: string) => readonly unknown[])
+  domainQueryKey: readonly unknown[]
+  draftQueryKey: readonly unknown[] | ((id: string) => readonly unknown[])
+}
+
+export type AuthoredFormSession = {
+  actionFactory: AuthoredFormActionFactory
+  activeRecord?: object | null
+  canCopy: boolean
+  canDelete: boolean
+  canSaveDraft: boolean
+  deleteConfig?: AuthoredFormDeleteConfig
+  domain: AuthoredFormDomain
+  draft?: AuthoredDraftDto | null
+  fallbackLabel: string
+  hasActiveDraft: boolean
+  hasInvalidDraft: boolean
+  initialValues: object
+  invalidDraftOnly: boolean
+  isDraft: boolean
+  key: string
+  mapId: AuthoredFormDomain
+  mode: AuthoringFormMode
+  normalizeForSubmit: (values: object) => object
+  notFound: boolean
+  operations: AuthoredFormOperationConfig
+  readOnly: boolean
+  renderPreview?: (values: object) => ReactNode
+  subjectId?: string
+  subjectKindLabel: string
+  subjectLabel: ReactNode
+  systemId?: string
+  systemRequired: boolean
+}
+
+export type AuthoredFormFactory<
+  TValues extends object,
+  TSubmit extends object,
+  TAuthored extends object = TSubmit,
+  TContext = undefined
+> = AuthoredFormFactoryBase & {
+  createEmptyValues: (input: { systemId: string }) => TValues
+  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
+  normalizeForSubmit: (values: TValues, context?: TContext) => TSubmit
+  resolveCreateSystemId: (systems: readonly { id: string }[], context?: TContext) => string | null
+  toFormValues: (record: TValues | TSubmit | TAuthored, context?: TContext) => TValues
+}

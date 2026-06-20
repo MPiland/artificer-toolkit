@@ -13,6 +13,7 @@
   },
   "include": [
     ".storybook/**/*",
+    "src/routeTree.gen.ts",
     "src/**/*.stories.ts",
     "src/**/*.stories.tsx",
     "vite-env.d.ts"

@@ -21,7 +21,9 @@ import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 const spellDetailMeta = ['classes', 'conditionTypes', 'damageTypes', 'magicSchools']
 
 export const Route = createFileRoute('/_authed/spells/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getSpellList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getSpellList(createServerApi()))
+  },
   component: SpellsRoute
 })
 

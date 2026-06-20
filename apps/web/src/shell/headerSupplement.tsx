@@ -7,13 +7,11 @@ export interface ShellHeaderSupplementContextValue {
 
 export interface ShellAuthoringChrome {
   accountLabel?: string
-  crumbs: readonly { label: string }[]
-  desktopRail: ReactNode
   isNavigationOpen: boolean
+  mobileActions?: ReactNode
   mobileRail: ReactNode
   onNavigationClose: () => void
   onNavigationToggle: () => void
-  statusLabel?: string
 }
 
 export interface ShellHeaderSupplement {

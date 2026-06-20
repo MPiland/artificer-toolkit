@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { MarketingPage } from '#app/marketing/pages'
-import { shouldRedirectRootToHome } from './guestRouteGuards'
+import { shouldRedirectRootToHome } from './-guestRouteGuards'
 
 export const Route = createFileRoute('/_guest/')({
   beforeLoad: ({ context }) => {

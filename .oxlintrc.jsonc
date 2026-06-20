@@ -17,11 +17,7 @@
     "**/*.d.ts",
     "**/routeTree.gen.ts"
   ],
-  "plugins": [
-    "eslint",
-    "typescript",
-    "oxc"
-  ],
+  "plugins": ["eslint", "typescript", "oxc"],
   "categories": {
     "correctness": "error"
   },
@@ -50,25 +46,19 @@
   },
   "overrides": [
     {
-      "files": [
-        "packages/db/src/source-data/srd/**/*.ts"
-      ],
+      "files": ["packages/db/src/source-data/srd/**/*.ts"],
       "rules": {
-        "no-unused-vars": "off"
+        "no-unused-vars": "warn"
       }
     },
     {
-      "files": [
-        "packages/shared/src/domains/**/maps/**/*.ts"
-      ],
+      "files": ["packages/shared/src/domains/**/maps/**/*.ts"],
       "rules": {
         "typescript/unbound-method": "off"
       }
     },
     {
-      "files": [
-        "apps/web/src/routes/**/*.{ts,tsx}"
-      ],
+      "files": ["apps/web/src/routes/**/*.{ts,tsx}"],
       "rules": {
         "react/only-export-components": "off"
       }

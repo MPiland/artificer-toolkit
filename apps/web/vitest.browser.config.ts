@@ -20,9 +20,12 @@ export default defineConfig({
     viteReact()
   ],
   test: {
+    fileParallelism: false,
     include: ['src/**/*.browser.test.tsx'],
+    maxWorkers: 1,
     browser: {
       enabled: true,
+      fileParallelism: false,
       headless: true,
       provider: playwright({
         launchOptions: {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Group, NumberInput, Stack, Text } from '@mantine/core'
-import { withForm } from '#forms'
+import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   clearClassDependents,

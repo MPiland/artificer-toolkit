@@ -1,14 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
-import { CharacterCreatePage } from '#domains/characters'
+import type { CharacterCreateLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
+import {
+  createAuthoringRouteLoaderData,
+  createCharacterBuilderRouteContext
+} from '#forms/layout/authoredFormRouteContext'
 import {
   createFallbackCharacterFormValues,
   normalizeCharacterForDraft
 } from '#domains/characters/characterBuilder.utils'
 
 export const Route = createFileRoute('/_authed/characters/new')({
-  loader: async ({ context }) => {
+  context: () => createCharacterBuilderRouteContext('create'),
+  loader: async ({ context }): Promise<CharacterCreateLoaderData> => {
     const client = createServerApi()
     const systems = await context.queryClient.ensureQueryData(getSystemList(client))
     const systemId = systems[0]?.id
@@ -22,10 +28,10 @@ export const Route = createFileRoute('/_authed/characters/new')({
         })
       : null
 
-    return {
+    return createAuthoringRouteLoaderData({
       payload,
       systems
-    }
+    })
   },
-  component: CharacterCreatePage
+  component: AuthoringLayout
 })

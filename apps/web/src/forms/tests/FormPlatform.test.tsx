@@ -1,24 +1,23 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
-  AuthoringFormLayout,
-  AuthoringFormProvider,
-  createAuthoringFormRenderer,
+  AuthoringLayout,
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem,
+  FormRenderer,
   getResolvedNodeOptions,
   getResolvedNodeRequired,
   getResolvedNodeVisible,
   useAppForm,
-  useAuthoringFormRegistration,
+  useAuthoringForm,
   withForm
 } from '#forms'
 import { Shell, platformNavigation } from '#app/shell'
 import { TestRouterProvider } from '#test/TestRouterProvider'
-import { wideField } from '../components/formStyles.css'
+import { wideField } from '../layout/Editor/SectionRow/formStyles.css'
 
 type TestFormValues = {
   id: string
@@ -149,6 +148,10 @@ const testFormDefaults: TestFormValues = {
   systemId: 'system-1',
   userId: 'user-1'
 }
+
+const TestRenderer = FormRenderer<TestFormValues>({
+  defaultValues: testFormDefaults
+})
 
 const manifestBehaviorDefaults: TestFormValues = {
   ...testFormDefaults,
@@ -620,10 +623,6 @@ const mechanicsResolvedModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
-const TestAuthoringRenderer = createAuthoringFormRenderer({
-  defaultValues: testFormDefaults
-})
-
 function TestForm({
   canDelete = false,
   canSaveDraft = false,
@@ -655,8 +654,8 @@ function TestForm({
   })
 
   return (
-    <form.AppForm>
-      <AuthoringFormProvider>
+    <AuthoringLayout>
+      <form.AppForm>
         <TestFormContent
           canDelete={canDelete}
           canSaveDraft={canSaveDraft}
@@ -668,8 +667,8 @@ function TestForm({
           onDelete={onDelete}
           onSaveDraft={onSaveDraft}
         />
-      </AuthoringFormProvider>
-    </form.AppForm>
+      </form.AppForm>
+    </AuthoringLayout>
   )
 }
 
@@ -688,39 +687,57 @@ const TestFormContent = withForm({
   render: function TestFormContent({
     canDelete,
     canSaveDraft,
+    form,
     hasActiveDraft,
     isDraft,
-    form,
     mode,
     model,
     onDelete,
     onSaveDraft
   }) {
-    useAuthoringFormRegistration(
-      {
-        activateLabel: 'Submit',
+    const {
+      updateAuthoringFormActions,
+      updateAuthoringFormState
+    } = useAuthoringForm()
+    const statePatch = useMemo(
+      () => ({
         canDelete,
         canSaveDraft,
+        deleteLabel: 'Delete',
         hasActiveDraft,
         isDraft,
         mapId: 'test-form',
         mode,
         providedModel: model,
-        readOnly: false,
+        readOnly: mode === 'view',
         resolveModel: false,
-        subjectKindLabel: 'Test Form'
-      },
-      {
+        subjectKindLabel: 'Test Form',
+        subjectLabel: 'Test Form'
+      }),
+      [canDelete, canSaveDraft, hasActiveDraft, isDraft, mode, model]
+    )
+    const actions = useMemo(
+      () => ({
         onActivate: () => form.handleSubmit(),
         onDelete,
         onSaveDraft
-      }
+      }),
+      [form, onDelete, onSaveDraft]
     )
 
+    useEffect(() => {
+      updateAuthoringFormState(statePatch)
+    }, [statePatch, updateAuthoringFormState])
+
+    useEffect(() => {
+      updateAuthoringFormActions(actions)
+    }, [actions, updateAuthoringFormActions])
+
     return (
-      <AuthoringFormLayout>
-        <TestAuthoringRenderer form={form} />
-      </AuthoringFormLayout>
+      <>
+        <button type='submit'>Submit</button>
+        <TestRenderer form={form} />
+      </>
     )
   }
 })
@@ -739,7 +756,7 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('textbox', { name: /user id/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /system id/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
-    const contentScroller = screen.getByTestId('authoring-form-content')
+    const contentScroller = screen.getByTestId('authoring-form-scroll-region')
     const actionBar = screen.getByTestId('authoring-action-bar')
     expect(contentScroller).toBeInTheDocument()
     expect(actionBar).toBeInTheDocument()
@@ -766,7 +783,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByLabelText(/current test form status: active/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/current status: active/i)).toBeInTheDocument()
 
     rerender(
       <TestRouterProvider>
@@ -774,7 +791,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByLabelText(/current test form status: draft/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/current status: draft/i)).toBeInTheDocument()
     expect(screen.queryByText(/the active test form stays unchanged/i)).not.toBeInTheDocument()
 
     rerender(
@@ -783,7 +800,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByLabelText(/current test form status: new draft/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/current status: draft/i)).toBeInTheDocument()
   })
 
   it('updates values through TanStack Form fields', async () => {
@@ -811,7 +828,8 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^delete$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /authoring actions/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /^delete$/i }))
 
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
@@ -964,7 +982,9 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('button', { name: /edit charges/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit restrictions/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove restrictions/i })).not.toBeInTheDocument()
-    expect(screen.getAllByText(/^Effects$/)).toHaveLength(1)
+    expect(
+      within(screen.getByTestId('authoring-form-scroll-region')).getAllByText(/^Effects$/)
+    ).toHaveLength(1)
   })
 
   it('renders feature grants inline with a single add grant menu', async () => {
@@ -1053,7 +1073,7 @@ describe('authoring form platform', () => {
     )
 
     const nameInput = screen.getByRole('textbox', { name: /name/i })
-    const resetStepButton = screen.getByRole('button', { name: /reset step/i })
+    const resetStepButton = screen.getByRole('button', { name: /reset this step/i })
 
     expect(resetStepButton).toBeDisabled()
 
@@ -1063,7 +1083,7 @@ describe('authoring form platform', () => {
     await user.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /reset step/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /reset this step/i })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: /^back$/i }))
     expect(resetStepButton).toBeEnabled()
@@ -1079,23 +1099,16 @@ describe('authoring form platform', () => {
 
     render(
       <TestRouterProvider>
-        <Shell
-          breadcrumbs={['Test Forms', 'Fire Lace', 'Edit']}
-          currentPath='/forms/fire-lace/edit'
-          navigation={platformNavigation}
-        >
+        <Shell currentPath='/forms/fire-lace/edit' navigation={platformNavigation}>
           <TestForm canSaveDraft model={multiStepResolvedModel} />
         </Shell>
       </TestRouterProvider>
     )
 
     const saveDraftButton = screen.getByRole('button', { name: /save draft/i })
-    const breadcrumb = screen.getByLabelText('Current section')
-    expect(within(breadcrumb).queryByText('Edit')).not.toBeInTheDocument()
-    expect(
-      within(breadcrumb).queryByRole('navigation', { name: /test form steps/i })
-    ).not.toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: /test form steps/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Current section')).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /current step path/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /authoring steps/i })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^back$/i })).not.toBeInTheDocument()

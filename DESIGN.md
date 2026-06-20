@@ -2,12 +2,15 @@
 name: Artificer Toolkit
 description: Playful tabletop RPG authoring and reliable play support across desktop and mobile.
 colors:
-  primary: "#ec6a06"
+  primary: "#ec8c06"
   primary-hover: "#f97316"
   primary-deep: "#c95704"
-  primary-dark: "#ec6a06"
+  primary-active: "#b84a04"
+  primary-contrast: "#241002"
+  primary-dark: "#ec8c06"
   secondary-accent: "#0891b2"
-  warm-accent: "#ec6a06"
+  secondary-accent-dark: "#6bd8cb"
+  warm-accent: "#ec8c06"
   text-strong: "#151b20"
   text-muted: "#55626d"
   border-subtle: "#d7dbe4"
@@ -17,6 +20,8 @@ colors:
   surface-canvas-dark: "#0a0f0e"
   surface-panel-dark: "#171d1c"
   surface-subtle-dark: "#1b2120"
+  surface-sidebar-dark: "#0f1413"
+  surface-raised-dark: "#262b2a"
   success: "#2f9b63"
   warning: "#8a5a00"
   danger: "#c15336"
@@ -69,13 +74,13 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
-    textColor: "{colors.surface-panel-light}"
+    textColor: "{colors.primary-contrast}"
     rounded: "{rounded.md}"
     padding: "0 20px"
     height: "40px"
   button-primary-hover:
     backgroundColor: "{colors.primary-hover}"
-    textColor: "{colors.surface-panel-light}"
+    textColor: "{colors.primary-contrast}"
     rounded: "{rounded.md}"
     padding: "0 20px"
     height: "40px"
@@ -111,6 +116,8 @@ components:
 
 Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.
 
+The canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.
+
 The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
 
 This system explicitly rejects the anti-references captured in [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
@@ -122,18 +129,22 @@ This system explicitly rejects the anti-references captured in [PRODUCT.md](/c:/
 - Creative, not ornamental
 - Dense when needed, but always navigable
 - Dual-theme by design, not as an afterthought
+- Modular content authoring, not admin CRUD
+- Form-backed, but not form-shaped
 
 ## Colors
 
 The palette is identity-led and task-aware. Black Forge uses near-black canvas and charcoal panels; White Forge uses white, cool gray, and crisp ink. Forge Orange is the main brand/action color for primary CTAs, active creation states, draft/progress moments, and dice/data highlights. Teal is secondary and functional: focus rings, technical selection, and supportive navigation. Purple stays rare for arcane emphasis. The app should not become blue-on-blue or monochrome by habit: use controlled accent moments to make creation feel alive, especially in onboarding, empty states, progress cues, domain headers, and playful feedback.
 
 ### Primary
-- **Forge Orange** (`#ec6a06`): The main action and brand color. Use it for primary buttons, active authoring states, progress/craft moments, and high-value data highlights.
+- **Forge Orange** (`#ec8c06`): The main action and brand color. Use it for primary buttons, active authoring states, progress/craft moments, and high-value data highlights.
 - **Lifted Orange** (`#f97316`): The hover and active-lift state for primary actions. It adds warmth without turning the workspace into a warning surface.
 - **Deep Orange** (`#c95704`): The pressed or structural anchor for primary actions and accent borders when a sharper edge is needed.
+- **Anvil Contrast** (`#241002`): The text color on orange-filled controls. Use it for primary button labels when the orange surface is light enough to support dark text.
 
 ### Secondary
 - **Workshop Teal** (`#0891b2`): Reserved for focus, technical selection, secondary navigation, and precision states. This is not the general CTA color.
+- **Lit Teal** (`#6bd8cb`): The dark-theme teal accent for focus and precision states that need stronger contrast on Black Forge surfaces.
 - **Arcane Purple** (`#8b5cf6`): Reserved for rare magic-adjacent emphasis and special states. This is not a co-primary.
 
 ### Neutral
@@ -146,6 +157,7 @@ The palette is identity-led and task-aware. Black Forge uses near-black canvas a
 - **Night Canvas** (`#0a0f0e`): Dark-theme page canvas.
 - **Forge Panel** (`#171d1c`): Dark-theme card and shell surface.
 - **Night Header** (`#0f1413`): Dark-theme header and framing band.
+- **Raised Iron** (`#262b2a`): Dark-theme lifted surface for active panels, compact drawers, and strong section headers.
 
 ### Named Rules
 **The Purposeful Accent Rule.** Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.
@@ -153,6 +165,8 @@ The palette is identity-led and task-aware. Black Forge uses near-black canvas a
 **The Dual-Surface Rule.** Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.
 
 **The No-Monotony Rule.** Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.
+
+**The Orange-Is-Action Rule.** Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.
 
 ## Typography
 
@@ -192,7 +206,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 
 ### Buttons
 - **Shape:** Softly rounded, not pillowy (`8px` default, `12px` on certain auth CTAs).
-- **Primary:** Orange fill with strong contrast text, `40px` tall, medium-to-bold text, compact horizontal padding (`20px`). This is for the main task on a surface, not every action in sight.
+- **Primary:** Orange fill with Anvil Contrast text, `40px` tall, medium-to-bold text, compact horizontal padding (`20px`). This is for the main task on a surface, not every action in sight.
 - **Hover / Focus:** Hover moves to lifted orange. Focus uses the teal halo, never a browser-default mismatch.
 - **Secondary / Ghost:** Secondary actions prefer bordered neutrals with restrained text. Use them to support the primary path, not compete with it.
 - **Reward Moments:** Completion buttons and first-run calls to action may use slightly more expressive copy or icon support when it helps the action feel satisfying.
@@ -214,9 +228,11 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 - **Error / Disabled:** Error borders move warm, disabled fields flatten toward the surface.
 
 ### Navigation
-- **Style:** Navigation items are compact framed pills with an icon tile, strong label, quieter description, and explicit active fill.
-- **Active State:** Active authoring items use orange-tinted background plus border emphasis. Technical or secondary navigation may use teal when the state is about focus rather than action.
-- **Mobile Treatment:** Mobile keeps the same structure inside drawers or compact menus. It is the same system, not a reduced afterthought.
+- **App Shell:** Signed-in desktop and tablet landscape use a top header with brand, breadcrumb context, Library and Create menu buttons, search, theme, and account. Library and Create are separate menus because browsing and starting new content are different intents. Signed-out pages use the marketing/auth header and do not render signed-in app navigation.
+- **Mobile App Navigation:** Mobile and tablet portrait use a sticky app footer for Library, Create, Search, and Account. Search opens a bottom drawer; account uses the same menu actions as desktop. The mobile footer is app-wide navigation and must never appear on desktop.
+- **Structure Rail:** The rail belongs to the current authoring item only. It shows the step hierarchy, active step, child steps for the active branch, completion/dirty/warning markers, and the contextual footer summary. It is not a domain library, not a sidebar replacement, and not a place for global Create actions.
+- **Rail Behavior:** Desktop and tablet landscape can render the structure rail inline beside the editor. Mobile and tablet portrait open the rail in a drawer. Closing the desktop rail removes the rail column and lets the editor expand; overlay rails start closed.
+- **Active State:** Active authoring rows use orange text and a restrained left fill/marker. Avoid loud full-row fills unless needed for clarity.
 
 ### Empty / First-Run States
 - **Style:** Empty states should feel like invitations, not blank admin pages. Use the domain icon, concise copy, and one clear next action.
@@ -227,6 +243,20 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 - **Style:** Motion should be brief and stateful: reveal a next section, confirm a save, open a drawer, or acknowledge progress.
 - **Timing:** Most transitions stay in the `150ms-250ms` range with ease-out curves.
 - **Constraint:** No decorative page-load choreography. Users are here to create and play.
+
+### Authoring Workspace
+- **Structure:** The workspace is header, optional structure rail, editor canvas, optional context/preview rail, and persistent action bar. The editor canvas owns the current step. The preview rail appears only when it adds useful output or context.
+- **Editor Sections:** Sections are modular working surfaces sized to their content. Avoid full-width slabs unless the content truly needs the full row. Section headers should be compact, readable, and visually tied to the section body.
+- **Field Layout:** Use responsive Mantine-backed controls styled through vanilla-extract. Field grids should collapse by content need, not by arbitrary copied dimensions. Numeric inputs use Mantine `NumberInput` with controls hidden where spinner arrows make the row feel noisy.
+- **Row Modules:** Repeated modular rows should support scanning first, editing second. Wide layouts may allow inline editing for existing rows. Add actions open a staged drawer so accidental adds do not mutate draft data.
+- **Staged Drawer:** Drawers stage add/edit changes and require explicit commit actions such as `Add tier` or `Save tier`. Cancel closes the drawer and discards the staged draft. Mobile portrait uses a minimal-height bottom drawer; mobile landscape and tablet can use the drawer pattern that best preserves reach and readable fields.
+- **Context / Preview:** Preview cards should render the authored output users will see after activation, including rich prose. Avoid generic "outcome context" cards unless the active step genuinely has an outcome to summarize.
+
+### Storybook Review Surface
+- **Component Stories:** Small reusable components use inline minimal data and decorators for visual framing.
+- **Composite Stories:** Shell and authoring workspace stories compose the real components and should not use custom story-only CSS that hides layout bugs.
+- **Route-Backed Stories:** Migrated domains should get a route-backed Storybook story before visual sign-off. Use mocked auth/data behavior rather than real Supabase login.
+- **Controls:** Stories should expose useful controls for theme, active step, responsive mode, dirty/valid/error state, drawer opened state, and preview presence when those controls help inspect UI behavior.
 
 ### Theme Toggle
 - **Style:** Circular `40px` control with panel fill, subtle border, and card shadow.
@@ -248,6 +278,11 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 - **Do** make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.
 - **Do** keep long-form authoring surfaces strongly sectioned, with obvious location and next-action cues.
 - **Do** add delight through copy, icons, feedback states, and small motion moments.
+- **Do** describe the creation experience as an Authoring Workspace or modular content authoring, not as "just forms" in product-facing design language.
+- **Do** keep `apps/web/src/forms` as the implementation platform while making the user-facing experience feel like focused content configuration.
+- **Do** build reusable form/workspace components first, then migrate one domain at a time through Storybook and route-backed visual review.
+- **Do** use staged drawers for row-like add/edit operations when immediate mutation would create accidental blank rows or unclear commit behavior.
+- **Do** keep Library/Create navigation separate from the structure rail. Library/Create are app navigation; the rail is current-item authoring navigation.
 
 ### Don't:
 - **Don't** recreate Azure DevOps forms: avoid cluttered pages, weak hierarchy, and outdated organization patterns for dense authoring flows.
@@ -257,3 +292,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 - **Don't** turn every repeated surface into an identical card grid. Density needs hierarchy, not repetition.
 - **Don't** let the app feel like monotonous office software, an admin dashboard, or a chore list.
 - **Don't** fake fantasy flavor with parchment, distressed textures, medieval fonts, or novelty controls.
+- **Don't** build domain-specific authoring UI unless the domain requires a genuinely distinct interaction that reusable workspace components cannot support.
+- **Don't** put app-wide domain navigation inside the structure rail or put structure-step navigation inside Library/Create menus.
+- **Don't** use modals as the default answer for nested authoring. Prefer inline editing, focused workspace sections, staged drawers, or route-backed flows.
+- **Don't** let Storybook stories rely on fixture-only harnesses for migrated domains when a route-backed story can exercise the real workflow shape.

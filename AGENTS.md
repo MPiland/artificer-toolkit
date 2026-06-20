@@ -104,6 +104,18 @@ Avoid unbounded `cat`, broad `rg`, `find`, `ls -R`, `git diff`, tests, builds, a
 
 If capped output is insufficient, narrow the command before increasing the cap.
 
+## Windows Process Execution
+
+This repo runs on Windows, and several frontend tools spawn native child processes. Storybook, Vite, esbuild, Playwright browser runs, Vitest browser mode, and similar dev-server/build commands may fail from the normal Codex sandbox with errors such as `spawn EPERM`.
+
+- Prefer MCP/browser inspection when a dev server is already running.
+- Codex may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
+- If Codex must start a spawn-heavy command, request escalated execution with `sandbox_permissions: "require_escalated"` instead of trying the normal sandbox first.
+- Use the repo command exactly as documented through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006` or `yarn storybook:web`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the PowerShell command path itself is proven broken.
+- Do not switch to Git Bash/MSYS to work around this. Use PowerShell/native Windows execution.
+- Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
+- Keep normal read/search/patch commands in the regular sandbox. Escalation is for native child-process toolchains, not routine file inspection.
+
 ## Code Changes
 
 Prefer direct edits with the available patch tool.
@@ -125,6 +137,7 @@ Match validation to risk.
 
 Skip validation for low-risk changes and say so plainly.
 Use the cheapest useful check for risky changes.
+Run typecheck validation through Turbo-backed repo commands by default, such as `yarn turbo:typecheck:web` or `yarn turbo:affected:typecheck`, so local caching is used. Do not run direct workspace typecheck commands like `yarn workspace @artificer-toolkit/web typecheck:app` unless diagnosing Turbo itself or a Turbo-backed command is unavailable.
 Do not run full test suites or full builds unless risk justifies it or the user asks.
 
 ## Subagents
@@ -242,7 +255,7 @@ Common repo commands:
 
 Web workspace commands:
 
-- `yarn workspace @artificer-toolkit/web generate:routes`
+- `yarn workspace @artificer-toolkit/web generate-routes`
 - `yarn workspace @artificer-toolkit/web typecheck:app`
 - `yarn workspace @artificer-toolkit/web typecheck:stories`
 - `yarn workspace @artificer-toolkit/web typecheck:tests`

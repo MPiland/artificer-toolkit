@@ -1,26 +1,25 @@
-import { ActionIcon, Button, Drawer, Group, Menu, TextInput } from '@mantine/core'
+import { ActionIcon, Button, Drawer, Group, Menu, TextInput, UnstyledButton } from '@mantine/core'
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
-import clsx from 'clsx'
 import { type ReactNode, useMemo, useState } from 'react'
 import { BookOpen, LogOut, Moon, PlusCircle, Search, Sun } from 'lucide-react'
+import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
-import {
-  ShellHeaderSupplementContext,
-  type ShellHeaderSupplement
-} from './headerSupplement'
+import { ShellHeaderSupplementContext, type ShellHeaderSupplement } from './headerSupplement'
 import type { AppShellNavGroup, AppShellNavItem } from './navigation'
 import { isNavItemActive } from './navigation'
 import { Header } from './Header/Header'
 import { MobileAppFooter } from './MobileAppFooter/MobileAppFooter'
-import type { MobileAppFooterItem, MobileAppFooterMenuItem } from './MobileAppFooter/MobileAppFooter.types'
+import type {
+  MobileAppFooterItem,
+  MobileAppFooterMenuItem
+} from './MobileAppFooter/MobileAppFooter.types'
 import * as styles from './shell.css'
 
 export interface ShellProps {
   navigation: AppShellNavGroup[]
   currentPath: string
-  breadcrumbs?: string[]
   isAuthenticated?: boolean
   userEmail?: string | null
   children: ReactNode
@@ -46,7 +45,6 @@ type NavigationMenuItem = {
 }
 
 export function Shell({
-  breadcrumbs,
   navigation,
   currentPath,
   isAuthenticated,
@@ -56,115 +54,44 @@ export function Shell({
   const [headerSupplement, setHeaderSupplement] = useState<ShellHeaderSupplement | null>(null)
   const [searchOpened, { close: closeSearch, open: openSearch }] = useDisclosure(false)
   const headerSupplementContext = useMemo(() => ({ setHeaderSupplement }), [])
-  const authoringChrome = headerSupplement?.authoringChrome
-  const isAuthoringMode = Boolean(authoringChrome)
   const isSignedIn = isAuthenticated ?? Boolean(userEmail)
   const hasLibraryNavigation = isSignedIn && navigation.length > 0
   const usesOverlayRail = useMediaQuery(
     '(max-width: 640px), (max-width: 900px) and (orientation: portrait)',
     false
   )
-  const activeItem = getActiveNavItem(navigation, currentPath)
-  const fallbackCrumbs = breadcrumbs && breadcrumbs.length > 0
-    ? breadcrumbs
-    : [activeItem?.label ?? 'Home']
-  const shellCrumbs = headerSupplement?.hideBreadcrumbLeaf
-    ? fallbackCrumbs.slice(0, -1)
-    : fallbackCrumbs
-  const headerCrumbs = authoringChrome?.crumbs ?? shellCrumbs.map((label) => ({ label }))
   const libraryItems = useMemo(
     () => toNavigationMenuItems(navigation, currentPath),
-    [
-      currentPath,
-      navigation
-    ]
+    [currentPath, navigation]
   )
   const createItems = useMemo(() => toCreateMenuItems(navigation), [navigation])
   const mobileFooterItems = useMemo(
-    () => toMobileFooterItems({
-      accountMenuContent: <AccountMenuItems />,
-      createItems,
-      libraryItems,
-      onSearchOpen: openSearch
-    }),
-    [
-      openSearch,
-      createItems,
-      libraryItems
-    ]
+    () =>
+      toMobileFooterItems({
+        accountMenuContent: <AccountMenuItems />,
+        createItems,
+        libraryItems,
+        onSearchOpen: openSearch
+      }),
+    [openSearch, createItems, libraryItems]
   )
-  const isNavigationOpen = authoringChrome?.isNavigationOpen ?? false
-  const hasInlineNavigation = !usesOverlayRail && Boolean(authoringChrome) && isNavigationOpen
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
   const appNavigationActions = hasLibraryNavigation ? (
     <AppNavigationMenus createItems={createItems} libraryItems={libraryItems} />
   ) : null
-
-  useHotkeys([
-    [
-      'Escape',
-      () => {
-        if (authoringChrome?.isNavigationOpen) authoringChrome.onNavigationClose()
-      }
-    ]
-  ])
 
   return (
     <ShellHeaderSupplementContext value={headerSupplementContext}>
       <div className={styles.canvas} data-testid='app-shell'>
         <Header
           accountControl={isSignedIn ? <UserMenu /> : <SignedOutActions />}
-          accountLabel={isSignedIn ? userEmail ?? 'Account' : 'Sign in'}
+          accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
           actions={headerSupplement?.actions}
-          crumbs={headerCrumbs}
-          isNavigationOpen={isNavigationOpen}
           navigationActions={appNavigationActions}
-          navigationLabel='structure sidebar'
-          onNavigationToggle={authoringChrome?.onNavigationToggle ?? (() => undefined)}
-          showNavigationButton={Boolean(authoringChrome)}
-          statusLabel={authoringChrome?.statusLabel}
           supplement={headerSupplement?.content}
         />
-        {usesOverlayRail && authoringChrome ? (
-          <Drawer
-            classNames={{
-              body: styles.navigationDrawerBody,
-              content: styles.navigationDrawerContent
-            }}
-            opened={isNavigationOpen}
-            onClose={authoringChrome.onNavigationClose}
-            position='left'
-            size='min(20rem, 86vw)'
-            withCloseButton={false}
-            aria-label='Authoring navigation'
-          >
-            <div className={styles.navigationDrawerRailMount} id='authoring-navigation'>
-              {authoringChrome.mobileRail}
-            </div>
-          </Drawer>
-        ) : null}
-        <div className={clsx(styles.workspace, !hasInlineNavigation && styles.workspaceNoRail)}>
-          {hasInlineNavigation && authoringChrome ? (
-            <div
-              className={styles.railSlot}
-              id='authoring-navigation'
-            >
-              {authoringChrome.desktopRail}
-            </div>
-          ) : null}
-          <main
-            id='main-content'
-            className={isAuthoringMode ? styles.authoringMain : styles.main}
-            tabIndex={-1}
-          >
-            {isAuthoringMode ? children : <div className={styles.contentArea}>{children}</div>}
-          </main>
-        </div>
-        {hasMobileFooter ? (
-          <div className={styles.mobileFooterSlot}>
-            <MobileAppFooter items={mobileFooterItems} />
-          </div>
-        ) : null}
+        {children}
+        {hasMobileFooter ? <MobileAppFooter items={mobileFooterItems} /> : null}
         {hasMobileFooter ? (
           <MobileSearchDrawer opened={searchOpened} onClose={closeSearch} />
         ) : null}
@@ -199,7 +126,11 @@ function UserMenu() {
   return (
     <Menu position='bottom-end' width={220} withinPortal>
       <Menu.Target>
-        <ActionIcon className={styles.userIconButton} variant='default' aria-label='Open account menu'>
+        <ActionIcon
+          className={styles.userIconButton}
+          variant='default'
+          aria-label='Open account menu'
+        >
           <IUser size={18} aria-hidden='true' />
         </ActionIcon>
       </Menu.Target>
@@ -214,24 +145,47 @@ function AccountMenuItems() {
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('dark')
   const nextColorScheme = computedColorScheme === 'dark' ? 'light' : 'dark'
-  const ThemeIcon = nextColorScheme === 'dark' ? Moon : Sun
 
   return (
     <>
       <Menu.Item
-        leftSection={<ThemeIcon size={16} aria-hidden='true' />}
+        aria-label={`Switch to ${nextColorScheme} mode`}
         onClick={() => setColorScheme(nextColorScheme)}
+        rightSection={
+          <span className={styles.themeModePill} aria-hidden='true'>
+            <span
+              className={clsx(
+                styles.themeModePillOption,
+                computedColorScheme === 'light' && styles.themeModePillOptionActive
+              )}
+            >
+              <Sun size={12} />
+            </span>
+            <span
+              className={clsx(
+                styles.themeModePillOption,
+                computedColorScheme === 'dark' && styles.themeModePillOptionActive
+              )}
+            >
+              <Moon size={12} />
+            </span>
+          </span>
+        }
       >
-        Switch to {nextColorScheme} mode
+        Theme
       </Menu.Item>
-      <Menu.Item component={Link} to='/logout' leftSection={<LogOut size={16} aria-hidden='true' />}>
+      <Menu.Item
+        component={Link}
+        to='/logout'
+        leftSection={<LogOut size={16} aria-hidden='true' />}
+      >
         Sign out
       </Menu.Item>
     </>
   )
 }
 
-function MobileSearchDrawer({ onClose, opened }: { onClose: () => void, opened: boolean }) {
+function MobileSearchDrawer({ onClose, opened }: { onClose: () => void; opened: boolean }) {
   return (
     <Drawer
       classNames={{
@@ -295,14 +249,10 @@ function NavigationMenu({
   return (
     <Menu position='bottom-start' trigger='click-hover' width={230} withinPortal>
       <Menu.Target>
-        <Button
-          className={styles.headerMenuButton}
-          leftSection={icon}
-          size='compact-sm'
-          variant='subtle'
-        >
-          {label}
-        </Button>
+        <UnstyledButton className={styles.headerMenuButton} type='button'>
+          {icon}
+          <span>{label}</span>
+        </UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
         {items.map((item) => (
@@ -335,26 +285,17 @@ function SignedOutActions() {
   )
 }
 
-function getActiveNavItem(navigation: AppShellNavGroup[], currentPath: string) {
-  for (const group of navigation) {
-    const item = group.items.find((navItem) => isNavItemActive(navItem, currentPath))
-
-    if (item) return item
-  }
-
-  return null
-}
-
-function toNavigationMenuItems(navigation: AppShellNavGroup[], currentPath: string): readonly NavigationMenuItem[] {
+function toNavigationMenuItems(
+  navigation: AppShellNavGroup[],
+  currentPath: string
+): readonly NavigationMenuItem[] {
   return navigation.flatMap((group) =>
-    group.items
-      .filter(hasHref)
-      .map((item) => ({
-        href: item.href,
-        id: item.href,
-        isActive: isNavItemActive(item, currentPath),
-        label: item.label
-      }))
+    group.items.filter(hasHref).map((item) => ({
+      href: item.href,
+      id: item.href,
+      isActive: isNavItemActive(item, currentPath),
+      label: item.label
+    }))
   )
 }
 
@@ -410,7 +351,9 @@ function toMobileFooterItems({
   ]
 }
 
-function toMobileMenuItems(items: readonly NavigationMenuItem[]): readonly MobileAppFooterMenuItem[] {
+function toMobileMenuItems(
+  items: readonly NavigationMenuItem[]
+): readonly MobileAppFooterMenuItem[] {
   return items.map((item) => ({
     href: item.href,
     id: item.id,

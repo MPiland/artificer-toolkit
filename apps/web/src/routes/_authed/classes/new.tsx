@@ -1,14 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
-import { ClassCreatePage } from '#domains/classes'
+import type { AuthoredCreateLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms'
+import {
+  createAuthoredFormRouteContext,
+  createAuthoredFormRouteLoaderData
+} from '#forms/layout/authoredFormRouteContext'
 
 export const Route = createFileRoute('/_authed/classes/new')({
-  loader: async ({ context }) => {
+  context: () => createAuthoredFormRouteContext('class', 'create'),
+  loader: async ({ context }): Promise<AuthoredCreateLoaderData> => {
     const client = createServerApi()
     const systems = await context.queryClient.ensureQueryData(getSystemList(client))
 
-    return { systems }
+    return createAuthoredFormRouteLoaderData({ systems })
   },
-  component: () => <ClassCreatePage />
+  component: AuthoringLayout
 })
