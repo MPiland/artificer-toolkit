@@ -365,6 +365,13 @@ function validateSemanticCompleteness(
 
   if (!isRuntimeRecord(value)) return
 
+  if (path[path.length - 1] === 'targeting'
+    && value.selectionKind !== undefined
+    && value.selectionKind !== 'SELF'
+    && isEmptyValue(value.dispositionKind)) {
+    issues.push(createIssue(domain, record, [...path, 'dispositionKind'], 'non-self targeting must declare target disposition'))
+  }
+
   if (Array.isArray(value.paths)) {
     value.paths.forEach((pathValue, index) => {
       const pathPath = [...path, 'paths', index]

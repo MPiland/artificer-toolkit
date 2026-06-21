@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { z } from 'zod'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
@@ -45,7 +45,6 @@ import {
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import { RaceAuthoringPreview } from '#app/domains/races/components/RaceAuthoringPreview'
 import {
   createEmptyBackground,
   normalizeBackgroundForSubmit,
@@ -96,6 +95,7 @@ import {
   type VehicleFormValues
 } from '../../domains/vehicles/vehicleAuthoring.utils'
 import type {
+  AuthoredFormPreviewContext,
   AuthoredFormDomain,
   AuthoredFormFactory,
   AuthoredFormFactoryBase,
@@ -103,6 +103,7 @@ import type {
   AuthoredFormSessionInput
 } from './authoredFormFactories.types'
 import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
+import { authoredPreviewFactories } from '../previews/authoredPreviewFactories'
 
 export type AuthoredFormSystemCreateData = {
   system?: SystemResponseDto | null
@@ -468,7 +469,6 @@ const raceSessionConfig = {
     saveDraft: api.content.races.saveDraft
   },
   queryKeys: queryKeys.content.races,
-  renderPreview: (values) => createElement(RaceAuthoringPreview, { values }),
   resolveCreateSystemId: (systems) => resolveCreateRaceSystemId(systems),
   schema: raceAuthoringInputDtoSchema,
   subjectKindLabel: 'Race',
@@ -621,7 +621,7 @@ type AuthoredSessionConfig<
   normalizeForSubmit: (values: TValues, context: TContext) => TSubmit
   operations: AuthoredFormOperations<TSubmit>
   queryKeys: AuthoredFormQueryKeys
-  renderPreview?: (values: TValues) => ReactNode
+  renderPreview?: (context: AuthoredFormPreviewContext<TValues>) => ReactNode
   resolveCreateSystemId: (systems: readonly { id: string }[], context: TContext) => string | null
   schema: z.ZodType<TSubmit>
   subjectKindLabel: string
@@ -634,7 +634,7 @@ function createAuthoredSession<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
+  TCreateData extends { system?: SystemResponseDto | null },
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
@@ -652,7 +652,7 @@ function createAuthoredCreateSession<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
+  TCreateData extends { system?: SystemResponseDto | null },
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
@@ -680,6 +680,7 @@ function createAuthoredCreateSession<
     notFound: false,
     readOnly: false,
     subjectLabel: initialValues.label || `Untitled ${config.actionFactory.subjectKindLabel}`,
+    system: createData.system ?? null,
     systemId,
     systemRequired: !systemId
   })
@@ -689,7 +690,7 @@ function createAuthoredEditSession<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
+  TCreateData extends { system?: SystemResponseDto | null },
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
@@ -737,6 +738,7 @@ function createAuthoredEditSession<
     readOnly,
     subjectId: editData.subjectId,
     subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
+    system: editData.system ?? null,
     systemId: initialValues.systemId,
     systemRequired: false
   })
@@ -768,6 +770,7 @@ function createAuthoredSessionBase<
   readOnly,
   subjectId,
   subjectLabel,
+  system,
   systemId,
   systemRequired
 }: {
@@ -789,10 +792,12 @@ function createAuthoredSessionBase<
   readOnly: boolean
   subjectId?: string
   subjectLabel: ReactNode
+  system?: SystemResponseDto | null
   systemId?: string
   systemRequired: boolean
 }): AuthoredFormSession {
   const { actionFactory, domain, operations, queryKeys, subjectKindLabel } = config
+  const renderPreview = config.renderPreview ?? authoredPreviewFactories[domain]
 
   return {
     actionFactory,
@@ -852,12 +857,18 @@ function createAuthoredSessionBase<
       ...(subjectId ? { discardDraft: () => operations.discardDraft(subjectId) } : {})
     },
     readOnly,
-    renderPreview: config.renderPreview
-      ? (values) => config.renderPreview?.(values as TValues)
+    renderPreview: renderPreview
+      ? (context) => renderPreview({
+        ...context,
+        domain,
+        system,
+        values: context.values as TValues
+      })
       : undefined,
     subjectId,
     subjectKindLabel,
     subjectLabel,
+    system,
     systemId,
     systemRequired
   }

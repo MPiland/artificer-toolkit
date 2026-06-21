@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type {
   ActivatedAuthoringResponse,
   DraftAuthoringResponse,
@@ -30,6 +31,12 @@ export type AuthoredFormFactoryBase = {
 export type AuthoredFormSessionInput = {
   data: unknown
   mode: AuthoringFormMode
+}
+
+export type AuthoredFormPreviewContext<TValues extends object = object> = {
+  domain: AuthoredFormDomain
+  system?: SystemResponseDto | null
+  values: TValues
 }
 
 export type AuthoredFormOperationConfig = {
@@ -81,10 +88,11 @@ export type AuthoredFormSession = {
   notFound: boolean
   operations: AuthoredFormOperationConfig
   readOnly: boolean
-  renderPreview?: (values: object) => ReactNode
+  renderPreview?: (context: AuthoredFormPreviewContext) => ReactNode
   subjectId?: string
   subjectKindLabel: string
   subjectLabel: ReactNode
+  system?: SystemResponseDto | null
   systemId?: string
   systemRequired: boolean
 }

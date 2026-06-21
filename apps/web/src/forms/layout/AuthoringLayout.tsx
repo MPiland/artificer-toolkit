@@ -98,7 +98,11 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
 
     return (
       <form.Subscribe selector={(state) => state.values}>
-        {(nextValues) => session.renderPreview?.(nextValues)}
+        {(nextValues) => session.renderPreview?.({
+          domain: session.domain,
+          system: session.system,
+          values: nextValues
+        })}
       </form.Subscribe>
     )
   }, [form, session])

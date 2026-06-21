@@ -249,14 +249,15 @@ function buildArrayRowNode({
 
   const childModel = createStaticResolvedFormModel(node.childMapId)
   if (!childModel) return undefined
+  const rowValues = getRecordObjectValue(row)
 
   const childContext: BuildNavigationContext = {
     ...context,
     fieldPathPrefix: rowPrefix,
     mapId: node.childMapId,
     model: childModel,
-    parentValues: getCurrentMapValues(context),
-    ancestors: getChildAncestors(context)
+    parentValues: rowValues,
+    ancestors: getChildAncestors(context, rowValues)
   }
   const children = getVisibleAuthoringSteps(childModel)
     .map((step) => buildStepNode(step, childContext))
@@ -470,18 +471,13 @@ function getArrayRows(values: Record<string, unknown>, fieldName: string) {
   return Array.isArray(value) ? value : []
 }
 
-function getCurrentMapValues(context: BuildNavigationContext): Record<string, unknown> {
-  if (!context.fieldPathPrefix) return context.values
-
-  const value = getAuthoringFieldValue(context.values, context.fieldPathPrefix)
-  return isRecord(value) ? value : {}
-}
-
 function getChildAncestors(
-  context: BuildNavigationContext
+  context: BuildNavigationContext,
+  rowValues?: Record<string, unknown>
 ): readonly Record<string, unknown>[] | undefined {
-  if (!context.parentValues) return context.ancestors
-  return [context.parentValues, ...(context.ancestors ?? [])]
+  const values = rowValues ?? context.parentValues
+  if (!values) return context.ancestors
+  return [values, ...(context.ancestors ?? [])]
 }
 
 function getRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
@@ -490,6 +486,10 @@ function getRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
   }
 
   return `${toSingularLabel(node.label)} ${index + 1}`
+}
+
+function getRecordObjectValue(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined
 }
 
 function isNode(value: AuthoringNavigationNode | undefined): value is AuthoringNavigationNode {

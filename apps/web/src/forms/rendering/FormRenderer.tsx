@@ -460,19 +460,25 @@ export function FormRenderer<TValues extends object>({
                                 ) : null}
                               </div>
                               <div className={styles.inlineArrayItemBody}>
-                                <Renderer
-                                  form={form}
-                                  ancestors={childAncestors}
-                                  debounceMs={debounceMs}
-                                  fieldPathPrefix={rowPrefix}
-                                  mapId={node.childMapId}
-                                  parentValues={values}
-                                  readOnly={nodeReadOnly}
-                                  renderAllSteps
-                                  resolveModel={resolvedResolveModel}
-                                  systemId={resolvedSystemId}
-                                  updateAuthoringState={false}
-                                />
+                                {(() => {
+                                  const rowValues = getRecordObjectValue(row)
+
+                                  return (
+                                    <Renderer
+                                      form={form}
+                                      ancestors={rowValues ? [rowValues, ...(childAncestors ?? [])] : childAncestors}
+                                      debounceMs={debounceMs}
+                                      fieldPathPrefix={rowPrefix}
+                                      mapId={node.childMapId}
+                                      parentValues={rowValues}
+                                      readOnly={nodeReadOnly}
+                                      renderAllSteps
+                                      resolveModel={resolvedResolveModel}
+                                      systemId={resolvedSystemId}
+                                      updateAuthoringState={false}
+                                    />
+                                  )
+                                })()}
                               </div>
                             </div>
                           )
@@ -532,19 +538,25 @@ export function FormRenderer<TValues extends object>({
                   </Group>
                   {hasValue ? (
                     <div className={styles.nestedShell}>
-                      <Renderer
-                        form={form}
-                        ancestors={childAncestors}
-                        debounceMs={debounceMs}
-                        fieldPathPrefix={fieldPrefix}
-                        mapId={node.childMapId}
-                        parentValues={values}
-                        readOnly={nodeReadOnly}
-                        renderAllSteps
-                        resolveModel={resolvedResolveModel}
-                        systemId={resolvedSystemId}
-                        updateAuthoringState={false}
-                      />
+                      {(() => {
+                        const objectValues = getRecordObjectValue(field.state.value)
+
+                        return (
+                          <Renderer
+                            form={form}
+                            ancestors={objectValues ? [objectValues, ...(childAncestors ?? [])] : childAncestors}
+                            debounceMs={debounceMs}
+                            fieldPathPrefix={fieldPrefix}
+                            mapId={node.childMapId}
+                            parentValues={objectValues}
+                            readOnly={nodeReadOnly}
+                            renderAllSteps
+                            resolveModel={resolvedResolveModel}
+                            systemId={resolvedSystemId}
+                            updateAuthoringState={false}
+                          />
+                        )
+                      })()}
                     </div>
                   ) : (
                     <Text size='sm' c='dimmed'>{`${node.label} has not been configured yet.`}</Text>
@@ -713,6 +725,10 @@ export function FormRenderer<TValues extends object>({
 function getGroupRowKey(row: unknown, index: number) {
   if (isRecord(row) && typeof row.id === 'string') return row.id
   return String(index)
+}
+
+function getRecordObjectValue(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined
 }
 
 function getGroupRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {

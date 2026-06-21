@@ -55,11 +55,54 @@ export const authoredRouteStorySystem = {
   label: 'D&D 5e SRD',
   description: 'Seed-derived SRD system used for authoring route stories.',
   alignments: [],
-  challengeRatings: [],
-  conditionTypes: [],
-  creatureTypes: [],
-  currencies: [],
-  damageTypes: [],
+  challengeRatings: [
+    {
+      id: '00000000-0000-0000-000e-000300000000',
+      code: 'CR_1_4',
+      label: '1/4',
+      short: 'CR 1/4',
+      description: '50 XP'
+    }
+  ],
+  conditionTypes: [
+    {
+      id: '00000000-0000-0000-0002-000b00000000',
+      code: 'POISONED',
+      label: 'Poisoned'
+    }
+  ],
+  creatureTypes: [
+    {
+      id: '00000000-0000-0000-000f-000a00000000',
+      code: 'HUMANOID',
+      label: 'Humanoid'
+    }
+  ],
+  currencies: [
+    {
+      id: '00000000-0000-0000-0003-000400000000',
+      code: 'GP',
+      label: 'Gold Piece',
+      short: 'gp'
+    }
+  ],
+  damageTypes: [
+    {
+      id: '00000000-0000-0000-0004-000200000000',
+      code: 'BLUDGEONING',
+      label: 'Bludgeoning'
+    },
+    {
+      id: '00000000-0000-0000-0004-000400000000',
+      code: 'FIRE',
+      label: 'Fire'
+    },
+    {
+      id: '00000000-0000-0000-0004-000800000000',
+      code: 'PIERCING',
+      label: 'Piercing'
+    }
+  ],
   heritages: [],
   languages: [],
   lifestyles: [],
@@ -71,10 +114,22 @@ export const authoredRouteStorySystem = {
     }
   ],
   passives: [],
-  rarities: [],
+  rarities: [
+    {
+      id: '00000000-0000-0000-0009-000100000000',
+      code: 'COMMON',
+      label: 'Common'
+    }
+  ],
   senses: [],
   skills: [],
-  speeds: [],
+  speeds: [
+    {
+      id: '00000000-0000-0000-000c-000100000000',
+      code: 'WALK',
+      label: 'Walking Speed'
+    }
+  ],
   terrains: [],
   userId: seedStoryUserId
 } satisfies NonNullable<SystemResponseDto>
@@ -83,6 +138,113 @@ export const authoredCreateRouteLoaderData = createAuthoredFormRouteLoaderData({
   system: authoredRouteStorySystem,
   systems: authoredRouteStorySystems
 })
+
+const seedFireballEffects = [
+  {
+    id: 'fireball-effect',
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: 'SAVING_THROW',
+      savingThrow: {
+        id: 'fireball-save',
+        dcMethod: 'SOURCE_SAVE_DC',
+        ability: 'DEXTERITY'
+      },
+      activation: {
+        code: 'ACTION',
+        amount: 1
+      },
+      range: {
+        id: 'fireball-range',
+        rangeKind: 'DISTANCE',
+        amount: 150,
+        unit: 'FEET'
+      },
+      targeting: {
+        selectionKind: 'AREA_CONTENTS',
+        dispositionKind: 'ANY'
+      },
+      shape: {
+        id: 'fireball-shape',
+        shapeKind: 'SPHERE',
+        radius: {
+          amount: 20,
+          unit: 'FEET'
+        }
+      }
+    },
+    paths: [
+      {
+        id: 'fireball-save-fail',
+        order: 1,
+        pathCode: 'ON_SAVE_FAIL',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: 'fireball-save-fail-result',
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: 'fireball-save-fail-damage',
+              effectKind: 'DAMAGE',
+              damageTypeId: '00000000-0000-0000-0004-000400000000',
+              valueKind: 'DICE',
+              scalingKind: 'PER_LEVEL',
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: [
+                {
+                  id: 'fireball-level-3',
+                  level: 3,
+                  order: 1,
+                  diceConfig: '8d6'
+                },
+                {
+                  id: 'fireball-level-4',
+                  level: 4,
+                  order: 2,
+                  diceConfig: '9d6'
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        id: 'fireball-save-success',
+        order: 2,
+        pathCode: 'ON_SAVE_SUCCESS',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: 'fireball-save-success-result',
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: 'fireball-save-success-damage',
+              effectKind: 'DAMAGE',
+              damageTypeId: '00000000-0000-0000-0004-000400000000',
+              amountKind: 'HALF',
+              valueKind: 'DICE',
+              scalingKind: 'PER_LEVEL',
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: [
+                {
+                  id: 'fireball-success-level-3',
+                  level: 3,
+                  order: 1,
+                  diceConfig: '8d6'
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+] satisfies SpellAuthoredDto['effects']
 
 export const seedAcolyteBackground = {
   kind: 'BACKGROUND',
@@ -305,7 +467,7 @@ export const seedFireballSpell = {
   components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
   materialDescription: 'a tiny ball of bat guano and sulfur',
   magicSchoolId: '00000000-0000-0000-0007-000500000000',
-  effects: [],
+  effects: seedFireballEffects,
   status: 'ACTIVE',
   userId: seedStoryUserId,
   systemId: seedStorySystemId
