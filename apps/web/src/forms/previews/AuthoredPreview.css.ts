@@ -11,43 +11,46 @@ export const root = style({
   }
 })
 
-export const facts = style({
+export const rows = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: foundationVars.space[2],
+      gap: 0,
       margin: 0
     }
   }
 })
 
-export const fact = style({
+export const row = style({
   '@layer': {
     [app]: {
       display: 'grid',
       gap: '2px',
       minWidth: 0,
-      padding: foundationVars.space[2],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.surface.recessed
+      paddingBlock: foundationVars.space[2],
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+
+      ':last-child': {
+        borderBottom: 0
+      }
     }
   }
 })
 
-export const factLabel = style({
+export const rowLabel = style({
   '@layer': {
     [app]: {
+      minWidth: 0,
       color: foundationVars.color.text.dim,
-      fontSize: '11px',
+      fontSize: '12px',
       fontWeight: foundationVars.fontWeight.bold,
-      lineHeight: '15px'
+      lineHeight: '16px',
+      overflowWrap: 'anywhere'
     }
   }
 })
 
-export const factValue = style({
+export const rowValue = style({
   '@layer': {
     [app]: {
       margin: 0,
@@ -59,6 +62,8 @@ export const factValue = style({
     }
   }
 })
+
+export const singleRowValue = style([rowValue])
 
 export const chips = style({
   '@layer': {

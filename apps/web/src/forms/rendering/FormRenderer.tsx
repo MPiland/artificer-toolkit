@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore, type DeepKeys } from '@tanstack/react-form'
 import type {
   NodeRuntimeNodeDto,
@@ -40,8 +40,9 @@ import {
   getRequiredValidators
 } from './FormRenderer.utils'
 import * as styles from './FormRenderer.css'
-import { ActionIcon, Alert, Button, Group, Text } from '@mantine/core'
-import { Trash2 } from 'lucide-react'
+import { ActionIcon, Alert, Button, Collapse, Group, Text } from '@mantine/core'
+import { ChevronDown, Trash2 } from 'lucide-react'
+import { speedOptions } from '@artificer-toolkit/shared/authored'
 
 export type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
@@ -96,6 +97,9 @@ export function FormRenderer<TValues extends object>({
         updateAuthoringFormActions,
         updateAuthoringFormState
       } = authoring
+      const [collapsedInlineRowIds, setCollapsedInlineRowIds] = useState<ReadonlySet<string>>(
+        () => new Set()
+      )
       const resolvedFieldPathPrefix = fieldPathPrefix
       const resolvedMapId = mapId ?? authoring.mapId
       const resolvedReadOnly = readOnly ?? authoring.readOnly
@@ -356,12 +360,13 @@ export function FormRenderer<TValues extends object>({
                   )
                 case 'RICH_TEXT':
                   return (
-                    <appField.RichTextField
-                      label={node.label}
-                      required={node.required}
-                      readOnly={readOnly}
-                      className={styles.wideField}
-                    />
+                    <div className={styles.wideField}>
+                      <appField.RichTextField
+                        label={node.label}
+                        required={node.required}
+                        readOnly={readOnly}
+                      />
+                    </div>
                   )
                 case 'SELECT_SINGLE':
                   return (
@@ -441,16 +446,45 @@ export function FormRenderer<TValues extends object>({
                             resolvedFieldPathPrefix,
                             [...node.path, index]
                           )
+                          const rowId = `${rowPrefix}:${getGroupRowKey(row, index)}`
+                          const isRowExpanded = !collapsedInlineRowIds.has(rowId)
+                          const rowLabel = getGroupRowLabel(node, row, index)
+
+                          const toggleRow = () => {
+                            setCollapsedInlineRowIds((current) => {
+                              const next = new Set(current)
+                              if (next.has(rowId)) {
+                                next.delete(rowId)
+                              } else {
+                                next.add(rowId)
+                              }
+                              return next
+                            })
+                          }
 
                           return (
                             <div key={getGroupRowKey(row, index)} className={styles.inlineArrayItem}>
                               <div className={styles.inlineArrayItemHeader}>
-                                <Text className={styles.inlineArrayItemTitle}>
-                                  {getGroupRowLabel(node, row, index)}
-                                </Text>
+                                <button
+                                  type='button'
+                                  className={styles.inlineArrayItemTrigger}
+                                  aria-expanded={isRowExpanded}
+                                  onClick={toggleRow}
+                                >
+                                  <ChevronDown
+                                    size={16}
+                                    aria-hidden='true'
+                                    className={
+                                      isRowExpanded
+                                        ? `${styles.inlineArrayItemChevron} ${styles.inlineArrayItemChevronOpen}`
+                                        : styles.inlineArrayItemChevron
+                                    }
+                                  />
+                                  <Text className={styles.inlineArrayItemTitle}>{rowLabel}</Text>
+                                </button>
                                 {!nodeReadOnly ? (
                                   <ActionIcon
-                                    aria-label={`Remove ${getGroupRowLabel(node, row, index)}`}
+                                    aria-label={`Remove ${rowLabel}`}
                                     color='red'
                                     variant='subtle'
                                     onClick={() => field.removeValue(index)}
@@ -459,27 +493,34 @@ export function FormRenderer<TValues extends object>({
                                   </ActionIcon>
                                 ) : null}
                               </div>
-                              <div className={styles.inlineArrayItemBody}>
-                                {(() => {
-                                  const rowValues = getRecordObjectValue(row)
+                              <Collapse
+                                expanded={isRowExpanded}
+                                keepMounted
+                                transitionDuration={140}
+                                transitionTimingFunction='cubic-bezier(0.2, 0, 0, 1)'
+                              >
+                                <div className={styles.inlineArrayItemBody}>
+                                  {(() => {
+                                    const rowValues = getRecordObjectValue(row)
 
-                                  return (
-                                    <Renderer
-                                      form={form}
-                                      ancestors={rowValues ? [rowValues, ...(childAncestors ?? [])] : childAncestors}
-                                      debounceMs={debounceMs}
-                                      fieldPathPrefix={rowPrefix}
-                                      mapId={node.childMapId}
-                                      parentValues={rowValues}
-                                      readOnly={nodeReadOnly}
-                                      renderAllSteps
-                                      resolveModel={resolvedResolveModel}
-                                      systemId={resolvedSystemId}
-                                      updateAuthoringState={false}
-                                    />
-                                  )
-                                })()}
-                              </div>
+                                    return (
+                                      <Renderer
+                                        form={form}
+                                        ancestors={rowValues ? [rowValues, ...(childAncestors ?? [])] : childAncestors}
+                                        debounceMs={debounceMs}
+                                        fieldPathPrefix={rowPrefix}
+                                        mapId={node.childMapId}
+                                        parentValues={rowValues}
+                                        readOnly={nodeReadOnly}
+                                        renderAllSteps
+                                        resolveModel={resolvedResolveModel}
+                                        systemId={resolvedSystemId}
+                                        updateAuthoringState={false}
+                                      />
+                                    )
+                                  })()}
+                                </div>
+                              </Collapse>
                             </div>
                           )
                         })}
@@ -499,13 +540,14 @@ export function FormRenderer<TValues extends object>({
           )}>
             {(field) => {
               const hasValue = isGroupObjectValue(field.state.value)
+              const canRemoveValue = hasValue && !node.required && !isTopLevelGroupNode(node)
 
               return (
                 <div className={styles.wideField}>
                   <Group justify='space-between' align='center' mb='xs'>
                     <Text fw={700}>{node.label}</Text>
                     {!nodeReadOnly ? (
-                      hasValue && !node.required ? (
+                      canRemoveValue ? (
                         <ActionIcon
                           aria-label={`Remove ${node.label}`}
                           color='red'
@@ -736,7 +778,60 @@ function getGroupRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number)
     return row.label
   }
 
+  const speedLabel = getSpeedRowLabel(node, row)
+  if (speedLabel) return speedLabel
+
   return `${toSingularLabel(node.label)} ${index + 1}`
+}
+
+function getSpeedRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
+  if (!isRecord(row) || !isSpeedGroupNode(node)) return undefined
+
+  const speedLabel = getSpeedOptionLabel(readString(row.speedId))
+  const amount = readNumber(row.amount)
+  const unit = formatEnumLabel(readString(row.unit))
+  const amountLabel = amount === undefined ? undefined : `${formatNumber(amount)} ${unit ?? 'Feet'}`
+
+  if (speedLabel && amountLabel) return `${speedLabel} - ${amountLabel}`
+  return speedLabel ?? amountLabel
+}
+
+function isSpeedGroupNode(node: NodeRuntimeNodeDto) {
+  return node.childMapId === 'speed' || toSingularLabel(node.label).toLowerCase() === 'speed'
+}
+
+function isTopLevelGroupNode(node: NodeRuntimeNodeDto) {
+  return node.path.length === 1
+}
+
+function getSpeedOptionLabel(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const normalized = value.toLowerCase()
+  return speedOptions.find((option) =>
+    [option.id, option.code, option.label].some((candidate) =>
+      candidate.toLowerCase() === normalized
+    )
+  )?.label
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('en-US').format(value)
+}
+
+function formatEnumLabel(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return value
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 function isGroupObjectValue(value: unknown): value is AuthoringGroupValues {

@@ -5,27 +5,17 @@ import { app } from '../../../css/layers.css.ts'
 export const shell = style({
   '@layer': {
     [app]: {
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderInlineStart: `1px solid ${foundationVars.color.border.subtle}`,
       backgroundColor: foundationVars.color.surface.panel,
       inlineSize: '20rem',
       maxInlineSize: '100%',
       '@media': {
         [media.tablet]: {
           inlineSize: '100%',
-          borderRadius: 'none'
+          borderRadius: 'none',
+          borderInlineStart: 'none'
         }
       }
-    }
-  }
-})
-
-export const collapse = style({
-  '@layer': {
-    [app]: {
-      flex: '0 0 20rem',
-      blockSize: '100%',
-      inlineSize: '20rem',
-      minBlockSize: 0
     }
   }
 })
@@ -54,6 +44,15 @@ export const content = style({
       blockSize: 'auto',
       padding: foundationVars.space[4],
       overflowY: 'auto'
+    }
+  }
+})
+
+export const drawerBody = style({
+  '@layer': {
+    [app]: {
+      padding: 0,
+      blockSize: '100%'
     }
   }
 })

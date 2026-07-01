@@ -56,7 +56,6 @@ export const header = style({
       gap: foundationVars.space[2],
       minBlockSize: `calc(${foundationVars.space[2]} + 24px + ${foundationVars.space[2]})`,
       paddingInline: `${foundationVars.space[3]} ${foundationVars.space[3]}`,
-      paddingInlineStart: `calc(${foundationVars.space[3]} + 24px + ${foundationVars.space[4]})`,
       fontSize: 'large',
       fontWeight: 700,
       paddingBlock: 0

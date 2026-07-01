@@ -15,7 +15,7 @@ export const authoredRouteNodeRuntimeHandlers = [
 
     return trpcBatchJson(
       inputs.map((input) => (
-        createStaticResolvedFormModel(input.mapId) ?? {
+        createStaticResolvedFormModel(input.mapId, { system: authoredRouteStorySystem }) ?? {
           mapId: input.mapId,
           steps: [],
           clearPaths: []

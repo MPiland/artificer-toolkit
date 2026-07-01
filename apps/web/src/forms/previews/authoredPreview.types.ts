@@ -5,7 +5,7 @@ export type AuthoredPreviewFactory = (context: AuthoredFormPreviewContext) => Re
 
 export type PreviewFact = {
   label: string
-  value: ReactNode
+  value?: ReactNode
 }
 
 export type PreviewListItem = {
@@ -43,6 +43,14 @@ export type PreviewSection =
       id: string
       title: string
       type: 'facts'
+    }
+  | {
+      empty?: string
+      id: string
+      rows: PreviewFact[]
+      showWhenEmpty?: boolean
+      title: string
+      type: 'rows'
     }
   | {
       fallback?: string

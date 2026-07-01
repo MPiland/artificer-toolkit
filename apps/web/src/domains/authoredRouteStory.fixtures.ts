@@ -20,6 +20,7 @@ import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { VehicleAuthoredDto } from '@artificer-toolkit/schema/subjects/vehicle'
+import { SpeedType, speedOptions } from '@artificer-toolkit/shared/authored'
 import type {
   BackgroundEditLoaderData,
   ClassEditLoaderData,
@@ -35,6 +36,10 @@ import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.
 
 export const seedStoryUserId = '00000000-0000-0000-0000-000000000000'
 export const seedStorySystemId = '00000000-0000-0000-0000-000000000001'
+const authoredStorySpeeds = speedOptions.map((option) => ({ ...option }))
+const authoredStoryWalkingSpeedId =
+  authoredStorySpeeds.find((option) => option.code === SpeedType.WALKING)?.id
+  ?? '1bd431c3-1556-49ee-b384-3cf04a734a47'
 
 export const authoredRouteStoryUser = {
   id: 'story-author',
@@ -123,13 +128,7 @@ export const authoredRouteStorySystem = {
   ],
   senses: [],
   skills: [],
-  speeds: [
-    {
-      id: '00000000-0000-0000-000c-000100000000',
-      code: 'WALK',
-      label: 'Walking Speed'
-    }
-  ],
+  speeds: authoredStorySpeeds,
   terrains: [],
   userId: seedStoryUserId
 } satisfies NonNullable<SystemResponseDto>
@@ -341,7 +340,7 @@ export const seedAcolyteCreature = {
   hitDice: '2d8',
   speeds: [
     {
-      speedId: '00000000-0000-0000-000c-000100000000',
+      speedId: authoredStoryWalkingSpeedId,
       amount: 30,
       unit: 'FEET'
     }
@@ -423,7 +422,7 @@ export const seedDragonbornRace = {
   size: 'MEDIUM',
   speeds: [
     {
-      speedId: '00000000-0000-0000-000c-000100000000',
+      speedId: authoredStoryWalkingSpeedId,
       amount: 30,
       unit: 'FEET'
     }

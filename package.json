@@ -67,8 +67,11 @@
     "format:sql": "prettier --write \"supabase/**/*.sql\" \"packages/db/**/*.sql\""
   },
   "dependencies": {
+    "@artificer-toolkit/web": "workspace:^",
+    "@chromatic-com/storybook": "^5.2.1",
     "@supabase/supabase-js": "^2.108.2",
-    "kysely": "^0.28.17"
+    "kysely": "^0.28.17",
+    "workspace": "^0.0.1-preview.2"
   },
   "devDependencies": {
     "@types/node": "^25.6.1",

@@ -1,4 +1,4 @@
-import { foundationVars, media } from '#app/css/foundations.css'
+import { foundationVars } from '#app/css/foundations.css'
 import { app } from '#app/css/layers.css'
 import { style } from '@vanilla-extract/css'
 
@@ -22,7 +22,7 @@ export const content = style({
       flex: '1 1 auto',
       minBlockSize: 0,
       minInlineSize: 0,
-      padding: `${foundationVars.space[4]} ${foundationVars.space[5]}`,
+      padding: `${foundationVars.space[4]} ${foundationVars.space[5]} calc(44px + ${foundationVars.space[4]} + env(safe-area-inset-bottom))`,
       overflow: 'auto'
     }
   }
@@ -43,13 +43,6 @@ export const actionBarSlot = style({
     [app]: {
       vars: {
         '--at-authoring-action-max-width': 'none'
-      },
-      '@media': {
-        [media.tablet]: {
-          flex: '0 0 auto',
-          position: 'relative',
-          zIndex: 20
-        }
       }
     }
   }

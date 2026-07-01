@@ -5,19 +5,9 @@ import { app } from '../../../css/layers.css.ts'
 export const shell = style({
   '@layer': {
     [app]: {
-      borderInlineEnd: `1px solid ${foundationVars.color.border.strong}`
-    }
-  }
-})
-
-export const collapse = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      blockSize: '100%',
-      minBlockSize: 0,
-      borderInlineEnd: `1px solid ${foundationVars.color.border.strong}`
+      borderInlineEnd: `1px solid ${foundationVars.color.border.strong}`,
+      inlineSize: '20rem',
+      maxInlineSize: '100%'
     }
   }
 })

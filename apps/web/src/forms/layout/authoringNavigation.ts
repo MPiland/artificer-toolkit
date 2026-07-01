@@ -153,7 +153,7 @@ function buildStepNode(
   const groupNodes = step.sections.flatMap((section) =>
     section.nodes.filter((node) => node.visible && node.kind === 'GROUP' && node.childMapId)
   )
-  const arrayNodes = groupNodes.filter((node) => node.groupKind === 'ARRAY')
+  const arrayNodes = groupNodes.filter((node) => node.groupKind === 'ARRAY' && isNavigableArrayNode(node))
   const hasDirectContent = hasDirectEditableContent(step)
 
   if (hasDirectContent) {
@@ -173,13 +173,15 @@ function buildStepNode(
 
   if (!hasDirectContent) {
     for (const node of arrayNodes) {
-      const collectionNode = buildArrayCollectionNode(node, context)
+      const collectionNode = buildArrayCollectionNode(node, context, {
+        emptyLabel: arrayNodes.length === 1 ? step.label : undefined
+      })
       if (collectionNode) children.push(collectionNode)
     }
   }
 
   if (children.length === 0) return undefined
-  if (children.length === 1 && !hasDirectContent) return children[0]
+  if (children.length === 1) return children[0]
 
   return {
     children,
@@ -191,7 +193,10 @@ function buildStepNode(
 
 function buildArrayCollectionNode(
   node: NodeRuntimeNodeDto,
-  context: BuildNavigationContext
+  context: BuildNavigationContext,
+  options: {
+    emptyLabel?: string
+  } = {}
 ): AuthoringNavigationNode | undefined {
   if (!node.childMapId) return undefined
 
@@ -201,6 +206,16 @@ function buildArrayCollectionNode(
     context,
     node
   })
+  const rows = getArrayRows(context.values, collectionFieldName)
+  if (rows.length === 0) {
+    return {
+      id: overviewTarget.id,
+      label: options.emptyLabel ?? node.label,
+      level: 0,
+      target: overviewTarget
+    }
+  }
+
   const children: AuthoringNavigationNode[] = [
     {
       id: overviewTarget.id,
@@ -209,7 +224,6 @@ function buildArrayCollectionNode(
       target: overviewTarget
     }
   ]
-  const rows = getArrayRows(context.values, collectionFieldName)
 
   rows.forEach((row, index) => {
     const rowPrefix = `${collectionFieldName}[${index}]`
@@ -454,8 +468,23 @@ function hasDirectEditableContent(step: NodeRuntimeStepDto) {
     section.nodes.some((node) => {
       if (!node.visible) return false
       if (node.kind === 'INPUT') return !isSystemManagedFieldNode(node)
-      return node.kind === 'GROUP' && node.groupKind === 'OBJECT'
+      if (node.kind !== 'GROUP') return false
+      if (node.groupKind === 'OBJECT') return true
+      return node.groupKind === 'ARRAY' && !isNavigableArrayNode(node)
     })
+  )
+}
+
+function isNavigableArrayNode(node: NodeRuntimeNodeDto) {
+  if (node.kind !== 'GROUP' || node.groupKind !== 'ARRAY' || !node.childMapId) return false
+
+  const childModel = createStaticResolvedFormModel(node.childMapId)
+  return childModel.steps.some((step) =>
+    step.sections.some((section) =>
+      section.nodes.some((childNode) =>
+        childNode.visible && childNode.kind === 'GROUP' && Boolean(childNode.childMapId)
+      )
+    )
   )
 }
 

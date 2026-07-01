@@ -34,17 +34,19 @@ export function Previews() {
       position={isMobile ? 'bottom' : 'right'}
       size={isMobile ? '80%' : '20rem'}
       withCloseButton={false}
+      classNames={{
+        body: styles.drawerBody
+      }}
     >
       <PreviewContent />
     </Drawer>
   ) : (
     <Collapse
-      className={styles.collapse}
       expanded={previewOpen}
-      keepMounted
       orientation='horizontal'
       transitionDuration={180}
       transitionTimingFunction='ease'
+      aria-label='Preview details'
     >
       <PreviewContent />
     </Collapse>

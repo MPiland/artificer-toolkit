@@ -9,6 +9,7 @@ import { Footer } from './Footer/Footer'
 import { Collapse, Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
 import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.utils'
+import { clsx } from 'clsx'
 
 export function Steps() {
   const {
@@ -22,13 +23,7 @@ export function Steps() {
     isMobile
   } = useAuthoringLayout()
 
-  const {
-    goToNavigationTarget,
-    goToStep,
-    mode,
-    navigationTree,
-    stepStatuses
-  } = useAuthoringForm()
+  const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses } = useAuthoringForm()
 
   const handleStepSelect = useCallback(
     (stepId: string) => {
@@ -120,14 +115,17 @@ export function Steps() {
     </Drawer>
   ) : (
     <Collapse
-      className={styles.collapse}
       expanded={stepsNavigationOpen}
       orientation='horizontal'
       transitionDuration={180}
       transitionTimingFunction='ease'
       aria-label='Authoring steps'
     >
-      <Rail aria-hidden={!stepsNavigationOpen} aria-label={'Authoring steps navigation'}>
+      <Rail
+        aria-hidden={!stepsNavigationOpen}
+        className={clsx(styles.shell, { ['hidden']: !stepsNavigationOpen })}
+        aria-label={'Authoring steps navigation'}
+      >
         <Content>{stepItems}</Content>
         <Footer />
       </Rail>

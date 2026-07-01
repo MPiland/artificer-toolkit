@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ActionIcon, Button, Menu, Tooltip } from '@mantine/core'
-import { ChevronLeft, Eye, MoreVertical, PanelLeft, RotateCcw, Save, Trash2 } from 'lucide-react'
+import { ChevronLeft, Eye, PanelLeft, RotateCcw, Save, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthoringForm } from '../AuthoringFormContext'
 import * as styles from './Actions.css'
@@ -164,32 +164,18 @@ export function AuthoringBackAction() {
   )
 }
 
-export function AuthoringOverflowMenu({ position }: { position: 'bottom-end' | 'top-end' }) {
+export function DeleteRecordAction() {
   const { canDelete, isDeleting, deleteRecord, deleteLabel } = useAuthoringForm()
   if (!canDelete) return null
 
   return (
-    <Menu position={position} width={220} withinPortal>
-      <Menu.Target>
-        <ActionIcon
-          aria-label='Authoring actions'
-          className={styles.mobileHeaderAction}
-          loading={isDeleting}
-          type='button'
-          variant='default'
-        >
-          <MoreVertical size={16} aria-hidden='true' />
-        </ActionIcon>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Item
-          color='red'
-          leftSection={<Trash2 size={16} aria-hidden='true' />}
-          onClick={() => void deleteRecord()}
-        >
-          {deleteLabel}
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+    <HeaderIconAction
+      isDestructive
+      label={deleteLabel}
+      loading={isDeleting}
+      onClick={() => void deleteRecord()}
+    >
+      <Trash2 size={14} aria-hidden='true' />
+    </HeaderIconAction>
   )
 }

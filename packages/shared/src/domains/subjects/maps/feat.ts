@@ -18,7 +18,11 @@ export const FEAT_NODE_MAP = featNode.define('feat', ({ map, nodes }) => {
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: FEAT_SECTIONS.basics, order: 10 }))
+    .set('label', text(['label'], 'Name', {
+      section: FEAT_SECTIONS.basics,
+      order: 10,
+      requiredIf: true
+    }))
     .set('description', richText(['description'], 'Description', { section: FEAT_SECTIONS.basics, order: 20 }))
     .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: FEAT_SECTIONS.basics, order: 30 }))
     .set('prerequisites', groupObject(['prerequisites'], 'Prerequisites', () => FEAT_PREREQUISITES_NODE_MAP, { section: FEAT_SECTIONS.requirements, order: 10 }))

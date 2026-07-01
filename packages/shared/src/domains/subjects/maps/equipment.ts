@@ -113,7 +113,11 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
   map
     .set('kind', text(['kind'], 'Kind'))
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: EQUIPMENT_SECTIONS.basics, order: 10 }))
+    .set('label', text(['label'], 'Name', {
+      section: EQUIPMENT_SECTIONS.basics,
+      order: 10,
+      requiredIf: true
+    }))
     .set('description', richText(['description'], 'Description', { section: EQUIPMENT_SECTIONS.basics, order: 20 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',

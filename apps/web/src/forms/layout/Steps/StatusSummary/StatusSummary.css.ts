@@ -71,7 +71,7 @@ export const statusClass = styleVariants({
   incomplete: {
     '@layer': {
       [app]: {
-        color: foundationVars.color.text.dim
+        color: foundationVars.color.status.warning
       }
     }
   },

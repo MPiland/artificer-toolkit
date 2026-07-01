@@ -19,6 +19,7 @@ import {
 } from '#forms'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
+import { toAuthoringRailSummaries } from '../layout/Steps/Steps.utils'
 import { getAuthoringProgress } from '../validation/authoringProgress'
 
 type TestFormValues = {
@@ -233,6 +234,37 @@ const mixedGroupModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
+const simpleArrayModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'details',
+      label: 'Details',
+      order: 1,
+      sections: [
+        {
+          id: 'details-section',
+          label: 'Details',
+          order: 1,
+          nodes: [
+            {
+              id: 'details',
+              path: ['details'],
+              label: 'Details',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'detail',
+              visible: true,
+              required: false,
+              clearPaths: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
 const V2Renderer = FormRenderer({
   defaultValues: testDefaults
 })
@@ -320,7 +352,7 @@ describe('authoring form renderer v2', () => {
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
   })
 
-  it('calls cancel when Back is clicked on the first step', async () => {
+  it('calls cancel when Cancel is clicked on the first step', async () => {
     const user = userEvent.setup()
     const onCancel = vi.fn()
 
@@ -330,7 +362,7 @@ describe('authoring form renderer v2', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^back$/i }))
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
 
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
@@ -422,7 +454,24 @@ describe('authoring form renderer v2', () => {
 })
 
 describe('authoring navigation tree', () => {
-  it('shows an overview leaf for empty arrays without item rows', () => {
+  it('marks direct required step targets incomplete when required values are empty', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: testModel.mapId,
+      model: testModel,
+      values: testDefaults
+    })
+    const basicsTarget = navigation.navigationTargets.find((target) => target.stepId === 'basics')
+
+    expect(basicsTarget).toEqual(expect.objectContaining({ label: 'Basics' }))
+    expect(navigation.stepStatuses[basicsTarget?.id ?? '']).toBe('incomplete')
+    expect(navigation.navigationTree.find((node) => node.label === 'Basics')).toEqual(
+      expect.objectContaining({ status: 'incomplete' })
+    )
+    expect(navigation.progressSummary.incompleteCount).toBeGreaterThan(0)
+    expect(navigation.progressSummary.completeCount).toBeLessThan(navigation.progressSummary.stepCount)
+  })
+
+  it('shows empty arrays as a selectable step without item rows', () => {
     const navigation = buildAuthoringNavigationTree({
       mapId: groupModel.mapId,
       model: groupModel,
@@ -432,10 +481,16 @@ describe('authoring navigation tree', () => {
     expect(navigation.navigationTargets).toContainEqual(
       expect.objectContaining({
         collectionFieldName: 'features',
-        kind: 'overview',
-        label: 'Overview'
+        kind: 'overview'
       })
     )
+    expect(navigation.navigationTree).toEqual([
+      expect.objectContaining({
+        children: undefined,
+        label: 'Features'
+      })
+    ])
+    expect(navigation.navigationTree.map((node) => node.label)).not.toContain('Overview')
     expect(JSON.stringify(navigation.navigationTree)).not.toContain('Feature 1')
   })
 
@@ -456,6 +511,32 @@ describe('authoring navigation tree', () => {
         })
       ])
     )
+  })
+
+  it('keeps simple child maps inline in the owning step', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: simpleArrayModel.mapId,
+      model: simpleArrayModel,
+      values: {
+        ...testDefaults,
+        details: [{ label: 'Personality Trait 1' }]
+      }
+    })
+
+    expect(navigation.navigationTargets).toEqual([
+      expect.objectContaining({
+        kind: 'step',
+        label: 'Details',
+        stepId: 'details'
+      })
+    ])
+    expect(navigation.navigationTree).toEqual([
+      expect.objectContaining({
+        children: undefined,
+        label: 'Details'
+      })
+    ])
+    expect(JSON.stringify(navigation.navigationTree)).not.toContain('Personality Trait 1')
   })
 
   it('keeps arrays inline when the owning step has direct editable content', () => {
@@ -486,6 +567,72 @@ describe('authoring navigation tree', () => {
       ])
     )
     expect(JSON.stringify(navigation.navigationTree)).not.toContain('Detail 1')
+  })
+})
+
+describe('authoring rail summaries', () => {
+  it('keeps completed step count visually separate from issue count', () => {
+    const summaries = toAuthoringRailSummaries({
+      hasChanges: false,
+      mode: 'create',
+      stepStatuses: {
+        basics: 'incomplete',
+        details: 'complete'
+      },
+      summary: {
+        completeCount: 1,
+        errorCount: 0,
+        incompleteCount: 1,
+        stepCount: 2,
+        warningCount: 0
+      },
+      visitedStepIds: new Set(['details'])
+    })
+
+    expect(summaries).toEqual([
+      expect.objectContaining({
+        label: 'steps',
+        markerLabel: 'Completed steps',
+        status: 'complete',
+        value: '1/2'
+      }),
+      expect.objectContaining({
+        label: 'issue',
+        markerLabel: 'Issues found',
+        status: 'warning',
+        value: '1'
+      }),
+      expect.objectContaining({
+        label: 'status',
+        markerLabel: 'New item',
+        status: 'empty',
+        value: 'New'
+      })
+    ])
+  })
+
+  it('labels unchanged edit forms as saved', () => {
+    const summaries = toAuthoringRailSummaries({
+      hasChanges: false,
+      mode: 'edit',
+      stepStatuses: {
+        basics: 'complete'
+      },
+      summary: {
+        completeCount: 1,
+        errorCount: 0,
+        incompleteCount: 0,
+        stepCount: 1,
+        warningCount: 0
+      },
+      visitedStepIds: new Set()
+    })
+
+    expect(summaries).toEqual([
+      expect.objectContaining({ label: 'steps', status: 'complete', value: '1/1' }),
+      expect.objectContaining({ label: 'issues', markerLabel: 'No issues', status: 'complete' }),
+      expect.objectContaining({ label: 'status', status: 'complete', value: 'Saved' })
+    ])
   })
 })
 

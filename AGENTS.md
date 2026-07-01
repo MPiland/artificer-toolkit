@@ -144,6 +144,12 @@ Do not run full test suites or full builds unless risk justifies it or the user 
 
 Use subagents only when they save context, save time, or materially improve output quality.
 
+For implementation delegation, the main agent keeps ownership of judgment. The main agent must first interpret the user's annotations or request, inspect enough code to choose the correct layer, define the intended change, constraints, files or surfaces in scope, validation, and risks. Only then may a subagent receive the bounded execution slice.
+
+Do not delegate open-ended architectural judgment, product interpretation, or layer-selection decisions. Delegate concrete implementation tasks such as "change these files," "preserve this pattern," "do not touch these areas," "expected behavior is X," and "run these checks." The main agent reviews the diff, chooses or runs final validation, integrates the result, and corrects issues.
+
+For tightly-coupled form/UI platform work, prefer one subagent at most for a bounded slice. Avoid multiple agents editing the same provider, renderer, navigation, node-map, or layout surfaces concurrently.
+
 For research, review, and exploration tasks, avoid confirmation bias. Do not pass a preferred conclusion. Ask the subagent to investigate, compare, or verify, and require evidence, tradeoffs, uncertainty, and better alternatives.
 
 Prefer subagents for:

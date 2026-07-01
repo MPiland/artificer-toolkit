@@ -52,7 +52,7 @@ function createDomainSections(
   switch (domain) {
     case 'background':
       return [
-        createProseSection('background-prose', 'Background Text', values, 'Add background prose to preview its reader copy.'),
+        createProseSection('background-prose', 'Description', values, 'Add a description to preview its reader copy.'),
         createListSection('background-features', 'Features', readRecords(values.features), 'No background features yet.'),
         createListSection('background-details', 'Details', readRecords(values.details), 'No background details yet.')
       ]
@@ -72,9 +72,9 @@ function createDomainSections(
           ['AC', readNumber(values.armorClass)],
           ['HP', formatHitPoints(values)],
           ['CR', labelForVocabularyId(system, 'challengeRatings', readString(values.challengeRatingId))],
-          ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))],
-          ['Speed', formatSpeedList(readRecords(values.speeds), system)]
+          ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))]
         ]),
+        createRowsSection('creature-speeds', 'Speeds', createSpeedRows(readRecords(values.speeds), system), { showWhenEmpty: true }),
         createChipsSection('creature-defenses', 'Defenses', [
           ...labelIds(system, 'damageTypes', readStrings(values.damageVulnerabilities), 'Vulnerable'),
           ...labelIds(system, 'damageTypes', readStrings(values.damageResistances), 'Resists'),
@@ -103,19 +103,22 @@ function createDomainSections(
       ]
     case 'feat':
       return [
-        createProseSection('feat-prose', 'Feat Text', values, 'Add feat text to preview its reader copy.'),
+        createProseSection('feat-prose', 'Description', values, 'Add a description to preview its reader copy.'),
         createDamageSection(values, system),
         createChargesSection(values),
         createListSection('feat-features', 'Feature Pieces', readRecords(values.features), 'No feat features yet.')
       ]
     case 'race':
       return [
-        createProseSection('race-prose', 'Race Text', values, 'Add race prose to preview how this will read.'),
-        createFactsSection('race-facts', 'Ancestry Snapshot', [
-          ['Category', formatEnumLabel(readString(values.category))],
-          ['Selection', formatEnumLabel(readString(values.selectionMode))],
-          ['Size', formatEnumLabel(readString(values.size))],
-          ['Speed', formatSpeedList(readRecords(values.speeds), system)]
+        createProseSection('race-prose', 'Description', values, 'Add a description to preview how this will read.'),
+        createRowsSection('race-traits', 'Traits', [
+          ...createFactRows([
+            ['Size', formatEnumLabel(readString(values.size))]
+          ]),
+          ...createSpeedRows(readRecords(values.speeds), system).map((speed) => ({
+            label: 'Speeds',
+            value: speed.label
+          }))
         ]),
         createListSection('race-options', 'Ancestry Options', readRecords(values.options), 'No ancestry options yet.'),
         createListSection('race-features', 'Features', readRecords(values.features), 'No race features yet.'),
@@ -130,7 +133,7 @@ function createDomainSections(
           ['Components', readStrings(values.components).map(formatEnumLabel).join(', ')]
         ]),
         createDamageSection(values, system),
-        createProseSection('spell-prose', 'Spell Text', values, 'Add spell text to preview its reader copy.'),
+        createProseSection('spell-prose', 'Description', values, 'Add a description to preview its reader copy.'),
         createProseSection('spell-materials', 'Materials', { description: values.materialDescription }, undefined)
       ]
     case 'vehicle':
@@ -154,14 +157,18 @@ function createFactsSection(
   entries: readonly (readonly [string, unknown])[]
 ): PreviewSection {
   return {
-    facts: entries.flatMap(([label, value]) => {
-      const formatted = formatFactValue(value)
-      return formatted ? [{ label, value: formatted }] : []
-    }),
+    facts: createFactRows(entries),
     id,
     title,
     type: 'facts'
   }
+}
+
+function createFactRows(entries: readonly (readonly [string, unknown])[]): PreviewFact[] {
+  return entries.flatMap(([label, value]) => {
+    const formatted = formatFactValue(value)
+    return formatted ? [{ label, value: formatted }] : []
+  })
 }
 
 function createProseSection(
@@ -192,6 +199,25 @@ function createListSection(
     items: records.slice(0, MAX_COLLECTION_ITEMS).map(createListItem),
     title,
     type: 'list'
+  }
+}
+
+function createRowsSection(
+  id: string,
+  title: string,
+  rows: readonly PreviewFact[],
+  options?: {
+    empty?: string
+    showWhenEmpty?: boolean
+  }
+): PreviewSection {
+  return {
+    empty: options?.empty,
+    id,
+    rows: [...rows],
+    showWhenEmpty: options?.showWhenEmpty,
+    title,
+    type: 'rows'
   }
 }
 
@@ -326,19 +352,22 @@ function formatCrew(values: RuntimeRecord): string | undefined {
   return formatNumber(min ?? max)
 }
 
-function formatSpeedList(
+function createSpeedRows(
   speeds: readonly RuntimeRecord[],
   system?: SystemResponseDto | null
-): string | undefined {
-  const labels = speeds.flatMap((speed) => {
+): PreviewFact[] {
+  return speeds.flatMap((speed) => {
+    const speedLabel = labelForVocabularyId(system, 'speeds', readString(speed.speedId))
+    if (!speedLabel) return []
     const amount = readNumber(speed.amount)
-    if (amount === undefined) return []
-    const speedLabel = labelForVocabularyId(system, 'speeds', readString(speed.speedId)) ?? 'Speed'
     const unit = formatEnumLabel(readString(speed.unit))?.toLowerCase() ?? 'feet'
-    return [`${speedLabel.replace(/\s*Speed$/i, '')} ${formatNumber(amount)} ${unit}`]
-  })
+    const label = speedLabel.replace(/\s*Speed$/i, '')
+    const value = amount === undefined ? label : `${label} - ${formatNumber(amount)} ${unit}`
 
-  return labels.length ? labels.join(', ') : undefined
+    return [{
+      label: value
+    }]
+  })
 }
 
 function formatSpellLevel(level: number | undefined): string | undefined {
@@ -493,5 +522,6 @@ function collectRecords(value: unknown): RuntimeRecord[] {
 function isUsefulSection(section: PreviewSection): boolean {
   if (section.type === 'facts') return section.facts.length > 0
   if (section.type === 'prose') return Boolean(section.html?.trim() || section.quote?.trim() || section.fallback)
+  if (section.type === 'rows') return section.rows.length > 0 || Boolean(section.empty) || Boolean(section.showWhenEmpty)
   return section.items.length > 0
 }

@@ -41,7 +41,7 @@ function statusIcon(status: ItemStatus) {
     case 'dirty':
       return <GitBranch size={size} />
     case 'incomplete':
-      return <Circle size={size} />
+      return <AlertTriangle size={size} />
     case 'warning':
     case 'error':
       return <AlertTriangle size={size} />

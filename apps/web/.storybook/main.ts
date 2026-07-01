@@ -12,7 +12,8 @@ const config: StorybookConfig = {
     '@storybook/addon-docs',
     '@storybook/addon-themes',
     '@storybook/addon-vitest',
-    '@storybook/addon-mcp'
+    '@storybook/addon-mcp',
+    '@chromatic-com/storybook'
   ]
 }
 

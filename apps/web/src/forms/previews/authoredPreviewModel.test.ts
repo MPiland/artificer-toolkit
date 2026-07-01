@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { authoredRouteStorySystem, seedFireballSpell } from '#domains/authoredRouteStory.fixtures'
+import {
+  authoredRouteStorySystem,
+  seedDragonbornRace,
+  seedFireballSpell
+} from '#domains/authoredRouteStory.fixtures'
 import { authoredPreviewFactories } from './authoredPreviewFactories'
 import { collectDamagePreviewItems, createAuthoredPreviewModel } from './authoredPreviewModel'
 
@@ -42,8 +46,44 @@ describe('authored preview factories', () => {
     expect(model.sections.map((section) => section.title)).toEqual([
       'Spell Snapshot',
       'Damage',
-      'Spell Text',
+      'Description',
       'Materials'
     ])
+  })
+
+  it('renders race traits as a single step summary', () => {
+    const model = createAuthoredPreviewModel({
+      domain: 'race',
+      system: authoredRouteStorySystem,
+      values: seedDragonbornRace
+    })
+    const traits = model.sections.find((section) => section.id === 'race-traits')
+
+    expect(traits).toMatchObject({
+      rows: [
+        { label: 'Size', value: 'Medium' },
+        { label: 'Speeds', value: 'Walking - 30 feet' }
+      ],
+      title: 'Traits',
+      type: 'rows'
+    })
+  })
+
+  it('omits incomplete race speed values from the traits preview', () => {
+    const model = createAuthoredPreviewModel({
+      domain: 'race',
+      system: authoredRouteStorySystem,
+      values: {
+        ...seedDragonbornRace,
+        speeds: [{ amount: 30, speedId: '', unit: 'FEET' }]
+      }
+    })
+    const traits = model.sections.find((section) => section.id === 'race-traits')
+
+    expect(traits).toMatchObject({
+      rows: [{ label: 'Size', value: 'Medium' }],
+      title: 'Traits',
+      type: 'rows'
+    })
   })
 })

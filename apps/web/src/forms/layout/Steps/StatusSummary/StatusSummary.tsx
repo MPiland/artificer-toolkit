@@ -5,7 +5,7 @@ import { statusLabel, statusIcon } from '../Steps.utils'
 import type { SummaryProps } from './StatusSummary.types'
 
 export function StatusSummary({ summary }: { summary: SummaryProps }) {
-  const label = statusLabel(summary.status)
+  const label = summary.markerLabel ?? statusLabel(summary.status)
 
   return (
     <Group

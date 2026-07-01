@@ -31,7 +31,7 @@ export function statusIcon(status: ItemStatus) {
     case 'dirty':
       return <GitBranch size={size} />
     case 'incomplete':
-      return <Circle size={size} />
+      return <AlertTriangle size={size} />
     case 'warning':
     case 'error':
       return <AlertTriangle size={size} />
@@ -146,23 +146,39 @@ export function toAuthoringRailSummaries({
       : (summary?.completeCount ?? 0)
   const issueCount =
     (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0) + (summary?.incompleteCount ?? 0)
+  const statusSummary: SummaryProps = hasChanges
+    ? {
+        label: 'status',
+        status: 'dirty',
+        value: 'Edited'
+      }
+    : mode === 'create'
+      ? {
+          label: 'status',
+          markerLabel: 'New item',
+          status: 'empty',
+          value: 'New'
+        }
+      : {
+          label: 'status',
+          status: 'complete',
+          value: 'Saved'
+        }
 
   return [
     {
       label: 'steps',
-      status: completeCount === stepCount && stepCount > 0 ? 'complete' : 'incomplete',
+      markerLabel: 'Completed steps',
+      status: 'complete',
       value: `${completeCount}/${stepCount}`
     },
     {
       label: issueCount === 1 ? 'issue' : 'issues',
+      markerLabel: issueCount > 0 ? 'Issues found' : 'No issues',
       status: issueCount > 0 ? 'warning' : 'complete',
       value: `${issueCount}`
     },
-    {
-      label: hasChanges ? 'edited' : 'saved',
-      status: hasChanges ? 'dirty' : 'complete',
-      value: hasChanges ? 'Edited' : 'Saved'
-    }
+    statusSummary
   ]
 }
 

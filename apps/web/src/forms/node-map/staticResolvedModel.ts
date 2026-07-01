@@ -4,6 +4,7 @@ import type {
   NodeRuntimePathDto,
   NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import {
   BACKGROUND_DETAIL_NODE_MAP,
   CAPACITY_NODE_MAP,
@@ -44,6 +45,13 @@ import {
 } from '@artificer-toolkit/shared/utils'
 
 type StaticNodeMap = NodeMap<Record<string, unknown>>
+type StaticResolvedFormModelOptions = {
+  system?: SystemResponseDto | null
+}
+type SystemVocabularyKey = Exclude<
+  keyof NonNullable<SystemResponseDto>,
+  'description' | 'id' | 'label' | 'userId'
+>
 
 const STATIC_ROOT_NODE_MAPS = [
   BACKGROUND_NODE_MAP,
@@ -83,6 +91,25 @@ const STATIC_NODE_MAP_ALIASES: Readonly<Record<string, string>> = {
   proficiencyGrant: PROFICIENCY_NODE_MAP.mapId
 }
 
+const RELATIONSHIP_TABLE_TO_SYSTEM_KEY: Readonly<Record<string, SystemVocabularyKey>> = {
+  alignments: 'alignments',
+  challenge_ratings: 'challengeRatings',
+  condition_types: 'conditionTypes',
+  creature_types: 'creatureTypes',
+  currencies: 'currencies',
+  damage_types: 'damageTypes',
+  heritages: 'heritages',
+  languages: 'languages',
+  lifestyles: 'lifestyles',
+  magic_schools: 'magicSchools',
+  passives: 'passives',
+  rarities: 'rarities',
+  senses: 'senses',
+  skills: 'skills',
+  speeds: 'speeds',
+  terrains: 'terrains'
+}
+
 const STATIC_RELATIONSHIP_OPTIONS: Readonly<Record<string, readonly NodeRuntimeOptionDto[]>> = {
   classes: [
     { value: '00000000-0000-0000-0010-000a00000000', label: 'Sorcerer' },
@@ -99,11 +126,14 @@ const STATIC_RELATIONSHIP_OPTIONS: Readonly<Record<string, readonly NodeRuntimeO
 
 const STATIC_NODE_MAPS = buildStaticNodeMapRegistry(STATIC_ROOT_NODE_MAPS)
 
-export function createStaticResolvedFormModel(mapId: string): NodeRuntimeResolveResponseDto | undefined {
+export function createStaticResolvedFormModel(
+  mapId: string,
+  options: StaticResolvedFormModelOptions = {}
+): NodeRuntimeResolveResponseDto | undefined {
   const nodeMap = STATIC_NODE_MAPS.get(STATIC_NODE_MAP_ALIASES[mapId] ?? mapId)
   if (!nodeMap) return undefined
 
-  return createResolvedFormModelFromNodeMap(mapId, nodeMap)
+  return createResolvedFormModelFromNodeMap(mapId, nodeMap, options)
 }
 
 function buildStaticNodeMapRegistry(nodeMaps: readonly unknown[]): ReadonlyMap<string, StaticNodeMap> {
@@ -131,7 +161,8 @@ function collectStaticNodeMap(
 
 export function createResolvedFormModelFromNodeMap<TValues extends object>(
   mapId: string,
-  nodeMap: NodeMap<TValues>
+  nodeMap: NodeMap<TValues>,
+  options: StaticResolvedFormModelOptions = {}
 ): NodeRuntimeResolveResponseDto {
   return {
     mapId,
@@ -143,7 +174,7 @@ export function createResolvedFormModelFromNodeMap<TValues extends object>(
         id: section.id,
         label: section.label,
         order: section.order,
-        nodes: section.nodes.map(({ id, node }) => toRuntimeNode(id, node))
+        nodes: section.nodes.map(({ id, node }) => toRuntimeNode(id, node, options))
       }))
     })),
     clearPaths: []
@@ -179,7 +210,11 @@ function resolveStaticNodeMapSteps<TValues extends object>(
   ]
 }
 
-function toRuntimeNode<TValues extends object>(id: string, node: NodeEntry<TValues>): NodeRuntimeNodeDto {
+function toRuntimeNode<TValues extends object>(
+  id: string,
+  node: NodeEntry<TValues>,
+  options: StaticResolvedFormModelOptions
+): NodeRuntimeNodeDto {
   const base = {
     id,
     path: [...node.path] as NodeRuntimePathDto,
@@ -209,7 +244,7 @@ function toRuntimeNode<TValues extends object>(id: string, node: NodeEntry<TValu
     ...base,
     kind: 'INPUT',
     type: node.type,
-    options: getStaticInlineOptions(node) ?? getStaticRelationshipOptions(node)
+    options: getStaticInlineOptions(node) ?? getStaticRelationshipOptions(node, options)
   }
 }
 
@@ -226,7 +261,8 @@ function getStaticInlineOptions<TValues extends object>(node: NodeEntry<TValues>
 }
 
 function getStaticRelationshipOptions<TValues extends object>(
-  node: NodeEntry<TValues>
+  node: NodeEntry<TValues>,
+  { system }: StaticResolvedFormModelOptions
 ): NodeRuntimeOptionDto[] | undefined {
   if (node.kind !== 'INPUT' || !('source' in node) || node.source.kind !== 'DATA') {
     return undefined
@@ -234,6 +270,15 @@ function getStaticRelationshipOptions<TValues extends object>(
 
   const relationship = node.source.relationship
   if (relationship.kind !== 'TABLE') return undefined
+
+  const systemKey = RELATIONSHIP_TABLE_TO_SYSTEM_KEY[relationship.table]
+  if (systemKey && system) {
+    return system[systemKey].map((option) => ({
+      value: option.id,
+      label: option.label,
+      description: option.description ?? option.tooltip ?? undefined
+    }))
+  }
 
   return STATIC_RELATIONSHIP_OPTIONS[relationship.table]?.map((option) => ({ ...option }))
 }

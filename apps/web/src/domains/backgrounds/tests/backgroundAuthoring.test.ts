@@ -45,7 +45,7 @@ describe('background authoring helpers', () => {
       features: [],
       systemId: 'dnd-5e-srd'
     })
-    expect(background.startingEquipment?.sets[0]?.groups[0]?.options[0]?.items).toEqual([])
+    expect(background.startingEquipment?.sets).toEqual([])
   })
 
   it('normalizes missing optional collections before save', () => {
@@ -65,7 +65,7 @@ describe('background authoring helpers', () => {
     expect(normalized.details).toEqual([])
     expect(normalized.proficiencies).toEqual([])
     expect(normalized.features).toEqual([])
-    expect(normalized.startingEquipment?.sets).toHaveLength(1)
+    expect(normalized.startingEquipment?.sets).toEqual([])
   })
 
   it('adds, replaces, and removes starting equipment items without pagination-style state', () => {
@@ -73,6 +73,7 @@ describe('background authoring helpers', () => {
     const withItem = addStartingEquipmentItem(empty)
     const item = expectEquipmentItem(getStartingEquipmentItems(withItem)[0])
 
+    expect(withItem.sets[0]?.groups[0]?.options[0]?.items).toHaveLength(1)
     expect(item).toMatchObject({
       order: 1,
       startingEquipmentKind: 'EQUIPMENT',
