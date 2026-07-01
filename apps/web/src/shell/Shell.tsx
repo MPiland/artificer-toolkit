@@ -32,11 +32,6 @@ export interface PageHeaderProps {
   actions?: ReactNode
 }
 
-export interface FooterActionBarProps {
-  summary: ReactNode
-  actions: ReactNode
-}
-
 type NavigationMenuItem = {
   href: string
   id: string
@@ -110,15 +105,6 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
       </div>
       {actions ? <div className={styles.headerActions}>{actions}</div> : null}
     </header>
-  )
-}
-
-export function FooterActionBar({ summary, actions }: FooterActionBarProps) {
-  return (
-    <footer className={styles.footerActionBar}>
-      <div>{summary}</div>
-      <Group gap='sm'>{actions}</Group>
-    </footer>
   )
 }
 

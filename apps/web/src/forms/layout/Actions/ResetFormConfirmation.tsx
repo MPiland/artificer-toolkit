@@ -3,9 +3,11 @@ import * as styles from './Actions.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 import { useAuthoringForm } from '../AuthoringFormContext'
 import { useCallback } from 'react'
+import { useBreakpoints } from '#ui'
 
 export function ResetFormConfirmation() {
-  const { isMobile, resetFormConfirmOpen, toggleResetFormConfirm } = useAuthoringLayout()
+  const { resetFormConfirmOpen, toggleResetFormConfirm } = useAuthoringLayout()
+  const { isMobile } = useBreakpoints()
   const { resetForm } = useAuthoringForm()
 
   const handleConfirmResetForm = useCallback(() => {

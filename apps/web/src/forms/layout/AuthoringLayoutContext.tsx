@@ -30,8 +30,6 @@ export type AuthoringLayoutConstants = {
   activeTarget: AuthoringNavigationTarget | undefined
   stepId: string | undefined
   activeSections: VisibleAuthoringStep['sections']
-  isMobile: boolean
-  isTablet: boolean
 }
 
 export type AuthoringLayoutContextValue = AuthoringLayoutToggles &

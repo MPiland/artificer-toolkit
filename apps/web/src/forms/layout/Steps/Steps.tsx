@@ -1,7 +1,7 @@
 import { useAuthoringLayout } from '#app/forms/layout/AuthoringLayoutContext'
 import { useCallback, useMemo } from 'react'
 import { useAuthoringForm } from '../AuthoringFormContext'
-import { Rail } from '#ui'
+import { Rail, useBreakpoints } from '#ui'
 import { Header } from './Header/Header'
 import { Item } from './Item/Item'
 import { Content } from './Content/Content'
@@ -20,8 +20,8 @@ export function Steps() {
     activeSections,
     stepId,
     visibleSteps,
-    isMobile
   } = useAuthoringLayout()
+  const { isMobile } = useBreakpoints()
 
   const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses } = useAuthoringForm()
 

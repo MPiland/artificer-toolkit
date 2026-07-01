@@ -39,6 +39,7 @@ import {
   type NodeMap
 } from '@artificer-toolkit/shared/maps'
 import {
+  evaluateConditionIf,
   resolveNodeMapSteps,
   type SectionedNodeGroup,
   type SteppedNodeGroup
@@ -46,7 +47,10 @@ import {
 
 type StaticNodeMap = NodeMap<Record<string, unknown>>
 type StaticResolvedFormModelOptions = {
+  ancestors?: readonly Record<string, unknown>[]
+  parentValues?: Record<string, unknown>
   system?: SystemResponseDto | null
+  values?: Record<string, unknown>
 }
 type SystemVocabularyKey = Exclude<
   keyof NonNullable<SystemResponseDto>,
@@ -215,13 +219,14 @@ function toRuntimeNode<TValues extends object>(
   node: NodeEntry<TValues>,
   options: StaticResolvedFormModelOptions
 ): NodeRuntimeNodeDto {
+  const visible = isStaticNodeVisible(node, options)
   const base = {
     id,
     path: [...node.path] as NodeRuntimePathDto,
     label: node.label,
     kind: node.kind,
-    visible: true,
-    required: node.requiredIf === true,
+    visible,
+    required: isStaticNodeRequired(node, options),
     hiddenBehavior: node.hiddenBehavior,
     clearPaths: []
   } satisfies Pick<
@@ -246,6 +251,40 @@ function toRuntimeNode<TValues extends object>(
     type: node.type,
     options: getStaticInlineOptions(node) ?? getStaticRelationshipOptions(node, options)
   }
+}
+
+function isStaticNodeVisible<TValues extends object>(
+  node: NodeEntry<TValues>,
+  options: StaticResolvedFormModelOptions
+) {
+  if (!shouldEvaluateStaticConditions(options)) return true
+  return evaluateConditionIf(node.showIf, {
+    ancestors: options.ancestors,
+    parentValues: options.parentValues,
+    values: options.values ?? {}
+  })
+}
+
+function isStaticNodeRequired<TValues extends object>(
+  node: NodeEntry<TValues>,
+  options: StaticResolvedFormModelOptions
+) {
+  if (node.requiredIf === true) return true
+  if (!node.requiredIf || !shouldEvaluateStaticConditions(options)) return false
+
+  return evaluateConditionIf(node.requiredIf, {
+    ancestors: options.ancestors,
+    parentValues: options.parentValues,
+    values: options.values ?? {}
+  })
+}
+
+function shouldEvaluateStaticConditions({
+  ancestors,
+  parentValues,
+  values
+}: StaticResolvedFormModelOptions) {
+  return values !== undefined || parentValues !== undefined || ancestors !== undefined
 }
 
 function getStaticInlineOptions<TValues extends object>(node: NodeEntry<TValues>): NodeRuntimeOptionDto[] | undefined {

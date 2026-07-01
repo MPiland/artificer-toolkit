@@ -1,10 +1,10 @@
-import { Rail } from '#ui'
+import { Rail, useBreakpoints } from '#ui'
 import * as styles from './Previews.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 import { Collapse, Drawer, CloseButton } from '@mantine/core'
 
 function PreviewContent() {
-  const { previewContent, previewOpen, togglePreview, isMobile } = useAuthoringLayout()
+  const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
 
   return (
     <Rail
@@ -14,7 +14,7 @@ function PreviewContent() {
       className={styles.shell}
     >
       <Rail.Header className={styles.header}>
-        {isMobile && <CloseButton onClick={() => togglePreview()} className={styles.closeButton} />}
+        <CloseButton onClick={() => togglePreview()} className={styles.closeButton} />
         Preview
       </Rail.Header>
       <Rail.Content className={styles.content}>{previewContent}</Rail.Content>
@@ -23,7 +23,8 @@ function PreviewContent() {
 }
 
 export function Previews() {
-  const { isTablet, isMobile, previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { isMobile, isTablet } = useBreakpoints()
 
   if (!previewContent) return null
 

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useDisclosure, useMediaQuery } from '@mantine/hooks'
+import { useDisclosure } from '@mantine/hooks'
 import { useAuthoringForm } from './AuthoringFormContext'
+import { useBreakpoints } from '#ui'
 import {
   AuthoringLayoutContext,
   type AuthoringLayoutContextValue,
@@ -22,11 +23,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     mode,
     isDraft
   } = useAuthoringForm()
-  const isMobile = useMediaQuery(
-    '(max-width: 640px), (max-width: 900px) and (orientation: portrait)',
-    false
-  )
-  const isTablet = useMediaQuery('(max-width: 992px)', false)
+  const { isMobile, isTablet } = useBreakpoints()
   const [
     stepsNavigationOpen,
     { close: closeStepsNavigation, open: openStepsNavigation, toggle: toggleStepsNavigation }
@@ -66,8 +63,6 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthoringLayoutContextValue>(
     () => ({
-      isMobile,
-      isTablet,
       stepsNavigationOpen,
       toggleStepsNavigation,
       previewOpen,
@@ -88,8 +83,6 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
       stepId
     }),
     [
-      isMobile,
-      isTablet,
       stepsNavigationOpen,
       toggleStepsNavigation,
       previewOpen,

@@ -141,30 +141,6 @@ export const contentArea = style({
   }
 })
 
-export const mobileFooterSlot = style({
-  '@layer': {
-    [app]: {
-      display: 'none',
-      '@media': {
-        [tabletPortrait]: {
-          position: 'fixed',
-          insetInline: 0,
-          insetBlockEnd: 0,
-          zIndex: 190,
-          display: 'block'
-        },
-        [mobile]: {
-          position: 'fixed',
-          insetInline: 0,
-          insetBlockEnd: 0,
-          zIndex: 190,
-          display: 'block'
-        }
-      }
-    }
-  }
-})
-
 export const searchDrawerContent = style({
   '@layer': {
     [app]: {
@@ -359,31 +335,6 @@ export const headerActions = style({
       alignItems: 'center',
       justifyContent: 'flex-end',
       gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const footerActionBar = style({
-  '@layer': {
-    [app]: {
-      position: 'sticky',
-      insetBlockEnd: foundationVars.space[4],
-      zIndex: 5,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[4],
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card,
-      '@media': {
-        [mobile]: {
-          alignItems: 'stretch',
-          flexDirection: 'column'
-        }
-      }
     }
   }
 })

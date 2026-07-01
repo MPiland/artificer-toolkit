@@ -4330,7 +4330,6 @@ __metadata:
     turbo: "npm:^2.9.16"
     typescript: "npm:^6.0.3"
     vitest: "npm:^4.1.9"
-    workspace: "npm:^0.0.1-preview.2"
   languageName: unknown
   linkType: soft
 
@@ -9794,13 +9793,6 @@ __metadata:
   version: 1.0.0
   resolution: "wordwrap@npm:1.0.0"
   checksum: 10c0/7ed2e44f3c33c5c3e3771134d2b0aee4314c9e49c749e37f464bf69f2bcdf0cbf9419ca638098e2717cff4875c47f56a007532f6111c3319f557a2ca91278e92
-  languageName: node
-  linkType: hard
-
-"workspace@npm:^0.0.1-preview.2":
-  version: 0.0.1-preview.2
-  resolution: "workspace@npm:0.0.1-preview.2"
-  checksum: 10c0/6465af7cb50b9f7618034b3766c7a4fa20c1b3e43e843dd9e5e9ff16db39d8f7012a8f12814a4b7bafb0dc8c725644b9c3101d6b14154b0f190e1e6ae0330d50
   languageName: node
   linkType: hard
 

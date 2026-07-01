@@ -1,5 +1,5 @@
-export { Shell, FooterActionBar, PageHeader } from './Shell'
-export type { ShellProps, FooterActionBarProps, PageHeaderProps } from './Shell'
+export { Shell, PageHeader } from './Shell'
+export type { ShellProps, PageHeaderProps } from './Shell'
 export { isNavItemActive, platformNavigation } from './navigation'
 export { useShellAuthoringChrome, useShellHeaderSupplement } from './headerSupplement'
 export type {

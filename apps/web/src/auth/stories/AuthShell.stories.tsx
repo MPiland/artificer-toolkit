@@ -45,11 +45,10 @@ export const ResetPassword: Story = {
   args: {
     title: 'Reset your password',
     description: 'Enter your email and we\'ll send a secure reset link if email delivery is available.',
-    variant: 'support',
     children: null
   },
-  render: ({ title, description, variant }) => (
-    <AuthPageShell title={title} description={description} variant={variant}>
+  render: ({ title, description }) => (
+    <AuthPageShell title={title} description={description}>
       <ResetPasswordForm authClient={createMockAuthClient()} onSuccess={fn()} />
     </AuthPageShell>
   )
@@ -59,11 +58,10 @@ export const UpdatePassword: Story = {
   args: {
     title: 'Set a new password',
     description: 'Choose a new password, then return to your toolkit.',
-    variant: 'support',
     children: null
   },
-  render: ({ title, description, variant }) => (
-    <AuthPageShell title={title} description={description} variant={variant}>
+  render: ({ title, description }) => (
+    <AuthPageShell title={title} description={description}>
       <UpdatePasswordForm authClient={createMockAuthClient()} onSuccess={fn()} />
     </AuthPageShell>
   )

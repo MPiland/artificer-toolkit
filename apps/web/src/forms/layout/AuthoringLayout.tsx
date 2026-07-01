@@ -28,6 +28,7 @@ import type {
   CharacterBuilderRouteMode
 } from './authoredFormRouteContext'
 import { CharacterBuilderAuthoringRuntime } from '#domains/characters/components/CharacterBuilderAuthoringRuntime'
+import { useBreakpoints } from '#ui'
 
 type EmptyAuthoringLayoutProps = {
   children?: ReactNode
@@ -62,7 +63,8 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
 }
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
-  const { stepsNavigationOpen, isMobile, setPreviewContent } = useAuthoringLayout()
+  const { stepsNavigationOpen, setPreviewContent } = useAuthoringLayout()
+  const { isMobile } = useBreakpoints()
   const authoring = useAuthoringForm()
   const session = authoring.authoredSession
   const characterSession = authoring.characterSession

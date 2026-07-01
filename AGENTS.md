@@ -116,6 +116,14 @@ This repo runs on Windows, and several frontend tools spawn native child process
 - Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
 - Keep normal read/search/patch commands in the regular sandbox. Escalation is for native child-process toolchains, not routine file inspection.
 
+## GitHub CLI Auth On Windows
+
+GitHub CLI auth is available through the Windows keyring in this workspace, not through `GH_TOKEN` in the sandboxed shell environment.
+
+- Run `gh` commands with escalated execution when authentication is required, including PR review/comment/thread operations.
+- If normal sandboxed `gh` reports an invalid token, retry the same `gh` command escalated before diagnosing auth as broken.
+- Do not print or inspect token values. `gh auth status` is acceptable for confirming authentication state.
+
 ## Code Changes
 
 Prefer direct edits with the available patch tool.

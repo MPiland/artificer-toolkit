@@ -61,7 +61,13 @@ export const closeButton = style({
   '@layer': {
     [app]: {
       marginInlineEnd: 'auto',
-      marginInlineStart: 0
+      marginInlineStart: 0,
+      display: 'none',
+      '@media': {
+        [media.mobile]: {
+          display: 'inline-flex'
+        }
+      }
     }
   }
 })

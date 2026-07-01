@@ -264,16 +264,22 @@ function buildArrayRowNode({
   const childModel = createStaticResolvedFormModel(node.childMapId)
   if (!childModel) return undefined
   const rowValues = getRecordObjectValue(row)
+  const childAncestors = getChildAncestors(context, rowValues)
+  const scopedChildModel = createStaticResolvedFormModel(node.childMapId, {
+    ancestors: childAncestors,
+    parentValues: rowValues,
+    values: rowValues ?? {}
+  }) ?? childModel
 
   const childContext: BuildNavigationContext = {
     ...context,
     fieldPathPrefix: rowPrefix,
     mapId: node.childMapId,
-    model: childModel,
+    model: scopedChildModel,
     parentValues: rowValues,
-    ancestors: getChildAncestors(context, rowValues)
+    ancestors: childAncestors
   }
-  const children = getVisibleAuthoringSteps(childModel)
+  const children = getVisibleAuthoringSteps(scopedChildModel)
     .map((step) => buildStepNode(step, childContext))
     .filter(isNode)
 
@@ -376,7 +382,7 @@ function getTargetStepModel(
   if (!target.stepId) return undefined
 
   const sourceModel =
-    target.mapId === context.mapId ? context.model : createStaticResolvedFormModel(target.mapId)
+    target.mapId === context.mapId ? context.model : createTargetStaticModel(target, context)
   const step = sourceModel?.steps.find((modelStep) => modelStep.id === target.stepId)
   if (!sourceModel || !step) return undefined
 
@@ -384,6 +390,17 @@ function getTargetStepModel(
     ...sourceModel,
     steps: [step]
   }
+}
+
+function createTargetStaticModel(
+  target: AuthoringNavigationTarget,
+  context: BuildNavigationContext
+) {
+  return createStaticResolvedFormModel(target.mapId, {
+    ancestors: target.ancestors,
+    parentValues: target.parentValues,
+    values: getTargetValues(target, context)
+  })
 }
 
 function getNavigationProgressSummary(
@@ -479,6 +496,8 @@ function isNavigableArrayNode(node: NodeRuntimeNodeDto) {
   if (node.kind !== 'GROUP' || node.groupKind !== 'ARRAY' || !node.childMapId) return false
 
   const childModel = createStaticResolvedFormModel(node.childMapId)
+  if (!childModel) return false
+
   return childModel.steps.some((step) =>
     step.sections.some((section) =>
       section.nodes.some((childNode) =>
@@ -498,6 +517,15 @@ function isSystemManagedFieldNode(node: NodeRuntimeNodeDto) {
 function getArrayRows(values: Record<string, unknown>, fieldName: string) {
   const value = getAuthoringFieldValue(values, fieldName)
   return Array.isArray(value) ? value : []
+}
+
+function getTargetValues(
+  target: AuthoringNavigationTarget,
+  context: BuildNavigationContext
+) {
+  if (!target.fieldPathPrefix) return context.values
+
+  return getRecordObjectValue(getAuthoringFieldValue(context.values, target.fieldPathPrefix)) ?? {}
 }
 
 function getChildAncestors(

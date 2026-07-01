@@ -184,23 +184,35 @@ function hasMissingRequiredGroupFields(
 ) {
   if (!node.childMapId) return false
 
-  const childModel = createStaticResolvedFormModel(node.childMapId)
-  if (!childModel) return false
-
+  const childMapId = node.childMapId
   const fieldName = toAuthoringFieldName(fieldPathPrefix, node.path)
-  const childSections = childModel.steps.flatMap((step) => step.sections)
 
   if (node.groupKind === 'OBJECT') {
     if (!isRecord(value)) return false
 
+    const childModel = createStaticResolvedFormModel(childMapId, {
+      parentValues: value,
+      values: value
+    })
+    if (!childModel) return false
+
+    const childSections = childModel.steps.flatMap((step) => step.sections)
     return hasMissingRequiredFields(childSections, values, fieldName)
   }
 
   if (!Array.isArray(value)) return false
 
-  return value.some((_, index) =>
-    hasMissingRequiredFields(childSections, values, `${fieldName}[${index}]`)
-  )
+  return value.some((row, index) => {
+    const rowValues = isRecord(row) ? row : {}
+    const childModel = createStaticResolvedFormModel(childMapId, {
+      parentValues: rowValues,
+      values: rowValues
+    })
+    if (!childModel) return false
+
+    const childSections = childModel.steps.flatMap((step) => step.sections)
+    return hasMissingRequiredFields(childSections, values, `${fieldName}[${index}]`)
+  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
