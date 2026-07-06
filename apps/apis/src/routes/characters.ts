@@ -48,6 +48,7 @@ import {
   type CharacterBuilderResolutionDto,
   type CharacterBuilderViewDto,
   type CharacterBuilderChoiceOptionDto,
+  type CharacterBuilderGrantSummaryItemDto,
   type CharacterBuilderFeatureChoiceViewDto,
   type CharacterBuilderSpellChoiceViewDto,
   type CharacterListResponseDto,
@@ -135,7 +136,7 @@ function toCharacterBuilderPayload(
     character,
     resolution: stripCharacterBuilderResolution(resolution),
     references: toCharacterBuilderReferences(resolution),
-    view: toCharacterBuilderView(character, resolution),
+    view: buildCharacterBuilderView(character, resolution),
     builderIntent,
     baseActiveUpdatedAt
   }
@@ -235,6 +236,13 @@ function getFeatureChoiceViews(params: {
         }
       ]
     })
+}
+
+function getGrantedFeatureViews(params: {
+  resolution: CharacterBuilderResolution
+  includeSource: (source: CharacterProvenance) => boolean
+}): CharacterBuilderGrantSummaryItemDto[] {
+  return params.resolution.grants.features.filter((grant) => params.includeSource(grant.source))
 }
 
 function findGrantedFeature(
@@ -357,7 +365,7 @@ function getSpellChoiceViews(params: {
   ]
 }
 
-function toCharacterBuilderView(
+export function buildCharacterBuilderView(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
 ): CharacterBuilderViewDto {
@@ -390,6 +398,10 @@ function toCharacterBuilderView(
             options: selectedAncestryRace.ancestry.options.map((option) => toChoiceOption({ id: option.id, label: option.label }))
           }
         : null,
+      features: getGrantedFeatureViews({
+        resolution,
+        includeSource: (source) => source.kind === 'RACE' || source.kind === 'SUBRACE' || source.kind === 'ANCESTRY'
+      }),
       featureChoices: getFeatureChoiceViews({
         character,
         resolution,
@@ -447,6 +459,15 @@ function toCharacterBuilderView(
             ? selectedSubclass.specializations?.map((specialization) => toChoiceOption({ id: specialization.id, label: specialization.label })) ?? []
             : [],
           featureLabels: summary?.featureLabels ?? [],
+          features: getGrantedFeatureViews({
+            resolution,
+            includeSource: (source) => {
+              if (source.kind === 'CLASS') return source.classId === classRecord.classId
+              if (source.kind === 'SUBCLASS') return source.subclassId === classRecord.subclassId
+
+              return false
+            }
+          }),
           featureChoices: getFeatureChoiceViews({
             character,
             resolution,
@@ -465,6 +486,10 @@ function toCharacterBuilderView(
     },
     background: {
       backgroundOptions: resolution.registry.backgrounds.map((background) => toChoiceOption({ id: background.id, label: background.label })),
+      features: getGrantedFeatureViews({
+        resolution,
+        includeSource: (source) => source.kind === 'BACKGROUND'
+      }),
       featureChoices: getFeatureChoiceViews({
         character,
         resolution,

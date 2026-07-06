@@ -35,6 +35,7 @@ import type {
 } from '../factories/authoredFormFactories.types'
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
+import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 
 const EMPTY_STEP_DIRTY = {}
@@ -222,10 +223,26 @@ export function AuthoringFormProvider({
   }, [])
   useEffect(() => {
     if (kind === 'character-builder') {
+      const nextMode: AuthoringFormStatePatch['mode'] = mode === 'edit' ? 'edit' : 'create'
+      const nextCharacterSession = createCharacterBuilderAuthoringSession({
+        data,
+        mode: nextMode
+      })
+
       setSession((current) => {
+        if (
+          current.authoringKind === 'character-builder' &&
+          current.characterSession &&
+          getCharacterBuilderSessionSignature(current.characterSession) ===
+            getCharacterBuilderSessionSignature(nextCharacterSession)
+        ) {
+          return current
+        }
+
         const next = applyCharacterBuilderRegistration(current, {
           data,
-          mode: mode === 'edit' ? 'edit' : 'create'
+          mode: nextMode,
+          characterSession: nextCharacterSession
         })
 
         return isSameSession(current, next) ? current : next
@@ -683,15 +700,17 @@ function applyDomainRegistration(
 
 function getCharacterBuilderRegistration(
   mode: CharacterBuilderRouteMode,
-  data: unknown
+  data: unknown,
+  characterSession?: CharacterBuilderAuthoringSession
 ): AuthoringFormStatePatch {
-  const characterSession =
-    data === undefined
+  const nextCharacterSession =
+    characterSession ??
+    (data === undefined
       ? undefined
       : createCharacterBuilderAuthoringSession({
           data,
           mode
-        })
+        }))
 
   return {
     activeSectionId: undefined,
@@ -703,14 +722,17 @@ function getCharacterBuilderRegistration(
     authoringKind: 'character-builder',
     canCopy: false,
     canDelete: false,
+    canFinalize: false,
     canResetForm: false,
     canResetStep: false,
     canSaveDraft: Boolean(
-      characterSession && !characterSession.systemRequired && !characterSession.notFound
+      nextCharacterSession &&
+        !nextCharacterSession.systemRequired &&
+        !nextCharacterSession.notFound
     ),
     canSubmit: false,
     characterData: data,
-    characterSession,
+    characterSession: nextCharacterSession,
     domain: undefined,
     domainData: undefined,
     fallbackLabel: 'Untitled Character',
@@ -718,9 +740,9 @@ function getCharacterBuilderRegistration(
     firstBlockingStatus: undefined,
     firstBlockingStepId: undefined,
     hasChanges: false,
-    hasActiveDraft: characterSession?.hasActiveDraft ?? false,
+    hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
     hasStepChanges: false,
-    isDraft: characterSession?.isDraft ?? false,
+    isDraft: nextCharacterSession?.isDraft ?? false,
     isFirstStep: true,
     isLastStep: true,
     mapId: undefined,
@@ -729,7 +751,7 @@ function getCharacterBuilderRegistration(
     navigationTree: undefined,
     progressSummary: undefined,
     providedModel: undefined,
-    readOnly: characterSession?.readOnly ?? false,
+    readOnly: nextCharacterSession?.readOnly ?? false,
     resolveModel: false,
     resolvedModel: undefined,
     saveDraftLabel: 'Save Draft',
@@ -737,8 +759,8 @@ function getCharacterBuilderRegistration(
     stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Character',
-    subjectLabel: characterSession?.subjectLabel,
-    systemId: characterSession?.systemId,
+    subjectLabel: nextCharacterSession?.subjectLabel,
+    systemId: nextCharacterSession?.systemId,
     visibleSteps: undefined
   }
 }
@@ -748,12 +770,38 @@ function applyCharacterBuilderRegistration(
   registration: {
     data?: unknown
     mode: CharacterBuilderRouteMode
+    characterSession?: CharacterBuilderAuthoringSession
   }
 ): AuthoringFormSessionState {
   return {
     ...current,
-    ...getCharacterBuilderRegistration(registration.mode, registration.data)
+    ...getCharacterBuilderRegistration(
+      registration.mode,
+      registration.data,
+      registration.characterSession
+    )
   }
+}
+
+function getCharacterBuilderSessionSignature(session?: CharacterBuilderAuthoringSession): string {
+  if (!session) return ''
+
+  return [
+    session.mode,
+    session.characterId ?? '',
+    session.payload?.character.id ?? '',
+    session.payload?.character.label ?? '',
+    session.systemId ?? '',
+    session.formKey ?? '',
+    session.baseActiveUpdatedAt ?? '',
+    String(session.hasActiveDraft),
+    String(session.hasInvalidDraft),
+    String(session.isDraft),
+    String(session.systemRequired),
+    String(session.notFound),
+    String(session.invalidDraftOnly),
+    String(session.readOnly)
+  ].join('|')
 }
 
 function createInitialSession(registration: {

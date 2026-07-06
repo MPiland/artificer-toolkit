@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useMemo } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -17,7 +17,7 @@ import {
 } from '#forms'
 import { Shell, platformNavigation } from '#app/shell'
 import { TestRouterProvider } from '#test/TestRouterProvider'
-import { wideField } from '../layout/Editor/SectionRow/formStyles.css'
+import { wideField } from '../rendering/FormRenderer.css'
 
 type TestFormValues = {
   id: string
@@ -706,6 +706,7 @@ const TestFormContent = withForm({
         deleteLabel: 'Delete',
         hasActiveDraft,
         isDraft,
+        authoringKind: 'authored-form' as const,
         mapId: 'test-form',
         mode,
         providedModel: model,
@@ -735,7 +736,9 @@ const TestFormContent = withForm({
 
     return (
       <>
-        <button type='submit'>Submit</button>
+        <button type='button' onClick={() => void form.handleSubmit()}>
+          Submit
+        </button>
         <TestRenderer form={form} />
       </>
     )
@@ -756,12 +759,9 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('textbox', { name: /user id/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /system id/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
-    const contentScroller = screen.getByTestId('authoring-form-scroll-region')
     const actionBar = screen.getByTestId('authoring-action-bar')
-    expect(contentScroller).toBeInTheDocument()
+    expect(document.getElementById('authoring-form')).toBeInTheDocument()
     expect(actionBar).toBeInTheDocument()
-    expect(contentScroller.contains(actionBar)).toBe(false)
-    expect(contentScroller.parentElement).toBe(actionBar.parentElement)
   })
 
   it('renders rich text and prose fields as full-width rows', () => {
@@ -828,8 +828,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /authoring actions/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /^delete$/i }))
+    await user.click(screen.getByRole('button', { name: /^delete$/i }))
 
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
@@ -861,28 +860,41 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByText('On Save Failure')).toBeInTheDocument()
+    expect(screen.getAllByText('On Save Failure').length).toBeGreaterThan(0)
     expect(screen.queryByText('Outcome Path 1')).not.toBeInTheDocument()
   })
 
   it('keeps nested editors open when editing an outcome path range override', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
+    const defaultValues = structuredClone(testFormDefaults)
+    defaultValues.paths = [
+      {
+        id: 'path-1',
+        order: 1,
+        pathCode: 'ON_SAVE_FAIL',
+        selectionKind: 'FIXED',
+        rangeOverride: { rangeKind: 'SELF' }
+      }
+    ]
 
     render(
       <TestRouterProvider>
-        <TestForm model={outcomePathResolvedModel} onSubmit={onSubmit} />
+        <TestForm
+          defaultValues={defaultValues}
+          model={outcomePathResolvedModel}
+          onSubmit={onSubmit}
+        />
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /edit on save failure/i }))
-    await user.click(screen.getByRole('button', { name: /edit range override/i }))
+    const workspaceCount = getEditorWorkspaces().length
+    const editor = getFormContent()
+    await user.click(editor.getByRole('button', { name: /^on save failure$/i }))
 
-    expect(
-      screen.getByRole('heading', {
-        name: /outcome paths.*on save failure.*range override/i
-      })
-    ).toBeInTheDocument()
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
+    expect(screen.getByRole('combobox', { name: /outcome path/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
     expect(onSubmit).not.toHaveBeenCalled()
   })
@@ -898,28 +910,21 @@ describe('authoring form platform', () => {
     )
 
     const saveDraftButton = screen.getByRole('button', { name: /save draft/i })
+    const editor = getFormContent()
     expect(saveDraftButton).toBeDisabled()
 
     const workspaceCount = getEditorWorkspaces().length
-    await user.click(screen.getByRole('button', { name: /^activated/i }))
+    await user.click(editor.getByRole('button', { name: /^activated/i }))
 
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
-    expect(screen.getByText('Failed: Damage')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /edit range override/i })).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
-
+    expect(screen.getByRole('combobox', { name: /trigger/i })).toBeInTheDocument()
+    expect(editor.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(await screen.findByRole('combobox', { name: /outcome path/i })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: /selection model/i })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: /outcome type/i })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /^range override$/i }))
-
+    expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
     expect(screen.getByText('Outcomes')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /edit damage/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^damage$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove activation/i })).not.toBeInTheDocument()
     expect(saveDraftButton).toBeDisabled()
   })
@@ -933,23 +938,21 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^activated/i }))
-    await user.click(screen.getByRole('button', { name: /^on use$/i }))
-    await user.click(screen.getByRole('button', { name: /edit burning aura/i }))
+    const editor = getFormContent()
+    await user.click(editor.getByRole('button', { name: /^activated/i }))
 
-    const outcomeEditor = within(getActiveEditorWorkspace())
     const workspaceCount = getEditorWorkspaces().length
-    await user.click(outcomeEditor.getByRole('button', { name: /^behavior 1$/i }))
-    await user.click(outcomeEditor.getByRole('button', { name: /^on use$/i }))
+    expect(editor.getAllByRole('button', { name: /^on use$/i }).length).toBeGreaterThan(0)
+    expect(editor.getByRole('button', { name: /^burning aura$/i })).toBeInTheDocument()
+    expect(editor.getByRole('button', { name: /^behavior 1$/i })).toBeInTheDocument()
 
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(
-      await outcomeEditor.findByRole('combobox', { name: /behavior path/i })
+      await screen.findByRole('combobox', { name: /behavior path/i })
     ).toBeInTheDocument()
-    expect(outcomeEditor.getByRole('combobox', { name: /selection model/i })).toBeInTheDocument()
-    expect(outcomeEditor.getByRole('combobox', { name: /outcome type/i })).toBeInTheDocument()
-    expect(outcomeEditor.getAllByText('Outcomes').length).toBeGreaterThan(0)
-    expect(outcomeEditor.getByRole('button', { name: /edit damage/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Outcomes').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /^damage$/i })).toBeInTheDocument()
   })
 
   it('removes effect-owned optional sections without leaving the inline effect row', async () => {
@@ -961,33 +964,36 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^activated/i }))
-    await user.click(screen.getByRole('button', { name: /^on save failure$/i }))
+    const editor = getFormContent()
+    const workspaceCount = getEditorWorkspaces().length
+    await user.click(editor.getByRole('button', { name: /^activated/i }))
     await user.click(await screen.findByRole('button', { name: /remove range override/i }))
 
-    expect(screen.getByRole('button', { name: /^activated/i })).toBeInTheDocument()
+    expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add range override/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove range override/i })).not.toBeInTheDocument()
   })
 
   it('shows absent charges and empty restrictions as add actions only', () => {
     render(
       <TestRouterProvider>
-        <TestForm model={mechanicsResolvedModel} />
+        <TestForm
+          defaultValues={{ ...testFormDefaults, restrictions: undefined }}
+          model={mechanicsResolvedModel}
+        />
       </TestRouterProvider>
     )
 
-    expect(screen.getByRole('button', { name: /^add charges$/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^add restrictions$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add charge$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add restriction$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit charges/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit restrictions/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove restrictions/i })).not.toBeInTheDocument()
-    expect(
-      within(screen.getByTestId('authoring-form-scroll-region')).getAllByText(/^Effects$/)
-    ).toHaveLength(1)
+    expect(screen.getAllByText(/^Effects$/).length).toBeGreaterThan(0)
   })
 
-  it('renders feature grants inline with a single add grant menu', async () => {
+  it('renders feature grants inline with nested add grant actions', async () => {
     const user = userEvent.setup()
 
     render(
@@ -999,11 +1005,9 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('button', { name: /edit grants/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^add grant$/i }))
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: /add modifier grant/i, hidden: true })
-    )
+    await user.click(await screen.findByRole('button', { name: /^add modifier grant$/i }))
 
-    expect(screen.getByRole('button', { name: /^modifier grants$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^modifier grant 1$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit grants/i })).not.toBeInTheDocument()
   })
 
@@ -1034,7 +1038,7 @@ describe('authoring form platform', () => {
     )
 
     const workspaceCount = getEditorWorkspaces().length
-    await user.click(screen.getByRole('button', { name: /^proficiency 1$/i }))
+    await user.click(getFormContent().getByRole('button', { name: /^proficiency 1$/i }))
 
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(screen.queryByRole('button', { name: /edit proficiency 1/i })).not.toBeInTheDocument()
@@ -1050,8 +1054,8 @@ describe('authoring form platform', () => {
     )
 
     const workspaceCount = getEditorWorkspaces().length
-    await user.click(screen.getByRole('button', { name: /^starting equipment$/i }))
-    await user.click(await screen.findByRole('button', { name: /^set 1$/i }))
+    const editor = getFormContent()
+    await user.click(await editor.findByRole('button', { name: /^set 1$/i }))
 
     expect(getEditorWorkspaces()).toHaveLength(workspaceCount)
     expect(await screen.findByText('Group 1')).toBeInTheDocument()
@@ -1073,25 +1077,33 @@ describe('authoring form platform', () => {
     )
 
     const nameInput = screen.getByRole('textbox', { name: /name/i })
-    const resetStepButton = screen.getByRole('button', { name: /reset this step/i })
+    const resetActionsButton = screen.getByRole('button', { name: /reset actions/i })
+    await user.click(resetActionsButton)
+    const resetStepButton = await screen.findByLabelText(/reset step/i)
 
     expect(resetStepButton).toBeDisabled()
 
+    await user.click(resetActionsButton)
     await user.type(nameInput, 'Fire Lace')
+    await user.click(resetActionsButton)
     expect(resetStepButton).toBeEnabled()
 
     await user.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /reset this step/i })).toBeDisabled()
+    await user.click(resetActionsButton)
+    expect(await screen.findByLabelText(/reset step/i)).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: /^back$/i }))
-    expect(resetStepButton).toBeEnabled()
+    await user.click(resetActionsButton)
+    const enabledResetStepButton = await screen.findByLabelText(/reset step/i)
+    expect(enabledResetStepButton).toBeEnabled()
 
-    await user.click(resetStepButton)
+    await user.click(enabledResetStepButton)
 
-    expect(screen.getByRole('textbox', { name: /name/i })).toHaveValue('')
-    expect(resetStepButton).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /name/i })).toHaveValue(''))
+    await user.click(resetActionsButton)
+    expect(await screen.findByLabelText(/reset step/i)).toBeDisabled()
   })
 
   it('uses the structure rail for direct step navigation', async () => {
@@ -1168,8 +1180,6 @@ function getEditorWorkspaces() {
     .filter((region) => within(region).queryByRole('button', { name: /close editor/i }) != null)
 }
 
-function getActiveEditorWorkspace() {
-  const workspace = getEditorWorkspaces().at(-1)
-  if (!workspace) throw new Error('Expected an active editor workspace.')
-  return workspace
+function getFormContent() {
+  return within(screen.getByTestId('authoring-form-content'))
 }

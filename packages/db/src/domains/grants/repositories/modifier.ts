@@ -649,6 +649,20 @@ function hydratePayload(
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
 
+        case 'ABILITY_MODIFIER':
+          if (!payload.numeric_ability_code) {
+            throw new Error(`Modifier grant "${row.id}" ABILITY_MODIFIER charge payload is missing numeric_ability_code.`)
+          }
+
+          return {
+            limitKind: 'ABILITY_MODIFIER',
+            scalingKind: 'NONE',
+            ability: requireAbilityCode(row.id, payload.numeric_ability_code, 'numeric_ability_code'),
+            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
+            max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
+          }
+
         case 'CLASS_LEVEL':
           if (!payload.numeric_class_id) {
             throw new Error(`Modifier grant "${row.id}" CLASS_LEVEL charge payload is missing numeric_class_id.`)

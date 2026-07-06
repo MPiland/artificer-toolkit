@@ -53,6 +53,12 @@ export interface CharacterBuilderRegistry {
   features: FeatureAuthored[]
 }
 
+type CharacterBuilderRegistryLoadOptions = {
+  includeEquipment?: boolean
+  includeFeatures?: boolean
+  includeSpells?: boolean
+}
+
 export interface CharacterBuilderClassSummary {
   classId: string
   classLabel: string
@@ -947,7 +953,12 @@ export function createEmptyCharacterAuthored(params: {
 
 export async function loadCharacterBuilderRegistry(
   db: DBLike,
-  systemId: string
+  systemId: string,
+  options: CharacterBuilderRegistryLoadOptions = {
+    includeEquipment: true,
+    includeFeatures: true,
+    includeSpells: true
+  }
 ): Promise<CharacterBuilderRegistry> {
   const [
     system,
@@ -962,9 +973,9 @@ export async function loadCharacterBuilderRegistry(
     createRaceRepository(db).findResolvedAll({ systemId }),
     createClassRepository(db).findAll({ systemId }),
     createBackgroundRepository(db).findAll({ systemId }),
-    createEquipmentRepository(db).findResolvedAll({ systemId }),
-    createSpellRepository(db).findAll({ systemId }),
-    createFeatureRepository(db, systemId).findAll()
+    options.includeEquipment ? createEquipmentRepository(db).findResolvedAll({ systemId }) : Promise.resolve([]),
+    options.includeSpells ? createSpellRepository(db).findAll({ systemId }) : Promise.resolve([]),
+    options.includeFeatures ? createFeatureRepository(db, systemId).findAll() : Promise.resolve([])
   ])
 
   return {
@@ -972,6 +983,56 @@ export async function loadCharacterBuilderRegistry(
     races,
     classes,
     backgrounds,
+    equipment,
+    spells,
+    features
+  }
+}
+
+async function loadCharacterBuilderResolutionRegistry(
+  db: DBLike,
+  character: CharacterAuthored
+): Promise<CharacterBuilderRegistry> {
+  const lightRegistry = await loadCharacterBuilderRegistry(db, character.systemId, {
+    includeEquipment: false,
+    includeFeatures: false,
+    includeSpells: false
+  })
+  const classSelections = character.intent.classes.map((row) => loadClassSelection(row, lightRegistry))
+  const selectedBackground = character.intent.background.backgroundId
+    ? lightRegistry.backgrounds.find((record) => record.id === character.intent.background.backgroundId)
+    : undefined
+  const needsEquipment = Boolean(
+    character.intent.startingEquipment
+    || character.state.equipment.inventory.length > 0
+    || character.state.currency.length > 0
+    || classSelections.some((selection) => selection.baseClass?.startingEquipment.sets.length)
+    || selectedBackground?.startingEquipment?.sets.length
+  )
+  const needsSpells = Boolean(
+    character.intent.spellSelections?.length
+    || classSelections.some((selection) => selection.spellcasting.length > 0)
+  )
+  const needsFeatures = character.intent.featureAcquisitions.some(
+    (acquisition) => acquisition.source.kind === 'FEATURE'
+  )
+
+  if (!needsEquipment && !needsSpells && !needsFeatures) {
+    return lightRegistry
+  }
+
+  const [
+    equipment,
+    spells,
+    features
+  ] = await Promise.all([
+    needsEquipment ? createEquipmentRepository(db).findResolvedAll({ systemId: character.systemId }) : Promise.resolve([]),
+    needsSpells ? createSpellRepository(db).findAll({ systemId: character.systemId }) : Promise.resolve([]),
+    needsFeatures ? createFeatureRepository(db, character.systemId).findAll() : Promise.resolve([])
+  ])
+
+  return {
+    ...lightRegistry,
     equipment,
     spells,
     features
@@ -1209,7 +1270,7 @@ export async function resolveCharacterBuilder(
   character: CharacterAuthored,
   mode: BuilderMode
 ): Promise<CharacterBuilderResolution> {
-  const registry = await loadCharacterBuilderRegistry(db, character.systemId)
+  const registry = await loadCharacterBuilderResolutionRegistry(db, character)
   const abilityScores = deriveAbilityScores(character.intent.abilities)
   const {
     classSelections,

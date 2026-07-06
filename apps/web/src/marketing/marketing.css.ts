@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
@@ -93,6 +93,56 @@ export const headerActions = style({
   }
 })
 
+export const mobileSignInLink = style({
+  '@layer': {
+    [app]: {
+      'display': 'none',
+      'alignItems': 'center',
+      'minHeight': '36px',
+      'color': foundationVars.color.text.accent,
+      'fontSize': '0.875rem',
+      'fontWeight': 700,
+      'textDecoration': 'none',
+      'whiteSpace': 'nowrap',
+      'transition': `color ${foundationVars.motion.fast} ease`,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          display: 'inline-flex'
+        }
+      }
+    }
+  },
+  'selectors': {
+    '&:hover': {
+      color: foundationVars.color.icon.hover
+    },
+    '&:focus-visible': {
+      borderRadius: foundationVars.radius.sm,
+      outline: `2px solid ${foundationVars.color.accent.solid}`,
+      outlineOffset: '3px'
+    }
+  }
+})
+
+export const marketingHeaderThemeToggle = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex'
+    }
+  }
+})
+
+globalStyle(`${marketingHeaderThemeToggle} button`, {
+  width: '36px',
+  height: '36px',
+  boxShadow: 'none'
+})
+
+globalStyle(`${marketingHeaderThemeToggle} svg`, {
+  width: '16px',
+  height: '16px'
+})
+
 export const navLink = style({
   '@layer': {
     [app]: {
@@ -155,53 +205,6 @@ export const secondaryLink = style({
     '&:hover': {
       borderColor: foundationVars.color.border.strong,
       color: foundationVars.color.text.primary
-    }
-  }
-})
-
-export const mobileMenu = style({
-  '@layer': {
-    [app]: {
-      'display': 'none',
-      'position': 'relative',
-      '@media': {
-        'screen and (max-width: 760px)': {
-          display: 'block'
-        }
-      }
-    }
-  }
-})
-
-export const mobileSummary = style({
-  '@layer': {
-    [app]: {
-      cursor: 'pointer',
-      listStyle: 'none',
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      padding: `${foundationVars.space[2]} ${foundationVars.space[4]}`,
-      color: foundationVars.color.text.primary,
-      fontSize: '0.875rem',
-      fontWeight: 700
-    }
-  }
-})
-
-export const mobileNavPanel = style({
-  '@layer': {
-    [app]: {
-      position: 'absolute',
-      right: 0,
-      top: 'calc(100% + 12px)',
-      display: 'grid',
-      gap: foundationVars.space[3],
-      width: '240px',
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.lg,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card
     }
   }
 })

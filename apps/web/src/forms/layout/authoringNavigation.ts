@@ -15,6 +15,7 @@ import {
   type FieldMetaSnapshot
 } from '../validation/authoringProgress'
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
+import { EFFECT_KIND_OPTIONS, PATH_CODE_OPTIONS, TRIGGER_OPTIONS } from '@artificer-toolkit/shared/core'
 
 const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
 
@@ -264,10 +265,11 @@ function buildArrayRowNode({
   const childModel = createStaticResolvedFormModel(node.childMapId)
   if (!childModel) return undefined
   const rowValues = getRecordObjectValue(row)
-  const childAncestors = getChildAncestors(context, rowValues)
+  const parentValues = getContextValues(context)
+  const childAncestors = getChildAncestors(context, parentValues)
   const scopedChildModel = createStaticResolvedFormModel(node.childMapId, {
     ancestors: childAncestors,
-    parentValues: rowValues,
+    parentValues,
     values: rowValues ?? {}
   }) ?? childModel
 
@@ -276,7 +278,7 @@ function buildArrayRowNode({
     fieldPathPrefix: rowPrefix,
     mapId: node.childMapId,
     model: scopedChildModel,
-    parentValues: rowValues,
+    parentValues,
     ancestors: childAncestors
   }
   const children = getVisibleAuthoringSteps(scopedChildModel)
@@ -528,13 +530,18 @@ function getTargetValues(
   return getRecordObjectValue(getAuthoringFieldValue(context.values, target.fieldPathPrefix)) ?? {}
 }
 
+function getContextValues(context: BuildNavigationContext) {
+  if (!context.fieldPathPrefix) return context.values
+
+  return getRecordObjectValue(getAuthoringFieldValue(context.values, context.fieldPathPrefix)) ?? {}
+}
+
 function getChildAncestors(
   context: BuildNavigationContext,
-  rowValues?: Record<string, unknown>
+  parentValues?: Record<string, unknown>
 ): readonly Record<string, unknown>[] | undefined {
-  const values = rowValues ?? context.parentValues
-  if (!values) return context.ancestors
-  return [values, ...(context.ancestors ?? [])]
+  if (!parentValues) return context.ancestors
+  return [parentValues, ...(context.ancestors ?? [])]
 }
 
 function getRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
@@ -542,7 +549,28 @@ function getRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
     return row.label
   }
 
+  const authoredLabel = getAuthoredRowLabel(node, row)
+  if (authoredLabel) return authoredLabel
+
   return `${toSingularLabel(node.label)} ${index + 1}`
+}
+
+function getAuthoredRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
+  if (!isRecord(row)) return undefined
+
+  if (node.childMapId === 'effect') {
+    return getOptionLabel(TRIGGER_OPTIONS, readString(getRecordValue(row, 'invocation.triggerCode')))
+  }
+
+  if (node.childMapId === 'effectPath' || node.childMapId === 'manifestBehaviorPath') {
+    return getOptionLabel(PATH_CODE_OPTIONS, readString(row.pathCode))
+  }
+
+  if (node.childMapId === 'outcome' || node.childMapId === 'nonManifestOutcome') {
+    return getOptionLabel(EFFECT_KIND_OPTIONS, readString(row.effectKind))
+  }
+
+  return undefined
 }
 
 function getRecordObjectValue(value: unknown): Record<string, unknown> | undefined {
@@ -557,10 +585,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function getOptionLabel(
+  options: readonly { code: string; label: string }[],
+  value: string | undefined
+): string | undefined {
+  if (!value) return undefined
+
+  return options.find((option) => option.code === value)?.label
+}
+
+function getRecordValue(record: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, segment) => {
+    if (!isRecord(value)) return undefined
+    return value[segment]
+  }, record)
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
 function normalizeLabel(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, '-')
 }
 
 function toSingularLabel(label: string) {
+  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`
+  if (label.endsWith('ses')) return label.slice(0, -2)
   return label.endsWith('s') ? label.slice(0, -1) : label
 }

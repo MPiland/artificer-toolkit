@@ -74,6 +74,17 @@ export function Shell({
   const appNavigationActions = hasLibraryNavigation ? (
     <AppNavigationMenus createItems={createItems} libraryItems={libraryItems} />
   ) : null
+  const content = isAuthoringPath(currentPath) ? (
+    <main className={styles.authoringMain} data-testid='app-shell-main'>
+      {children}
+    </main>
+  ) : (
+    <main className={styles.main} data-testid='app-shell-main'>
+      <div className={styles.contentArea} data-testid='app-shell-content'>
+        {children}
+      </div>
+    </main>
+  )
 
   return (
     <ShellHeaderSupplementContext value={headerSupplementContext}>
@@ -85,7 +96,7 @@ export function Shell({
           navigationActions={appNavigationActions}
           supplement={headerSupplement?.content}
         />
-        {children}
+        {content}
         {hasMobileFooter ? <MobileAppFooter items={mobileFooterItems} /> : null}
         {hasMobileFooter ? (
           <MobileSearchDrawer opened={searchOpened} onClose={closeSearch} />
@@ -350,4 +361,8 @@ function toMobileMenuItems(
 
 function hasHref(item: AppShellNavItem): item is AppShellNavItem & { href: string } {
   return Boolean(item.href)
+}
+
+function isAuthoringPath(pathname: string): boolean {
+  return pathname.endsWith('/new') || pathname.endsWith('/edit')
 }

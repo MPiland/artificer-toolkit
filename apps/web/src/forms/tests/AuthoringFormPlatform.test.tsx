@@ -46,7 +46,7 @@ const testDefaults: TestFormValues = {
 }
 
 const testModel = {
-  mapId: 'test-form-v2',
+  mapId: 'test-authoring-form',
   clearPaths: [],
   steps: [
     {
@@ -265,11 +265,11 @@ const simpleArrayModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
-const V2Renderer = FormRenderer({
+const AuthoringRenderer = FormRenderer({
   defaultValues: testDefaults
 })
 
-function TestV2Form({
+function TestAuthoringForm({
   model: modelInput = testModel,
   onCancel = vi.fn()
 }: {
@@ -286,19 +286,19 @@ function TestV2Form({
   return (
     <AuthoringLayout>
       <form.AppForm>
-        <TestV2Content form={form} model={model} onCancel={onCancel} />
+        <TestAuthoringContent form={form} model={model} onCancel={onCancel} />
       </form.AppForm>
     </AuthoringLayout>
   )
 }
 
-const TestV2Content = withForm({
+const TestAuthoringContent = withForm({
   defaultValues: testDefaults,
   props: {} as {
     model: NodeRuntimeResolveResponseDto
     onCancel: () => void
   },
-  render: function TestV2Content({ form, model, onCancel }) {
+  render: function TestAuthoringContent({ form, model, onCancel }) {
     const {
       updateAuthoringFormActions,
       updateAuthoringFormState
@@ -307,7 +307,7 @@ const TestV2Content = withForm({
     const statePatch = useMemo(
       () => ({
         cancelLabel: 'Cancel',
-        mapId: 'test-form-v2',
+        mapId: 'test-authoring-form',
         mode: 'edit' as const,
         providedModel: model,
         readOnly: false,
@@ -328,18 +328,18 @@ const TestV2Content = withForm({
 
     return (
       <>
-        <V2Renderer form={form} />
+        <AuthoringRenderer form={form} />
         <output aria-label='name value'>{nameValue}</output>
       </>
     )
   }
 })
 
-describe('authoring form renderer v2', () => {
+describe('authoring form platform', () => {
   it('renders the first visible step and skips hidden or system-managed nodes', () => {
     render(
       <TestRouterProvider>
-        <TestV2Form />
+        <TestAuthoringForm />
       </TestRouterProvider>
     )
 
@@ -358,7 +358,7 @@ describe('authoring form renderer v2', () => {
 
     render(
       <TestRouterProvider>
-        <TestV2Form onCancel={onCancel} />
+        <TestAuthoringForm onCancel={onCancel} />
       </TestRouterProvider>
     )
 
@@ -373,7 +373,7 @@ describe('authoring form renderer v2', () => {
 
     render(
       <TestRouterProvider>
-        <TestV2Form onCancel={onCancel} />
+        <TestAuthoringForm onCancel={onCancel} />
       </TestRouterProvider>
     )
 
@@ -391,7 +391,7 @@ describe('authoring form renderer v2', () => {
 
     render(
       <TestRouterProvider>
-        <TestV2Form />
+        <TestAuthoringForm />
       </TestRouterProvider>
     )
 
@@ -412,7 +412,7 @@ describe('authoring form renderer v2', () => {
 
     render(
       <TestRouterProvider>
-        <TestV2Form />
+        <TestAuthoringForm />
       </TestRouterProvider>
     )
 
@@ -424,12 +424,12 @@ describe('authoring form renderer v2', () => {
   it('renders empty array groups as overview screens without item rows', () => {
     render(
       <TestRouterProvider>
-        <TestV2Form model={groupModel} />
+        <TestAuthoringForm model={groupModel} />
       </TestRouterProvider>
     )
 
     expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^add$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add feature$/i })).toBeInTheDocument()
     expect(screen.getByText('No features added yet.')).toBeInTheDocument()
     expect(screen.queryByText('Feature 1')).not.toBeInTheDocument()
   })
@@ -439,13 +439,13 @@ describe('authoring form renderer v2', () => {
 
     render(
       <TestRouterProvider>
-        <TestV2Form model={groupModel} />
+        <TestAuthoringForm model={groupModel} />
       </TestRouterProvider>
     )
 
     expect(screen.getAllByText('Features').length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: /^add$/i }))
+    await user.click(screen.getByRole('button', { name: /^add feature$/i }))
 
     expect(screen.getAllByText('Feature 1').length).toBeGreaterThan(0)
     expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
@@ -495,11 +495,15 @@ describe('authoring navigation tree', () => {
   })
 
   it('adds array item rows with child step leaves when values exist', () => {
+    const values = { ...testDefaults, features: [{ label: '' }] }
     const navigation = buildAuthoringNavigationTree({
       mapId: groupModel.mapId,
       model: groupModel,
-      values: { ...testDefaults, features: [{ label: '' }] }
+      values
     })
+    const nestedFeatureTarget = navigation.navigationTargets.find((target) =>
+      target.fieldPathPrefix === 'features[0]' && target.kind === 'step'
+    )
 
     expect(JSON.stringify(navigation.navigationTree)).toContain('Feature 1')
     expect(navigation.navigationTargets).toEqual(
@@ -511,6 +515,8 @@ describe('authoring navigation tree', () => {
         })
       ])
     )
+    expect(nestedFeatureTarget?.parentValues).toBe(values)
+    expect(nestedFeatureTarget?.parentValues).not.toBe(values.features?.[0])
   })
 
   it('keeps simple child maps inline in the owning step', () => {

@@ -7,9 +7,8 @@ import {
   headerActions,
   logoMark,
   marketingHeader,
-  mobileMenu,
-  mobileNavPanel,
-  mobileSummary,
+  marketingHeaderThemeToggle,
+  mobileSignInLink,
   navLink,
   primaryLink
 } from '../marketing.css'
@@ -35,21 +34,10 @@ export function MarketingHeader() {
       </nav>
 
       <div className={headerActions}>
-        <ThemeToggle />
-
-        <details className={mobileMenu}>
-          <summary className={mobileSummary}>Menu</summary>
-          <nav className={mobileNavPanel} aria-label='Mobile marketing navigation'>
-            {marketingNavigation.map((item) => (
-              <MarketingNavLink key={item.href} className={navLink} href={item.href}>
-                {item.label}
-              </MarketingNavLink>
-            ))}
-            <MarketingRouteLink className={primaryLink} to='/sign-up'>
-              Get started free
-            </MarketingRouteLink>
-          </nav>
-        </details>
+        <MarketingRouteLink className={mobileSignInLink} to='/sign-in'>
+          Sign in
+        </MarketingRouteLink>
+        <ThemeToggle className={marketingHeaderThemeToggle} />
       </div>
     </header>
   )

@@ -78,6 +78,7 @@ export const main = style({
   '@layer': {
     [app]: {
       gridArea: 'main',
+      flex: 1,
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'auto',
@@ -94,6 +95,7 @@ export const authoringMain = style({
     [app]: {
       boxSizing: 'border-box',
       gridArea: 'main',
+      flex: 1,
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'hidden',

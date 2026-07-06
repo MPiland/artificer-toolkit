@@ -22,7 +22,8 @@ import type { CharacterBuilderAuthoringSession } from '../characterBuilderAuthor
 import {
   buildCharacterDraftSaveInput,
   getInactiveAbilityIntentMethodLabels,
-  normalizeCharacterForCommit
+  normalizeCharacterForCommit,
+  type CharacterFormValues
 } from '../characterBuilder.utils'
 import { useLatestCharacterResolution } from '../hooks/useLatestCharacterResolution'
 import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
@@ -90,10 +91,8 @@ export function CharacterBuilderAuthoringRuntime({
 
   const actions = useMemo<AuthoringFormActionHandlers>(
     () => ({
-      onActivate: undefined,
       onCancel: handleCancel,
-      onDiscardDraft: handleDiscardDraft,
-      onSaveDraft: undefined
+      onDiscardDraft: handleDiscardDraft
     }),
     [handleCancel, handleDiscardDraft]
   )
@@ -178,23 +177,27 @@ function CharacterBuilderFormRuntime({
   const commitMutation = useCommitCharacterBuilderMutation()
   const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
+  const handlePreviewFinalize = useCallback(async (value: CharacterFormValues) => {
+    try {
+      const nextPreview = await previewMutation.mutateAsync({
+        character: normalizeCharacterForCommit(value),
+        mode: session.mode,
+        targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
+      })
+      setPreview(nextPreview)
+      setPreviewOpened(true)
+    } catch {
+      notifications.show({
+        color: 'red',
+        message: 'This character is not ready to finalize yet.'
+      })
+    }
+  }, [previewMutation, session.mode])
+
   const form = useAppForm({
     defaultValues: session.initialValues,
     onSubmit: async ({ value }) => {
-      try {
-        const nextPreview = await previewMutation.mutateAsync({
-          character: normalizeCharacterForCommit(value),
-          mode: session.mode,
-          targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
-        })
-        setPreview(nextPreview)
-        setPreviewOpened(true)
-      } catch {
-        notifications.show({
-          color: 'red',
-          message: 'This character is not ready to finalize yet.'
-        })
-      }
+      await handlePreviewFinalize(value)
     }
   })
 
@@ -265,15 +268,27 @@ function CharacterBuilderFormRuntime({
     }
   }, [commitMutation, draftMutation, form, navigate, router, session.baseActiveUpdatedAt, session.mode])
 
+  const handleActivate = useCallback(async () => {
+    if (!payload.view.review.ready) {
+      notifications.show({
+        color: 'red',
+        message: 'This character is not ready to finalize yet.'
+      })
+      return
+    }
+
+    await handlePreviewFinalize(form.state.values)
+  }, [form, handlePreviewFinalize, payload.view.review.ready])
+
   const actions = useMemo<AuthoringFormActionHandlers>(
     () => ({
-      onActivate: () => form.handleSubmit(),
+      onActivate: handleActivate,
       onCancel,
       onDiscardDraft,
       onResetForm: () => form.reset(session.initialValues),
       onSaveDraft: handleSaveDraft
     }),
-    [form, handleSaveDraft, onCancel, onDiscardDraft, session.initialValues]
+    [form, handleActivate, handleSaveDraft, onCancel, onDiscardDraft, session.initialValues]
   )
 
   useEffect(() => {
@@ -346,6 +361,7 @@ function CharacterBuilderStateSync({
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Finalize Character',
+      canFinalize: payload.view.review.ready,
       canResetForm: hasChanges,
       canSaveDraft: true,
       canSubmit: canSubmit && payload.view.review.ready,

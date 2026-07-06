@@ -9,7 +9,7 @@ export function Editor({ children }: { children: ReactNode }) {
 
   return (
     <section id='authoring-form' className={styles.canvas}>
-      <div className={styles.content}>
+      <div className={styles.content} data-testid='authoring-form-content'>
         {readOnly ? (
           <Alert className={styles.alertSlot} color='orange'>
             {`This ${subjectKindLabel.toLowerCase()} is locked for direct editing. Duplicate it to make your own draft.`}

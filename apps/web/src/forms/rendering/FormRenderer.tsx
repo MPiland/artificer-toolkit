@@ -43,6 +43,7 @@ import * as styles from './FormRenderer.css'
 import { ActionIcon, Alert, Button, Collapse, Group, Text } from '@mantine/core'
 import { ChevronDown, Trash2 } from 'lucide-react'
 import { speedOptions } from '@artificer-toolkit/shared/authored'
+import { EFFECT_KIND_OPTIONS, PATH_CODE_OPTIONS, TRIGGER_OPTIONS } from '@artificer-toolkit/shared/core'
 
 export type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
@@ -421,6 +422,7 @@ export function FormRenderer<TValues extends object>({
                       <Text fw={700}>{node.label}</Text>
                       {!nodeReadOnly ? (
                         <Button
+                          aria-label={`Add ${toSingularLabel(node.label)}`}
                           type='button'
                           variant='default'
                           size='xs'
@@ -500,25 +502,19 @@ export function FormRenderer<TValues extends object>({
                                 transitionTimingFunction='cubic-bezier(0.2, 0, 0, 1)'
                               >
                                 <div className={styles.inlineArrayItemBody}>
-                                  {(() => {
-                                    const rowValues = getRecordObjectValue(row)
-
-                                    return (
-                                      <Renderer
-                                        form={form}
-                                        ancestors={rowValues ? [rowValues, ...(childAncestors ?? [])] : childAncestors}
-                                        debounceMs={debounceMs}
-                                        fieldPathPrefix={rowPrefix}
-                                        mapId={node.childMapId}
-                                        parentValues={rowValues}
-                                        readOnly={nodeReadOnly}
-                                        renderAllSteps
-                                        resolveModel={resolvedResolveModel}
-                                        systemId={resolvedSystemId}
-                                        updateAuthoringState={false}
-                                      />
-                                    )
-                                  })()}
+                                  <Renderer
+                                    form={form}
+                                    ancestors={[values, ...(childAncestors ?? [])]}
+                                    debounceMs={debounceMs}
+                                    fieldPathPrefix={rowPrefix}
+                                    mapId={node.childMapId}
+                                    parentValues={values}
+                                    readOnly={nodeReadOnly}
+                                    renderAllSteps
+                                    resolveModel={resolvedResolveModel}
+                                    systemId={resolvedSystemId}
+                                    updateAuthoringState={false}
+                                  />
                                 </div>
                               </Collapse>
                             </div>
@@ -540,7 +536,10 @@ export function FormRenderer<TValues extends object>({
           )}>
             {(field) => {
               const hasValue = isGroupObjectValue(field.state.value)
-              const canRemoveValue = hasValue && !node.required && !isTopLevelGroupNode(node)
+              const canRemoveValue =
+                hasValue &&
+                !node.required &&
+                !(isTopLevelGroupNode(node) && !resolvedFieldPathPrefix)
 
               return (
                 <div className={styles.wideField}>
@@ -562,6 +561,7 @@ export function FormRenderer<TValues extends object>({
                         </ActionIcon>
                       ) : !hasValue ? (
                         <Button
+                          aria-label={`Add ${toSingularLabel(node.label)}`}
                           type='button'
                           variant='default'
                           size='xs'
@@ -580,25 +580,19 @@ export function FormRenderer<TValues extends object>({
                   </Group>
                   {hasValue ? (
                     <div className={styles.nestedShell}>
-                      {(() => {
-                        const objectValues = getRecordObjectValue(field.state.value)
-
-                        return (
-                          <Renderer
-                            form={form}
-                            ancestors={objectValues ? [objectValues, ...(childAncestors ?? [])] : childAncestors}
-                            debounceMs={debounceMs}
-                            fieldPathPrefix={fieldPrefix}
-                            mapId={node.childMapId}
-                            parentValues={objectValues}
-                            readOnly={nodeReadOnly}
-                            renderAllSteps
-                            resolveModel={resolvedResolveModel}
-                            systemId={resolvedSystemId}
-                            updateAuthoringState={false}
-                          />
-                        )
-                      })()}
+                      <Renderer
+                        form={form}
+                        ancestors={[values, ...(childAncestors ?? [])]}
+                        debounceMs={debounceMs}
+                        fieldPathPrefix={fieldPrefix}
+                        mapId={node.childMapId}
+                        parentValues={values}
+                        readOnly={nodeReadOnly}
+                        renderAllSteps
+                        resolveModel={resolvedResolveModel}
+                        systemId={resolvedSystemId}
+                        updateAuthoringState={false}
+                      />
                     </div>
                   ) : (
                     <Text size='sm' c='dimmed'>{`${node.label} has not been configured yet.`}</Text>
@@ -633,6 +627,7 @@ export function FormRenderer<TValues extends object>({
                           <Text fw={700}>{node.label}</Text>
                           {!nodeReadOnly ? (
                             <Button
+                              aria-label={`Add ${toSingularLabel(node.label)}`}
                               type='button'
                               variant='default'
                               size='xs'
@@ -778,10 +773,31 @@ function getGroupRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number)
     return row.label
   }
 
+  const authoredLabel = getAuthoredRowLabel(node, row)
+  if (authoredLabel) return authoredLabel
+
   const speedLabel = getSpeedRowLabel(node, row)
   if (speedLabel) return speedLabel
 
   return `${toSingularLabel(node.label)} ${index + 1}`
+}
+
+function getAuthoredRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
+  if (!isRecord(row)) return undefined
+
+  if (node.childMapId === 'effect') {
+    return getOptionLabel(TRIGGER_OPTIONS, readString(getRecordValue(row, 'invocation.triggerCode')))
+  }
+
+  if (node.childMapId === 'effectPath' || node.childMapId === 'manifestBehaviorPath') {
+    return getOptionLabel(PATH_CODE_OPTIONS, readString(row.pathCode))
+  }
+
+  if (node.childMapId === 'outcome' || node.childMapId === 'nonManifestOutcome') {
+    return getOptionLabel(EFFECT_KIND_OPTIONS, readString(row.effectKind))
+  }
+
+  return undefined
 }
 
 function getSpeedRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
@@ -814,6 +830,22 @@ function getSpeedOptionLabel(value: string | undefined): string | undefined {
   )?.label
 }
 
+function getOptionLabel(
+  options: readonly { code: string; label: string }[],
+  value: string | undefined
+): string | undefined {
+  if (!value) return undefined
+
+  return options.find((option) => option.code === value)?.label
+}
+
+function getRecordValue(record: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, segment) => {
+    if (!isRecord(value)) return undefined
+    return value[segment]
+  }, record)
+}
+
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
@@ -843,5 +875,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function toSingularLabel(label: string) {
+  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`
+  if (label.endsWith('ses')) return label.slice(0, -2)
   return label.endsWith('s') ? label.slice(0, -1) : label
 }

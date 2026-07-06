@@ -314,6 +314,7 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
             .onConflict((oc) => oc.column('charge_id').doUpdateSet(({ ref }) => ({
               limit_kind: ref('excluded.limit_kind'),
               class_id: ref('excluded.class_id'),
+              ability_code: ref('excluded.ability_code'),
               amount: ref('excluded.amount'),
               multiplier: ref('excluded.multiplier'),
               min: ref('excluded.min'),

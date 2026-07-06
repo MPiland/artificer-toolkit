@@ -6,7 +6,8 @@ export const homeStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[8]
+      gap: foundationVars.space[8],
+      padding: foundationVars.space[4]
     }
   }
 })

@@ -86,14 +86,14 @@ export function CharacterStartingEquipmentChoices({
               onChange={onChange}
             />
           )
-        : view.startingEquipment.sets.flatMap((set) => set.groups).map((group) => {
+        : view.startingEquipment.sets.flatMap((set) => set.groups).map((group, index) => {
             const groupSelection = currentDecision.groups?.find((selection) => selection.groupId === group.id)
             const selectedOption = group.options.find((option) => option.id === groupSelection?.optionId)
 
             return (
               <Stack key={group.id} gap='sm'>
                 <AppSelect
-                  label={`Group ${group.order}`}
+                  label={`Group ${index + 1}`}
                   data={group.options.map((option) => ({
                     value: option.id,
                     label: formatStartingEquipmentOption(option, equipmentOptions, currencyOptions)

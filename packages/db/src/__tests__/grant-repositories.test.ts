@@ -111,6 +111,60 @@ describe('grant repositories', () => {
     })
   })
 
+  it('hydrates a feat grant with an ability-modifier charge limit', async () => {
+    const repository = createFeatGrantRepository(createFakeDb({
+      feat_grants: [{
+        id: 'feat-grant-ability-charge',
+        sort_order: 1,
+        selection_kind: 'GRANTED',
+        scaling_kind: 'NONE',
+        authoring_mode_kind: 'ALL',
+        selection_count: null,
+        scaling_source: null,
+        class_id: null,
+        charge_id: 'charge-ability',
+        restriction_id: null
+      }],
+      feat_grant_feats: [],
+      feat_grant_scaling_levels: [],
+      feat_grant_scaling_level_feats: [],
+      charges: [{ id: 'charge-ability', scaling_kind: 'NONE', reset_kind: 'LONG_REST' }],
+      charge_limits: [{
+        charge_id: 'charge-ability',
+        limit_kind: 'ABILITY_MODIFIER',
+        class_id: null,
+        ability_code: 'WISDOM',
+        amount: null,
+        multiplier: 1,
+        min: 1,
+        max: null
+      }],
+      charge_scaling_levels: [],
+      charge_bonuses: []
+    }) as never)
+
+    await expect(repository.findById('feat-grant-ability-charge')).resolves.toEqual({
+      id: 'feat-grant-ability-charge',
+      grantKind: 'FEAT_GRANT',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
+      authoringModeKind: 'ALL',
+      featIds: undefined,
+      charges: {
+        id: 'charge-ability',
+        resetKind: 'LONG_REST',
+        limitKind: 'ABILITY_MODIFIER',
+        scalingKind: 'NONE',
+        ability: 'WISDOM',
+        multiplier: 1,
+        min: 1,
+        max: undefined,
+        bonuses: undefined
+      }
+    })
+  })
+
   it('hydrates a sense grant with per-level progression', async () => {
     const repository = createSenseGrantRepository(createFakeDb({
       sense_grants: [{

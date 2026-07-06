@@ -1,8 +1,40 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { CharacterAuthored } from '@artificer-toolkit/shared'
 import { CharacterStartingEquipmentSource } from '@artificer-toolkit/shared'
 import { upsertCharacter } from '../domains/subjects/upserts/character.js'
+import { createCharacterRepository } from '../repositories/index.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
+
+vi.mock('kysely', () => ({
+  sql: (sql: TemplateStringsArray, ...values: unknown[]) => ({
+    execute: async (db: InMemoryDb) => {
+      const statement = sql
+        .map((piece, index) => `${piece}${index < values.length ? String(values[index]) : ''}`)
+        .join('')
+      const lowered = statement.toLowerCase()
+      const queryTable =
+        lowered.includes('character_spell_slot_state')
+          ? 'character_spell_slot_state'
+          : lowered.includes('character_conditions')
+            ? 'character_conditions'
+            : lowered.includes('character_exhaustion')
+              ? 'character_exhaustion'
+              : null
+
+      if (!queryTable) {
+        throw new Error(`Unhandled SQL in test mock: ${statement}`)
+      }
+
+      const rows = await db
+        .selectFrom(queryTable)
+        .selectAll()
+        .where('character_id', '=', String(values[0] ?? ''))
+        .execute()
+
+      return { rows }
+    }
+  })
+}))
 
 function buildCharacter(): CharacterAuthored {
   return {
@@ -642,5 +674,59 @@ describe('upsertCharacter', () => {
         stream_version: 1
       })
     ])
+  })
+
+  it('throws for unsupported ancestry source discriminator from persisted character rows', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+
+    await upsertCharacter(db as never, character)
+
+    const ancestryRows = db.snapshot('character_ancestry_acquisitions')
+    const existingAncestry = ancestryRows.find((row) => row.character_id === character.id)
+    if (!existingAncestry) {
+      throw new Error('character ancestry acquisition row missing in test setup')
+    }
+
+    await db.deleteFrom('character_ancestry_acquisitions')
+      .where('id', '=', existingAncestry.id as string)
+      .execute()
+
+    await db.insertInto('character_ancestry_acquisitions')
+      .values({ ...existingAncestry, source_kind: 'CUSTOM_ORIGIN' as string })
+      .execute()
+
+    const repository = createCharacterRepository(db as never)
+
+    await expect(repository.findAuthoredById(character.id)).rejects.toThrow(
+      'Unsupported ancestry source kind: CUSTOM_ORIGIN'
+    )
+  })
+
+  it('throws for unsupported ancestry timing discriminator from persisted character rows', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+
+    await upsertCharacter(db as never, character)
+
+    const ancestryRows = db.snapshot('character_ancestry_acquisitions')
+    const existingAncestry = ancestryRows.find((row) => row.character_id === character.id)
+    if (!existingAncestry) {
+      throw new Error('character ancestry acquisition row missing in test setup')
+    }
+
+    await db.deleteFrom('character_ancestry_acquisitions')
+      .where('id', '=', existingAncestry.id as string)
+      .execute()
+
+    await db.insertInto('character_ancestry_acquisitions')
+      .values({ ...existingAncestry, timing_kind: 'MILESTONE' as string })
+      .execute()
+
+    const repository = createCharacterRepository(db as never)
+
+    await expect(repository.findAuthoredById(character.id)).rejects.toThrow(
+      'Unsupported ancestry timing kind: MILESTONE'
+    )
   })
 })

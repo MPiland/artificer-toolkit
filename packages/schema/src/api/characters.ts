@@ -291,6 +291,7 @@ export const characterBuilderRaceViewDtoSchema = z.object({
     selectedOptionId: z.string().optional(),
     options: z.array(characterBuilderChoiceOptionDtoSchema)
   }).nullable(),
+  features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   featureChoices: z.array(characterBuilderFeatureChoiceViewDtoSchema)
 })
 
@@ -302,6 +303,7 @@ export const characterBuilderClassViewItemDtoSchema = z.object({
   subclassOptions: z.array(characterBuilderChoiceOptionDtoSchema),
   specializationOptions: z.array(characterBuilderChoiceOptionDtoSchema),
   featureLabels: z.array(z.string()),
+  features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   featureChoices: z.array(characterBuilderFeatureChoiceViewDtoSchema),
   spellChoices: z.array(characterBuilderSpellChoiceViewDtoSchema),
   resourceLabels: z.array(z.string()),
@@ -315,6 +317,7 @@ export const characterBuilderClassViewDtoSchema = z.object({
 
 export const characterBuilderBackgroundViewDtoSchema = z.object({
   backgroundOptions: z.array(characterBuilderChoiceOptionDtoSchema),
+  features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   featureChoices: z.array(characterBuilderFeatureChoiceViewDtoSchema)
 })
 
@@ -961,6 +964,7 @@ export type CharacterBuilderRaceReferenceDto = z.infer<typeof characterBuilderRa
 export type CharacterBuilderClassReferenceDto = z.infer<typeof characterBuilderClassReferenceDtoSchema>
 export type CharacterBuilderReferencesDto = z.infer<typeof characterBuilderReferencesDtoSchema>
 export type CharacterBuilderChoiceOptionDto = z.infer<typeof characterBuilderChoiceOptionDtoSchema>
+export type CharacterBuilderGrantSummaryItemDto = z.infer<typeof characterBuilderGrantSummaryItemDtoSchema>
 export type CharacterBuilderFeatureChoiceViewDto = z.infer<typeof characterBuilderFeatureChoiceViewDtoSchema>
 export type CharacterBuilderSpellChoiceViewDto = z.infer<typeof characterBuilderSpellChoiceViewDtoSchema>
 export type CharacterBuilderRaceViewDto = z.infer<typeof characterBuilderRaceViewDtoSchema>

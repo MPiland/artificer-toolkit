@@ -55,6 +55,41 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('button', { name: /finalize character/i })).toBeDisabled()
   })
 
+  it('adds a selected class before resolver refresh', async () => {
+    const user = userEvent.setup()
+    const resolvedValues: CharacterFormValues[] = []
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderDraftPayloadFixture,
+        resolution: {
+          ...characterBuilderDraftPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        }
+      },
+      resolveDebounceMs: 1,
+      onResolve: (character) => {
+        resolvedValues.push(character)
+      }
+    })
+
+    await user.click(screen.getByRole('combobox', { name: /^add class$/i }))
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Wizard' }))
+
+    await user.click(screen.getByRole('button', { name: /^add class$/i }))
+
+    expect(screen.getByRole('combobox', { name: /^class$/i })).toHaveValue('Wizard')
+    expect(screen.getByText('Level 1')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(resolvedValues.at(-1)?.intent.classes).toEqual([
+        {
+          classId: 'class-wizard',
+          classLevel: 1
+        }
+      ])
+    })
+  })
+
   it('renders resolver-provided starting equipment choices on the equipment step', () => {
     renderCharacterBuilderHarness({
       payload: {
@@ -114,7 +149,7 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('combobox', { name: /group 1/i })).toBeInTheDocument()
   })
 
-  it('renders resolver-provided source-local feature choices on the owning step', () => {
+  it('renders resolver-provided source-local features and embedded choices on the owning step', () => {
     renderCharacterBuilderHarness({
       payload: {
         ...characterBuilderPayloadFixture,
@@ -126,6 +161,15 @@ describe('CharacterBuilderRenderer', () => {
           ...characterBuilderPayloadFixture.view,
           race: {
             ...characterBuilderPayloadFixture.view.race,
+            features: [
+              {
+                id: 'feature-elven-training',
+                label: 'Elven Training',
+                description: '<p>Choose one practiced elven skill.</p>',
+                sourceLabel: 'Elf',
+                source: { kind: 'RACE', raceId: 'race-elf' }
+              }
+            ],
             featureChoices: [
               {
                 featureId: 'feature-elven-training',
@@ -147,8 +191,172 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
-    expect(screen.getByText(/feature choices/i)).toBeInTheDocument()
+    expect(screen.getByText(/choose one practiced elven skill/i)).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /elven training choice/i })).toBeInTheDocument()
+  })
+
+  it('shows Dragonborn ancestry choices after the resolver selects Dragonborn', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            race: { raceId: 'race-dragonborn' },
+            ancestrySelections: undefined
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'RACE',
+          summary: {
+            ...characterBuilderPayloadFixture.resolution.summary,
+            selectedRace: {
+              raceId: 'race-dragonborn',
+              raceLabel: 'Dragonborn',
+              ancestryId: 'ancestry-draconic',
+              ancestryLabel: 'Draconic Ancestry'
+            }
+          },
+          outstandingChoices: [
+            {
+              code: 'ANCESTRY_SELECTION_REQUIRED',
+              message: 'Choose a Draconic Ancestry option.',
+              sourceLabel: 'Draconic Ancestry',
+              required: true
+            }
+          ],
+          readiness: {
+            ...characterBuilderPayloadFixture.resolution.readiness,
+            ready: false,
+            outstandingRequiredChoices: ['Draconic Ancestry']
+          }
+        },
+        view: {
+          ...characterBuilderPayloadFixture.view,
+          race: {
+            raceOptions: [{ id: 'race-dragonborn', label: 'Dragonborn' }],
+            subraceOptions: [],
+            ancestry: {
+              ancestryId: 'ancestry-draconic',
+              label: 'Draconic Ancestry',
+              options: [
+                { id: 'ancestry-red', label: 'Red (Fire)' },
+                { id: 'ancestry-blue', label: 'Blue (Lightning)' }
+              ]
+            },
+            features: [
+              {
+                id: 'feature-draconic-ancestry',
+                label: 'Draconic Ancestry',
+                description: '<p>Choose one type of dragon from the Draconic Ancestry table.</p>',
+                sourceLabel: 'Dragonborn',
+                source: { kind: 'RACE', raceId: 'race-dragonborn' }
+              }
+            ],
+            featureChoices: []
+          }
+        }
+      }
+    })
+
+    expect(screen.getByRole('combobox', { name: /^race$/i })).toHaveValue('Dragonborn')
+    expect(screen.getByRole('combobox', { name: /draconic ancestry/i })).toBeInTheDocument()
+    expect(screen.getByText(/choose one type of dragon/i)).toBeInTheDocument()
+  })
+
+  it('renders ancestry-granted features after an ancestry option is selected', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            race: { raceId: 'race-dragonborn' },
+            ancestrySelections: [
+              {
+                id: 'ancestry-red-selection',
+                ancestryId: 'ancestry-draconic',
+                optionId: 'ancestry-red',
+                source: { kind: 'RACE', raceId: 'race-dragonborn' },
+                timing: { kind: 'IMMEDIATE' }
+              }
+            ]
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'RACE',
+          summary: {
+            ...characterBuilderPayloadFixture.resolution.summary,
+            selectedRace: {
+              raceId: 'race-dragonborn',
+              raceLabel: 'Dragonborn',
+              ancestryId: 'ancestry-draconic',
+              ancestryLabel: 'Draconic Ancestry',
+              ancestryOptionId: 'ancestry-red',
+              ancestryOptionLabel: 'Red (Fire)'
+            }
+          }
+        },
+        view: {
+          ...characterBuilderPayloadFixture.view,
+          race: {
+            raceOptions: [{ id: 'race-dragonborn', label: 'Dragonborn' }],
+            subraceOptions: [],
+            ancestry: {
+              ancestryId: 'ancestry-draconic',
+              label: 'Draconic Ancestry',
+              selectedOptionId: 'ancestry-red',
+              options: [
+                { id: 'ancestry-red', label: 'Red (Fire)' },
+                { id: 'ancestry-blue', label: 'Blue (Lightning)' }
+              ]
+            },
+            features: [
+              {
+                id: 'feature-breath-weapon',
+                label: 'Breath Weapon',
+                description: '<p>You can exhale destructive energy tied to your ancestry.</p>',
+                sourceLabel: 'Red (Fire)',
+                source: { kind: 'ANCESTRY', ancestryId: 'ancestry-draconic', optionId: 'ancestry-red' }
+              },
+              {
+                id: 'feature-damage-resistance',
+                label: 'Damage Resistance',
+                description: '<p>You have resistance to fire damage.</p>',
+                sourceLabel: 'Red (Fire)',
+                source: { kind: 'ANCESTRY', ancestryId: 'ancestry-draconic', optionId: 'ancestry-red' }
+              }
+            ],
+            featureChoices: []
+          }
+        }
+      }
+    })
+
+    expect(screen.getByText(/breath weapon/i)).toBeInTheDocument()
+    expect(screen.getByText(/destructive energy tied to your ancestry/i)).toBeInTheDocument()
+    expect(screen.getByText(/damage resistance/i)).toBeInTheDocument()
+    expect(screen.getByText(/resistance to fire damage/i)).toBeInTheDocument()
+  })
+
+  it('renders active class feature descriptions even when no options are required', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        }
+      }
+    })
+
+    expect(screen.getByRole('heading', { level: 2, name: /classes/i })).toBeInTheDocument()
+    expect(screen.getAllByText(/spellcasting/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/prepare and cast wizard spells/i)).toBeInTheDocument()
   })
 
   it('keeps class-owned feature choices selected when only class level changes', () => {
@@ -187,6 +395,15 @@ describe('CharacterBuilderRenderer', () => {
               {
                 ...characterBuilderPayloadFixture.view.classes.selectedClasses[0],
                 classLevel: 5,
+                features: [
+                  {
+                    id: 'feature-arcane-training',
+                    label: 'Arcane Training',
+                    description: '<p>Choose a scholarly skill.</p>',
+                    sourceLabel: 'Wizard',
+                    source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 5 }
+                  }
+                ],
                 featureChoices: [
                   {
                     featureId: 'feature-arcane-training',
@@ -618,6 +835,7 @@ function CharacterBuilderTestHarness({
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Finalize Character',
+      authoringKind: 'character-builder',
       canSaveDraft: !readOnly,
       mode: readOnly ? 'view' : 'edit',
       readOnly,

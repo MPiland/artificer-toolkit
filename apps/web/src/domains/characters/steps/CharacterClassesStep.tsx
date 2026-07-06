@@ -14,7 +14,7 @@ import {
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import { CharacterClassGrantedSummary } from './CharacterClassGrantedSummary'
-import { CharacterFeatureChoices } from './CharacterFeatureChoices'
+import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import { CharacterSpellChoices } from './CharacterSpellChoices'
 import type { CharacterFormValues } from '../characterBuilder.utils'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
@@ -54,10 +54,10 @@ export const CharacterClassesStep = withForm({
                           disabled={!classToAdd || isChoiceOptionDisabled(payload.view.classes.classOptions, classToAdd)}
                           onClick={() => {
                             if (!classToAdd || isChoiceOptionDisabled(payload.view.classes.classOptions, classToAdd)) return
-                            field.pushValue({
+                            form.setFieldValue('intent.classes', [...rows, {
                               classId: classToAdd,
                               classLevel: 1
-                            })
+                            }])
                             setClassToAdd(null)
                           }}
                         >
@@ -70,8 +70,11 @@ export const CharacterClassesStep = withForm({
                   ? <Text className={styles.mutedText}>No classes have been added yet.</Text>
                   : rows.map((row, index) => {
                       const view = payload.view.classes.selectedClasses[index]
-                      const rowLabel = view?.classLabel ?? row.classId ?? `Class ${index + 1}`
                       const rowClassOptions = choiceOptions(view?.classOptions ?? payload.view.classes.classOptions)
+                      const rowLabel = view?.classLabel
+                        ?? rowClassOptions.find((option) => option.value === row.classId)?.label
+                        ?? row.classId
+                        ?? `Class ${index + 1}`
 
                       return (
                         <div key={`${row.classId}-${index}`} className={styles.inlinePanel}>
@@ -204,13 +207,13 @@ export const CharacterClassesStep = withForm({
                               : null}
                           </div>
                           <CharacterClassGrantedSummary
-                            featureLabels={view?.featureLabels ?? []}
                             resourceLabels={view?.resourceLabels ?? []}
                             spellcastingLabels={view?.spellcastingLabels ?? []}
                           />
                           <form.AppField name='intent.featureAcquisitions'>
                             {(featureField) => (
-                              <CharacterFeatureChoices
+                              <CharacterGrantedFeatures
+                                features={view?.features ?? []}
                                 choices={view?.featureChoices ?? []}
                                 acquisitions={featureField.state.value}
                                 readOnly={readOnly}

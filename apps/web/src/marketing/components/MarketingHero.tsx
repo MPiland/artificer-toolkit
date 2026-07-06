@@ -26,7 +26,7 @@ export function MarketingHero({ showPricingLink = true }: MarketingHeroProps) {
       <div className={heroContent}>
         <p className={eyebrow}>Built for players, homebrewers, and DMs</p>
         <h1 id='marketing-hero-title' className={heroTitle}>
-          Create the content you want to run, then bring it straight into play.
+          Create the content, then bring it straight into play.
         </h1>
         <p className={heroCopy}>
           Artificer Toolkit gives you a structured place to author homebrew, build characters from
@@ -36,13 +36,11 @@ export function MarketingHero({ showPricingLink = true }: MarketingHeroProps) {
           <MarketingRouteLink className={primaryLink} to='/sign-up'>
             Start building for free
           </MarketingRouteLink>
-          {showPricingLink
-            ? (
-                <MarketingHashLink className={secondaryLink} href='#pricing'>
-                  View pricing
-                </MarketingHashLink>
-              )
-            : null}
+          {showPricingLink ? (
+            <MarketingHashLink className={secondaryLink} href='#pricing'>
+              View pricing
+            </MarketingHashLink>
+          ) : null}
         </div>
         <div className={heroHighlightGrid} aria-label='Product highlights'>
           {marketingHeroHighlights.map((highlight) => (

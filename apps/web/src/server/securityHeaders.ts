@@ -29,6 +29,50 @@ function getStyleSrc() {
   return "style-src 'self' 'unsafe-inline'"
 }
 
+const SUPABASE_CONNECT_SOURCES = [
+  'https://*.supabase.co',
+  'wss://*.supabase.co'
+] as const
+
+const LOCAL_SUPABASE_CONNECT_SOURCES = [
+  'http://127.0.0.1:54321',
+  'http://localhost:54321',
+  'ws://127.0.0.1:54321',
+  'ws://localhost:54321'
+] as const
+
+function getDevelopmentConnectSources() {
+  if (!isDevelopment()) return []
+
+  const sources = new Set<string>(LOCAL_SUPABASE_CONNECT_SOURCES)
+  const supabaseUrl = process.env.VITE_SUPABASE_URL
+
+  if (supabaseUrl) {
+    try {
+      const url = new URL(supabaseUrl)
+      sources.add(url.origin)
+
+      if (url.protocol === 'http:') {
+        sources.add(`ws://${url.host}`)
+      } else if (url.protocol === 'https:') {
+        sources.add(`wss://${url.host}`)
+      }
+    } catch {
+      // Ignore invalid local env values; Supabase client config owns surfacing that error.
+    }
+  }
+
+  return [...sources]
+}
+
+function getConnectSrc() {
+  return [
+    "connect-src 'self'",
+    ...SUPABASE_CONNECT_SOURCES,
+    ...getDevelopmentConnectSources()
+  ].join(' ')
+}
+
 function getReportOnlyCsp({ nonce }: SecurityHeaderOptions = {}) {
   return [
     "default-src 'self'",
@@ -38,7 +82,7 @@ function getReportOnlyCsp({ nonce }: SecurityHeaderOptions = {}) {
     "form-action 'self'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    getConnectSrc(),
     getScriptSrc(nonce),
     getStyleSrc(),
     "worker-src 'self' blob:"

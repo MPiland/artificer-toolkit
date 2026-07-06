@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
@@ -175,4 +175,69 @@ export const inlinePanel = style({
       padding: '16px'
     }
   }
+})
+
+export const grantedFeatureSection = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '12px'
+    }
+  }
+})
+
+export const grantedFeatureItem = style({
+  '@layer': {
+    [app]: {
+      background: foundationVars.color.surface.panel,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: '12px',
+      display: 'grid',
+      gap: '12px',
+      padding: '14px'
+    }
+  }
+})
+
+export const grantedFeatureHeader = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: '12px'
+    }
+  }
+})
+
+export const grantedFeatureDescription = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.95rem',
+      lineHeight: 1.55
+    }
+  }
+})
+
+export const grantedFeatureChoices = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '12px'
+    }
+  }
+})
+
+globalStyle(`${grantedFeatureDescription} p`, {
+  margin: 0
+})
+
+globalStyle(`${grantedFeatureDescription} p + p`, {
+  marginTop: '8px'
+})
+
+globalStyle(`${grantedFeatureDescription} ul, ${grantedFeatureDescription} ol`, {
+  margin: '8px 0 0',
+  paddingLeft: '20px'
 })

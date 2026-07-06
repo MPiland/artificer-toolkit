@@ -9,7 +9,7 @@ import {
   type CharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
-import { CharacterFeatureChoices } from './CharacterFeatureChoices'
+import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 
 export const CharacterRaceStep = withForm({
@@ -126,7 +126,8 @@ export const CharacterRaceStep = withForm({
           : null}
         <form.AppField name='intent.featureAcquisitions'>
           {(field) => (
-            <CharacterFeatureChoices
+            <CharacterGrantedFeatures
+              features={raceView.features}
               choices={raceView.featureChoices}
               acquisitions={field.state.value}
               readOnly={readOnly}

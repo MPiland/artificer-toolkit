@@ -1,5 +1,6 @@
 import { HttpResponse, http } from 'msw'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { NodeRuntimeResolveRequestDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
@@ -37,7 +38,23 @@ describe('non-character authored domain layout coverage', () => {
     expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+  })
+
+  it('shows Back after advancing from the first create step', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+
+    render(
+      <TestRouterProvider>
+        {renderCreateLayout('race')}
+      </TestRouterProvider>
+    )
+
+    await user.type(await screen.findByRole('textbox', { name: /name/i }), 'Test Race')
+    await user.click(screen.getByRole('button', { name: /^next$/i }))
+
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument()
   })
 
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {

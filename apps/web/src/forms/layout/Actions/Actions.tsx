@@ -82,7 +82,7 @@ export function ResetActionMenu() {
   return (
     <Menu>
       <Menu.Target>
-        <ActionIcon className={styles.headerIconButton}>
+        <ActionIcon aria-label='Reset actions' className={styles.headerIconButton}>
           <RotateCcw size={14} aria-hidden='true' />
         </ActionIcon>
       </Menu.Target>

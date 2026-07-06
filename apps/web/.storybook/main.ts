@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/tanstack-react'
+import { mergeConfig } from 'vite'
 
 const config: StorybookConfig = {
   framework: {
@@ -14,7 +15,12 @@ const config: StorybookConfig = {
     '@storybook/addon-vitest',
     '@storybook/addon-mcp',
     '@chromatic-com/storybook'
-  ]
+  ],
+  viteFinal: async (config) => {
+    const { default: storybookViteConfig } = await import('./vite.config.ts')
+
+    return mergeConfig(config, storybookViteConfig)
+  }
 }
 
 export default config
