@@ -8,47 +8,13 @@ const mobile = 'screen and (max-width: 640px)'
 export const canvas = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateRows: 'auto minmax(0, 1fr)',
+      display: 'flex',
+      flexDirection: 'column',
       blockSize: '100dvh',
       minBlockSize: '100dvh',
       overflow: 'hidden',
       backgroundColor: foundationVars.color.surface.canvas,
       color: foundationVars.color.text.primary
-    }
-  }
-})
-
-export const workspace = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gridTemplateAreas: '"rail main"',
-      gridTemplateColumns: 'minmax(16rem, 20rem) minmax(0, 1fr)',
-      gridTemplateRows: 'minmax(0, 1fr)',
-      blockSize: '100%',
-      minBlockSize: 0,
-      minInlineSize: 0,
-      overflow: 'hidden',
-      '@media': {
-        [tabletPortrait]: {
-          gridTemplateAreas: '"main"',
-          gridTemplateColumns: 'minmax(0, 1fr)'
-        },
-        [mobile]: {
-          gridTemplateAreas: '"main"',
-          gridTemplateColumns: 'minmax(0, 1fr)'
-        }
-      }
-    }
-  }
-})
-
-export const workspaceNoRail = style({
-  '@layer': {
-    [app]: {
-      gridTemplateAreas: '"main"',
-      gridTemplateColumns: 'minmax(0, 1fr)'
     }
   }
 })
@@ -112,6 +78,7 @@ export const main = style({
   '@layer': {
     [app]: {
       gridArea: 'main',
+      flex: 1,
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'auto',
@@ -126,7 +93,9 @@ export const main = style({
 export const authoringMain = style({
   '@layer': {
     [app]: {
+      boxSizing: 'border-box',
       gridArea: 'main',
+      flex: 1,
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'hidden',
@@ -136,12 +105,12 @@ export const authoringMain = style({
       },
       '@media': {
         [tabletPortrait]: {
-          paddingBlockEnd: '58px',
-          overflow: 'auto'
+          blockSize: 'calc(100% - 58px)',
+          overflow: 'hidden'
         },
         [mobile]: {
-          paddingBlockEnd: '58px',
-          overflow: 'auto'
+          blockSize: 'calc(100% - 58px)',
+          overflow: 'hidden'
         }
       }
     }
@@ -168,30 +137,6 @@ export const contentArea = style({
           inlineSize: '100%',
           gap: foundationVars.space[6],
           padding: `${foundationVars.space[4]} ${foundationVars.space[4]} calc(58px + env(safe-area-inset-bottom) + 24px)`
-        }
-      }
-    }
-  }
-})
-
-export const mobileFooterSlot = style({
-  '@layer': {
-    [app]: {
-      display: 'none',
-      '@media': {
-        [tabletPortrait]: {
-          position: 'fixed',
-          insetInline: 0,
-          insetBlockEnd: 0,
-          zIndex: 190,
-          display: 'block'
-        },
-        [mobile]: {
-          position: 'fixed',
-          insetInline: 0,
-          insetBlockEnd: 0,
-          zIndex: 190,
-          display: 'block'
         }
       }
     }
@@ -247,20 +192,24 @@ export const userIconButton = style({
 export const headerMenuButton = style({
   '@layer': {
     [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: foundationVars.space[2],
       minBlockSize: 36,
-      blockSize: 36,
-      paddingInline: foundationVars.space[4],
-      border: `1px solid var(--shell-menu-button-border, ${foundationVars.color.button.primary.border})`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: `var(--shell-menu-button-background, ${foundationVars.color.button.primary.background})`,
-      color: `var(--shell-menu-button-text, ${foundationVars.color.button.primary.text})`,
+      paddingInline: foundationVars.space[3],
+      border: '1px solid transparent',
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: 'transparent',
+      color: foundationVars.color.text.accent,
+      cursor: 'pointer',
       fontSize: '0.875rem',
-      fontWeight: foundationVars.fontWeight.bold,
+      fontWeight: foundationVars.fontWeight.regular,
       transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
       ':hover': {
-        borderColor: `var(--shell-menu-button-hover-border, ${foundationVars.color.button.primary.border})`,
-        backgroundColor: `var(--shell-menu-button-hover-background, ${foundationVars.color.button.primary.hover})`,
-        color: `var(--shell-menu-button-hover-text, ${foundationVars.color.button.primary.text})`
+        borderColor: foundationVars.color.border.subtle,
+        backgroundColor: foundationVars.color.surface.subtle,
+        color: foundationVars.color.text.primary
       },
       ':focus-visible': {
         outline: 'none',
@@ -277,6 +226,43 @@ export const menuItemText = style({
       minInlineSize: 0,
       color: foundationVars.color.text.primary,
       fontWeight: foundationVars.fontWeight.semibold
+    }
+  }
+})
+
+export const themeModePill = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 2,
+      padding: 2,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.pill,
+      backgroundColor: foundationVars.color.surface.recessed
+    }
+  }
+})
+
+export const themeModePillOption = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      inlineSize: 20,
+      blockSize: 20,
+      borderRadius: foundationVars.radius.pill,
+      color: foundationVars.color.text.muted
+    }
+  }
+})
+
+export const themeModePillOptionActive = style({
+  '@layer': {
+    [app]: {
+      backgroundColor: foundationVars.color.surface.subtle,
+      color: foundationVars.color.text.primary
     }
   }
 })
@@ -351,31 +337,6 @@ export const headerActions = style({
       alignItems: 'center',
       justifyContent: 'flex-end',
       gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const footerActionBar = style({
-  '@layer': {
-    [app]: {
-      position: 'sticky',
-      insetBlockEnd: foundationVars.space[4],
-      zIndex: 5,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[4],
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card,
-      '@media': {
-        [mobile]: {
-          alignItems: 'stretch',
-          flexDirection: 'column'
-        }
-      }
     }
   }
 })

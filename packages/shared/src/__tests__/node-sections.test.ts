@@ -231,6 +231,28 @@ describe('node map sections', () => {
     })
   })
 
+  it('requires top-level names for every authored subject map', () => {
+    const maps: NodeMap<object>[] = [
+      BACKGROUND_NODE_MAP,
+      CLASS_NODE_MAP,
+      CREATURE_NODE_MAP,
+      EQUIPMENT_NODE_MAP,
+      FEAT_NODE_MAP,
+      RACE_NODE_MAP,
+      SPELL_NODE_MAP,
+      VEHICLE_NODE_MAP
+    ]
+
+    maps.forEach((nodeMap) => {
+      const labelNode = nodeMap.nodes.label
+
+      expect(labelNode?.kind, `${nodeMap.mapId} label should be an input node`).toBe('INPUT')
+      if (!labelNode || labelNode.kind !== 'INPUT') return
+
+      expect(labelNode.requiredIf, `${nodeMap.mapId} label should be required`).toBe(true)
+    })
+  })
+
   it('provides sections for every authored subject map', () => {
     const maps: NodeMap<object>[] = [
       BACKGROUND_NODE_MAP,

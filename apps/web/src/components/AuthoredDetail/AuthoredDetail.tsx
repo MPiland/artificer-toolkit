@@ -39,6 +39,7 @@ interface AuthoredDetailFactGridProps {
 }
 
 interface AuthoredDetailProseProps {
+  children?: ReactNode
   html?: string | null
   fallback?: string
 }
@@ -91,52 +92,54 @@ export function AuthoredDetailLayout({
         withCloseButton={false}
         onClose={() => undefined}
       >
-        {pendingOperation
-          ? (
-              <Stack align='center' gap='md'>
-                <Loader size='sm' />
-                <Text ta='center' size='sm'>{pendingOperation.body}</Text>
-              </Stack>
-            )
-          : null}
+        {pendingOperation ? (
+          <Stack align='center' gap='md'>
+            <Loader size='sm' />
+            <Text ta='center' size='sm'>
+              {pendingOperation.body}
+            </Text>
+          </Stack>
+        ) : null}
       </Modal>
       <header className={styles.hero}>
-        {hasStatus || hasActions
-          ? (
-              <div className={styles.heroToolbar}>
-                {hasStatus
-                  ? (
-                      <Group className={styles.statusRow}>
-                        {status.map((label) => (
-                          <span key={label} className={getStatusChipClassName(label)}>
-                            {label}
-                          </span>
-                        ))}
-                      </Group>
-                    )
-                  : <span />}
-                {hasActions
-                  ? (
-                      <div className={styles.actionBar}>
-                        {actions.map((action) => (
-                          <Button
-                            className={action.tone === 'danger' ? styles.dangerActionButton : undefined}
-                            key={action.label}
-                            disabled={actionsDisabled || action.disabled}
-                            loading={action.loading}
-                            size='sm'
-                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : 'light'}
-                            onClick={action.onClick}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                      </div>
-                    )
-                  : null}
+        {hasStatus || hasActions ? (
+          <div className={styles.heroToolbar}>
+            {hasStatus ? (
+              <Group className={styles.statusRow}>
+                {status.map((label) => (
+                  <span key={label} className={getStatusChipClassName(label)}>
+                    {label}
+                  </span>
+                ))}
+              </Group>
+            ) : (
+              <span />
+            )}
+            {hasActions ? (
+              <div className={styles.actionBar}>
+                {actions.map((action) => (
+                  <Button
+                    className={action.tone === 'danger' ? styles.dangerActionButton : undefined}
+                    key={action.label}
+                    disabled={actionsDisabled || action.disabled}
+                    loading={action.loading}
+                    size='sm'
+                    variant={
+                      action.tone === 'primary'
+                        ? 'filled'
+                        : action.tone === 'quiet'
+                          ? 'subtle'
+                          : 'light'
+                    }
+                    onClick={action.onClick}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
               </div>
-            )
-          : null}
+            ) : null}
+          </div>
+        ) : null}
         <div className={styles.heroMain}>
           {eyebrow ? <Text className={styles.eyebrow}>{eyebrow}</Text> : null}
           <Title className={styles.title}>{title}</Title>
@@ -146,35 +149,41 @@ export function AuthoredDetailLayout({
         {afterFacts ? <div className={styles.afterFacts}>{afterFacts}</div> : null}
       </header>
 
-      {notice
-        ? (
-            <div className={`${styles.noticeBase} ${styles.notice[notice.tone]}`}>
-              <div className={styles.noticeText}>
-                <Text className={styles.noticeTitle}>{notice.title}</Text>
-                <Text className={styles.noticeBody}>{notice.body}</Text>
-              </div>
-              {notice.action
-                ? (
-                    <Button
-                      className={notice.action.tone === 'danger' ? styles.dangerActionButton : undefined}
-                      disabled={actionsDisabled || notice.action.disabled}
-                      loading={notice.action.loading}
-                      size='sm'
-                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : 'light'}
-                      onClick={notice.action.onClick}
-                    >
-                      {notice.action.label}
-                    </Button>
-                  )
-                : null}
-            </div>
-          )
-        : null}
+      {notice ? (
+        <div className={`${styles.noticeBase} ${styles.notice[notice.tone]}`}>
+          <div className={styles.noticeText}>
+            <Text className={styles.noticeTitle}>{notice.title}</Text>
+            <Text className={styles.noticeBody}>{notice.body}</Text>
+          </div>
+          {notice.action ? (
+            <Button
+              className={notice.action.tone === 'danger' ? styles.dangerActionButton : undefined}
+              disabled={actionsDisabled || notice.action.disabled}
+              loading={notice.action.loading}
+              size='sm'
+              variant={
+                notice.action.tone === 'primary'
+                  ? 'filled'
+                  : notice.action.tone === 'quiet'
+                    ? 'subtle'
+                    : 'light'
+              }
+              onClick={notice.action.onClick}
+            >
+              {notice.action.label}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className={clsx(styles.contentLayout, !shouldShowSectionNav && styles.contentLayoutNoNav)}>
+      <div
+        className={clsx(styles.contentLayout, !shouldShowSectionNav && styles.contentLayoutNoNav)}
+      >
         {shouldShowSectionNav ? <AuthoredDetailNav sections={sections} /> : null}
         <div className={styles.sectionStack}>
-          {sections.map((section) => <AuthoredDetailSection key={section.id} section={section} />)}
+          {sections.map((section) => (
+            <AuthoredDetailSection key={section.id} section={section} />
+          ))}
         </div>
       </div>
     </article>
@@ -211,7 +220,11 @@ export function AuthoredDetailPillList({ items, label }: AuthoredDetailPillListP
     <section className={styles.pillList} aria-label={label}>
       <Text className={styles.pillListLabel}>{label}</Text>
       <div className={styles.pillListItems}>
-        {items.map((item) => <span className={styles.pill} key={item}>{item}</span>)}
+        {items.map((item) => (
+          <span className={styles.pill} key={item}>
+            {item}
+          </span>
+        ))}
       </div>
     </section>
   )
@@ -237,7 +250,14 @@ export function AuthoredDetailFactGrid({ facts }: AuthoredDetailFactGridProps) {
   }
 
   return (
-    <dl className={styles.factGrid} style={{ '--authored-detail-fact-grid-columns': getFactGridColumnCount(facts.length) } as CSSProperties}>
+    <dl
+      className={styles.factGrid}
+      style={
+        {
+          '--authored-detail-fact-grid-columns': getFactGridColumnCount(facts.length)
+        } as CSSProperties
+      }
+    >
       {facts.map((fact) => (
         <div key={fact.label} className={styles.fact}>
           <dt className={styles.factLabel}>{fact.label}</dt>
@@ -252,14 +272,31 @@ function getFactGridColumnCount(factCount: number): number {
   return Math.min(6, Math.max(1, Math.ceil(factCount / 2)))
 }
 
-export function AuthoredDetailProse({ html, fallback = 'No description has been added yet.' }: AuthoredDetailProseProps) {
+export function AuthoredDetailProse({
+  children,
+  html,
+  fallback = 'No description has been added yet.'
+}: AuthoredDetailProseProps) {
   const content = html?.trim()
 
   if (!content) {
-    return <AuthoredDetailEmptyBlock>{fallback}</AuthoredDetailEmptyBlock>
+    if (!children) {
+      return <AuthoredDetailEmptyBlock>{fallback}</AuthoredDetailEmptyBlock>
+    }
+    return (
+      <>
+        {children}
+        <AuthoredDetailEmptyBlock>{fallback}</AuthoredDetailEmptyBlock>
+      </>
+    )
   }
 
-  return <div className={styles.prose}>{renderSanitizedRichHtml(content)}</div>
+  return (
+    <>
+      {children}
+      <div className={styles.prose}>{renderSanitizedRichHtml(content)}</div>
+    </>
+  )
 }
 
 export function AuthoredDetailEmptyBlock({ children }: AuthoredDetailEmptyBlockProps) {

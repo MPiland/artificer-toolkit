@@ -1,5 +1,5 @@
 import { Alert } from '@mantine/core'
-import { withForm } from '#forms'
+import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   clearBackgroundDependents,
@@ -7,7 +7,7 @@ import {
   createFallbackCharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
-import { CharacterFeatureChoices } from './CharacterFeatureChoices'
+import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 
 export const CharacterBackgroundStep = withForm({
@@ -49,7 +49,8 @@ export const CharacterBackgroundStep = withForm({
           : null}
         <form.AppField name='intent.featureAcquisitions'>
           {(field) => (
-            <CharacterFeatureChoices
+            <CharacterGrantedFeatures
+              features={payload.view.background.features}
               choices={payload.view.background.featureChoices}
               acquisitions={field.state.value}
               readOnly={readOnly}

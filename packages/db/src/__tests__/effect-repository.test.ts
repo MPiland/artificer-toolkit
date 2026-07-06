@@ -192,6 +192,73 @@ describe('createEffectRepository', () => {
     })
   })
 
+  it('hydrates until-dispelled durations without requiring an amount', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never)
+
+    await repository.upsert({
+      id: 'effect-until-dispelled-1',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'effect-until-dispelled-1-saving-throw',
+          dcMethod: 'FIXED_DC',
+          ability: 'WISDOM',
+          baseDc: 15
+        },
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'effect-until-dispelled-1-range',
+          rangeKind: 'DISTANCE',
+          amount: 30,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        {
+          id: 'effect-until-dispelled-1-path',
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'effect-until-dispelled-1-result',
+            resultKind: 'SINGLE',
+            duration: {
+              id: 'effect-until-dispelled-1-duration',
+              durationKind: 'UNTIL_DISPELLED'
+            },
+            outcomes: [
+              {
+                id: 'effect-until-dispelled-1-condition',
+                effectKind: 'CONDITION',
+                conditionId: 'blinded'
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    await expect(repository.findById('effect-until-dispelled-1')).resolves.toMatchObject({
+      paths: [
+        {
+          resultBlock: {
+            duration: {
+              id: 'effect-until-dispelled-1-duration',
+              durationKind: 'UNTIL_DISPELLED'
+            }
+          }
+        }
+      ]
+    })
+  })
+
   it('hydrates numeric database strings as authored numbers', async () => {
     const db = new InMemoryDb()
     const repository = createEffectRepository(db as never)

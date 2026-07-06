@@ -40,15 +40,15 @@
   "dependencies": {
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.105.3",
+    "@supabase/supabase-js": "^2.108.2",
     "kysely": "^0.28.17",
     "kysely-supabase": "^0.2.1",
     "pg": "^8.20.0",
-    "supabase": "^2.98.2"
+    "supabase": "^2.101.0"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "uuid": "^14.0.0"
   }
 }

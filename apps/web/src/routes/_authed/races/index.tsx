@@ -22,7 +22,9 @@ import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 const raceDetailMeta = ['heritages', 'races', 'speeds']
 
 export const Route = createFileRoute('/_authed/races/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getRaceList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getRaceList(createServerApi()))
+  },
   component: RacesRoute
 })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { withSecurityHeaders } from './securityHeaders'
+import { createSecurityHeaders, withSecurityHeaders } from './securityHeaders'
 
 describe('security headers', () => {
   it('adds portable browser hardening headers without HSTS', () => {
@@ -28,6 +28,27 @@ describe('security headers', () => {
     expect(reportOnlyCsp).toContain("script-src 'self'")
     expect(reportOnlyCsp).toContain("style-src 'self'")
     expect(reportOnlyCsp).toContain("connect-src 'self' https://*.supabase.co wss://*.supabase.co")
+    expect(reportOnlyCsp).toContain('http://127.0.0.1:54321')
+    expect(reportOnlyCsp).toContain('ws://127.0.0.1:54321')
+  })
+
+  it('keeps local Supabase origins out of production report-only CSP', () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+
+    try {
+      const reportOnlyCsp = createSecurityHeaders()['Content-Security-Policy-Report-Only']
+
+      expect(reportOnlyCsp).toContain("connect-src 'self' https://*.supabase.co wss://*.supabase.co")
+      expect(reportOnlyCsp).not.toContain('http://127.0.0.1:54321')
+      expect(reportOnlyCsp).not.toContain('ws://127.0.0.1:54321')
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env.NODE_ENV
+      } else {
+        process.env.NODE_ENV = originalNodeEnv
+      }
+    }
   })
 
   it('adds nonce directives and dev eval support to report-only script CSP when provided', () => {

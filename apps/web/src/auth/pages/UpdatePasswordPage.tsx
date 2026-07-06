@@ -8,7 +8,6 @@ export function UpdatePasswordPage() {
     <AuthPageShell
       title='Set a new password'
       description='Choose a new password, then return to your toolkit.'
-      variant='support'
     >
       <UpdatePasswordForm onSuccess={() => navigate({ to: '/sign-in' })} />
     </AuthPageShell>

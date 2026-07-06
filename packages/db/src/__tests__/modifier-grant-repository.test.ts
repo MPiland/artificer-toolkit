@@ -117,6 +117,72 @@ describe('createModifierGrantRepository', () => {
     })
   })
 
+  it('hydrates a charge-limit modifier with ability-modifier scaling', async () => {
+    const repository = createModifierGrantRepository(createFakeDb({
+      modifier_grants: [{
+        id: 'modifier-charge-ability',
+        sort_order: 1,
+        selection_kind: 'GRANTED',
+        count: null,
+        value_domain_code: 'CHARGE_LIMIT',
+        modifier_kind: 'MODIFY_CHARGE_LIMIT',
+        scope: 'GLOBAL',
+        restriction_id: null
+      }],
+      modifier_grant_domain_params: [],
+      modifier_grant_payloads: [{
+        modifier_grant_id: 'modifier-charge-ability',
+        modifier_kind: 'MODIFY_CHARGE_LIMIT',
+        value_domain_code: 'CHARGE_LIMIT',
+        numeric_value_kind: null,
+        numeric_amount: null,
+        numeric_multiplier: null,
+        numeric_ability_code: 'CHARISMA',
+        numeric_skill_id: null,
+        numeric_class_id: null,
+        set_amount: null,
+        charge_limit_kind: 'ABILITY_MODIFIER',
+        charge_scaling_kind: 'NONE',
+        charge_amount: null,
+        charge_min: 1,
+        charge_max: 5,
+        charge_multiplier: 2,
+        dice: null,
+        damage_type_id: null,
+        condition_type_id: null,
+        movement_mode_id: null,
+        attribute_id: null,
+        range_kind: null,
+        duration_kind: null,
+        shape_kind: null,
+        reset_kind: null
+      }],
+      modifier_grant_charge_levels: [],
+      modifier_grant_optional_abilities: []
+    }) as never)
+
+    await expect(repository.findById('modifier-charge-ability')).resolves.toEqual({
+      id: 'modifier-charge-ability',
+      grantKind: 'MODIFIER_GRANT',
+      order: 1,
+      selectionKind: 'GRANTED',
+      count: undefined,
+      valueDomainCode: 'CHARGE_LIMIT',
+      domain: {},
+      modifierKind: 'MODIFY_CHARGE_LIMIT',
+      scope: 'GLOBAL',
+      payload: {
+        ability: 'CHARISMA',
+        limitKind: 'ABILITY_MODIFIER',
+        max: 5,
+        min: 1,
+        multiplier: 2,
+        scalingKind: 'NONE'
+      },
+      restrictions: undefined
+    })
+  })
+
   it('hydrates a charge-limit modifier with per-level scaling', async () => {
     const repository = createModifierGrantRepository(createFakeDb({
       modifier_grants: [{

@@ -41,11 +41,11 @@ function requireChargeScalingKind(
 }
 
 function requireAbilityCode(
-  bonusId: string,
+  subject: string,
   value: string
 ): keyof typeof ABILITY_CODE {
   if (!(value in ABILITY_CODE)) {
-    throw new Error(`Charge bonus "${bonusId}" has invalid ability_code "${value}".`)
+    throw new Error(`${subject} has invalid ability_code "${value}".`)
   }
 
   return value as keyof typeof ABILITY_CODE
@@ -61,7 +61,7 @@ function hydrateChargeBonus(row: ChargeBonusRow): ChargeBonusAuthored {
       return {
         id: row.id,
         bonusKind: 'ABILITY_MODIFIER',
-        ability: requireAbilityCode(row.id, row.ability_code),
+        ability: requireAbilityCode(`Charge bonus "${row.id}"`, row.ability_code),
         multiplier: row.multiplier ?? undefined,
         min: row.min ?? undefined,
         max: row.max ?? undefined,
@@ -108,6 +108,7 @@ type ChargeLimitRow = {
   charge_id: string
   limit_kind: string
   class_id: string | null
+  ability_code: string | null
   amount: number | null
   multiplier: number | null
   min: number | null
@@ -195,6 +196,23 @@ function hydrateChargeFromRows(
         max: limit.max ?? undefined
       }
 
+    case 'ABILITY_MODIFIER':
+      if (!limit.ability_code) {
+        throw new Error(`Charge "${id}" ability-modifier limit is missing ability_code.`)
+      }
+
+      return {
+        id: charge.id,
+        resetKind,
+        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
+        limitKind: 'ABILITY_MODIFIER',
+        scalingKind: 'NONE',
+        ability: requireAbilityCode(`Charge "${id}"`, limit.ability_code),
+        multiplier: limit.multiplier ?? undefined,
+        min: limit.min ?? undefined,
+        max: limit.max ?? undefined
+      }
+
     case 'CLASS_LEVEL':
       if (!limit.class_id) {
         throw new Error(`Charge "${id}" class-level limit is missing class_id.`)
@@ -255,7 +273,7 @@ export async function hydrateChargeById(
 
   const [limit, scalingLevels, bonuses] = await Promise.all([
     db.selectFrom('charge_limits')
-      .select(['charge_id', 'limit_kind', 'class_id', 'amount', 'multiplier', 'min', 'max'])
+      .select(['charge_id', 'limit_kind', 'class_id', 'ability_code', 'amount', 'multiplier', 'min', 'max'])
       .where('charge_id', '=', id)
       .executeTakeFirst(),
     db.selectFrom('charge_scaling_levels')
@@ -315,6 +333,23 @@ export async function hydrateChargeById(
         bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
         limitKind: 'CHARACTER_LEVEL',
         scalingKind: 'NONE',
+        multiplier: limit.multiplier ?? undefined,
+        min: limit.min ?? undefined,
+        max: limit.max ?? undefined
+      }
+
+    case 'ABILITY_MODIFIER':
+      if (!limit.ability_code) {
+        throw new Error(`Charge "${id}" ability-modifier limit is missing ability_code.`)
+      }
+
+      return {
+        id: charge.id,
+        resetKind,
+        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
+        limitKind: 'ABILITY_MODIFIER',
+        scalingKind: 'NONE',
+        ability: requireAbilityCode(`Charge "${id}"`, limit.ability_code),
         multiplier: limit.multiplier ?? undefined,
         min: limit.min ?? undefined,
         max: limit.max ?? undefined
@@ -382,7 +417,7 @@ export async function hydrateChargesByIds(
       .where('id', 'in', distinctIds)
       .execute() as Promise<ChargeRow[]>,
     db.selectFrom('charge_limits')
-      .select(['charge_id', 'limit_kind', 'class_id', 'amount', 'multiplier', 'min', 'max'])
+      .select(['charge_id', 'limit_kind', 'class_id', 'ability_code', 'amount', 'multiplier', 'min', 'max'])
       .where('charge_id', 'in', distinctIds)
       .execute() as Promise<ChargeLimitRow[]>,
     db.selectFrom('charge_scaling_levels')

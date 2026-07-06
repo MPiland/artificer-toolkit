@@ -5,15 +5,31 @@ import {
   AlignJustify,
   AlignLeft,
   AlignRight,
+  Bold,
   ChevronDown,
+  ChevronRight,
   Columns3,
+  Code2,
   Heading,
+  Italic,
+  Link,
+  List,
+  ListOrdered,
+  Minus,
   Pilcrow,
+  Plus,
+  Quote,
+  RemoveFormatting,
   Rows3,
+  Strikethrough,
+  Subscript,
+  Superscript,
   Table,
   TableCellsMerge,
   TableCellsSplit,
-  Trash2
+  Trash2,
+  Underline,
+  Unlink
 } from 'lucide-react'
 import * as editorStyles from './RichTextEditor.css'
 
@@ -28,66 +44,39 @@ const alignments = [
 const Toolbar = () => {
   return (
     <MantineRichTextEditor.Toolbar>
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.Bold />
-        <MantineRichTextEditor.Italic />
-        <MantineRichTextEditor.Underline />
-      </MantineRichTextEditor.ControlsGroup>
-
-      <HeadingMenu />
-
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.BulletList />
-        <MantineRichTextEditor.OrderedList />
-      </MantineRichTextEditor.ControlsGroup>
-
-      <TableMenu />
-
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.Link />
-        <MantineRichTextEditor.Unlink />
-      </MantineRichTextEditor.ControlsGroup>
-
-      <AlignmentMenu />
-
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.Strikethrough />
-        <MantineRichTextEditor.ClearFormatting />
-        <MantineRichTextEditor.Highlight />
-        <MantineRichTextEditor.Code />
-      </MantineRichTextEditor.ControlsGroup>
-
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.Blockquote />
-        <MantineRichTextEditor.Hr />
-        <MantineRichTextEditor.Subscript />
-        <MantineRichTextEditor.Superscript />
-      </MantineRichTextEditor.ControlsGroup>
-
-      <MantineRichTextEditor.ControlsGroup>
-        <MantineRichTextEditor.Undo />
-        <MantineRichTextEditor.Redo />
-      </MantineRichTextEditor.ControlsGroup>
+      <TextMenu />
+      <BlockMenu />
+      <ContentMenu />
+      <MantineRichTextEditor.Undo />
+      <MantineRichTextEditor.Redo />
     </MantineRichTextEditor.Toolbar>
   )
 }
 
-const TableMenu = () => {
+const TextMenu = () => {
   const { editor } = useRichTextEditorContext()
-  const inTable = editor?.isActive('table') ?? false
+  const hasActiveTextStyle = Boolean(
+    editor?.isActive('bold')
+      || editor?.isActive('italic')
+      || editor?.isActive('underline')
+      || editor?.isActive('strike')
+      || editor?.isActive('code')
+      || editor?.isActive('subscript')
+      || editor?.isActive('superscript')
+  )
 
   return (
     <MantineRichTextEditor.ControlsGroup>
       <Menu position='bottom-start' width={190} withinPortal>
         <Menu.Target>
           <MantineRichTextEditor.Control
-            active={inTable}
-            aria-label='Table tools'
+            active={hasActiveTextStyle}
+            aria-label='Text formatting'
             disabled={!editor}
-            title='Table tools'
+            title='Text formatting'
           >
             <span className={editorStyles.editorMenuControlContent}>
-              <Table aria-hidden='true' className={editorStyles.editorMenuIcon} />
+              <Bold aria-hidden='true' className={editorStyles.editorMenuIcon} />
               <ChevronDown aria-hidden='true' className={editorStyles.editorMenuChevron} />
             </span>
           </MantineRichTextEditor.Control>
@@ -95,69 +84,68 @@ const TableMenu = () => {
         <Menu.Dropdown className={editorStyles.editorMenuDropdown}>
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            data-active={editor?.isActive('bold') || undefined}
+            leftSection={<Bold aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleBold().run()}
           >
-            Insert table
+            Bold
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('italic') || undefined}
+            leftSection={<Italic aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+          >
+            Italic
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('underline') || undefined}
+            leftSection={<Underline aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          >
+            Underline
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('strike') || undefined}
+            leftSection={<Strikethrough aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+          >
+            Strikethrough
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('code') || undefined}
+            leftSection={<Code2 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleCode().run()}
+          >
+            Inline code
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().addRowAfter().run()}
+            data-active={editor?.isActive('subscript') || undefined}
+            leftSection={<Subscript aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleSubscript().run()}
           >
-            Add row
+            Subscript
           </Menu.Item>
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().deleteRow().run()}
+            data-active={editor?.isActive('superscript') || undefined}
+            leftSection={<Superscript aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleSuperscript().run()}
           >
-            Delete row
-          </Menu.Item>
-          <Menu.Item
-            className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().addColumnAfter().run()}
-          >
-            Add column
-          </Menu.Item>
-          <Menu.Item
-            className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().deleteColumn().run()}
-          >
-            Delete column
+            Superscript
           </Menu.Item>
           <Menu.Divider />
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<TableCellsMerge aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().mergeCells().run()}
+            leftSection={<RemoveFormatting aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()}
           >
-            Merge cells
-          </Menu.Item>
-          <Menu.Item
-            className={editorStyles.editorMenuItem}
-            disabled={!inTable}
-            leftSection={<TableCellsSplit aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().splitCell().run()}
-          >
-            Split cell
-          </Menu.Item>
-          <Menu.Item
-            className={editorStyles.editorMenuItem}
-            color='red'
-            disabled={!inTable}
-            leftSection={<Trash2 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().deleteTable().run()}
-          >
-            Delete table
+            Clear formatting
           </Menu.Item>
         </Menu.Dropdown>
       </Menu>
@@ -165,85 +153,280 @@ const TableMenu = () => {
   )
 }
 
-const HeadingMenu = () => {
+const BlockMenu = () => {
   const { editor } = useRichTextEditorContext()
-  const hasActiveHeading = headingLevels.some((level) => editor?.isActive('heading', { level }))
+  const hasActiveBlockTool = Boolean(
+    headingLevels.some((level) => editor?.isActive('heading', { level }))
+      || editor?.isActive('bulletList')
+      || editor?.isActive('orderedList')
+      || editor?.isActive('blockquote')
+      || alignments.some(({ value }) => editor?.isActive({ textAlign: value }))
+  )
 
   return (
     <MantineRichTextEditor.ControlsGroup>
-      <Menu position='bottom-start' width={160} withinPortal>
+      <Menu position='bottom-start' width={210} withinPortal>
         <Menu.Target>
           <MantineRichTextEditor.Control
-            active={hasActiveHeading}
-            aria-label='Text style'
+            active={hasActiveBlockTool}
+            aria-label='Block tools'
             disabled={!editor}
-            title='Text style'
+            title='Block tools'
           >
             <span className={editorStyles.editorMenuControlContent}>
-              <Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />
+              <Pilcrow aria-hidden='true' className={editorStyles.editorMenuIcon} />
               <ChevronDown aria-hidden='true' className={editorStyles.editorMenuChevron} />
             </span>
           </MantineRichTextEditor.Control>
         </Menu.Target>
         <Menu.Dropdown className={editorStyles.editorMenuDropdown}>
+          <Menu.Sub position='right-start'>
+            <Menu.Sub.Target>
+              <Menu.Sub.Item
+                className={editorStyles.editorMenuItem}
+                data-active={
+                  (editor?.isActive('paragraph') || headingLevels.some((level) => editor?.isActive('heading', { level })))
+                    || undefined
+                }
+                leftSection={<Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+              >
+                Headings
+              </Menu.Sub.Item>
+            </Menu.Sub.Target>
+            <Menu.Sub.Dropdown className={editorStyles.editorMenuDropdown}>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                data-active={editor?.isActive('paragraph') || undefined}
+                leftSection={<Pilcrow aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().setParagraph().run()}
+              >
+                Paragraph
+              </Menu.Item>
+              {headingLevels.map((level) => (
+                <Menu.Item
+                  className={editorStyles.editorMenuItem}
+                  data-active={editor?.isActive('heading', { level }) || undefined}
+                  key={level}
+                  leftSection={<Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                  onClick={() => editor?.chain().focus().toggleHeading({ level }).run()}
+                >
+                  Heading {level}
+                </Menu.Item>
+              ))}
+            </Menu.Sub.Dropdown>
+          </Menu.Sub>
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            data-active={editor?.isActive('paragraph') || undefined}
-            leftSection={<Pilcrow aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-            onClick={() => editor?.chain().focus().setParagraph().run()}
+            data-active={editor?.isActive('bulletList') || undefined}
+            leftSection={<List aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
           >
-            Paragraph
+            Bulleted list
           </Menu.Item>
-          {headingLevels.map((level) => (
-            <Menu.Item
-              className={editorStyles.editorMenuItem}
-              data-active={editor?.isActive('heading', { level }) || undefined}
-              key={level}
-              leftSection={<Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-              onClick={() => editor?.chain().focus().toggleHeading({ level }).run()}
-            >
-              Heading {level}
-            </Menu.Item>
-          ))}
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('orderedList') || undefined}
+            leftSection={<ListOrdered aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          >
+            Numbered list
+          </Menu.Item>
+          <Menu.Sub position='right-start'>
+            <Menu.Sub.Target>
+              <Menu.Sub.Item
+                className={editorStyles.editorMenuItem}
+                data-active={alignments.some(({ value }) => editor?.isActive({ textAlign: value })) || undefined}
+                leftSection={<AlignLeft aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+              >
+                Alignment
+              </Menu.Sub.Item>
+            </Menu.Sub.Target>
+            <Menu.Sub.Dropdown className={editorStyles.editorMenuDropdown}>
+              {alignments.map(({ value, label, Icon }) => (
+                <Menu.Item
+                  className={editorStyles.editorMenuItem}
+                  data-active={editor?.isActive({ textAlign: value }) || undefined}
+                  key={value}
+                  leftSection={<Icon aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                  onClick={() => editor?.chain().focus().setTextAlign(value).run()}
+                >
+                  {label}
+                </Menu.Item>
+              ))}
+            </Menu.Sub.Dropdown>
+          </Menu.Sub>
+          <Menu.Divider />
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            data-active={editor?.isActive('blockquote') || undefined}
+            leftSection={<Quote aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          >
+            Quote block
+          </Menu.Item>
+          <Menu.Item
+            className={editorStyles.editorMenuItem}
+            leftSection={<Minus aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+          >
+            Divider
+          </Menu.Item>
         </Menu.Dropdown>
       </Menu>
     </MantineRichTextEditor.ControlsGroup>
   )
 }
 
-const AlignmentMenu = () => {
+const ContentMenu = () => {
   const { editor } = useRichTextEditorContext()
-  const activeAlignment = alignments.find(({ value }) => editor?.isActive({ textAlign: value }))
-  const ActiveIcon = activeAlignment?.Icon ?? AlignLeft
+  const hasActiveLink = Boolean(editor?.isActive('link'))
+  const inTable = editor?.isActive('table') ?? false
+  const hasActiveContent = Boolean(hasActiveLink || inTable)
+
+  const handleSetLink = () => {
+    const currentHref = editor?.getAttributes('link').href
+    const href = window.prompt('Link URL', typeof currentHref === 'string' ? currentHref : '')
+
+    if (href === null) return
+
+    if (href.trim() === '') {
+      editor?.chain().focus().extendMarkRange('link').unsetLink().run()
+      return
+    }
+
+    editor?.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run()
+  }
 
   return (
     <MantineRichTextEditor.ControlsGroup>
-      <Menu position='bottom-start' width={150} withinPortal>
+      <Menu position='bottom-start' width={190} withinPortal>
         <Menu.Target>
           <MantineRichTextEditor.Control
-            active={Boolean(activeAlignment)}
-            aria-label='Text alignment'
+            active={hasActiveContent}
+            aria-label='Content tools'
             disabled={!editor}
-            title='Text alignment'
+            title='Content tools'
           >
             <span className={editorStyles.editorMenuControlContent}>
-              <ActiveIcon aria-hidden='true' className={editorStyles.editorMenuIcon} />
+              <Plus aria-hidden='true' className={editorStyles.editorMenuIcon} />
               <ChevronDown aria-hidden='true' className={editorStyles.editorMenuChevron} />
             </span>
           </MantineRichTextEditor.Control>
         </Menu.Target>
         <Menu.Dropdown className={editorStyles.editorMenuDropdown}>
-          {alignments.map(({ value, label, Icon }) => (
-            <Menu.Item
-              className={editorStyles.editorMenuItem}
-              data-active={editor?.isActive({ textAlign: value }) || undefined}
-              key={value}
-              leftSection={<Icon aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-              onClick={() => editor?.chain().focus().setTextAlign(value).run()}
-            >
-              {label}
-            </Menu.Item>
-          ))}
+          <Menu.Sub position='right-start'>
+            <Menu.Sub.Target>
+              <Menu.Sub.Item
+                className={editorStyles.editorMenuItem}
+                data-active={hasActiveLink || undefined}
+                leftSection={<Link aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+              >
+                Link
+              </Menu.Sub.Item>
+            </Menu.Sub.Target>
+            <Menu.Sub.Dropdown className={editorStyles.editorMenuDropdown}>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                data-active={hasActiveLink || undefined}
+                leftSection={<Link aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={handleSetLink}
+              >
+                Edit link
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!hasActiveLink}
+                leftSection={<Unlink aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().extendMarkRange('link').unsetLink().run()}
+              >
+                Remove link
+              </Menu.Item>
+            </Menu.Sub.Dropdown>
+          </Menu.Sub>
+
+          <Menu.Sub position='right-start'>
+            <Menu.Sub.Target>
+              <Menu.Sub.Item
+                className={editorStyles.editorMenuItem}
+                data-active={inTable || undefined}
+                leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+              >
+                Table
+              </Menu.Sub.Item>
+            </Menu.Sub.Target>
+            <Menu.Sub.Dropdown className={editorStyles.editorMenuDropdown}>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              >
+                Insert table
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().addRowAfter().run()}
+              >
+                Add row
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<Rows3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().deleteRow().run()}
+              >
+                Delete row
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().addColumnAfter().run()}
+              >
+                Add column
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().deleteColumn().run()}
+              >
+                Delete column
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<TableCellsMerge aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().mergeCells().run()}
+              >
+                Merge cells
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                disabled={!inTable}
+                leftSection={<TableCellsSplit aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().splitCell().run()}
+              >
+                Split cell
+              </Menu.Item>
+              <Menu.Item
+                className={editorStyles.editorMenuItem}
+                color='red'
+                disabled={!inTable}
+                leftSection={<Trash2 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                onClick={() => editor?.chain().focus().deleteTable().run()}
+              >
+                Delete table
+              </Menu.Item>
+            </Menu.Sub.Dropdown>
+          </Menu.Sub>
         </Menu.Dropdown>
       </Menu>
     </MantineRichTextEditor.ControlsGroup>

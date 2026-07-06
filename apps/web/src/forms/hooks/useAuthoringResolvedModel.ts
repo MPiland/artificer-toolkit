@@ -3,6 +3,10 @@ import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/ap
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 
+export type VisibleAuthoringSteps = NodeRuntimeResolveResponseDto['steps']
+
+export type VisibleAuthoringStep = VisibleAuthoringSteps[number]
+
 export function useAuthoringResolvedModel({
   ancestors,
   debounceMs = 150,
@@ -22,7 +26,7 @@ export function useAuthoringResolvedModel({
   systemId?: string
   values: Record<string, unknown>
 }) {
-  const resolvedAncestors = useMemo(() => ancestors ? [...ancestors] : undefined, [ancestors])
+  const resolvedAncestors = useMemo(() => (ancestors ? [...ancestors] : undefined), [ancestors])
   const resolvedModel = useResolvedNodeModel({
     mapId,
     values,
@@ -32,9 +36,16 @@ export function useAuthoringResolvedModel({
     enabled: resolveModel && !model,
     debounceMs
   })
-  const staticModel = useMemo(() => (
-    !resolveModel && !model ? createStaticResolvedFormModel(mapId) : undefined
-  ), [mapId, model, resolveModel])
+  const staticModel = useMemo(
+    () => (!resolveModel && !model
+      ? createStaticResolvedFormModel(mapId, {
+        ancestors: resolvedAncestors,
+        parentValues,
+        values
+      })
+      : undefined),
+    [mapId, model, parentValues, resolveModel, resolvedAncestors, values]
+  )
   const activeModel = model ?? resolvedModel ?? staticModel
   const visibleSteps = useMemo(() => getVisibleAuthoringSteps(activeModel), [activeModel])
 
@@ -44,12 +55,15 @@ export function useAuthoringResolvedModel({
   }
 }
 
-export function getVisibleAuthoringSteps(model: NodeRuntimeResolveResponseDto | undefined) {
-  return model?.steps
-    .map((step) => ({
-      ...step,
-      sections: step.sections.filter((section) => section.nodes.some((node) => node.visible))
-    }))
-    .filter((step) => step.sections.length > 0)
-    ?? []
+export function getVisibleAuthoringSteps(
+  model: NodeRuntimeResolveResponseDto | undefined
+): VisibleAuthoringStep[] {
+  return (
+    model?.steps
+      .map((step) => ({
+        ...step,
+        sections: step.sections.filter((section) => section.nodes.some((node) => node.visible))
+      }))
+      .filter((step) => step.sections.length > 0) ?? []
+  )
 }

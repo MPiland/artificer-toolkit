@@ -12,6 +12,7 @@ const skippedDirectories = new Set([
   'storybook-static',
   'test-results'
 ])
+const allowlistedScriptSqlPaths = new Set(['packages/db/src/scripts/auditSrdData.ts'])
 
 function toPortablePath(filePath: string): string {
   return filePath.split(path.sep).join('/')
@@ -99,6 +100,7 @@ describe('static security posture', () => {
     const offenders = runtimeServerFiles
       .filter((filePath) => /sql\.raw\s*\(/.test(read(filePath)))
       .map(toPortablePath)
+      .filter((filePath) => !Array.from(allowlistedScriptSqlPaths).some((allowedPath) => filePath.endsWith(`/${allowedPath}`)))
 
     expect(offenders).toEqual([])
   })

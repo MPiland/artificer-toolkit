@@ -721,6 +721,11 @@ export const brandColorScale = [
   '#7c2d12'
 ] as const
 
+export const media = {
+  tablet: 'screen and (max-width: 992px)',
+  mobile: 'screen and (max-width: 760px)'
+} as const
+
 createGlobalTheme(':root', foundationVars, {
   ...sharedFoundationTokens,
   ...lightFoundationTokens

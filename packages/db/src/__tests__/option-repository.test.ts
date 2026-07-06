@@ -136,11 +136,12 @@ describe('createOptionRepository', () => {
             charge_limits: [
                 {
                     charge_id: 'charge-1',
-                    limit_kind: 'FIXED_AMOUNT',
+                    limit_kind: 'ABILITY_MODIFIER',
                     class_id: null,
-                    amount: 2,
-                    multiplier: null,
-                    min: null,
+                    ability_code: 'CHARISMA',
+                    amount: null,
+                    multiplier: 1,
+                    min: 1,
                     max: null
                 }
             ],
@@ -188,9 +189,12 @@ describe('createOptionRepository', () => {
             charges: {
                 id: 'charge-1',
                 resetKind: 'SHORT_REST',
-                limitKind: 'FIXED_AMOUNT',
+                limitKind: 'ABILITY_MODIFIER',
                 scalingKind: 'NONE',
-                amount: 2,
+                ability: 'CHARISMA',
+                multiplier: 1,
+                min: 1,
+                max: undefined,
                 bonuses: undefined
             },
             grants: {

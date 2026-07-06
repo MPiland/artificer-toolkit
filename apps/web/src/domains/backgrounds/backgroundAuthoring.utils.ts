@@ -5,7 +5,7 @@ import type {
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
-import { createEmptyStartingEquipment } from '#forms'
+import { createEmptyStartingEquipment } from '#app/forms/rendering/authoringNodeDefaults'
 
 export {
   addStartingEquipmentItem,
@@ -16,7 +16,7 @@ export {
   replaceStartingEquipmentItem,
   upsertStartingEquipmentItem,
   type StartingEquipmentItemDto
-} from '#forms'
+} from '#app/forms/rendering/authoringNodeDefaults'
 
 export interface CreateEmptyBackgroundInput {
   systemId: string

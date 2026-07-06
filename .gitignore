@@ -40,3 +40,5 @@ playwright-report/
 
 !jest.config.js
 *.d.ts
+
+*storybook.log

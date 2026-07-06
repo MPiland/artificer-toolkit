@@ -192,7 +192,11 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
   map
     // Identity
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: CREATURE_SECTIONS.basics, order: 10 }))
+    .set('label', text(['label'], 'Name', {
+      section: CREATURE_SECTIONS.basics,
+      order: 10,
+      requiredIf: true
+    }))
     .set('quote', richText(['quote'], 'Quote', { section: CREATURE_SECTIONS.basics, order: 20 }))
     .set('description', richText(['description'], 'Description', { section: CREATURE_SECTIONS.basics, order: 30 }))
     .set('details', groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 10 }))

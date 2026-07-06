@@ -1,6 +1,7 @@
-import type { Item, ItemStatus, Summary } from '../components/Rail/Rail.types'
+import type { ItemProps, ItemStatus } from '../layout/Steps/Item/Item.types'
+import type { SummaryProps } from '../layout/Steps/StatusSummary/StatusSummary.types'
 
-export const railItems: readonly Item[] = [
+export const railItems: readonly ItemProps[] = [
   {
     id: 'spell-basics',
     icon: 'book',
@@ -83,20 +84,20 @@ export const railItems: readonly Item[] = [
   }
 ]
 
-export const railSummaries: readonly Summary[] = [
+export const railSummaries: readonly SummaryProps[] = [
   { label: 'complete', status: 'complete', value: '6/8' },
   { label: 'unsaved', status: 'dirty', value: 'Edited' },
   { label: 'needs review', status: 'warning', value: '1 issue' }
 ]
 
-export const defaultRailItem: Item = {
+export const defaultRailItem: ItemProps = {
   icon: 'book',
   id: 'spell-basics',
   label: 'Spell Basics',
   status: 'complete'
 }
 
-export const activeNestedRailItem: Item = {
+export const activeNestedRailItem: ItemProps = {
   description: 'Slot scaling rules',
   icon: 'trend',
   id: 'upcast-scaling',
@@ -106,7 +107,7 @@ export const activeNestedRailItem: Item = {
   status: 'dirty'
 }
 
-export const mutedEmptyRailItem: Item = {
+export const mutedEmptyRailItem: ItemProps = {
   icon: 'gear',
   id: 'conditions',
   label: 'Conditions',
@@ -115,7 +116,7 @@ export const mutedEmptyRailItem: Item = {
   tone: 'muted'
 }
 
-export const expandedBranchRailItem: Item = {
+export const expandedBranchRailItem: ItemProps = {
   children: [
     {
       icon: 'spark',
@@ -139,4 +140,10 @@ export const expandedBranchRailItem: Item = {
   status: 'dirty'
 }
 
-export const statusMarkerStatuses: readonly ItemStatus[] = ['complete', 'dirty', 'warning', 'error', 'empty']
+export const statusMarkerStatuses: readonly ItemStatus[] = [
+  'complete',
+  'dirty',
+  'warning',
+  'error',
+  'empty'
+]

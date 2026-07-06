@@ -6,22 +6,33 @@ import {
   parseAuthoredRouteId
 } from '#app/routing/authoredRouteHandles'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
+import type { CharacterSheetLoaderData } from '#app/routes/-routeLoaderData'
 import { CharacterSheetPage } from '#domains/characters'
 
 export const Route = createFileRoute('/_authed/characters/$characterPublicId/$characterSlug/')({
-  loader: async ({ context, params }) => {
+  loader: async ({ context, params }): Promise<CharacterSheetLoaderData> => {
     const client = createServerApi()
     const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
     const [response, draft] = await Promise.all([
       context.queryClient.ensureQueryData(getCharacterSheet(routeCharacterId, client)),
       context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId, client))
     ])
-    const fallbackCharacter = !response && !draft
-      ? await context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client))
-      : null
-    const breadcrumbLabel = draft?.label ?? response?.identity.label ?? fallbackCharacter?.character.label ?? null
-    const characterPublicId = draft?.publicId ?? response?.publicId ?? fallbackCharacter?.publicId ?? params.characterPublicId
-    const characterId = draft?.characterId ?? response?.meta.characterId ?? fallbackCharacter?.character.id ?? routeCharacterId
+    const fallbackCharacter =
+      !response && !draft
+        ? await context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client))
+        : null
+    const breadcrumbLabel =
+      draft?.label ?? response?.identity.label ?? fallbackCharacter?.character.label ?? null
+    const characterPublicId =
+      draft?.publicId ??
+      response?.publicId ??
+      fallbackCharacter?.publicId ??
+      params.characterPublicId
+    const characterId =
+      draft?.characterId ??
+      response?.meta.characterId ??
+      fallbackCharacter?.character.id ??
+      routeCharacterId
     const routeSubject = breadcrumbLabel
       ? {
           id: characterId,
@@ -29,7 +40,10 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
           label: breadcrumbLabel
         }
       : null
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.characterPublicId, params.characterSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.characterPublicId, params.characterSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildCharacterRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -41,7 +55,10 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
       context.queryClient.setQueryData(getCharacterSheet(characterId, client).queryKey, response)
       context.queryClient.setQueryData(getCharacterDraft(characterId, client).queryKey, draft)
       if (fallbackCharacter) {
-        context.queryClient.setQueryData(getCharacter(characterId, client).queryKey, fallbackCharacter)
+        context.queryClient.setQueryData(
+          getCharacter(characterId, client).queryKey,
+          fallbackCharacter
+        )
       }
     }
 

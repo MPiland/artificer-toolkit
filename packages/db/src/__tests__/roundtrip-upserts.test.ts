@@ -105,6 +105,74 @@ describe('round-trip upsert correctness', () => {
                 sort_order: 1
             }
         ]);
+        await repository.upsert({
+            id: 'modifier-1',
+            grantKind: 'MODIFIER_GRANT',
+            order: 3,
+            selectionKind: 'GRANTED',
+            valueDomainCode: 'CHARGE_LIMIT',
+            domain: {},
+            modifierKind: 'MODIFY_CHARGE_LIMIT',
+            scope: 'GLOBAL',
+            payload: {
+                ability: 'CHARISMA',
+                limitKind: 'ABILITY_MODIFIER',
+                max: 5,
+                min: 1,
+                multiplier: 2,
+                scalingKind: 'NONE'
+            }
+        });
+        await expect(repository.findById('modifier-1')).resolves.toEqual({
+            id: 'modifier-1',
+            grantKind: 'MODIFIER_GRANT',
+            order: 3,
+            selectionKind: 'GRANTED',
+            valueDomainCode: 'CHARGE_LIMIT',
+            domain: {},
+            modifierKind: 'MODIFY_CHARGE_LIMIT',
+            scope: 'GLOBAL',
+            payload: {
+                ability: 'CHARISMA',
+                limitKind: 'ABILITY_MODIFIER',
+                max: 5,
+                min: 1,
+                multiplier: 2,
+                scalingKind: 'NONE'
+            }
+        });
+        expect(db.snapshot('modifier_grant_payloads')).toEqual([
+            {
+                modifier_grant_id: 'modifier-1',
+                modifier_kind: 'MODIFY_CHARGE_LIMIT',
+                value_domain_code: 'CHARGE_LIMIT',
+                numeric_value_kind: null,
+                numeric_amount: null,
+                numeric_multiplier: null,
+                numeric_ability_code: 'CHARISMA',
+                numeric_skill_id: null,
+                numeric_class_id: null,
+                numeric_max: null,
+                numeric_min: null,
+                set_amount: null,
+                charge_limit_kind: 'ABILITY_MODIFIER',
+                charge_scaling_kind: 'NONE',
+                charge_amount: null,
+                charge_multiplier: 2,
+                charge_min: 1,
+                charge_max: 5,
+                dice: null,
+                damage_type_id: null,
+                condition_type_id: null,
+                movement_mode_id: null,
+                attribute_id: null,
+                range_kind: null,
+                duration_kind: null,
+                shape_kind: null,
+                reset_kind: null
+            }
+        ]);
+        expect(db.snapshot('modifier_grant_charge_levels')).toEqual([]);
     });
     it('rewrites feat grant payload shape without leaving stale root or per-level rows behind', async () => {
         const db = new InMemoryDb();

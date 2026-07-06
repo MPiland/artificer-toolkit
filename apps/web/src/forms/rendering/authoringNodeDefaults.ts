@@ -377,25 +377,7 @@ export function createDefaultAuthoringNodeValue(
 export function createEmptyStartingEquipment(): StartingEquipmentDto {
   return {
     id: crypto.randomUUID(),
-    sets: [
-      {
-        id: crypto.randomUUID(),
-        order: 1,
-        groups: [
-          {
-            id: crypto.randomUUID(),
-            order: 1,
-            options: [
-              {
-                id: crypto.randomUUID(),
-                order: 1,
-                items: []
-              }
-            ]
-          }
-        ]
-      }
-    ]
+    sets: []
   }
 }
 
@@ -829,11 +811,11 @@ function appendStartingEquipmentItem(
 ): StartingEquipmentDto {
   const next = startingEquipment
   const [firstSet, ...remainingSets] = next.sets
-  const set = firstSet ?? createEmptyStartingEquipment().sets[0]
+  const set = firstSet ?? createStartingEquipmentSet(1)
   const [firstGroup, ...remainingGroups] = set.groups
-  const group = firstGroup ?? createEmptyStartingEquipment().sets[0].groups[0]
+  const group = firstGroup ?? createStartingEquipmentGroup(1)
   const [firstOption, ...remainingOptions] = group.options
-  const option = firstOption ?? createEmptyStartingEquipment().sets[0].groups[0].options[0]
+  const option = firstOption ?? createStartingEquipmentOption(1)
 
   return {
     ...next,
@@ -856,6 +838,34 @@ function appendStartingEquipmentItem(
       },
       ...remainingSets
     ]
+  }
+}
+
+function createStartingEquipmentSet(order: number): StartingEquipmentDto['sets'][number] {
+  return {
+    id: crypto.randomUUID(),
+    order,
+    groups: []
+  }
+}
+
+function createStartingEquipmentGroup(
+  order: number
+): StartingEquipmentDto['sets'][number]['groups'][number] {
+  return {
+    id: crypto.randomUUID(),
+    order,
+    options: []
+  }
+}
+
+function createStartingEquipmentOption(
+  order: number
+): StartingEquipmentDto['sets'][number]['groups'][number]['options'][number] {
+  return {
+    id: crypto.randomUUID(),
+    order,
+    items: []
   }
 }
 

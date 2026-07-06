@@ -7,7 +7,7 @@ import viteReact from '@vitejs/plugin-react'
 
 const configDir = dirname(fileURLToPath(import.meta.url))
 const serverOnlyEnvKeys = ['DATABASE_CONNECTION_STRING', 'DATABASE_URL'] as const
-type ServerOnlyEnvKey = typeof serverOnlyEnvKeys[number]
+type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
   key: ServerOnlyEnvKey,
@@ -50,8 +50,8 @@ function loadServerOnlyEnv(mode: string) {
     ignoreProcessDatabaseEnv: preferPackageDbEnv
   })
   const databaseConnectionString = preferPackageDbEnv
-    ? dbEnv.DATABASE_URL ?? dbEnv.DATABASE_CONNECTION_STRING
-    : dbEnv.DATABASE_CONNECTION_STRING ?? dbEnv.DATABASE_URL
+    ? (dbEnv.DATABASE_URL ?? dbEnv.DATABASE_CONNECTION_STRING)
+    : (dbEnv.DATABASE_CONNECTION_STRING ?? dbEnv.DATABASE_URL)
 
   setServerOnlyEnv('DATABASE_CONNECTION_STRING', databaseConnectionString, {
     overrideExisting: preferPackageDbEnv

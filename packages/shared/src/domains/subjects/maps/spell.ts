@@ -37,7 +37,11 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
   map
     .set('kind', text(['kind'], 'Kind'))
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: SPELL_SECTIONS.basics, order: 10 }))
+    .set('label', text(['label'], 'Name', {
+      section: SPELL_SECTIONS.basics,
+      order: 10,
+      requiredIf: true
+    }))
     .set('description', richText(['description'], 'Description', { section: SPELL_SECTIONS.basics, order: 20 }))
     .set('level', number(['level'], 'Level', { section: SPELL_SECTIONS.basics, order: 30 }))
     .set('materialDescription', richText(['materialDescription'], 'Material Description', {

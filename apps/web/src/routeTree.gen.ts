@@ -60,7 +60,6 @@ import { Route as AuthedEquipmentEquipmentPublicIdEditRouteImport } from './rout
 import { Route as AuthedCreaturesCreaturePublicIdEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/edit'
 import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug'
 import { Route as AuthedClassesClassPublicIdEditRouteImport } from './routes/_authed/classes/$classPublicId/edit'
-import { Route as AuthedCharactersCharacterPublicIdEditRouteImport } from './routes/_authed/characters/$characterPublicId/edit'
 import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
 import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/index'
@@ -352,12 +351,6 @@ const AuthedClassesClassPublicIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthedClassesClassPublicIdRoute,
   } as any)
-const AuthedCharactersCharacterPublicIdEditRoute =
-  AuthedCharactersCharacterPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedCharactersCharacterPublicIdRoute,
-  } as any)
 const AuthedBackgroundsBackgroundPublicIdEditRoute =
   AuthedBackgroundsBackgroundPublicIdEditRouteImport.update({
     id: '/edit',
@@ -520,7 +513,6 @@ export interface FileRoutesByFullPath {
   '/vehicles/': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
-  '/characters/$characterPublicId/edit': typeof AuthedCharactersCharacterPublicIdEditRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -590,7 +582,6 @@ export interface FileRoutesByTo {
   '/systems': typeof AuthedSystemsIndexRoute
   '/vehicles': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
-  '/characters/$characterPublicId/edit': typeof AuthedCharactersCharacterPublicIdEditRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
   '/equipment/$equipmentPublicId/edit': typeof AuthedEquipmentEquipmentPublicIdEditRoute
@@ -661,7 +652,6 @@ export interface FileRoutesById {
   '/_authed/vehicles/': typeof AuthedVehiclesIndexRoute
   '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/_authed/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
-  '/_authed/characters/$characterPublicId/edit': typeof AuthedCharactersCharacterPublicIdEditRoute
   '/_authed/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/_authed/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/_authed/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -734,7 +724,6 @@ export interface FileRouteTypes {
     | '/vehicles/'
     | '/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/backgrounds/$backgroundPublicId/edit'
-    | '/characters/$characterPublicId/edit'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/$creatureSlug'
     | '/creatures/$creaturePublicId/edit'
@@ -804,7 +793,6 @@ export interface FileRouteTypes {
     | '/systems'
     | '/vehicles'
     | '/backgrounds/$backgroundPublicId/edit'
-    | '/characters/$characterPublicId/edit'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/edit'
     | '/equipment/$equipmentPublicId/edit'
@@ -874,7 +862,6 @@ export interface FileRouteTypes {
     | '/_authed/vehicles/'
     | '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/_authed/backgrounds/$backgroundPublicId/edit'
-    | '/_authed/characters/$characterPublicId/edit'
     | '/_authed/classes/$classPublicId/edit'
     | '/_authed/creatures/$creaturePublicId/$creatureSlug'
     | '/_authed/creatures/$creaturePublicId/edit'
@@ -1272,13 +1259,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedClassesClassPublicIdEditRouteImport
       parentRoute: typeof AuthedClassesClassPublicIdRoute
     }
-    '/_authed/characters/$characterPublicId/edit': {
-      id: '/_authed/characters/$characterPublicId/edit'
-      path: '/edit'
-      fullPath: '/characters/$characterPublicId/edit'
-      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdEditRouteImport
-      parentRoute: typeof AuthedCharactersCharacterPublicIdRoute
-    }
     '/_authed/backgrounds/$backgroundPublicId/edit': {
       id: '/_authed/backgrounds/$backgroundPublicId/edit'
       path: '/edit'
@@ -1459,15 +1439,12 @@ const AuthedBackgroundsBackgroundPublicIdRouteWithChildren =
   )
 
 interface AuthedCharactersCharacterPublicIdRouteChildren {
-  AuthedCharactersCharacterPublicIdEditRoute: typeof AuthedCharactersCharacterPublicIdEditRoute
   AuthedCharactersCharacterPublicIdCharacterSlugEditRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugEditRoute
   AuthedCharactersCharacterPublicIdCharacterSlugIndexRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugIndexRoute
 }
 
 const AuthedCharactersCharacterPublicIdRouteChildren: AuthedCharactersCharacterPublicIdRouteChildren =
   {
-    AuthedCharactersCharacterPublicIdEditRoute:
-      AuthedCharactersCharacterPublicIdEditRoute,
     AuthedCharactersCharacterPublicIdCharacterSlugEditRoute:
       AuthedCharactersCharacterPublicIdCharacterSlugEditRoute,
     AuthedCharactersCharacterPublicIdCharacterSlugIndexRoute:

@@ -21,7 +21,9 @@ import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 
 export const Route = createFileRoute('/_authed/vehicles/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getVehicleList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getVehicleList(createServerApi()))
+  },
   component: VehiclesRoute
 })
 

@@ -2,7 +2,7 @@ import type {
   SpellAuthoringInputDto,
   SpellAuthoredDto
 } from '@artificer-toolkit/schema/subjects/spell'
-import type { SpellReferenceData, SpellReferenceOption } from '#app/data/spells/referenceData'
+import type { SpellReferenceOption } from '#app/data/spells/referenceData'
 
 export const spellLevelOptions = [
   { value: '0', label: 'Cantrip' },
@@ -38,8 +38,10 @@ export const spellComponentOptions = [
 export const emptyOption = { value: '', label: 'None yet' }
 
 export function createEmptySpell({
+  magicSchoolId,
   systemId
 }: {
+  magicSchoolId?: string
   systemId: string
 }): SpellAuthoringInputDto {
   return {
@@ -50,7 +52,7 @@ export function createEmptySpell({
     description: '',
     level: 0,
     classIds: [],
-    magicSchoolId: '',
+    magicSchoolId: magicSchoolId ?? '',
     castingTime: {
       amount: 1,
       unit: 'ROUND'
@@ -64,14 +66,14 @@ export function createEmptySpell({
 
 export function normalizeSpellForSubmit(
   spell: SpellAuthoringInputDto | SpellAuthoredDto,
-  references: SpellReferenceData
+  fallbackMagicSchoolId = ''
 ): SpellAuthoringInputDto {
   return {
     ...spell,
     label: spell.label.trim() || 'Untitled Spell',
     description: spell.description ?? '',
-    magicSchoolId: spell.magicSchoolId || references.magicSchools[0]?.value || 'unknown-school',
-    systemId: spell.systemId || references.systemId,
+    magicSchoolId: spell.magicSchoolId || fallbackMagicSchoolId,
+    systemId: spell.systemId,
     castingTime: {
       amount: Number(spell.castingTime?.amount ?? 1),
       unit: spell.castingTime?.unit ?? 'ROUND'

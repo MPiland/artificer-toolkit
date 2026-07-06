@@ -1,5 +1,5 @@
 import { Alert, Badge, Group, List, Stack, Text } from '@mantine/core'
-import { withForm } from '#forms'
+import { withForm } from '#forms/app-form/AppForm'
 import { createFallbackCharacterFormValues } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'

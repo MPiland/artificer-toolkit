@@ -8,9 +8,9 @@ const mobile = 'screen and (max-width: 640px)'
 export const root = style({
   '@layer': {
     [app]: {
-      display: 'flex',
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
       alignItems: 'center',
-      justifyContent: 'space-between',
       gap: foundationVars.space[3],
       inlineSize: '100%',
       minBlockSize: 56,
@@ -20,7 +20,11 @@ export const root = style({
       color: foundationVars.color.text.primary,
       boxShadow: '0 1px 0 rgba(255, 255, 255, 0.02)',
       '@media': {
+        [tabletPortrait]: {
+          gridTemplateColumns: 'minmax(0, 1fr) auto'
+        },
         [mobile]: {
+          gridTemplateColumns: 'minmax(0, 1fr) auto',
           paddingInline: foundationVars.space[3]
         }
       }
@@ -31,6 +35,7 @@ export const root = style({
 export const leftCluster = style({
   '@layer': {
     [app]: {
+      gridColumn: '1',
       display: 'flex',
       alignItems: 'center',
       gap: foundationVars.space[3],
@@ -42,6 +47,8 @@ export const leftCluster = style({
 export const rightCluster = style({
   '@layer': {
     [app]: {
+      gridColumn: '3',
+      justifySelf: 'end',
       display: 'flex',
       alignItems: 'center',
       gap: foundationVars.space[2],
@@ -58,40 +65,24 @@ export const rightCluster = style({
   }
 })
 
-export const iconButton = style({
+export const mobileActionCluster = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
+      gridColumn: '2',
+      justifySelf: 'end',
+      display: 'none',
       alignItems: 'center',
-      justifyContent: 'center',
-      inlineSize: 36,
-      blockSize: 36,
-      padding: 0,
-      border: `1px solid transparent`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: 'transparent',
-      color: foundationVars.color.text.secondary,
-      cursor: 'pointer',
-      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
-      ':hover': {
-        borderColor: foundationVars.color.border.subtle,
-        backgroundColor: foundationVars.color.surface.subtle,
-        color: foundationVars.color.text.primary
-      },
-      ':focus-visible': {
-        outline: 'none',
-        boxShadow: foundationVars.shadow.focus
+      gap: foundationVars.space[1],
+      flexShrink: 0,
+      marginInlineStart: 'auto',
+      '@media': {
+        [tabletPortrait]: {
+          display: 'inline-flex'
+        },
+        [mobile]: {
+          display: 'inline-flex'
+        }
       }
-    }
-  }
-})
-
-export const iconButtonPressed = style({
-  '@layer': {
-    [app]: {
-      borderColor: foundationVars.color.border.subtle,
-      backgroundColor: foundationVars.color.surface.subtle,
-      color: foundationVars.color.text.primary
     }
   }
 })
@@ -144,95 +135,11 @@ export const divider = style({
   }
 })
 
-export const breadcrumbs = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: foundationVars.space[1],
-      minInlineSize: 0,
-      color: foundationVars.color.text.secondary,
-      fontSize: foundationVars.typography.bodySm.fontSize,
-      lineHeight: foundationVars.typography.bodySm.lineHeight,
-      '@media': {
-        [mobile]: {
-          display: 'none'
-        }
-      }
-    }
-  }
-})
-
-export const crumbGroup = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[1],
-      minInlineSize: 0
-    }
-  }
-})
-
-export const crumb = style({
-  '@layer': {
-    [app]: {
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const crumbCurrent = style([
-  crumb,
-  {
-    '@layer': {
-      [app]: {
-        color: foundationVars.color.text.primary,
-        fontWeight: foundationVars.fontWeight.semibold
-      }
-    }
-  }
-])
-
-export const crumbSeparator = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.muted,
-      flexShrink: 0
-    }
-  }
-})
-
-export const statusBadge = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[1],
-      minBlockSize: 22,
-      paddingInline: foundationVars.space[2],
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.text.accent,
-      fontSize: '12px',
-      fontWeight: foundationVars.fontWeight.bold,
-      lineHeight: '16px',
-      flexShrink: 0,
-      '@media': {
-        [mobile]: {
-          display: 'none'
-        }
-      }
-    }
-  }
-})
-
 export const navigationActions = style({
   '@layer': {
     [app]: {
+      gridColumn: '2',
+      justifySelf: 'center',
       display: 'inline-flex',
       alignItems: 'center',
       gap: foundationVars.space[1],

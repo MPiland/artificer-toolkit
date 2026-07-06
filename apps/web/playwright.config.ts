@@ -73,8 +73,9 @@ function getScopedWebServers() {
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
-  fullyParallel: true,
+  fullyParallel: false,
   reporter: 'list',
+  workers: 1,
   use: {
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

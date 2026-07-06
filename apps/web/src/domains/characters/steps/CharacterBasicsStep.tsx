@@ -1,5 +1,5 @@
 import { Stack } from '@mantine/core'
-import { withForm } from '#forms'
+import { withForm } from '#forms/app-form/AppForm'
 import {
   advancementMethodOptions,
   createFallbackCharacterFormValues

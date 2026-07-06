@@ -817,7 +817,7 @@ CREATE TABLE IF NOT EXISTS public.character_resources (
     REFERENCES public.characters (id)
     ON DELETE CASCADE,
 
-  resource_grant_id uuid NOT NULL
+  resource_grant_id text NOT NULL
     ,
   used integer NOT NULL DEFAULT 0,
 
@@ -1070,7 +1070,7 @@ $$;
 ALTER TABLE IF EXISTS public.character_spell_selection_spells ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_resource_grants (
-  id uuid PRIMARY KEY,
+  id text NOT NULL,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   resource_id uuid NOT NULL REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE,
   source_kind text NOT NULL,
@@ -1085,6 +1085,7 @@ CREATE TABLE IF NOT EXISTS public.character_resource_grants (
   timing_class_level integer,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, id),
   CONSTRAINT character_resource_grants_source_kind_chk CHECK (
     source_kind IN ('CLASS', 'SUBCLASS', 'FEATURE', 'OPTION')
   ),
@@ -1141,8 +1142,8 @@ BEGIN
       AND conrelid = 'public.character_resources'::regclass) THEN
   ALTER TABLE public.character_resources
     ADD CONSTRAINT character_resources_resource_grant_id_fkey
-    FOREIGN KEY (resource_grant_id)
-    REFERENCES public.character_resource_grants (id)
+    FOREIGN KEY (character_id, resource_grant_id)
+    REFERENCES public.character_resource_grants (character_id, id)
     ON DELETE CASCADE
     DEFERRABLE;
 END IF;

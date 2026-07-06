@@ -23,7 +23,7 @@ describe('MarketingPage', () => {
     expect(screen.getByTestId('marketing-page')).toBeInTheDocument()
     expect(
       screen.getByRole('heading', {
-        name: 'Create the content you want to run, then bring it straight into play.'
+        name: 'Create the content, then bring it straight into play.'
       })
     ).toBeInTheDocument()
     expect(
@@ -41,12 +41,16 @@ describe('MarketingPage', () => {
     expect(screen.getAllByRole('link', { name: 'Sign in' })[0]).toHaveAttribute('href', '/sign-in')
   })
 
-  it('renders mobile menu links without client state', () => {
+  it('renders mobile guest header actions without client state', () => {
     renderMarketing(<MarketingHeader />)
 
-    expect(screen.getByText('Menu')).toBeInTheDocument()
+    const signInLinks = screen.getAllByRole('link', { name: 'Sign in' })
+
+    expect(screen.queryByText('Menu')).not.toBeInTheDocument()
+    expect(signInLinks).toHaveLength(2)
+    expect(signInLinks[1]).toHaveAttribute('href', '/sign-in')
     expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Get started free' })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'Get started free' })).toHaveLength(1)
   })
 
   it('smoothly scrolls enabled in-page marketing anchors with header offset', () => {

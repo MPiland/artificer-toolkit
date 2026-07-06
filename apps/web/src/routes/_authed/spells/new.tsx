@@ -1,11 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { getSpellReferenceData } from '#app/data/spells/referenceData'
+import { getSystem, getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
-import { SpellCreatePage } from '#domains/spells'
+import type { AuthoredCreateLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms'
+import {
+  createAuthoredFormRouteContext,
+  createAuthoredFormRouteLoaderData
+} from '#forms/layout/authoredFormRouteContext'
 
 export const Route = createFileRoute('/_authed/spells/new')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(
-    getSpellReferenceData(createServerApi())
-  ),
-  component: () => <SpellCreatePage />
+  context: () => createAuthoredFormRouteContext('spell', 'create'),
+  loader: async ({ context }): Promise<AuthoredCreateLoaderData> => {
+    const client = createServerApi()
+    const systems = await context.queryClient.ensureQueryData(getSystemList(client))
+    const systemId = systems[0]?.id
+    const system = systemId
+      ? await context.queryClient.ensureQueryData(getSystem(systemId, client))
+      : null
+
+    return createAuthoredFormRouteLoaderData({ system, systems })
+  },
+  component: AuthoringLayout
 })

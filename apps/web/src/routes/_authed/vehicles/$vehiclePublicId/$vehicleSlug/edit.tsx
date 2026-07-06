@@ -5,14 +5,20 @@ import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
-  isCanonicalAuthoredRouteHandle,
+  isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
-import { VehicleEditPage } from '#domains/vehicles'
+import type { VehicleEditLoaderData } from '#app/routes/-routeLoaderData'
+import { AuthoringLayout } from '#forms'
+import {
+  createAuthoredFormRouteContext,
+  createAuthoredFormRouteLoaderData
+} from '#forms/layout/authoredFormRouteContext'
 
 export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit')({
-  loader: async ({ context, params }) => {
+  context: () => createAuthoredFormRouteContext('vehicle', 'edit'),
+  loader: async ({ context, params }): Promise<VehicleEditLoaderData> => {
     const client = createServerApi()
     const vehicleId = await resolveAuthoredRouteSubjectId({
       client,
@@ -27,7 +33,10 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       context.queryClient.ensureQueryData(getVehicleDraft(vehicleId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(vehicleId, response, draft)
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildVehicleRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -35,12 +44,12 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       })
     }
 
-    return {
+    return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      vehicleId
-    }
+      subjectId: vehicleId
+    })
   },
-  component: () => <VehicleEditPage />
+  component: AuthoringLayout
 })

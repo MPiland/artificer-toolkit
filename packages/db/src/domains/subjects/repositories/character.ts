@@ -70,6 +70,7 @@ type ManualRolledAbilityIntent = Extract<
   CharacterAbilityScoresIntent,
   { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED }
 >
+type CharacterAncestrySelection = NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
 
 function optionalText(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
@@ -216,6 +217,34 @@ function parseSelectionValue(row: CharacterSourceRow): CharacterFeatureSelection
       return { kind: 'BOOLEAN', value: Boolean(row.boolean_value) }
     default:
       throw new Error(`Unsupported character feature selection value kind: ${String(row.value_kind)}`)
+  }
+}
+
+function hydrateAncestrySelectionSource(row: CharacterSourceRow): CharacterAncestrySelection['source'] {
+  switch (row.source_kind) {
+    case 'RACE':
+      return { kind: 'RACE', raceId: String(row.race_id) }
+    case 'SUBRACE':
+      return { kind: 'SUBRACE', subraceId: String(row.subrace_id) }
+    default:
+      throw new Error(`Unsupported ancestry source kind: ${String(row.source_kind)}`)
+  }
+}
+
+function hydrateAncestrySelectionTiming(
+  row: CharacterSourceRow
+): CharacterAncestrySelection['timing'] {
+  switch (row.timing_kind) {
+    case 'IMMEDIATE':
+      return { kind: 'IMMEDIATE' }
+    case 'CLASS_LEVEL':
+      return {
+        kind: 'CLASS_LEVEL',
+        classId: String(row.class_id),
+        classLevel: Number(row.class_level)
+      }
+    default:
+      throw new Error(`Unsupported ancestry timing kind: ${String(row.timing_kind)}`)
   }
 }
 
@@ -645,16 +674,8 @@ async function hydrateCharacterAuthoredById(
             id: String(ancestryRow.id),
             ancestryId: String(ancestryRow.ancestry_id),
             optionId: String(ancestryRow.option_id),
-            source: ancestryRow.source_kind === 'RACE'
-              ? { kind: 'RACE', raceId: String(ancestryRow.race_id) }
-              : { kind: 'SUBRACE', subraceId: String(ancestryRow.subrace_id) },
-            timing: ancestryRow.timing_kind === 'IMMEDIATE'
-              ? { kind: 'IMMEDIATE' }
-              : {
-                  kind: 'CLASS_LEVEL',
-                  classId: String(ancestryRow.class_id),
-                  classLevel: Number(ancestryRow.class_level)
-                }
+            source: hydrateAncestrySelectionSource(ancestryRow),
+            timing: hydrateAncestrySelectionTiming(ancestryRow)
           }))
         : undefined,
       background: {

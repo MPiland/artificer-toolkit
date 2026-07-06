@@ -228,6 +228,10 @@ function requireDurationKind(characteristicId: string, value: string) {
   return value as keyof typeof DURATION_KIND
 }
 
+function isAmountlessDurationKind(kind: keyof typeof DURATION_KIND) {
+  return kind === DURATION_KIND.INSTANTANEOUS || kind === DURATION_KIND.UNTIL_DISPELLED
+}
+
 function requireSavingThrowDcMethod(savingThrowId: string, value: string) {
   if (!(value in SAVING_THROW_DC_METHOD)) {
     throw new Error(`Saving throw "${savingThrowId}" has invalid DC method "${value}".`)
@@ -473,7 +477,7 @@ async function hydrateDurationById(db: DBLike, id: string): Promise<DurationAuth
   const duration = requireLinkedRecord(row, `Duration characteristic "${id}" is missing.`)
   const kind = requireDurationKind(id, duration.kind)
 
-  if (kind === DURATION_KIND.INSTANTANEOUS) {
+  if (isAmountlessDurationKind(kind)) {
     return { id, durationKind: kind }
   }
 
@@ -715,7 +719,7 @@ async function hydrateDurationsByIds(db: DBLike, ids: readonly string[]): Promis
 
     durations.set(
       id,
-      kind === DURATION_KIND.INSTANTANEOUS
+      isAmountlessDurationKind(kind)
         ? { id, durationKind: kind }
         : {
             id,

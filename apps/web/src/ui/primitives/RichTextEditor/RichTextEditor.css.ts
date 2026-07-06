@@ -8,11 +8,11 @@ const editorBorder = `1px solid ${foundationVars.color.border.strong}`
 export const editorRoot = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'flexDirection': 'column',
-      'minHeight': '10rem',
-      'overflow': 'auto',
-      'resize': 'vertical',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '10rem',
+      overflow: 'auto',
+      resize: 'vertical',
       '@media': {
         'screen and (max-width: 760px)': {
           resize: 'none'
@@ -44,9 +44,16 @@ export const editorRequired = style({
 export const editorToolbar = style({
   '@layer': {
     [app]: {
-      gap: foundationVars.space[1],
+      gap: foundationVars.space[2],
       padding: `${foundationVars.space[2]} ${foundationVars.space[2]}`,
-      rowGap: foundationVars.space[1]
+      rowGap: foundationVars.space[2],
+      '@media': {
+        'screen and (max-width: 760px)': {
+          gap: foundationVars.space[1],
+          padding: foundationVars.space[1],
+          rowGap: foundationVars.space[1]
+        }
+      }
     }
   }
 })
@@ -56,7 +63,9 @@ export const editorContent = style({
     [app]: {
       display: 'flex',
       flex: 1,
-      minHeight: '6rem'
+      minHeight: '6rem',
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0
     }
   }
 })
@@ -117,14 +126,14 @@ globalStyle(`${editorContent} .resize-cursor`, {
 export const editorControl = style({
   '@layer': {
     [app]: {
-      'borderRadius': foundationVars.radius.sm,
-      'minWidth': '28px',
-      'minHeight': '28px',
-      'padding': 0,
+      borderRadius: foundationVars.radius.sm,
+      minWidth: '28px',
+      minHeight: '28px',
+      padding: 0,
       '@media': {
         'screen and (max-width: 760px)': {
-          minWidth: '32px',
-          minHeight: '32px'
+          minWidth: '30px',
+          minHeight: '30px'
         }
       }
     }
@@ -135,7 +144,13 @@ export const editorControlIcon = style({
   '@layer': {
     [app]: {
       width: '0.875rem',
-      height: '0.875rem'
+      height: '0.875rem',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          width: '0.8125rem',
+          height: '0.8125rem'
+        }
+      }
     }
   }
 })
@@ -143,8 +158,13 @@ export const editorControlIcon = style({
 export const editorControlsGroup = style({
   '@layer': {
     [app]: {
-      gap: 0,
-      overflow: 'hidden'
+      gap: '2px',
+      overflow: 'visible',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          gap: '1px'
+        }
+      }
     }
   }
 })
@@ -155,7 +175,12 @@ export const editorMenuControlContent = style({
       alignItems: 'center',
       display: 'inline-flex',
       gap: '2px',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          gap: '1px'
+        }
+      }
     }
   }
 })
@@ -165,7 +190,13 @@ export const editorMenuIcon = style({
     [app]: {
       blockSize: '0.875rem',
       flexShrink: 0,
-      inlineSize: '0.875rem'
+      inlineSize: '0.875rem',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          blockSize: '0.8125rem',
+          inlineSize: '0.8125rem'
+        }
+      }
     }
   }
 })
@@ -176,7 +207,13 @@ export const editorMenuChevron = style({
       blockSize: '0.625rem',
       flexShrink: 0,
       inlineSize: '0.625rem',
-      opacity: 0.75
+      opacity: 0.75,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          blockSize: '0.5rem',
+          inlineSize: '0.5rem'
+        }
+      }
     }
   }
 })

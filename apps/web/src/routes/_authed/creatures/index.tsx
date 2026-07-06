@@ -22,7 +22,9 @@ import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 const creatureDetailMeta = ['challengeRatings', 'conditionTypes', 'creatureTypes', 'damageTypes', 'speeds']
 
 export const Route = createFileRoute('/_authed/creatures/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getCreatureList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getCreatureList(createServerApi()))
+  },
   component: CreaturesRoute
 })
 

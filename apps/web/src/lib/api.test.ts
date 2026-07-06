@@ -103,7 +103,7 @@ describe('tRPC api adapter', () => {
       http.get('*/api/trpc/content.spells.list', ({ request }) => {
         expect(new URL(request.url).pathname).toBe('/api/trpc/content.spells.list')
         expectNoSerializedAuth(request)
-        return trpcJson({ items: [spellItem], meta: {} })
+        return trpcJson({ items: [spellItem], meta: {}, drafts: [] })
       })
     )
 

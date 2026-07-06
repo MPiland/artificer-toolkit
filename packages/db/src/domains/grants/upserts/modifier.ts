@@ -730,6 +730,19 @@ function mapModifierGrantPayload(
           row.charge_min = (payload as { min?: number }).min ?? null
           row.charge_max = (payload as { max?: number }).max ?? null
           break
+
+        case 'ABILITY_MODIFIER': {
+          const ability = (payload as { ability?: string }).ability
+          if (!ability) {
+            throw new Error(`Modifier grant "${json_data.id}" is missing payload ability.`)
+          }
+
+          row.numeric_ability_code = requireAbilityCode(json_data.id, ability, 'payload ability')
+          row.charge_multiplier = (payload as { multiplier?: number }).multiplier ?? null
+          row.charge_min = (payload as { min?: number }).min ?? null
+          row.charge_max = (payload as { max?: number }).max ?? null
+          break
+        }
       }
 
       return { payload: row, chargeLevels, optionalAbilities }

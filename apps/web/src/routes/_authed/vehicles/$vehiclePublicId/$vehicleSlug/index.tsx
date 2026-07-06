@@ -5,11 +5,12 @@ import { createServerApi } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
-  isCanonicalAuthoredRouteHandle,
+  isCanonicalAuthoredRouteHandle
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import type { VehicleDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
 const vehicleDetailMeta = ['currencies']
@@ -17,7 +18,7 @@ const vehicleDetailMeta = ['currencies']
 export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/')({
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps: search, params }) => {
+  loader: async ({ context, deps: search, params }): Promise<VehicleDetailLoaderData> => {
     const client = createServerApi()
     const vehicleId = await resolveAuthoredRouteSubjectId({
       client,
@@ -27,15 +28,24 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       subjectKind: 'VEHICLE'
     })
     const view = search.view ?? 'active'
-    const response = await ensureOptionalActiveContent(context.queryClient, getVehicle({
-      id: vehicleId,
-      includeDraft: true,
-      meta: vehicleDetailMeta,
-      view
-    }, client))
+    const response = await ensureOptionalActiveContent(
+      context.queryClient,
+      getVehicle(
+        {
+          id: vehicleId,
+          includeDraft: true,
+          meta: vehicleDetailMeta,
+          view
+        },
+        client
+      )
+    )
     const draft = response?.draft ?? null
     const routeSubject = getAuthoredRouteSubject(vehicleId, response, draft)
-    if (routeSubject && !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)) {
+    if (
+      routeSubject &&
+      !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)
+    ) {
       throw redirect({
         params: buildVehicleRouteParams(routeSubject.publicId, routeSubject.label),
         replace: true,
@@ -49,9 +59,7 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
 })
 
 function VehicleDetailRoute() {
-  const {
-    draft, response, vehicleId, view
-  } = Route.useLoaderData()
+  const { draft, response, vehicleId, view } = Route.useLoaderData()
 
   return <VehicleDetailPage draft={draft} response={response} vehicleId={vehicleId} view={view} />
 }

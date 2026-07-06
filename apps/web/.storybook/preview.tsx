@@ -4,7 +4,6 @@ import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { initialize, mswLoader } from 'msw-storybook-addon'
 import MockDate from 'mockdate'
-import { mswHandlers } from './msw-handlers'
 import '#css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
@@ -16,7 +15,18 @@ initialize({
 
 type StoryColorScheme = 'dark' | 'light'
 type StoryQueryClient = ReturnType<typeof createAppQueryClient>
-type RouterContextInput = { storyContext: { id: string } }
+type RouterContextInput = {
+  storyContext: {
+    id: string
+    parameters?: {
+      tanstack?: {
+        router?: {
+          context?: Record<string, unknown>
+        }
+      }
+    }
+  }
+}
 
 const storyQueryClients = new Map<string, StoryQueryClient>()
 
@@ -43,7 +53,6 @@ const preview: Preview = {
         <AppProviders
           key={colorScheme}
           defaultColorScheme={colorScheme}
-          forceColorScheme={colorScheme}
           queryClient={queryClient}
         >
           <ColorSchemeScript defaultColorScheme={colorScheme} />
@@ -52,7 +61,9 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [mswLoader],
+  loaders: [
+    mswLoader
+  ],
   async beforeEach() {
     MockDate.set('2024-04-01T12:00:00Z')
   },
@@ -79,14 +90,12 @@ const preview: Preview = {
     controls: {
       expanded: true
     },
-    msw: {
-      handlers: mswHandlers
-    },
     tanstack: {
       router: {
         useRouterContext: ({ storyContext }: RouterContextInput) => ({
           queryClient: getStoryQueryClient(storyContext.id),
-          user: null
+          user: null,
+          ...storyContext.parameters?.tanstack?.router?.context
         })
       }
     },

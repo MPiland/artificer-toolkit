@@ -23,7 +23,9 @@ import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 const classDetailMeta = ['classes']
 
 export const Route = createFileRoute('/_authed/classes/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getClassList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getClassList(createServerApi()))
+  },
   component: ClassesRoute
 })
 

@@ -144,7 +144,29 @@ export const characterBuilderPayloadFixture = {
       ]
     },
     grants: {
-      features: [],
+      features: [
+        {
+          id: 'feature-sea-elf-training',
+          label: 'Sea Elf Training',
+          description: '<p>You have proficiency with the spear, trident, light crossbow, and net.</p>',
+          sourceLabel: 'Sea Elf',
+          source: { kind: 'SUBRACE', subraceId: 'subrace-sea-elf' }
+        },
+        {
+          id: 'feature-spellcasting',
+          label: 'Spellcasting',
+          description: '<p>You prepare and cast wizard spells using Intelligence.</p>',
+          sourceLabel: 'Wizard',
+          source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 }
+        },
+        {
+          id: 'feature-researcher',
+          label: 'Researcher',
+          description: '<p>When you attempt to learn or recall lore, you know where to find it.</p>',
+          sourceLabel: 'Sage',
+          source: { kind: 'BACKGROUND', backgroundId: 'background-sage' }
+        }
+      ],
       resources: [],
       spellcasting: []
     },
@@ -234,6 +256,15 @@ export const characterBuilderPayloadFixture = {
           { id: 'ancestry-forest', label: 'Forest' }
         ]
       },
+      features: [
+        {
+          id: 'feature-sea-elf-training',
+          label: 'Sea Elf Training',
+          description: '<p>You have proficiency with the spear, trident, light crossbow, and net.</p>',
+          sourceLabel: 'Sea Elf',
+          source: { kind: 'SUBRACE', subraceId: 'subrace-sea-elf' }
+        }
+      ],
       featureChoices: []
     },
     classes: {
@@ -249,6 +280,15 @@ export const characterBuilderPayloadFixture = {
           subclassOptions: [{ id: 'subclass-scribe', label: 'Order of Scribes' }],
           specializationOptions: [{ id: 'scribe-awakened', label: 'Awakened Quill' }],
           featureLabels: ['Spellcasting'],
+          features: [
+            {
+              id: 'feature-spellcasting',
+              label: 'Spellcasting',
+              description: '<p>You prepare and cast wizard spells using Intelligence.</p>',
+              sourceLabel: 'Wizard',
+              source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 }
+            }
+          ],
           featureChoices: [],
           spellChoices: [],
           resourceLabels: [],
@@ -258,6 +298,15 @@ export const characterBuilderPayloadFixture = {
     },
     background: {
       backgroundOptions: [{ id: 'background-sage', label: 'Sage' }],
+      features: [
+        {
+          id: 'feature-researcher',
+          label: 'Researcher',
+          description: '<p>When you attempt to learn or recall lore, you know where to find it.</p>',
+          sourceLabel: 'Sage',
+          source: { kind: 'BACKGROUND', backgroundId: 'background-sage' }
+        }
+      ],
       featureChoices: []
     },
     equipment: {
@@ -332,9 +381,20 @@ export const characterBuilderDraftPayloadFixture = {
   },
   view: {
     ...characterBuilderPayloadFixture.view,
+    race: {
+      ...characterBuilderPayloadFixture.view.race,
+      ancestry: null,
+      features: [],
+      featureChoices: []
+    },
     classes: {
       ...characterBuilderPayloadFixture.view.classes,
       selectedClasses: []
+    },
+    background: {
+      ...characterBuilderPayloadFixture.view.background,
+      features: [],
+      featureChoices: []
     },
     review: {
       blockers: ['Choose a race.', 'Choose a class.'],

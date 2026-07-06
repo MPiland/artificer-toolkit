@@ -104,6 +104,26 @@ Avoid unbounded `cat`, broad `rg`, `find`, `ls -R`, `git diff`, tests, builds, a
 
 If capped output is insufficient, narrow the command before increasing the cap.
 
+## Windows Process Execution
+
+This repo runs on Windows, and several frontend tools spawn native child processes. Storybook, Vite, esbuild, Playwright browser runs, Vitest browser mode, and similar dev-server/build commands may fail from the normal Codex sandbox with errors such as `spawn EPERM`.
+
+- Prefer MCP/browser inspection when a dev server is already running.
+- Codex may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
+- If Codex must start a spawn-heavy command, request escalated execution with `sandbox_permissions: "require_escalated"` instead of trying the normal sandbox first.
+- Use the repo command exactly as documented through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006` or `yarn storybook:web`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the PowerShell command path itself is proven broken.
+- Do not switch to Git Bash/MSYS to work around this. Use PowerShell/native Windows execution.
+- Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
+- Keep normal read/search/patch commands in the regular sandbox. Escalation is for native child-process toolchains, not routine file inspection.
+
+## GitHub CLI Auth On Windows
+
+GitHub CLI auth is available through the Windows keyring in this workspace, not through `GH_TOKEN` in the sandboxed shell environment.
+
+- Run `gh` commands with escalated execution when authentication is required, including PR review/comment/thread operations.
+- If normal sandboxed `gh` reports an invalid token, retry the same `gh` command escalated before diagnosing auth as broken.
+- Do not print or inspect token values. `gh auth status` is acceptable for confirming authentication state.
+
 ## Code Changes
 
 Prefer direct edits with the available patch tool.
@@ -125,11 +145,18 @@ Match validation to risk.
 
 Skip validation for low-risk changes and say so plainly.
 Use the cheapest useful check for risky changes.
+Run typecheck validation through Turbo-backed repo commands by default, such as `yarn turbo:typecheck:web` or `yarn turbo:affected:typecheck`, so local caching is used. Do not run direct workspace typecheck commands like `yarn workspace @artificer-toolkit/web typecheck:app` unless diagnosing Turbo itself or a Turbo-backed command is unavailable.
 Do not run full test suites or full builds unless risk justifies it or the user asks.
 
 ## Subagents
 
 Use subagents only when they save context, save time, or materially improve output quality.
+
+For implementation delegation, the main agent keeps ownership of judgment. The main agent must first interpret the user's annotations or request, inspect enough code to choose the correct layer, define the intended change, constraints, files or surfaces in scope, validation, and risks. Only then may a subagent receive the bounded execution slice.
+
+Do not delegate open-ended architectural judgment, product interpretation, or layer-selection decisions. Delegate concrete implementation tasks such as "change these files," "preserve this pattern," "do not touch these areas," "expected behavior is X," and "run these checks." The main agent reviews the diff, chooses or runs final validation, integrates the result, and corrects issues.
+
+For tightly-coupled form/UI platform work, prefer one subagent at most for a bounded slice. Avoid multiple agents editing the same provider, renderer, navigation, node-map, or layout surfaces concurrently.
 
 For research, review, and exploration tasks, avoid confirmation bias. Do not pass a preferred conclusion. Ask the subagent to investigate, compare, or verify, and require evidence, tradeoffs, uncertainty, and better alternatives.
 
@@ -242,7 +269,7 @@ Common repo commands:
 
 Web workspace commands:
 
-- `yarn workspace @artificer-toolkit/web generate:routes`
+- `yarn workspace @artificer-toolkit/web generate-routes`
 - `yarn workspace @artificer-toolkit/web typecheck:app`
 - `yarn workspace @artificer-toolkit/web typecheck:stories`
 - `yarn workspace @artificer-toolkit/web typecheck:tests`

@@ -19,7 +19,9 @@ import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 
 export const Route = createFileRoute('/_authed/feats/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getFeatList(createServerApi())),
+  loader: async ({ context }): Promise<void> => {
+    await context.queryClient.ensureQueryData(getFeatList(createServerApi()))
+  },
   component: FeatsRoute
 })
 
