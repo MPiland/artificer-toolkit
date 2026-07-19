@@ -71,7 +71,7 @@ describe('authored route ids', () => {
   })
 
   it('keeps authored detail UUID fallbacks behind the user-scoped route-id resolver', () => {
-    const source = readFileSync(join(process.cwd(), 'apps/apis/src/trpc/authoredDomains.ts'), 'utf8')
+    const source = readFileSync(join(process.cwd(), 'packages/functions/src/services/authoredContent/authoredDomainService.ts'), 'utf8')
     const resolver = source.slice(
       source.indexOf('async function resolveAuthoredRouteSubjectId'),
       source.indexOf('export async function saveAuthoredDomainDraft')

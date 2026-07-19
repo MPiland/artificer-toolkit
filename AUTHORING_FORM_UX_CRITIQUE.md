@@ -1,5 +1,7 @@
 # Authoring Form UX Critique and Design-System Delta
 
+> **Document status:** Historical design critique. Use [PRODUCT.md](PRODUCT.md) and [DESIGN.md](DESIGN.md) for canonical product/design intent and [ADR 0004](docs/adr/0004-backend-resolved-node-maps.md) for the authoring data seam. Treat this document as rationale and review history.
+
 ## Scope
 
 This critique compares four design inputs for the shared Artificer authoring platform and locks the next implementation pass to the Black Forge palette direction.

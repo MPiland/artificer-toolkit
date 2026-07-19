@@ -14,7 +14,6 @@ export function CharacterSheetPage() {
   if (!sheet && (draft || fallbackCharacter)) {
     return (
       <CharacterSheetDraftOnlyState
-        characterId={characterId}
         characterPublicId={draft?.publicId ?? fallbackCharacter?.publicId ?? characterPublicId}
         label={draft?.label ?? fallbackCharacter?.character.label}
       />

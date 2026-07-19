@@ -3,6 +3,7 @@ import {
   type SizeCode,
   type VehicleAuthored
 } from '@artificer-toolkit/shared'
+import { costDtoSchema } from '@artificer-toolkit/schema/subjects/shared'
 import type { DBLike } from '#types'
 import { upsertVehicle } from '../upserts/vehicle.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
@@ -44,6 +45,22 @@ function requireLinkedRecord<T>(
   }
 
   return value
+}
+
+function hydrateCost(
+  vehicleId: string,
+  value: unknown
+): VehicleAuthored['cost'] {
+  if (value == null) {
+    return undefined
+  }
+
+  const parsed = costDtoSchema.safeParse(value)
+  if (!parsed.success) {
+    throw new Error(`Vehicle "${vehicleId}" has invalid cost. ${parsed.error.message}`)
+  }
+
+  return parsed.data
 }
 
 async function hydrateVehicleById(
@@ -122,7 +139,7 @@ async function hydrateVehicleById(
     crewMax: row.crew_max ?? undefined,
     passengerCapacity: row.passenger_capacity ?? undefined,
     cargoCapacity: row.cargo_capacity ?? undefined,
-    cost: row.cost ? (row.cost as unknown as VehicleAuthored['cost']) : undefined,
+    cost: hydrateCost(id, row.cost),
     properties: row.properties ?? undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined
   }

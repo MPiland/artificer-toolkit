@@ -5,7 +5,6 @@ export const ochreJelly: CreatureAuthored = {
     label: 'Ochre Jelly',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.OOZE,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const ochreJelly: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 6,
         CHARISMA: 1,
-        SPELLCASTING: 0
     },
     armorClass: 8,
     hitPoints: 45,
@@ -161,7 +159,7 @@ export const ochreJelly: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.reactionId(1864, 3),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

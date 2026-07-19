@@ -9,7 +9,7 @@ import {
 import {
   CHARGE_NODE_MAP,
   EFFECT_NODE_MAP,
-  FACET_NODE_MAP,
+  CHARACTER_FACET_NODE_MAP,
   FEATURE_NODE_MAP,
   MODIFIER_GRANT_NODE_MAP
 } from '#maps'
@@ -23,7 +23,12 @@ import type {
   EquipmentVariantAuthored,
   WeightAuthored
 } from '#authored'
-import { buildNodeMap, buildRegistryOptionGroups, type NodeMap } from '#utils'
+import {
+  AUTHORING_ACTION_PRESENTATIONS,
+  buildNodeMap,
+  buildRegistryOptionGroups,
+  type NodeMap
+} from '#utils'
 
 const weightNode = buildNodeMap<WeightAuthored>()
 
@@ -33,7 +38,7 @@ export const WEIGHT_NODE_MAP = weightNode.define('weight', ({ map, nodes }) => {
   map
     .set('amount', number(['amount'], 'Amount'))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }))
 })
@@ -46,7 +51,7 @@ export const CAPACITY_NODE_MAP = capacityNode.define('capacity', ({ map, nodes }
   map
     .set('amount', number(['amount'], 'Amount'))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }))
 })
@@ -86,7 +91,7 @@ export const CONTAINS_NODE_MAP = containsNode.define('contains', ({ map, nodes, 
 type EquipmentMapAuthored = EquipmentAuthored | EquipmentVariantAuthored
 
 export const EQUIPMENT_FEATURE_NODE_MAP = FEATURE_NODE_MAP as NodeMap<FeatureAuthored<'EQUIPMENT'>>
-export const EQUIPMENT_RESTRICTIONS_NODE_MAP = FACET_NODE_MAP as NodeMap<FacetAuthored<'EQUIPMENT'>>
+export const EQUIPMENT_RESTRICTIONS_NODE_MAP = CHARACTER_FACET_NODE_MAP as NodeMap<FacetAuthored<'CHARACTER'>>
 export const EQUIPMENT_CHARGE_NODE_MAP = CHARGE_NODE_MAP as NodeMap<NonNullable<EquipmentAuthored['charges']>>
 export const EQUIPMENT_MODIFIER_NODE_MAP = MODIFIER_GRANT_NODE_MAP as NodeMap<NonNullable<EquipmentAuthored['modifiers']>[number]>
 
@@ -101,7 +106,7 @@ const EQUIPMENT_SECTIONS = {
 const equipment = buildNodeMap<EquipmentMapAuthored>()
 
 export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, cond, data, logic }) => {
-  const { text, richText, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
+  const { text, richText, number, toggle, selectSingle, selectMulti, groupObject, groupArray } = nodes
   const local = cond.local()
   const { table } = data
   const { not } = logic
@@ -111,7 +116,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
   const equipmentPropertyOptionGroups = buildRegistryOptionGroups(EQUIPMENT_PROPERTY_REGISTRY, PROPERTIES_BY_CATEGORY, (category) => local.field(['category']).eq(category), local.field(['category']).empty())
 
   map
-    .set('kind', text(['kind'], 'Kind'))
+    .set('kind', text(['kind'], 'Kind', { authoring: { exposure: 'system' } }))
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', {
       section: EQUIPMENT_SECTIONS.basics,
@@ -120,7 +125,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     }))
     .set('description', richText(['description'], 'Description', { section: EQUIPMENT_SECTIONS.basics, order: 20 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: EQUIPMENT_ATTRIBUTE_OPTIONS
     }, {
       section: EQUIPMENT_SECTIONS.properties,
@@ -129,46 +134,39 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
       hiddenBehavior: 'CLEAR'
     }))
     .set('quote', richText(['quote'], 'Quote', { section: EQUIPMENT_SECTIONS.basics, order: 30 }))
-    .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, {
+    .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, { presentation: 'inline',
       section: EQUIPMENT_SECTIONS.economy,
       order: 10,
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('weight', groupObject(['weight'], 'Weight', () => WEIGHT_NODE_MAP, {
+    .set('weight', groupObject(['weight'], 'Weight', () => WEIGHT_NODE_MAP, { presentation: 'inline',
       section: EQUIPMENT_SECTIONS.economy,
       order: 20,
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 10 }))
-    .set('charges', groupObject(['charges'], 'Charges', () => EQUIPMENT_CHARGE_NODE_MAP, {
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { presentation: 'branch', section: EQUIPMENT_SECTIONS.mechanics, order: 10 }))
+    .set('charges', groupObject(['charges'], 'Charges', () => EQUIPMENT_CHARGE_NODE_MAP, { presentation: 'inline',
       section: EQUIPMENT_SECTIONS.mechanics,
       order: 20,
-      showIf: {
-        or: [
-          isVariant,
-          local.field(['attributes']).contains(['LIMITED_USE'])
-        ]
-      },
+      showIf: logic.or([isVariant, local.field(['attributes']).contains(['LIMITED_USE'])]),
       hiddenBehavior: 'CLEAR'
     }))
-    .set('capacity', groupObject(['capacity'], 'Capacity', () => CAPACITY_NODE_MAP, {
+    .set('capacity', groupObject(['capacity'], 'Capacity', () => CAPACITY_NODE_MAP, { presentation: 'inline',
       section: EQUIPMENT_SECTIONS.properties,
       order: 30,
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('modifiers', groupArray(['modifiers'], 'Modifiers', () => EQUIPMENT_MODIFIER_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 30 }))
+    .set('modifiers', groupArray(['modifiers'], 'Modifiers', () => EQUIPMENT_MODIFIER_NODE_MAP, { presentation: 'focused', section: EQUIPMENT_SECTIONS.mechanics, order: 30 }))
     .set('maxStack', number(['maxStack'], 'Max Stack', {
       section: EQUIPMENT_SECTIONS.properties,
       order: 40,
-      showIf: {
-        and: [
-          isBaseEquipment,
-          local.field(['attributes']).contains(['STACKABLE'])
-        ]
-      },
+      showIf: logic.and([
+        isBaseEquipment,
+        local.field(['attributes']).contains(['STACKABLE'])
+      ]),
       hiddenBehavior: 'CLEAR'
     }))
     .set('rarityId', selectSingle(['rarityId'], 'Rarity', {
@@ -184,18 +182,22 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('contains', groupArray(['contains'], 'Contains', () => CONTAINS_NODE_MAP, {
+    .set('contains', groupArray(['contains'], 'Contains', () => CONTAINS_NODE_MAP, { presentation: 'inline',
       section: EQUIPMENT_SECTIONS.contents,
       order: 10,
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('features', groupArray(['features'], 'Features', () => EQUIPMENT_FEATURE_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 60 }))
-    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => EQUIPMENT_RESTRICTIONS_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 70 }))
+    .set('features', groupArray(['features'], 'Features', () => EQUIPMENT_FEATURE_NODE_MAP, { presentation: 'branch', section: EQUIPMENT_SECTIONS.mechanics, order: 60 }))
+    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => EQUIPMENT_RESTRICTIONS_NODE_MAP, { presentation: 'branch', section: EQUIPMENT_SECTIONS.mechanics, order: 70, authoring: { actions: [{ type: 'collection.add', label: 'Add', presentation: AUTHORING_ACTION_PRESENTATIONS.button }] } }))
+    .set('requiresAttunement', toggle(['requiresAttunement'], 'Requires Attunement', {
+      section: EQUIPMENT_SECTIONS.mechanics,
+      order: 80
+    }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: EQUIPMENT_CATEGORY_OPTIONS
     }, { section: EQUIPMENT_SECTIONS.properties, order: 10 }))
     .set('parentEquipmentId', selectSingle(['parentEquipmentId'], 'Parent Equipment', {
@@ -207,11 +209,11 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
       section: EQUIPMENT_SECTIONS.properties,
       order: 60,
       showIf: isVariant,
+      requiredIf: isVariant,
       hiddenBehavior: 'CLEAR'
     }))
     .set('properties', selectMulti(['properties'], 'Properties', {
-      kind: 'INLINE',
+      kind: 'INLINE_GROUPS',
       optionGroups: equipmentPropertyOptionGroups
     }, { section: EQUIPMENT_SECTIONS.properties, order: 70 }))
 })
-

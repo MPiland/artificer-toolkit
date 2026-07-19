@@ -2,15 +2,36 @@ import { initTRPC } from '@trpc/server'
 import { z } from 'zod'
 import {
   createAuthoredRouteIdRepository,
-  createFeatureRepository,
   createSystemRepository,
-  getFeatureListQuery,
   getSystemListQuery
 } from '@artificer-toolkit/db'
 import {
-  createFeatureAuthoringUseCaseService,
+  activateAuthoredDomainDraft,
+  activateAuthoredDomainInput,
+  authoredDomainConfigs,
+  createCharacterDraftForUser,
+  deleteAuthoredDomainActive,
+  discardAuthoredDomainDraft,
+  discardCharacterBuilderDraftForUser,
+  dispatchCommandForUser,
+  duplicateAuthoredDomain,
+  getAuthoredDomain,
+  getAuthoredDomainDraft,
+  getCharacterBuilderDraftForUser,
+  getCharacterForUser,
+  getCharacterHistoryForUser,
+  getCharacterSheetForUser,
+  listAuthoredDomain,
+  listCharactersForUser,
   normalizeNodeRuntimeValues,
-  resolveNodeRuntime
+  previewCharacterSaveForUser,
+  resolveCharacterForUser,
+  resolveNodeRuntime,
+  saveAuthoredDomainInputDraft,
+  saveCharacterBuilderDraftForUser,
+  upsertCharacterBuilderForUser,
+  type AuthoredContentInput,
+  type DirectAuthoredDomainConfig
 } from '@artificer-toolkit/functions'
 import {
   backgroundAuthoringInputDtoSchema,
@@ -28,7 +49,6 @@ import {
   equipmentAuthoringInputDtoSchema,
   type EquipmentAuthoringInputDto
 } from '@artificer-toolkit/schema/subjects/equipment'
-import { featureDtoSchema } from '@artificer-toolkit/schema/features/feature'
 import {
   featAuthoringInputDtoSchema,
   type FeatAuthoringInputDto
@@ -58,12 +78,11 @@ import {
   equipmentResponseDtoSchema,
   featListResponseDtoSchema,
   featResponseDtoSchema,
-  featureListResponseDtoSchema,
-  featureResponseDtoSchema,
   raceListResponseDtoSchema,
   raceResponseDtoSchema,
   spellListResponseDtoSchema,
   spellResponseDtoSchema,
+  toAuthoredValidationIssues,
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema
 } from '@artificer-toolkit/schema/api/content'
@@ -97,36 +116,6 @@ import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
 } from '@artificer-toolkit/schema/api/systems'
-import {
-  activateAuthoredDomainDraft,
-  activateAuthoredDomainInput,
-  authoredDomainConfigs,
-  buildDraftRequest,
-  cloneAuthoredItem,
-  deleteAuthoredDomainActive,
-  discardAuthoredDomainDraft,
-  getAuthoredDomain,
-  getAuthoredDomainDraft,
-  getDetailItem,
-  listAuthoredDomain,
-  saveAuthoredDomainDraft,
-  type AuthoredContentInput,
-  type DirectAuthoredDomainConfig
-} from './authoredDomains.js'
-import {
-  createCharacterDraftForUser,
-  discardCharacterBuilderDraftForUser,
-  dispatchCommandForUser,
-  getCharacterBuilderDraftForUser,
-  getCharacterForUser,
-  getCharacterHistoryForUser,
-  getCharacterSheetForUser,
-  listCharactersForUser,
-  previewCharacterSaveForUser,
-  resolveCharacterForUser,
-  saveCharacterBuilderDraftForUser,
-  upsertCharacterBuilderForUser
-} from '../routes/characters.js'
 import { requireUserId, withAuthenticatedDb, type TrpcContext } from './dbContext.js'
 
 interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
@@ -136,7 +125,27 @@ interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
   runtime: DirectAuthoredDomainConfig
 }
 
-const t = initTRPC.context<TrpcContext>().create()
+const authoredValidationMutationPathPattern =
+  /^content\.(backgrounds|classes|creatures|equipment|feats|races|spells|vehicles)\.(activate|activateDraft|saveDraft)$/
+
+const t = initTRPC.context<TrpcContext>().create({
+  errorFormatter: ({ error, path, shape }) => {
+    const validationIssues =
+      Boolean(path && authoredValidationMutationPathPattern.test(path)) &&
+      (error.code === 'BAD_REQUEST' || error.code === 'UNPROCESSABLE_CONTENT') &&
+      error.cause instanceof z.ZodError
+        ? toAuthoredValidationIssues(error.cause.issues)
+        : undefined
+
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        ...(validationIssues ? { validationIssues } : {})
+      }
+    }
+  }
+})
 
 export const createTRPCRouter = t.router
 
@@ -185,11 +194,6 @@ const okResponseSchema = z.object({
   ok: z.literal(true)
 })
 
-const featureUpsertInputSchema = z.object({
-  feature: featureDtoSchema,
-  systemId: z.string().min(1)
-})
-
 const characterDraftProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterBuilderDraftSaveRequestDtoSchema
@@ -204,15 +208,15 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
   return createTRPCRouter({
     list: authenticatedProcedure
       .output(config.listSchema)
-      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.listSchema.parse(
-        await listAuthoredDomain(db, config.runtime, userId, { canManageMasterContent: auth.isSuperAdmin })
+      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId) => config.listSchema.parse(
+        await listAuthoredDomain(db, config.runtime, userId)
       ))),
 
     get: authenticatedProcedure
       .input(authoredDetailRequestDtoSchema)
       .output(config.responseSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
-        await getAuthoredDomain(db, config.runtime, input, userId, { canManageMasterContent: auth.isSuperAdmin })
+      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
+        await getAuthoredDomain(db, config.runtime, input, userId)
       ))),
 
     getDraft: authenticatedProcedure
@@ -225,13 +229,12 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
     saveDraft: authenticatedProcedure
       .input(config.inputSchema)
       .output(authoredDraftDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => authoredDraftDtoSchema.parse(
-        await saveAuthoredDomainDraft(
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.parse(
+        await saveAuthoredDomainInputDraft(
           db,
           config.runtime,
-          buildDraftRequest(config.runtime.subjectKind, input),
-          userId,
-          { canManageMasterContent: auth.isSuperAdmin }
+          input,
+          userId
         )
       ))),
 
@@ -252,66 +255,33 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
     activateDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
         await activateAuthoredDomainDraft(
           db,
           config.runtime,
           input.id,
-          userId,
-          { canManageMasterContent: auth.isSuperAdmin }
+          userId
         )
       ))),
 
     activate: authenticatedProcedure
       .input(config.inputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
         await activateAuthoredDomainInput(
           db,
           config.runtime,
           input,
-          userId,
-          { canManageMasterContent: auth.isSuperAdmin }
-        )
-      ))),
-
-    upsert: authenticatedProcedure
-      .input(config.inputSchema)
-      .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId, auth) => config.responseSchema.parse(
-        await activateAuthoredDomainInput(
-          db,
-          config.runtime,
-          input,
-          userId,
-          { canManageMasterContent: auth.isSuperAdmin }
+          userId
         )
       ))),
 
     duplicate: authenticatedProcedure
       .input(idInputSchema)
       .output(authoredDraftDtoSchema.nullable())
-      .mutation(async ({ ctx, input }) => {
-        return withAuthenticatedDb(ctx, async (db, userId, auth) => {
-          const detail = config.responseSchema.parse(await getAuthoredDomain(
-            db,
-            config.runtime,
-            { id: input.id },
-            userId,
-            { canManageMasterContent: auth.isSuperAdmin }
-          ))
-          const item = getDetailItem<TInput>(detail)
-          if (!item) return null
-
-          return authoredDraftDtoSchema.parse(await saveAuthoredDomainDraft(
-            db,
-            config.runtime,
-            buildDraftRequest(config.runtime.subjectKind, cloneAuthoredItem(item)),
-            userId,
-            { canManageMasterContent: auth.isSuperAdmin }
-          ))
-        })
-      })
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.nullable().parse(
+        await duplicateAuthoredDomain(db, config.runtime, input.id, userId)
+      )))
   })
 }
 
@@ -418,29 +388,6 @@ export const appRouter = createTRPCRouter({
       listSchema: vehicleListResponseDtoSchema,
       responseSchema: vehicleResponseDtoSchema,
       runtime: authoredDomainConfigs.vehicles
-    }),
-
-    features: createTRPCRouter({
-      list: authenticatedProcedure
-        .output(featureListResponseDtoSchema)
-        .query(({ ctx }) => withAuthenticatedDb(ctx, async (db) => featureListResponseDtoSchema.parse(
-          await getFeatureListQuery(db)
-        ))),
-
-      get: authenticatedProcedure
-        .input(idInputSchema)
-        .output(featureResponseDtoSchema)
-        .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => featureResponseDtoSchema.parse(
-          await createFeatureRepository(db).findById(input.id)
-        ))),
-
-      upsert: authenticatedProcedure
-        .input(featureUpsertInputSchema)
-        .output(featureResponseDtoSchema)
-        .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => {
-          const result = await createFeatureAuthoringUseCaseService(db).execute(input)
-          return featureResponseDtoSchema.parse(result.authored.feature)
-        }))
     })
   }),
 

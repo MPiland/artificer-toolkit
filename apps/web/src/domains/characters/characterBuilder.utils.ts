@@ -26,7 +26,18 @@ import type { SelectOption } from '#forms/utils/formUtils'
 export type CharacterFormValues = CharacterBuilderFormDto
 export type CharacterStartingEquipmentDecision = CharacterStartingEquipmentDecisionDto
 type AbilityIntentCache = NonNullable<CharacterBuilderIntentCacheDto['abilities']>
-type AbilityAssignmentCode = CharacterFormValues['intent']['abilities']['assignments'][number]['ability']
+type CharacterAbilityGenerationMethod = CharacterFormValues['intent']['abilities']['method']
+type StandardArrayAbilities = Extract<
+  CharacterFormValues['intent']['abilities'],
+  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY}
+>
+type PointBuyAbilities = Extract<
+  CharacterFormValues['intent']['abilities'],
+  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY}
+>
+type AbilityAssignment = (StandardArrayAbilities | PointBuyAbilities)['assignments'][number]
+type AbilityAssignmentCode = AbilityCode
+export type CharacterAbilityFormAssignments = Array<AbilityAssignment>
 type CharacterClassRow = CharacterFormValues['intent']['classes'][number]
 type CharacterFeatureAcquisition = CharacterFormValues['intent']['featureAcquisitions'][number]
 export type CharacterBuilderStepId
@@ -42,13 +53,13 @@ export type CharacterBuilderStepId
 
 export const characterBuilderSteps: { id: CharacterBuilderStepId, label: string, description: string }[] = [
   { id: 'BASICS', label: 'Basics', description: 'Name the character and choose how advancement is tracked.' },
-  { id: 'RACE', label: 'Race', description: 'Choose race, subrace, and ancestry choices in source context.' },
-  { id: 'CLASSES', label: 'Classes', description: 'Build class levels, subclasses, and class-owned choices.' },
-  { id: 'BACKGROUND', label: 'Background', description: 'Select background and resolve background-owned choices.' },
-  { id: 'DETAILS', label: 'Details', description: 'Record identity, appearance, and table-facing details.' },
-  { id: 'NOTES', label: 'Personality & Notes', description: 'Capture roleplay hooks, backstory, and private notes.' },
+  { id: 'RACE', label: 'Race', description: 'Choose your race and any race-specific options.' },
+  { id: 'CLASSES', label: 'Classes', description: 'Choose class levels and class-specific options.' },
+  { id: 'BACKGROUND', label: 'Background', description: 'Choose a background and any background options.' },
   { id: 'ABILITIES', label: 'Abilities & HP', description: 'Assign abilities and starting hit point intent.' },
   { id: 'EQUIPMENT', label: 'Equipment & Currency', description: 'Resolve starting equipment and manual starting inventory.' },
+  { id: 'DETAILS', label: 'Personality & Appearance', description: 'Set alignment, faith, appearance, and other profile details.' },
+  { id: 'NOTES', label: 'Notes', description: 'Track backstory, relationships, and table notes.' },
   { id: 'REVIEW', label: 'Review', description: 'Check concrete blockers before finalizing the build.' }
 ]
 
@@ -88,15 +99,19 @@ export const hitpointMethodOptions: SelectOption[] = [
   { value: HITPOINT_CALCULATION_METHOD_CODE.MANUAL, label: 'Manual' }
 ]
 
-export const standardArrayOptions: SelectOption[] = [
-  '8', '10', '12', '13', '14', '15'
-]
-  .map((value) => ({ value, label: value }))
+const standardArrayOptionValues = ['8', '10', '12', '13', '14', '15'] as const
+const pointBuyOptionValues = ['8', '9', '10', '11', '12', '13', '14', '15'] as const
 
-export const pointBuyOptions: SelectOption[] = [
-  '8', '9', '10', '11', '12', '13', '14', '15'
-]
-  .map((value) => ({ value, label: value }))
+export const standardArrayOptions: SelectOption[] = standardArrayOptionValues
+  .map((value): SelectOption => ({ value, label: value }))
+export const pointBuyOptions: SelectOption[] = pointBuyOptionValues
+  .map((value): SelectOption => ({ value, label: value }))
+
+const allAbilityOptionValues = new Set<string>([...standardArrayOptionValues, ...pointBuyOptionValues])
+
+export function isAbilityAssignmentOption(value: string): value is CharacterAbilityFormAssignments[number]['option'] {
+  return allAbilityOptionValues.has(value)
+}
 
 export function createFallbackCharacterFormValues(systemId = 'pending-system'): CharacterFormValues {
   return {
@@ -172,6 +187,29 @@ export function normalizeCharacterForCommit(character: CharacterFormValues): Cha
   })
 }
 
+type CharacterBuilderResolutionFingerprintInput = Pick<
+  CharacterFormValues,
+  'intent' | 'label' | 'status' | 'systemId'
+> & {
+  hasCurrency: boolean
+  hasInventory: boolean
+}
+
+export function getCharacterBuilderResolutionFingerprint(
+  character: CharacterFormValues
+): string {
+  const input = {
+    hasCurrency: character.state.currency.length > 0,
+    hasInventory: character.state.equipment.inventory.length > 0,
+    intent: character.intent,
+    label: character.label,
+    status: character.status,
+    systemId: character.systemId
+  } satisfies CharacterBuilderResolutionFingerprintInput
+
+  return JSON.stringify(input)
+}
+
 export function buildCharacterDraftSaveInput(
   character: CharacterFormValues,
   mode: CharacterBuilderDraftSaveRequestDto['mode'],
@@ -214,7 +252,7 @@ export function cacheActiveAbilityIntent(
 
 export function getCachedAbilityIntent(
   cache: AbilityIntentCache | undefined,
-  method: string
+  method: CharacterAbilityGenerationMethod
 ): CharacterFormValues['intent']['abilities'] {
   return cache?.methods[method] ?? createEmptyAbilityIntent(method)
 }
@@ -248,10 +286,6 @@ function toAbilityFormValues(
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return {
       method: abilities.method,
-      assignments: abilities.state.assignments.map((assignment) => ({
-        ability: assignment.ability,
-        option: String(assignment.score)
-      })),
       state: abilities.state
     }
   }
@@ -259,11 +293,10 @@ function toAbilityFormValues(
   return abilities
 }
 
-function createEmptyAbilityIntent(method: string): CharacterFormValues['intent']['abilities'] {
+function createEmptyAbilityIntent(method: CharacterAbilityGenerationMethod): CharacterFormValues['intent']['abilities'] {
   if (method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return {
       method,
-      assignments: [],
       state: {
         assignments: [],
         rollGroups: []
@@ -281,18 +314,13 @@ function normalizeAbilityIntent(
   abilities: CharacterFormValues['intent']['abilities']
 ): CharacterAuthoredDto['intent']['abilities'] {
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
-    const assignments = abilities.state?.assignments ?? abilities.assignments
-      .map((assignment) => ({
-        ability: assignment.ability as AbilityCode,
-        score: Number(assignment.option)
-      }))
-      .filter((assignment) => Number.isFinite(assignment.score))
+    const manualRolledAssignments = abilities.state?.assignments ?? []
 
     return {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
       state: {
-        assignments: assignments.map((assignment) => ({
-          ability: assignment.ability as AbilityCode,
+        assignments: manualRolledAssignments.map((assignment) => ({
+          ability: assignment.ability,
           score: assignment.score
         }))
       }
@@ -300,22 +328,52 @@ function normalizeAbilityIntent(
   }
 
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
+    const pointBuyAbilities = abilities as PointBuyAbilities
+
     return {
       method: CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY,
-      assignments: abilities.assignments.map((assignment) => ({
-        ability: assignment.ability as AbilityCode,
-        option: assignment.option as '8' | '9' | '10' | '11' | '12' | '13' | '14' | '15'
+      assignments: pointBuyAbilities.assignments.map((assignment) => ({
+        ability: assignment.ability,
+        option: assignment.option
       }))
     }
   }
 
+  const standardArrayAbilities = abilities as StandardArrayAbilities
+
   return {
     method: CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY,
-    assignments: abilities.assignments.map((assignment) => ({
-      ability: assignment.ability as AbilityCode,
-      option: assignment.option as '8' | '10' | '12' | '13' | '14' | '15'
+    assignments: standardArrayAbilities.assignments.map((assignment) => ({
+      ability: assignment.ability,
+      option: assignment.option
     }))
   }
+}
+
+export function getAssignedAbilityCodes(
+  abilities: CharacterFormValues['intent']['abilities']
+): AbilityCode[] {
+  if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY) {
+    return abilities.assignments.map((assignment) => assignment.ability)
+  }
+
+  if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
+    return abilities.assignments.map((assignment) => assignment.ability)
+  }
+
+  return abilities.state.assignments.map((assignment) => assignment.ability)
+}
+
+export function getAbilityGenerationMethod(
+  value: string
+): CharacterAbilityGenerationMethod | undefined {
+  if (
+    value === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
+    || value === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
+    || value === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+  ) return value
+
+  return undefined
 }
 
 export function selectOptions(items: { id: string, label: string }[]): SelectOption[] {
@@ -353,6 +411,10 @@ export function clearRaceDependents(character: CharacterFormValues): CharacterFo
       ancestrySelections: undefined,
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isRaceOwnedFeatureSource(acquisition.source)
+      ),
+      chosenGrantSelections: filterOptionalIntentRows(
+        character.intent.chosenGrantSelections,
+        (selection) => !isRaceOwnedFeatureSource(selection.source)
       )
     }
   }
@@ -366,6 +428,10 @@ export function clearSubraceDependents(character: CharacterFormValues): Characte
       ancestrySelections: undefined,
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isSubraceOwnedFeatureSource(acquisition.source)
+      ),
+      chosenGrantSelections: filterOptionalIntentRows(
+        character.intent.chosenGrantSelections,
+        (selection) => !isSubraceOwnedFeatureSource(selection.source)
       )
     }
   }
@@ -393,6 +459,10 @@ export function clearBackgroundDependents(character: CharacterFormValues): Chara
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => getSourceKind(acquisition.source) !== 'BACKGROUND'
       ),
+      chosenGrantSelections: filterOptionalIntentRows(
+        character.intent.chosenGrantSelections,
+        (selection) => getSourceKind(selection.source) !== 'BACKGROUND'
+      ),
       startingEquipment: omitEmptyStartingEquipment({
         ...character.intent.startingEquipment,
         background: undefined
@@ -412,6 +482,7 @@ export function clearClassOwnedChoices(
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isClassOwnedFeatureSource(acquisition.source, previousRow)
       ),
+      chosenGrantSelections: filterOptionalIntentRows(character.intent.chosenGrantSelections, (selection) => !isClassOwnedSource(selection.source, previousRow)),
       spellSelections: filterOptionalIntentRows(character.intent.spellSelections, (selection) => !isClassOwnedSource(selection.source, previousRow)),
       resourceGrants: filterOptionalIntentRows(character.intent.resourceGrants, (grant) => !isClassOwnedSource(grant.source, previousRow))
     }
@@ -429,6 +500,7 @@ export function clearSubclassOwnedChoices(
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isSubclassOwnedSource(acquisition.source, previousRow)
       ),
+      chosenGrantSelections: filterOptionalIntentRows(character.intent.chosenGrantSelections, (selection) => !isSubclassOwnedSource(selection.source, previousRow)),
       spellSelections: filterOptionalIntentRows(character.intent.spellSelections, (selection) => !isSubclassOwnedSource(selection.source, previousRow)),
       resourceGrants: filterOptionalIntentRows(character.intent.resourceGrants, (grant) => !isSubclassOwnedSource(grant.source, previousRow))
     }

@@ -10,7 +10,7 @@ export const CharacterNotesStep = withForm({
     return (
       <section className={styles.section} aria-labelledby='character-notes-title'>
         <div className={styles.sectionHeader}>
-          <h3 id='character-notes-title' className={styles.sectionTitle}>Personality & notes</h3>
+          <h3 id='character-notes-title' className={styles.sectionTitle}>Notes</h3>
         </div>
         <div className={styles.fieldGrid}>
           <div className={styles.fieldSpan6}>

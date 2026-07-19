@@ -219,19 +219,10 @@ function getCreatureSections(
   ].filter((item) => item.description !== 'None')
   const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
   const featureBuckets = getCreatureFeatureBuckets(creature.features, legendaryActionFeature)
-  const actionItems = [
-    ...featureBuckets.actions,
-    ...toCreatureActionItems('Action', creature.actions)
-  ]
-  const bonusActionItems = [
-    ...featureBuckets.bonusActions,
-    ...toCreatureActionItems('Bonus Action', creature.bonusActions)
-  ]
-  const reactionItems = [
-    ...featureBuckets.reactions,
-    ...toCreatureActionItems('Reaction', creature.reactions)
-  ]
-  const lairActionItems = toCreatureActionItems('Lair Action', creature.lairProfile?.lairActions)
+  const actionItems = featureBuckets.actions
+  const bonusActionItems = featureBuckets.bonusActions
+  const reactionItems = featureBuckets.reactions
+  const lairActionItems = featureBuckets.lairActions
   const profileItems = getCreatureProfileItems(creature)
   const traitItems = [
     ...toDetailItems(creature.details),
@@ -278,6 +269,11 @@ function getCreatureSections(
       id: 'legendary-actions',
       title: 'Legendary Actions',
       content: <LegendaryActionsContent feature={legendaryActionFeature} />
+    } : null,
+    featureBuckets.regionalEffects.length ? {
+      id: 'regional-effects',
+      title: 'Regional Effects',
+      content: <AuthoredDetailItemList empty='No regional effects have been added.' items={featureBuckets.regionalEffects} />
     } : null,
     profileItems.length ? {
       id: 'profile',
@@ -351,7 +347,7 @@ function formatAbilityModifier(score: number): string {
 }
 
 function isLegendaryActionFeature(feature: CreatureFeature) {
-  return feature.label.toLowerCase() === 'legendary actions'
+  return feature.section === 'LEGENDARY_ACTION'
 }
 
 function LegendaryActionsContent({
@@ -384,7 +380,9 @@ function getCreatureFeatureBuckets(
     traits: [] as ReturnType<typeof toCreatureFeatureItem>[],
     actions: [] as ReturnType<typeof toCreatureFeatureItem>[],
     bonusActions: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    reactions: [] as ReturnType<typeof toCreatureFeatureItem>[]
+    reactions: [] as ReturnType<typeof toCreatureFeatureItem>[],
+    lairActions: [] as ReturnType<typeof toCreatureFeatureItem>[],
+    regionalEffects: [] as ReturnType<typeof toCreatureFeatureItem>[]
   }
 
   for (const feature of features ?? []) {
@@ -399,6 +397,10 @@ function getCreatureFeatureBuckets(
       buckets.bonusActions.push(item)
     } else if (section === 'reactions') {
       buckets.reactions.push(item)
+    } else if (section === 'lairActions') {
+      buckets.lairActions.push(item)
+    } else if (section === 'regionalEffects') {
+      buckets.regionalEffects.push(item)
     } else {
       buckets.traits.push(item)
     }
@@ -415,7 +417,12 @@ function toCreatureFeatureItem(feature: CreatureFeature) {
   }
 }
 
-function getCreatureFeatureSection(feature: CreatureFeature): 'traits' | 'actions' | 'bonusActions' | 'reactions' {
+function getCreatureFeatureSection(feature: CreatureFeature): 'traits' | 'actions' | 'bonusActions' | 'reactions' | 'lairActions' | 'regionalEffects' {
+  if (feature.section === 'ACTION') return 'actions'
+  if (feature.section === 'BONUS_ACTION') return 'bonusActions'
+  if (feature.section === 'REACTION') return 'reactions'
+  if (feature.section === 'LAIR_ACTION') return 'lairActions'
+  if (feature.section === 'REGIONAL_EFFECT') return 'regionalEffects'
   if (hasFeatureActivation(feature, 'REACTION')) return 'reactions'
   if (hasFeatureActivation(feature, 'BONUS_ACTION')) return 'bonusActions'
   if (hasFeatureActivation(feature, 'ACTION') || feature.label.toLowerCase() === 'multiattack') return 'actions'
@@ -427,18 +434,6 @@ function hasFeatureActivation(feature: CreatureFeature, activationCode: 'ACTION'
   return (feature.effects ?? []).some((effect) => (
     'activation' in effect.invocation && effect.invocation.activation.code === activationCode
   ))
-}
-
-function toCreatureActionItems(
-  label: string,
-  actions: CreatureAuthoredDto['actions']
-) {
-  return (actions ?? []).map((action) => ({
-    id: action.id,
-    title: action.label,
-    meta: label,
-    description: action.description
-  }))
 }
 
 function getCreatureProfileItems(creature: CreatureAuthoredDto) {

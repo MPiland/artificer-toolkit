@@ -817,6 +817,24 @@ ALTER TABLE public.facet_predicate_heritage_items ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_heritage_items_condition
   ON public.facet_predicate_heritage_items (facet_condition_id);
 
+/* Class list payload for class-level predicates */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_class_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  class_id uuid NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, class_id)
+);
+
+ALTER TABLE public.facet_predicate_class_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_class_items_condition
+  ON public.facet_predicate_class_items (facet_condition_id);
+
 /* Feature list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_feature_items (
   facet_condition_id uuid NOT NULL
@@ -870,24 +888,6 @@ ALTER TABLE public.facet_predicate_equipment_items ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_equipment_items_condition
   ON public.facet_predicate_equipment_items (facet_condition_id);
-
-/* Creature record kind list payload */
-CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_record_kind_items (
-  facet_condition_id uuid NOT NULL
-    REFERENCES public.facet_conditions (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  record_kind text NOT NULL,
-  sort_order integer NOT NULL,
-
-  PRIMARY KEY (facet_condition_id, record_kind)
-);
-
-ALTER TABLE public.facet_predicate_creature_record_kind_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_record_kind_items_condition
-  ON public.facet_predicate_creature_record_kind_items (facet_condition_id);
 
 /* Creature category list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_category_items (

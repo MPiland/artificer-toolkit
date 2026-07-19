@@ -327,6 +327,8 @@ export const srdSystemRecord: SystemSeedRecord = {
   id: SRD_SYSTEM_ID,
   label: 'D&D 5e SRD 5.1',
   description: 'Baseline SRD content bundle for Artificer Toolkit.',
+  rulesetCode: 'dnd5e',
+  rulesetVersion: '2014',
   userId: SRD_USER_ID,
   alignments:      SRD_ALIGNMENTS,
   challengeRatings: SRD_CHALLENGE_RATINGS,

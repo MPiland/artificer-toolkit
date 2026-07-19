@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, ABILITY_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, PROFICIENCY_KIND, RANGE_KIND, RACE_CATEGORY_CODE, RACE_SELECTION_MODE, SAVING_THROW_DC_BONUS_KIND, SAVING_THROW_DC_METHOD, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SIZE_CODE, TARGET_DISPOSITION_KIND, TRIGGER, VALUE_DOMAIN_CODE, type FeatureAuthored, type RaceAncestryAuthored, type RaceAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, ABILITY_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, FEATURE_ATTRIBUTE, PATH_CODE, PATH_GROUP_TYPE, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, PROFICIENCY_KIND, RANGE_KIND, RACE_CATEGORY_CODE, RACE_SELECTION_MODE, SAVING_THROW_DC_BONUS_KIND, SAVING_THROW_DC_METHOD, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SIZE_CODE, TARGET_DISPOSITION_KIND, TRIGGER, VALUE_DOMAIN_CODE, type FeatureAuthored, type RaceAncestryAuthored, type RaceAuthored } from '@artificer-toolkit/shared';
 import { RACE_IDS } from '../ids.js';
 import { SRD_DAMAGE_TYPES, SRD_DRACONIC_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -313,6 +313,7 @@ export const dragonborn: RaceAuthored = {
         {
             id: raceFeatureId(5, 1, 1),
             label: 'Ability Score Increase',
+            attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
             description: 'Your Strength score increases by 2, and your Charisma score increases by 1.',
             availableAtLevel: 1,
             order: 0,
@@ -346,23 +347,18 @@ export const dragonborn: RaceAuthored = {
         {
             id: raceFeatureId(5, 2, 1),
             label: 'Draconic Ancestry',
+            attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
             description: 'You have draconic ancestry of a particular dragon type, which determines your breath weapon and damage resistance.',
             availableAtLevel: 1,
             order: 1
         },
         {
-            id: raceFeatureId(5, 3, 1),
-            label: 'Ancestry-Linked Features',
-            description: 'Your selected draconic ancestry option grants the matching Breath Weapon and Damage Resistance features.',
-            availableAtLevel: 1,
-            order: 2
-        },
-        {
             id: raceFeatureId(5, 4, 1),
             label: 'Languages',
+            attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
             description: 'You can speak, read, and write Common and Draconic.',
             availableAtLevel: 1,
-            order: 3,
+            order: 2,
             grants: {
                 proficiencies: [
                     {

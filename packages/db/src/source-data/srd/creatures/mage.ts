@@ -5,7 +5,6 @@ export const mage: CreatureAuthored = {
     label: 'Mage',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.NPC,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const mage: CreatureAuthored = {
         INTELLIGENCE: 17,
         WISDOM: 12,
         CHARISMA: 11,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     armorClassNote: '15 with mage armor',

@@ -57,7 +57,56 @@ describe('createStartingEquipmentRepository', () => {
       starting_equipment: [{ id: 'se-1' }],
       starting_equipment_sets: [{ id: 'set-1', starting_equipment_id: 'se-1', sort_order: 1 }],
       starting_equipment_groups: [{ id: 'group-1', equipment_set_id: 'set-1', sort_order: 1 }],
-      starting_equipment_options: [{ id: 'option-1', equipment_group_id: 'group-1', sort_order: 1 }],
+      starting_equipment_options: [{
+        id: 'option-1',
+        equipment_group_id: 'group-1',
+        eligibility_facet_id: 'option-1-eligibility',
+        sort_order: 1
+      }],
+      facets: [{ id: 'option-1-eligibility' }],
+      facet_groups: [{
+        id: 'option-1-eligibility-group',
+        facet_id: 'option-1-eligibility',
+        sort_order: 1
+      }],
+      facet_contexts: [{
+        id: 'option-1-eligibility-context',
+        facet_group_id: 'option-1-eligibility-group',
+        node_subject_code: 'CHARACTER',
+        sort_order: 1
+      }],
+      facet_context_bodies: [{
+        facet_context_id: 'option-1-eligibility-context',
+        facet_body_id: 'option-1-eligibility-body'
+      }],
+      facet_body_groups: [{
+        id: 'option-1-eligibility-body-group',
+        facet_body_id: 'option-1-eligibility-body',
+        sort_order: 1
+      }],
+      facet_conditions: [{
+        id: 'option-1-eligibility-condition',
+        facet_body_group_id: 'option-1-eligibility-body-group',
+        kind: 'PREDICATE',
+        constraint_code: 'INCLUDE',
+        predicate_code: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+        relation_code: null,
+        where_facet_body_id: null,
+        sort_order: 1
+      }],
+      facet_predicate_selectables: [{
+        facet_condition_id: 'option-1-eligibility-condition',
+        authoring_mode_kind: 'SELECTED'
+      }],
+      facet_predicate_equipment_categories: [{
+        facet_condition_id: 'option-1-eligibility-condition',
+        category_code: 'ARMOR'
+      }],
+      facet_predicate_equipment_property_items: [{
+        facet_condition_id: 'option-1-eligibility-condition',
+        property_code: 'HEAVY',
+        sort_order: 1
+      }],
       starting_equipment_option_items: [
         {
           id: 'item-1',
@@ -107,6 +156,28 @@ describe('createStartingEquipmentRepository', () => {
                 {
                   id: 'option-1',
                   order: 1,
+                  eligibility: {
+                    id: 'option-1-eligibility',
+                    groups: [{
+                      id: 'option-1-eligibility-group',
+                      order: 1,
+                      contexts: [{
+                        id: 'option-1-eligibility-context',
+                        order: 1,
+                        subject: 'CHARACTER',
+                        conditions: [{
+                          id: 'option-1-eligibility-condition',
+                          order: 1,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                          authoringModeKind: 'SELECTED',
+                          category: 'ARMOR',
+                          properties: ['HEAVY']
+                        }]
+                      }]
+                    }]
+                  },
                   items: [
                     {
                       id: 'item-1',

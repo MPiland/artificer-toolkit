@@ -57,13 +57,13 @@ async function replaceSystemVocabulary(
   await db
     .insertInto(table)
     .values(rows)
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      system_id: ref('excluded.system_id'),
-      code: ref('excluded.code'),
-      label: ref('excluded.label'),
-      description: ref('excluded.description'),
-      tooltip: ref('excluded.tooltip'),
-      short: ref('excluded.short')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      system_id: eb.ref('excluded.system_id'),
+      code: eb.ref('excluded.code'),
+      label: eb.ref('excluded.label'),
+      description: eb.ref('excluded.description'),
+      tooltip: eb.ref('excluded.tooltip'),
+      short: eb.ref('excluded.short')
     })))
     .execute()
 }
@@ -93,12 +93,16 @@ export async function upsertSystem(
       id: json_data.id,
       user_id: json_data.userId,
       label: json_data.label,
-      description: json_data.description ?? null
+      description: json_data.description ?? null,
+      ruleset_code: json_data.rulesetCode,
+      ruleset_version: json_data.rulesetVersion
     })
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      user_id: ref('excluded.user_id'),
-      label: ref('excluded.label'),
-      description: ref('excluded.description')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      user_id: eb.ref('excluded.user_id'),
+      label: eb.ref('excluded.label'),
+      description: eb.ref('excluded.description'),
+      ruleset_code: eb.ref('excluded.ruleset_code'),
+      ruleset_version: eb.ref('excluded.ruleset_version')
     })))
     .execute()
 

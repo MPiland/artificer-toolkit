@@ -9,8 +9,10 @@ export const itemRow = style({
       gridTemplateColumns: '18px 24px minmax(0, 1fr) 22px',
       alignItems: 'center',
       gap: foundationVars.space[1],
+      minBlockSize: 44,
       paddingBlock: foundationVars.space[1],
-      paddingInlineStart: `calc(${foundationVars.space[2]} + (var(--authoring-rail-level, 0) * ${foundationVars.space[3]}))`,
+      paddingInlineStart: `calc(${foundationVars.space[3]} + min(calc(var(--authoring-rail-level, 0) * ${foundationVars.space[3]}), ${foundationVars.space[7]}))`,
+      paddingInlineEnd: foundationVars.space[3],
       inlineSize: '100%',
       color: foundationVars.color.text.secondary,
       cursor: 'pointer',
@@ -26,14 +28,14 @@ export const itemRow = style({
       selectors: {
         [`&.active`]: {
           position: 'relative',
-          color: foundationVars.color.text.accent,
-          backgroundColor: foundationVars.color.surface.subtle
+          color: foundationVars.color.text.primary,
+          backgroundColor: foundationVars.color.surface.raised
         },
         ['&.active::after']: {
           content: "''",
           position: 'absolute',
           insetBlock: 0,
-          insetInlineStart: 0,
+          insetInlineEnd: 0,
           inlineSize: 3,
           backgroundColor: foundationVars.color.accent.solid,
           borderRadius: 'unset'
@@ -96,16 +98,6 @@ export const itemLabel = style({
       lineHeight: foundationVars.typography.bodySm.lineHeight,
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const childGroup = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 2
     }
   }
 })

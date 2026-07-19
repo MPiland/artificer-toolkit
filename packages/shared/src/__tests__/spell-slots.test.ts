@@ -16,7 +16,7 @@ function createSnapshot(classes: CharacterBuildSnapshot['classes']): CharacterBu
     abilities: {},
     hitpoints: [],
     features: [],
-    equippedItems: []
+    equipmentItems: []
   }
 }
 

@@ -5,7 +5,7 @@ import { getGlobalStartContext } from '@tanstack/react-start'
 import type { User } from '@supabase/supabase-js'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
-import { createAppRouterContext, type AppRouterContext } from './routerContext'
+import { createAppRouterContext } from './routerContext'
 
 function getCspNonce() {
   if (typeof document !== 'undefined') {

@@ -7,10 +7,11 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "node -e \"console.log('No tests configured for @artificer-toolkit/apis')\"",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts apps/apis/src",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {
+    "@artificer-toolkit/db": "workspace:^",
     "@artificer-toolkit/functions": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",

@@ -11,11 +11,8 @@ import { buildNodeMap } from '#utils'
 import type {
   CapacityAuthored,
   CostAuthored,
-  CreatureActionAuthored,
   CreatureAuthored,
   CreatureCompanionProfile,
-  CreatureLairProfile,
-  CreatureLegendaryProfile,
   CreatureMountProfile,
   CreatureNpcProfile,
   DetailAuthored
@@ -26,8 +23,7 @@ export const CREATURE_SECTIONS = {
   stats: { id: 'stats', label: 'Stats', order: 20 },
   defenses: { id: 'defenses', label: 'Defenses', order: 30 },
   content: { id: 'content', label: 'Content', order: 40 },
-  actions: { id: 'actions', label: 'Actions', order: 50 },
-  profiles: { id: 'profiles', label: 'Profiles', order: 60 }
+  profiles: { id: 'profiles', label: 'Profiles', order: 50 }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
@@ -42,44 +38,6 @@ export const CREATURE_DETAIL_NODE_MAP = detailNode.define('creatureDetail', ({ m
     .set('order', number(['order'], 'Order'))
 })
 
-const actionNode = buildNodeMap<CreatureActionAuthored>()
-
-export const CREATURE_ACTION_NODE_MAP = actionNode.define('creatureAction', ({ map, nodes }) => {
-  const { text, richText, number } = nodes
-
-  map
-    .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', richText(['description'], 'Description'))
-    .set('attackBonus', number(['attackBonus'], 'Attack Bonus'))
-    .set('damage', text(['damage'], 'Damage'))
-    .set('recharge', text(['recharge'], 'Recharge'))
-})
-
-const legendaryNode = buildNodeMap<CreatureLegendaryProfile>()
-
-export const CREATURE_LEGENDARY_PROFILE_NODE_MAP = legendaryNode.define('creatureLegendaryProfile', ({ map, nodes }) => {
-  const { number } = nodes
-
-  map
-    .set('legendaryResistanceCount', number(['legendaryResistanceCount'], 'Legendary Resistance Uses'))
-    .set('actionsCount', number(['actionsCount'], 'Legendary Actions Per Round'))
-})
-
-const lairNode = buildNodeMap<CreatureLairProfile>()
-
-export const CREATURE_LAIR_PROFILE_NODE_MAP = lairNode.define('creatureLairProfile', ({ map, nodes }) => {
-  const { groupArray } = nodes
-
-  const regionalEffectNode = buildNodeMap<{ value: string }>().define('regionalEffect', ({ map: m, nodes: n }) => {
-    m.set('value', n.text(['value'], 'Effect'))
-  })
-
-  map
-    .set('lairActions', groupArray(['lairActions'], 'Lair Actions', () => CREATURE_ACTION_NODE_MAP))
-    .set('regionalEffects', groupArray(['regionalEffects'], 'Regional Effects', () => regionalEffectNode))
-})
-
 const mountNode = buildNodeMap<CreatureMountProfile>()
 
 export const CREATURE_MOUNT_PROFILE_NODE_MAP = mountNode.define('creatureMountProfile', ({ map, nodes }) => {
@@ -87,7 +45,7 @@ export const CREATURE_MOUNT_PROFILE_NODE_MAP = mountNode.define('creatureMountPr
 
   map
     .set('mountType', selectSingle(['mountType'], 'Mount Type', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: [
         { code: CREATURE_MOUNT_TYPE_CODE.CONTROLLED, label: 'Controlled' },
         { code: CREATURE_MOUNT_TYPE_CODE.INDEPENDENT, label: 'Independent' }
@@ -105,7 +63,7 @@ export const CREATURE_COMPANION_PROFILE_NODE_MAP = companionNode.define('creatur
 
   map
     .set('bondType', selectSingle(['bondType'], 'Bond Type', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: [
         { code: CREATURE_COMPANION_BOND_TYPE_CODE.FAMILIAR, label: 'Familiar' },
         { code: CREATURE_COMPANION_BOND_TYPE_CODE.ANIMAL_COMPANION, label: 'Animal Companion' },
@@ -113,7 +71,7 @@ export const CREATURE_COMPANION_PROFILE_NODE_MAP = companionNode.define('creatur
       ]
     }))
     .set('initiativeMode', selectSingle(['initiativeMode'], 'Initiative Mode', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: [
         { code: CREATURE_INITIATIVE_MODE_CODE.USES_PC_INITIATIVE, label: 'Uses PC\'s Initiative' },
         { code: CREATURE_INITIATIVE_MODE_CODE.OWN_INITIATIVE, label: 'Own Initiative' }
@@ -132,10 +90,10 @@ export const CREATURE_NPC_PROFILE_NODE_MAP = npcNode.define('creatureNpcProfile'
   })
 
   map
-    .set('bonds', groupArray(['bonds'], 'Bonds', () => stringNode))
-    .set('flaws', groupArray(['flaws'], 'Flaws', () => stringNode))
-    .set('ideals', groupArray(['ideals'], 'Ideals', () => stringNode))
-    .set('personalityTraits', groupArray(['personalityTraits'], 'Personality Traits', () => stringNode))
+    .set('bonds', groupArray(['bonds'], 'Bonds', () => stringNode, { presentation: 'inline' }))
+    .set('flaws', groupArray(['flaws'], 'Flaws', () => stringNode, { presentation: 'inline' }))
+    .set('ideals', groupArray(['ideals'], 'Ideals', () => stringNode, { presentation: 'inline' }))
+    .set('personalityTraits', groupArray(['personalityTraits'], 'Personality Traits', () => stringNode, { presentation: 'inline' }))
 })
 
 const costNode = buildNodeMap<CostAuthored>()
@@ -162,7 +120,7 @@ export const CREATURE_CAPACITY_NODE_MAP = capacityNode.define('creatureCapacity'
   map
     .set('amount', number(['amount'], 'Amount'))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }))
 })
@@ -174,7 +132,6 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
   const { table } = data
   const local = cond.local()
   const { or } = logic
-  const isMonster = local.field(['category']).eq(CREATURE_CATEGORY_CODE.MONSTER)
   const isBeast = local.field(['category']).eq(CREATURE_CATEGORY_CODE.BEAST)
   const isNpc = local.field(['category']).eq(CREATURE_CATEGORY_CODE.NPC)
   const isCompanion = local.field(['category']).eq(CREATURE_CATEGORY_CODE.COMPANION)
@@ -199,13 +156,13 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     }))
     .set('quote', richText(['quote'], 'Quote', { section: CREATURE_SECTIONS.basics, order: 20 }))
     .set('description', richText(['description'], 'Description', { section: CREATURE_SECTIONS.basics, order: 30 }))
-    .set('details', groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 10 }))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 20 }))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: CREATURE_SECTIONS.content, order: 30 }))
+    .set('details', groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP, { presentation: 'inline', section: CREATURE_SECTIONS.content, order: 10 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { presentation: 'branch', section: CREATURE_SECTIONS.content, order: 20 }))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { presentation: 'branch', section: CREATURE_SECTIONS.content, order: 30 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: [
         { code: CREATURE_CATEGORY_CODE.MONSTER, label: 'Monster' },
         { code: CREATURE_CATEGORY_CODE.BEAST, label: 'Beast' },
@@ -221,7 +178,7 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
       })
     }, { section: CREATURE_SECTIONS.basics, order: 60 }))
     .set('size', selectSingle(['size'], 'Size', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SIZE_OPTIONS
     }, { section: CREATURE_SECTIONS.basics, order: 70 }))
     .set('alignmentId', selectSingle(['alignmentId'], 'Alignment', {
@@ -230,7 +187,7 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
         selectColumns: ['id', 'label']
       })
     }, { section: CREATURE_SECTIONS.basics, order: 80 }))
-    .set('tags', groupArray(['tags'], 'Tags', () => tagNode, { section: CREATURE_SECTIONS.basics, order: 90 }))
+    .set('tags', groupArray(['tags'], 'Tags', () => tagNode, { presentation: 'inline', section: CREATURE_SECTIONS.basics, order: 90 }))
 
     // Core stats
     .set('abilityScores', groupObject(['abilityScores'], 'Ability Scores', () => buildNodeMap<Record<string, number>>().define('abilityScores', ({ map: m, nodes: n }) => {
@@ -241,16 +198,15 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
         .set('INTELLIGENCE', n.number(['INTELLIGENCE'], 'Intelligence'))
         .set('WISDOM', n.number(['WISDOM'], 'Wisdom'))
         .set('CHARISMA', n.number(['CHARISMA'], 'Charisma'))
-        .set('SPELLCASTING', n.number(['SPELLCASTING'], 'Spellcasting'))
-    }), { section: CREATURE_SECTIONS.stats, order: 10 }))
+    }), { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 10 }))
     .set('armorClass', number(['armorClass'], 'Armor Class', { section: CREATURE_SECTIONS.stats, order: 20 }))
     .set('armorClassNote', text(['armorClassNote'], 'AC Note', { section: CREATURE_SECTIONS.stats, order: 30 }))
     .set('hitPoints', number(['hitPoints'], 'Hit Points', { section: CREATURE_SECTIONS.stats, order: 40 }))
     .set('hitDice', text(['hitDice'], 'Hit Dice', { section: CREATURE_SECTIONS.stats, order: 50 }))
 
     // Movement
-    .set('speeds', groupArray(['speeds'], 'Speeds', () => SPEED_NODE_MAP, { section: CREATURE_SECTIONS.stats, order: 60 }))
-    .set('senses', groupArray(['senses'], 'Senses', () => senseNode, { section: CREATURE_SECTIONS.stats, order: 70 }))
+    .set('speeds', groupArray(['speeds'], 'Speeds', () => SPEED_NODE_MAP, { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 60 }))
+    .set('senses', groupArray(['senses'], 'Senses', () => senseNode, { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 70 }))
     .set('passivePerception', number(['passivePerception'], 'Passive Perception', { section: CREATURE_SECTIONS.stats, order: 90 }))
 
     // Defenses
@@ -289,55 +245,38 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     .set('xp', number(['xp'], 'XP', { section: CREATURE_SECTIONS.stats, order: 110 }))
 
     // Travel and cost
-    .set('cost', groupObject(['cost'], 'Cost', () => CREATURE_COST_NODE_MAP, {
+    .set('cost', groupObject(['cost'], 'Cost', () => CREATURE_COST_NODE_MAP, { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 5,
       showIf: isBeast
     }))
-    .set('carryingCapacity', groupObject(['carryingCapacity'], 'Carrying Capacity', () => CREATURE_CAPACITY_NODE_MAP, {
+    .set('carryingCapacity', groupObject(['carryingCapacity'], 'Carrying Capacity', () => CREATURE_CAPACITY_NODE_MAP, { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 6,
       showIf: isBeast
     }))
     .set('logisticsNotes', groupArray(['logisticsNotes'], 'Usage Notes', () => buildNodeMap<{ value: string }>().define('logisticsNote', ({ map: m, nodes: n }) => {
       m.set('value', n.text(['value'], 'Note'))
-    }), {
+    }), { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 7,
       showIf: isBeast
     }))
 
-    // Standard actions
-    .set('actions', groupArray(['actions'], 'Actions', () => CREATURE_ACTION_NODE_MAP, { section: CREATURE_SECTIONS.actions, order: 10 }))
-    .set('bonusActions', groupArray(['bonusActions'], 'Bonus Actions', () => CREATURE_ACTION_NODE_MAP, { section: CREATURE_SECTIONS.actions, order: 20 }))
-    .set('reactions', groupArray(['reactions'], 'Reactions', () => CREATURE_ACTION_NODE_MAP, { section: CREATURE_SECTIONS.actions, order: 30 }))
-
     // Optional profiles
-    .set('legendaryProfile', groupObject(['legendaryProfile'], 'Legendary Profile', () => CREATURE_LEGENDARY_PROFILE_NODE_MAP, {
-      section: CREATURE_SECTIONS.profiles,
-      order: 10,
-      showIf: isMonster,
-      hiddenBehavior: 'CLEAR'
-    }))
-    .set('lairProfile', groupObject(['lairProfile'], 'Lair Profile', () => CREATURE_LAIR_PROFILE_NODE_MAP, {
-      section: CREATURE_SECTIONS.profiles,
-      order: 20,
-      showIf: isMonster,
-      hiddenBehavior: 'CLEAR'
-    }))
-    .set('mountProfile', groupObject(['mountProfile'], 'Mount Profile', () => CREATURE_MOUNT_PROFILE_NODE_MAP, {
+    .set('mountProfile', groupObject(['mountProfile'], 'Mount Profile', () => CREATURE_MOUNT_PROFILE_NODE_MAP, { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 30,
       showIf: isBeast,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('companionProfile', groupObject(['companionProfile'], 'Companion Profile', () => CREATURE_COMPANION_PROFILE_NODE_MAP, {
+    .set('companionProfile', groupObject(['companionProfile'], 'Companion Profile', () => CREATURE_COMPANION_PROFILE_NODE_MAP, { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 40,
       showIf: isCompanionOrSummon,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('npcProfile', groupObject(['npcProfile'], 'NPC Profile', () => CREATURE_NPC_PROFILE_NODE_MAP, {
+    .set('npcProfile', groupObject(['npcProfile'], 'NPC Profile', () => CREATURE_NPC_PROFILE_NODE_MAP, { presentation: 'inline',
       section: CREATURE_SECTIONS.profiles,
       order: 50,
       showIf: isNpc,

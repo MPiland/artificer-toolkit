@@ -1,5 +1,5 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import { type CreatureAuthored } from '@artificer-toolkit/shared'
+
 import * as S from './shared.js'
 
 export const otyugh: CreatureAuthored = {
@@ -7,7 +7,6 @@ export const otyugh: CreatureAuthored = {
   label: 'Otyugh',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ABERRATION,
   size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const otyugh: CreatureAuthored = {
     INTELLIGENCE: 6,
     WISDOM: 13,
     CHARISMA: 6,
-    SPELLCASTING: 0
   },
   armorClass: 14,
   armorClassNote: 'natural armor',

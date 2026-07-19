@@ -7,7 +7,6 @@ export const orc: CreatureAuthored = {
   description: 'A savage, brutish humanoid that revels in combat and destruction.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'MONSTER',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const orc: CreatureAuthored = {
     INTELLIGENCE: 7,
     WISDOM: 11,
     CHARISMA: 10,
-    SPELLCASTING: 0
   },
   armorClass: 13,
   armorClassNote: 'hide armor',

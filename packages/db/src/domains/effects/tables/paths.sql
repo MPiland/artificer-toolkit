@@ -4,7 +4,7 @@
  * ---------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.effect_result_blocks (
-  id uuid PRIMARY KEY,
+  id text PRIMARY KEY,
 
   result_kind text NOT NULL,
   duration_id uuid REFERENCES public.characteristics(id) DEFERRABLE INITIALLY DEFERRED,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS public.effect_paths (
   max_targets_scaling jsonb,
   excluded_creature_type_ids uuid[],
 
-  result_block_id uuid
+  result_block_id text
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.effect_path_choice_options (
   label text,
   description text,
   sort_order integer NOT NULL,
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS public.effect_path_roll_table_rows (
   roll_min integer,
   roll_max integer,
 
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
@@ -252,7 +252,7 @@ ALTER TABLE public.effect_generic_outcomes ENABLE ROW LEVEL SECURITY;
  * ---------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.effect_result_block_outcomes (
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   outcome_id uuid NOT NULL,

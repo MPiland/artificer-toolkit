@@ -5,7 +5,6 @@ export const unicorn: CreatureAuthored = {
     label: 'Unicorn',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.CELESTIAL,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const unicorn: CreatureAuthored = {
         INTELLIGENCE: 11,
         WISDOM: 17,
         CHARISMA: 16,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     hitPoints: 67,
@@ -309,6 +307,7 @@ export const unicorn: CreatureAuthored = {
         {
             id: S.featureId(276, 11),
             label: 'Legendary Actions',
+            section: 'LEGENDARY_ACTION',
             description: 'The unicorn can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The unicorn regains spent legendary actions at the start of its turn.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
             charges: {

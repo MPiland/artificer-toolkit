@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Drawer, Group, Menu, TextInput, UnstyledButton } from '@mantine/core'
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
-import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
+import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
 import { type ReactNode, useMemo, useState } from 'react'
 import { BookOpen, LogOut, Moon, PlusCircle, Search, Sun } from 'lucide-react'
@@ -71,6 +71,7 @@ export function Shell({
     [openSearch, createItems, libraryItems]
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
+  const usesWideContent = isCharacterSheetPath(currentPath)
   const appNavigationActions = hasLibraryNavigation ? (
     <AppNavigationMenus createItems={createItems} libraryItems={libraryItems} />
   ) : null
@@ -80,7 +81,10 @@ export function Shell({
     </main>
   ) : (
     <main className={styles.main} data-testid='app-shell-main'>
-      <div className={styles.contentArea} data-testid='app-shell-content'>
+      <div
+        className={clsx(styles.contentArea, usesWideContent && styles.contentAreaWide)}
+        data-testid='app-shell-content'
+      >
         {children}
       </div>
     </main>
@@ -365,4 +369,9 @@ function hasHref(item: AppShellNavItem): item is AppShellNavItem & { href: strin
 
 function isAuthoringPath(pathname: string): boolean {
   return pathname.endsWith('/new') || pathname.endsWith('/edit')
+}
+
+function isCharacterSheetPath(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean)
+  return segments[0] === 'characters' && segments.length >= 3 && !isAuthoringPath(pathname)
 }

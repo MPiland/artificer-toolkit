@@ -82,7 +82,8 @@ export function compileFeatGrantResult(
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileFeatTarget(authored),
-            count: authored.count
+            count: authored.count,
+            selectionDuplicatePolicy: authored.selectionDuplicatePolicy
           })
         }
 
@@ -122,7 +123,8 @@ export function compileFeatGrantResult(
               level: entry.level,
               ...compileFeatTarget(entry),
               order: entry.order,
-              count: entry.count
+              count: entry.count,
+              selectionDuplicatePolicy: entry.selectionDuplicatePolicy
             }))
           })
         }

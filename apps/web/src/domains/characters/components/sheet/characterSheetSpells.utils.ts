@@ -3,6 +3,22 @@ import type { CharacterSheet } from './CharacterSheet.types'
 export type SheetSpell = CharacterSheet['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 
+export function getSpellSourceKey(source: SheetSpellSource): string {
+  return source.id ?? source.classId ?? source.label
+}
+
+export function formatSpellSourceSummary(source: SheetSpellSource): string {
+  return [
+    source.label,
+    source.provenance ? formatEnumLabel(source.provenance) : undefined,
+    source.acquisition ? formatEnumLabel(source.acquisition) : undefined,
+    source.castMode ? formatEnumLabel(source.castMode) : undefined,
+    source.castMode === 'FIXED_LEVEL' && source.fixedLevel
+      ? `Level ${source.fixedLevel}`
+      : undefined
+  ].filter((part): part is string => Boolean(part)).join(' · ')
+}
+
 function formatEnumLabel(value: string): string {
   return value
     .toLowerCase()

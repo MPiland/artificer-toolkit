@@ -1,4 +1,3 @@
-import { Stack } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
 import {
   advancementMethodOptions,
@@ -53,10 +52,6 @@ export const CharacterBasicsStep = withForm({
             </form.AppField>
           </div>
         </div>
-        <Stack gap='xs' className={styles.inlinePanel}>
-          The builder saves incomplete work as a draft. Finalizing stays locked until the resolver reports every required
-          choice as complete.
-        </Stack>
       </section>
     )
   }

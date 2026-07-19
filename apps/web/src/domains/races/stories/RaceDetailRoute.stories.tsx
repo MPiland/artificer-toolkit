@@ -1,44 +1,34 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, waitFor } from 'storybook/test'
-import { Route } from '#routes/_authed/races/$racePublicId/$raceSlug/index'
+import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import {
   activeRaceDetailLoaderData,
   draftRaceDetailLoaderData,
-  raceRouteStoryParams,
   raceRouteStoryUser
 } from './raceRouteStoryData'
 
-const activeRouteOverrides = {
-  '/_authed/races/$racePublicId/$raceSlug/': {
-    component: undefined,
-    loader: async () => activeRaceDetailLoaderData
-  }
-}
-
-const draftRouteOverrides = {
-  '/_authed/races/$racePublicId/$raceSlug/': {
-    component: undefined,
-    loader: async () => draftRaceDetailLoaderData
-  }
-}
-
 const meta = {
-  title: 'Domains/Races/Routes/Detail',
+  title: 'Domains/Races/Pages/Detail',
+  component: RaceDetailPage,
+  args: {
+    draft: activeRaceDetailLoaderData.draft,
+    parentResponse: activeRaceDetailLoaderData.parentResponse,
+    raceId: activeRaceDetailLoaderData.raceId,
+    references: activeRaceDetailLoaderData.references,
+    response: activeRaceDetailLoaderData.response,
+    view: activeRaceDetailLoaderData.view
+  },
   parameters: {
     layout: 'fullscreen',
     tanstack: {
       router: {
-        route: Route,
-        path: '/races/dragonborn/dragonborn/' as '/races/$racePublicId/$raceSlug/',
-        params: raceRouteStoryParams,
         context: {
           user: raceRouteStoryUser
-        },
-        routeOverrides: activeRouteOverrides
+        }
       }
     }
   }
-} satisfies Meta<typeof Route>
+} satisfies Meta<typeof RaceDetailPage>
 
 export default meta
 
@@ -46,26 +36,26 @@ type Story = StoryObj<typeof meta>
 
 export const Active: Story = {
   play: async ({ canvas }) => {
-    await waitFor(() => {
-      expect(canvas.getByRole('heading', { name: /^dragonborn$/i })).toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(canvas.getByRole('heading', { name: /^dragonborn$/i })).toBeInTheDocument()
     })
-    expect(canvas.getByText(/ability score increase/i)).toBeInTheDocument()
+    await expect(canvas.getByText(/ability score increase/i)).toBeInTheDocument()
   }
 }
 
 export const Draft: Story = {
-  parameters: {
-    tanstack: {
-      router: {
-        query: { view: 'draft' },
-        routeOverrides: draftRouteOverrides
-      }
-    }
+  args: {
+    draft: draftRaceDetailLoaderData.draft,
+    parentResponse: draftRaceDetailLoaderData.parentResponse,
+    raceId: draftRaceDetailLoaderData.raceId,
+    references: draftRaceDetailLoaderData.references,
+    response: draftRaceDetailLoaderData.response,
+    view: draftRaceDetailLoaderData.view
   },
   play: async ({ canvas }) => {
-    await waitFor(() => {
-      expect(canvas.getByRole('heading', { name: /^dragonborn$/i })).toBeInTheDocument()
+    await waitFor(async () => {
+      await expect(canvas.getByRole('heading', { name: /^dragonborn$/i })).toBeInTheDocument()
     })
-    expect(canvas.getByText(/^draft$/i)).toBeInTheDocument()
+    await expect(canvas.getByText(/^draft$/i)).toBeInTheDocument()
   }
 }

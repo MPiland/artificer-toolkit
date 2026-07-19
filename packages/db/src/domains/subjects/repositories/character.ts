@@ -1,4 +1,4 @@
-import type { DBLike, Json } from '#types'
+import type { DBLike } from '#types'
 import { sql } from 'kysely'
 import {
   ADVANCEMENT_METHOD_CODE,
@@ -10,7 +10,9 @@ import {
   type CharacterProfileAuthored
 } from '@artificer-toolkit/shared'
 import { upsertCharacter } from '../upserts/character.js'
+import { insertRows, sortByDependency } from '../upserts/character.helpers.js'
 import { hydrateSubjectStatus } from '../status.js'
+import { withTransaction } from '../../../utils/index.js'
 
 export interface CharacterRow {
   id: string
@@ -19,20 +21,13 @@ export interface CharacterRow {
   label: string
   description: string | null
   status: string
-  build_state: Json | null
+  inspiration: boolean
   stream_version: number
   created_at: string
   updated_at: string
 }
 
 export interface CharacterRepository {
-  create(params: {
-    id: string
-    systemId: string
-    userId: string
-    label: string
-    buildState: Json
-  }): Promise<void>
   findById(id: string): Promise<CharacterRow | null>
   findUpdatedAtById(id: string): Promise<string | null>
   findUpdatedAtByIdForUpdate(id: string): Promise<string | null>
@@ -42,13 +37,43 @@ export interface CharacterRepository {
     incrementStreamVersion?: boolean
     afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
   }): Promise<number>
-  updateBuildState(params: {
-    id: string
-    buildState: Json
-    expectedVersion: number
-  }): Promise<void>
+  patchSheetState(
+    characterId: string,
+    patches: CharacterSheetStatePatch[],
+    options: {
+      expectedStreamVersion: number
+      afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+    }
+  ): Promise<number>
   listByUser(userId: string): Promise<Pick<CharacterRow, 'id' | 'label' | 'system_id' | 'stream_version' | 'status'>[]>
 }
+
+type CharacterState = CharacterAuthored['state']
+
+/**
+ * Internal persistence contract for Sheet-owned play state. Builder writes continue
+ * to replace the authored aggregate through upsertAuthored.
+ */
+export type CharacterSheetStatePatch =
+  | { kind: 'INSPIRATION', value: CharacterState['inspiration'] }
+  | { kind: 'HITPOINTS', value: CharacterState['hitpoints'] }
+  | { kind: 'RESOURCES', value: CharacterState['resources'] }
+  | { kind: 'SPELL_SLOTS', value: CharacterState['spellSlots'] }
+  | { kind: 'CLASS_SPELLS', value: CharacterState['classes'] }
+  | { kind: 'CONDITIONS', value: CharacterState['conditions'] }
+  | { kind: 'EXHAUSTION', value: CharacterState['exhaustion'] }
+  | {
+      kind: 'EQUIPMENT'
+      value: CharacterState['equipment']
+      creatureEquipment: CharacterState['creatureEquipment']
+      vehicleEquipment: CharacterState['vehicleEquipment']
+    }
+  | { kind: 'CURRENCY', value: CharacterState['currency'] }
+  | {
+      kind: 'NOTES'
+      groups: CharacterState['noteGroups']
+      notes: CharacterState['notes']
+    }
 
 export class ConcurrencyError extends Error {
   constructor(characterId: string, expected: number) {
@@ -58,6 +83,13 @@ export class ConcurrencyError extends Error {
 }
 
 type CharacterSourceRow = Record<string, unknown>
+type DeleteCharacterRowsDb = {
+  deleteFrom: (table: string) => {
+    where: (column: 'character_id', op: '=', value: string) => {
+      execute: () => Promise<unknown>
+    }
+  }
+}
 type StandardArrayAbilityIntent = Extract<
   CharacterAbilityScoresIntent,
   { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY }
@@ -71,9 +103,14 @@ type ManualRolledAbilityIntent = Extract<
   { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED }
 >
 type CharacterAncestrySelection = NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
+type CharacterChosenGrantSelection = NonNullable<CharacterAuthored['intent']['chosenGrantSelections']>[number]
 
 function optionalText(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+function isoTimestamp(value: unknown): string {
+  return value instanceof Date ? value.toISOString() : String(value)
 }
 
 function hydrateProfile(row: CharacterSourceRow | undefined): CharacterProfileAuthored {
@@ -163,6 +200,51 @@ function hydrateFeatureSource(row: CharacterSourceRow): CharacterAuthored['inten
   }
 }
 
+
+function hydrateChosenGrantSelectionSource(
+  row: CharacterSourceRow
+): CharacterChosenGrantSelection['source'] {
+  switch (row.source_kind) {
+    case 'CLASS':
+      return {
+        kind: 'CLASS',
+        classId: String(row.class_id),
+        classLevel: row.source_class_level == null ? undefined : Number(row.source_class_level)
+      }
+    case 'SUBCLASS':
+      return {
+        kind: 'SUBCLASS',
+        subclassId: String(row.subclass_id),
+        classLevel: row.source_class_level == null ? undefined : Number(row.source_class_level)
+      }
+    case 'RACE':
+      return { kind: 'RACE', raceId: String(row.race_id) }
+    case 'SUBRACE':
+      return { kind: 'SUBRACE', subraceId: String(row.subrace_id) }
+    case 'ANCESTRY':
+      return {
+        kind: 'ANCESTRY',
+        ancestryId: String(row.ancestry_id),
+        optionId: String(row.option_id)
+      }
+    case 'BACKGROUND':
+      return { kind: 'BACKGROUND', backgroundId: String(row.background_id) }
+    case 'FEAT':
+      return { kind: 'FEAT', featId: String(row.feat_id) }
+    case 'FEATURE':
+      return { kind: 'FEATURE', featureId: String(row.feature_id) }
+    case 'OPTION':
+      return {
+        kind: 'OPTION',
+        acquiredParentId: String(row.acquired_parent_id),
+        optionId: String(row.option_id)
+      }
+    case 'MANUAL':
+      return { kind: 'MANUAL', reason: optionalText(row.reason) }
+    default:
+      throw new Error(`Unsupported chosen grant selection source kind: ${String(row.source_kind)}`)
+  }
+}
 function hydrateSpellSelectionSource(
   row: CharacterSourceRow
 ): NonNullable<CharacterAuthored['intent']['spellSelections']>[number]['source'] {
@@ -278,6 +360,8 @@ async function hydrateCharacterAuthoredById(
     spellSlotRows,
     conditionRows,
     exhaustionRow,
+    noteGroupRows,
+    noteRows,
     abilityRow,
     standardArrayRows,
     pointBuyRows,
@@ -286,6 +370,7 @@ async function hydrateCharacterAuthoredById(
     manualRolledRollRows,
     manualAssignmentRows,
     featureRows,
+    chosenGrantSelectionRows,
     spellSelectionRows,
     resourceGrantRows,
     resourceUsageRows,
@@ -294,6 +379,7 @@ async function hydrateCharacterAuthoredById(
     equippedRows,
     attunedRows,
     currencyGroupRows,
+    currencyRows,
     creatureRows,
     vehicleRows,
     creatureEquipmentRows,
@@ -328,6 +414,7 @@ async function hydrateCharacterAuthoredById(
       .executeTakeFirst(),
     db.selectFrom('character_hitpoint_levels').selectAll()
       .where('character_id', '=', id)
+      .orderBy('char_level')
       .execute(),
     db.selectFrom('character_hitpoint_level_rolls').selectAll()
       .where('character_id', '=', id)
@@ -341,6 +428,14 @@ async function hydrateCharacterAuthoredById(
     sql<CharacterSourceRow>`select * from character_spell_slot_state where character_id = ${id}`.execute(db).then((result) => result.rows),
     sql<CharacterSourceRow>`select * from character_conditions where character_id = ${id}`.execute(db).then((result) => result.rows),
     sql<CharacterSourceRow>`select * from character_exhaustion where character_id = ${id}`.execute(db).then((result) => result.rows[0]),
+    db.selectFrom('character_note_groups').selectAll()
+      .where('character_id', '=', id)
+      .orderBy('sort_order')
+      .execute(),
+    db.selectFrom('character_notes').selectAll()
+      .where('character_id', '=', id)
+      .orderBy('created_at')
+      .execute(),
     db.selectFrom('character_abilities').selectAll()
       .where('character_id', '=', id)
       .executeTakeFirst(),
@@ -365,6 +460,9 @@ async function hydrateCharacterAuthoredById(
     db.selectFrom('character_feature_acquisitions').selectAll()
       .where('character_id', '=', id)
       .execute(),
+    db.selectFrom('character_chosen_grant_selections').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
     db.selectFrom('character_spell_selections').selectAll()
       .where('character_id', '=', id)
       .execute(),
@@ -379,6 +477,8 @@ async function hydrateCharacterAuthoredById(
       .execute(),
     db.selectFrom('character_equipment').selectAll()
       .where('character_id', '=', id)
+      .orderBy('created_at')
+      .orderBy('id')
       .execute(),
     db.selectFrom('character_equipped').selectAll()
       .where('character_id', '=', id)
@@ -387,6 +487,9 @@ async function hydrateCharacterAuthoredById(
       .where('character_id', '=', id)
       .execute(),
     db.selectFrom('character_currency_groups').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_currencies').selectAll()
       .where('character_id', '=', id)
       .execute(),
     db.selectFrom('character_creatures').selectAll()
@@ -421,14 +524,15 @@ async function hydrateCharacterAuthoredById(
       .execute()
   ])
 
+  const chosenGrantSelectionIds = chosenGrantSelectionRows.map((selectionRow) => String(selectionRow.id))
   const featureIds = featureRows.map((featureRow) => String(featureRow.id))
   const spellSelectionIds = spellSelectionRows.map((selectionRow) => String(selectionRow.id))
 
   const [
     featureSelectionRowsActual,
     featureSelectionValueRowsActual,
-    spellSelectionSpellRowsActual,
-    currencyRows
+    chosenGrantSelectionTargetRows,
+    spellSelectionSpellRowsActual
   ] = await Promise.all([
     featureIds.length > 0
       ? db.selectFrom('character_feature_selection_records').selectAll()
@@ -440,14 +544,14 @@ async function hydrateCharacterAuthoredById(
           .where('feature_acquisition_id', 'in', featureIds)
           .execute()
       : Promise.resolve([]),
+    chosenGrantSelectionIds.length > 0
+      ? db.selectFrom('character_chosen_grant_selection_targets').selectAll()
+          .where('selection_id', 'in', chosenGrantSelectionIds)
+          .execute()
+      : Promise.resolve([]),
     spellSelectionIds.length > 0
       ? db.selectFrom('character_spell_selection_spells').selectAll()
           .where('selection_id', 'in', spellSelectionIds)
-          .execute()
-      : Promise.resolve([]),
-    currencyGroupRows.length > 0
-      ? db.selectFrom('character_currencies').selectAll()
-          .where('group_id', 'in', currencyGroupRows.map((groupRow) => String(groupRow.id)))
           .execute()
       : Promise.resolve([])
   ])
@@ -464,6 +568,8 @@ async function hydrateCharacterAuthoredById(
       const levelNumber = Number(levelRow.char_level)
       return {
         level: levelNumber,
+        classId: String(levelRow.class_id),
+        classLevel: Number(levelRow.class_level),
         value: Number(levelRow.value),
         rolls: hitpointLevelRollRows
           .filter((rollRow) => Number(rollRow.char_level) === levelNumber)
@@ -549,6 +655,20 @@ async function hydrateCharacterAuthoredById(
       selections
     }
   })
+
+  const chosenGrantSelections = chosenGrantSelectionRows.length > 0
+    ? chosenGrantSelectionRows.map((selectionRow) => ({
+        id: String(selectionRow.id),
+        grantId: String(selectionRow.grant_id),
+        source: hydrateChosenGrantSelectionSource(selectionRow as CharacterSourceRow),
+        timing: hydrateTiming(selectionRow as CharacterSourceRow),
+        progressionLevel: selectionRow.progression_level == null ? undefined : Number(selectionRow.progression_level),
+        targetIds: chosenGrantSelectionTargetRows
+          .filter((targetRow) => targetRow.selection_id === selectionRow.id)
+          .sort((left, right) => Number(left.slot_index) - Number(right.slot_index))
+          .map((targetRow) => String(targetRow.target_id))
+      }))
+    : undefined
 
   const spellSelections = spellSelectionRows.length > 0
     ? spellSelectionRows.map((selectionRow) => ({
@@ -700,6 +820,7 @@ async function hydrateCharacterAuthoredById(
         : undefined,
       featureAcquisitions,
       spellSelections,
+      chosenGrantSelections,
       resourceGrants
     },
     state: {
@@ -716,6 +837,7 @@ async function hydrateCharacterAuthoredById(
         attuned: attunedRows.map((attunedRow) => String(attunedRow.equipment_id))
       },
       currency: currencyGroupRows.map((groupRow) => ({
+        id: String(groupRow.id),
         containerId: optionalText(groupRow.container_id),
         currencies: currencyRows
           .filter((currencyRow) => currencyRow.group_id === groupRow.id)
@@ -734,6 +856,7 @@ async function hydrateCharacterAuthoredById(
         })),
         maxOverride: hitpointStateData.max_override == null ? undefined : Number(hitpointStateData.max_override)
       },
+      inspiration: row.inspiration,
       classes: classesState,
       resources: resourceUsageRows.length > 0
         ? resourceUsageRows.map((resourceRow) => ({
@@ -758,6 +881,25 @@ async function hydrateCharacterAuthoredById(
             level: Number((exhaustionRow as CharacterSourceRow).level),
             notes: optionalText((exhaustionRow as CharacterSourceRow).notes)
           }
+        : undefined,
+      noteGroups: noteGroupRows.length > 0
+        ? noteGroupRows.map((groupRow) => ({
+            id: String(groupRow.id),
+            label: String(groupRow.label),
+            sortOrder: Number(groupRow.sort_order),
+            kind: String(groupRow.kind) as NonNullable<CharacterAuthored['state']['noteGroups']>[number]['kind']
+          }))
+        : undefined,
+      notes: noteRows.length > 0
+        ? noteRows.map((noteRow) => ({
+            id: String(noteRow.id),
+            title: String(noteRow.title),
+            body: optionalText(noteRow.body),
+            groupId: String(noteRow.group_id),
+            pinned: Boolean(noteRow.pinned),
+            createdAt: isoTimestamp(noteRow.created_at),
+            updatedAt: isoTimestamp(noteRow.updated_at)
+          }))
         : undefined,
       creatures: creatureRows.length > 0
         ? creatureRows.map((creatureRow) => ({
@@ -786,23 +928,306 @@ async function hydrateCharacterAuthoredById(
   }
 }
 
+async function deleteCharacterRows(db: DBLike, table: string, characterId: string): Promise<void> {
+  await (db as unknown as DeleteCharacterRowsDb).deleteFrom(table)
+    .where('character_id', '=', characterId)
+    .execute()
+}
+
+async function applyCharacterSheetStatePatch(
+  db: DBLike,
+  characterId: string,
+  patch: CharacterSheetStatePatch
+): Promise<void> {
+  switch (patch.kind) {
+    case 'INSPIRATION':
+      return
+
+    case 'HITPOINTS':
+      await deleteCharacterRows(db, 'character_hit_dice_state', characterId)
+      await deleteCharacterRows(db, 'character_hitpoint_state', characterId)
+      await insertRows(db, 'character_hitpoint_state', [{
+        character_id: characterId,
+        current: patch.value.current,
+        temp: patch.value.temp ?? null,
+        max_override: patch.value.maxOverride ?? null
+      }])
+      await insertRows(db, 'character_hit_dice_state', patch.value.hitDice.map((hitDie) => ({
+        character_id: characterId,
+        die: hitDie.die,
+        total: hitDie.total,
+        used: hitDie.used
+      })))
+      return
+
+    case 'RESOURCES':
+      await deleteCharacterRows(db, 'character_resources', characterId)
+      await insertRows(db, 'character_resources', (patch.value ?? []).map((resource) => ({
+        character_id: characterId,
+        resource_grant_id: resource.resourceGrantId,
+        used: resource.used
+      })))
+      return
+
+    case 'SPELL_SLOTS':
+      await deleteCharacterRows(db, 'character_spell_slot_state', characterId)
+      await insertRows(db, 'character_spell_slot_state', (patch.value ?? []).map((slot) => ({
+        character_id: characterId,
+        slot_key: slot.slotKey,
+        used: slot.used
+      })))
+      return
+
+    case 'CLASS_SPELLS':
+      await deleteCharacterRows(db, 'character_class_spells', characterId)
+      await insertRows(db, 'character_class_spells', (patch.value ?? []).flatMap((classState) => [
+        ...(classState.spells?.learned ?? []).map((spellId) => ({
+          character_id: characterId,
+          class_id: classState.classId,
+          spell_id: spellId,
+          state: 'KNOWN'
+        })),
+        ...(classState.spells?.prepared ?? []).map((spellId) => ({
+          character_id: characterId,
+          class_id: classState.classId,
+          spell_id: spellId,
+          state: 'PREPARED'
+        }))
+      ]))
+      return
+
+    case 'CONDITIONS':
+      await deleteCharacterRows(db, 'character_conditions', characterId)
+      await insertRows(db, 'character_conditions', (patch.value ?? []).map((condition) => ({
+        character_id: characterId,
+        condition_type_id: condition.conditionTypeId,
+        notes: condition.notes ?? null
+      })))
+      return
+
+    case 'EXHAUSTION':
+      await deleteCharacterRows(db, 'character_exhaustion', characterId)
+      if (patch.value && patch.value.level > 0) {
+        await insertRows(db, 'character_exhaustion', [{
+          character_id: characterId,
+          level: patch.value.level,
+          notes: patch.value.notes ?? null
+        }])
+      }
+      return
+
+    case 'EQUIPMENT': {
+      const orderedInventory = sortByDependency(
+        patch.value.inventory,
+        (item) => item.id,
+        (item) => item.containerId,
+        `Character equipment for ${characterId}`
+      )
+      const inventoryIds = new Set(orderedInventory.map((item) => item.id))
+
+      for (const itemId of [...patch.value.equipped, ...patch.value.attuned]) {
+        if (!inventoryIds.has(itemId)) {
+          throw new Error(`Character ${characterId} references missing inventory item ${itemId}.`)
+        }
+      }
+
+      await deleteCharacterRows(db, 'character_creature_equipment', characterId)
+      await deleteCharacterRows(db, 'character_vehicle_equipment', characterId)
+      await deleteCharacterRows(db, 'character_attuned', characterId)
+      await deleteCharacterRows(db, 'character_equipped', characterId)
+
+      for (const item of orderedInventory) {
+        await db
+          .insertInto('character_equipment')
+          .values({
+            id: item.id,
+            character_id: characterId,
+            equipment_id: item.equipmentId,
+            quantity: item.quantity,
+            container_id: item.containerId ?? null,
+            container_path: null,
+            custom_name: item.customName ?? null,
+            notes: item.notes ?? null
+          })
+          .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+            equipment_id: eb.ref('excluded.equipment_id'),
+            quantity: eb.ref('excluded.quantity'),
+            container_id: eb.ref('excluded.container_id'),
+            container_path: eb.ref('excluded.container_path'),
+            custom_name: eb.ref('excluded.custom_name'),
+            notes: eb.ref('excluded.notes')
+          })))
+          .execute()
+      }
+
+      const existingItems = await db
+        .selectFrom('character_equipment')
+        .select('id')
+        .where('character_id', '=', characterId)
+        .execute()
+      for (const existingItem of existingItems) {
+        if (!inventoryIds.has(existingItem.id)) {
+          await db.deleteFrom('character_equipment').where('id', '=', existingItem.id).execute()
+        }
+      }
+
+      await insertRows(db, 'character_equipped', patch.value.equipped.map((equipmentId) => ({
+        character_id: characterId,
+        equipment_id: equipmentId
+      })))
+      await insertRows(db, 'character_attuned', patch.value.attuned.map((equipmentId) => ({
+        character_id: characterId,
+        equipment_id: equipmentId
+      })))
+
+      const creatureAssignments = Object.entries(patch.creatureEquipment ?? {}).flatMap(([creatureId, assignments]) => (
+        assignments.map((assignment) => {
+          if (!inventoryIds.has(assignment.equipmentItemId)) {
+            throw new Error(`Character ${characterId} creature equipment references missing inventory item ${assignment.equipmentItemId}.`)
+          }
+          return {
+            character_id: characterId,
+            character_creature_id: creatureId,
+            equipment_id: assignment.equipmentItemId
+          }
+        })
+      ))
+      const vehicleAssignments = Object.entries(patch.vehicleEquipment ?? {}).flatMap(([vehicleId, assignments]) => (
+        assignments.map((assignment) => {
+          if (!inventoryIds.has(assignment.equipmentItemId)) {
+            throw new Error(`Character ${characterId} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`)
+          }
+          return {
+            character_id: characterId,
+            character_vehicle_id: vehicleId,
+            equipment_id: assignment.equipmentItemId
+          }
+        })
+      ))
+      await insertRows(db, 'character_creature_equipment', creatureAssignments)
+      await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
+      return
+    }
+
+    case 'CURRENCY': {
+      await deleteCharacterRows(db, 'character_currencies', characterId)
+      await deleteCharacterRows(db, 'character_currency_groups', characterId)
+      const groupIds = new Set<string>()
+      for (const group of patch.value) {
+        if (!group.id || groupIds.has(group.id)) {
+          throw new Error(`Character ${characterId} has an invalid or duplicate currency group ${group.id ?? ''}.`)
+        }
+        groupIds.add(group.id)
+      }
+      await insertRows(db, 'character_currency_groups', patch.value.map((group) => ({
+        id: group.id,
+        character_id: characterId,
+        container_id: group.containerId ?? null
+      })))
+      await insertRows(db, 'character_currencies', patch.value.flatMap((group) => group.currencies.map((currency) => ({
+        character_id: characterId,
+        group_id: group.id,
+        currency_id: currency.currencyId,
+        amount: currency.amount
+      }))))
+      return
+    }
+
+    case 'NOTES': {
+      const groups = patch.groups ?? []
+      const notes = patch.notes ?? []
+      const groupIds = new Set(groups.map((group) => group.id))
+      if (groupIds.size !== groups.length) {
+        throw new Error(`Character ${characterId} has duplicate note groups.`)
+      }
+      const noteIds = new Set<string>()
+      for (const note of notes) {
+        if (noteIds.has(note.id)) throw new Error(`Character ${characterId} has duplicate note ${note.id}.`)
+        if (!groupIds.has(note.groupId)) {
+          throw new Error(`Character ${characterId} note ${note.id} references missing note group ${note.groupId}.`)
+        }
+        noteIds.add(note.id)
+      }
+      await deleteCharacterRows(db, 'character_notes', characterId)
+      await deleteCharacterRows(db, 'character_note_groups', characterId)
+      await insertRows(db, 'character_note_groups', groups.map((group) => ({
+        id: group.id,
+        character_id: characterId,
+        label: group.label,
+        sort_order: group.sortOrder,
+        kind: group.kind
+      })))
+      await insertRows(db, 'character_notes', notes.map((note) => ({
+        id: note.id,
+        character_id: characterId,
+        group_id: note.groupId,
+        title: note.title,
+        body: note.body ?? null,
+        pinned: note.pinned ?? false,
+        created_at: note.createdAt,
+        updated_at: note.updatedAt
+      })))
+      return
+    }
+
+    default:
+      return patch satisfies never
+  }
+}
+
+async function patchCharacterSheetState(
+  db: DBLike,
+  characterId: string,
+  patches: CharacterSheetStatePatch[],
+  options: {
+    expectedStreamVersion: number
+    afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+  }
+): Promise<number> {
+  return withTransaction(db, async (trx) => {
+    const row = await trx
+      .selectFrom('characters')
+      .selectAll()
+      .where('id', '=', characterId)
+      .forUpdate()
+      .executeTakeFirst() as CharacterRow | undefined
+    if (!row) throw new Error(`Character "${characterId}" was not found.`)
+    if (row.stream_version !== options.expectedStreamVersion) {
+      throw new ConcurrencyError(characterId, options.expectedStreamVersion)
+    }
+
+    const inspirationPatch = patches.find((patch): patch is Extract<CharacterSheetStatePatch, { kind: 'INSPIRATION' }> => (
+      patch.kind === 'INSPIRATION'
+    ))
+    const nextStreamVersion = row.stream_version + 1
+    await trx
+      .insertInto('characters')
+      .values({
+        id: row.id,
+        system_id: row.system_id,
+        user_id: row.user_id,
+        label: row.label,
+        description: row.description,
+        status: row.status,
+        inspiration: inspirationPatch?.value ?? row.inspiration,
+        stream_version: nextStreamVersion
+      })
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        inspiration: eb.ref('excluded.inspiration'),
+        stream_version: eb.ref('excluded.stream_version')
+      })))
+      .execute()
+
+    for (const patch of patches) {
+      await applyCharacterSheetStatePatch(trx, characterId, patch)
+    }
+    await options.afterPersist?.(trx, nextStreamVersion)
+    return nextStreamVersion
+  })
+}
+
 export function createCharacterRepository(db: DBLike): CharacterRepository {
   return {
-    async create({ id, systemId, userId, label, buildState }) {
-      await db
-        .insertInto('characters')
-        .values({
-          id,
-          system_id: systemId,
-          user_id: userId,
-          label,
-          status: 'DRAFT',
-          build_state: buildState as Json,
-          stream_version: 1
-        })
-        .execute()
-    },
-
     async findById(id) {
       const row = await db
         .selectFrom('characters')
@@ -842,25 +1267,8 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
       return upsertCharacter(db, character, options)
     },
 
-    async updateBuildState({ id, buildState, expectedVersion }) {
-      const result = await db
-        .updateTable('characters')
-        .set({
-          build_state: buildState as Json,
-          stream_version: expectedVersion + 1,
-          updated_at: new Date().toISOString()
-        })
-        .where('id', '=', id)
-        .where('stream_version', '=', expectedVersion)
-        .executeTakeFirst()
-
-      const updated = typeof result?.numUpdatedRows === 'bigint'
-        ? result.numUpdatedRows
-        : BigInt(result?.numUpdatedRows ?? 0)
-
-      if (updated === 0n) {
-        throw new ConcurrencyError(id, expectedVersion)
-      }
+    async patchSheetState(characterId, patches, options) {
+      return patchCharacterSheetState(db, characterId, patches, options)
     },
 
     async listByUser(userId) {

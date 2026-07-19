@@ -19,9 +19,12 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op === 'in') {
+              return Array.isArray(value) && value.includes(record[column] as string)
+            }
             return record[column] === value
           })
           return builder
@@ -134,6 +137,7 @@ describe('createBackgroundRepository', () => {
       id: 'background-1',
       label: 'Scholar',
       description: 'Knows things.',
+      status: 'DRAFT',
       details: [
         {
           id: 'detail-1',
@@ -155,6 +159,7 @@ describe('createBackgroundRepository', () => {
           restrictions: undefined,
           order: 1,
           availableAtLevel: undefined,
+          section: undefined,
           optionChoices: undefined,
           options: undefined
         }
@@ -196,10 +201,13 @@ describe('createBackgroundRepository', () => {
           order: 1,
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
+          scalingKind: 'NONE',
+          selectionDuplicatePolicy: undefined,
           level: 'FULL',
           rounding: undefined,
           count: undefined,
-          skillIds: ['skill-1']
+          skillIds: ['skill-1'],
+          restrictions: undefined
         }
       ],
       userId: 'user-1',
@@ -229,6 +237,11 @@ describe('createBackgroundRepository', () => {
       id: 'background-2',
       label: 'Wanderer',
       description: undefined,
+      status: 'DRAFT',
+      details: undefined,
+      features: undefined,
+      startingEquipment: undefined,
+      proficiencies: undefined,
       userId: 'user-1',
       systemId: 'system-1'
     })

@@ -1,6 +1,8 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   FEATURE_ATTRIBUTE,
+  FEATURE_SECTION,
   type NodeSubjectCode,
   type FeatureAuthored
 } from '@artificer-toolkit/shared'
@@ -20,10 +22,22 @@ type FeatureRow = {
   id: string
   label: string
   description: string
+  section_code: string | null
   charge_id: string | null
   restriction_id: string | null
   sort_order: number
   available_at_level: number | null
+}
+
+function requireFeatureSection(
+  featureId: string,
+  value: string
+): NonNullable<FeatureAuthored['section']> {
+  if (!(value in FEATURE_SECTION)) {
+    throw new Error(`Feature "${featureId}" has invalid section "${value}".`)
+  }
+
+  return value as NonNullable<FeatureAuthored['section']>
 }
 
 type FeatureDetailRow = {
@@ -98,6 +112,9 @@ function mapFeatureRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>)
     id: json_data.id,
     label: json_data.label,
     description: json_data.description,
+    section_code: json_data.section
+      ? requireFeatureSection(json_data.id, json_data.section)
+      : null,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
     sort_order: json_data.order,
@@ -119,13 +136,14 @@ async function upsertFeatureRow(
   await db
     .insertInto('features')
     .values(row)
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      label: ref('excluded.label'),
-      description: ref('excluded.description'),
-      charge_id: ref('excluded.charge_id'),
-      restriction_id: ref('excluded.restriction_id'),
-      sort_order: ref('excluded.sort_order'),
-      available_at_level: ref('excluded.available_at_level')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      label: eb.ref('excluded.label'),
+      description: eb.ref('excluded.description'),
+      section_code: eb.ref('excluded.section_code'),
+      charge_id: eb.ref('excluded.charge_id'),
+      restriction_id: eb.ref('excluded.restriction_id'),
+      sort_order: eb.ref('excluded.sort_order'),
+      available_at_level: eb.ref('excluded.available_at_level')
     })))
     .execute()
 }
@@ -206,9 +224,7 @@ export async function upsertFeature<N extends NodeSubjectCode>(
   }))
   const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingFeature = await trx
       .selectFrom('features')
       .select(['restriction_id'])
@@ -299,8 +315,8 @@ export async function upsertFeature<N extends NodeSubjectCode>(
       await trx
         .insertInto('feature_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['feature_id', 'effect_id']).doUpdateSet(({ ref }) => ({
-          sort_order: ref('excluded.sort_order')
+        .onConflict((oc) => oc.columns(['feature_id', 'effect_id']).doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order')
         })))
         .execute()
     }
@@ -350,9 +366,5 @@ export async function upsertFeature<N extends NodeSubjectCode>(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

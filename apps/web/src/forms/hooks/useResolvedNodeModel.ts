@@ -28,7 +28,7 @@ export function useResolvedNodeModel({
     values,
     parentValues,
     ancestors,
-    systemId
+    systemId: systemId ?? ''
   }), [
     ancestors, mapId, parentValues, systemId, values
   ])
@@ -42,7 +42,7 @@ export function useResolvedNodeModel({
     return () => window.clearTimeout(timeout)
   }, [debounceMs, debouncedRequestFingerprint, request, requestFingerprint])
 
-  const query = useNodeRuntimeResolve(debouncedRequest, enabled)
+  const query = useNodeRuntimeResolve(debouncedRequest, enabled && Boolean(systemId))
   const model = useMemo(() => {
     if (!query.data) return undefined
     if (!query.isPlaceholderData) return query.data

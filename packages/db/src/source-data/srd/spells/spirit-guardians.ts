@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, SPELL_ATTRIBUTE, RANGE_KIND, SUBJECT, SHAPE_KIND, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, SPELL_ATTRIBUTE, RANGE_KIND, SUBJECT, SHAPE_KIND, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const spiritGuardians: SpellAuthored = {
@@ -54,7 +54,7 @@ export const spiritGuardians: SpellAuthored = {
                         outcomes: [
                             {
                                 id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x213, 1),
-                                effectKind: EFFECT_KIND.RULE
+                                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

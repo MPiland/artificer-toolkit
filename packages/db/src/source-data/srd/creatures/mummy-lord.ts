@@ -6,7 +6,6 @@ export const mummyLord: CreatureAuthored = {
   label: 'Mummy Lord',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const mummyLord: CreatureAuthored = {
     INTELLIGENCE: 11,
     WISDOM: 18,
     CHARISMA: 16,
-    SPELLCASTING: 0
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -76,6 +74,7 @@ export const mummyLord: CreatureAuthored = {
     {
       id: S.featureId(202, 7),
       label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
       description: 'Legendary Actions. The mummy lord can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The mummy lord regains spent legendary actions at the start of its turn. Attack. The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare. Blinding Dust. Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a DC 16 Constitution saving throw or be blinded until the end of the creature\'s next turn. Blasphemous Word (Costs 2 Actions). The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a DC 16 Constitution saving throw or be stunned until the end of the mummy lord\'s next turn. Channel Negative Energy (Costs 2 Actions). The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can\'t regain hit points until the end of the mummy lord\'s next turn. Whirlwind of Sand (Costs 2 Actions). The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form.',
       order: 7
     }

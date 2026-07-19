@@ -1,8 +1,57 @@
 import { describe, expect, it } from 'vitest'
 
-import { STARTING_EQUIPMENT_ITEM_NODE_MAP } from '#maps'
+import { STARTING_EQUIPMENT_ITEM_NODE_MAP, STARTING_EQUIPMENT_OPTION_NODE_MAP } from '#maps'
+import { compileStartingEquipmentOption } from '../domains/shared/compilers/startingEquipment.js'
 
 describe('starting equipment node maps', () => {
+  it('exposes and compiles option eligibility through the character facet vocabulary', () => {
+    const eligibilityNode = STARTING_EQUIPMENT_OPTION_NODE_MAP.nodes.eligibility
+
+    expect(eligibilityNode).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'OBJECT',
+      label: 'Eligibility'
+    })
+    if (!eligibilityNode || eligibilityNode.kind !== 'GROUP') {
+      throw new Error('Expected eligibility to be an object group')
+    }
+
+    const childMap = typeof eligibilityNode.nodes === 'function'
+      ? eligibilityNode.nodes()
+      : eligibilityNode.nodes
+    expect(childMap.mapId).toBe('characterFacet')
+
+    const eligibility = {
+      id: 'eligibility-1',
+      groups: [{
+        id: 'eligibility-group-1',
+        order: 1,
+        contexts: [{
+          id: 'eligibility-context-1',
+          order: 1,
+          subject: 'CHARACTER' as const,
+          conditions: [{
+            id: 'eligibility-condition-1',
+            order: 1,
+            kind: 'PREDICATE' as const,
+            constraint: 'INCLUDE' as const,
+            predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY' as const,
+            authoringModeKind: 'SELECTED' as const,
+            category: 'ARMOR' as const,
+            properties: ['HEAVY' as const]
+          }]
+        }]
+      }]
+    }
+
+    expect(compileStartingEquipmentOption({
+      id: 'option-1',
+      order: 1,
+      eligibility,
+      items: []
+    }).eligibility).toEqual(eligibility)
+  })
+
   it('filters category options from selected properties', () => {
     const categoryNode = STARTING_EQUIPMENT_ITEM_NODE_MAP.nodes.category
 
@@ -10,8 +59,7 @@ describe('starting equipment node maps', () => {
       !categoryNode
       || categoryNode.kind !== 'INPUT'
       || categoryNode.type !== 'SELECT_SINGLE'
-      || categoryNode.source.kind !== 'INLINE'
-      || !('options' in categoryNode.source)
+      || categoryNode.source.kind !== 'INLINE_OPTIONS'
     ) {
       throw new Error('Expected category to be an inline select input')
     }
@@ -48,10 +96,23 @@ describe('starting equipment node maps', () => {
     }
 
     expect(equipmentNode.showIf).toEqual({
-      from: 'LOCAL',
-      path: ['authoringModeKind'],
-      op: '=',
-      value: 'SELECTED'
+      kind: 'AND',
+      expressions: [
+        {
+          kind: 'PREDICATE',
+          from: 'LOCAL',
+          path: ['startingEquipmentKind'],
+          op: '=',
+          value: 'EQUIPMENT'
+        },
+        {
+          kind: 'PREDICATE',
+          from: 'LOCAL',
+          path: ['authoringModeKind'],
+          op: '=',
+          value: 'SELECTED'
+        }
+      ]
     })
 
     const relationship = equipmentNode.source.relationship

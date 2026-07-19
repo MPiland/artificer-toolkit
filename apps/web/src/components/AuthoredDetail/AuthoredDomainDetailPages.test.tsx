@@ -29,6 +29,7 @@ import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',
+  activeRevisionId: 'spell-active-revision',
   item: {
     kind: 'SPELL',
     id: 'spell-sea-step',
@@ -108,7 +109,6 @@ const spellResponse: NonNullable<SpellResponseDto> = {
 
 function draft(payload: Record<string, unknown>): AuthoredDraftDto {
   return {
-    id: 'draft-row-id',
     subjectKind: 'CLASS',
     subjectId: 'class-owned',
     publicId: '2',
@@ -117,6 +117,10 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
     label: 'Draft Class',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
+    revisionId: 'class-draft-revision',
+    revisionNumber: 2,
+    activeRevisionId: 'class-active-revision',
+    baseActiveRevisionId: 'class-active-revision',
     payload
   }
 }
@@ -163,6 +167,7 @@ const detailReferences = {
 
 const dragonbornResponse: NonNullable<RaceResponseDto> = {
   publicId: 'dragonborn',
+  activeRevisionId: 'dragonborn-active-revision',
   item: {
     id: 'dragonborn',
     label: 'Dragonborn',
@@ -206,12 +211,12 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
 
 const brassDragonResponse: NonNullable<CreatureResponseDto> = {
   publicId: 'adult-brass-dragon',
+  activeRevisionId: 'adult-brass-dragon-active-revision',
   item: {
     id: 'adult-brass-dragon',
     label: 'Adult Brass Dragon',
     description: '<p>A brass dragon.</p>',
     status: 'ACTIVE',
-    recordKind: 'STAT_BLOCK',
     category: 'MONSTER',
     creatureTypeId: 'dragon',
     size: 'HUGE',
@@ -222,7 +227,6 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       INTELLIGENCE: 14,
       WISDOM: 13,
       CHARISMA: 17,
-      SPELLCASTING: 0
     },
     armorClass: 18,
     hitPoints: 172,
@@ -298,6 +302,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
         id: 'legendary-actions',
         label: 'Legendary Actions',
         description: '<p>The dragon can take 3 legendary actions, choosing from the options below.</p>',
+        section: 'LEGENDARY_ACTION',
         options: [
           {
             id: 'detect',
@@ -335,6 +340,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
 
 const grapplerResponse: NonNullable<FeatResponseDto> = {
   publicId: 'grappler',
+  activeRevisionId: 'grappler-active-revision',
   item: {
     id: 'grappler',
     label: 'Grappler',
@@ -780,6 +786,7 @@ describe('authored domain detail pages', () => {
           {
             id: 'bard-skill-proficiency',
             grantKind: 'PROFICIENCY_GRANT',
+            scalingKind: 'NONE',
             proficiencyKind: 'SKILL',
             selectionKind: 'GRANTED',
             level: 'FULL',

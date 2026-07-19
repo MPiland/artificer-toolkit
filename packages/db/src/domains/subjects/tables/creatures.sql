@@ -14,12 +14,10 @@
  *   creatures → features (owned via bridge — traits)
  *   creatures → proficiency_grants (owned via bridge)
  *   creatures → speeds (owned)
- *   creatures → actions (owned via bridge)
  *   creatures → damage_resistances/immunities/vulnerabilities (owned)
  *   creatures → condition_immunities (owned)
  *   Optional profiles stored as jsonb (tightly owned, rarely queried):
- *     legendary_profile, lair_profile, mount_profile,
- *     companion_profile, npc_profile
+ *     mount_profile, companion_profile, npc_profile
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.creatures (
@@ -38,7 +36,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
 
-  record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
   category text NOT NULL,              -- CreatureCategory
   creature_type_id uuid
     REFERENCES public.creature_types(id)
@@ -74,8 +71,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   logistics_notes text[],
 
   -- Optional rule profiles (presence = module applies)
-  legendary_profile jsonb,             -- CreatureLegendaryProfile | null
-  lair_profile jsonb,                  -- CreatureLairProfile | null
   mount_profile jsonb,                 -- CreatureMountProfile | null
   companion_profile jsonb,             -- CreatureCompanionProfile | null
   npc_profile jsonb,                   -- CreatureNpcProfile | null
@@ -87,9 +82,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
 
   CONSTRAINT creatures_category_chk CHECK (
     category IN ('NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON')
-  ),
-  CONSTRAINT creatures_record_kind_chk CHECK (
-    record_kind IN ('STAT_BLOCK', 'LOGISTICS')
   ),
   CONSTRAINT creatures_status_chk CHECK (
     status IN ('DRAFT', 'ACTIVE')
@@ -263,42 +255,6 @@ CREATE INDEX IF NOT EXISTS idx_creature_speeds_creature
 
 
 /* ──────────────────────────────────────────────
- * CREATURE — ACTIONS (OWNED)
- *
- * Standard actions / bonus actions / reactions are stored
- * in a single table discriminated by action_type.
- * Legendary and lair actions are stored in the jsonb profiles.
- * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.creature_actions (
-  id uuid PRIMARY KEY,
-
-  creature_id uuid NOT NULL
-    REFERENCES public.creatures(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  action_type text NOT NULL,           -- 'ACTION' | 'BONUS_ACTION' | 'REACTION'
-  sort_order integer NOT NULL,
-
-  label text NOT NULL,
-  description text NOT NULL,
-  attack_bonus integer,
-  damage text,
-  recharge text,
-
-  CONSTRAINT creature_actions_type_chk CHECK (
-    action_type IN ('ACTION', 'BONUS_ACTION', 'REACTION')
-  )
-);
-
-ALTER TABLE public.creature_actions ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_creature_actions_creature
-  ON public.creature_actions(creature_id);
-
-
-/* ──────────────────────────────────────────────
  * CREATURE — DAMAGE RESISTANCES (NORMALIZED)
  * ────────────────────────────────────────────── */
 
@@ -313,7 +269,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_resistances (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_resistances_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_resistances_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_resistances ENABLE ROW LEVEL SECURITY;
@@ -337,7 +297,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_immunities (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_immunities_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_immunities_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_immunities ENABLE ROW LEVEL SECURITY;
@@ -361,7 +325,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_vulnerabilities (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_vulnerabilities_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_vulnerabilities_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_vulnerabilities ENABLE ROW LEVEL SECURITY;

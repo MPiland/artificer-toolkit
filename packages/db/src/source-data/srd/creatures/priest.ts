@@ -7,7 +7,6 @@ export const priest: CreatureAuthored = {
   description: 'A devout servant of a deity who channels divine magic to heal allies and smite enemies.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const priest: CreatureAuthored = {
     INTELLIGENCE: 13,
     WISDOM: 16,
     CHARISMA: 13,
-    SPELLCASTING: 14
   },
   armorClass: 13,
   armorClassNote: 'chain shirt',

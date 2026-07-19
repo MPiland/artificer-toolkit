@@ -11,13 +11,18 @@ import {
   createCharacterBuilderChangePreview,
   createEmptyCharacterAuthored,
   getInvalidSpellSelectionIds,
+  isCharacterHitpointProgressionValid,
   isCharacterBuilderProvenanceStillValid,
   isStartingEquipmentDecisionComplete,
+  reconcileCharacterHitDice,
+  reconcileCharacterHitpointProgression,
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderIssue,
+  type CharacterBuilderContext,
   type CharacterBuilderRegistry,
   type CharacterSpellChoiceRequirement
 } from './builderService.js'
+import type { CharacterBuilderCatalog } from './builderCatalog.js'
 
 function createCharacter(overrides?: Partial<CharacterAuthored>): CharacterAuthored {
   return {
@@ -53,14 +58,6 @@ function createRegistry(): CharacterBuilderRegistry {
     classes: [],
     backgrounds: [],
     equipment: [],
-    spells: [
-      {
-        id: 'magic-missile',
-        label: 'Magic Missile',
-        level: 1,
-        classIds: ['wizard']
-      } as CharacterBuilderRegistry['spells'][number]
-    ],
     features: [
       {
         id: 'arcane-recovery',
@@ -68,6 +65,31 @@ function createRegistry(): CharacterBuilderRegistry {
       } as CharacterBuilderRegistry['features'][number]
     ]
   }
+}
+
+function createCatalog(): CharacterBuilderCatalog {
+  return {
+    races: [{ id: 'dragonborn', label: 'Dragonborn', category: 'BASE' }],
+    classes: [],
+    backgrounds: [],
+    equipment: [],
+    feats: [],
+    spells: [
+      {
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        description: '',
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        castingTime: { unit: 'ROUND', amount: 1 }
+      }
+    ]
+  }
+}
+
+function createContext(): CharacterBuilderContext {
+  return { catalog: createCatalog(), registry: createRegistry() }
 }
 
 function createChoiceStartingEquipment(count = 1): StartingEquipmentAuthored {
@@ -106,6 +128,99 @@ function createChoiceStartingEquipment(count = 1): StartingEquipmentAuthored {
   }
 }
 
+describe('character hit point progression', () => {
+  it('preserves interleaved multiclass order and removes invalid class progression', () => {
+    const classes = [
+      { classId: 'fighter', classLevel: 2 },
+      { classId: 'wizard', classLevel: 1 }
+    ]
+    const ordered = [
+      { level: 1, classId: 'fighter', classLevel: 1, value: 12 },
+      { level: 2, classId: 'wizard', classLevel: 1, value: 5 },
+      { level: 3, classId: 'fighter', classLevel: 2, value: 8 }
+    ]
+
+    expect(isCharacterHitpointProgressionValid(classes, ordered, true)).toBe(true)
+    expect(
+      reconcileCharacterHitpointProgression(classes, [
+        ordered[0]!,
+        { level: 2, classId: 'rogue', classLevel: 1, value: 7 },
+        ordered[1]!,
+        { level: 4, classId: 'fighter', classLevel: 3, value: 8 },
+        ordered[2]!
+      ])
+    ).toEqual(ordered)
+  })
+
+  it('rejects gaps in a selected class progression', () => {
+    const classes = [{ classId: 'fighter', classLevel: 2 }]
+    const levels = [
+      { level: 1, classId: 'fighter', classLevel: 1, value: 12 },
+      { level: 2, classId: 'fighter', classLevel: 3, value: 8 }
+    ]
+
+    expect(isCharacterHitpointProgressionValid(classes, levels, true)).toBe(false)
+    expect(reconcileCharacterHitpointProgression(classes, levels)).toEqual([levels[0]!])
+  })
+})
+
+describe('character hit dice', () => {
+  const createBaseClass = (
+    id: string,
+    dieConfig: string
+  ): CharacterBuilderRegistry['classes'][number] => ({
+    id,
+    label: id,
+    category: 'BASE',
+    userId: 'user-1',
+    systemId: 'dnd5e2014',
+    startingGold: { multiplier: 5, currencyId: 'gp', dieConfig: '5d4' },
+    startingEquipment: { id: `${id}-equipment`, sets: [] },
+    hitpoint: { ability: 'CONSTITUTION', dieConfig },
+    multiclass: { id: `${id}-multiclass`, requirementGroups: { groups: [] } }
+  })
+
+  it('derives and aggregates multiclass totals while preserving clamped used counts', () => {
+    const authoredClasses = [
+      createBaseClass('fighter', '1d10'),
+      createBaseClass('wizard', 'd6'),
+      createBaseClass('paladin', '1d10')
+    ]
+
+    expect(
+      reconcileCharacterHitDice(
+        [
+          { classId: 'fighter', classLevel: 3 },
+          { classId: 'wizard', classLevel: 2 },
+          { classId: 'paladin', classLevel: 1 }
+        ],
+        authoredClasses,
+        [
+          { die: 10, total: 99, used: 5 },
+          { die: 6, total: 1, used: 1 },
+          { die: 12, total: 4, used: 3 }
+        ]
+      )
+    ).toEqual([
+      { die: 10, total: 4, used: 4 },
+      { die: 6, total: 2, used: 1 }
+    ])
+  })
+
+  it('ignores missing classes and invalid hit-die configurations', () => {
+    expect(
+      reconcileCharacterHitDice(
+        [
+          { classId: 'invalid', classLevel: 2 },
+          { classId: 'missing', classLevel: 1 }
+        ],
+        [createBaseClass('invalid', '2d8')],
+        [{ die: 8, total: 3, used: 2 }]
+      )
+    ).toEqual([])
+  })
+})
+
 describe('resolveRecommendedCharacterBuilderSection', () => {
   it('sends active edit mode to Basics', () => {
     const character = createCharacter({
@@ -113,18 +228,24 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
       label: 'Aelar'
     })
 
-    const section = resolveRecommendedCharacterBuilderSection(character, 'edit', {
-      totalLevel: 1,
-      abilities: {
-        STRENGTH: 10,
-        DEXTERITY: 10,
-        CONSTITUTION: 10,
-        INTELLIGENCE: 10,
-        WISDOM: 10,
-        CHARISMA: 10
+    const section = resolveRecommendedCharacterBuilderSection(
+      character,
+      'edit',
+      {
+        totalLevel: 1,
+        abilities: {
+          STRENGTH: 10,
+          DEXTERITY: 10,
+          CONSTITUTION: 10,
+          INTELLIGENCE: 10,
+          WISDOM: 10,
+          CHARISMA: 10
+        },
+        classes: []
       },
-      classes: []
-    }, [], [])
+      [],
+      []
+    )
 
     expect(section).toBe('BASICS')
   })
@@ -150,30 +271,45 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
         },
         hitpoints: {
           method: 'FIXED',
-          levels: [{ level: 1, value: 6 }]
+          levels: [{ level: 1, classId: 'wizard', classLevel: 1, value: 6 }]
         }
       }
     })
 
-    const section = resolveRecommendedCharacterBuilderSection(character, 'create', {
-      totalLevel: 1,
-      abilities: {
-        STRENGTH: 8,
-        DEXTERITY: 10,
-        CONSTITUTION: 12,
-        INTELLIGENCE: 15,
-        WISDOM: 14,
-        CHARISMA: 13
-      },
-      classes: [{ classId: 'wizard', classLabel: 'Wizard', classLevel: 1, featureLabels: [], resourceLabels: [], spellcastingLabels: [] }]
-    }, [], [
+    const section = resolveRecommendedCharacterBuilderSection(
+      character,
+      'create',
       {
-        code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
-        message: 'Wizard has starting equipment choices to resolve.',
-        sourceLabel: 'Wizard',
-        required: true
-      }
-    ] satisfies CharacterBuilderIssue[])
+        totalLevel: 1,
+        abilities: {
+          STRENGTH: 8,
+          DEXTERITY: 10,
+          CONSTITUTION: 12,
+          INTELLIGENCE: 15,
+          WISDOM: 14,
+          CHARISMA: 13
+        },
+        classes: [
+          {
+            classId: 'wizard',
+            classLabel: 'Wizard',
+            classLevel: 1,
+            featureLabels: [],
+            resourceLabels: [],
+            spellcastingLabels: []
+          }
+        ]
+      },
+      [],
+      [
+        {
+          code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
+          message: 'Wizard has starting equipment choices to resolve.',
+          sourceLabel: 'Wizard',
+          required: true
+        }
+      ] satisfies CharacterBuilderIssue[]
+    )
 
     expect(section).toBe('EQUIPMENT')
   })
@@ -199,31 +335,46 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
         },
         hitpoints: {
           method: 'FIXED',
-          levels: [{ level: 1, value: 6 }]
+          levels: [{ level: 1, classId: 'wizard', classLevel: 1, value: 6 }]
         }
       }
     })
 
-    const section = resolveRecommendedCharacterBuilderSection(character, 'create', {
-      totalLevel: 1,
-      abilities: {
-        STRENGTH: 8,
-        DEXTERITY: 10,
-        CONSTITUTION: 12,
-        INTELLIGENCE: 15,
-        WISDOM: 14,
-        CHARISMA: 13
-      },
-      classes: [{ classId: 'wizard', classLabel: 'Wizard', classLevel: 1, featureLabels: [], resourceLabels: [], spellcastingLabels: [] }]
-    }, [], [
+    const section = resolveRecommendedCharacterBuilderSection(
+      character,
+      'create',
       {
-        code: 'FEATURE_SELECTION_REQUIRED',
-        message: 'Arcane Recovery requires a selection.',
-        sourceLabel: 'Wizard',
-        source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
-        required: true
-      }
-    ] satisfies CharacterBuilderIssue[])
+        totalLevel: 1,
+        abilities: {
+          STRENGTH: 8,
+          DEXTERITY: 10,
+          CONSTITUTION: 12,
+          INTELLIGENCE: 15,
+          WISDOM: 14,
+          CHARISMA: 13
+        },
+        classes: [
+          {
+            classId: 'wizard',
+            classLabel: 'Wizard',
+            classLevel: 1,
+            featureLabels: [],
+            resourceLabels: [],
+            spellcastingLabels: []
+          }
+        ]
+      },
+      [],
+      [
+        {
+          code: 'FEATURE_SELECTION_REQUIRED',
+          message: 'Arcane Recovery requires a selection.',
+          sourceLabel: 'Wizard',
+          source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
+          required: true
+        }
+      ] satisfies CharacterBuilderIssue[]
+    )
 
     expect(section).toBe('CLASSES')
   })
@@ -249,54 +400,84 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
         },
         hitpoints: {
           method: 'FIXED',
-          levels: [{ level: 1, value: 6 }]
+          levels: [{ level: 1, classId: 'wizard', classLevel: 1, value: 6 }]
         }
       }
     })
 
-    const section = resolveRecommendedCharacterBuilderSection(character, 'create', {
-      totalLevel: 1,
-      abilities: {
-        STRENGTH: 8,
-        DEXTERITY: 10,
-        CONSTITUTION: 12,
-        INTELLIGENCE: 15,
-        WISDOM: 14,
-        CHARISMA: 13
-      },
-      classes: [{ classId: 'wizard', classLabel: 'Wizard', classLevel: 1, featureLabels: [], resourceLabels: [], spellcastingLabels: [] }]
-    }, [], [
+    const section = resolveRecommendedCharacterBuilderSection(
+      character,
+      'create',
       {
-        code: 'SPELL_SELECTION_REQUIRED',
-        message: 'Wizard Spellcasting requires spell selections.',
-        sourceLabel: 'Wizard',
-        source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
-        required: true
-      }
-    ] satisfies CharacterBuilderIssue[])
+        totalLevel: 1,
+        abilities: {
+          STRENGTH: 8,
+          DEXTERITY: 10,
+          CONSTITUTION: 12,
+          INTELLIGENCE: 15,
+          WISDOM: 14,
+          CHARISMA: 13
+        },
+        classes: [
+          {
+            classId: 'wizard',
+            classLabel: 'Wizard',
+            classLevel: 1,
+            featureLabels: [],
+            resourceLabels: [],
+            spellcastingLabels: []
+          }
+        ]
+      },
+      [],
+      [
+        {
+          code: 'SPELL_SELECTION_REQUIRED',
+          message: 'Wizard Spellcasting requires spell selections.',
+          sourceLabel: 'Wizard',
+          source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
+          required: true
+        }
+      ] satisfies CharacterBuilderIssue[]
+    )
 
     expect(section).toBe('CLASSES')
 
-    const overLimitSection = resolveRecommendedCharacterBuilderSection(character, 'create', {
-      totalLevel: 1,
-      abilities: {
-        STRENGTH: 8,
-        DEXTERITY: 10,
-        CONSTITUTION: 12,
-        INTELLIGENCE: 15,
-        WISDOM: 14,
-        CHARISMA: 13
-      },
-      classes: [{ classId: 'wizard', classLabel: 'Wizard', classLevel: 1, featureLabels: [], resourceLabels: [], spellcastingLabels: [] }]
-    }, [], [
+    const overLimitSection = resolveRecommendedCharacterBuilderSection(
+      character,
+      'create',
       {
-        code: 'SPELL_SELECTION_OVER_LIMIT',
-        message: 'Wizard Spellcasting has too many selected spells for the current class level.',
-        sourceLabel: 'Wizard',
-        source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
-        required: true
-      }
-    ] satisfies CharacterBuilderIssue[])
+        totalLevel: 1,
+        abilities: {
+          STRENGTH: 8,
+          DEXTERITY: 10,
+          CONSTITUTION: 12,
+          INTELLIGENCE: 15,
+          WISDOM: 14,
+          CHARISMA: 13
+        },
+        classes: [
+          {
+            classId: 'wizard',
+            classLabel: 'Wizard',
+            classLevel: 1,
+            featureLabels: [],
+            resourceLabels: [],
+            spellcastingLabels: []
+          }
+        ]
+      },
+      [],
+      [
+        {
+          code: 'SPELL_SELECTION_OVER_LIMIT',
+          message: 'Wizard Spellcasting has too many selected spells for the current class level.',
+          sourceLabel: 'Wizard',
+          source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
+          required: true
+        }
+      ] satisfies CharacterBuilderIssue[]
+    )
 
     expect(overLimitSection).toBe('CLASSES')
   })
@@ -304,26 +485,35 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
 
 describe('character builder source-local choice validation', () => {
   it('rejects class spell selections outside the allowed class and spell level', () => {
-    const registry = createRegistry()
-    registry.spells = [
+    const catalog = createCatalog()
+    catalog.spells = [
       {
         id: 'magic-missile',
         label: 'Magic Missile',
+        description: '',
         level: 1,
-        classIds: ['wizard']
-      } as CharacterBuilderRegistry['spells'][number],
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        castingTime: { unit: 'ROUND', amount: 1 }
+      },
       {
         id: 'cure-wounds',
         label: 'Cure Wounds',
+        description: '',
         level: 1,
-        classIds: ['cleric']
-      } as CharacterBuilderRegistry['spells'][number],
+        classIds: ['cleric'],
+        magicSchoolId: 'evocation',
+        castingTime: { unit: 'ROUND', amount: 1 }
+      },
       {
         id: 'fireball',
         label: 'Fireball',
+        description: '',
         level: 3,
-        classIds: ['wizard']
-      } as CharacterBuilderRegistry['spells'][number]
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        castingTime: { unit: 'ROUND', amount: 1 }
+      }
     ]
 
     const requirement: CharacterSpellChoiceRequirement = {
@@ -336,29 +526,39 @@ describe('character builder source-local choice validation', () => {
       allowedClassIds: ['wizard']
     }
 
-    expect(getInvalidSpellSelectionIds({
-      id: 'wizard-spells',
-      source: requirement.source,
-      timing: { kind: 'CLASS_LEVEL', classId: 'wizard', classLevel: 1 },
-      spells: ['magic-missile', 'cure-wounds', 'fireball']
-    }, requirement, registry)).toEqual(['cure-wounds', 'fireball'])
+    expect(
+      getInvalidSpellSelectionIds(
+        {
+          id: 'wizard-spells',
+          source: requirement.source,
+          timing: { kind: 'CLASS_LEVEL', classId: 'wizard', classLevel: 1 },
+          spells: ['magic-missile', 'cure-wounds', 'fireball']
+        },
+        requirement,
+        catalog
+      )
+    ).toEqual(['cure-wounds', 'fireball'])
   })
 
   it('rejects starting equipment selections outside the chosen item allow-list', () => {
-    const registry = createRegistry()
-    registry.equipment = [
+    const catalog = createCatalog()
+    catalog.equipment = [
       {
         id: 'longsword',
         label: 'Longsword',
         category: 'WEAPON',
-        properties: ['MARTIAL']
-      } as CharacterBuilderRegistry['equipment'][number],
+        isContainer: false,
+        properties: ['MARTIAL'],
+        requiresAttunement: false
+      },
       {
         id: 'dagger',
         label: 'Dagger',
         category: 'WEAPON',
-        properties: ['SIMPLE']
-      } as CharacterBuilderRegistry['equipment'][number]
+        isContainer: false,
+        properties: ['SIMPLE'],
+        requiresAttunement: false
+      }
     ]
     const startingEquipment = createChoiceStartingEquipment()
     const validDecision = {
@@ -395,43 +595,55 @@ describe('character builder source-local choice validation', () => {
       ]
     }
 
-    expect(isStartingEquipmentDecisionComplete(startingEquipment, validDecision, registry)).toBe(true)
-    expect(isStartingEquipmentDecisionComplete(startingEquipment, invalidDecision, registry)).toBe(false)
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, validDecision, catalog)).toBe(
+      true
+    )
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, invalidDecision, catalog)).toBe(
+      false
+    )
   })
 
   it('accepts chosen starting equipment represented as a single row with matching quantity', () => {
-    const registry = createRegistry()
-    registry.equipment = [
+    const catalog = createCatalog()
+    catalog.equipment = [
       {
         id: 'longsword',
         label: 'Longsword',
         category: 'WEAPON',
-        properties: ['MARTIAL']
-      } as CharacterBuilderRegistry['equipment'][number]
+        isContainer: false,
+        properties: ['MARTIAL'],
+        requiresAttunement: false
+      }
     ]
     const startingEquipment = createChoiceStartingEquipment(2)
 
-    expect(isStartingEquipmentDecisionComplete(startingEquipment, {
-      source: CharacterStartingEquipmentSource.CLASS,
-      tookGold: false,
-      groups: [
+    expect(
+      isStartingEquipmentDecisionComplete(
+        startingEquipment,
         {
-          groupId: 'fighter-group',
-          optionId: 'fighter-option',
-          selections: [
+          source: CharacterStartingEquipmentSource.CLASS,
+          tookGold: false,
+          groups: [
             {
-              selectionKey: 'martial-weapon-choice',
-              equipmentId: 'longsword',
-              quantity: 2
+              groupId: 'fighter-group',
+              optionId: 'fighter-option',
+              selections: [
+                {
+                  selectionKey: 'martial-weapon-choice',
+                  equipmentId: 'longsword',
+                  quantity: 2
+                }
+              ]
             }
           ]
-        }
-      ]
-    }, registry)).toBe(true)
+        },
+        catalog
+      )
+    ).toBe(true)
   })
 
   it('requires a concrete total when starting gold is selected', () => {
-    const registry = createRegistry()
+    const catalog = createCatalog()
     const startingEquipment = createChoiceStartingEquipment()
     const incompleteGoldDecision = {
       source: CharacterStartingEquipmentSource.CLASS,
@@ -449,8 +661,12 @@ describe('character builder source-local choice validation', () => {
       }
     }
 
-    expect(isStartingEquipmentDecisionComplete(startingEquipment, incompleteGoldDecision, registry)).toBe(false)
-    expect(isStartingEquipmentDecisionComplete(startingEquipment, completeGoldDecision, registry)).toBe(true)
+    expect(
+      isStartingEquipmentDecisionComplete(startingEquipment, incompleteGoldDecision, catalog)
+    ).toBe(false)
+    expect(
+      isStartingEquipmentDecisionComplete(startingEquipment, completeGoldDecision, catalog)
+    ).toBe(true)
   })
 })
 
@@ -470,21 +686,27 @@ describe('isCharacterBuilderProvenanceStillValid', () => {
       }
     })
 
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'CLASS', classId: 'wizard', classLevel: 2 },
-      character,
-      registry
-    })).toBe(true)
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'CLASS', classId: 'wizard', classLevel: 3 },
-      character,
-      registry
-    })).toBe(false)
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'SUBCLASS', subclassId: 'evoker', classLevel: 3 },
-      character,
-      registry
-    })).toBe(false)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'CLASS', classId: 'wizard', classLevel: 2 },
+        character,
+        registry
+      })
+    ).toBe(true)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'CLASS', classId: 'wizard', classLevel: 3 },
+        character,
+        registry
+      })
+    ).toBe(false)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'SUBCLASS', subclassId: 'evoker', classLevel: 3 },
+        character,
+        registry
+      })
+    ).toBe(false)
   })
 
   it('rejects ancestry provenance that is not the current ancestry option', () => {
@@ -511,16 +733,20 @@ describe('isCharacterBuilderProvenanceStillValid', () => {
       }
     })
 
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'blue' },
-      character,
-      registry
-    })).toBe(true)
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
-      character,
-      registry
-    })).toBe(false)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'blue' },
+        character,
+        registry
+      })
+    ).toBe(true)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
+        character,
+        registry
+      })
+    ).toBe(false)
   })
 
   it('rejects ancestry provenance when the selected ancestry source is stale', () => {
@@ -541,11 +767,55 @@ describe('isCharacterBuilderProvenanceStillValid', () => {
       }
     })
 
-    expect(isCharacterBuilderProvenanceStillValid({
-      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
-      character,
-      registry
-    })).toBe(false)
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
+        character,
+        registry
+      })
+    ).toBe(false)
+  })
+
+  it('falls back to base-race ancestry when the selected subrace has none', () => {
+    const registry = createRegistry()
+    registry.races.push({
+      id: 'dragonborn-variant',
+      label: 'Dragonborn Variant',
+      category: 'SUBRACE',
+      parentRaceId: 'dragonborn',
+      size: 'MEDIUM',
+      speeds: [],
+      systemId: 'dnd5e2014',
+      userId: 'user-1',
+      subrace: {
+        parentRaceId: 'dragonborn',
+        parentLabel: 'Dragonborn',
+        inherited: { size: 'MEDIUM', speeds: [] }
+      }
+    })
+    const character = createCharacter({
+      intent: {
+        ...createCharacter().intent,
+        race: { raceId: 'dragonborn', subraceId: 'dragonborn-variant' },
+        ancestrySelections: [
+          {
+            id: 'ancestry-1',
+            ancestryId: 'draconic-ancestry',
+            optionId: 'red',
+            source: { kind: 'RACE', raceId: 'dragonborn' },
+            timing: { kind: 'IMMEDIATE' }
+          }
+        ]
+      }
+    })
+
+    expect(
+      isCharacterBuilderProvenanceStillValid({
+        source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
+        character,
+        registry
+      })
+    ).toBe(true)
   })
 })
 
@@ -607,16 +877,26 @@ describe('createCharacterBuilderChangePreview', () => {
       previousCharacter: previous,
       nextCharacter: next,
       predictedStatus: AUTHORED_RECORD_STATUS.DRAFT,
-      registry: createRegistry()
+      context: createContext()
     })
 
     expect(preview.downgradesStatus).toBe(true)
-    expect(preview.removedAncestrySelections.map((entry) => entry.label)).toEqual(['Draconic Ancestry: Red'])
-    expect(preview.removedFeatureAcquisitions.map((entry) => entry.label)).toEqual(['Arcane Recovery'])
+    expect(preview.removedAncestrySelections.map((entry) => entry.label)).toEqual([
+      'Draconic Ancestry: Red'
+    ])
+    expect(preview.removedFeatureAcquisitions.map((entry) => entry.label)).toEqual([
+      'Arcane Recovery'
+    ])
     expect(preview.removedSpellSelections.map((entry) => entry.label)).toEqual(['Magic Missile'])
-    expect(preview.removedResourceGrants.map((entry) => entry.label)).toEqual(['arcane-recovery-pool'])
-    expect(preview.clearedStartingEquipmentSources).toEqual([CharacterStartingEquipmentSource.CLASS])
-    expect(preview.summaryLines).toContain('This save will move the character back to Draft until the build is complete again.')
+    expect(preview.removedResourceGrants.map((entry) => entry.label)).toEqual([
+      'arcane-recovery-pool'
+    ])
+    expect(preview.clearedStartingEquipmentSources).toEqual([
+      CharacterStartingEquipmentSource.CLASS
+    ])
+    expect(preview.summaryLines).toContain(
+      'This save will move the character back to Draft until the build is complete again.'
+    )
     expect(preview.destructive).toBe(true)
   })
 })

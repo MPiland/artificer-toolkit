@@ -1,5 +1,5 @@
 import type { FeatureBaseAuthored, OptionAuthored } from '#authored'
-import type { NodeSubjectCode } from '#core'
+import type { FeatureSection, NodeSubjectCode } from '#core'
 
 export interface FeatureOptionChoice {
   level: number // int
@@ -8,6 +8,7 @@ export interface FeatureOptionChoice {
 }
 
 export type FeatureAuthored<N extends NodeSubjectCode = NodeSubjectCode> = FeatureBaseAuthored<N> & {
+  section?: FeatureSection
   optionChoices?: FeatureOptionChoice[]
   options?: OptionAuthored<N>[]
   availableAtLevel?: number

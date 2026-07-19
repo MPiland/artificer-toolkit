@@ -4,8 +4,12 @@ export type SystemAuthored = {
   id: string
   label: string
   description?: string | null
+  rulesetCode: string
+  rulesetVersion: string
   alignments: Vocabulary[]
+  challengeRatings: Vocabulary[]
   conditionTypes: Vocabulary[]
+  creatureTypes: Vocabulary[]
   currencies: Vocabulary[]
   damageTypes: Vocabulary[]
   heritages: Vocabulary[]

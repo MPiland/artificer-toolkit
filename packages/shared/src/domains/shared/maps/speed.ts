@@ -22,10 +22,14 @@ export const SPEED_NODE_MAP = speed.define('speed', ({ map, nodes, data }) => {
       requiredIf: true
     }))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }, {
       order: 3,
       requiredIf: true
     }))
+}, {
+  collection: {
+    rowSummary: 'speed'
+  }
 })

@@ -1,7 +1,9 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -97,6 +99,7 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 7, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Constitution score increases by 2.',
       availableAtLevel: 1,
       order: 0,
@@ -221,6 +224,7 @@ export const dwarf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             equipmentIds: [
               equipId(52), // brewer's supplies
@@ -242,6 +246,7 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 6, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.',
       availableAtLevel: 1,
       order: 6,
@@ -278,6 +283,7 @@ export const hillDwarf: RaceAuthored = {
     {
       id: raceFeatureId(101, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Wisdom score increases by 1, and your Constitution score increases by 2.',
       availableAtLevel: 1,
       order: 0,
@@ -346,6 +352,7 @@ export const mountainDwarf: RaceAuthored = {
     {
       id: raceFeatureId(102, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Strength score increases by 2, and your Constitution score increases by 2.',
       availableAtLevel: 1,
       order: 0,

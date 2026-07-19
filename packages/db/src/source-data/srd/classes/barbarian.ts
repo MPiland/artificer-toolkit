@@ -1,12 +1,17 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  STARTING_EQUIPMENT_KIND,
   VALUE_DOMAIN_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -26,6 +31,11 @@ function skillId(code: string): string {
   return entry.id
 }
 
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
+}
+
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
 if (!goldCurrencyId) throw new Error('SRD GP currency required.')
 
@@ -37,6 +47,110 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const B = 1 // Barbarian class index
+
+const ASI_ABILITIES = [
+  { ability: ABILITY_CODE.STRENGTH, label: 'Strength' },
+  { ability: ABILITY_CODE.DEXTERITY, label: 'Dexterity' },
+  { ability: ABILITY_CODE.CONSTITUTION, label: 'Constitution' },
+  { ability: ABILITY_CODE.INTELLIGENCE, label: 'Intelligence' },
+  { ability: ABILITY_CODE.WISDOM, label: 'Wisdom' },
+  { ability: ABILITY_CODE.CHARISMA, label: 'Charisma' }
+] as const
+
+const BARBARIAN_SKILL_CHOICES = [
+  { code: 'ANIMAL_HANDLING', label: 'Animal Handling' },
+  { code: 'ATHLETICS', label: 'Athletics' },
+  { code: 'INTIMIDATION', label: 'Intimidation' },
+  { code: 'NATURE', label: 'Nature' },
+  { code: 'PERCEPTION', label: 'Perception' },
+  { code: 'SURVIVAL', label: 'Survival' }
+] as const
+
+const GREATAXE_ID = equipmentId(18)
+const HANDAXE_ID = equipmentId(4)
+const JAVELIN_ID = equipmentId(5)
+const EXPLORERS_PACK_ID = equipmentId(186)
+
+function createAbilityScoreModifier(
+  group: number,
+  entry: number,
+  ability: (typeof ASI_ABILITIES)[number]['ability'],
+  amount: number,
+  order: number
+) {
+  return {
+    id: classRowId(B, group, entry),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
+    domain: { ability },
+    modifierKind: MODIFIER_KIND.BONUS,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { valueKind: 'FIXED' as const, amount },
+    order
+  }
+}
+
+function createAbilityScoreImprovementOptions(group: number) {
+  const options = ASI_ABILITIES.map((record, index) => ({
+    id: classRowId(B, group, index + 1),
+    label: `${record.label} +2`,
+    description: `Increase ${record.label} by 2.`,
+    grants: {
+      modifiers: [createAbilityScoreModifier(group, 64 + index, record.ability, 2, 0)]
+    },
+    order: index
+  }))
+
+  let optionEntry = ASI_ABILITIES.length + 1
+  let grantEntry = 96
+  for (let leftIndex = 0; leftIndex < ASI_ABILITIES.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < ASI_ABILITIES.length; rightIndex += 1) {
+      const left = ASI_ABILITIES[leftIndex]
+      const right = ASI_ABILITIES[rightIndex]
+      options.push({
+        id: classRowId(B, group, optionEntry),
+        label: `${left.label} +1, ${right.label} +1`,
+        description: `Increase ${left.label} and ${right.label} by 1 each.`,
+        grants: {
+          modifiers: [
+            createAbilityScoreModifier(group, grantEntry, left.ability, 1, 0),
+            createAbilityScoreModifier(group, grantEntry + 1, right.ability, 1, 1)
+          ]
+        },
+        order: optionEntry - 1
+      })
+      optionEntry += 1
+      grantEntry += 2
+    }
+  }
+
+  return options
+}
+
+function createBarbarianSkillProficiencyOptions(group: number) {
+  return BARBARIAN_SKILL_CHOICES.map((record, index) => ({
+    id: classRowId(B, group, index + 1),
+    label: record.label,
+    description: `Gain proficiency in ${record.label}.`,
+    grants: {
+      proficiencies: [
+        {
+          id: classRowId(B, group, 64 + index),
+          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+          proficiencyKind: PROFICIENCY_KIND.SKILL,
+          level: SCALING_AMOUNT_KIND.FULL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          skillIds: [skillId(record.code)],
+          order: 0
+        }
+      ]
+    },
+    order: index
+  }))
+}
 
 // Rage resource charge — resets on long rest
 const rageCharge = {
@@ -72,6 +186,7 @@ export const barbarian: ClassAuthored = {
   id: CLASS_IDS.BARBARIAN,
   label: 'Barbarian',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   description: 'A fierce warrior of primitive background who can enter a battle rage.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
@@ -114,7 +229,118 @@ export const barbarian: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(B, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(B, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(B, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(B, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(B, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [GREATAXE_ID],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(B, 98, 6),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(B, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL, EQUIPMENT_PROPERTY_CODE.MELEE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(B, 98, 8),
+            order: 1,
+            options: [
+              {
+                id: classRowId(B, 98, 9),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(B, 98, 10),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [HANDAXE_ID],
+                    quantity: 2
+                  }
+                ]
+              },
+              {
+                id: classRowId(B, 98, 11),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(B, 98, 12),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(B, 98, 13),
+            order: 2,
+            options: [
+              {
+                id: classRowId(B, 98, 14),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(B, 98, 15),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [EXPLORERS_PACK_ID],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(B, 98, 16),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [JAVELIN_ID],
+                    quantity: 4
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   proficiencies: [
@@ -203,6 +429,7 @@ export const barbarian: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ANIMAL_HANDLING'),
@@ -224,6 +451,16 @@ export const barbarian: ClassAuthored = {
   },
 
   features: [
+    {
+      id: classRowId(B, 3, 0),
+      label: 'Skill Proficiencies',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: 'Choose two skills from Animal Handling, Athletics, Intimidation, Nature, Perception, and Survival.',
+      availableAtLevel: 1,
+      order: -1,
+      optionChoices: [{ level: 1, count: 2 }],
+      options: createBarbarianSkillProficiencyOptions(6)
+    },
     {
       id: classRowId(B, 3, 1),
       label: 'Rage',
@@ -277,9 +514,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 7),
       label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
-      order: 5
+      order: 5,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: createAbilityScoreImprovementOptions(7)
     },
     {
       id: classRowId(B, 3, 8),
@@ -305,9 +545,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 11),
       label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
-      order: 9
+      order: 9,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: createAbilityScoreImprovementOptions(8)
     },
     {
       id: classRowId(B, 3, 12),
@@ -333,9 +576,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 15),
       label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
-      order: 13
+      order: 13,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: createAbilityScoreImprovementOptions(9)
     },
     {
       id: classRowId(B, 3, 16),
@@ -354,9 +600,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 18),
       label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
-      order: 16
+      order: 16,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: createAbilityScoreImprovementOptions(10)
     },
     {
       id: classRowId(B, 3, 19),
@@ -368,9 +617,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 20),
       label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
-      order: 18
+      order: 18,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: createAbilityScoreImprovementOptions(11)
     },
     {
       id: classRowId(B, 3, 21),

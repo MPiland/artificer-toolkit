@@ -6,7 +6,6 @@ export const wraith: CreatureAuthored = {
   label: 'Wraith',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const wraith: CreatureAuthored = {
     INTELLIGENCE: 12,
     WISDOM: 14,
     CHARISMA: 15,
-    SPELLCASTING: 0
   },
   armorClass: 13,
   hitPoints: 67,

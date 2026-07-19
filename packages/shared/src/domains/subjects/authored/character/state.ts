@@ -42,6 +42,7 @@ export interface CharacterCurrencyAmountState {
 }
 
 export interface CharacterCurrencyGroupState {
+  id: string
   containerId?: string
   currencies: CharacterCurrencyAmountState[]
 }
@@ -88,6 +89,25 @@ export interface CharacterExhaustionState {
   notes?: string
 }
 
+export type CharacterNoteGroupKind = 'SESSION' | 'LOOT' | 'CHARACTERS' | 'PLACES' | 'CUSTOM'
+
+export interface CharacterNoteGroupState {
+  id: string
+  label: string
+  sortOrder: number
+  kind: CharacterNoteGroupKind
+}
+
+export interface CharacterNoteState {
+  id: string
+  title: string
+  body?: string
+  groupId: string
+  pinned?: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 /* ──────────────────────────────────────────────
  * Character State root
  * ────────────────────────────────────────────── */
@@ -109,11 +129,14 @@ export interface CharacterState {
   equipment: CharacterEquipmentState
   currency: CharacterCurrencyGroupState[]
   hitpoints: CharacterHitpointsState
+  inspiration?: boolean
   classes?: CharacterClassState[]
   resources?: CharacterResourceUsageState[]
   spellSlots?: CharacterSpellSlotUsageState[]
   conditions?: CharacterConditionState[]
   exhaustion?: CharacterExhaustionState
+  noteGroups?: CharacterNoteGroupState[]
+  notes?: CharacterNoteState[]
   creatures?: CharacterOwnedCreatureState[]
   vehicles?: CharacterOwnedVehicleState[]
   creatureEquipment?: Record<string, CharacterRosterEquipmentAssignmentState[]>

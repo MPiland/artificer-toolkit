@@ -1,8 +1,8 @@
 import type { EffectAuthored, NonManifestOutcomeAuthored, ShapeAuthored, SpeedAuthored } from '#authored'
 import {
-  ABILITY_CODE,
   EFFECT_KIND,
   MANIFEST_KIND,
+  type AbilityCode,
   type ManifestKind,
   type NumericExpr,
   type SizeCode,
@@ -31,7 +31,7 @@ export const SUMMON_VISIBILITY_KIND = {
 
 export type SummonDamageabilityKind = keyof typeof SUMMON_DAMAGEABILITY_KIND
 export type SummonVisibilityKind = keyof typeof SUMMON_VISIBILITY_KIND
-export type SummonAbilityScoreCode = Exclude<keyof typeof ABILITY_CODE, 'SPELLCASTING'>
+export type SummonAbilityScoreCode = AbilityCode
 
 export type SummonStatBlockAuthored = {
   size?: SizeCode

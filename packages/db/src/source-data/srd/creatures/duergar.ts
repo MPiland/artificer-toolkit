@@ -1,4 +1,4 @@
-import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const duergar: CreatureAuthored = {
@@ -6,7 +6,6 @@ export const duergar: CreatureAuthored = {
     label: 'Duergar',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -19,7 +18,6 @@ export const duergar: CreatureAuthored = {
         INTELLIGENCE: 11,
         WISDOM: 10,
         CHARISMA: 9,
-        SPELLCASTING: 0
     },
     armorClass: 16,
     armorClassNote: 'scale mail, shield',
@@ -82,7 +80,7 @@ export const duergar: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(3450, 3),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

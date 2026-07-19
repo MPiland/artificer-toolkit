@@ -5,7 +5,6 @@ export const balor: CreatureAuthored = {
     label: 'Balor',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FIEND,
     size: S.SIZE_CODE.HUGE,
@@ -18,7 +17,6 @@ export const balor: CreatureAuthored = {
         INTELLIGENCE: 20,
         WISDOM: 16,
         CHARISMA: 22,
-        SPELLCASTING: 0
     },
     armorClass: 19,
     armorClassNote: 'natural armor',
@@ -248,7 +246,7 @@ export const balor: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(2128, 12),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

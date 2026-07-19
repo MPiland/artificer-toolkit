@@ -76,6 +76,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
     {
       id: masterBackgroundFixture.id,
       publicId: masterBackgroundFixture.id,
+      activeRevisionId: 'acolyte-active-revision',
       label: masterBackgroundFixture.label,
       description: masterBackgroundFixture.description,
       status: 'ACTIVE',
@@ -95,6 +96,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
     {
       id: ownedBackgroundFixture.id,
       publicId: ownedBackgroundFixture.id,
+      activeRevisionId: 'urban-investigator-active-revision',
       label: ownedBackgroundFixture.label,
       description: ownedBackgroundFixture.description,
       status: 'DRAFT',
@@ -118,6 +120,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
 
 export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
   publicId: ownedBackgroundFixture.id,
+  activeRevisionId: 'urban-investigator-active-revision',
   item: ownedBackgroundFixture,
   provenance: {
     kind: 'OWNED',
@@ -133,6 +136,7 @@ export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> 
 
 export const masterBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
   publicId: masterBackgroundFixture.id,
+  activeRevisionId: 'acolyte-active-revision',
   item: masterBackgroundFixture,
   provenance: {
     kind: 'MASTER',

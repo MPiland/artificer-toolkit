@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { DBLike } from '#types';
 import { createBackgroundRepository } from '../repositories/index.js';
 import { createClassRepository } from '../repositories/index.js';
 import { createEquipmentRepository } from '../repositories/index.js';
@@ -8,6 +9,7 @@ import { createFeatureRepository } from '../repositories/index.js';
 import { createModifierGrantRepository } from '../repositories/index.js';
 import { createProficiencyGrantRepository } from '../repositories/index.js';
 import { createRaceRepository } from '../repositories/index.js';
+import { createSenseGrantRepository } from '../repositories/index.js';
 import { createSpellGrantRepository } from '../repositories/index.js';
 import { createSpellRepository } from '../repositories/index.js';
 import { createStartingEquipmentRepository } from '../repositories/index.js';
@@ -36,8 +38,7 @@ describe('round-trip upsert correctness', () => {
             id: 'modifier-1',
             grantKind: 'MODIFIER_GRANT',
             order: 2,
-            selectionKind: 'CHOSEN',
-            count: 1,
+            selectionKind: 'GRANTED',
             valueDomainCode: 'CHARGE_LIMIT',
             domain: {},
             modifierKind: 'MODIFY_CHARGE_LIMIT',
@@ -52,8 +53,7 @@ describe('round-trip upsert correctness', () => {
             id: 'modifier-1',
             grantKind: 'MODIFIER_GRANT',
             order: 2,
-            selectionKind: 'CHOSEN',
-            count: 1,
+            selectionKind: 'GRANTED',
             valueDomainCode: 'CHARGE_LIMIT',
             domain: {},
             modifierKind: 'MODIFY_CHARGE_LIMIT',
@@ -185,6 +185,7 @@ describe('round-trip upsert correctness', () => {
             scalingKind: 'NONE',
             authoringModeKind: 'SELECTED',
             count: 2,
+            selectionDuplicatePolicy: 'UNIQUE',
             featIds: ['feat-a', 'feat-b']
         });
         await expect(repository.findById('feat-grant-1')).resolves.toEqual({
@@ -195,6 +196,7 @@ describe('round-trip upsert correctness', () => {
             scalingKind: 'NONE',
             authoringModeKind: 'SELECTED',
             count: 2,
+            selectionDuplicatePolicy: 'UNIQUE',
             featIds: ['feat-a', 'feat-b'],
             charges: undefined
         });
@@ -247,7 +249,8 @@ describe('round-trip upsert correctness', () => {
                 level: 3,
                 sort_order: 1,
                 authoring_mode_kind: 'SELECTED',
-                selection_count: null
+                selection_count: null,
+                selection_duplicate_policy: null
             }
         ]);
         expect(db.snapshot('feat_grant_scaling_level_feats')).toEqual([
@@ -255,6 +258,190 @@ describe('round-trip upsert correctness', () => {
                 scaling_level_id: 'feat-level-1',
                 feat_id: 'feat-c'
             }
+        ]);
+    });
+    it('round-trips chosen spell and sense grant duplicate policies', async () => {
+        const db = new InMemoryDb();
+        const dbLike = db as unknown as DBLike;
+        const spellRepository = createSpellGrantRepository(dbLike);
+        const senseRepository = createSenseGrantRepository(dbLike);
+        await spellRepository.upsert({
+            id: 'spell-grant-policy',
+            grantKind: 'SPELL_GRANT',
+            order: 1,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            count: 2,
+            selectionDuplicatePolicy: 'REPEATABLE',
+            spellIds: ['spell-a', 'spell-b']
+        });
+        await senseRepository.upsert({
+            id: 'sense-grant-policy',
+            grantKind: 'SENSE_GRANT',
+            order: 2,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            count: 1,
+            selectionDuplicatePolicy: 'REPEATABLE',
+            senseIds: ['darkvision'],
+            range: {
+                id: 'darkvision-range',
+                rangeKind: 'DISTANCE',
+                amount: 60,
+                unit: 'FEET',
+                scaling: {
+                    scalingKind: 'BREAKPOINTS',
+                    scalingSource: 'CHARACTER_LEVEL',
+                    breakpoints: [{
+                        id: 'darkvision-range-level-5',
+                        level: 5,
+                        order: 1,
+                        value: { amount: 90, unit: 'FEET' }
+                    }]
+                }
+            }
+        });
+        await spellRepository.upsert({
+            id: 'spell-grant-scaling-policy',
+            grantKind: 'SPELL_GRANT',
+            order: 3,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'PER_LEVEL',
+            progression: {
+                scalingSource: 'CHARACTER_LEVEL',
+                levels: [{
+                    id: 'spell-grant-scaling-policy-level-1',
+                    level: 5,
+                    order: 1,
+                    authoringModeKind: 'SELECTED',
+                    count: 1,
+                    selectionDuplicatePolicy: 'UNIQUE',
+                    spellIds: ['spell-c']
+                }]
+            }
+        });
+        await expect(spellRepository.findById('spell-grant-policy')).resolves.toEqual({
+            id: 'spell-grant-policy',
+            grantKind: 'SPELL_GRANT',
+            order: 1,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            count: 2,
+            selectionDuplicatePolicy: 'REPEATABLE',
+            spellIds: ['spell-a', 'spell-b'],
+            attributes: undefined,
+            castAtLevel: undefined,
+            charges: undefined,
+            filters: undefined,
+            restrictions: undefined
+        });
+        await expect(senseRepository.findById('sense-grant-policy')).resolves.toEqual({
+            id: 'sense-grant-policy',
+            grantKind: 'SENSE_GRANT',
+            order: 2,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            count: 1,
+            selectionDuplicatePolicy: 'REPEATABLE',
+            senseIds: ['darkvision'],
+            charges: undefined,
+            range: {
+                id: 'darkvision-range',
+                rangeKind: 'DISTANCE',
+                amount: 60,
+                unit: 'FEET',
+                scaling: {
+                    scalingKind: 'BREAKPOINTS',
+                    scalingSource: 'CHARACTER_LEVEL',
+                    breakpoints: [{
+                        id: 'darkvision-range-level-5',
+                        level: 5,
+                        order: 1,
+                        value: { amount: 90, unit: 'FEET' }
+                    }]
+                }
+            },
+            restrictions: undefined
+        });
+        await expect(spellRepository.findById('spell-grant-scaling-policy')).resolves.toEqual({
+            id: 'spell-grant-scaling-policy',
+            grantKind: 'SPELL_GRANT',
+            order: 3,
+            selectionKind: 'CHOSEN',
+            scalingKind: 'PER_LEVEL',
+            progression: {
+                scalingSource: 'CHARACTER_LEVEL',
+                classId: undefined,
+                levels: [{
+                    id: 'spell-grant-scaling-policy-level-1',
+                    level: 5,
+                    order: 1,
+                    authoringModeKind: 'SELECTED',
+                    count: 1,
+                    selectionDuplicatePolicy: 'UNIQUE',
+                    spellIds: ['spell-c']
+                }]
+            },
+            attributes: undefined,
+            castAtLevel: undefined,
+            charges: undefined,
+            filters: undefined,
+            restrictions: undefined
+        });
+        expect(db.snapshot('spell_grant_scaling_levels')).toEqual([
+            {
+                id: 'spell-grant-scaling-policy-level-1',
+                spell_grant_id: 'spell-grant-scaling-policy',
+                level: 5,
+                sort_order: 1,
+                authoring_mode_kind: 'SELECTED',
+                selection_count: 1,
+                selection_duplicate_policy: 'UNIQUE'
+            }
+        ]);
+    });
+    it('replaces and clears inline sense grant range payloads', async () => {
+        const db = new InMemoryDb();
+        const repository = createSenseGrantRepository(db as never);
+        const baseGrant = {
+            id: 'sense-grant-range-rewrite',
+            grantKind: 'SENSE_GRANT' as const,
+            order: 1,
+            selectionKind: 'GRANTED' as const,
+            scalingKind: 'NONE' as const,
+            authoringModeKind: 'SELECTED' as const,
+            senseIds: ['darkvision']
+        };
+
+        await repository.upsert({
+            ...baseGrant,
+            range: {
+                id: 'sense-grant-range-special',
+                rangeKind: 'SPECIAL'
+            }
+        });
+        await expect(repository.findById(baseGrant.id)).resolves.toMatchObject({
+            range: {
+                id: 'sense-grant-range-special',
+                rangeKind: 'SPECIAL'
+            }
+        });
+
+        await repository.upsert(baseGrant);
+        const hydrated = await repository.findById(baseGrant.id);
+        expect(hydrated).not.toHaveProperty('range');
+        expect(db.snapshot('sense_grants')).toEqual([
+            expect.objectContaining({
+                range_id: null,
+                range_kind: null,
+                range_amount: null,
+                range_unit: null,
+                range_scaling: null
+            })
         ]);
     });
     it('preserves multiple same-kind charge bonuses and rewrites stale charge children idempotently', async () => {
@@ -422,6 +609,7 @@ describe('round-trip upsert correctness', () => {
             scalingKind: 'NONE',
             authoringModeKind: 'SELECTED',
             count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
             properties: ['LIGHT'],
             category: 'WEAPON',
             level: 'HALF',
@@ -433,12 +621,15 @@ describe('round-trip upsert correctness', () => {
             proficiencyKind: 'EQUIPMENT_PROPERTY',
             order: 2,
             selectionKind: 'CHOSEN',
+            scalingKind: 'NONE',
             authoringModeKind: 'SELECTED',
             level: 'HALF',
             rounding: 'UP',
             count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
             properties: ['LIGHT'],
-            category: 'WEAPON'
+            category: 'WEAPON',
+            restrictions: undefined
         });
         expect(db.snapshot('proficiency_grant_skills')).toEqual([]);
         expect(db.snapshot('proficiency_grant_equipment_properties')).toEqual([
@@ -471,6 +662,25 @@ describe('round-trip upsert correctness', () => {
                                 {
                                     id: 'option-1',
                                     order: 1,
+                                    eligibility: {
+                                        id: 'option-1-eligibility',
+                                        groups: [{
+                                            id: 'option-1-eligibility-group',
+                                            order: 1,
+                                            contexts: [{
+                                                id: 'option-1-eligibility-context',
+                                                order: 1,
+                                                subject: 'CHARACTER',
+                                                conditions: [{
+                                                    id: 'option-1-eligibility-condition',
+                                                    order: 1,
+                                                    kind: 'PREDICATE',
+                                                    constraint: 'INCLUDE',
+                                                    predicateCode: 'CAN_CAST_SPELL'
+                                                }]
+                                            }]
+                                        }]
+                                    },
                                     items: [
                                         {
                                             id: 'currency-item-1',
@@ -500,6 +710,28 @@ describe('round-trip upsert correctness', () => {
                                 {
                                     id: 'option-2',
                                     order: 1,
+                                    eligibility: {
+                                        id: 'option-2-eligibility',
+                                        groups: [{
+                                            id: 'option-2-eligibility-group',
+                                            order: 1,
+                                            contexts: [{
+                                                id: 'option-2-eligibility-context',
+                                                order: 1,
+                                                subject: 'CHARACTER',
+                                                conditions: [{
+                                                    id: 'option-2-eligibility-condition',
+                                                    order: 1,
+                                                    kind: 'PREDICATE',
+                                                    constraint: 'INCLUDE',
+                                                    predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                                                    authoringModeKind: 'SELECTED',
+                                                    category: 'ARMOR',
+                                                    properties: ['HEAVY']
+                                                }]
+                                            }]
+                                        }]
+                                    },
                                     items: [
                                         {
                                             id: 'equipment-item-1',
@@ -534,6 +766,28 @@ describe('round-trip upsert correctness', () => {
                                 {
                                     id: 'option-2',
                                     order: 1,
+                                    eligibility: {
+                                        id: 'option-2-eligibility',
+                                        groups: [{
+                                            id: 'option-2-eligibility-group',
+                                            order: 1,
+                                            contexts: [{
+                                                id: 'option-2-eligibility-context',
+                                                order: 1,
+                                                subject: 'CHARACTER',
+                                                conditions: [{
+                                                    id: 'option-2-eligibility-condition',
+                                                    order: 1,
+                                                    kind: 'PREDICATE',
+                                                    constraint: 'INCLUDE',
+                                                    predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                                                    authoringModeKind: 'SELECTED',
+                                                    category: 'ARMOR',
+                                                    properties: ['HEAVY']
+                                                }]
+                                            }]
+                                        }]
+                                    },
                                     items: [
                                         {
                                             id: 'equipment-item-1',
@@ -568,6 +822,7 @@ describe('round-trip upsert correctness', () => {
                 equipment_id: 'equipment-1'
             }
         ]);
+        expect(db.snapshot('facets')).toEqual([{ id: 'option-2-eligibility' }]);
     });
     it('round-trips a background through composed owned upserts and cleans replaced owned content', async () => {
         const db = new InMemoryDb();
@@ -748,10 +1003,12 @@ describe('round-trip upsert correctness', () => {
                     proficiencyKind: 'LANGUAGE',
                     order: 1,
                     selectionKind: 'GRANTED',
+                    scalingKind: 'NONE',
                     authoringModeKind: 'SELECTED',
                     level: 'FULL',
                     rounding: undefined,
                     count: undefined,
+                    selectionDuplicatePolicy: undefined,
                     restrictions: undefined,
                     languageIds: ['elvish']
                 }
@@ -775,6 +1032,7 @@ describe('round-trip upsert correctness', () => {
                 selection_kind: 'GRANTED',
                 authoring_mode_kind: 'SELECTED',
                 count: null,
+                selection_duplicate_policy: null,
                 level: 'FULL',
                 rounding: null,
                 restriction_id: null
@@ -854,6 +1112,17 @@ describe('round-trip upsert correctness', () => {
                 amount: 2
             },
             grants: {
+                feats: [
+                    {
+                        id: 'feat-feat-grant-1',
+                        grantKind: 'FEAT_GRANT',
+                        order: 2,
+                        selectionKind: 'GRANTED',
+                        scalingKind: 'NONE',
+                        authoringModeKind: 'SELECTED',
+                        featIds: ['grappler']
+                    }
+                ],
                 spells: [
                     {
                         id: 'feat-spell-1',
@@ -894,6 +1163,18 @@ describe('round-trip upsert correctness', () => {
                 bonuses: undefined
             },
             grants: {
+                feats: [
+                    {
+                        id: 'feat-feat-grant-1',
+                        grantKind: 'FEAT_GRANT',
+                        order: 2,
+                        selectionKind: 'GRANTED',
+                        scalingKind: 'NONE',
+                        authoringModeKind: 'SELECTED',
+                        featIds: ['grappler'],
+                        charges: undefined
+                    }
+                ],
                 modifiers: undefined,
                 proficiencies: undefined,
                 senses: undefined,
@@ -927,6 +1208,13 @@ describe('round-trip upsert correctness', () => {
         ]);
         expect(db.snapshot('feat_proficiency_grants')).toEqual([]);
         expect(db.snapshot('feat_sense_grants')).toEqual([]);
+        expect(db.snapshot('feat_feat_grants')).toEqual([
+            {
+                feat_id: 'feat-1',
+                feat_grant_id: 'feat-feat-grant-1',
+                sort_order: 2
+            }
+        ]);
         expect(db.snapshot('feat_spell_grants')).toEqual([
             {
                 feat_id: 'feat-1',
@@ -944,6 +1232,7 @@ describe('round-trip upsert correctness', () => {
                 scaling_kind: 'NONE',
                 authoring_mode_kind: 'SELECTED',
                 selection_count: null,
+                selection_duplicate_policy: null,
                 scaling_source: null,
                 class_id: null,
                 charge_id: null,
@@ -1721,14 +2010,16 @@ describe('round-trip upsert correctness', () => {
         expect(db.snapshot('equipment_properties')).toEqual([
             {
                 equipment_id: 'equipment-1',
-                property_code: 'VERSATILE'
+                property_code: 'VERSATILE',
+                sort_order: 1
             }
         ]);
         expect(db.snapshot('equipment_contains')).toEqual([
             {
                 equipment_id: 'equipment-1',
                 contained_equipment_id: 'sheath-2',
-                quantity: 1
+                quantity: 1,
+                sort_order: 1
             }
         ]);
         expect(db.snapshot('charges')).toEqual([
@@ -1765,6 +2056,7 @@ describe('round-trip upsert correctness', () => {
             systemId: 'system-1',
             category: 'VARIANT',
             parentEquipmentId: 'equipment-parent-1',
+            requiresAttunement: true,
             properties: ['MAGIC']
         });
         await expect(repository.findById('equipment-variant-1')).resolves.toEqual({
@@ -1780,6 +2072,7 @@ describe('round-trip upsert correctness', () => {
             maxBonus: undefined,
             features: undefined,
             restrictions: undefined,
+            requiresAttunement: true,
             status: 'DRAFT',
             userId: 'user-1',
             systemId: 'system-1',
@@ -1806,6 +2099,7 @@ describe('round-trip upsert correctness', () => {
                 max_stack: null,
                 max_bonus: null,
                 armor_class: null,
+                requires_attunement: true,
                 charge_id: null,
                 restriction_id: null,
                 status: 'DRAFT',
@@ -1815,7 +2109,8 @@ describe('round-trip upsert correctness', () => {
         expect(db.snapshot('equipment_properties')).toEqual([
             {
                 equipment_id: 'equipment-variant-1',
-                property_code: 'MAGIC'
+                property_code: 'MAGIC',
+                sort_order: 1
             }
         ]);
     });
@@ -2221,6 +2516,7 @@ describe('round-trip upsert correctness', () => {
                 description: 'Updated feature',
                 charge_id: null,
                 restriction_id: null,
+                section_code: null,
                 sort_order: 1,
                 available_at_level: null
             }
@@ -2312,6 +2608,7 @@ describe('round-trip upsert correctness', () => {
             userId: 'user-1',
             systemId: 'system-1',
             category: 'BASE',
+            subclassSelectionLevel: 2,
             attributes: ['SPELLCASTER'],
             startingGold: {
                 multiplier: 4,
@@ -2458,6 +2755,7 @@ describe('round-trip upsert correctness', () => {
             userId: 'user-1',
             systemId: 'system-1',
             category: 'BASE',
+            subclassSelectionLevel: 3,
             attributes: ['RESOURCE'],
             startingGold: {
                 multiplier: 5,
@@ -2550,10 +2848,12 @@ describe('round-trip upsert correctness', () => {
                     proficiencyKind: 'LANGUAGE',
                     order: 1,
                     selectionKind: 'GRANTED',
+                    scalingKind: 'NONE',
                     authoringModeKind: 'SELECTED',
                     level: 'FULL',
                     rounding: undefined,
                     count: undefined,
+                    selectionDuplicatePolicy: undefined,
                     restrictions: undefined,
                     languageIds: ['draconic']
                 }
@@ -2627,6 +2927,7 @@ describe('round-trip upsert correctness', () => {
             systemId: 'system-1',
             status: 'DRAFT',
             category: 'BASE',
+            subclassSelectionLevel: 3,
             attributes: ['RESOURCE'],
             startingGold: {
                 multiplier: 5,
@@ -2693,10 +2994,12 @@ describe('round-trip upsert correctness', () => {
                         proficiencyKind: 'SKILL',
                         order: 1,
                         selectionKind: 'GRANTED',
+                        scalingKind: 'NONE',
                         authoringModeKind: 'SELECTED',
                         level: 'FULL',
                         rounding: undefined,
                         count: undefined,
+                        selectionDuplicatePolicy: undefined,
                         restrictions: undefined,
                         skillIds: ['history']
                     }
@@ -2725,6 +3028,7 @@ describe('round-trip upsert correctness', () => {
                 selection_kind: 'GRANTED',
                 authoring_mode_kind: 'SELECTED',
                 count: null,
+                selection_duplicate_policy: null,
                 level: 'FULL',
                 rounding: null,
                 restriction_id: null
@@ -2736,6 +3040,7 @@ describe('round-trip upsert correctness', () => {
                 selection_kind: 'GRANTED',
                 authoring_mode_kind: 'SELECTED',
                 count: null,
+                selection_duplicate_policy: null,
                 level: 'FULL',
                 rounding: null,
                 restriction_id: null

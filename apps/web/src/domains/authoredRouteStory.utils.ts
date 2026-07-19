@@ -4,9 +4,10 @@ import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRou
 import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
 import {
-  authoredEditRouteLoaderData,
   authoredRouteStorySystem,
-  authoredRouteStorySystems
+  authoredRouteStorySystems,
+  createEditLoaderData,
+  type AuthoredRouteStoryEditState
 } from './authoredRouteStory.fixtures'
 
 export const authoredRouteNodeRuntimeHandlers = [
@@ -14,22 +15,29 @@ export const authoredRouteNodeRuntimeHandlers = [
     const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
 
     return trpcBatchJson(
-      inputs.map((input) => (
-        createStaticResolvedFormModel(input.mapId, { system: authoredRouteStorySystem }) ?? {
-          mapId: input.mapId,
-          steps: [],
-          clearPaths: []
-        }
-      ))
+      inputs.map(
+        (input) =>
+          createStaticResolvedFormModel(input.mapId, {
+            ancestors: input.ancestors,
+            parentValues: input.parentValues,
+            system: authoredRouteStorySystem,
+            values: input.values
+          }) ?? {
+            mapId: input.mapId,
+            steps: [],
+            clearPaths: []
+          }
+      )
     )
   })
 ]
 
 export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: string) {
-  const loader = async () => createAuthoredFormRouteLoaderData({
-    system: authoredRouteStorySystem,
-    systems: authoredRouteStorySystems
-  })
+  const loader = async () =>
+    createAuthoredFormRouteLoaderData({
+      system: authoredRouteStorySystem,
+      systems: authoredRouteStorySystems
+    })
 
   return {
     [routeId]: { loader },
@@ -40,9 +48,10 @@ export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: 
 export function createAuthoredEditRouteOverrides(
   domain: AuthoredFormDomain,
   routeId: string,
-  publicPath: string
+  publicPath: string,
+  state: AuthoredRouteStoryEditState = 'ownedActive'
 ) {
-  const loader = async () => authoredEditRouteLoaderData[domain]
+  const loader = async () => createEditLoaderData(domain, state)
 
   return {
     [routeId]: { loader },

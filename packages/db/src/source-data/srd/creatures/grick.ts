@@ -5,7 +5,6 @@ export const grick: CreatureAuthored = {
     label: 'Grick',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.MEDIUM,
@@ -16,7 +15,6 @@ export const grick: CreatureAuthored = {
         INTELLIGENCE: 3,
         WISDOM: 14,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     armorClassNote: 'natural armor',

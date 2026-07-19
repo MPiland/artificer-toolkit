@@ -9,16 +9,9 @@ export const CREATURE_CATEGORY_CODE = {
   SUMMON: 'SUMMON'
 } as const
 
-export const CREATURE_RECORD_KIND_CODE = {
-  STAT_BLOCK: 'STAT_BLOCK',
-  LOGISTICS: 'LOGISTICS'
-} as const
-
 export type CreatureCategoryCode = keyof typeof CREATURE_CATEGORY_CODE
-export type CreatureRecordKindCode = keyof typeof CREATURE_RECORD_KIND_CODE
 
 export type CreatureCategoryOption = CoreMeta<CreatureCategoryCode>
-export type CreatureRecordKindOption = CoreMeta<CreatureRecordKindCode>
 
 export const CREATURE_CATEGORY_REGISTRY: Record<
   CreatureCategoryCode,
@@ -54,26 +47,6 @@ export const CREATURE_CATEGORY_REGISTRY: Record<
 export const CREATURE_CATEGORY_OPTIONS = valuesOf(
   CREATURE_CATEGORY_REGISTRY
 ) as readonly CreatureCategoryOption[]
-
-export const CREATURE_RECORD_KIND_REGISTRY: Record<
-  CreatureRecordKindCode,
-  CreatureRecordKindOption
-> = {
-  [CREATURE_RECORD_KIND_CODE.STAT_BLOCK]: {
-    code: CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-    label: 'Stat Block',
-    description: 'A full combat-capable creature stat block.'
-  },
-  [CREATURE_RECORD_KIND_CODE.LOGISTICS]: {
-    code: CREATURE_RECORD_KIND_CODE.LOGISTICS,
-    label: 'Logistics',
-    description: 'A logistics-oriented creature record used for mounts, animals, or similar non-combat entries.'
-  }
-} as const
-
-export const CREATURE_RECORD_KIND_OPTIONS = valuesOf(
-  CREATURE_RECORD_KIND_REGISTRY
-) as readonly CreatureRecordKindOption[]
 
 export const CREATURE_MOUNT_TYPE_CODE = {
   CONTROLLED: 'CONTROLLED',

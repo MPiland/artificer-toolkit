@@ -7,6 +7,8 @@ export const systemListItemDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string().nullable().optional(),
+  rulesetCode: z.string(),
+  rulesetVersion: z.string(),
   userId: z.string()
 })
 

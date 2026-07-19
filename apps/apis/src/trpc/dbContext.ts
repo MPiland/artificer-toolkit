@@ -49,6 +49,7 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'NotFoundError') return 'NOT_FOUND'
   if (error.name === 'AuthoredContentOwnershipError') return 'FORBIDDEN'
   if (error.name === 'AuthoredContentDependencyError') return 'CONFLICT'
+  if (error.name === 'AuthoredDefinitionRevisionConflictError') return 'CONFLICT'
   if (error.name === 'CharacterBuilderDraftConflictError') return 'CONFLICT'
   if (error.name === 'ConcurrencyError') return 'CONFLICT'
   if (error.name === 'CharacterSheetCommandError') return 'BAD_REQUEST'

@@ -40,7 +40,11 @@ import {
 } from '@artificer-toolkit/shared/maps'
 import {
   evaluateConditionIf,
+  getValueAtPath,
+  resolveArrayAuthoringMeta,
+  resolveInputAuthoringMeta,
   resolveNodeMapSteps,
+  resolveObjectAuthoringMeta,
   type SectionedNodeGroup,
   type SteppedNodeGroup
 } from '@artificer-toolkit/shared/utils'
@@ -54,7 +58,7 @@ type StaticResolvedFormModelOptions = {
 }
 type SystemVocabularyKey = Exclude<
   keyof NonNullable<SystemResponseDto>,
-  'description' | 'id' | 'label' | 'userId'
+  'description' | 'id' | 'label' | 'rulesetCode' | 'rulesetVersion' | 'userId'
 >
 
 const STATIC_ROOT_NODE_MAPS = [
@@ -90,7 +94,6 @@ const STATIC_ROOT_NODE_MAPS = [
 ] as const
 
 const STATIC_NODE_MAP_ALIASES: Readonly<Record<string, string>> = {
-  detail: BACKGROUND_DETAIL_NODE_MAP.mapId,
   charges: CHARGE_NODE_MAP.mapId,
   proficiencyGrant: PROFICIENCY_NODE_MAP.mapId
 }
@@ -140,16 +143,15 @@ export function createStaticResolvedFormModel(
   return createResolvedFormModelFromNodeMap(mapId, nodeMap, options)
 }
 
-function buildStaticNodeMapRegistry(nodeMaps: readonly unknown[]): ReadonlyMap<string, StaticNodeMap> {
+function buildStaticNodeMapRegistry(
+  nodeMaps: readonly unknown[]
+): ReadonlyMap<string, StaticNodeMap> {
   const registry = new Map<string, StaticNodeMap>()
   for (const nodeMap of nodeMaps) collectStaticNodeMap(nodeMap, registry)
   return registry
 }
 
-function collectStaticNodeMap(
-  nodeMap: unknown,
-  registry: Map<string, StaticNodeMap>
-) {
+function collectStaticNodeMap(nodeMap: unknown, registry: Map<string, StaticNodeMap>) {
   const staticNodeMap = nodeMap as StaticNodeMap
   if (registry.has(staticNodeMap.mapId)) return
 
@@ -158,7 +160,9 @@ function collectStaticNodeMap(
   for (const node of Object.values(staticNodeMap.nodes)) {
     if (node.kind !== 'GROUP') continue
 
-    const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+    const childMap = (typeof node.nodes === 'function' ? node.nodes() : node.nodes) as NodeMap<
+      Record<string, unknown>
+    >
     collectStaticNodeMap(childMap, registry)
   }
 }
@@ -168,21 +172,107 @@ export function createResolvedFormModelFromNodeMap<TValues extends object>(
   nodeMap: NodeMap<TValues>,
   options: StaticResolvedFormModelOptions = {}
 ): NodeRuntimeResolveResponseDto {
-  return {
+  const steps = resolveStaticNodeMapSteps(nodeMap).map((step) => ({
+    id: step.id,
+    label: step.label,
+    order: step.order,
+    sections: step.sections.map((section) => ({
+      id: section.id,
+      label: section.label,
+      order: section.order,
+      nodes: section.nodes.map(({ id, node }) => toRuntimeNode(id, node, options))
+    }))
+  }))
+  const clearPaths = steps.flatMap((step) =>
+    step.sections.flatMap((section) => section.nodes.flatMap((node) => node.clearPaths))
+  )
+  const model = {
     mapId,
-    steps: resolveStaticNodeMapSteps(nodeMap).map((step) => ({
-      id: step.id,
-      label: step.label,
-      order: step.order,
-      sections: step.sections.map((section) => ({
-        id: section.id,
-        label: section.label,
-        order: section.order,
-        nodes: section.nodes.map(({ id, node }) => toRuntimeNode(id, node, options))
-      }))
-    })),
-    clearPaths: []
+    steps,
+    clearPaths
   }
+
+  return {
+    ...model,
+    scopes: collectStaticResolvedScopes(nodeMap, options)
+  }
+}
+
+function collectStaticResolvedScopes<TValues extends object>(
+  nodeMap: NodeMap<TValues>,
+  options: StaticResolvedFormModelOptions,
+  parentPath: NodeRuntimePathDto = []
+): NonNullable<NodeRuntimeResolveResponseDto['scopes']> {
+  const values = options.values ?? {}
+  const scopes: NonNullable<NodeRuntimeResolveResponseDto['scopes']> = []
+
+  for (const node of Object.values(nodeMap.nodes)) {
+    if (node.kind !== 'GROUP' || !isStaticNodeVisible(node, options)) continue
+
+    const childMap = (typeof node.nodes === 'function' ? node.nodes() : node.nodes) as NodeMap<
+      Record<string, unknown>
+    >
+    const groupValue = getValueAtPath(values, node.path)
+    const childAncestors = [values, ...(options.ancestors ?? [])]
+
+    if (node.groupKind === 'OBJECT') {
+      if (!isPopulatedRecord(groupValue)) continue
+      const childPath = [...parentPath, ...node.path] as NodeRuntimePathDto
+      const childModel = createResolvedFormModelFromNodeMap(childMap.mapId, childMap, {
+        ancestors: childAncestors,
+        parentValues: values,
+        system: options.system,
+        values: groupValue
+      })
+      scopes.push({
+        mapId: childModel.mapId,
+        path: childPath,
+        steps: childModel.steps,
+        clearPaths: childModel.clearPaths
+      })
+      scopes.push(...prefixResolvedScopes(childModel.scopes, childPath))
+      continue
+    }
+
+    if (!Array.isArray(groupValue)) continue
+    groupValue.forEach((row, index) => {
+      if (!isPopulatedRecord(row)) return
+      const childPath = [...parentPath, ...node.path, index] as NodeRuntimePathDto
+      const childModel = createResolvedFormModelFromNodeMap(childMap.mapId, childMap, {
+        ancestors: childAncestors,
+        parentValues: values,
+        system: options.system,
+        values: row
+      })
+      scopes.push({
+        mapId: childModel.mapId,
+        path: childPath,
+        steps: childModel.steps,
+        clearPaths: childModel.clearPaths
+      })
+      scopes.push(...prefixResolvedScopes(childModel.scopes, childPath))
+    })
+  }
+
+  return scopes
+}
+
+function prefixResolvedScopes(
+  scopes: NodeRuntimeResolveResponseDto['scopes'],
+  prefix: NodeRuntimePathDto
+): NonNullable<NodeRuntimeResolveResponseDto['scopes']> {
+  return (scopes ?? []).map((scope) => ({
+    ...scope,
+    path: [...prefix, ...scope.path]
+  }))
+}
+
+function isPopulatedRecord(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && Object.keys(value).length > 0
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function resolveStaticNodeMapSteps<TValues extends object>(
@@ -224,24 +314,51 @@ function toRuntimeNode<TValues extends object>(
     id,
     path: [...node.path] as NodeRuntimePathDto,
     label: node.label,
-    kind: node.kind,
     visible,
-    required: isStaticNodeRequired(node, options),
-    hiddenBehavior: node.hiddenBehavior,
-    clearPaths: []
-  } satisfies Pick<
-    NodeRuntimeNodeDto,
-    'id' | 'path' | 'label' | 'kind' | 'visible' | 'required' | 'hiddenBehavior' | 'clearPaths'
-  >
+    required: visible && isStaticNodeRequired(node, options),
+    hiddenBehavior: node.hiddenBehavior ?? 'KEEP',
+    clearPaths: visible || node.hiddenBehavior !== 'CLEAR' ? [] : [[...node.path]]
+  }
 
   if (node.kind === 'GROUP') {
     const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
 
+    if (node.groupKind === 'OBJECT') {
+      return {
+        ...base,
+        kind: 'GROUP',
+        groupKind: 'OBJECT',
+        childMapId: childMap.mapId,
+        presentation: node.presentation,
+        authoring: resolveObjectAuthoringMeta(node.label, node.authoring)
+      }
+    }
+
     return {
       ...base,
       kind: 'GROUP',
-      groupKind: node.groupKind,
-      childMapId: childMap.mapId
+      groupKind: 'ARRAY',
+      childMapId: childMap.mapId,
+      presentation: node.presentation,
+      authoring: resolveArrayAuthoringMeta(
+        node.label,
+        node.presentation,
+        node.authoring,
+        childMap.authoring
+      )
+    }
+  }
+
+  const authoring = resolveInputAuthoringMeta(node.authoring)
+  if (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI') {
+    return {
+      ...base,
+      kind: 'INPUT',
+      type: node.type,
+      options: visible
+        ? (getStaticInlineOptions(node, options) ?? getStaticRelationshipOptions(node, options) ?? [])
+        : [],
+      authoring
     }
   }
 
@@ -249,7 +366,7 @@ function toRuntimeNode<TValues extends object>(
     ...base,
     kind: 'INPUT',
     type: node.type,
-    options: getStaticInlineOptions(node) ?? getStaticRelationshipOptions(node, options)
+    authoring
   }
 }
 
@@ -287,16 +404,31 @@ function shouldEvaluateStaticConditions({
   return values !== undefined || parentValues !== undefined || ancestors !== undefined
 }
 
-function getStaticInlineOptions<TValues extends object>(node: NodeEntry<TValues>): NodeRuntimeOptionDto[] | undefined {
-  if (node.kind !== 'INPUT' || !('source' in node) || node.source.kind !== 'INLINE') {
+function getStaticInlineOptions<TValues extends object>(
+  node: NodeEntry<TValues>,
+  options: StaticResolvedFormModelOptions
+): NodeRuntimeOptionDto[] | undefined {
+  if (
+    node.kind !== 'INPUT' ||
+    !('source' in node) ||
+    (node.source.kind !== 'INLINE_OPTIONS' && node.source.kind !== 'INLINE_GROUPS')
+  ) {
     return undefined
   }
 
-  if ('options' in node.source) {
+  if (node.source.kind === 'INLINE_OPTIONS') {
     return node.source.options.map(toRuntimeOption)
   }
 
-  return node.source.optionGroups.flatMap((group) => group.options.map(toRuntimeOption))
+  return node.source.optionGroups
+    .filter((group) =>
+      evaluateConditionIf(group.showIf, {
+        ancestors: options.ancestors,
+        parentValues: options.parentValues,
+        values: options.values ?? {}
+      })
+    )
+    .flatMap((group) => group.options.map(toRuntimeOption))
 }
 
 function getStaticRelationshipOptions<TValues extends object>(
@@ -322,7 +454,11 @@ function getStaticRelationshipOptions<TValues extends object>(
   return STATIC_RELATIONSHIP_OPTIONS[relationship.table]?.map((option) => ({ ...option }))
 }
 
-function toRuntimeOption(option: { code: string, label: string, tooltip?: string | null }): NodeRuntimeOptionDto {
+function toRuntimeOption(option: {
+  code: string
+  label: string
+  tooltip?: string | null
+}): NodeRuntimeOptionDto {
   return {
     value: option.code,
     label: option.label,

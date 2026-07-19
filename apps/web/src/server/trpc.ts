@@ -1,5 +1,10 @@
-import { createServerClient, parseCookieHeader, serializeCookieHeader, type CookieOptions } from '@supabase/ssr'
-import { handleTrpcFetchRequest, type TrpcContext } from '@artificer-toolkit/apis/trpc-handler'
+import {
+  createServerClient,
+  parseCookieHeader,
+  serializeCookieHeader,
+  type CookieOptions
+} from '@supabase/ssr'
+import { handleTrpcFetchRequest } from '@artificer-toolkit/apis/trpc-handler'
 import { crossSiteRequestResponse, isTrustedSameOriginRequest } from '#app/lib/trpcRequestSecurity'
 
 interface ResponseCookie {
@@ -9,11 +14,10 @@ interface ResponseCookie {
 }
 
 function getRequestCookies(request: Request) {
-  return parseCookieHeader(request.headers.get('Cookie') ?? '')
-    .map((cookie) => ({
-      name: cookie.name,
-      value: cookie.value ?? ''
-    }))
+  return parseCookieHeader(request.headers.get('Cookie') ?? '').map((cookie) => ({
+    name: cookie.name,
+    value: cookie.value ?? ''
+  }))
 }
 
 function appendResponseCookies(response: Response, cookies: ResponseCookie[]): Response {

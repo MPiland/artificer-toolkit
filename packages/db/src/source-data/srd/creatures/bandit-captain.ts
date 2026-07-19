@@ -7,7 +7,6 @@ export const banditCaptain: CreatureAuthored = {
   description: 'A cunning and ruthless leader who commands a gang of outlaws through fear and gold.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const banditCaptain: CreatureAuthored = {
     INTELLIGENCE: 14,
     WISDOM: 11,
     CHARISMA: 14,
-    SPELLCASTING: 0
   },
   armorClass: 15,
   armorClassNote: 'studded leather armor',

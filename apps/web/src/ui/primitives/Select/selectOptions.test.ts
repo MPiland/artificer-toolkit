@@ -1,7 +1,20 @@
+import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
-import { addAllOption, resolveMultiSelectValue, toComboboxData } from './selectOptions'
+import {
+  addAllOption,
+  getClearButtonAriaLabel,
+  resolveMultiSelectValue,
+  toComboboxData
+} from './selectOptions'
 
 describe('select option helpers', () => {
+  it('uses visible ReactNode label text for the clear button name', () => {
+    const label = createElement('span', null, 'Spell ', createElement('strong', null, 'school'))
+
+    expect(getClearButtonAriaLabel(label, 'Clear selected option')).toBe('Clear Spell school')
+    expect(getClearButtonAriaLabel(null, 'Clear selected option')).toBe('Clear selected option')
+  })
+
   it('normalizes flat select options for Mantine', () => {
     expect(toComboboxData([
       { value: 'wizard', label: 'Wizard' },

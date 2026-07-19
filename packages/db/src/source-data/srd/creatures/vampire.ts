@@ -1,13 +1,12 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
-import { conditionTypeId } from '../equipment/shared.js'
+
 
 export const vampire: CreatureAuthored = {
   id: S.CREATURE_IDS.VAMPIRE,
   label: 'Vampire',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.UNDEAD,
   size: S.SIZE_CODE.MEDIUM,
@@ -20,7 +19,6 @@ export const vampire: CreatureAuthored = {
     INTELLIGENCE: 17,
     WISDOM: 15,
     CHARISMA: 18,
-    SPELLCASTING: 0
   },
   armorClass: 16,
   armorClassNote: 'natural armor',
@@ -152,6 +150,7 @@ export const vampire: CreatureAuthored = {
     {
       id: S.featureId(277, 17),
       label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
       description: 'The vampire can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The vampire regains spent legendary actions at the start of its turn.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {

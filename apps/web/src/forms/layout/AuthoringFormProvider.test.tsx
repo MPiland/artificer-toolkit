@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAuthoringForm } from './AuthoringFormContext'
@@ -82,9 +83,101 @@ describe('AuthoringFormProvider domain registration', () => {
   })
 })
 
+describe('AuthoringFormProvider unsaved navigation', () => {
+  it('keeps a dirty authored form open when the user stays', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
+          <UnsavedNavigationProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-changes').textContent).toBe('true')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Navigate away' }))
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Leave without saving?' })
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('pathname').textContent).toBe('/backgrounds')
+
+    await user.click(screen.getByRole('button', { name: 'Stay' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+    })
+    expect(screen.getByTestId('pathname').textContent).toBe('/backgrounds')
+  })
+
+  it('continues navigation when the user discards unsaved changes', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
+          <UnsavedNavigationProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-changes').textContent).toBe('true')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Navigate away' }))
+    await screen.findByRole('dialog', { name: 'Leave without saving?' })
+    await user.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-pathname').textContent).toBe('/spells')
+    })
+  })
+
+  it('does not apply the authored-form guard to Character Builder state', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider
+          data={{ payload: null, systems: [] }}
+          kind='character-builder'
+          mode='create'
+        >
+          <UnsavedNavigationProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-changes').textContent).toBe('true')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Navigate away' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pathname').textContent).toBe('/spells')
+    })
+    expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+  })
+})
+
 const providerStepModel = {
   mapId: 'provider-steps',
   clearPaths: [],
+  scopes: [],
   steps: [
     {
       id: 'basics',
@@ -104,7 +197,9 @@ const providerStepModel = {
               type: 'TEXT',
               visible: true,
               required: true,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: { exposure: 'author' }
             }
           ]
         }
@@ -128,7 +223,9 @@ const providerStepModel = {
               type: 'TEXT',
               visible: false,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: { exposure: 'author' }
             }
           ]
         }
@@ -152,7 +249,9 @@ const providerStepModel = {
               type: 'TEXT',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: { exposure: 'author' }
             }
           ]
         }
@@ -245,6 +344,29 @@ function StepStateProbe() {
       </button>
       <button type='button' onClick={() => void goToPreviousStep()}>
         Previous
+      </button>
+    </>
+  )
+}
+
+function UnsavedNavigationProbe() {
+  const authoring = useAuthoringForm()
+  const navigate = useNavigate()
+  const router = useRouter()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const { updateAuthoringFormState } = authoring
+
+  useEffect(() => {
+    updateAuthoringFormState({ hasChanges: true })
+  }, [updateAuthoringFormState])
+
+  return (
+    <>
+      <div data-testid='has-changes'>{String(authoring.hasChanges)}</div>
+      <div data-testid='pathname'>{pathname}</div>
+      <div data-testid='history-pathname'>{router.history.location.pathname}</div>
+      <button type='button' onClick={() => void navigate({ to: '/spells' })}>
+        Navigate away
       </button>
     </>
   )

@@ -80,7 +80,7 @@ export type CompiledEffectOutcome
     | import('#authored').MoveManifestAuthored
     | CommandManifestAuthored
     | import('#authored').TeleportAuthored
-    | import('#authored').RuleAuthored
+    | import('#authored').ManualAdjudicationAuthored
 
 function compileOutcomePayload(
   outcome: import('#authored').OutcomeAuthored
@@ -97,7 +97,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.MANIFEST:
     case EFFECT_KIND.MOVE_MANIFEST:
     case EFFECT_KIND.COMMAND_MANIFEST:
-    case EFFECT_KIND.RULE:
+    case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]
     default:
       return assertNever(outcome)

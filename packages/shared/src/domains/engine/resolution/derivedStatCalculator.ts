@@ -3,20 +3,98 @@ import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CompiledEquipment } from '../../subjects/compilers/equipment.js'
+import { ABILITIES } from '../../core/ability.js'
 import { resolveAbilityRecordKey } from './abilityKey.js'
 import { parseModifierDomainKey } from './modifierDomainKey.js'
+import { SKILL_ABILITY_MAP } from './skillAbilityMap.js'
+
+const ABILITY_CANONICAL_BY_ALIAS = (() => {
+  const map = new Map<string, string>()
+  for (const abilityCode of Object.keys(ABILITIES)) {
+    map.set(abilityCode, abilityCode)
+    const short = ABILITIES[abilityCode as keyof typeof ABILITIES].short
+    if (short) map.set(short, abilityCode)
+  }
+  return map
+})()
+
+function toSkillCanonicalId(value: string | undefined): string {
+  if (!value) return ''
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-')
+}
+
+function resolveAbilityAlias(subjectId: string): string | undefined {
+  return ABILITY_CANONICAL_BY_ALIAS.get(subjectId)
+    ?? ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
+}
+
+function resolveSkillAlias(subjectId: string, skillAliases: Map<string, string>): string {
+  if (skillAliases.has(subjectId)) return skillAliases.get(subjectId) ?? subjectId
+  const lower = subjectId.toLowerCase()
+  if (skillAliases.has(lower)) return skillAliases.get(lower) ?? subjectId
+
+  const normalized = toSkillCanonicalId(subjectId)
+  if (skillAliases.has(normalized)) return skillAliases.get(normalized) ?? subjectId
+  if (skillAliases.has(normalized.toUpperCase())) return skillAliases.get(normalized.toUpperCase()) ?? subjectId
+
+  return subjectId
+}
+
+function buildSkillSubjectAliasMap(registry: CharacterAssemblyRegistry): Map<string, string> {
+  const aliases = new Map<string, string>()
+
+  for (const canonical of Object.keys(SKILL_ABILITY_MAP)) {
+    aliases.set(canonical, canonical)
+    aliases.set(canonical.toUpperCase(), canonical)
+  }
+
+  for (const skill of registry.system?.skills ?? []) {
+    const canonicalByCode = toSkillCanonicalId(skill.code)
+    const canonical = SKILL_ABILITY_MAP[canonicalByCode] !== undefined
+      ? canonicalByCode
+      : SKILL_ABILITY_MAP[toSkillCanonicalId(skill.id)] !== undefined
+        ? toSkillCanonicalId(skill.id)
+        : undefined
+
+    if (!canonical) continue
+
+    aliases.set(skill.id, canonical)
+    if (skill.code) {
+      aliases.set(skill.code, canonical)
+      aliases.set(skill.code.toUpperCase(), canonical)
+      aliases.set(canonicalByCode, canonical)
+    }
+  }
+
+  return aliases
+}
+
+function mapProficiencySubject(
+  kind: string,
+  subjectId: string,
+  skillAliases: Map<string, string>
+): string {
+  if (kind === 'SKILL') return resolveSkillAlias(subjectId, skillAliases)
+  if (kind === 'SAVE_ABILITY') return resolveAbilityAlias(subjectId) ?? subjectId
+  return subjectId
+}
 
 /**
  * Computes all derived stats from the character build snapshot and resolved modifiers.
  *
- * Calculation precedence follows `dnd5e2014/RULE_ORDER.md` §4.
+ * Calculation precedence follows `dnd5e2014/RULE_ORDER.md` \u00a7 4.
  */
 export function calculateDerivedStats(
   snapshot: CharacterBuildSnapshot,
   resolvedModifiers: Record<string, number>,
   proficiencies: EngineProficiency[],
   registry: CharacterAssemblyRegistry,
-  rules: RulesSystem
+  rules: RulesSystem,
+  activeEquipmentInstanceIds?: ReadonlySet<string>
 ): EngineDerivedStats {
   // Step 1: Base ability scores from snapshot assignments
   const abilityScores: Record<string, number> = { ...snapshot.abilities }
@@ -38,12 +116,14 @@ export function calculateDerivedStats(
 
   // Step 4: Proficiency bonus
   const proficiencyBonus = rules.proficiencyBonus(Math.max(snapshot.totalLevel, 1))
+  const skillSubjectAliases = buildSkillSubjectAliasMap(registry)
 
   // Build a proficiency lookup for quick access
-  // key: `${kind}:${subjectId}` → scaling
+  // key: `${kind}:${subjectId}` -> scaling
   const proficiencyMap = new Map<string, EngineProficiency['scaling']>()
   for (const prof of proficiencies) {
-    proficiencyMap.set(`${prof.kind}:${prof.subjectId}`, prof.scaling)
+    const mappedSubject = mapProficiencySubject(prof.kind, prof.subjectId, skillSubjectAliases)
+    proficiencyMap.set(`${prof.kind}:${mappedSubject}`, prof.scaling)
     if (prof.subjectId === '*') {
       proficiencyMap.set(`${prof.kind}:*`, prof.scaling)
     }
@@ -51,7 +131,8 @@ export function calculateDerivedStats(
 
   // Helper: get proficiency multiplier for a kind+subjectId
   function profMultiplier(kind: string, subjectId: string): number {
-    const exact = proficiencyMap.get(`${kind}:${subjectId}`)
+    const mappedSubject = mapProficiencySubject(kind, subjectId, skillSubjectAliases)
+    const exact = proficiencyMap.get(`${kind}:${mappedSubject}`)
     const all = proficiencyMap.get(`${kind}:*`)
     const scaling = exact ?? all
     if (!scaling) return 0
@@ -61,15 +142,19 @@ export function calculateDerivedStats(
     return 0
   }
 
-  // Step 5: Saving throws — per ability
+  // Step 5: Saving throws per ability
   const savingThrows: Record<string, number> = {}
   for (const ability of Object.keys(abilityModifiers)) {
-    const mod = abilityModifiers[ability] ?? 0
-    const mult = profMultiplier('SAVE_ABILITY', ability)
+    const canonicalAbility = resolveAbilityAlias(ability) ?? ability
+    const modifierAbility = resolveAbilityRecordKey(abilityModifiers, ability)
+      ?? resolveAbilityRecordKey(abilityModifiers, canonicalAbility)
+      ?? ability
+    const mod = abilityModifiers[modifierAbility] ?? 0
+    const mult = profMultiplier('SAVE_ABILITY', canonicalAbility)
     savingThrows[ability] = mod + Math.floor(proficiencyBonus * mult)
   }
 
-  // Step 6: Skill bonuses — canonical D&D 5e 2014 skill → governing ability mapping
+  // Step 6: Skill bonuses - canonical D&D 5e 2014 skill -> governing ability mapping
   const skillBonuses: Record<string, number> = {}
   for (const [skillId, governingAbility] of Object.entries(SKILL_ABILITY_MAP)) {
     const mod = abilityModifiers[resolveAbilityRecordKey(abilityModifiers, governingAbility) ?? governingAbility] ?? 0
@@ -82,11 +167,16 @@ export function calculateDerivedStats(
 
   // Step 8: Armor Class
   // Resolution order:
-  //   a) If an ARMOR-category item is equipped → use its armorClass + DEX cap per armor weight
-  //   b) If a SHIELD is equipped → add its armorClass (usually +2) regardless of armor
+  //   a) If an ARMOR-category item is equipped -> use its armorClass + DEX cap per armor weight
+  //   b) If a SHIELD is equipped -> add its armorClass (usually +2) regardless of armor
   //   c) Apply ARMOR_CLASS:BONUS domain modifiers (spells, features, etc.)
   //   d) Fallback: 10 + DEX modifier (unarmored)
-  const armorClass = resolveArmorClass(snapshot, abilityModifiers, resolvedModifiers)
+  const armorClass = resolveArmorClass(
+    snapshot,
+    abilityModifiers,
+    resolvedModifiers,
+    activeEquipmentInstanceIds
+  )
 
   // Step 9: Initiative — DEX modifier + INITIATIVE domain modifiers
   const initiativeBonus = resolvedModifiers['INITIATIVE:BONUS'] ?? 0
@@ -117,9 +207,9 @@ export function calculateDerivedStats(
   }
 }
 
-/* ──────────────────────────────────────────────
+/* ---------------------------------------------------------------------------
  * Armor class resolution
- * ────────────────────────────────────────────── */
+ * ------------------------------------------------------------------------- */
 
 /**
  * Resolves armor class from equipped items.
@@ -133,14 +223,17 @@ export function calculateDerivedStats(
 function resolveArmorClass(
   snapshot: CharacterBuildSnapshot,
   abilityModifiers: Record<string, number>,
-  resolvedModifiers: Record<string, number>
+  resolvedModifiers: Record<string, number>,
+  activeEquipmentInstanceIds?: ReadonlySet<string>
 ): number {
   const dex = abilityModifiers['DEX'] ?? 0
 
   let baseAC: number | undefined
   let shieldBonus = 0
 
-  for (const item of snapshot.equippedItems) {
+  for (const item of snapshot.equipmentItems) {
+    if (!item.equippedState) continue
+    if (activeEquipmentInstanceIds && !activeEquipmentInstanceIds.has(item.instanceId)) continue
     const compiled = item.compiledItem
     // Variants don't have their own category — skip
     if (compiled.category === 'VARIANT') continue
@@ -167,9 +260,9 @@ function resolveArmorClass(
   return armorBase + shieldBonus + acBonus
 }
 
-/* ──────────────────────────────────────────────
+/* ---------------------------------------------------------------------------
  * Spellcasting ability resolution
- * ────────────────────────────────────────────── */
+ * ------------------------------------------------------------------------- */
 
 function resolveSpellcastingAbility(
   snapshot: CharacterBuildSnapshot,
@@ -183,29 +276,3 @@ function resolveSpellcastingAbility(
   }
   return undefined
 }
-
-/* ──────────────────────────────────────────────
- * Canonical D&D 5e 2014 skill → governing ability mapping
- * ────────────────────────────────────────────── */
-
-const SKILL_ABILITY_MAP: Record<string, string> = {
-  'acrobatics': 'DEX',
-  'animal-handling': 'WIS',
-  'arcana': 'INT',
-  'athletics': 'STR',
-  'deception': 'CHA',
-  'history': 'INT',
-  'insight': 'WIS',
-  'intimidation': 'CHA',
-  'investigation': 'INT',
-  'medicine': 'WIS',
-  'nature': 'INT',
-  'perception': 'WIS',
-  'performance': 'CHA',
-  'persuasion': 'CHA',
-  'religion': 'INT',
-  'sleight-of-hand': 'DEX',
-  'stealth': 'DEX',
-  'survival': 'WIS'
-}
-

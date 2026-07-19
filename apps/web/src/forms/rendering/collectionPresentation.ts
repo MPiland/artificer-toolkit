@@ -1,0 +1,282 @@
+import type {
+  NodeRuntimeArrayGroupNodeDto,
+  NodeRuntimeCollectionActionDto,
+  NodeRuntimeCollectionAuthoringDto,
+  NodeRuntimeObjectActionDto,
+  NodeRuntimeObjectGroupNodeDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { speedOptions } from '@artificer-toolkit/shared/authored'
+import {
+  EFFECT_KIND_OPTIONS,
+  MODIFIER_KIND_OPTIONS,
+  MODIFIER_SCOPE_OPTIONS,
+  NODE_SUBJECT_OPTIONS,
+  PATH_CODE_OPTIONS,
+  PREDICATE_OPTIONS,
+  TRIGGER_OPTIONS,
+  VALUE_DOMAIN_OPTIONS
+} from '@artificer-toolkit/shared/core'
+
+type CollectionAuthoring = NodeRuntimeCollectionAuthoringDto
+type RowSummary = CollectionAuthoring['rowSummary']
+
+type CollectionPresentation = {
+  addAction?: Extract<NodeRuntimeCollectionActionDto, { type: 'collection.add' }>
+  duplicateAction?: Extract<NodeRuntimeCollectionActionDto, { type: 'collection.duplicate' }>
+  editAction?: Extract<NodeRuntimeCollectionActionDto, { type: 'collection.edit' }>
+  emptyLabel: string
+  heading: string | null
+  headingIcon: 'help' | 'controls'
+  itemLabel: string
+  join?: 'AND' | 'OR'
+  removeAction?: Extract<NodeRuntimeCollectionActionDto, { type: 'collection.remove' }>
+  rowExpansion: 'collapsible' | 'expanded'
+  rowLayout: 'default' | 'card' | 'flat' | 'compact'
+}
+
+type CollectionRowIcon = 'box' | 'sparkles' | 'sword'
+
+export function getCollectionPresentation(
+  node: NodeRuntimeArrayGroupNodeDto
+): CollectionPresentation {
+  const collection = node.authoring.collection
+  const itemLabel = collection.itemLabel ?? toSingularLabel(node.label)
+
+  return {
+    addAction: findCollectionAction(collection.actions, 'collection.add'),
+    duplicateAction: findCollectionAction(collection.actions, 'collection.duplicate'),
+    editAction: findCollectionAction(collection.actions, 'collection.edit'),
+    emptyLabel: collection.emptyLabel ?? `No ${node.label.toLowerCase()} added yet.`,
+    heading: collection.showHeading === false ? null : node.label,
+    headingIcon: collection.rowSummary === 'modifier' ? 'controls' : 'help',
+    itemLabel,
+    join: collection.join,
+    removeAction: findCollectionAction(collection.actions, 'collection.remove'),
+    rowExpansion: collection.rowExpansion ?? 'collapsible',
+    rowLayout: collection.rowLayout ?? 'default'
+  }
+}
+
+export function getObjectGroupPresentation(node: NodeRuntimeObjectGroupNodeDto) {
+  const authoring = node.authoring
+  const itemLabel = toSingularLabel(node.label)
+
+  return {
+    addAction: findObjectAction(authoring.actions, 'collection.add'),
+    emptyLabel: authoring.emptyLabel ?? `${node.label} has not been configured yet.`,
+    removeAction: findObjectAction(authoring.actions, 'collection.remove'),
+    itemLabel
+  }
+}
+
+export function getCollectionRowLabel(
+  node: NodeRuntimeArrayGroupNodeDto,
+  row: unknown,
+  index: number
+) {
+  if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) return row.label
+
+  const summary = node.authoring?.collection?.rowSummary
+  const label = summary ? getRowSummaryLabel(summary, row) : undefined
+  if (label) return label
+
+  const itemLabel = getCollectionPresentation(node).itemLabel
+  return `${toTitleCase(itemLabel)} ${index + 1}`
+}
+
+export function getCollectionRowDescription(
+  node: NodeRuntimeArrayGroupNodeDto,
+  row: unknown
+): string | undefined {
+  if (!isRecord(row) || node.authoring?.collection?.rowSummary !== 'modifier') return undefined
+
+  const attackDomain = formatEnumLabel(readString(getRecordValue(row, 'domain.attackDomain')))
+  const scope = getOptionLabel(MODIFIER_SCOPE_OPTIONS, readString(row.scope))
+  const valueKind = formatEnumLabel(readString(getRecordValue(row, 'payload.valueKind')))
+  const restriction = getRestrictionLabel(row)
+
+  return [attackDomain, scope, valueKind, restriction].filter(Boolean).join(' · ') || undefined
+}
+
+export function getCollectionRowMetadata(
+  node: NodeRuntimeArrayGroupNodeDto,
+  row: unknown
+): string[] {
+  if (!isRecord(row) || node.authoring?.collection?.rowSummary !== 'modifier') return []
+
+  const valueDomainCode = readString(row.valueDomainCode)
+  const valueDomain =
+    valueDomainCode === 'ATTACK_ROLL'
+      ? 'Attack Roll'
+      : valueDomainCode === 'DAMAGE'
+        ? 'Damage'
+        : getOptionLabel(VALUE_DOMAIN_OPTIONS, valueDomainCode)
+  const attackDomain = formatEnumLabel(readString(getRecordValue(row, 'domain.attackDomain')))
+  const scope = getOptionLabel(MODIFIER_SCOPE_OPTIONS, readString(row.scope))
+  const valueKind = formatEnumLabel(readString(getRecordValue(row, 'payload.valueKind')))
+  const amount = readNumber(getRecordValue(row, 'payload.amount'))
+  const amountLabel =
+    amount === undefined || !valueKind
+      ? valueKind
+      : `${valueKind} ${amount > 0 ? '+' : ''}${formatNumber(amount)}`
+
+  return [valueDomain, attackDomain, scope, amountLabel, getRestrictionLabel(row)].filter(
+    (item): item is string => Boolean(item)
+  )
+}
+
+export function getCollectionRowIcon(
+  node: NodeRuntimeArrayGroupNodeDto,
+  row: unknown
+): CollectionRowIcon {
+  if (node.authoring?.collection?.rowSummary !== 'modifier') return 'box'
+  return isRecord(row) && row.valueDomainCode === 'ATTACK_ROLL' ? 'sword' : 'sparkles'
+}
+
+function findCollectionAction<TType extends NodeRuntimeCollectionActionDto['type']>(
+  actions: readonly NodeRuntimeCollectionActionDto[],
+  type: TType
+): Extract<NodeRuntimeCollectionActionDto, { type: TType }> | undefined {
+  return actions.find(
+    (action): action is Extract<NodeRuntimeCollectionActionDto, { type: TType }> =>
+      action.type === type
+  )
+}
+
+function findObjectAction<TType extends NodeRuntimeObjectActionDto['type']>(
+  actions: readonly NodeRuntimeObjectActionDto[],
+  type: TType
+): Extract<NodeRuntimeObjectActionDto, { type: TType }> | undefined {
+  return actions.find(
+    (action): action is Extract<NodeRuntimeObjectActionDto, { type: TType }> => action.type === type
+  )
+}
+
+function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefined {
+  if (!isRecord(row)) return undefined
+
+  switch (summary) {
+    case 'facet-context': {
+      const subject = getOptionLabel(NODE_SUBJECT_OPTIONS, readString(row.subject))
+      return subject ? `${subject} condition` : undefined
+    }
+    case 'facet-condition':
+      return getOptionLabel(PREDICATE_OPTIONS, readString(row.predicateCode))
+    case 'modifier': {
+      const amount = readNumber(getRecordValue(row, 'payload.amount'))
+      const modifierKind = getOptionLabel(MODIFIER_KIND_OPTIONS, readString(row.modifierKind))
+      const valueDomainCode = readString(row.valueDomainCode)
+      const valueDomain =
+        valueDomainCode === 'ATTACK_ROLL'
+          ? 'Attack Rolls'
+          : valueDomainCode === 'DAMAGE'
+            ? 'Damage Rolls'
+            : getOptionLabel(VALUE_DOMAIN_OPTIONS, valueDomainCode)
+      const amountLabel =
+        amount === undefined ? undefined : `${amount > 0 ? '+' : ''}${formatNumber(amount)}`
+
+      return [amountLabel, valueDomain, modifierKind !== 'Bonus' ? modifierKind : undefined]
+        .filter(Boolean)
+        .join(' ')
+    }
+    case 'effect':
+      return getOptionLabel(
+        TRIGGER_OPTIONS,
+        readString(getRecordValue(row, 'invocation.triggerCode'))
+      )
+    case 'effect-path':
+      return getOptionLabel(PATH_CODE_OPTIONS, readString(row.pathCode))
+    case 'outcome': {
+      const effectKind = readString(row.effectKind)
+      return effectKind === 'HEAL' ? 'Healing' : getOptionLabel(EFFECT_KIND_OPTIONS, effectKind)
+    }
+    case 'speed': {
+      const speedLabel = getSpeedOptionLabel(readString(row.speedId))
+      const amount = readNumber(row.amount)
+      const unit = formatEnumLabel(readString(row.unit))
+      const amountLabel =
+        amount === undefined ? undefined : `${formatNumber(amount)} ${unit ?? 'Feet'}`
+      return speedLabel && amountLabel
+        ? `${speedLabel} - ${amountLabel}`
+        : (speedLabel ?? amountLabel)
+    }
+    case 'default':
+      return undefined
+  }
+}
+
+function getRestrictionLabel(row: Record<string, unknown>) {
+  if (hasPredicateCode(row, 'WHILE_SOURCE_ATTUNED')) return 'While source attuned'
+  if (hasPredicateCode(row, 'WHILE_SOURCE_EQUIPPED')) return 'While source equipped'
+  if (hasPredicateCode(row, 'WHILE_SOURCE_CARRIED')) return 'While source carried'
+  return undefined
+}
+
+function getSpeedOptionLabel(value: string | undefined) {
+  if (!value) return undefined
+  const normalized = value.toLowerCase()
+  return speedOptions.find((option) =>
+    [option.id, option.code, option.label].some(
+      (candidate) => candidate.toLowerCase() === normalized
+    )
+  )?.label
+}
+
+function getOptionLabel(
+  options: readonly { code: string; label: string }[],
+  value: string | undefined
+) {
+  if (!value) return undefined
+  return options.find((option) => option.code === value)?.label
+}
+
+function getRecordValue(record: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, segment) => {
+    if (!isRecord(value)) return undefined
+    return value[segment]
+  }, record)
+}
+
+function hasPredicateCode(value: unknown, predicateCode: string): boolean {
+  if (Array.isArray(value)) return value.some((item) => hasPredicateCode(item, predicateCode))
+  if (!isRecord(value)) return false
+  if (value.predicateCode === predicateCode) return true
+  return Object.values(value).some((item) => hasPredicateCode(item, predicateCode))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function formatEnumLabel(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ')
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('en-US').format(value)
+}
+
+function toSingularLabel(label: string) {
+  const trimmed = label.trim()
+  if (/ies$/i.test(trimmed)) return `${trimmed.slice(0, -3)}y`
+  if (/ses$/i.test(trimmed)) return trimmed.slice(0, -2)
+  if (/s$/i.test(trimmed)) return trimmed.slice(0, -1)
+  return trimmed
+}
+
+function toTitleCase(value: string) {
+  return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value
+}

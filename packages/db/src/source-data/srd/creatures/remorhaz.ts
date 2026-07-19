@@ -6,7 +6,6 @@ export const remorhaz: CreatureAuthored = {
     label: 'Remorhaz',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.HUGE,
@@ -18,7 +17,6 @@ export const remorhaz: CreatureAuthored = {
         INTELLIGENCE: 4,
         WISDOM: 10,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',

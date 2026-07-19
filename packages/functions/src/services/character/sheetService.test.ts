@@ -4,6 +4,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -39,7 +40,7 @@ function createCharacter(): CharacterAuthored {
       },
       hitpoints: {
         method: 'FIXED',
-        levels: [{ level: 1, value: 12 }]
+        levels: [{ level: 1, classId: 'class-1', classLevel: 1, value: 12 }]
       },
       featureAcquisitions: [],
       spellSelections: [
@@ -89,7 +90,9 @@ function createCharacter(): CharacterAuthored {
   }
 }
 
-function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): CharacterSheetResponseDto {
+function createSheet(
+  overrides: Partial<CharacterSheetResponseDto> = {}
+): CharacterSheetResponseDto {
   return {
     meta: {
       characterId: 'character-1',
@@ -104,6 +107,8 @@ function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): Charac
     },
     overview: {
       abilities: [{ ability: 'DEXTERITY', score: 14, modifier: 2 }],
+      savingThrows: [],
+      skills: [],
       facts: [],
       armorClass: 12,
       initiative: 2,
@@ -166,7 +171,14 @@ function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): Charac
       defenses: [],
       senses: [],
       conditionOptions: [{ id: 'condition-1', label: 'Poisoned' }],
-      equipmentOptions: [{ id: 'equipment-1', label: 'Sword' }],
+      equipmentOptions: [
+        {
+          id: 'equipment-1',
+          label: 'Sword',
+          isContainer: false,
+          requiresAttunement: true
+        }
+      ],
       currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
     },
     notes: {},
@@ -174,17 +186,32 @@ function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): Charac
   }
 }
 
-function createConditionDb(rows: Array<{ id: string, label: string, description?: string | null }> = []): DBLike {
+function createConditionDb(
+  rows: Array<{ id: string; label: string; description?: string | null }> = []
+): DBLike {
+  type TestQueryBuilder = {
+    select: (...args: unknown[]) => TestQueryBuilder
+    innerJoin: (...args: unknown[]) => TestQueryBuilder
+    leftJoin: (...args: unknown[]) => TestQueryBuilder
+    where: (...args: unknown[]) => TestQueryBuilder
+    orderBy: (...args: unknown[]) => TestQueryBuilder
+    execute: () => Promise<unknown[]>
+  }
+
+  function createQueryBuilder(result: unknown[]): TestQueryBuilder {
+    const builder: TestQueryBuilder = {
+      select: () => builder,
+      innerJoin: () => builder,
+      leftJoin: () => builder,
+      where: () => builder,
+      orderBy: () => builder,
+      execute: async () => result
+    }
+    return builder
+  }
+
   return {
-    selectFrom: () => ({
-      select: () => ({
-        where: () => ({
-          orderBy: () => ({
-            execute: async () => rows
-          })
-        })
-      })
-    })
+    selectFrom: (table: string) => createQueryBuilder(table === 'condition_types' ? rows : [])
   } as unknown as DBLike
 }
 
@@ -194,6 +221,8 @@ function createSystem(
   return {
     id: 'system-1',
     label: 'D&D 5e',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
     alignments: [],
     challengeRatings: [],
     conditionTypes: [],
@@ -218,8 +247,16 @@ function createSystem(
 function createResolution(): CharacterBuilderResolution {
   return {
     mode: 'edit',
+    catalog: {
+      races: [],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      feats: [],
+      spells: []
+    },
     registry: {
-      system: null,
+      system: createSystem(),
       races: [],
       classes: [
         {
@@ -246,7 +283,6 @@ function createResolution(): CharacterBuilderResolution {
       ],
       backgrounds: [],
       equipment: [],
-      spells: [],
       features: []
     },
     summary: {
@@ -267,6 +303,7 @@ function createResolution(): CharacterBuilderResolution {
       ],
       spellcasting: []
     },
+    chosenGrantChoices: [],
     outstandingChoices: [],
     validations: [],
     readiness: {
@@ -279,12 +316,18 @@ function createResolution(): CharacterBuilderResolution {
 }
 
 function createSpellcastingClass(params: {
-  ability?: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['ability']
-  attributes?: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['attributes']
+  ability?: NonNullable<
+    CharacterBuilderResolution['registry']['classes'][number]['spellcasting']
+  >['ability']
+  attributes?: NonNullable<
+    CharacterBuilderResolution['registry']['classes'][number]['spellcasting']
+  >['attributes']
   id: string
   label: string
   resetKind: 'LONG_REST' | 'SHORT_REST'
-  spellLimits: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['spellLimits']
+  spellLimits: NonNullable<
+    CharacterBuilderResolution['registry']['classes'][number]['spellcasting']
+  >['spellLimits']
   maxSpellLevel?: number
 }): CharacterBuilderResolution['registry']['classes'][number] {
   return {
@@ -329,12 +372,16 @@ function createSpellcastingClass(params: {
 }
 
 function createSpellcastingSubclass(params: {
-  attributes?: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['attributes']
+  attributes?: NonNullable<
+    CharacterBuilderResolution['registry']['classes'][number]['spellcasting']
+  >['attributes']
   id: string
   label: string
   parentClassId: string
   resetKind: 'LONG_REST' | 'SHORT_REST'
-  spellLimits: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['spellLimits']
+  spellLimits: NonNullable<
+    CharacterBuilderResolution['registry']['classes'][number]['spellcasting']
+  >['spellLimits']
 }): CharacterBuilderResolution['registry']['classes'][number] {
   return {
     id: params.id,
@@ -364,12 +411,10 @@ function createSpell(params: {
   id: string
   label: string
   level: number
-}): CharacterBuilderResolution['registry']['spells'][number] {
+}): CharacterBuilderResolution['catalog']['spells'][number] {
   return {
-    kind: 'SPELL',
     id: params.id,
     label: params.label,
-    status: 'ACTIVE',
     description: '',
     castingTime: {
       unit: 'ROUND',
@@ -377,9 +422,7 @@ function createSpell(params: {
     },
     level: params.level,
     classIds: params.classIds,
-    magicSchoolId: 'ABJURATION',
-    systemId: 'system-1',
-    userId: 'user-1'
+    magicSchoolId: 'ABJURATION'
   }
 }
 
@@ -417,23 +460,31 @@ function createFullCasterSpellLimits() {
 
 describe('character sheet command application', () => {
   it('applies damage to temporary hit points before current hit points', () => {
-    const next = applyCharacterSheetCommand(createCharacter(), {
-      type: 'ADJUST_HIT_POINTS',
-      mode: 'DAMAGE',
-      amount: 5,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 5,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.hitpoints.temp).toBe(0)
     expect(next.state.hitpoints.current).toBe(8)
   })
 
   it('clamps current hit points when max override is lowered', () => {
-    const next = applyCharacterSheetCommand(createCharacter(), {
-      type: 'SET_HIT_POINTS',
-      maxOverride: 6,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'SET_HIT_POINTS',
+        maxOverride: 6,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.hitpoints.maxOverride).toBe(6)
     expect(next.state.hitpoints.current).toBe(6)
@@ -446,11 +497,15 @@ describe('character sheet command application', () => {
       notes: 'Forced march through the swamp.'
     }
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'SET_EXHAUSTION',
-      level: 2,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_EXHAUSTION',
+        level: 2,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.exhaustion).toEqual({
       level: 2,
@@ -467,11 +522,15 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'REMOVE_CONDITION',
-      conditionTypeId: 'condition-1',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'REMOVE_CONDITION',
+        conditionTypeId: 'condition-1',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.conditions).toBeUndefined()
   })
@@ -603,13 +662,254 @@ describe('character sheet command application', () => {
     ])
   })
 
-  it('hydrates action descriptions from granted feature summaries', async () => {
+  it('applies grants from automatic class features without a redundant acquisition record', async () => {
+    const resolution = createResolution()
+    const fighter = createSpellcastingClass({
+      id: 'class-1',
+      label: 'Fighter',
+      resetKind: 'LONG_REST',
+      spellLimits: []
+    })
+    fighter.features = [
+      {
+        id: 'automatic-training',
+        label: 'Automatic Training',
+        description: 'Gain proficiency in Athletics.',
+        order: 1,
+        availableAtLevel: 1,
+        grants: {
+          proficiencies: [
+            {
+              id: 'automatic-athletics',
+              order: 1,
+              grantKind: 'PROFICIENCY_GRANT',
+              proficiencyKind: 'SKILL',
+              selectionKind: 'GRANTED',
+              scalingKind: 'NONE',
+              authoringModeKind: 'SELECTED',
+              skillIds: ['skill-athletics'],
+              level: 'FULL'
+            }
+          ]
+        }
+      }
+    ]
+    resolution.registry.classes = [fighter]
+    resolution.registry.system = createSystem({
+      skills: [{ id: 'skill-athletics', code: 'ATHLETICS', label: 'Athletics' }]
+    })
+    resolution.summary.totalLevel = 1
+    resolution.grants.features = [
+      {
+        id: 'automatic-training',
+        label: 'Automatic Training',
+        description: 'Gain proficiency in Athletics.',
+        sourceLabel: 'Fighter',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 }
+      }
+    ]
+
+    const character = createCharacter()
+    character.intent.featureAcquisitions = []
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.reference.proficiencies).toContainEqual({
+      label: 'Athletics',
+      value: 'Skill · Proficient'
+    })
+  })
+
+  it('hydrates engine-derived saving throw overview rows with proficiency levels', async () => {
+    const resolution = createResolution()
+    const fighter = createSpellcastingClass({
+      id: 'class-1',
+      label: 'Fighter',
+      resetKind: 'LONG_REST',
+      spellLimits: []
+    })
+    fighter.proficiencies = [
+      {
+        id: 'prof-save-1',
+        order: 1,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'SAVE_ABILITY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        abilities: ['DEXTERITY'],
+        level: 'FULL'
+      }
+    ]
+    resolution.registry.classes = [fighter]
+    resolution.summary.totalLevel = 1
+    resolution.summary.abilities = { DEXTERITY: 14 }
+
+    const character = createCharacter()
+    character.intent.featureAcquisitions = [
+      {
+        id: 'feature-acquisition-1',
+        featureId: 'fighter-training',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.savingThrows).toEqual(
+      expect.arrayContaining([
+        {
+          ability: 'DEXTERITY',
+          label: 'Dexterity',
+          total: 4,
+          proficiency: 'FULL'
+        }
+      ])
+    )
+  })
+
+  it('hydrates engine-derived skill overview rows with vocabulary-id skill matching', async () => {
+    const resolution = createResolution()
+    const fighter = createSpellcastingClass({
+      id: 'class-1',
+      label: 'Fighter',
+      resetKind: 'LONG_REST',
+      spellLimits: []
+    })
+    fighter.proficiencies = [
+      {
+        id: 'prof-skill-1',
+        order: 1,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'SKILL',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        skillIds: ['skill-athletics'],
+        level: 'FULL'
+      }
+    ]
+    resolution.registry.classes = [fighter]
+    resolution.registry.system = createSystem({
+      skills: [
+        {
+          id: 'skill-athletics',
+          code: 'ATHLETICS',
+          label: 'Athletics'
+        }
+      ]
+    })
+    resolution.summary.totalLevel = 1
+    resolution.summary.abilities = { STRENGTH: 14 }
+
+    const character = createCharacter()
+    character.intent.featureAcquisitions = [
+      {
+        id: 'feature-acquisition-1',
+        featureId: 'fighter-training',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.skills).toEqual(
+      expect.arrayContaining([
+        {
+          skillId: 'athletics',
+          code: 'ATHLETICS',
+          label: 'Athletics',
+          ability: 'STRENGTH',
+          total: 4,
+          proficiency: 'FULL'
+        }
+      ])
+    )
+  })
+
+  it('projects passive sense facts from resolved skill totals', async () => {
+    const resolution = createResolution()
+    resolution.registry.system = createSystem({
+      passives: [
+        { id: 'passive-perception', code: 'PASSIVE_PERCEPTION', label: 'Passive Perception' },
+        {
+          id: 'passive-investigation',
+          code: 'PASSIVE_INVESTIGATION',
+          label: 'Passive Investigation'
+        },
+        { id: 'passive-insight', code: 'PASSIVE_INSIGHT', label: 'Passive Insight' }
+      ],
+      skills: [
+        { id: 'skill-perception', code: 'PERCEPTION', label: 'Perception' },
+        { id: 'skill-investigation', code: 'INVESTIGATION', label: 'Investigation' },
+        { id: 'skill-insight', code: 'INSIGHT', label: 'Insight' }
+      ]
+    })
+    resolution.summary.abilities = {
+      INTELLIGENCE: 12,
+      WISDOM: 14
+    }
+
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.facts).toEqual(
+      expect.arrayContaining([
+        { label: 'Passive Perception', value: '12' },
+        { label: 'Passive Investigation', value: '11' },
+        { label: 'Passive Insight', value: '12' }
+      ])
+    )
+  })
+
+  it('filters sheet reference features without inventing actions from attributes alone', async () => {
     const resolution = createResolution()
     resolution.grants.features = [
       {
-        id: 'feature-1',
+        id: 'feature-hidden',
+        label: 'Ability Score Increase',
+        description: '<p>Your Strength score increases by 2.</p>',
+        attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+        sourceLabel: 'Dragonborn',
+        source: { kind: 'RACE', raceId: 'race-1' }
+      },
+      {
+        id: 'feature-visible',
+        label: 'Danger Sense',
+        description: '<p>You have advantage on Dexterity saving throws.</p>',
+        sourceLabel: 'Barbarian',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 2 }
+      },
+      {
+        id: 'feature-limited',
         label: 'Second Wind',
         description: '<p>Regain hit points as a bonus action.</p>',
+        attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
         sourceLabel: 'Fighter',
         source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 }
       }
@@ -623,10 +923,16 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.actions.items).toContainEqual(expect.objectContaining({
-      id: 'feature-1',
-      description: '<p>Regain hit points as a bonus action.</p>'
-    }))
+    expect(sheet.actions.items).toEqual([])
+    expect(sheet.reference.features).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'feature-visible' }),
+        expect.objectContaining({ id: 'feature-limited' })
+      ])
+    )
+    expect(sheet.reference.features).not.toContainEqual(
+      expect.objectContaining({ id: 'feature-hidden' })
+    )
   })
 
   it('hydrates spell casting reference details into sheet spells', async () => {
@@ -641,7 +947,7 @@ describe('character sheet command application', () => {
     spell.components = ['VERBAL', 'SOMATIC', 'MATERIAL']
     spell.attributes = ['CONCENTRATION']
     spell.materialDescription = '<p>A pinch of powdered silver.</p>'
-    resolution.registry.spells = [spell]
+    resolution.catalog.spells = [spell]
 
     const sheet = await buildCharacterSheetResponse({
       character: createCharacter(),
@@ -651,21 +957,23 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toContainEqual(expect.objectContaining({
-      id: 'spell-1',
-      description: '<p>A shimmering barrier protects you.</p>',
-      castingTime: { unit: 'ROUND', amount: 1 },
-      components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
-      attributes: ['CONCENTRATION'],
-      materialDescription: '<p>A pinch of powdered silver.</p>'
-    }))
+    expect(sheet.spells.spells).toContainEqual(
+      expect.objectContaining({
+        id: 'spell-1',
+        description: '<p>A shimmering barrier protects you.</p>',
+        castingTime: { unit: 'ROUND', amount: 1 },
+        components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
+        attributes: ['CONCENTRATION'],
+        materialDescription: '<p>A pinch of powdered silver.</p>'
+      })
+    )
   })
 
   it('hydrates inventory item reference details from equipment records', async () => {
     const resolution = createResolution()
-    resolution.registry.system = {
-      currencies: [{ id: 'gp', label: 'Gold' }]
-    } as CharacterBuilderResolution['registry']['system']
+    resolution.registry.system = createSystem({
+      currencies: [{ id: 'gp', code: 'GP', label: 'Gold' }]
+    })
     const equipment = createEquipment({
       category: 'WEAPON',
       id: 'equipment-1',
@@ -685,31 +993,72 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.inventory.items).toContainEqual(expect.objectContaining({
-      id: 'item-1',
-      equipmentLabel: 'Longsword',
-      description: '<p>A balanced knightly blade.</p>',
-      category: 'WEAPON',
-      cost: { amount: 15, currencyId: 'gp' },
-      costLabel: 'Gold',
-      weight: { amount: 0, unit: 'POUNDS' },
-      properties: ['MARTIAL', 'MELEE'],
-      armorClass: 1
-    }))
+    expect(sheet.inventory.items).toContainEqual(
+      expect.objectContaining({
+        id: 'item-1',
+        equipmentLabel: 'Longsword',
+        description: '<p>A balanced knightly blade.</p>',
+        category: 'WEAPON',
+        cost: { amount: 15, currencyId: 'gp' },
+        costLabel: 'Gold',
+        weight: { amount: 0, unit: 'POUNDS' },
+        properties: ['MARTIAL', 'MELEE'],
+        armorClass: 1
+      })
+    )
+  })
+
+  it('uses the slim equipment catalog for add-item options', async () => {
+    const resolution = createResolution()
+    resolution.catalog.equipment = [
+      {
+        id: 'backpack',
+        label: 'Backpack',
+        isContainer: true,
+        properties: [],
+        requiresAttunement: false
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.reference.equipmentOptions).toEqual([
+      {
+        id: 'backpack',
+        label: 'Backpack',
+        isContainer: true,
+        requiresAttunement: false
+      }
+    ])
+    expect(resolution.registry.equipment).toEqual([])
   })
 
   it('caps resource and spell slot usage at the sheet maximum', () => {
-    const resourceNext = applyCharacterSheetCommand(createCharacter(), {
-      type: 'USE_RESOURCE',
-      resourceGrantId: 'resource-1',
-      amount: 10,
-      expectedVersion: 1
-    }, createSheet())
-    const slotNext = applyCharacterSheetCommand(createCharacter(), {
-      type: 'USE_SPELL_SLOT',
-      slotKey: 'STANDARD:1',
-      expectedVersion: 1
-    }, createSheet())
+    const resourceNext = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'USE_RESOURCE',
+        resourceGrantId: 'resource-1',
+        amount: 10,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+    const slotNext = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'USE_SPELL_SLOT',
+        slotKey: 'STANDARD:1',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(resourceNext.state.resources).toEqual([{ resourceGrantId: 'resource-1', used: 2 }])
     expect(slotNext.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
@@ -720,18 +1069,26 @@ describe('character sheet command application', () => {
     character.state.resources = [{ resourceGrantId: 'resource-1', used: 2 }]
     character.state.spellSlots = [{ slotKey: 'STANDARD:1', used: 2 }]
 
-    const resourceNext = applyCharacterSheetCommand(character, {
-      type: 'RESTORE_RESOURCE',
-      resourceGrantId: 'resource-1',
-      all: true,
-      expectedVersion: 1
-    }, createSheet())
-    const slotNext = applyCharacterSheetCommand(character, {
-      type: 'RESTORE_SPELL_SLOT',
-      slotKey: 'STANDARD:1',
-      all: true,
-      expectedVersion: 1
-    }, createSheet())
+    const resourceNext = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'RESTORE_RESOURCE',
+        resourceGrantId: 'resource-1',
+        all: true,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+    const slotNext = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'RESTORE_SPELL_SLOT',
+        slotKey: 'STANDARD:1',
+        all: true,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(resourceNext.state.resources).toBeUndefined()
     expect(slotNext.state.spellSlots).toBeUndefined()
@@ -741,17 +1098,29 @@ describe('character sheet command application', () => {
     const character = createCharacter()
     character.state.hitpoints.hitDice = [{ die: 8, total: 1, used: 1 }]
 
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'USE_HIT_DIE',
-      die: 8,
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'USE_HIT_DIE',
+          die: 8,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
 
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'USE_HIT_DIE',
-      die: 10,
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'USE_HIT_DIE',
+          die: 10,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('applies short rest recovery without clearing long-rest resources or standard slots', () => {
@@ -789,11 +1158,15 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'APPLY_REST',
-      restKind: 'SHORT',
-      expectedVersion: 1
-    }, sheet)
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'APPLY_REST',
+        restKind: 'SHORT',
+        expectedVersion: 1
+      },
+      sheet
+    )
 
     expect(next.state.resources).toEqual([{ resourceGrantId: 'long-resource', used: 1 }])
     expect(next.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
@@ -837,11 +1210,15 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'APPLY_REST',
-      restKind: 'LONG',
-      expectedVersion: 1
-    }, sheet)
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'APPLY_REST',
+        restKind: 'LONG',
+        expectedVersion: 1
+      },
+      sheet
+    )
 
     expect(next.state.resources).toEqual([{ resourceGrantId: 'manual-resource', used: 2 }])
   })
@@ -853,11 +1230,15 @@ describe('character sheet command application', () => {
       { die: 10, total: 1, used: 1 }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'APPLY_REST',
-      restKind: 'LONG',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'APPLY_REST',
+        restKind: 'LONG',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.hitpoints.hitDice).toEqual([
       { die: 8, total: 3, used: 1 },
@@ -869,60 +1250,117 @@ describe('character sheet command application', () => {
     const character = createCharacter()
     character.state.hitpoints.hitDice = [{ die: 8, total: 1, used: 1 }]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'APPLY_REST',
-      restKind: 'LONG',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'APPLY_REST',
+        restKind: 'LONG',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.hitpoints.hitDice).toEqual([{ die: 8, total: 1, used: 0 }])
   })
 
-  it('rejects commands for unavailable resources and spell slots', () => {
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'USE_RESOURCE',
-      resourceGrantId: 'missing-resource',
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+  it('removes the final exhaustion level on long rest', () => {
+    const character = createCharacter()
+    character.state.exhaustion = { level: 1, notes: 'One level remaining.' }
 
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'USE_SPELL_SLOT',
-      slotKey: 'STANDARD:9',
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'APPLY_REST',
+        restKind: 'LONG',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+
+    expect(next.state.exhaustion).toBeUndefined()
+  })
+
+  it('rejects commands for unavailable resources and spell slots', () => {
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'USE_RESOURCE',
+          resourceGrantId: 'missing-resource',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'USE_SPELL_SLOT',
+          slotKey: 'STANDARD:9',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('rejects impossible inventory and attunement commands', () => {
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'EQUIP_ITEM',
-      itemId: 'missing-item',
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'EQUIP_ITEM',
+          itemId: 'missing-item',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
 
     const character = createCharacter()
-    character.state.equipment.inventory.push({ id: 'item-4', equipmentId: 'equipment-1', quantity: 1 })
+    character.state.equipment.inventory.push({
+      id: 'item-4',
+      equipmentId: 'equipment-1',
+      quantity: 1
+    })
 
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'ATTUNE_ITEM',
-      itemId: 'item-4',
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'ATTUNE_ITEM',
+          itemId: 'item-4',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('keeps equipped and attuned flags when partially removing an inventory stack', () => {
     const character = createCharacter()
-    character.state.equipment.inventory = [{ id: 'item-1', equipmentId: 'equipment-1', quantity: 3 }]
+    character.state.equipment.inventory = [
+      { id: 'item-1', equipmentId: 'equipment-1', quantity: 3 }
+    ]
     character.state.equipment.equipped = ['item-1']
     character.state.equipment.attuned = ['item-1']
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'REMOVE_INVENTORY_ITEM',
-      itemId: 'item-1',
-      quantity: 1,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'REMOVE_INVENTORY_ITEM',
+        itemId: 'item-1',
+        quantity: 1,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
-    expect(next.state.equipment.inventory).toEqual([{ id: 'item-1', equipmentId: 'equipment-1', quantity: 2 }])
+    expect(next.state.equipment.inventory).toEqual([
+      { id: 'item-1', equipmentId: 'equipment-1', quantity: 2 }
+    ])
     expect(next.state.equipment.equipped).toEqual(['item-1'])
     expect(next.state.equipment.attuned).toEqual(['item-1'])
   })
@@ -936,13 +1374,19 @@ describe('character sheet command application', () => {
     character.state.equipment.equipped = ['item-1']
     character.state.equipment.attuned = ['item-1']
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'REMOVE_INVENTORY_ITEM',
-      itemId: 'item-1',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'REMOVE_INVENTORY_ITEM',
+        itemId: 'item-1',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
-    expect(next.state.equipment.inventory).toEqual([{ id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }])
+    expect(next.state.equipment.inventory).toEqual([
+      { id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }
+    ])
     expect(next.state.equipment.equipped).toEqual([])
     expect(next.state.equipment.attuned).toEqual([])
   })
@@ -956,14 +1400,20 @@ describe('character sheet command application', () => {
     character.state.equipment.equipped = ['item-1']
     character.state.equipment.attuned = ['item-1']
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'UPDATE_INVENTORY_ITEM',
-      itemId: 'item-1',
-      quantity: 0,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'UPDATE_INVENTORY_ITEM',
+        itemId: 'item-1',
+        quantity: 0,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
-    expect(next.state.equipment.inventory).toEqual([{ id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }])
+    expect(next.state.equipment.inventory).toEqual([
+      { id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }
+    ])
     expect(next.state.equipment.equipped).toEqual([])
     expect(next.state.equipment.attuned).toEqual([])
   })
@@ -999,31 +1449,175 @@ describe('character sheet command application', () => {
   })
 
   it('validates system-backed condition, equipment, and currency options', () => {
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'ADD_CONDITION',
-      conditionTypeId: 'missing-condition',
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'ADD_CONDITION',
+          conditionTypeId: 'missing-condition',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
 
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'ADD_INVENTORY_ITEM',
-      equipmentId: 'missing-equipment',
-      quantity: 1,
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'ADD_INVENTORY_ITEM',
+          equipmentId: 'missing-equipment',
+          quantity: 1,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
 
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'ADJUST_CURRENCY',
-      currencyId: 'missing-currency',
-      amount: 1,
-      expectedVersion: 1
-    }, createSheet())).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'ADJUST_CURRENCY',
+          currencyId: 'missing-currency',
+          amount: 1,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'ADJUST_CURRENCY',
+          currencyId: 'currency-1',
+          amount: 1,
+          containerId: 'missing-container',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(CharacterSheetCommandError)
+  })
+
+  it('rejects attunement for equipment that does not require it', () => {
+    const character = createCharacter()
+    character.state.equipment.attuned = []
+    const sheet = createSheet({
+      inventory: {
+        items: [
+          {
+            id: 'item-1',
+            equipmentId: 'equipment-1',
+            label: 'Longsword',
+            quantity: 1,
+            equipped: false,
+            attuned: false,
+            requiresAttunement: false
+          }
+        ],
+        currencies: []
+      }
+    })
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'ATTUNE_ITEM',
+          itemId: 'item-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow('does not require attunement')
+  })
+
+  it('rejects adding or moving a container into another container', () => {
+    const character = createCharacter()
+    character.state.equipment.inventory = [
+      { id: 'bag-1', equipmentId: 'bag-equipment', quantity: 1 },
+      { id: 'bag-2', equipmentId: 'bag-equipment', quantity: 1 }
+    ]
+    const baseSheet = createSheet()
+    const sheet = createSheet({
+      inventory: {
+        items: [
+          {
+            id: 'bag-1',
+            equipmentId: 'bag-equipment',
+            label: 'Backpack',
+            quantity: 1,
+            equipped: false,
+            attuned: false,
+            requiresAttunement: false,
+            capacity: { amount: 30, unit: 'POUNDS' }
+          },
+          {
+            id: 'bag-2',
+            equipmentId: 'bag-equipment',
+            label: 'Satchel',
+            quantity: 1,
+            equipped: false,
+            attuned: false,
+            requiresAttunement: false,
+            capacity: { amount: 15, unit: 'POUNDS' }
+          }
+        ],
+        currencies: [],
+        containers: [
+          { id: 'bag-1', label: 'Backpack', itemIds: [], currencies: [] },
+          { id: 'bag-2', label: 'Satchel', itemIds: [], currencies: [] }
+        ]
+      },
+      reference: {
+        ...baseSheet.reference,
+        equipmentOptions: [
+          {
+            id: 'bag-equipment',
+            label: 'Backpack',
+            isContainer: true,
+            requiresAttunement: false
+          }
+        ]
+      }
+    })
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'ADD_INVENTORY_ITEM',
+          equipmentId: 'bag-equipment',
+          quantity: 1,
+          containerId: 'bag-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow('Nested containers are not supported')
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'UPDATE_INVENTORY_ITEM',
+          itemId: 'bag-2',
+          containerId: 'bag-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow('Nested containers are not supported')
   })
 
   it('preserves zero currency rows after sheet currency adjustments', () => {
     const character = createCharacter()
     character.state.currency = [
       {
+        id: 'currency-group-1',
         containerId: 'coin-pouch',
         currencies: [
           { currencyId: 'currency-1', amount: 1 },
@@ -1032,16 +1626,34 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'ADJUST_CURRENCY',
-      currencyId: 'currency-1',
-      amount: -1,
-      containerId: 'coin-pouch',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'ADJUST_CURRENCY',
+        currencyId: 'currency-1',
+        amount: -1,
+        containerId: 'coin-pouch',
+        expectedVersion: 1
+      },
+      createSheet({
+        inventory: {
+          items: [],
+          currencies: [],
+          containers: [
+            {
+              id: 'coin-pouch',
+              label: 'Coin Pouch',
+              itemIds: [],
+              currencies: []
+            }
+          ]
+        }
+      })
+    )
 
     expect(next.state.currency).toEqual([
       {
+        id: 'currency-group-1',
         containerId: 'coin-pouch',
         currencies: [
           { currencyId: 'currency-1', amount: 0 },
@@ -1052,12 +1664,16 @@ describe('character sheet command application', () => {
   })
 
   it('does not create zero currency rows when subtracting missing currency', () => {
-    const next = applyCharacterSheetCommand(createCharacter(), {
-      type: 'ADJUST_CURRENCY',
-      currencyId: 'currency-1',
-      amount: -1,
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'ADJUST_CURRENCY',
+        currencyId: 'currency-1',
+        amount: -1,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.currency).toEqual([])
   })
@@ -1072,68 +1688,238 @@ describe('character sheet command application', () => {
         label: 'Moonlit Blade',
         quantity: 5,
         equipped: false,
-        attuned: false
+        attuned: false,
+        requiresAttunement: false
       }
     ]
 
-    expect(summarizeCharacterSheetCommand({
-      type: 'ADD_CONDITION',
-      conditionTypeId: 'condition-1',
-      expectedVersion: 1
-    }, sheet)).toBe('Poisoned added')
-    expect(summarizeCharacterSheetCommand({
-      type: 'USE_RESOURCE',
-      resourceGrantId: 'resource-1',
-      expectedVersion: 1
-    }, sheet)).toBe('Second Wind used')
-    expect(summarizeCharacterSheetCommand({
-      type: 'USE_SPELL_SLOT',
-      slotKey: 'STANDARD:1',
-      expectedVersion: 1
-    }, sheet)).toBe('Level 1 spell slot used')
-    expect(summarizeCharacterSheetCommand({
-      type: 'EQUIP_ITEM',
-      itemId: 'item-1',
-      expectedVersion: 1
-    }, sheet)).toBe('Moonlit Blade equipped')
-    expect(summarizeCharacterSheetCommand({
-      type: 'REMOVE_INVENTORY_ITEM',
-      itemId: 'item-1',
-      quantity: 1,
-      expectedVersion: 1
-    }, sheet)).toBe('Moonlit Blade quantity reduced by 1')
-    expect(summarizeCharacterSheetCommand({
-      type: 'REMOVE_INVENTORY_ITEM',
-      itemId: 'item-1',
-      expectedVersion: 1
-    }, sheet)).toBe('Moonlit Blade removed')
-    expect(summarizeCharacterSheetCommand({
-      type: 'ADJUST_CURRENCY',
-      currencyId: 'currency-1',
-      amount: 5,
-      expectedVersion: 1
-    }, sheet)).toBe('Gold updated')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'ADD_CONDITION',
+          conditionTypeId: 'condition-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Poisoned added')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'USE_RESOURCE',
+          resourceGrantId: 'resource-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Second Wind used')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'USE_SPELL_SLOT',
+          slotKey: 'STANDARD:1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Level 1 spell slot used')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'EQUIP_ITEM',
+          itemId: 'item-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Moonlit Blade equipped')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'REMOVE_INVENTORY_ITEM',
+          itemId: 'item-1',
+          quantity: 1,
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Moonlit Blade quantity reduced by 1')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'REMOVE_INVENTORY_ITEM',
+          itemId: 'item-1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Moonlit Blade removed')
+    expect(
+      summarizeCharacterSheetCommand(
+        {
+          type: 'ADJUST_CURRENCY',
+          currencyId: 'currency-1',
+          amount: 5,
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toBe('Gold updated')
   })
 
-  it('updates and clears character notes without changing omitted fields', () => {
+  it('creates Sheet notes without mutating Builder-owned profile fields', () => {
     const character = createCharacter()
     character.description = 'A test character.'
     character.profile.personalityTraits = 'Curious.'
     character.profile.backstory = 'Raised among dangerous archives.'
     character.profile.notes = 'Keep watch at midnight.'
+    const ids = ['00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000102']
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'UPDATE_NOTES',
-      description: null,
-      personalityTraits: 'Always asks one more question.',
-      notes: '',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'CREATE_NOTE',
+        title: 'Midnight watch',
+        body: 'Keep watch at midnight.',
+        groupId: 'session-notes',
+        expectedVersion: 1
+      },
+      createSheet(),
+      { createId: () => ids.shift() ?? 'unexpected-id' }
+    )
 
-    expect(next.description).toBeUndefined()
-    expect(next.profile.personalityTraits).toBe('Always asks one more question.')
+    expect(next.description).toBe('A test character.')
+    expect(next.profile.personalityTraits).toBe('Curious.')
     expect(next.profile.backstory).toBe('Raised among dangerous archives.')
-    expect(next.profile.notes).toBeUndefined()
+    expect(next.profile.notes).toBe('Keep watch at midnight.')
+    expect(next.state.notes).toEqual([
+      expect.objectContaining({
+        title: 'Midnight watch',
+        body: 'Keep watch at midnight.',
+        groupId: '00000000-0000-4000-8000-000000000101'
+      })
+    ])
+    expect(next.state.noteGroups).toContainEqual(
+      expect.objectContaining({
+        id: '00000000-0000-4000-8000-000000000101',
+        kind: 'SESSION'
+      })
+    )
+
+    const withSecondNote = applyCharacterSheetCommand(
+      next,
+      {
+        type: 'CREATE_NOTE',
+        title: 'Second watch',
+        groupId: 'session-notes',
+        expectedVersion: 1
+      },
+      createSheet(),
+      {
+        createId: () => '00000000-0000-4000-8000-000000000103'
+      }
+    )
+
+    expect(withSecondNote.state.noteGroups).toHaveLength(1)
+    expect(withSecondNote.state.notes?.map((note) => note.groupId)).toEqual([
+      '00000000-0000-4000-8000-000000000101',
+      '00000000-0000-4000-8000-000000000101'
+    ])
+  })
+
+  it('supports the complete custom note group and note lifecycle', () => {
+    const groupId = '00000000-0000-4000-8000-000000000111'
+    const noteId = '00000000-0000-4000-8000-000000000112'
+    const createdGroup = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'CREATE_NOTE_GROUP',
+        label: 'Quest Leads',
+        expectedVersion: 1
+      },
+      createSheet(),
+      { createId: () => groupId }
+    )
+    const createdNote = applyCharacterSheetCommand(
+      createdGroup,
+      {
+        type: 'CREATE_NOTE',
+        title: 'Find the archivist',
+        body: 'Last seen at the western gate.',
+        groupId,
+        expectedVersion: 1
+      },
+      createSheet(),
+      {
+        createId: () => noteId,
+        now: () => '2026-07-14T12:00:00.000Z'
+      }
+    )
+    const updatedGroup = applyCharacterSheetCommand(
+      createdNote,
+      {
+        type: 'UPDATE_NOTE_GROUP',
+        groupId,
+        label: 'Active Quests',
+        sortOrder: 2,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+    const updatedNote = applyCharacterSheetCommand(
+      updatedGroup,
+      {
+        type: 'UPDATE_NOTE',
+        noteId,
+        title: 'Find Archivist Vale',
+        body: 'Trace Vale through the western gate.',
+        pinned: true,
+        expectedVersion: 1
+      },
+      createSheet(),
+      { now: () => '2026-07-14T13:00:00.000Z' }
+    )
+
+    expect(updatedNote.state.noteGroups).toContainEqual(
+      expect.objectContaining({
+        id: groupId,
+        label: 'Active Quests',
+        sortOrder: 2,
+        kind: 'CUSTOM'
+      })
+    )
+    expect(updatedNote.state.notes).toContainEqual(
+      expect.objectContaining({
+        id: noteId,
+        groupId,
+        title: 'Find Archivist Vale',
+        body: 'Trace Vale through the western gate.',
+        pinned: true,
+        updatedAt: '2026-07-14T13:00:00.000Z'
+      })
+    )
+
+    const deletedNote = applyCharacterSheetCommand(
+      updatedNote,
+      {
+        type: 'DELETE_NOTE',
+        noteId,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+    const deletedGroup = applyCharacterSheetCommand(
+      deletedNote,
+      {
+        type: 'DELETE_NOTE_GROUP',
+        groupId,
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+
+    expect(deletedGroup.state.notes).toEqual([])
+    expect(deletedGroup.state.noteGroups).toEqual([])
   })
 
   it('replaces existing condition notes when adding the same condition again', () => {
@@ -1145,12 +1931,16 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'ADD_CONDITION',
-      conditionTypeId: 'condition-1',
-      notes: 'Wyvern sting',
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'ADD_CONDITION',
+        conditionTypeId: 'condition-1',
+        notes: 'Wyvern sting',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.conditions).toEqual([
       {
@@ -1192,12 +1982,18 @@ describe('character sheet command application', () => {
       }
     ]
 
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: ['spell-2'],
-      expectedVersion: 1
-    }, sheet)).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: ['spell-2'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('rejects prepared spell commands over the class preparation limit', () => {
@@ -1222,12 +2018,141 @@ describe('character sheet command application', () => {
       }
     ]
 
-    expect(() => applyCharacterSheetCommand(createCharacter(), {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: ['spell-1', 'spell-2'],
-      expectedVersion: 1
-    }, sheet)).toThrow(/can prepare up to 1 spells/)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: ['spell-1', 'spell-2'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(/can prepare up to 1 spells/)
+  })
+
+  it('enforces spell-source eligibility and preserves state when casting fails', () => {
+    const unpreparedCharacter = createCharacter()
+    const originalUnpreparedState = structuredClone(unpreparedCharacter.state)
+    expect(() =>
+      applyCharacterSheetCommand(
+        unpreparedCharacter,
+        {
+          type: 'CAST_SPELL',
+          spellId: 'spell-1',
+          slotKey: 'STANDARD:1',
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(/is not prepared for this source/)
+    expect(unpreparedCharacter.state).toEqual(originalUnpreparedState)
+
+    const knownSheet = createSheet()
+    knownSheet.spells.spells[0]!.sources = [
+      {
+        id: 'bard:spell-1',
+        classId: 'class-1',
+        label: 'Bard',
+        canPrepare: false,
+        prepared: false,
+        acquisition: 'KNOWN',
+        castMode: 'SPELL_SLOT'
+      }
+    ]
+    const knownNext = applyCharacterSheetCommand(
+      createCharacter(),
+      {
+        type: 'CAST_SPELL',
+        spellId: 'spell-1',
+        sourceId: 'bard:spell-1',
+        slotKey: 'STANDARD:1',
+        expectedVersion: 1
+      },
+      knownSheet
+    )
+    expect(knownNext.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
+  })
+
+  it('allows fixed-level grants without resources and rejects exhausted cast resources', () => {
+    const fixedCharacter = createCharacter()
+    const fixedSheet = createSheet()
+    fixedSheet.spells.spells[0]!.sources = [
+      {
+        id: 'feature:spell-1',
+        label: 'Arcane Initiate',
+        canPrepare: false,
+        prepared: true,
+        acquisition: 'GRANTED',
+        castMode: 'FIXED_LEVEL',
+        fixedLevel: 2
+      }
+    ]
+    const fixedNext = applyCharacterSheetCommand(
+      fixedCharacter,
+      {
+        type: 'CAST_SPELL',
+        spellId: 'spell-1',
+        sourceId: 'feature:spell-1',
+        expectedVersion: 1
+      },
+      fixedSheet
+    )
+    expect(fixedNext.state).toEqual(fixedCharacter.state)
+
+    const slotCharacter = createCharacter()
+    slotCharacter.state.spellSlots = [{ slotKey: 'STANDARD:1', used: 2 }]
+    const slotSheet = createSheet()
+    slotSheet.spells.slots[0]!.used = 2
+    slotSheet.spells.slots[0]!.remaining = 0
+    slotSheet.spells.spells[0]!.sources![0]!.prepared = true
+    slotSheet.spells.spells[0]!.sources![0]!.acquisition = 'PREPARED'
+    const originalSlotState = structuredClone(slotCharacter.state)
+    expect(() =>
+      applyCharacterSheetCommand(
+        slotCharacter,
+        {
+          type: 'CAST_SPELL',
+          spellId: 'spell-1',
+          slotKey: 'STANDARD:1',
+          expectedVersion: 1
+        },
+        slotSheet
+      )
+    ).toThrow(/has no uses remaining/)
+    expect(slotCharacter.state).toEqual(originalSlotState)
+
+    const resourceCharacter = createCharacter()
+    resourceCharacter.state.resources = [{ resourceGrantId: 'resource-1', used: 2 }]
+    const resourceSheet = createSheet()
+    resourceSheet.resources.items[0]!.used = 2
+    resourceSheet.resources.items[0]!.remaining = 0
+    resourceSheet.spells.spells[0]!.sources = [
+      {
+        id: 'feature:spell-1',
+        label: 'Arcane Initiate',
+        canPrepare: false,
+        prepared: true,
+        acquisition: 'GRANTED',
+        castMode: 'LIMITED_USE',
+        resourceGrantId: 'resource-1'
+      }
+    ]
+    const originalResourceState = structuredClone(resourceCharacter.state)
+    expect(() =>
+      applyCharacterSheetCommand(
+        resourceCharacter,
+        {
+          type: 'CAST_SPELL',
+          spellId: 'spell-1',
+          sourceId: 'feature:spell-1',
+          expectedVersion: 1
+        },
+        resourceSheet
+      )
+    ).toThrow(/has no uses remaining/)
+    expect(resourceCharacter.state).toEqual(originalResourceState)
   })
 
   it('preserves learned spells across prepare and unprepare cycles', () => {
@@ -1249,12 +2174,16 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const prepared = applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: ['spell-1', 'spell-1'],
-      expectedVersion: 1
-    }, createSheet())
+    const prepared = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'class-1',
+        spellIds: ['spell-1', 'spell-1'],
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(prepared.state.classes).toEqual([
       {
@@ -1266,12 +2195,16 @@ describe('character sheet command application', () => {
       }
     ])
 
-    const unprepared = applyCharacterSheetCommand(prepared, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: [],
-      expectedVersion: 1
-    }, createSheet())
+    const unprepared = applyCharacterSheetCommand(
+      prepared,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'class-1',
+        spellIds: [],
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(unprepared.state.classes).toEqual([
       {
@@ -1301,12 +2234,16 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: ['spell-1'],
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'class-1',
+        spellIds: ['spell-1'],
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.classes).toEqual([
       {
@@ -1338,12 +2275,16 @@ describe('character sheet command application', () => {
     ]
     character.intent.spellSelections = []
 
-    const next = applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'class-1',
-      spellIds: ['spell-1'],
-      expectedVersion: 1
-    }, createSheet())
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'class-1',
+        spellIds: ['spell-1'],
+        expectedVersion: 1
+      },
+      createSheet()
+    )
 
     expect(next.state.classes).toEqual([
       {
@@ -1380,10 +2321,12 @@ describe('character sheet command application', () => {
     expect(sheet.overview.armorClass).toBe(15)
     expect(sheet.overview.initiative).toBe(3)
     expect(sheet.overview.proficiencyBonus).toBe(2)
-    expect(sheet.overview.facts).toEqual(expect.arrayContaining([
-      { label: 'Initiative', value: '+3' },
-      { label: 'Proficiency', value: '+2' }
-    ]))
+    expect(sheet.overview.facts).toEqual(
+      expect.arrayContaining([
+        { label: 'Initiative', value: '+3' },
+        { label: 'Proficiency', value: '+2' }
+      ])
+    )
   })
 
   it('hydrates class-scoped spell sources for preparation commands', async () => {
@@ -1418,7 +2361,7 @@ describe('character sheet command application', () => {
         ]
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1445,12 +2388,26 @@ describe('character sheet command application', () => {
       expect.objectContaining({
         id: 'spell-1',
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+        sources: [
+          expect.objectContaining({
+            classId: 'wizard',
+            label: 'Wizard',
+            canPrepare: true,
+            prepared: false
+          })
+        ]
       }),
       expect.objectContaining({
         id: 'spell-2',
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: true }]
+        sources: [
+          expect.objectContaining({
+            classId: 'wizard',
+            label: 'Wizard',
+            canPrepare: true,
+            prepared: true
+          })
+        ]
       })
     ])
     expect(sheet.spells.preparationSources).toEqual([
@@ -1459,6 +2416,71 @@ describe('character sheet command application', () => {
         label: 'Wizard',
         preparedSpellLimit: 1,
         preparedSpellIds: ['spell-2']
+      }
+    ])
+  })
+
+  it('exposes only current-level class-list spells for prepared casters', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'cleric', classLevel: 1 }]
+    character.intent.spellSelections = []
+    character.state.classes = []
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'cleric',
+        label: 'Cleric',
+        resetKind: 'LONG_REST',
+        spellLimits: [
+          { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], preparedSpellsLimit: 1 },
+          { classLevel: 3, slots: [{ spellLevel: 2, slotCount: 2 }], preparedSpellsLimit: 3 }
+        ]
+      })
+    ]
+    resolution.catalog.spells = [
+      createSpell({ classIds: ['cleric'], id: 'cleric-cantrip', label: 'Guidance', level: 0 }),
+      createSpell({
+        classIds: ['cleric'],
+        id: 'cleric-first-level',
+        label: 'Healing Word',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['cleric'],
+        id: 'cleric-second-level',
+        label: 'Spiritual Weapon',
+        level: 2
+      }),
+      createSpell({ classIds: ['wizard'], id: 'wizard-first-level', label: 'Shield', level: 1 })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'cleric-first-level',
+        mechanics: undefined,
+        sources: [
+          expect.objectContaining({
+            canPrepare: true,
+            classId: 'cleric',
+            prepared: false
+          })
+        ]
+      })
+    ])
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'cleric',
+        label: 'Cleric',
+        preparedSpellLimit: 1,
+        preparedSpellIds: []
       }
     ])
   })
@@ -1488,7 +2510,7 @@ describe('character sheet command application', () => {
     const resolution = createResolution()
     resolution.summary.abilities = { INTELLIGENCE: 16 }
     resolution.registry.classes = [wizard]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1540,7 +2562,7 @@ describe('character sheet command application', () => {
     const resolution = createResolution()
     resolution.summary.abilities = { INTELLIGENCE: 8 }
     resolution.registry.classes = [wizard]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1608,7 +2630,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1634,7 +2656,14 @@ describe('character sheet command application', () => {
     expect(sheet.spells.spells).toEqual([
       expect.objectContaining({
         id: 'spell-1',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+        sources: [
+          expect.objectContaining({
+            classId: 'wizard',
+            label: 'Wizard',
+            canPrepare: true,
+            prepared: false
+          })
+        ]
       }),
       expect.objectContaining({
         id: 'orphan-spell',
@@ -1671,7 +2700,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1694,22 +2723,37 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'spell-1',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
-      }),
-      expect.objectContaining({
-        id: 'stale-spell',
-        sources: undefined
-      })
-    ]))
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'wizard',
-      spellIds: ['stale-spell'],
-      expectedVersion: 1
-    }, sheet)).toThrow(CharacterSheetCommandError)
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'spell-1',
+          sources: [
+            expect.objectContaining({
+              classId: 'wizard',
+              label: 'Wizard',
+              canPrepare: true,
+              prepared: false
+            })
+          ]
+        }),
+        expect.objectContaining({
+          id: 'stale-spell',
+          sources: undefined
+        })
+      ])
+    )
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'wizard',
+          spellIds: ['stale-spell'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('does not expose preparation commands for known-spell classes', async () => {
@@ -1741,7 +2785,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['bard'],
         id: 'spell-1',
@@ -1761,16 +2805,29 @@ describe('character sheet command application', () => {
     expect(sheet.spells.spells).toEqual([
       expect.objectContaining({
         id: 'spell-1',
-        sources: [{ classId: 'bard', label: 'Bard', canPrepare: false, prepared: false }]
+        sources: [
+          expect.objectContaining({
+            classId: 'bard',
+            label: 'Bard',
+            canPrepare: false,
+            prepared: false
+          })
+        ]
       })
     ])
     expect(sheet.spells.preparationSources).toBeUndefined()
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'bard',
-      spellIds: ['spell-1'],
-      expectedVersion: 1
-    }, sheet)).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'bard',
+          spellIds: ['spell-1'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(CharacterSheetCommandError)
   })
 
   it('allows known-spell classes to clear stale prepared spell state', async () => {
@@ -1795,7 +2852,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['bard'],
         id: 'spell-1',
@@ -1813,12 +2870,16 @@ describe('character sheet command application', () => {
     })
 
     expect(sheet.spells.preparationSources).toBeUndefined()
-    const next = applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'bard',
-      spellIds: [],
-      expectedVersion: 1
-    }, sheet)
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'bard',
+        spellIds: [],
+        expectedVersion: 1
+      },
+      sheet
+    )
 
     expect(next.state.classes).toEqual([
       {
@@ -1832,7 +2893,9 @@ describe('character sheet command application', () => {
 
   it('matches subclass spells against canonical subclass class records', async () => {
     const character = createCharacter()
-    character.intent.classes = [{ classId: 'wizard', subclassId: 'subclass-choice-1', classLevel: 3 }]
+    character.intent.classes = [
+      { classId: 'wizard', subclassId: 'subclass-choice-1', classLevel: 3 }
+    ]
     character.intent.spellSelections = [
       {
         id: 'subclass-spells',
@@ -1873,7 +2936,7 @@ describe('character sheet command application', () => {
         source: { kind: 'SUBCLASS', subclassId: 'subclass-choice-1', classLevel: 3 }
       }
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['subclass-canonical'],
         id: 'spell-1',
@@ -1893,15 +2956,28 @@ describe('character sheet command application', () => {
     expect(sheet.spells.spells).toEqual([
       expect.objectContaining({
         id: 'spell-1',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+        sources: [
+          expect.objectContaining({
+            classId: 'wizard',
+            label: 'Wizard',
+            canPrepare: true,
+            prepared: false
+          })
+        ]
       })
     ])
-    expect(() => applyCharacterSheetCommand(character, {
-      type: 'SET_PREPARED_SPELLS',
-      classId: 'wizard',
-      spellIds: ['spell-1'],
-      expectedVersion: 1
-    }, sheet)).not.toThrow()
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'wizard',
+          spellIds: ['spell-1'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).not.toThrow()
   })
 
   it('filters active-class prepared spells that are no longer known by that class', async () => {
@@ -1933,7 +3009,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -1963,12 +3039,14 @@ describe('character sheet command application', () => {
         preparedSpellIds: ['spell-1']
       }
     ])
-    expect(sheet.spells.spells).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'stale-spell',
-        sources: undefined
-      })
-    ]))
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'stale-spell',
+          sources: undefined
+        })
+      ])
+    )
   })
 
   it('preserves sheet controls for active class prepared spells stored only in state', async () => {
@@ -1992,7 +3070,7 @@ describe('character sheet command application', () => {
         spellLimits: createFullCasterSpellLimits()
       })
     ]
-    resolution.registry.spells = [
+    resolution.catalog.spells = [
       createSpell({
         classIds: ['wizard'],
         id: 'spell-1',
@@ -2012,7 +3090,14 @@ describe('character sheet command application', () => {
     expect(sheet.spells.spells).toEqual([
       expect.objectContaining({
         id: 'spell-1',
-        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: true }]
+        sources: [
+          expect.objectContaining({
+            classId: 'wizard',
+            label: 'Wizard',
+            canPrepare: true,
+            prepared: true
+          })
+        ]
       })
     ])
     expect(sheet.spells.preparationSources).toEqual([
@@ -2164,7 +3249,9 @@ describe('character sheet command application', () => {
 
   it('resolves subclass resource definitions without requiring the subclass source id to be a class row id', async () => {
     const character = createCharacter()
-    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-choice-1', classLevel: 3 }]
+    character.intent.classes = [
+      { classId: 'class-1', subclassId: 'subclass-choice-1', classLevel: 3 }
+    ]
     const resolution = createResolution()
     resolution.grants.resources = resolution.grants.resources.map((resource) => ({
       ...resource,

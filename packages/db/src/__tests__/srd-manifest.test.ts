@@ -10,6 +10,8 @@ import {
   BACKGROUND_IDS,
   CLASS_IDS,
   CREATURE_IDS,
+  EQUIPMENT_IDS,
+  FEAT_IDS,
   RACE_IDS,
   SPELL_IDS,
   SUBCLASS_IDS,
@@ -19,6 +21,7 @@ import {
 import { srdBackgrounds } from '../source-data/srd/backgrounds/index.js'
 import { srdClasses } from '../source-data/srd/classes/index.js'
 import { srdCreatures } from '../source-data/srd/creatures/index.js'
+import { srdEquipment } from '../source-data/srd/equipment/index.js'
 import { srdFeats } from '../source-data/srd/feats/index.js'
 import { srdRaces } from '../source-data/srd/races/index.js'
 import { srdSpells } from '../source-data/srd/spells/index.js'
@@ -90,6 +93,7 @@ function allSrdRecords() {
     ...srdBackgrounds,
     ...srdFeats,
     ...srdCreatures,
+    ...srdEquipment,
     ...srdSpells,
     ...srdVehicles
   ]
@@ -104,8 +108,9 @@ describe('SRD manifest coverage', () => {
       Object.keys(RACE_IDS).length + Object.keys(SUBRACE_IDS).length
     )
     expect(srdBackgrounds).toHaveLength(Object.keys(BACKGROUND_IDS).length)
-    expect(srdFeats).toHaveLength(1)
+    expect(srdFeats).toHaveLength(Object.keys(FEAT_IDS).length)
     expect(srdCreatures).toHaveLength(Object.keys(CREATURE_IDS).length)
+    expect(srdEquipment).toHaveLength(EQUIPMENT_IDS.length)
     expect(srdVehicles).toHaveLength(Object.keys(VEHICLE_IDS).length)
   })
 
@@ -115,6 +120,7 @@ describe('SRD manifest coverage', () => {
     expectUniqueIds(srdBackgrounds, 'srdBackgrounds')
     expectUniqueIds(srdFeats, 'srdFeats')
     expectUniqueIds(srdCreatures, 'srdCreatures')
+    expectUniqueIds(srdEquipment, 'srdEquipment')
     expectUniqueIds(srdVehicles, 'srdVehicles')
 
     const allowedClassIds = new Set([
@@ -126,14 +132,25 @@ describe('SRD manifest coverage', () => {
       ...Object.values(SUBRACE_IDS)
     ])
     const allowedBackgroundIds = new Set(Object.values(BACKGROUND_IDS))
+    const allowedFeatIds = new Set(Object.values(FEAT_IDS))
     const allowedCreatureIds = new Set(Object.values(CREATURE_IDS))
+    const allowedEquipmentIds = new Set(EQUIPMENT_IDS)
     const allowedVehicleIds = new Set(Object.values(VEHICLE_IDS))
 
     expect(srdClasses.every((record) => allowedClassIds.has(record.id))).toBe(true)
     expect(srdRaces.every((record) => allowedRaceIds.has(record.id))).toBe(true)
     expect(srdBackgrounds.every((record) => allowedBackgroundIds.has(record.id))).toBe(true)
+    expect(srdFeats.every((record) => allowedFeatIds.has(record.id))).toBe(true)
     expect(srdCreatures.every((record) => allowedCreatureIds.has(record.id))).toBe(true)
+    expect(srdEquipment.every((record) => allowedEquipmentIds.has(record.id))).toBe(true)
     expect(srdVehicles.every((record) => allowedVehicleIds.has(record.id))).toBe(true)
+  })
+
+  it('keeps Grappler explicitly represented by the canonical feat manifest', () => {
+    expect(srdFeats).toContainEqual(expect.objectContaining({
+      id: FEAT_IDS.GRAPPLER,
+      label: 'Grappler'
+    }))
   })
 
   it('keeps spell coverage aligned with the corrected SRD spell manifest', () => {

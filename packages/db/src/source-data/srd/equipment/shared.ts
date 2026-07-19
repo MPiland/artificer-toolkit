@@ -42,11 +42,11 @@ export function damageTypeId(code: string): string {
 }
 export function equipmentChildId(equipmentId: string, bucket: number, index: number): string {
   const [
-    , , , , equipmentSuffix
+    , , , equipmentDomain, equipmentSuffix
   ] = equipmentId.split('-')
   const bucketHex = bucket.toString(16).padStart(4, '0')
   const indexHex = index.toString(16).padStart(12, '0')
-  return `00000000-0000-${bucketHex}-${equipmentSuffix.slice(0, 4)}-${indexHex}`
+  return `${equipmentDomain.padStart(8, '0')}-0000-${bucketHex}-${equipmentSuffix.slice(0, 4)}-${indexHex}`
 }
 function whileEquippedRestriction(equipmentId: string, grantIndex: number) {
   // Each grant gets its own restriction node IDs, keyed by grantIndex.
@@ -226,7 +226,7 @@ export function finesseWeaponWithRangedModifiers(equipmentId: string) {
   ]
 }
 /** HEAVY: disadvantage on attack rolls for Small or Tiny characters. Bucket 0x320. */
-export function heavyWeaponModifiers(equipmentId: string) {
+export function heavyWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
   const sizeCondition = (i: number): FacetConditionAuthored<'CHARACTER'> => ({
     id: equipmentChildId(equipmentId, 0x324, i),
     order: 1,
@@ -262,15 +262,19 @@ export function heavyWeaponModifiers(equipmentId: string) {
   ]
 }
 export function heavyMeleeWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(...meleeWeaponAbilityModifiers(equipmentId))
-  modifiers.push(...heavyWeaponModifiers(equipmentId))
+  const modifiers = meleeWeaponAbilityModifiers(equipmentId)
+  for (const modifier of heavyWeaponModifiers(equipmentId)) {
+    modifier.order = modifiers.length + 1
+    modifiers.push(modifier)
+  }
   return modifiers
 }
 export function heavyRangedWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(...rangedWeaponAbilityModifiers(equipmentId))
-  modifiers.push(...heavyWeaponModifiers(equipmentId))
+  const modifiers = rangedWeaponAbilityModifiers(equipmentId)
+  for (const modifier of heavyWeaponModifiers(equipmentId)) {
+    modifier.order = modifiers.length + 1
+    modifiers.push(modifier)
+  }
   return modifiers
 }
 /** ARMOR proficiency AC grant: +DEX modifier gated on character having the armor property proficiency. Bucket 0x330. */

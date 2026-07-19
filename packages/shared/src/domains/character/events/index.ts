@@ -150,6 +150,7 @@ export interface ItemUnequippedEvent extends CharacterEventEnvelope {
 export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelope {
   type: 'CHARACTER_SHEET_COMMAND_APPLIED'
   commandType: string
+  commandFingerprint: string
   summary: string
 }
 

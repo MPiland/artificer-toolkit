@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.character_events (
   schema_version int NOT NULL DEFAULT 1,
   actor_id       uuid NOT NULL,
   command_id     uuid NOT NULL,
-  occurred_at    timestamptz NOT NULL DEFAULT NOW()
+  occurred_at    timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_events_character_command_uniq UNIQUE (character_id, command_id)
 );
 
 ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY;

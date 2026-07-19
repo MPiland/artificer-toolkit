@@ -10,7 +10,10 @@ import type {
 } from './authoredPreview.types'
 
 type RuntimeRecord = Record<string, unknown>
-type VocabularyKey = Exclude<keyof NonNullable<SystemResponseDto>, 'description' | 'id' | 'label' | 'userId'>
+type VocabularyKey = Exclude<
+  keyof NonNullable<SystemResponseDto>,
+  'description' | 'id' | 'label' | 'rulesetCode' | 'rulesetVersion' | 'userId'
+>
 
 const MAX_COLLECTION_ITEMS = 5
 

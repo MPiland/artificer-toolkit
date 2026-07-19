@@ -115,13 +115,14 @@ export type EffectGenericOutcomeRow = {
 
 type AnyEffectPath = EffectPathAuthored<Trigger, OutcomeAuthored>
 type AnyResultBlock = ResultBlockAuthored<OutcomeAuthored>
-const RESULT_BLOCK_ID_SUFFIX = '__result'
 
 export type DamageRow = {
   id: string
   damage_type_id: string
   value_kind: string
   scaling_kind: string
+  amount_kind: string | null
+  amount_multiplier: number | null
   scaling_source: string | null
   class_id: string | null
   sort_order: number
@@ -171,7 +172,11 @@ export type ConditionRow = {
 
 type TargetingColumns = Pick<
   EffectInvocationRow,
-  'target_selection_kind' | 'target_disposition_kind' | 'max_targets' | 'max_targets_scaling' | 'excluded_creature_type_ids'
+  | 'target_selection_kind'
+  | 'target_disposition_kind'
+  | 'max_targets'
+  | 'max_targets_scaling'
+  | 'excluded_creature_type_ids'
 >
 
 function requireTriggerCode(effectId: string, value: string): EffectInvocationRow['trigger_code'] {
@@ -182,7 +187,10 @@ function requireTriggerCode(effectId: string, value: string): EffectInvocationRo
   return value
 }
 
-function requireActivationCode(effectId: string, value: string): EffectInvocationRow['activation_type'] {
+function requireActivationCode(
+  effectId: string,
+  value: string
+): EffectInvocationRow['activation_type'] {
   if (!(value in ACTIVATION_CODE)) {
     throw new Error(`Effect "${effectId}" has invalid activation code "${value}".`)
   }
@@ -190,13 +198,23 @@ function requireActivationCode(effectId: string, value: string): EffectInvocatio
   return value
 }
 
-function requirePathCode(effectId: string, triggerCode: Trigger, value: string): EffectPathRow['path_code'] {
+function requirePathCode(
+  effectId: string,
+  triggerCode: Trigger,
+  value: string
+): EffectPathRow['path_code'] {
   if (!(value in PATH_CODE)) {
     throw new Error(`Effect "${effectId}" has invalid path code "${value}".`)
   }
 
-  if (!PATH_CODES_BY_TRIGGER[triggerCode].includes(value as (typeof PATH_CODES_BY_TRIGGER)[Trigger][number])) {
-    throw new Error(`Effect "${effectId}" has invalid path code "${value}" for trigger "${triggerCode}".`)
+  if (
+    !PATH_CODES_BY_TRIGGER[triggerCode].includes(
+      value as (typeof PATH_CODES_BY_TRIGGER)[Trigger][number]
+    )
+  ) {
+    throw new Error(
+      `Effect "${effectId}" has invalid path code "${value}" for trigger "${triggerCode}".`
+    )
   }
 
   return value
@@ -210,7 +228,10 @@ function requirePathGroupType(effectId: string, value: string): EffectPathRow['g
   return value
 }
 
-function requirePathRollTableKind(effectId: string, value: string): EffectPathRow['roll_table_kind'] {
+function requirePathRollTableKind(
+  effectId: string,
+  value: string
+): EffectPathRow['roll_table_kind'] {
   if (!(value in PATH_ROLL_TABLE_KIND)) {
     throw new Error(`Effect "${effectId}" has invalid roll table kind "${value}".`)
   }
@@ -226,7 +247,10 @@ function requirePathOriginKind(effectId: string, value: string): EffectPathRow['
   return value
 }
 
-function requirePathLifecycleRecurringKind(effectId: string, value: string): EffectResultBlockRow['lifecycle_recurring_kind'] {
+function requirePathLifecycleRecurringKind(
+  effectId: string,
+  value: string
+): EffectResultBlockRow['lifecycle_recurring_kind'] {
   if (!(value in PATH_LIFECYCLE_RECURRING_KIND)) {
     throw new Error(`Effect "${effectId}" has invalid lifecycle recurring kind "${value}".`)
   }
@@ -306,39 +330,35 @@ function requireAbilityCode(ownerId: string, value: string): string {
   return value
 }
 
-function mapResultBlockId(id: string): string {
-  return id.endsWith(RESULT_BLOCK_ID_SUFFIX)
-    ? id.slice(0, -RESULT_BLOCK_ID_SUFFIX.length)
-    : id
-}
-
-function mapTargetingColumns(
-  ownerId: string,
-  targeting?: TargetingAuthored
-): TargetingColumns {
+function mapTargetingColumns(ownerId: string, targeting?: TargetingAuthored): TargetingColumns {
   return {
     target_selection_kind: targeting
       ? requireTargetSelectionKind(ownerId, targeting.selectionKind)
       : null,
-    target_disposition_kind: targeting && 'dispositionKind' in targeting && targeting.dispositionKind
-      ? requireTargetDispositionKind(ownerId, targeting.dispositionKind)
-      : null,
-    max_targets: targeting && targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES && 'maxTargets' in targeting
-      ? targeting.maxTargets ?? null
-      : null,
-    max_targets_scaling: targeting && targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES && 'maxTargetsScaling' in targeting
-      ? targeting.maxTargetsScaling ?? null
-      : null,
-    excluded_creature_type_ids: targeting && 'excludedCreatureTypeIds' in targeting
-      ? targeting.excludedCreatureTypeIds ?? null
-      : null
+    target_disposition_kind:
+      targeting && 'dispositionKind' in targeting && targeting.dispositionKind
+        ? requireTargetDispositionKind(ownerId, targeting.dispositionKind)
+        : null,
+    max_targets:
+      targeting &&
+      targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES &&
+      'maxTargets' in targeting
+        ? (targeting.maxTargets ?? null)
+        : null,
+    max_targets_scaling:
+      targeting &&
+      targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES &&
+      'maxTargetsScaling' in targeting
+        ? (targeting.maxTargetsScaling ?? null)
+        : null,
+    excluded_creature_type_ids:
+      targeting && 'excludedCreatureTypeIds' in targeting
+        ? (targeting.excludedCreatureTypeIds ?? null)
+        : null
   }
 }
 
-function mapLifecycleColumns(
-  effectId: string,
-  lifecycle?: PathLifecycleAuthored
-) {
+function mapLifecycleColumns(effectId: string, lifecycle?: PathLifecycleAuthored) {
   return {
     lifecycle_recurring_kind: lifecycle?.recurringKind
       ? requirePathLifecycleRecurringKind(effectId, lifecycle.recurringKind)
@@ -352,10 +372,7 @@ function mapLifecycleColumns(
   }
 }
 
-function mapResultLifecycleColumns(
-  effectId: string,
-  lifecycle?: PathLifecycleAuthored
-) {
+function mapResultLifecycleColumns(effectId: string, lifecycle?: PathLifecycleAuthored) {
   return mapLifecycleColumns(effectId, lifecycle)
 }
 
@@ -368,24 +385,20 @@ export function mapEffectRow(json_data: EffectAuthored): EffectRow {
 
 export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow {
   const isPassive = json_data.invocation.kind === EFFECT_INVOCATION_KIND.PASSIVE
-  const activation = 'activation' in json_data.invocation
-    ? json_data.invocation.activation
-    : { code: ACTIVATION_CODE.FREE }
+  const activation =
+    'activation' in json_data.invocation
+      ? json_data.invocation.activation
+      : { code: ACTIVATION_CODE.FREE }
 
   return {
     effect_id: json_data.id,
     trigger_code: requireTriggerCode(json_data.id, json_data.invocation.triggerCode),
     activation_type: requireActivationCode(json_data.id, activation.code),
-    activation_value: isPassive
-      ? -1
-      : 'amount' in activation
-        ? activation.amount
-        : null,
+    activation_value: isPassive ? -1 : 'amount' in activation ? activation.amount : null,
     range_characteristic_id: json_data.invocation.range.id,
     shape_characteristic_id: json_data.invocation.shape?.id ?? null,
-    saving_throw_id: 'savingThrow' in json_data.invocation
-      ? json_data.invocation.savingThrow.id
-      : null,
+    saving_throw_id:
+      'savingThrow' in json_data.invocation ? json_data.invocation.savingThrow.id : null,
     ...mapTargetingColumns(json_data.id, json_data.invocation.targeting)
   }
 }
@@ -407,15 +420,12 @@ export function mapEffectPathRow(
       : null,
     range_override_characteristic_id: json_data.rangeOverride?.id ?? null,
     ...mapTargetingColumns(json_data.id, json_data.targetingOverride),
-    result_block_id: json_data.selectionKind === 'FIXED'
-      ? mapResultBlockId(json_data.resultBlock.id)
-      : null,
-    roll_table_kind: json_data.selectionKind === 'ROLL_TABLE'
-      ? requirePathRollTableKind(effectId, json_data.rollTableKind)
-      : null,
-    die: json_data.selectionKind === 'ROLL_TABLE'
-      ? json_data.dieConfig
-      : null
+    result_block_id: json_data.selectionKind === 'FIXED' ? json_data.resultBlock.id : null,
+    roll_table_kind:
+      json_data.selectionKind === 'ROLL_TABLE'
+        ? requirePathRollTableKind(effectId, json_data.rollTableKind)
+        : null,
+    die: json_data.selectionKind === 'ROLL_TABLE' ? json_data.dieConfig : null
   }
 }
 
@@ -424,7 +434,7 @@ export function mapEffectResultBlockRow(
   resultBlock: AnyResultBlock
 ): EffectResultBlockRow {
   return {
-    id: mapResultBlockId(resultBlock.id),
+    id: resultBlock.id,
     result_kind: resultBlock.resultKind,
     duration_id: resultBlock.duration?.id ?? null,
     ...mapResultLifecycleColumns(effectId, resultBlock.lifecycle)
@@ -441,7 +451,7 @@ export function mapEffectPathChoiceOptionRow(
     label: json_data.label ?? null,
     description: json_data.description ?? null,
     sort_order: json_data.order,
-    result_block_id: mapResultBlockId(json_data.resultBlock.id)
+    result_block_id: json_data.resultBlock.id
   }
 }
 
@@ -456,7 +466,7 @@ export function mapEffectPathRollTableRow(
     roll_value: json_data.rollValue ?? null,
     roll_min: json_data.rollRange?.[0] ?? null,
     roll_max: json_data.rollRange?.[1] ?? null,
-    result_block_id: mapResultBlockId(json_data.resultBlock.id)
+    result_block_id: json_data.resultBlock.id
   }
 }
 
@@ -466,7 +476,7 @@ export function mapEffectResultBlockOutcomeRow(
   order: number
 ): EffectResultBlockOutcomeRow {
   return {
-    result_block_id: mapResultBlockId(resultBlockId),
+    result_block_id: resultBlockId,
     outcome_id: json_data.id,
     effect_kind: json_data.effectKind,
     sort_order: order
@@ -489,12 +499,17 @@ export function mapDamageRow(json_data: DamageAuthored): DamageRow {
     damage_type_id: json_data.damageTypeId,
     value_kind: requireDamageValueKind(json_data.id, json_data.valueKind),
     scaling_kind: requireScalingKind(json_data.id, json_data.scalingKind),
-    scaling_source: json_data.scalingKind !== SCALING.NONE
-      ? requireScalingSource(json_data.id, json_data.scalingSource)
-      : null,
-    class_id: json_data.scalingKind !== SCALING.NONE && json_data.scalingSource === SCALING_SOURCE.CLASS_LEVEL
-      ? json_data.classId
-      : null,
+    amount_kind: json_data.amountKind ?? null,
+    amount_multiplier: json_data.multiplier ?? null,
+    scaling_source:
+      json_data.scalingKind !== SCALING.NONE
+        ? requireScalingSource(json_data.id, json_data.scalingSource)
+        : null,
+    class_id:
+      json_data.scalingKind !== SCALING.NONE &&
+      json_data.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+        ? json_data.classId
+        : null,
     sort_order: 0
   }
 }
@@ -533,9 +548,10 @@ export function mapDamageValueRow(json_data: DamageAuthored): DamageValueRow | n
         damage_id: json_data.id,
         amount: json_data.amount ?? null,
         dice: null,
-        multiplier: json_data.scalingKind === SCALING.PER_LEVEL ? json_data.multiplier ?? null : null,
-        min: json_data.scalingKind === SCALING.PER_LEVEL ? json_data.min ?? null : null,
-        max: json_data.scalingKind === SCALING.PER_LEVEL ? json_data.max ?? null : null
+        multiplier:
+          json_data.scalingKind === SCALING.PER_LEVEL ? (json_data.multiplier ?? null) : null,
+        min: json_data.scalingKind === SCALING.PER_LEVEL ? (json_data.min ?? null) : null,
+        max: json_data.scalingKind === SCALING.PER_LEVEL ? (json_data.max ?? null) : null
       }
 
     default:
@@ -597,12 +613,11 @@ export function mapDamageBonusRows(json_data: DamageAuthored): DamageBonusRow[] 
     id: bonus.id,
     damage_id: json_data.id,
     bonus_kind: requireDamageBonusKind(json_data.id, bonus.bonusKind),
-    ability_code: bonus.bonusKind === DAMAGE_BONUS_KIND.ABILITY_BONUS
-      ? requireAbilityCode(bonus.id, bonus.ability)
-      : null,
-    skill_id: bonus.bonusKind === DAMAGE_BONUS_KIND.SKILL_BONUS
-      ? bonus.skillId
-      : null,
+    ability_code:
+      bonus.bonusKind === DAMAGE_BONUS_KIND.ABILITY_BONUS
+        ? requireAbilityCode(bonus.id, bonus.ability)
+        : null,
+    skill_id: bonus.bonusKind === DAMAGE_BONUS_KIND.SKILL_BONUS ? bonus.skillId : null,
     multiplier: bonus.multiplier ?? null,
     min: bonus.min ?? null,
     max: bonus.max ?? null,
@@ -634,6 +649,4 @@ export function mapConditionRow(json_data: ConditionAuthored): ConditionRow {
   }
 }
 
-export {
-  EFFECT_KIND
-}
+export { EFFECT_KIND }

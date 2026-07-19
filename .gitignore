@@ -21,6 +21,9 @@ storybook-static/
 apps/*/.cache/
 test-results/
 playwright-report/
+.playwright-cli/
+.pnpm-store/
+output/playwright/
 
 # Editor directories and files
 .vscode/*

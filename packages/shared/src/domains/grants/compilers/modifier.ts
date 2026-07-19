@@ -1,24 +1,14 @@
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 import type { FacetAuthored, ModifierGrantAuthored } from '#authored'
-import { AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
-import type {
-  ModifierKind,
-  ModifierScopeKind
-} from '#core'
+import { GRANT_KIND } from '#core'
+import type { ModifierKind, ModifierScopeKind } from '#core'
 import type { CompiledStaticGrant } from './grant.js'
 
 /* ──────────────────────────────────────────────
  * Compiled type
  * ────────────────────────────────────────────── */
 
-export type CompiledModifierGrant<
-  K extends ModifierKind = ModifierKind
-> = CompiledStaticGrant<
+export type CompiledModifierGrant<K extends ModifierKind = ModifierKind> = CompiledStaticGrant<
   typeof GRANT_KIND.MODIFIER_GRANT,
   ModifierGrantAuthored
 > & {
@@ -51,33 +41,13 @@ export function compileModifierGrantResult(
     modifierKind: authored.modifierKind
   }
 
-  switch (authored.selectionKind) {
-    case AUTHORING_SELECTION_KIND.GRANTED: {
-      const { id: _id, ...rest } = authored
-      return compileSuccess({
-        ...base,
-        ...rest
-      })
-    }
-
-    case AUTHORING_SELECTION_KIND.CHOSEN: {
-      const { id: _id, ...rest } = authored
-      return compileSuccess({
-        ...base,
-        ...rest,
-
-        // invariant: count only on CHOSEN
-        count: authored.count
-      })
-    }
-
-    default:
-      return assertNever(authored)
-  }
+  const { id: _id, ...rest } = authored
+  return compileSuccess({
+    ...base,
+    ...rest
+  })
 }
 
-export function compileModifierGrant(
-  authored: ModifierGrantAuthored
-): CompiledModifierGrant {
+export function compileModifierGrant(authored: ModifierGrantAuthored): CompiledModifierGrant {
   return unwrapCompileResult(compileModifierGrantResult(authored))
 }

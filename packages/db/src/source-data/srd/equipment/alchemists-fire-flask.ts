@@ -63,7 +63,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                         outcomes: [
                             {
                                 id: S.equipmentChildId(S.equipId(120), 0x213, 1),
-                                effectKind: S.EFFECT_KIND.RULE
+                                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }
@@ -81,7 +81,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
                         outcomes: [
                             {
                                 id: S.equipmentChildId(S.equipId(120), 0x214, 1),
-                                effectKind: S.EFFECT_KIND.RULE
+                                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

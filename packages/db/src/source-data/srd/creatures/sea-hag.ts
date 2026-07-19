@@ -5,7 +5,6 @@ export const seaHag: CreatureAuthored = {
     label: 'Sea Hag',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FEY,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const seaHag: CreatureAuthored = {
         INTELLIGENCE: 12,
         WISDOM: 12,
         CHARISMA: 13,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     hitPoints: 52,

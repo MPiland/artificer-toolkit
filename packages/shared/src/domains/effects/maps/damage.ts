@@ -1,6 +1,6 @@
 import { type DamageAuthored, type DamageBonusAuthored, type DamageDicePayload, type DamageFixedPayload } from '#authored'
 import {
-  ABILITY_OPTIONS,
+  ABILITY_MODIFIER_REFERENCE_OPTIONS,
   DAMAGE_BONUS_OPTIONS,
   DAMAGE_VALUE_OPTIONS
 } from '#core'
@@ -8,7 +8,7 @@ import { buildNodeMap } from '#utils'
 import { type AllUnionFields } from 'type-fest'
 
 // Helper type to extract element type from array property
-type ArrayElementAt<T, K extends keyof T> = T[K] extends (infer U)[] ? U : never
+type ArrayElementAt<T, K extends keyof T> = NonNullable<T[K]> extends (infer U)[] ? U : never
 
 type DamageArrayElement = ArrayElementAt<AllUnionFields<DamageDicePayload | DamageFixedPayload>, 'levels'>
 
@@ -24,15 +24,15 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define('damageBonus', ({ map, n
   map
     .set('id', text(['id'], 'ID'))
     .set('bonusKind', selectSingle(['bonusKind'], 'Bonus Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: DAMAGE_BONUS_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
-      options: ABILITY_OPTIONS
+      kind: 'INLINE_OPTIONS',
+      options: ABILITY_MODIFIER_REFERENCE_OPTIONS
     }, {
       order: 2,
       requiredIf: true,
@@ -84,13 +84,13 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
       requiredIf: true
     }))
     .set('valueKind', selectSingle(['valueKind'], 'Damage Value Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: DAMAGE_VALUE_OPTIONS
     }, {
       order: 2,
       requiredIf: true
     }))
-    .set('amount', number(['amount'], 'Amount', {
+    .set('fixedAmount', number(['amount'], 'Amount', {
       order: 3,
       requiredIf: true,
       showIf: local.field(['valueKind']).eq('FIXED')
@@ -100,13 +100,13 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
       requiredIf: true,
       showIf: local.field(['valueKind']).eq('DICE')
     }))
-    .set('amount', number(['amount'], 'Pool Amount', {
+    .set('poolAmount', number(['amount'], 'Pool Amount', {
       order: 3,
       requiredIf: true,
       showIf: local.field(['valueKind']).eq('POOL')
     }))
     .set('scalingKind', selectSingle(['scalingKind'], 'Scaling Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: [
         { code: 'NONE', label: 'None' },
         { code: 'PER_LEVEL', label: 'Per Level' }
@@ -118,7 +118,7 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
     .set('multiplier', number(['multiplier'], 'Damage Multiplier', {
       order: 5
     }))
-    .set('bonuses', groupArray(['bonuses'], 'Damage Bonuses', () => DAMAGE_BONUS_NODE_MAP, {
+    .set('bonuses', groupArray(['bonuses'], 'Damage Bonuses', () => DAMAGE_BONUS_NODE_MAP, { presentation: 'inline',
       order: 6
     }))
 })

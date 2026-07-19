@@ -19,14 +19,20 @@ CREATE TABLE IF NOT EXISTS public.proficiency_grants (
   selection_kind text NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   count integer,
+  selection_duplicate_policy text,
   level text NOT NULL,
   rounding text,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT proficiency_grants_count_chk CHECK (
-    (selection_kind <> 'CHOSEN' AND count IS NULL)
-    OR (selection_kind = 'CHOSEN' AND count IS NOT NULL AND count > 0)
+    (selection_kind <> 'CHOSEN' AND count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_kind = 'CHOSEN'
+      AND count IS NOT NULL
+      AND count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT proficiency_grants_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -84,7 +90,10 @@ ALTER TABLE public.proficiency_grant_skills ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.proficiency_grant_save_abilities (
   proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   ability_code text NOT NULL,
-  PRIMARY KEY (proficiency_grant_id, ability_code)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (proficiency_grant_id, ability_code),
+  CONSTRAINT proficiency_grant_save_abilities_sort_order_chk CHECK (sort_order > 0),
+  CONSTRAINT proficiency_grant_save_abilities_grant_order_uniq UNIQUE (proficiency_grant_id, sort_order)
 );
 
 ALTER TABLE public.proficiency_grant_save_abilities ENABLE ROW LEVEL SECURITY;

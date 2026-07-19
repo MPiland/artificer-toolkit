@@ -44,67 +44,75 @@ function createFakeDb(rowsByTable: RowMap) {
 
 describe('createModifierGrantRepository', () => {
   it('hydrates a modifier grant with domain, payload, and optional abilities', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-1',
-        sort_order: 2,
-        selection_kind: 'CHOSEN',
-        count: 1,
-        value_domain_code: 'ATTACK_ROLL',
-        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
-        scope: 'SOURCE',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [{
-        modifier_grant_id: 'modifier-1',
-        value_domain_code: 'ATTACK_ROLL',
-        attack_domain_code: 'MELEE',
-        ability_code: null,
-        skill_id: null,
-        speed_id: null,
-        sense_code: null,
-        spell_level: null
-      }],
-      modifier_grant_payloads: [{
-        modifier_grant_id: 'modifier-1',
-        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
-        value_domain_code: 'ATTACK_ROLL',
-        numeric_value_kind: null,
-        numeric_amount: null,
-        numeric_multiplier: null,
-        numeric_ability_code: null,
-        numeric_skill_id: null,
-        numeric_class_id: null,
-        set_amount: null,
-        charge_limit_kind: null,
-        charge_scaling_kind: null,
-        charge_amount: null,
-        charge_multiplier: null,
-        charge_min: null,
-        charge_max: null,
-        dice: null,
-        damage_type_id: null,
-        condition_type_id: null,
-        movement_mode_id: null,
-        attribute_id: null,
-        range_kind: null,
-        duration_kind: null,
-        shape_kind: null,
-        reset_kind: null
-      }],
-      modifier_grant_charge_levels: [],
-      modifier_grant_optional_abilities: [
-        { modifier_grant_id: 'modifier-1', ability_code: 'DEXTERITY' },
-        { modifier_grant_id: 'modifier-1', ability_code: 'WISDOM' }
-      ]
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-1',
+            sort_order: 2,
+            selection_kind: 'GRANTED',
+            count: null,
+            selection_duplicate_policy: null,
+            value_domain_code: 'ATTACK_ROLL',
+            modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
+            scope: 'SOURCE',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [
+          {
+            modifier_grant_id: 'modifier-1',
+            value_domain_code: 'ATTACK_ROLL',
+            attack_domain_code: 'MELEE',
+            ability_code: null,
+            skill_id: null,
+            speed_id: null,
+            sense_code: null,
+            spell_level: null
+          }
+        ],
+        modifier_grant_payloads: [
+          {
+            modifier_grant_id: 'modifier-1',
+            modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
+            value_domain_code: 'ATTACK_ROLL',
+            numeric_value_kind: null,
+            numeric_amount: null,
+            numeric_multiplier: null,
+            numeric_ability_code: null,
+            numeric_skill_id: null,
+            numeric_class_id: null,
+            set_amount: null,
+            charge_limit_kind: null,
+            charge_scaling_kind: null,
+            charge_amount: null,
+            charge_multiplier: null,
+            charge_min: null,
+            charge_max: null,
+            dice: null,
+            damage_type_id: null,
+            condition_type_id: null,
+            movement_mode_id: null,
+            attribute_id: null,
+            range_kind: null,
+            duration_kind: null,
+            shape_kind: null,
+            reset_kind: null
+          }
+        ],
+        modifier_grant_charge_levels: [],
+        modifier_grant_optional_abilities: [
+          { modifier_grant_id: 'modifier-1', ability_code: 'DEXTERITY', sort_order: 2 },
+          { modifier_grant_id: 'modifier-1', ability_code: 'STRENGTH', sort_order: 1 }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('modifier-1')).resolves.toEqual({
       id: 'modifier-1',
       grantKind: 'MODIFIER_GRANT',
       order: 2,
-      selectionKind: 'CHOSEN',
-      count: 1,
+      selectionKind: 'GRANTED',
       valueDomainCode: 'ATTACK_ROLL',
       domain: {
         attackDomain: 'MELEE'
@@ -112,61 +120,90 @@ describe('createModifierGrantRepository', () => {
       modifierKind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
       scope: 'SOURCE',
       payload: {
-        abilities: ['DEXTERITY', 'WISDOM']
+        abilities: ['STRENGTH', 'DEXTERITY']
       }
     })
   })
 
+  it('rejects persisted chosen modifier grants', async () => {
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-chosen',
+            sort_order: 1,
+            selection_kind: 'CHOSEN',
+            count: 1,
+            selection_duplicate_policy: 'UNIQUE',
+            value_domain_code: 'ABILITY_SCORE',
+            modifier_kind: 'BONUS',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ]
+      }) as never
+    )
+
+    await expect(repository.findById('modifier-chosen')).rejects.toThrow(
+      'invalid selection_kind "CHOSEN"'
+    )
+  })
+
   it('hydrates a charge-limit modifier with ability-modifier scaling', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-charge-ability',
-        sort_order: 1,
-        selection_kind: 'GRANTED',
-        count: null,
-        value_domain_code: 'CHARGE_LIMIT',
-        modifier_kind: 'MODIFY_CHARGE_LIMIT',
-        scope: 'GLOBAL',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [],
-      modifier_grant_payloads: [{
-        modifier_grant_id: 'modifier-charge-ability',
-        modifier_kind: 'MODIFY_CHARGE_LIMIT',
-        value_domain_code: 'CHARGE_LIMIT',
-        numeric_value_kind: null,
-        numeric_amount: null,
-        numeric_multiplier: null,
-        numeric_ability_code: 'CHARISMA',
-        numeric_skill_id: null,
-        numeric_class_id: null,
-        set_amount: null,
-        charge_limit_kind: 'ABILITY_MODIFIER',
-        charge_scaling_kind: 'NONE',
-        charge_amount: null,
-        charge_min: 1,
-        charge_max: 5,
-        charge_multiplier: 2,
-        dice: null,
-        damage_type_id: null,
-        condition_type_id: null,
-        movement_mode_id: null,
-        attribute_id: null,
-        range_kind: null,
-        duration_kind: null,
-        shape_kind: null,
-        reset_kind: null
-      }],
-      modifier_grant_charge_levels: [],
-      modifier_grant_optional_abilities: []
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-charge-ability',
+            sort_order: 1,
+            selection_kind: 'GRANTED',
+            count: null,
+            value_domain_code: 'CHARGE_LIMIT',
+            modifier_kind: 'MODIFY_CHARGE_LIMIT',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [],
+        modifier_grant_payloads: [
+          {
+            modifier_grant_id: 'modifier-charge-ability',
+            modifier_kind: 'MODIFY_CHARGE_LIMIT',
+            value_domain_code: 'CHARGE_LIMIT',
+            numeric_value_kind: null,
+            numeric_amount: null,
+            numeric_multiplier: null,
+            numeric_ability_code: 'CHARISMA',
+            numeric_skill_id: null,
+            numeric_class_id: null,
+            set_amount: null,
+            charge_limit_kind: 'ABILITY_MODIFIER',
+            charge_scaling_kind: 'NONE',
+            charge_amount: null,
+            charge_min: 1,
+            charge_max: 5,
+            charge_multiplier: 2,
+            dice: null,
+            damage_type_id: null,
+            condition_type_id: null,
+            movement_mode_id: null,
+            attribute_id: null,
+            range_kind: null,
+            duration_kind: null,
+            shape_kind: null,
+            reset_kind: null
+          }
+        ],
+        modifier_grant_charge_levels: [],
+        modifier_grant_optional_abilities: []
+      }) as never
+    )
 
     await expect(repository.findById('modifier-charge-ability')).resolves.toEqual({
       id: 'modifier-charge-ability',
       grantKind: 'MODIFIER_GRANT',
       order: 1,
       selectionKind: 'GRANTED',
-      count: undefined,
       valueDomainCode: 'CHARGE_LIMIT',
       domain: {},
       modifierKind: 'MODIFY_CHARGE_LIMIT',
@@ -184,58 +221,75 @@ describe('createModifierGrantRepository', () => {
   })
 
   it('hydrates a charge-limit modifier with per-level scaling', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-charge-1',
-        sort_order: 1,
-        selection_kind: 'GRANTED',
-        count: null,
-        value_domain_code: 'CHARGE_LIMIT',
-        modifier_kind: 'MODIFY_CHARGE_LIMIT',
-        scope: 'GLOBAL',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [],
-      modifier_grant_payloads: [{
-        modifier_grant_id: 'modifier-charge-1',
-        modifier_kind: 'MODIFY_CHARGE_LIMIT',
-        value_domain_code: 'CHARGE_LIMIT',
-        numeric_value_kind: null,
-        numeric_amount: null,
-        numeric_multiplier: null,
-        numeric_ability_code: null,
-        numeric_skill_id: null,
-        numeric_class_id: null,
-        set_amount: null,
-        charge_limit_kind: 'FIXED_AMOUNT',
-        charge_scaling_kind: 'PER_LEVEL',
-        charge_amount: null,
-        charge_multiplier: null,
-        charge_min: null,
-        charge_max: null,
-        dice: null,
-        damage_type_id: null,
-        condition_type_id: null,
-        movement_mode_id: null,
-        attribute_id: null,
-        range_kind: null,
-        duration_kind: null,
-        shape_kind: null,
-        reset_kind: null
-      }],
-      modifier_grant_charge_levels: [
-        { id: 'level-1', modifier_grant_id: 'modifier-charge-1', level: 3, amount: 2, sort_order: 1 },
-        { id: 'level-2', modifier_grant_id: 'modifier-charge-1', level: 5, amount: 3, sort_order: 2 }
-      ],
-      modifier_grant_optional_abilities: []
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-charge-1',
+            sort_order: 1,
+            selection_kind: 'GRANTED',
+            count: null,
+            value_domain_code: 'CHARGE_LIMIT',
+            modifier_kind: 'MODIFY_CHARGE_LIMIT',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [],
+        modifier_grant_payloads: [
+          {
+            modifier_grant_id: 'modifier-charge-1',
+            modifier_kind: 'MODIFY_CHARGE_LIMIT',
+            value_domain_code: 'CHARGE_LIMIT',
+            numeric_value_kind: null,
+            numeric_amount: null,
+            numeric_multiplier: null,
+            numeric_ability_code: null,
+            numeric_skill_id: null,
+            numeric_class_id: null,
+            set_amount: null,
+            charge_limit_kind: 'FIXED_AMOUNT',
+            charge_scaling_kind: 'PER_LEVEL',
+            charge_amount: null,
+            charge_multiplier: null,
+            charge_min: null,
+            charge_max: null,
+            dice: null,
+            damage_type_id: null,
+            condition_type_id: null,
+            movement_mode_id: null,
+            attribute_id: null,
+            range_kind: null,
+            duration_kind: null,
+            shape_kind: null,
+            reset_kind: null
+          }
+        ],
+        modifier_grant_charge_levels: [
+          {
+            id: 'level-1',
+            modifier_grant_id: 'modifier-charge-1',
+            level: 3,
+            amount: 2,
+            sort_order: 1
+          },
+          {
+            id: 'level-2',
+            modifier_grant_id: 'modifier-charge-1',
+            level: 5,
+            amount: 3,
+            sort_order: 2
+          }
+        ],
+        modifier_grant_optional_abilities: []
+      }) as never
+    )
 
     await expect(repository.findById('modifier-charge-1')).resolves.toEqual({
       id: 'modifier-charge-1',
       grantKind: 'MODIFIER_GRANT',
       order: 1,
       selectionKind: 'GRANTED',
-      count: undefined,
       valueDomainCode: 'CHARGE_LIMIT',
       domain: {},
       modifierKind: 'MODIFY_CHARGE_LIMIT',
@@ -252,59 +306,67 @@ describe('createModifierGrantRepository', () => {
   })
 
   it('hydrates Postgres numeric strings as numbers', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-numeric-string',
-        sort_order: 1,
-        selection_kind: 'GRANTED',
-        count: null,
-        value_domain_code: 'ABILITY_SCORE',
-        modifier_kind: 'BONUS',
-        scope: 'GLOBAL',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [{
-        modifier_grant_id: 'modifier-numeric-string',
-        value_domain_code: 'ABILITY_SCORE',
-        attack_domain_code: null,
-        ability_code: 'STRENGTH',
-        skill_id: null,
-        speed_id: null,
-        sense_code: null,
-        spell_level: null
-      }],
-      modifier_grant_payloads: [{
-        modifier_grant_id: 'modifier-numeric-string',
-        modifier_kind: 'BONUS',
-        value_domain_code: 'ABILITY_SCORE',
-        numeric_value_kind: 'FIXED',
-        numeric_amount: '2',
-        numeric_multiplier: null,
-        numeric_ability_code: null,
-        numeric_min: null,
-        numeric_max: null,
-        numeric_skill_id: null,
-        numeric_class_id: null,
-        set_amount: null,
-        charge_limit_kind: null,
-        charge_scaling_kind: null,
-        charge_amount: null,
-        charge_multiplier: null,
-        charge_min: null,
-        charge_max: null,
-        dice: null,
-        damage_type_id: null,
-        condition_type_id: null,
-        movement_mode_id: null,
-        attribute_id: null,
-        range_kind: null,
-        duration_kind: null,
-        shape_kind: null,
-        reset_kind: null
-      }],
-      modifier_grant_charge_levels: [],
-      modifier_grant_optional_abilities: []
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-numeric-string',
+            sort_order: 1,
+            selection_kind: 'GRANTED',
+            count: null,
+            value_domain_code: 'ABILITY_SCORE',
+            modifier_kind: 'BONUS',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [
+          {
+            modifier_grant_id: 'modifier-numeric-string',
+            value_domain_code: 'ABILITY_SCORE',
+            attack_domain_code: null,
+            ability_code: 'STRENGTH',
+            skill_id: null,
+            speed_id: null,
+            sense_code: null,
+            spell_level: null
+          }
+        ],
+        modifier_grant_payloads: [
+          {
+            modifier_grant_id: 'modifier-numeric-string',
+            modifier_kind: 'BONUS',
+            value_domain_code: 'ABILITY_SCORE',
+            numeric_value_kind: 'FIXED',
+            numeric_amount: '2',
+            numeric_multiplier: null,
+            numeric_ability_code: null,
+            numeric_min: null,
+            numeric_max: null,
+            numeric_skill_id: null,
+            numeric_class_id: null,
+            set_amount: null,
+            charge_limit_kind: null,
+            charge_scaling_kind: null,
+            charge_amount: null,
+            charge_multiplier: null,
+            charge_min: null,
+            charge_max: null,
+            dice: null,
+            damage_type_id: null,
+            condition_type_id: null,
+            movement_mode_id: null,
+            attribute_id: null,
+            range_kind: null,
+            duration_kind: null,
+            shape_kind: null,
+            reset_kind: null
+          }
+        ],
+        modifier_grant_charge_levels: [],
+        modifier_grant_optional_abilities: []
+      }) as never
+    )
 
     await expect(repository.findById('modifier-numeric-string')).resolves.toMatchObject({
       payload: {
@@ -315,22 +377,26 @@ describe('createModifierGrantRepository', () => {
   })
 
   it('fails loudly when a granted modifier grant persists count', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-unexpected-count',
-        sort_order: 1,
-        selection_kind: 'GRANTED',
-        count: 1,
-        value_domain_code: 'SAVE_DC',
-        modifier_kind: 'ADVANTAGE',
-        scope: 'GLOBAL',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [],
-      modifier_grant_payloads: [],
-      modifier_grant_charge_levels: [],
-      modifier_grant_optional_abilities: []
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-unexpected-count',
+            sort_order: 1,
+            selection_kind: 'GRANTED',
+            count: 1,
+            value_domain_code: 'SAVE_DC',
+            modifier_kind: 'ADVANTAGE',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [],
+        modifier_grant_payloads: [],
+        modifier_grant_charge_levels: [],
+        modifier_grant_optional_abilities: []
+      }) as never
+    )
 
     await expect(repository.findById('modifier-unexpected-count')).rejects.toThrow(
       'cannot hydrate count for GRANTED payload'
@@ -338,54 +404,59 @@ describe('createModifierGrantRepository', () => {
   })
 
   it('fails loudly when persisted numeric ability codes are invalid', async () => {
-    const repository = createModifierGrantRepository(createFakeDb({
-      modifier_grants: [{
-        id: 'modifier-bad-ability',
-        sort_order: 1,
-        selection_kind: 'GRANTED',
-        count: null,
-        value_domain_code: 'SAVE_DC',
-        modifier_kind: 'ABILITY_MODIFIER_BONUS',
-        scope: 'GLOBAL',
-        restriction_id: null
-      }],
-      modifier_grant_domain_params: [],
-      modifier_grant_payloads: [{
-        modifier_grant_id: 'modifier-bad-ability',
-        modifier_kind: 'ABILITY_MODIFIER_BONUS',
-        value_domain_code: 'SAVE_DC',
-        numeric_value_kind: null,
-        numeric_amount: null,
-        numeric_multiplier: null,
-        numeric_ability_code: 'LUCK',
-        numeric_min: null,
-        numeric_max: null,
-        numeric_skill_id: null,
-        numeric_class_id: null,
-        set_amount: null,
-        charge_limit_kind: null,
-        charge_scaling_kind: null,
-        charge_amount: null,
-        charge_multiplier: null,
-        charge_min: null,
-        charge_max: null,
-        dice: null,
-        damage_type_id: null,
-        condition_type_id: null,
-        movement_mode_id: null,
-        attribute_id: null,
-        range_kind: null,
-        duration_kind: null,
-        shape_kind: null,
-        reset_kind: null
-      }],
-      modifier_grant_charge_levels: [],
-      modifier_grant_optional_abilities: []
-    }) as never)
+    const repository = createModifierGrantRepository(
+      createFakeDb({
+        modifier_grants: [
+          {
+            id: 'modifier-bad-ability',
+            sort_order: 1,
+            selection_kind: 'GRANTED',
+            count: null,
+            value_domain_code: 'SAVE_DC',
+            modifier_kind: 'ABILITY_MODIFIER_BONUS',
+            scope: 'GLOBAL',
+            restriction_id: null
+          }
+        ],
+        modifier_grant_domain_params: [],
+        modifier_grant_payloads: [
+          {
+            modifier_grant_id: 'modifier-bad-ability',
+            modifier_kind: 'ABILITY_MODIFIER_BONUS',
+            value_domain_code: 'SAVE_DC',
+            numeric_value_kind: null,
+            numeric_amount: null,
+            numeric_multiplier: null,
+            numeric_ability_code: 'LUCK',
+            numeric_min: null,
+            numeric_max: null,
+            numeric_skill_id: null,
+            numeric_class_id: null,
+            set_amount: null,
+            charge_limit_kind: null,
+            charge_scaling_kind: null,
+            charge_amount: null,
+            charge_multiplier: null,
+            charge_min: null,
+            charge_max: null,
+            dice: null,
+            damage_type_id: null,
+            condition_type_id: null,
+            movement_mode_id: null,
+            attribute_id: null,
+            range_kind: null,
+            duration_kind: null,
+            shape_kind: null,
+            reset_kind: null
+          }
+        ],
+        modifier_grant_charge_levels: [],
+        modifier_grant_optional_abilities: []
+      }) as never
+    )
 
     await expect(repository.findById('modifier-bad-ability')).rejects.toThrow(
       'invalid numeric_ability_code'
     )
   })
 })
-

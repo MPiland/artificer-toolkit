@@ -3,9 +3,15 @@ import type {
   ClassResponseDto
 } from '@artificer-toolkit/schema/api/content'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  createRuntimeGroupNode as groupNode,
+  createRuntimeInputNode as inputNode,
+  createRuntimeSelectNode as selectNode
+} from '../authoredRouteRuntime.fixtures'
 
 export const ownedClassResponseFixture = {
   publicId: 'class-owned',
+  activeRevisionId: 'class-owned-active-revision',
   item: {
     id: 'class-owned',
     label: 'Fighter',
@@ -18,6 +24,7 @@ export const ownedClassResponseFixture = {
     systemId: 'system-5e',
     category: 'BASE',
     attributes: [],
+    subclassSelectionLevel: 3,
     startingGold: {
       multiplier: 5,
       currencyId: 'gp',
@@ -52,6 +59,7 @@ export const ownedClassResponseFixture = {
 
 export const masterSubclassResponseFixture = {
   publicId: 'class-master-subclass',
+  activeRevisionId: 'class-master-subclass-active-revision',
   item: {
     id: 'class-master-subclass',
     label: 'Champion',
@@ -84,6 +92,7 @@ export const classListFixture = {
     {
       id: ownedClassResponseFixture.item.id,
       publicId: ownedClassResponseFixture.publicId,
+      activeRevisionId: ownedClassResponseFixture.activeRevisionId,
       label: ownedClassResponseFixture.item.label,
       description: ownedClassResponseFixture.item.description,
       status: 'ACTIVE',
@@ -96,6 +105,7 @@ export const classListFixture = {
     {
       id: masterSubclassResponseFixture.item.id,
       publicId: masterSubclassResponseFixture.publicId,
+      activeRevisionId: masterSubclassResponseFixture.activeRevisionId,
       label: masterSubclassResponseFixture.item.label,
       description: masterSubclassResponseFixture.item.description,
       status: 'ACTIVE',
@@ -118,6 +128,7 @@ export function createClassRuntimeFixture(
   return {
     mapId: 'class',
     clearPaths: [],
+    scopes: [],
     steps: [
       {
         id: 'basics',
@@ -161,63 +172,3 @@ export function createClassRuntimeFixture(
 }
 
 export const classRuntimeFixture = createClassRuntimeFixture('BASE')
-
-function inputNode(
-  id: string,
-  path: string[],
-  label: string,
-  type: 'TEXT' | 'NUMBER' | 'RICH_TEXT',
-  required = false
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type,
-    visible: true,
-    required,
-    clearPaths: []
-  }
-}
-
-function selectNode(
-  id: string,
-  path: string[],
-  label: string,
-  options: NonNullable<NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number]['options']>,
-  required = false,
-  visible = true
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type: 'SELECT_SINGLE',
-    visible,
-    required,
-    clearPaths: [],
-    options
-  }
-}
-
-function groupNode(
-  id: string,
-  path: string[],
-  label: string,
-  groupKind: 'OBJECT' | 'ARRAY',
-  childMapId: string
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'GROUP',
-    groupKind,
-    childMapId,
-    visible: true,
-    required: false,
-    clearPaths: []
-  }
-}

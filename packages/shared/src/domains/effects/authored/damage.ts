@@ -1,4 +1,4 @@
-import type { AbilityCode, SCALING, ScalingAmountKind } from '#core'
+import type { AbilityModifierReference, SCALING, ScalingAmountKind } from '#core'
 import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
@@ -33,7 +33,7 @@ export type DamageBonusAuthored
   = | {
     id: string
     bonusKind: typeof DAMAGE_BONUS_KIND.ABILITY_BONUS
-    ability: AbilityCode
+    ability: AbilityModifierReference
     min?: number
     max?: number
     multiplier?: number

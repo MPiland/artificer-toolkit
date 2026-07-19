@@ -6,7 +6,6 @@ export const spy: CreatureAuthored = {
   label: 'Spy',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.NPC,
   creatureTypeId: S.CREATURE_TYPE.HUMANOID,
   size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const spy: CreatureAuthored = {
     INTELLIGENCE: 12,
     WISDOM: 14,
     CHARISMA: 16,
-    SPELLCASTING: 0
   },
   armorClass: 12,
   hitPoints: 27,

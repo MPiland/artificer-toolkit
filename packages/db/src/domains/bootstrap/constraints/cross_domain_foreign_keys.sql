@@ -344,6 +344,18 @@ $$;
 
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'facet_predicate_class_items_class_id_fkey') THEN
+    ALTER TABLE public.facet_predicate_class_items
+      ADD CONSTRAINT facet_predicate_class_items_class_id_fkey
+      FOREIGN KEY (class_id) REFERENCES public.classes(id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'facet_predicate_feature_items_feature_id_fkey') THEN
     ALTER TABLE public.facet_predicate_feature_items
       ADD CONSTRAINT facet_predicate_feature_items_feature_id_fkey
@@ -780,7 +792,7 @@ BEGIN
     ALTER TABLE public.spell_classes
       ADD CONSTRAINT spell_classes_class_id_fkey
       FOREIGN KEY (class_id) REFERENCES public.classes(id)
-      ON DELETE RESTRICT
+      ON DELETE CASCADE
       DEFERRABLE INITIALLY DEFERRED;
   END IF;
 END;

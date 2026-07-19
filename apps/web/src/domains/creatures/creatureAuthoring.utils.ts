@@ -15,22 +15,41 @@ import {
   SIZE_CODE
 } from '@artificer-toolkit/shared/core'
 
-export type CreatureFormValues = CreatureAuthoringInputDto
+type CreatureStringFormValue = {
+  value: string
+}
+
+type CreatureNpcProfileFormValues = Omit<
+  NonNullable<CreatureAuthoringInputDto['npcProfile']>,
+  'bonds' | 'flaws' | 'ideals' | 'personalityTraits'
+> & {
+  bonds?: CreatureStringFormValue[]
+  flaws?: CreatureStringFormValue[]
+  ideals?: CreatureStringFormValue[]
+  personalityTraits?: CreatureStringFormValue[]
+}
+
+export type CreatureFormValues = Omit<
+  CreatureAuthoringInputDto,
+  'tags' | 'senses' | 'logisticsNotes' | 'npcProfile'
+> & {
+  tags?: CreatureStringFormValue[]
+  senses?: CreatureStringFormValue[]
+  logisticsNotes?: CreatureStringFormValue[]
+  npcProfile?: CreatureNpcProfileFormValues
+}
 
 export interface CreateEmptyCreatureInput {
   systemId: string
 }
 
-export function createEmptyCreature({
-  systemId
-}: CreateEmptyCreatureInput): CreatureFormValues {
+export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): CreatureFormValues {
   return {
     id: crypto.randomUUID(),
     label: '',
     description: '',
     quote: '',
     status: 'DRAFT',
-    recordKind: 'STAT_BLOCK',
     category: CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: '',
     size: SIZE_CODE.MEDIUM,
@@ -45,9 +64,6 @@ export function createEmptyCreature({
     damageResistances: [],
     damageImmunities: [],
     conditionImmunities: [],
-    actions: [],
-    bonusActions: [],
-    reactions: [],
     details: [],
     features: [],
     proficiencies: []
@@ -61,8 +77,7 @@ export function createDefaultAbilityScores(): CreatureFormValues['abilityScores'
     CONSTITUTION: 10,
     INTELLIGENCE: 10,
     WISDOM: 10,
-    CHARISMA: 10,
-    SPELLCASTING: 0
+    CHARISMA: 10
   }
 }
 
@@ -84,14 +99,6 @@ export function createEmptyFeature(order: number): FeatureDto {
   }
 }
 
-export function createEmptyAction(): NonNullable<CreatureFormValues['actions']>[number] {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: ''
-  }
-}
-
 export function createEmptySpeed(): SpeedDto {
   return {
     speedId: '',
@@ -107,21 +114,8 @@ export function createEmptyProficiency(): ProficiencyGrantDto {
     grantKind: 'PROFICIENCY_GRANT',
     proficiencyKind: 'SKILL',
     selectionKind: 'GRANTED',
+    scalingKind: 'NONE',
     level: 'FULL'
-  }
-}
-
-export function createEmptyLegendaryProfile(): NonNullable<CreatureFormValues['legendaryProfile']> {
-  return {
-    actionsCount: 3,
-    legendaryResistanceCount: 0
-  }
-}
-
-export function createEmptyLairProfile(): NonNullable<CreatureFormValues['lairProfile']> {
-  return {
-    lairActions: [],
-    regionalEffects: []
   }
 }
 
@@ -150,51 +144,79 @@ export function createEmptyNpcProfile(): NonNullable<CreatureFormValues['npcProf
   }
 }
 
-export function normalizeCreatureForSubmit(creature: CreatureFormValues): CreatureAuthoringInputDto {
+export function normalizeCreatureForSubmit(
+  creature: CreatureFormValues
+): CreatureAuthoringInputDto {
   return {
     ...creature,
     label: creature.label.trim() || 'Untitled Creature',
     description: creature.description ?? '',
     quote: creature.quote ?? '',
-    recordKind: creature.recordKind ?? 'STAT_BLOCK',
     status: creature.status ?? 'DRAFT',
-    tags: creature.tags ?? [],
+    tags: normalizeStringFormValues(creature.tags),
     speeds: creature.speeds ?? [],
-    senses: creature.senses ?? [],
+    senses: normalizeStringFormValues(creature.senses),
     damageVulnerabilities: creature.damageVulnerabilities ?? [],
     damageResistances: creature.damageResistances ?? [],
     damageImmunities: creature.damageImmunities ?? [],
     conditionImmunities: creature.conditionImmunities ?? [],
-    actions: creature.actions ?? [],
-    bonusActions: creature.bonusActions ?? [],
-    reactions: creature.reactions ?? [],
     details: creature.details ?? [],
     features: creature.features ?? [],
-    proficiencies: creature.proficiencies ?? []
+    proficiencies: creature.proficiencies ?? [],
+    logisticsNotes: normalizeStringFormValues(creature.logisticsNotes),
+    npcProfile: creature.npcProfile
+      ? {
+          ...creature.npcProfile,
+          bonds: normalizeStringFormValues(creature.npcProfile.bonds),
+          flaws: normalizeStringFormValues(creature.npcProfile.flaws),
+          ideals: normalizeStringFormValues(creature.npcProfile.ideals),
+          personalityTraits: normalizeStringFormValues(creature.npcProfile.personalityTraits)
+        }
+      : undefined
   }
 }
 
-export function toCreatureFormValues(creature: CreatureAuthoringInputDto | CreatureAuthoredDto | CreatureFormValues): CreatureFormValues {
+export function toCreatureFormValues(
+  creature: CreatureAuthoringInputDto | CreatureAuthoredDto | CreatureFormValues
+): CreatureFormValues {
   return {
     ...creature,
     description: creature.description ?? '',
     quote: creature.quote ?? '',
-    recordKind: creature.recordKind ?? 'STAT_BLOCK',
-    tags: creature.tags ?? [],
+    tags: toStringFormValues(creature.tags),
     abilityScores: creature.abilityScores ?? createDefaultAbilityScores(),
     speeds: creature.speeds ?? [],
-    senses: creature.senses ?? [],
+    senses: toStringFormValues(creature.senses),
     damageVulnerabilities: creature.damageVulnerabilities ?? [],
     damageResistances: creature.damageResistances ?? [],
     damageImmunities: creature.damageImmunities ?? [],
     conditionImmunities: creature.conditionImmunities ?? [],
-    actions: creature.actions ?? [],
-    bonusActions: creature.bonusActions ?? [],
-    reactions: creature.reactions ?? [],
     details: creature.details ?? [],
     features: creature.features ?? [],
-    proficiencies: creature.proficiencies ?? []
+    proficiencies: creature.proficiencies ?? [],
+    logisticsNotes: toStringFormValues(creature.logisticsNotes),
+    npcProfile: creature.npcProfile
+      ? {
+          ...creature.npcProfile,
+          bonds: toStringFormValues(creature.npcProfile.bonds),
+          flaws: toStringFormValues(creature.npcProfile.flaws),
+          ideals: toStringFormValues(creature.npcProfile.ideals),
+          personalityTraits: toStringFormValues(creature.npcProfile.personalityTraits)
+        }
+      : undefined
   }
+}
+
+function normalizeStringFormValues(values: CreatureStringFormValue[] | undefined): string[] {
+  return (values ?? []).map(({ value }) => value.trim()).filter((value) => value.length > 0)
+}
+
+function toStringFormValues(
+  values: string[] | CreatureStringFormValue[] | undefined
+): CreatureStringFormValue[] {
+  return (values ?? []).map((value) =>
+    typeof value === 'string' ? { value } : { value: value.value }
+  )
 }
 
 export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]): string | null {
@@ -204,6 +226,6 @@ export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]
 export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const exists = items.some((current) => current.id === item.id)
   return exists
-    ? items.map((current) => current.id === item.id ? item : current)
+    ? items.map((current) => (current.id === item.id ? item : current))
     : [...items, item]
 }

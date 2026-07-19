@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   ABILITY_CODE,
   EQUIPMENT_CATEGORY_CODE,
@@ -6,6 +7,10 @@ import {
   type ProficiencyGrantAuthored
 } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
+import {
+  requireNoSelectionDuplicatePolicy,
+  requireSelectionDuplicatePolicy
+} from '../repositories/helpers.js'
 
 type ProficiencyGrantRow = {
   id: string
@@ -14,6 +19,7 @@ type ProficiencyGrantRow = {
   selection_kind: string
   authoring_mode_kind: string
   count: number | null
+  selection_duplicate_policy: string | null
   level: string
   rounding: string | null
   restriction_id: string | null
@@ -27,6 +33,7 @@ type ProficiencyGrantSkillRow = {
 type ProficiencyGrantSaveAbilityRow = {
   proficiency_grant_id: string
   ability_code: string
+  sort_order: number
 }
 
 type ProficiencyGrantLanguageRow = {
@@ -59,20 +66,14 @@ type ProficiencyGrantEquipmentPropertyFilterRow = {
   category_code: string | null
 }
 
-type EquipmentProficiencyGrant = Extract<
-  ProficiencyGrantAuthored,
-  { proficiencyKind: 'EQUIPMENT' }
->
+type EquipmentProficiencyGrant = Extract<ProficiencyGrantAuthored, { proficiencyKind: 'EQUIPMENT' }>
 
 type EquipmentPropertyProficiencyGrant = Extract<
   ProficiencyGrantAuthored,
   { proficiencyKind: 'EQUIPMENT_PROPERTY' }
 >
 
-function requireChosenCount(
-  grantId: string,
-  count: number | undefined
-): number {
+function requireChosenCount(grantId: string, count: number | undefined): number {
   if (count == null) {
     throw new Error(`Proficiency grant "${grantId}" is missing count for CHOSEN payload.`)
   }
@@ -80,10 +81,7 @@ function requireChosenCount(
   return count
 }
 
-function rejectGrantedCount(
-  grantId: string,
-  count: number | undefined
-) {
+function rejectGrantedCount(grantId: string, count: number | undefined) {
   if (count == null) {
     return
   }
@@ -91,10 +89,7 @@ function rejectGrantedCount(
   throw new Error(`Proficiency grant "${grantId}" cannot persist count for GRANTED payload.`)
 }
 
-function requireHalfRounding(
-  grantId: string,
-  rounding: string | undefined
-): string {
+function requireHalfRounding(grantId: string, rounding: string | undefined): string {
   if (!rounding) {
     throw new Error(`Proficiency grant "${grantId}" is missing rounding for HALF level.`)
   }
@@ -102,11 +97,7 @@ function requireHalfRounding(
   return rounding
 }
 
-function rejectNonHalfRounding(
-  grantId: string,
-  rounding: string | undefined,
-  level: string
-) {
+function rejectNonHalfRounding(grantId: string, rounding: string | undefined, level: string) {
   if (!rounding) {
     return
   }
@@ -114,11 +105,7 @@ function rejectNonHalfRounding(
   throw new Error(`Proficiency grant "${grantId}" cannot persist rounding for ${level} level.`)
 }
 
-function requireSelectedValues<T>(
-  grantId: string,
-  values: T[] | undefined,
-  field: string
-): T[] {
+function requireSelectedValues<T>(grantId: string, values: T[] | undefined, field: string): T[] {
   if (!values) {
     throw new Error(`Proficiency grant "${grantId}" is missing ${field} for SELECTED payload.`)
   }
@@ -132,14 +119,13 @@ function requireAbsentSelectedValues(
   field: string
 ): void {
   if (values && values.length > 0) {
-    throw new Error(`Proficiency grant "${grantId}" cannot persist ${field} when authoringModeKind is ALL.`)
+    throw new Error(
+      `Proficiency grant "${grantId}" cannot persist ${field} when authoringModeKind is ALL.`
+    )
   }
 }
 
-function requireAbilityCode(
-  grantId: string,
-  value: string
-): string {
+function requireAbilityCode(grantId: string, value: string): string {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`Proficiency grant "${grantId}" has invalid ability code "${value}".`)
   }
@@ -147,10 +133,7 @@ function requireAbilityCode(
   return value
 }
 
-function requireEquipmentCategoryCode(
-  grantId: string,
-  value: string
-): string {
+function requireEquipmentCategoryCode(grantId: string, value: string): string {
   if (!(value in EQUIPMENT_CATEGORY_CODE)) {
     throw new Error(`Proficiency grant "${grantId}" has invalid category code "${value}".`)
   }
@@ -158,10 +141,7 @@ function requireEquipmentCategoryCode(
   return value
 }
 
-function requireEquipmentPropertyCode(
-  grantId: string,
-  value: string
-): string {
+function requireEquipmentPropertyCode(grantId: string, value: string): string {
   if (!(value in EQUIPMENT_PROPERTY_CODE)) {
     throw new Error(`Proficiency grant "${grantId}" has invalid property code "${value}".`)
   }
@@ -174,8 +154,19 @@ function mapProficiencyGrantRow(json_data: ProficiencyGrantAuthored): Proficienc
     rejectGrantedCount(json_data.id, (json_data as { count?: number }).count)
   }
 
+  if (json_data.selectionKind !== 'CHOSEN' && 'selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Proficiency grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+    )
+  }
+
   if (json_data.level !== 'HALF' && 'rounding' in json_data) {
-    rejectNonHalfRounding(json_data.id, (json_data as { rounding?: string }).rounding, json_data.level)
+    rejectNonHalfRounding(
+      json_data.id,
+      (json_data as { rounding?: string }).rounding,
+      json_data.level
+    )
   }
 
   return {
@@ -184,21 +175,25 @@ function mapProficiencyGrantRow(json_data: ProficiencyGrantAuthored): Proficienc
     proficiency_kind: json_data.proficiencyKind,
     selection_kind: json_data.selectionKind,
     authoring_mode_kind: json_data.authoringModeKind ?? 'ALL',
-    count: json_data.selectionKind === 'CHOSEN'
-      ? requireChosenCount(json_data.id, json_data.count)
-      : null,
+    count:
+      json_data.selectionKind === 'CHOSEN'
+        ? requireChosenCount(json_data.id, json_data.count)
+        : null,
+    selection_duplicate_policy:
+      json_data.selectionKind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+            `Proficiency grant "${json_data.id}"`,
+            json_data.selectionDuplicatePolicy
+          )
+        : null,
     level: json_data.level,
-    rounding: json_data.level === 'HALF'
-      ? requireHalfRounding(json_data.id, json_data.rounding)
-      : null,
+    rounding:
+      json_data.level === 'HALF' ? requireHalfRounding(json_data.id, json_data.rounding) : null,
     restriction_id: json_data.restrictions?.id ?? null
   }
 }
 
-export async function upsertProficiencyGrant(
-  db: DBLike,
-  json_data: ProficiencyGrantAuthored
-) {
+export async function upsertProficiencyGrant(db: DBLike, json_data: ProficiencyGrantAuthored) {
   const root = mapProficiencyGrantRow(json_data)
   let skillRows: ProficiencyGrantSkillRow[] = []
   let saveAbilityRows: ProficiencyGrantSaveAbilityRow[] = []
@@ -212,59 +207,94 @@ export async function upsertProficiencyGrant(
   switch (json_data.proficiencyKind) {
     case 'SKILL': {
       if (json_data.authoringModeKind === 'SELECTED') {
-        skillRows = requireSelectedValues(json_data.id, json_data.skillIds, 'skillIds').map((skillId) => ({
-          proficiency_grant_id: json_data.id,
-          skill_id: skillId
-        }))
+        skillRows = requireSelectedValues(json_data.id, json_data.skillIds, 'skillIds').map(
+          (skillId) => ({
+            proficiency_grant_id: json_data.id,
+            skill_id: skillId
+          })
+        )
       } else {
-        requireAbsentSelectedValues(json_data.id, ('skillIds' in json_data ? json_data.skillIds : undefined) as string[] | undefined, 'skillIds')
+        requireAbsentSelectedValues(
+          json_data.id,
+          ('skillIds' in json_data ? json_data.skillIds : undefined) as string[] | undefined,
+          'skillIds'
+        )
       }
       break
     }
 
     case 'SAVE_ABILITY': {
       if (json_data.authoringModeKind === 'SELECTED') {
-        saveAbilityRows = requireSelectedValues(json_data.id, json_data.abilities, 'abilities').map((ability) => ({
-          proficiency_grant_id: json_data.id,
-          ability_code: requireAbilityCode(json_data.id, ability)
-        }))
+        saveAbilityRows = requireSelectedValues(json_data.id, json_data.abilities, 'abilities').map(
+          (ability, sortOrder) => ({
+            proficiency_grant_id: json_data.id,
+            ability_code: requireAbilityCode(json_data.id, ability),
+            sort_order: sortOrder + 1
+          })
+        )
       } else {
-        requireAbsentSelectedValues(json_data.id, ('abilities' in json_data ? json_data.abilities : undefined) as string[] | undefined, 'abilities')
+        requireAbsentSelectedValues(
+          json_data.id,
+          ('abilities' in json_data ? json_data.abilities : undefined) as string[] | undefined,
+          'abilities'
+        )
       }
       break
     }
 
     case 'LANGUAGE': {
       if (json_data.authoringModeKind === 'SELECTED') {
-        languageRows = requireSelectedValues(json_data.id, json_data.languageIds, 'languageIds').map((languageId) => ({
+        languageRows = requireSelectedValues(
+          json_data.id,
+          json_data.languageIds,
+          'languageIds'
+        ).map((languageId) => ({
           proficiency_grant_id: json_data.id,
           language_id: languageId
         }))
       } else {
-        requireAbsentSelectedValues(json_data.id, ('languageIds' in json_data ? json_data.languageIds : undefined) as string[] | undefined, 'languageIds')
+        requireAbsentSelectedValues(
+          json_data.id,
+          ('languageIds' in json_data ? json_data.languageIds : undefined) as string[] | undefined,
+          'languageIds'
+        )
       }
       break
     }
 
     case 'EQUIPMENT': {
       const equipmentGrant = json_data as EquipmentProficiencyGrant
-      const category = 'category' in equipmentGrant
-        ? equipmentGrant.category
-          ? requireEquipmentCategoryCode(json_data.id, equipmentGrant.category)
+      const category =
+        'category' in equipmentGrant
+          ? equipmentGrant.category
+            ? requireEquipmentCategoryCode(json_data.id, equipmentGrant.category)
+            : null
           : null
-        : null
-      const properties = 'properties' in equipmentGrant
-        ? (equipmentGrant.properties ?? []).map((property) => requireEquipmentPropertyCode(json_data.id, property))
-        : []
+      const properties =
+        'properties' in equipmentGrant
+          ? (equipmentGrant.properties ?? []).map((property) =>
+              requireEquipmentPropertyCode(json_data.id, property)
+            )
+          : []
 
       if (equipmentGrant.authoringModeKind === 'SELECTED') {
-        equipmentRows = requireSelectedValues(json_data.id, equipmentGrant.equipmentIds, 'equipmentIds').map((equipmentId) => ({
+        equipmentRows = requireSelectedValues(
+          json_data.id,
+          equipmentGrant.equipmentIds,
+          'equipmentIds'
+        ).map((equipmentId) => ({
           proficiency_grant_id: json_data.id,
           equipment_id: equipmentId
         }))
       } else {
         // ALL mode: equipmentIds must not be present, but category and properties are valid extras on ALL per Selectable<TSelected, TExtra>
-        requireAbsentSelectedValues(json_data.id, ('equipmentIds' in equipmentGrant ? equipmentGrant.equipmentIds : undefined) as string[] | undefined, 'equipmentIds')
+        requireAbsentSelectedValues(
+          json_data.id,
+          ('equipmentIds' in equipmentGrant ? equipmentGrant.equipmentIds : undefined) as
+            | string[]
+            | undefined,
+          'equipmentIds'
+        )
       }
 
       if (category || properties.length > 0) {
@@ -283,20 +313,31 @@ export async function upsertProficiencyGrant(
 
     case 'EQUIPMENT_PROPERTY': {
       const equipmentPropertyGrant = json_data as EquipmentPropertyProficiencyGrant
-      const category = 'category' in equipmentPropertyGrant
-        ? equipmentPropertyGrant.category
-          ? requireEquipmentCategoryCode(json_data.id, equipmentPropertyGrant.category)
+      const category =
+        'category' in equipmentPropertyGrant
+          ? equipmentPropertyGrant.category
+            ? requireEquipmentCategoryCode(json_data.id, equipmentPropertyGrant.category)
+            : null
           : null
-        : null
 
       if (equipmentPropertyGrant.authoringModeKind === 'SELECTED') {
-        equipmentPropertyRows = requireSelectedValues(json_data.id, equipmentPropertyGrant.properties, 'properties').map((property) => ({
+        equipmentPropertyRows = requireSelectedValues(
+          json_data.id,
+          equipmentPropertyGrant.properties,
+          'properties'
+        ).map((property) => ({
           proficiency_grant_id: json_data.id,
           property_code: requireEquipmentPropertyCode(json_data.id, property)
         }))
       } else {
         // ALL mode: properties must not be present, but category is a valid extra on ALL per Selectable<TSelected, TExtra>
-        requireAbsentSelectedValues(json_data.id, ('properties' in equipmentPropertyGrant ? equipmentPropertyGrant.properties : undefined) as string[] | undefined, 'properties')
+        requireAbsentSelectedValues(
+          json_data.id,
+          ('properties' in equipmentPropertyGrant
+            ? equipmentPropertyGrant.properties
+            : undefined) as string[] | undefined,
+          'properties'
+        )
       }
 
       if (category) {
@@ -314,18 +355,18 @@ export async function upsertProficiencyGrant(
     }
   }
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingGrant = await trx
       .selectFrom('proficiency_grants')
       .select(['restriction_id'])
       .where('id', '=', json_data.id)
       .executeTakeFirst()
 
-    if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
-        .execute()
+    if (
+      existingGrant?.restriction_id &&
+      existingGrant.restriction_id !== json_data.restrictions?.id
+    ) {
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
     }
 
     if (json_data.restrictions) {
@@ -335,16 +376,19 @@ export async function upsertProficiencyGrant(
     await trx
       .insertInto('proficiency_grants')
       .values(root)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        sort_order: ref('excluded.sort_order'),
-        proficiency_kind: ref('excluded.proficiency_kind'),
-        selection_kind: ref('excluded.selection_kind'),
-        authoring_mode_kind: ref('excluded.authoring_mode_kind'),
-        count: ref('excluded.count'),
-        level: ref('excluded.level'),
-        rounding: ref('excluded.rounding'),
-        restriction_id: ref('excluded.restriction_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order'),
+          proficiency_kind: eb.ref('excluded.proficiency_kind'),
+          selection_kind: eb.ref('excluded.selection_kind'),
+          authoring_mode_kind: eb.ref('excluded.authoring_mode_kind'),
+          count: eb.ref('excluded.count'),
+          selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
+          level: eb.ref('excluded.level'),
+          rounding: eb.ref('excluded.rounding'),
+          restriction_id: eb.ref('excluded.restriction_id')
+        }))
+      )
       .execute()
 
     await trx
@@ -388,31 +432,19 @@ export async function upsertProficiencyGrant(
       .execute()
 
     if (skillRows.length > 0) {
-      await trx
-        .insertInto('proficiency_grant_skills')
-        .values(skillRows)
-        .execute()
+      await trx.insertInto('proficiency_grant_skills').values(skillRows).execute()
     }
 
     if (saveAbilityRows.length > 0) {
-      await trx
-        .insertInto('proficiency_grant_save_abilities')
-        .values(saveAbilityRows)
-        .execute()
+      await trx.insertInto('proficiency_grant_save_abilities').values(saveAbilityRows).execute()
     }
 
     if (languageRows.length > 0) {
-      await trx
-        .insertInto('proficiency_grant_languages')
-        .values(languageRows)
-        .execute()
+      await trx.insertInto('proficiency_grant_languages').values(languageRows).execute()
     }
 
     if (equipmentRows.length > 0) {
-      await trx
-        .insertInto('proficiency_grant_equipment')
-        .values(equipmentRows)
-        .execute()
+      await trx.insertInto('proficiency_grant_equipment').values(equipmentRows).execute()
     }
 
     if (equipmentFilterRow) {
@@ -442,10 +474,5 @@ export async function upsertProficiencyGrant(
         .values(equipmentPropertyFilterRow)
         .execute()
     }
-
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

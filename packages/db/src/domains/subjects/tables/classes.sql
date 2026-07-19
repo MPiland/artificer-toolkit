@@ -43,10 +43,8 @@ CREATE TABLE IF NOT EXISTS public.classes (
 
   category text NOT NULL, -- ClassCategoryCode (BASE|SUBCLASS)
 
-  parent_class_id uuid
-    REFERENCES public.classes(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  parent_class_id uuid,
+  subclass_selection_level smallint,
 
   label text NOT NULL,
   description text,
@@ -65,6 +63,15 @@ CREATE TABLE IF NOT EXISTS public.classes (
   CONSTRAINT classes_category_chk CHECK (
     category IN ('BASE', 'SUBCLASS')
   ),
+  CONSTRAINT classes_subclass_selection_level_chk CHECK (
+    (category = 'BASE' AND (subclass_selection_level IS NULL OR subclass_selection_level BETWEEN 1 AND 20))
+    OR (category = 'SUBCLASS' AND subclass_selection_level IS NULL)
+  ),
+  CONSTRAINT classes_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT classes_parent_system_fk FOREIGN KEY (parent_class_id, system_id)
+    REFERENCES public.classes(id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT classes_category_parent_chk CHECK (
     (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
     OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)

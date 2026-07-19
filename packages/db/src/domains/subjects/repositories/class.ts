@@ -13,12 +13,70 @@ import type { DBLike } from '#types'
 import { upsertClass } from '../upserts/class.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
-import { hydrateChargeById } from '../../grants/repositories/helpers.js'
+import { hydrateChargesByIds } from '../../grants/repositories/helpers.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createStartingEquipmentRepository } from '../../shared/repositories/starting_equipment.js'
 import type { ClassRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
-import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
+import { orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
+
+export interface ClassRepositoryReadOptions extends RepositoryFindAllOptions {
+  allowedFeatureIds?: ReadonlySet<string>
+  includeFeatureEffects?: boolean
+}
+
+export type ClassRepositoryWithReadOptions = Omit<
+  ClassRepository,
+  'findById' | 'findByIds'
+> & {
+  findById(id: string, filter?: ClassRepositoryReadOptions): Promise<ClassAuthored | null>
+  findByIds(
+    ids: readonly string[],
+    filter?: ClassRepositoryReadOptions
+  ): Promise<Map<string, ClassAuthored>>
+}
+
+const CLASS_COLUMNS = [
+  'id',
+  'system_id',
+  'user_id',
+  'category',
+  'parent_class_id',
+  'subclass_selection_level',
+  'label',
+  'description',
+  'status',
+  'starting_equipment_id'
+] as const
+
+type ClassRow = {
+  id: string
+  system_id: string
+  user_id: string | null
+  category: string
+  parent_class_id: string | null
+  subclass_selection_level: number | null
+  label: string
+  description: string | null
+  status: string
+  starting_equipment_id: string | null
+}
+
+function groupRows<T>(rows: readonly T[], getOwnerId: (row: T) => string): Map<string, T[]> {
+  const grouped = new Map<string, T[]>()
+
+  for (const row of rows) {
+    const ownerId = getOwnerId(row)
+    const bucket = grouped.get(ownerId)
+    if (bucket) {
+      bucket.push(row)
+    } else {
+      grouped.set(ownerId, [row])
+    }
+  }
+
+  return grouped
+}
 
 function requireLinkedRecord<T>(
   value: T | null | undefined,
@@ -120,174 +178,23 @@ function requireRoundingCode(
   return value as NonNullable<NonNullable<ClassAuthored['spellcasting']>['prepareLimit']>['rounding']
 }
 
-async function hydrateClassResourceByClassId(
-  db: DBLike,
-  classId: string
-): Promise<ClassAuthored['resources']> {
-  const row = await db
-    .selectFrom('class_resources')
-    .select(['id', 'label', 'description', 'available_at_level', 'charge_id'])
-    .where('class_id', '=', classId)
-    .executeTakeFirst()
-
-  if (!row) {
-    return undefined
-  }
-
-  const charges = await hydrateChargeById(
-    db,
-    requireLinkedRecord(row.charge_id, `Class "${classId}" resource "${row.id}" is missing charge_id.`)
-  )
-
-  return {
-    id: row.id,
-    label: row.label,
-    description: row.description ?? undefined,
-    availableAtLevel: row.available_at_level,
-    charges: requireLinkedRecord(
-      charges,
-      `Class "${classId}" resource "${row.id}" is linked to missing charge "${row.charge_id}".`
-    )
-  }
-}
-
-async function hydrateClassSpellcastingByClassId(
-  db: DBLike,
-  classId: string
-): Promise<ClassAuthored['spellcasting']> {
-  const row = await db
-    .selectFrom('class_spellcasting')
-    .select(['id', 'magic_name', 'ability_code', 'max_spell_level', 'charge_id'])
-    .where('class_id', '=', classId)
-    .executeTakeFirst()
-
-  if (!row) {
-    return undefined
-  }
-
-  const [charge, attributeRows, detailRows, prepareLimitRow, prepareLimitMethodRows, prepareLimitLevelRows, spellLimitRows] = await Promise.all([
-    hydrateChargeById(db, requireLinkedRecord(row.charge_id, `Class "${classId}" spellcasting "${row.id}" is missing charge_id.`)),
-    db.selectFrom('class_spellcasting_attributes')
-      .select(['attribute_code', 'sort_order'])
-      .where('spellcasting_id', '=', row.id)
-      .orderBy('sort_order')
-      .execute(),
-    db.selectFrom('class_spellcasting_details')
-      .select(['detail_id', 'sort_order'])
-      .where('spellcasting_id', '=', row.id)
-      .orderBy('sort_order')
-      .execute(),
-    db.selectFrom('class_spellcasting_prepare_limit')
-      .select(['scaling', 'rounding'])
-      .where('spellcasting_id', '=', row.id)
-      .executeTakeFirst(),
-    db.selectFrom('class_spellcasting_prepare_limit_methods')
-      .select(['method_code', 'sort_order'])
-      .where('spellcasting_id', '=', row.id)
-      .orderBy('sort_order')
-      .execute(),
-    db.selectFrom('class_spellcasting_prepare_limit_levels')
-      .select(['class_level', 'amount'])
-      .where('spellcasting_id', '=', row.id)
-      .orderBy('class_level')
-      .execute(),
-    db.selectFrom('class_spell_limits')
-      .select(['id', 'class_level', 'learned_spells_limit', 'prepared_spells_limit', 'cantrips_limit'])
-      .where('spellcasting_id', '=', row.id)
-      .orderBy('class_level')
-      .execute()
-  ])
-  const spellLimitIds = spellLimitRows.map((limit) => limit.id)
-  const detailRepository = createDetailRepository(db)
-  const [spellSlotRows, detailsById] = await Promise.all([
-    spellLimitIds.length
-      ? db.selectFrom('class_spell_slots')
-          .select(['spell_limit_id', 'spell_level', 'slot_count'])
-          .where('spell_limit_id', 'in', spellLimitIds)
-          .execute()
-      : Promise.resolve([]),
-    detailRepository.findByIds(detailRows.map((detail) => detail.detail_id))
-  ])
-  const authoredDetails = detailRows.map((detail) => requireLinkedRecord(
-    detailsById.get(detail.detail_id) ?? null,
-    `Class "${classId}" spellcasting "${row.id}" is linked to missing detail "${detail.detail_id}".`
-  ))
-
-  const slotsByLimit = new Map<string, { spell_limit_id: string, spell_level: number, slot_count: number }[]>()
-  for (const slot of spellSlotRows) {
-    slotsByLimit.set(slot.spell_limit_id, [...(slotsByLimit.get(slot.spell_limit_id) ?? []), slot])
-  }
-
-  return {
-    spellLimits: spellLimitRows.map((limit) => ({
-      classLevel: limit.class_level,
-      slots: (slotsByLimit.get(limit.id) ?? [])
-        .slice()
-        .sort((left, right) => left.spell_level - right.spell_level)
-        .map((slot) => ({
-          spellLevel: slot.spell_level,
-          slotCount: slot.slot_count
-        })),
-      learnedSpellsLimit: limit.learned_spells_limit ?? undefined,
-      preparedSpellsLimit: limit.prepared_spells_limit ?? undefined,
-      cantripsLimit: limit.cantrips_limit ?? undefined
-    })),
-    magicName: row.magic_name ?? undefined,
-    details: authoredDetails.length > 0 ? authoredDetails : undefined,
-    ability: row.ability_code
-      ? requireAbilityCode(classId, row.ability_code, 'Class spellcasting') as NonNullable<ClassAuthored['spellcasting']>['ability']
-      : undefined,
-    maxSpellLevel: row.max_spell_level,
-    attributes: attributeRows.length > 0
-      ? attributeRows.map((attribute) => requireSpellcastingAttribute(row.id, attribute.attribute_code))
-      : undefined,
-    charges: requireLinkedRecord(
-      charge,
-      `Class "${classId}" spellcasting "${row.id}" is linked to missing charge "${row.charge_id}".`
-    ),
-    prepareLimit: prepareLimitRow || prepareLimitMethodRows.length > 0 || prepareLimitLevelRows.length > 0
-      ? {
-          methodKinds: prepareLimitMethodRows.map((method) => requirePrepareLimitMethod(row.id, method.method_code)),
-          scaling: prepareLimitRow?.scaling
-            ? requireScalingAmountKind(row.id, prepareLimitRow.scaling)
-            : undefined,
-          rounding: prepareLimitRow?.rounding
-            ? requireRoundingCode(row.id, prepareLimitRow.rounding)
-            : undefined,
-          perLevel: prepareLimitLevelRows.length > 0
-            ? prepareLimitLevelRows.map((level) => ({
-                classLevel: level.class_level,
-                amount: level.amount
-              }))
-            : undefined
-        }
-      : undefined
-  }
-}
-
 async function hydrateClassById(
   db: DBLike,
-  id: string
+  id: string,
+  options: ClassRepositoryReadOptions = {}
 ): Promise<ClassAuthored | null> {
-  const row = await db
-    .selectFrom('classes')
-    .select([
-      'id',
-      'system_id',
-      'user_id',
-      'category',
-      'parent_class_id',
-      'label',
-      'description',
-      'status',
-      'starting_equipment_id'
-    ])
-    .where('id', '=', id)
-    .executeTakeFirst()
+  const classesById = await hydrateClassesByIds(db, [id], options)
+  return classesById.get(id) ?? null
+}
 
-  if (!row) return null
-  if (!row.user_id) {
-    throw new Error(`Class "${id}" is missing user ownership and cannot be hydrated.`)
+async function hydrateClassRows(
+  db: DBLike,
+  rows: readonly ClassRow[],
+  options: ClassRepositoryReadOptions = {}
+): Promise<Map<string, ClassAuthored>> {
+  const classIds = rows.map((row) => row.id)
+  if (classIds.length === 0) {
+    return new Map()
   }
 
   const [
@@ -296,94 +203,214 @@ async function hydrateClassById(
     proficiencyLinks,
     attributeRows,
     specializationRows,
-    startingGoldRow,
-    hitpointRow,
-    multiclassRow,
-    resources,
-    spellcasting
+    startingGoldRows,
+    hitpointRows,
+    multiclassRows,
+    resourceRows,
+    spellcastingRows
   ] = await Promise.all([
-    db.selectFrom('class_features').select(['feature_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_details').select(['detail_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_proficiency_grants').select(['proficiency_grant_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_attributes').select(['attribute_code', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_specializations').select(['id', 'label', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_starting_gold').select(['multiplier', 'currency_id', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
-    db.selectFrom('class_hitpoints').select(['ability_code', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
-    db.selectFrom('class_multiclass').select(['id']).where('class_id', '=', id).executeTakeFirst(),
-    hydrateClassResourceByClassId(db, id),
-    hydrateClassSpellcastingByClassId(db, id)
+    db.selectFrom('class_features').select(['class_id', 'feature_id', 'sort_order']).where('class_id', 'in', classIds).orderBy('sort_order').execute(),
+    db.selectFrom('class_details').select(['class_id', 'detail_id', 'sort_order']).where('class_id', 'in', classIds).orderBy('sort_order').execute(),
+    db.selectFrom('class_proficiency_grants').select(['class_id', 'proficiency_grant_id', 'sort_order']).where('class_id', 'in', classIds).orderBy('sort_order').execute(),
+    db.selectFrom('class_attributes').select(['class_id', 'attribute_code', 'sort_order']).where('class_id', 'in', classIds).orderBy('sort_order').execute(),
+    db.selectFrom('class_specializations').select(['id', 'class_id', 'label', 'sort_order']).where('class_id', 'in', classIds).orderBy('sort_order').execute(),
+    db.selectFrom('class_starting_gold').select(['class_id', 'multiplier', 'currency_id', 'die_config']).where('class_id', 'in', classIds).execute(),
+    db.selectFrom('class_hitpoints').select(['class_id', 'ability_code', 'die_config']).where('class_id', 'in', classIds).execute(),
+    db.selectFrom('class_multiclass').select(['id', 'class_id']).where('class_id', 'in', classIds).execute(),
+    db.selectFrom('class_resources').select(['id', 'class_id', 'label', 'description', 'available_at_level', 'charge_id']).where('class_id', 'in', classIds).execute(),
+    db.selectFrom('class_spellcasting').select(['id', 'class_id', 'magic_name', 'ability_code', 'max_spell_level', 'charge_id']).where('class_id', 'in', classIds).execute()
   ])
+  const spellcastingIds = spellcastingRows.map((row) => row.id)
+  const multiclassIds = multiclassRows.map((row) => row.id)
+  const [
+    spellcastingAttributeRows,
+    spellcastingDetailRows,
+    prepareLimitRows,
+    prepareLimitMethodRows,
+    prepareLimitLevelRows,
+    spellLimitRows,
+    multiclassGroupRows,
+    multiclassProficiencyLinks
+  ] = await Promise.all([
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spellcasting_attributes').select(['spellcasting_id', 'attribute_code', 'sort_order']).where('spellcasting_id', 'in', spellcastingIds).orderBy('sort_order').execute()
+      : Promise.resolve([]),
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spellcasting_details').select(['spellcasting_id', 'detail_id', 'sort_order']).where('spellcasting_id', 'in', spellcastingIds).orderBy('sort_order').execute()
+      : Promise.resolve([]),
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spellcasting_prepare_limit').select(['spellcasting_id', 'scaling', 'rounding']).where('spellcasting_id', 'in', spellcastingIds).execute()
+      : Promise.resolve([]),
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spellcasting_prepare_limit_methods').select(['spellcasting_id', 'method_code', 'sort_order']).where('spellcasting_id', 'in', spellcastingIds).orderBy('sort_order').execute()
+      : Promise.resolve([]),
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spellcasting_prepare_limit_levels').select(['spellcasting_id', 'class_level', 'amount']).where('spellcasting_id', 'in', spellcastingIds).orderBy('class_level').execute()
+      : Promise.resolve([]),
+    spellcastingIds.length > 0
+      ? db.selectFrom('class_spell_limits').select(['id', 'spellcasting_id', 'class_level', 'learned_spells_limit', 'prepared_spells_limit', 'cantrips_limit']).where('spellcasting_id', 'in', spellcastingIds).orderBy('class_level').execute()
+      : Promise.resolve([]),
+    multiclassIds.length > 0
+      ? db.selectFrom('class_multiclass_requirement_groups').select(['id', 'multiclass_id', 'sort_order']).where('multiclass_id', 'in', multiclassIds).orderBy('sort_order').execute()
+      : Promise.resolve([]),
+    multiclassIds.length > 0
+      ? db.selectFrom('class_multiclass_proficiency_grants').select(['multiclass_id', 'proficiency_grant_id', 'sort_order']).where('multiclass_id', 'in', multiclassIds).orderBy('sort_order').execute()
+      : Promise.resolve([])
+  ])
+  const spellLimitIds = spellLimitRows.map((row) => row.id)
+  const multiclassGroupIds = multiclassGroupRows.map((row) => row.id)
+  const [spellSlotRows, multiclassRequirementRows, chargesById] = await Promise.all([
+    spellLimitIds.length > 0
+      ? db.selectFrom('class_spell_slots').select(['spell_limit_id', 'spell_level', 'slot_count']).where('spell_limit_id', 'in', spellLimitIds).execute()
+      : Promise.resolve([]),
+    multiclassGroupIds.length > 0
+      ? db.selectFrom('class_multiclass_requirements').select(['id', 'requirement_group_id', 'ability_code', 'min', 'sort_order']).where('requirement_group_id', 'in', multiclassGroupIds).orderBy('sort_order').execute()
+      : Promise.resolve([]),
+    hydrateChargesByIds(db, [
+      ...resourceRows.flatMap((row) => row.charge_id ? [row.charge_id] : []),
+      ...spellcastingRows.flatMap((row) => row.charge_id ? [row.charge_id] : [])
+    ])
+  ])
+  const selectedFeatureLinks = options.allowedFeatureIds
+    ? featureLinks.filter((link) => options.allowedFeatureIds?.has(link.feature_id))
+    : featureLinks
+  const featureLinksByClass = groupRows(selectedFeatureLinks, (link) => link.class_id)
 
   const detailRepository = createDetailRepository(db)
-  const featureRepository = createFeatureRepository(db, row.system_id)
   const proficiencyRepository = createProficiencyGrantRepository(db)
   const startingEquipmentRepository = createStartingEquipmentRepository(db)
-
-  const [detailsById, featuresById, proficienciesById, startingEquipment] = await Promise.all([
-    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
-    featureRepository.findByIds(featureLinks.map((link) => link.feature_id)),
-    proficiencyRepository.findByIds(proficiencyLinks.map((link) => link.proficiency_grant_id)),
-    row.starting_equipment_id
-      ? startingEquipmentRepository.findById(row.starting_equipment_id)
-      : Promise.resolve(null)
+  const [detailsById, featuresById, proficienciesById, startingEquipmentById] = await Promise.all([
+    detailRepository.findByIds([
+      ...detailLinks.map((link) => link.detail_id),
+      ...spellcastingDetailRows.map((link) => link.detail_id)
+    ]),
+    createFeatureRepository(db).findByIds(
+      selectedFeatureLinks.map((link) => link.feature_id),
+      { includeEffects: options.includeFeatureEffects }
+    ),
+    proficiencyRepository.findByIds([
+      ...proficiencyLinks.map((link) => link.proficiency_grant_id),
+      ...multiclassProficiencyLinks.map((link) => link.proficiency_grant_id)
+    ]),
+    startingEquipmentRepository.findByIds(rows.flatMap((row) =>
+      row.starting_equipment_id ? [row.starting_equipment_id] : []
+    ))
   ])
+  const detailLinksByClass = groupRows(detailLinks, (link) => link.class_id)
+  const proficiencyLinksByClass = groupRows(proficiencyLinks, (link) => link.class_id)
+  const attributesByClass = groupRows(attributeRows, (row) => row.class_id)
+  const specializationsByClass = groupRows(specializationRows, (row) => row.class_id)
+  const startingGoldByClass = groupRows(startingGoldRows, (row) => row.class_id)
+  const hitpointsByClass = groupRows(hitpointRows, (row) => row.class_id)
+  const multiclassByClass = groupRows(multiclassRows, (row) => row.class_id)
+  const resourcesByClass = groupRows(resourceRows, (row) => row.class_id)
+  const spellcastingByClass = groupRows(spellcastingRows, (row) => row.class_id)
+  const spellcastingAttributesById = groupRows(spellcastingAttributeRows, (row) => row.spellcasting_id)
+  const spellcastingDetailsById = groupRows(spellcastingDetailRows, (row) => row.spellcasting_id)
+  const prepareLimitsBySpellcasting = groupRows(prepareLimitRows, (row) => row.spellcasting_id)
+  const prepareMethodsBySpellcasting = groupRows(prepareLimitMethodRows, (row) => row.spellcasting_id)
+  const prepareLevelsBySpellcasting = groupRows(prepareLimitLevelRows, (row) => row.spellcasting_id)
+  const spellLimitsBySpellcasting = groupRows(spellLimitRows, (row) => row.spellcasting_id)
+  const slotsByLimit = groupRows(spellSlotRows, (row) => row.spell_limit_id)
+  const multiclassGroupsById = groupRows(multiclassGroupRows, (row) => row.multiclass_id)
+  const multiclassProficienciesById = groupRows(multiclassProficiencyLinks, (row) => row.multiclass_id)
+  const requirementsByGroup = groupRows(multiclassRequirementRows, (row) => row.requirement_group_id)
+  const authoredById = new Map<string, ClassAuthored>()
 
-  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(
-    detailsById.get(link.detail_id) ?? null,
-    `Class "${id}" is linked to missing detail "${link.detail_id}".`
-  ))
-  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(
-    featuresById.get(link.feature_id) ?? null,
-    `Class "${id}" is linked to missing feature "${link.feature_id}".`
-  ))
-  const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(
-    proficienciesById.get(link.proficiency_grant_id) ?? null,
-    `Class "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`
-  ))
-  const category = requireClassCategory(id, row.category)
-
-  if (category === CLASS_CATEGORY.BASE) {
-    const [multiclassGroupRows, multiclassProficiencyLinks] = multiclassRow
-      ? await Promise.all([
-          db.selectFrom('class_multiclass_requirement_groups')
-            .select(['id', 'multiclass_id', 'sort_order'])
-            .where('multiclass_id', '=', multiclassRow.id)
-            .orderBy('sort_order')
-            .execute(),
-          db.selectFrom('class_multiclass_proficiency_grants')
-            .select(['proficiency_grant_id', 'sort_order'])
-            .where('multiclass_id', '=', multiclassRow.id)
-            .orderBy('sort_order')
-            .execute()
-        ])
-      : [[], []]
-    const multiclassGroupIds = multiclassGroupRows.map((group) => group.id)
-    const multiclassRequirementRows = multiclassGroupIds.length
-      ? await db.selectFrom('class_multiclass_requirements')
-          .select(['id', 'requirement_group_id', 'ability_code', 'min', 'sort_order'])
-          .where('requirement_group_id', 'in', multiclassGroupIds)
-          .orderBy('sort_order')
-          .execute()
-      : []
-
-    const multiclassProficienciesById = multiclassRow
-      ? await proficiencyRepository.findByIds(multiclassProficiencyLinks.map((link) => link.proficiency_grant_id))
-      : new Map()
-
-    const requirementsByGroup = new Map<string, { id: string, ability: string, min: number }[]>()
-    for (const requirement of multiclassRequirementRows) {
-      requirementsByGroup.set(requirement.requirement_group_id, [
-        ...(requirementsByGroup.get(requirement.requirement_group_id) ?? []),
-        {
-          id: requirement.id,
-          ability: requireAbilityCode(requirement.id, requirement.ability_code, 'Class multiclass requirement'),
-          min: requirement.min
-        }
-      ])
+  for (const row of rows) {
+    if (!row.user_id) {
+      throw new Error(`Class "${row.id}" is missing user ownership and cannot be hydrated.`)
     }
 
-    return {
-      id: row.id,
+    const id = row.id
+    const authoredDetails = (detailLinksByClass.get(id) ?? []).map((link) => requireLinkedRecord(
+      detailsById.get(link.detail_id) ?? null,
+      `Class "${id}" is linked to missing detail "${link.detail_id}".`
+    ))
+    const authoredFeatures = (featureLinksByClass.get(id) ?? []).map((link) => requireLinkedRecord(
+      featuresById.get(link.feature_id) ?? null,
+      `Class "${id}" is linked to missing feature "${link.feature_id}".`
+    ))
+    const authoredProficiencies = (proficiencyLinksByClass.get(id) ?? []).map((link) => requireLinkedRecord(
+      proficienciesById.get(link.proficiency_grant_id) ?? null,
+      `Class "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`
+    ))
+    const resourceRow = resourcesByClass.get(id)?.[0]
+    const resources: ClassAuthored['resources'] = resourceRow
+      ? {
+          id: resourceRow.id,
+          label: resourceRow.label,
+          description: resourceRow.description ?? undefined,
+          availableAtLevel: resourceRow.available_at_level,
+          charges: requireLinkedRecord(
+            chargesById.get(requireLinkedRecord(
+              resourceRow.charge_id,
+              `Class "${id}" resource "${resourceRow.id}" is missing charge_id.`
+            )),
+            `Class "${id}" resource "${resourceRow.id}" is linked to missing charge "${resourceRow.charge_id}".`
+          )
+        }
+      : undefined
+    const spellcastingRow = spellcastingByClass.get(id)?.[0]
+    const spellcasting: ClassAuthored['spellcasting'] = spellcastingRow
+      ? (() => {
+          const spellcastingId = spellcastingRow.id
+          const attributeRows = spellcastingAttributesById.get(spellcastingId) ?? []
+          const detailRows = spellcastingDetailsById.get(spellcastingId) ?? []
+          const prepareLimitRow = prepareLimitsBySpellcasting.get(spellcastingId)?.[0]
+          const prepareLimitMethodRows = prepareMethodsBySpellcasting.get(spellcastingId) ?? []
+          const prepareLimitLevelRows = prepareLevelsBySpellcasting.get(spellcastingId) ?? []
+          const authoredSpellcastingDetails = detailRows.map((detail) => requireLinkedRecord(
+            detailsById.get(detail.detail_id) ?? null,
+            `Class "${id}" spellcasting "${spellcastingId}" is linked to missing detail "${detail.detail_id}".`
+          ))
+
+          return {
+            spellLimits: (spellLimitsBySpellcasting.get(spellcastingId) ?? []).map((limit) => ({
+              classLevel: limit.class_level,
+              slots: (slotsByLimit.get(limit.id) ?? [])
+                .slice()
+                .sort((left, right) => left.spell_level - right.spell_level)
+                .map((slot) => ({
+                  spellLevel: slot.spell_level,
+                  slotCount: slot.slot_count
+                })),
+              learnedSpellsLimit: limit.learned_spells_limit ?? undefined,
+              preparedSpellsLimit: limit.prepared_spells_limit ?? undefined,
+              cantripsLimit: limit.cantrips_limit ?? undefined
+            })),
+            magicName: spellcastingRow.magic_name ?? undefined,
+            details: authoredSpellcastingDetails.length > 0 ? authoredSpellcastingDetails : undefined,
+            ability: spellcastingRow.ability_code
+              ? requireAbilityCode(id, spellcastingRow.ability_code, 'Class spellcasting') as NonNullable<ClassAuthored['spellcasting']>['ability']
+              : undefined,
+            maxSpellLevel: spellcastingRow.max_spell_level,
+            attributes: attributeRows.length > 0
+              ? attributeRows.map((attribute) => requireSpellcastingAttribute(spellcastingId, attribute.attribute_code))
+              : undefined,
+            charges: requireLinkedRecord(
+              chargesById.get(requireLinkedRecord(
+                spellcastingRow.charge_id,
+                `Class "${id}" spellcasting "${spellcastingId}" is missing charge_id.`
+              )),
+              `Class "${id}" spellcasting "${spellcastingId}" is linked to missing charge "${spellcastingRow.charge_id}".`
+            ),
+            prepareLimit: prepareLimitRow || prepareLimitMethodRows.length > 0 || prepareLimitLevelRows.length > 0
+              ? {
+                  methodKinds: prepareLimitMethodRows.map((method) => requirePrepareLimitMethod(spellcastingId, method.method_code)),
+                  scaling: prepareLimitRow?.scaling ? requireScalingAmountKind(spellcastingId, prepareLimitRow.scaling) : undefined,
+                  rounding: prepareLimitRow?.rounding ? requireRoundingCode(spellcastingId, prepareLimitRow.rounding) : undefined,
+                  perLevel: prepareLimitLevelRows.length > 0
+                    ? prepareLimitLevelRows.map((level) => ({ classLevel: level.class_level, amount: level.amount }))
+                    : undefined
+                }
+              : undefined
+          }
+        })()
+      : undefined
+    const category = requireClassCategory(id, row.category)
+    const common = {
+      id,
       label: row.label,
       description: row.description ?? undefined,
       status: hydrateSubjectStatus(row.status),
@@ -393,98 +420,126 @@ async function hydrateClassById(
       resources,
       features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
       userId: row.user_id,
-      systemId: row.system_id,
-      category,
-      attributes: attributeRows.length > 0
-        ? attributeRows.map((attribute) => requireBaseAttribute(id, attribute.attribute_code))
-        : undefined,
-      startingGold: {
-        multiplier: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).multiplier,
-        currencyId: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).currency_id,
-        dieConfig: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).die_config
-      },
-      startingEquipment: requireLinkedRecord(
-        startingEquipment,
-        `Class "${id}" is linked to missing starting equipment "${row.starting_equipment_id}".`
-      ),
-      hitpoint: {
-        ability: requireAbilityCode(
-          id,
-          requireLinkedRecord(hitpointRow, `Class "${id}" is missing hitpoint row.`).ability_code,
-          'Class hitpoint'
-        ) as Extract<ClassAuthored, { category: 'BASE' }>['hitpoint']['ability'],
-        dieConfig: requireLinkedRecord(hitpointRow, `Class "${id}" is missing hitpoint row.`).die_config
-      },
-      multiclass: {
-        id: requireLinkedRecord(multiclassRow, `Class "${id}" is missing multiclass row.`).id,
-        requirementGroups: {
-          groups: multiclassGroupRows.map((group) => ({
-            id: group.id,
-            requirements: (requirementsByGroup.get(group.id) ?? []).map((requirement) => ({
-              id: requirement.id,
-              ability: requirement.ability as Extract<ClassAuthored, { category: 'BASE' }>['multiclass']['requirementGroups']['groups'][number]['requirements'][number]['ability'],
-              min: requirement.min
-            }))
-          }))
-        },
-        proficiencies: multiclassProficiencyLinks.length > 0
-          ? multiclassProficiencyLinks.map((link) => requireLinkedRecord(
-              multiclassProficienciesById.get(link.proficiency_grant_id) ?? null,
-              `Class "${id}" multiclass is linked to missing proficiency grant "${link.proficiency_grant_id}".`
-            ))
-          : undefined
-      }
+      systemId: row.system_id
     }
+
+    if (category === CLASS_CATEGORY.BASE) {
+      const startingGoldRow = startingGoldByClass.get(id)?.[0]
+      const hitpointRow = hitpointsByClass.get(id)?.[0]
+      const multiclassRow = multiclassByClass.get(id)?.[0]
+      const multiclassGroupRows = multiclassRow ? multiclassGroupsById.get(multiclassRow.id) ?? [] : []
+      const multiclassProficiencyLinks = multiclassRow
+        ? multiclassProficienciesById.get(multiclassRow.id) ?? []
+        : []
+
+      authoredById.set(id, {
+        ...common,
+        category,
+        subclassSelectionLevel: row.subclass_selection_level ?? undefined,
+        attributes: (attributesByClass.get(id) ?? []).length > 0
+          ? (attributesByClass.get(id) ?? []).map((attribute) => requireBaseAttribute(id, attribute.attribute_code))
+          : undefined,
+        startingGold: {
+          multiplier: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).multiplier,
+          currencyId: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).currency_id,
+          dieConfig: requireLinkedRecord(startingGoldRow, `Class "${id}" is missing starting gold.`).die_config
+        },
+        startingEquipment: requireLinkedRecord(
+          row.starting_equipment_id ? startingEquipmentById.get(row.starting_equipment_id) : null,
+          `Class "${id}" is linked to missing starting equipment "${row.starting_equipment_id}".`
+        ),
+        hitpoint: {
+          ability: requireAbilityCode(
+            id,
+            requireLinkedRecord(hitpointRow, `Class "${id}" is missing hitpoint row.`).ability_code,
+            'Class hitpoint'
+          ) as Extract<ClassAuthored, { category: 'BASE' }>['hitpoint']['ability'],
+          dieConfig: requireLinkedRecord(hitpointRow, `Class "${id}" is missing hitpoint row.`).die_config
+        },
+        multiclass: {
+          id: requireLinkedRecord(multiclassRow, `Class "${id}" is missing multiclass row.`).id,
+          requirementGroups: {
+            groups: multiclassGroupRows.map((group) => ({
+              id: group.id,
+              requirements: (requirementsByGroup.get(group.id) ?? []).map((requirement) => ({
+                id: requirement.id,
+                ability: requireAbilityCode(requirement.id, requirement.ability_code, 'Class multiclass requirement') as Extract<ClassAuthored, { category: 'BASE' }>['multiclass']['requirementGroups']['groups'][number]['requirements'][number]['ability'],
+                min: requirement.min
+              }))
+            }))
+          },
+          proficiencies: multiclassProficiencyLinks.length > 0
+            ? multiclassProficiencyLinks.map((link) => requireLinkedRecord(
+                proficienciesById.get(link.proficiency_grant_id) ?? null,
+                `Class "${id}" multiclass is linked to missing proficiency grant "${link.proficiency_grant_id}".`
+              ))
+            : undefined
+        }
+      })
+      continue
+    }
+
+    const subclassAttributes = attributesByClass.get(id) ?? []
+    authoredById.set(id, {
+      ...common,
+      category,
+      attributes: subclassAttributes.length > 0
+        ? subclassAttributes.map((attribute) => requireSubclassAttribute(id, attribute.attribute_code))
+        : undefined,
+      parentClassId: requireLinkedRecord(
+        row.parent_class_id,
+        `Class "${id}" is missing parent_class_id for SUBCLASS payload.`
+      ),
+      specializations: (specializationsByClass.get(id) ?? []).length > 0
+        ? (specializationsByClass.get(id) ?? []).map((specialization) => ({
+            id: specialization.id,
+            label: specialization.label,
+            order: specialization.sort_order
+          }))
+        : undefined
+    })
   }
 
-  return {
-    id: row.id,
-    label: row.label,
-    description: row.description ?? undefined,
-    status: hydrateSubjectStatus(row.status),
-    details: authoredDetails.length > 0 ? authoredDetails : undefined,
-    proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
-    spellcasting,
-    resources,
-    features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
-    userId: row.user_id,
-    systemId: row.system_id,
-    category,
-    attributes: attributeRows.length > 0
-      ? attributeRows.map((attribute) => requireSubclassAttribute(id, attribute.attribute_code))
-      : undefined,
-    parentClassId: requireLinkedRecord(
-      row.parent_class_id,
-      `Class "${id}" is missing parent_class_id for SUBCLASS payload.`
-    ),
-    specializations: specializationRows.length > 0
-      ? specializationRows.map((specialization) => ({
-          id: specialization.id,
-          label: specialization.label,
-          order: specialization.sort_order
-        }))
-      : undefined
-  }
+  return authoredById
 }
 
-export function createClassRepository(db: DBLike): ClassRepository {
+async function hydrateClassesByIds(
+  db: DBLike,
+  ids: readonly string[],
+  options: ClassRepositoryReadOptions = {}
+): Promise<Map<string, ClassAuthored>> {
+  const distinctIds = uniqueIds(ids)
+  if (distinctIds.length === 0) {
+    return new Map()
+  }
+
+  const rows = await db.selectFrom('classes').select(CLASS_COLUMNS).where('id', 'in', distinctIds).execute() as ClassRow[]
+  const rowsById = new Map(rows.map((row) => [row.id, row]))
+
+  return hydrateClassRows(db, distinctIds.flatMap((id) => {
+    const row = rowsById.get(id)
+    return row ? [row] : []
+  }), options)
+}
+
+export function createClassRepository(db: DBLike): ClassRepositoryWithReadOptions {
   return {
     async upsert(entity) {
       await upsertClass(db, entity, entity.systemId)
     },
 
-    async findById(id) {
-      return hydrateClassById(db, id)
+    async findById(id, filter) {
+      return hydrateClassById(db, id, filter)
     },
 
-    async findByIds(ids) {
-      return hydrateByIds(ids, (id) => hydrateClassById(db, id))
+    async findByIds(ids, filter) {
+      return hydrateClassesByIds(db, ids, filter)
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('classes')
-        .select('id')
+        .select(CLASS_COLUMNS)
         .orderBy('label')
 
       if (filter?.systemId) {
@@ -498,7 +553,7 @@ export function createClassRepository(db: DBLike): ClassRepository {
       const rows = await query.execute()
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateClassById(db, id))
+        await hydrateClassRows(db, rows as ClassRow[])
       )
     }
   }

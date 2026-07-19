@@ -5,7 +5,6 @@ export const shamblingMound: CreatureAuthored = {
     label: 'Shambling Mound',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.PLANT,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const shamblingMound: CreatureAuthored = {
         INTELLIGENCE: 5,
         WISDOM: 10,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 15,
     hitPoints: 136,

@@ -7,12 +7,16 @@ import { Rail } from '#ui'
 import clsx from 'clsx'
 import {
   BookOpen,
+  Box,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Eye,
   Flame,
   Settings2,
+  SlidersHorizontal,
   Sparkles,
+  Sword,
   TrendingUp,
   Zap
 } from 'lucide-react'
@@ -26,12 +30,20 @@ function Icon({ icon = 'book' }: { icon?: ItemIcon }) {
       return <Zap size={size} />
     case 'check':
       return <CheckCircle2 size={size} />
+    case 'cube':
+      return <Box size={size} />
     case 'flame':
       return <Flame size={size} />
+    case 'eye':
+      return <Eye size={size} />
     case 'gear':
       return <Settings2 size={size} />
     case 'spark':
       return <Sparkles size={size} />
+    case 'sliders':
+      return <SlidersHorizontal size={size} />
+    case 'sword':
+      return <Sword size={size} />
     case 'trend':
       return <TrendingUp size={size} />
     case 'book':
@@ -45,6 +57,7 @@ export function Item({ item }: { item: ItemProps }) {
   const children = item.children ?? []
   const hasChildren = children.length > 0
   const canSelect = Boolean(item.onSelect || hasChildren)
+  const childGroupId = `authoring-rail-children-${item.id}`
 
   const handleSelect = () => {
     item.onSelect?.()
@@ -65,16 +78,12 @@ export function Item({ item }: { item: ItemProps }) {
         )}
         style={{ '--authoring-rail-level': item.level ?? 0 } as CSSProperties}
         aria-current={item.isActive ? 'step' : undefined}
+        aria-controls={hasChildren ? childGroupId : undefined}
+        aria-expanded={hasChildren ? expanded : undefined}
         onClick={canSelect ? handleSelect : undefined}
       >
         <span className={styles.expander} aria-hidden='true'>
-          {hasChildren ? (
-            expanded ? (
-              <ChevronDown size={16} />
-            ) : (
-              <ChevronRight size={16} />
-            )
-          ) : null}
+          {hasChildren ? expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} /> : null}
         </span>
         <span className={styles.itemIcon} aria-hidden='true'>
           <Icon icon={item.icon} />
@@ -85,16 +94,18 @@ export function Item({ item }: { item: ItemProps }) {
         <StatusMarker status={item.status ?? 'empty'} />
       </UnstyledButton>
       {hasChildren ? (
-        <Collapse
-          expanded={expanded}
-          keepMounted
-          transitionDuration={140}
-          transitionTimingFunction='cubic-bezier(0.2, 0, 0, 1)'
-        >
-          {children.map((child) => (
-            <Item key={child.id} item={child} />
-          ))}
-        </Collapse>
+        <div id={childGroupId}>
+          <Collapse
+            expanded={expanded}
+            keepMounted
+            transitionDuration={140}
+            transitionTimingFunction='cubic-bezier(0.2, 0, 0, 1)'
+          >
+            {children.map((child) => (
+              <Item key={child.id} item={child} />
+            ))}
+          </Collapse>
+        </div>
       ) : null}
     </Rail.Item>
   )

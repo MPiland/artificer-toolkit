@@ -1,5 +1,6 @@
 import type { DBLike } from '#types'
 import { createHash } from 'node:crypto'
+import { withTransaction } from '../../../utils/index.js'
 import {
   ABILITY_CODE,
   CLASS_ATTRIBUTE,
@@ -26,6 +27,7 @@ type ClassRow = {
   user_id: string
   category: string
   parent_class_id: string | null
+  subclass_selection_level: number | null
   label: string
   description: string | null
   status: ClassAuthored['status']
@@ -272,6 +274,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
       user_id: json_data.userId,
       category: requireClassCategory(json_data.id, json_data.category),
       parent_class_id: null,
+      subclass_selection_level: json_data.subclassSelectionLevel ?? null,
       label: json_data.label,
       description: json_data.description ?? null,
       status: normalizeSubjectStatus(json_data.status),
@@ -285,6 +288,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
     user_id: json_data.userId,
     category: requireClassCategory(json_data.id, json_data.category),
     parent_class_id: json_data.parentClassId,
+    subclass_selection_level: null,
     label: json_data.label,
     description: json_data.description ?? null,
     status: normalizeSubjectStatus(json_data.status),
@@ -299,15 +303,16 @@ async function upsertClassRow(
   await db
     .insertInto('classes')
     .values(mapClassRow(json_data))
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      system_id: ref('excluded.system_id'),
-      user_id: ref('excluded.user_id'),
-      category: ref('excluded.category'),
-      parent_class_id: ref('excluded.parent_class_id'),
-      label: ref('excluded.label'),
-      description: ref('excluded.description'),
-      status: ref('excluded.status'),
-      starting_equipment_id: ref('excluded.starting_equipment_id')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      system_id: eb.ref('excluded.system_id'),
+      user_id: eb.ref('excluded.user_id'),
+      category: eb.ref('excluded.category'),
+      parent_class_id: eb.ref('excluded.parent_class_id'),
+      subclass_selection_level: eb.ref('excluded.subclass_selection_level'),
+      label: eb.ref('excluded.label'),
+      description: eb.ref('excluded.description'),
+      status: eb.ref('excluded.status'),
+      starting_equipment_id: eb.ref('excluded.starting_equipment_id')
     })))
     .execute()
 }
@@ -317,19 +322,13 @@ export async function upsertClassRoot(
   json_data: ClassAuthored,
   _systemId: string
 ) {
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     if (json_data.category === CLASS_CATEGORY.BASE) {
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
 
     await upsertClassRow(trx, json_data)
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }
 
 export async function upsertClass(
@@ -437,9 +436,7 @@ export async function upsertClass(
       })))
     : []
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     if (json_data.category === CLASS_CATEGORY.BASE) {
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
@@ -594,9 +591,9 @@ export async function upsertClass(
           ability_code: requireAbilityCode(json_data.id, json_data.hitpoint.ability, 'Class'),
           die_config: json_data.hitpoint.dieConfig
         } satisfies ClassHitpointRow)
-        .onConflict((oc) => oc.column('class_id').doUpdateSet(({ ref }) => ({
-          ability_code: ref('excluded.ability_code'),
-          die_config: ref('excluded.die_config')
+        .onConflict((oc) => oc.column('class_id').doUpdateSet((eb) => ({
+          ability_code: eb.ref('excluded.ability_code'),
+          die_config: eb.ref('excluded.die_config')
         })))
         .execute()
 
@@ -608,10 +605,10 @@ export async function upsertClass(
           currency_id: json_data.startingGold.currencyId,
           die_config: json_data.startingGold.dieConfig
         } satisfies ClassStartingGoldRow)
-        .onConflict((oc) => oc.column('class_id').doUpdateSet(({ ref }) => ({
-          multiplier: ref('excluded.multiplier'),
-          currency_id: ref('excluded.currency_id'),
-          die_config: ref('excluded.die_config')
+        .onConflict((oc) => oc.column('class_id').doUpdateSet((eb) => ({
+          multiplier: eb.ref('excluded.multiplier'),
+          currency_id: eb.ref('excluded.currency_id'),
+          die_config: eb.ref('excluded.die_config')
         })))
         .execute()
 
@@ -688,9 +685,5 @@ export async function upsertClass(
       }
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

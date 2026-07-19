@@ -12,7 +12,10 @@ const skippedDirectories = new Set([
   'storybook-static',
   'test-results'
 ])
-const allowlistedScriptSqlPaths = new Set(['packages/db/src/scripts/auditSrdData.ts'])
+const allowlistedScriptSqlPaths = new Set([
+  'packages/db/src/scripts/auditSrdData.ts',
+  'packages/db/src/scripts/testCharacterSheetStatePatchIntegration.ts'
+])
 
 function toPortablePath(filePath: string): string {
   return filePath.split(path.sep).join('/')

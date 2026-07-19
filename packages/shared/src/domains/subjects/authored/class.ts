@@ -114,6 +114,7 @@ export type ClassBaseAuthored = {
 export type ParentClassAuthored = {
   category: typeof CLASS_CATEGORY.BASE
   attributes?: ClassAttribute[]
+  subclassSelectionLevel?: number
   startingGold: ClassStartingGoldAuthored
   startingEquipment: StartingEquipmentAuthored
   hitpoint: ClassHitpointAuthored

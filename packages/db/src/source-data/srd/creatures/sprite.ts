@@ -5,7 +5,6 @@ export const sprite: CreatureAuthored = {
     label: 'Sprite',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FEY,
     size: S.SIZE_CODE.TINY,
@@ -17,7 +16,6 @@ export const sprite: CreatureAuthored = {
         INTELLIGENCE: 14,
         WISDOM: 13,
         CHARISMA: 11,
-        SPELLCASTING: 0
     },
     armorClass: 15,
     hitPoints: 2,

@@ -20,9 +20,11 @@ export function Header({
           <ILogo className={styles.logo} size={36} aria-hidden='true' />
           <span className={styles.brandName}>Artificer Toolkit</span>
         </div>
-        {supplement}
+        {supplement ? <span className={styles.supplement}>{supplement}</span> : null}
       </div>
-      {navigationActions ? <div className={styles.navigationActions}>{navigationActions}</div> : null}
+      {navigationActions ? (
+        <div className={styles.navigationActions}>{navigationActions}</div>
+      ) : null}
       <div className={styles.rightCluster}>
         <TextInput
           aria-label='Search commands'

@@ -177,8 +177,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
     DEFERRABLE INITIALLY DEFERRED,
   xp integer,
 
-  legendary_profile jsonb,
-  lair_profile jsonb,
   mount_profile jsonb,
   companion_profile jsonb,
   npc_profile jsonb,
@@ -298,32 +296,6 @@ ALTER TABLE public.creature_speeds ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_creature_speeds_creature
   ON public.creature_speeds(creature_id);
-
-CREATE TABLE IF NOT EXISTS public.creature_actions (
-  id uuid PRIMARY KEY,
-
-  creature_id uuid NOT NULL
-    REFERENCES public.creatures(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  action_type text NOT NULL,
-  sort_order integer NOT NULL,
-  label text NOT NULL,
-  description text NOT NULL,
-  attack_bonus integer,
-  damage text,
-  recharge text,
-
-  CONSTRAINT creature_actions_type_chk CHECK (
-    action_type IN ('ACTION', 'BONUS_ACTION', 'REACTION')
-  )
-);
-
-ALTER TABLE public.creature_actions ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_creature_actions_creature
-  ON public.creature_actions(creature_id);
 
 CREATE TABLE IF NOT EXISTS public.creature_damage_resistances (
   creature_id uuid NOT NULL

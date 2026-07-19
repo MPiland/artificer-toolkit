@@ -64,82 +64,6 @@ BEGIN
 END;
 $$;
 
-CREATE TABLE IF NOT EXISTS public.authored_subject_drafts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  subject_kind text NOT NULL,
-  subject_id uuid NOT NULL,
-
-  user_id uuid NOT NULL
-    REFERENCES auth.users(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  label text NOT NULL,
-  status text NOT NULL DEFAULT 'DRAFT',
-  payload jsonb NOT NULL,
-  base_active_updated_at timestamptz,
-
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT authored_subject_drafts_status_chk CHECK (status = 'DRAFT'),
-  CONSTRAINT authored_subject_drafts_kind_chk CHECK (
-    subject_kind IN (
-      'BACKGROUND',
-      'CLASS',
-      'CREATURE',
-      'EQUIPMENT',
-      'FEAT',
-      'RACE',
-      'SPELL',
-      'VEHICLE'
-    )
-  ),
-  CONSTRAINT authored_subject_drafts_unique_subject_user UNIQUE (
-    subject_kind,
-    subject_id,
-    user_id
-  )
-);
-
-ALTER TABLE public.authored_subject_drafts ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can select own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can select own authored drafts"
-  ON public.authored_subject_drafts FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Users can insert own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can insert own authored drafts"
-  ON public.authored_subject_drafts FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Users can update own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can update own authored drafts"
-  ON public.authored_subject_drafts FOR UPDATE TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "Users can delete own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can delete own authored drafts"
-  ON public.authored_subject_drafts FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
-
-CREATE INDEX IF NOT EXISTS idx_authored_subject_drafts_user
-  ON public.authored_subject_drafts(user_id);
-
-CREATE INDEX IF NOT EXISTS idx_authored_subject_drafts_system
-  ON public.authored_subject_drafts(system_id);
-
-CREATE INDEX IF NOT EXISTS idx_authored_subject_drafts_subject
-  ON public.authored_subject_drafts(subject_kind, subject_id);
-
 CREATE SEQUENCE IF NOT EXISTS public.authored_route_ids_route_number_seq
   AS bigint
   START WITH 1
@@ -217,10 +141,13 @@ AS $$
       (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
       OR EXISTS (
         SELECT 1
-        FROM public.authored_subject_drafts d
-        WHERE d.subject_kind = p_subject_kind
-          AND d.subject_id = p_subject_id
-          AND d.user_id = auth.uid()
+        FROM public.authored_definitions definition
+        WHERE definition.subject_kind = p_subject_kind
+          AND definition.subject_id = p_subject_id
+          AND (
+            definition.is_master
+            OR definition.owner_user_id = auth.uid()
+          )
       )
       OR (
         p_subject_kind = 'CHARACTER'
@@ -364,7 +291,9 @@ WITH active_subjects AS (
   SELECT 'CHARACTER'::text, id FROM public.characters
 ),
 draft_subjects AS (
-  SELECT subject_kind, subject_id FROM public.authored_subject_drafts
+  SELECT subject_kind, subject_id
+  FROM public.authored_definitions
+  WHERE draft_revision_id IS NOT NULL
   UNION ALL
   SELECT 'CHARACTER'::text, character_id FROM public.character_builder_drafts
 ),

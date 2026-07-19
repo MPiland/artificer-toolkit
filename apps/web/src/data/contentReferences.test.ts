@@ -16,10 +16,18 @@ const provenance = {
 function createReferenceApi(): NonNullable<Parameters<typeof loadAuthoredContentReferenceData>[1]> {
   return {
     systems: {
-      list: async () => [{ id: 'system-1', label: 'System 1', userId: 'master' }],
+      list: async () => [{
+        id: 'system-1',
+        label: 'System 1',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        userId: 'master'
+      }],
       get: async () => ({
         id: 'system-1',
         label: 'System 1',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
         alignments: [],
         challengeRatings: [{ id: 'cr-1', code: 'ONE', label: '1' }],
         conditionTypes: [],
@@ -76,6 +84,7 @@ function listItem(id: string, label: string, systemId: string) {
   return {
     id,
     publicId: id,
+    activeRevisionId: `${id}-active-revision`,
     label,
     description: null,
     status: 'ACTIVE' as const,

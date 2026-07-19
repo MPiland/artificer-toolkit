@@ -35,7 +35,7 @@
     }
   },
   "rules": {
-    "no-unused-vars": "off",
+    "no-unused-vars": "error",
     "no-await-in-loop": "off",
     "no-underscore-dangle": "off",
     "typescript/no-explicit-any": "error",
@@ -45,12 +45,6 @@
     "react/only-export-components": "off"
   },
   "overrides": [
-    {
-      "files": ["packages/db/src/source-data/srd/**/*.ts"],
-      "rules": {
-        "no-unused-vars": "warn"
-      }
-    },
     {
       "files": ["packages/shared/src/domains/**/maps/**/*.ts"],
       "rules": {

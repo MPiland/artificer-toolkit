@@ -73,6 +73,7 @@ function ResolvedModelHarness({
     debounceMs: 0,
     mapId: 'test-form',
     onClearPaths,
+    systemId: 'system-1',
     values: { mode }
   })
 
@@ -89,6 +90,7 @@ function createModel(label: string, clearPaths: NodeRuntimePathDto[]): NodeRunti
   return {
     clearPaths,
     mapId: 'test-form',
+    scopes: [],
     steps: [
       {
         id: label.toLowerCase(),

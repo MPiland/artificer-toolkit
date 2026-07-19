@@ -110,7 +110,7 @@ export function toAuthoringNavigationRailItems({
   activeTargetId?: string
   mode: string
   navigationTree: readonly AuthoringNavigationNode[]
-  onTargetSelect: (targetId: string) => void
+  onTargetSelect: (targetId: string, hasChildren: boolean) => void
   visitedStepIds: ReadonlySet<string>
 }): readonly ItemProps[] {
   return navigationTree.map((node) =>
@@ -127,23 +127,14 @@ export function toAuthoringNavigationRailItems({
 export function toAuthoringRailSummaries({
   hasChanges,
   mode,
-  stepStatuses,
-  summary,
-  visitedStepIds
+  summary
 }: {
   hasChanges: boolean
   mode: string
-  stepStatuses?: Partial<Record<string, AuthoringStepProgressStatus>>
   summary: SummarySource | undefined
-  visitedStepIds: ReadonlySet<string>
 }): readonly SummaryProps[] {
   const stepCount = summary?.stepCount ?? 0
-  const completeCount =
-    mode === 'create'
-      ? Object.entries(stepStatuses ?? {}).filter(
-          ([stepId, status]) => status === 'complete' && visitedStepIds.has(stepId)
-        ).length
-      : (summary?.completeCount ?? 0)
+  const completeCount = summary?.completeCount ?? 0
   const issueCount =
     (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0) + (summary?.incompleteCount ?? 0)
   const statusSummary: SummaryProps = hasChanges
@@ -215,7 +206,7 @@ function toNavigationRailItem({
   activeTargetId?: string
   mode: string
   node: AuthoringNavigationNode
-  onTargetSelect: (targetId: string) => void
+  onTargetSelect: (targetId: string, hasChildren: boolean) => void
   visitedStepIds: ReadonlySet<string>
 }): ItemProps {
   const children = node.children?.map((child) =>
@@ -235,7 +226,10 @@ function toNavigationRailItem({
         visited: visitedStepIds.has(node.target.id)
       })
     : undefined
-  const status = leafStatus ?? aggregateRailStatus(children?.map((child) => child.status))
+  const status = aggregateRailStatus([
+    leafStatus,
+    ...(children?.map((child) => child.status) ?? [])
+  ])
 
   return {
     children,
@@ -245,7 +239,9 @@ function toNavigationRailItem({
     isActive,
     label: node.label,
     level: node.level,
-    onSelect: node.target ? () => onTargetSelect(node.target?.id ?? '') : undefined,
+    onSelect: node.target
+      ? () => onTargetSelect(node.target?.id ?? '', Boolean(children?.length))
+      : undefined,
     status
   }
 }
@@ -254,7 +250,9 @@ function hasActiveRailDescendant(item: ItemProps): boolean {
   return Boolean(item.isActive || item.children?.some(hasActiveRailDescendant))
 }
 
-function aggregateRailStatus(statuses: readonly (ItemStatus | undefined)[] | undefined): ItemStatus {
+export function aggregateRailStatus(
+  statuses: readonly (ItemStatus | undefined)[] | undefined
+): ItemStatus {
   const resolvedStatuses = statuses?.filter((status): status is ItemStatus => Boolean(status)) ?? []
   if (resolvedStatuses.length === 0) return 'empty'
   if (resolvedStatuses.includes('error')) return 'error'
@@ -290,6 +288,9 @@ function toRailStatus(
 
 function iconForStep(label: string): ItemIcon {
   const key = label.toLowerCase()
+  if (key.includes('effect')) return 'eye'
+  if (key.includes('modifier')) return 'sliders'
+  if (key.includes('attack')) return 'sword'
   if (key.includes('mechanic') || key.includes('rule')) return 'gear'
   if (key.includes('damage') || key.includes('ancestry')) return 'flame'
   if (key.includes('feature') || key.includes('option')) return 'spark'

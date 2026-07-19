@@ -313,7 +313,9 @@ export function AuthoredDetailItemList({ empty, items }: AuthoredDetailItemListP
       {items.map((item) => (
         <article key={item.id} className={styles.item}>
           <header className={styles.itemHeader}>
-            <Title className={styles.itemTitle}>{item.title}</Title>
+            <Title order={3} className={styles.itemTitle}>
+              {item.title}
+            </Title>
             {item.meta ? <Text className={styles.itemMeta}>{item.meta}</Text> : null}
           </header>
           {item.description ? <AuthoredDetailProse html={item.description} fallback='' /> : null}

@@ -1,9 +1,12 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -11,17 +14,13 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  STARTING_EQUIPMENT_KIND,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -37,6 +36,11 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 const P = 7 // Paladin class index
@@ -74,44 +78,149 @@ const paladinSpellLimits = [
   { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 2 }] },
   { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 3 }] },
   { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 3 }] },
-  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }] },
-  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }] },
-  { classLevel: 7, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }] },
-  { classLevel: 8, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }] },
-  { classLevel: 9, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }] },
-  { classLevel: 10, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }] },
-  { classLevel: 11, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }] },
-  { classLevel: 12, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }] },
-  { classLevel: 13, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }
-  ] },
-  { classLevel: 14, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }
-  ] },
-  { classLevel: 15, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }
-  ] },
-  { classLevel: 16, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }
-  ] },
-  { classLevel: 17, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }
-  ] },
-  { classLevel: 18, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }
-  ] },
-  { classLevel: 19, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }
-  ] },
-  { classLevel: 20, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }
-  ] }
+  {
+    classLevel: 5,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 6,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 7,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ]
+  },
+  {
+    classLevel: 8,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ]
+  },
+  {
+    classLevel: 9,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 10,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 11,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ]
+  },
+  {
+    classLevel: 12,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ]
+  },
+  {
+    classLevel: 13,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ]
+  },
+  {
+    classLevel: 14,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ]
+  },
+  {
+    classLevel: 15,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 16,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 17,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ]
+  },
+  {
+    classLevel: 18,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ]
+  },
+  {
+    classLevel: 19,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ]
+  },
+  {
+    classLevel: 20,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ]
+  }
 ]
 
 export const paladin: ClassAuthored = {
   id: CLASS_IDS.PALADIN,
   label: 'Paladin',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
   description: 'A holy warrior bound to a sacred oath.',
   userId: SRD_USER_ID,
@@ -159,7 +268,164 @@ export const paladin: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(P, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(P, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(P, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(P, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(P, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL],
+                    count: 1
+                  },
+                  {
+                    id: classRowId(P, 98, 6),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.SHIELD,
+                    count: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(P, 98, 7),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(P, 98, 8),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL],
+                    count: 2
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(P, 98, 9),
+            order: 1,
+            options: [
+              {
+                id: classRowId(P, 98, 10),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(P, 98, 11),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(5)],
+                    quantity: 5
+                  }
+                ]
+              },
+              {
+                id: classRowId(P, 98, 12),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(P, 98, 13),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE, EQUIPMENT_PROPERTY_CODE.MELEE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(P, 98, 14),
+            order: 2,
+            options: [
+              {
+                id: classRowId(P, 98, 15),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(P, 98, 16),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(187)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(P, 98, 17),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(P, 98, 18),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(P, 98, 19),
+            order: 3,
+            options: [
+              {
+                id: classRowId(P, 98, 20),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(P, 98, 21),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(47)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(P, 98, 22),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [96, 97, 98].map(equipmentId),
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   spellcasting: {
@@ -169,19 +435,23 @@ export const paladin: ClassAuthored = {
     details: classSpellcastingDetails(P, [
       {
         label: 'Spellcasting',
-        description: '<p>By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does.</p>'
+        description:
+          '<p>By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does.</p>'
       },
       {
         label: 'Preparing and Casting Spells',
-        description: '<p>The Paladin table shows how many spell slots you have to cast your spells. To cast one of your paladin spells of 1st level or higher, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>You prepare the list of paladin spells that are available for you to cast, choosing from the paladin spell list. When you do so, choose a number of paladin spells equal to your Charisma modifier + half your paladin level, rounded down (minimum of one spell). The spells must be of a level for which you have spell slots.</p><p>For example, if you are a 5th-level paladin, you have four 1st-level and two 2nd-level spell slots. With a Charisma of 14, your list of prepared spells can include four spells of 1st or 2nd level, in any combination. If you prepare the 1st-level spell <em>cure wounds</em>, you can cast it using a 1st-level or a 2nd-level slot. Casting the spell doesn\'t remove it from your list of prepared spells.</p><p>You can change your list of prepared spells when you finish a long rest. Preparing a new list of paladin spells requires time spent in prayer and meditation: at least 1 minute per spell level for each spell on your list.</p>'
+        description:
+          "<p>The Paladin table shows how many spell slots you have to cast your spells. To cast one of your paladin spells of 1st level or higher, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.</p><p>You prepare the list of paladin spells that are available for you to cast, choosing from the paladin spell list. When you do so, choose a number of paladin spells equal to your Charisma modifier + half your paladin level, rounded down (minimum of one spell). The spells must be of a level for which you have spell slots.</p><p>For example, if you are a 5th-level paladin, you have four 1st-level and two 2nd-level spell slots. With a Charisma of 14, your list of prepared spells can include four spells of 1st or 2nd level, in any combination. If you prepare the 1st-level spell <em>cure wounds</em>, you can cast it using a 1st-level or a 2nd-level slot. Casting the spell doesn't remove it from your list of prepared spells.</p><p>You can change your list of prepared spells when you finish a long rest. Preparing a new list of paladin spells requires time spent in prayer and meditation: at least 1 minute per spell level for each spell on your list.</p>"
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Charisma is your spellcasting ability for your paladin spells, since their power derives from the strength of your convictions. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a paladin spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+        description:
+          '<p>Charisma is your spellcasting ability for your paladin spells, since their power derives from the strength of your convictions. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a paladin spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
       },
       {
         label: 'Spellcasting Focus',
-        description: '<p>You can use a holy symbol as a spellcasting focus for your paladin spells.</p>'
+        description:
+          '<p>You can use a holy symbol as a spellcasting focus for your paladin spells.</p>'
       }
     ]),
     charges: paladinSlotCharge,
@@ -261,6 +531,7 @@ export const paladin: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ATHLETICS'),
@@ -278,21 +549,24 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 1),
       label: 'Divine Sense',
-      description: 'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you open your awareness to detect such forces.',
+      description:
+        'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you open your awareness to detect such forces.',
       availableAtLevel: 1,
       order: 0
     },
     {
       id: classRowId(P, 3, 2),
       label: 'Lay on Hands',
-      description: 'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.',
+      description:
+        'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.',
       availableAtLevel: 1,
       order: 1
     },
     {
       id: classRowId(P, 3, 3),
       label: 'Fighting Style',
-      description: 'At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.',
+      description:
+        'At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.',
       availableAtLevel: 2,
       order: 2,
       optionChoices: [{ level: 2, count: 1 }],
@@ -321,7 +595,8 @@ export const paladin: ClassAuthored = {
         {
           id: classRowId(P, 4, 2),
           label: 'Dueling',
-          description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+          description:
+            'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
           grants: {
             modifiers: [
               {
@@ -342,13 +617,15 @@ export const paladin: ClassAuthored = {
         {
           id: classRowId(P, 4, 3),
           label: 'Great Weapon Fighting',
-          description: 'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
+          description:
+            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
           order: 2
         },
         {
           id: classRowId(P, 4, 4),
           label: 'Protection',
-          description: 'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
+          description:
+            'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           order: 3
         }
       ]
@@ -356,49 +633,56 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 4),
       label: 'Spellcasting',
-      description: 'By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does.',
+      description:
+        'By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does.',
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(P, 3, 5),
       label: 'Divine Smite',
-      description: 'Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon\'s damage.',
+      description:
+        "Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon's damage.",
       availableAtLevel: 2,
       order: 4
     },
     {
       id: classRowId(P, 3, 6),
       label: 'Divine Health',
-      description: 'By 3rd level, the divine magic flowing through you makes you immune to disease.',
+      description:
+        'By 3rd level, the divine magic flowing through you makes you immune to disease.',
       availableAtLevel: 3,
       order: 5
     },
     {
       id: classRowId(P, 3, 7),
       label: 'Sacred Oath',
-      description: 'When you reach 3rd level, you swear the oath that binds you as a paladin forever.',
+      description:
+        'When you reach 3rd level, you swear the oath that binds you as a paladin forever.',
       availableAtLevel: 3,
       order: 6
     },
     {
       id: classRowId(P, 3, 8),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 7
     },
     {
       id: classRowId(P, 3, 9),
       label: 'Extra Attack',
-      description: 'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      description:
+        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
       availableAtLevel: 5,
       order: 8
     },
     {
       id: classRowId(P, 3, 10),
       label: 'Aura of Protection',
-      description: 'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1).',
+      description:
+        'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1).',
       availableAtLevel: 6,
       order: 9
     },
@@ -412,35 +696,40 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 12),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 11
     },
     {
       id: classRowId(P, 3, 13),
       label: 'Aura of Courage',
-      description: 'Starting at 10th level, you and friendly creatures within 10 feet of you can\'t be frightened while you are conscious.',
+      description:
+        "Starting at 10th level, you and friendly creatures within 10 feet of you can't be frightened while you are conscious.",
       availableAtLevel: 10,
       order: 12
     },
     {
       id: classRowId(P, 3, 14),
       label: 'Improved Divine Smite',
-      description: 'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage.',
+      description:
+        'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage.',
       availableAtLevel: 11,
       order: 13
     },
     {
       id: classRowId(P, 3, 15),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 14
     },
     {
       id: classRowId(P, 3, 16),
       label: 'Cleansing Touch',
-      description: 'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.',
+      description:
+        'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.',
       availableAtLevel: 14,
       order: 15
     },
@@ -454,7 +743,8 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 18),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 17
     },
@@ -468,7 +758,8 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 20),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 19
     }

@@ -6,8 +6,8 @@ import type { EngineAccumulatedState } from './grantApplicator.js'
 import { resolveCompiledChargeMaximum } from '../../shared/compilers/charge.js'
 
 /**
- * Resolves class resource maximums from compiled class resource data at the
- * character's current class level.
+ * Resolves class and selected subclass resource maximums from compiled class
+ * resource data at the character's current class level.
  */
 export function resolveResources(
   snapshot: CharacterBuildSnapshot,
@@ -17,27 +17,33 @@ export function resolveResources(
 ): EngineResource[] {
   const out: EngineResource[] = []
   const proficiencyBonus = rules.proficiencyBonus(Math.max(snapshot.totalLevel, 1))
+  const classLevels = Object.fromEntries(snapshot.classes.map((entry) => [entry.classId, entry.level]))
 
   for (const cls of snapshot.classes) {
-    const compiled = registry.classes[cls.classId]
-    if (!compiled?.resources) continue
+    const resourceOwnerIds = cls.subclassId ? [cls.classId, cls.subclassId] : [cls.classId]
 
-    const resource = compiled.resources
-    const maxCount = resolveCompiledChargeMaximum(resource.charges, {
-      abilities: snapshot.abilities,
-      classLevel: cls.level,
-      proficiencyBonus,
-      totalLevel: snapshot.totalLevel
-    })
-    if (maxCount <= 0) continue
+    for (const resourceOwnerId of resourceOwnerIds) {
+      const compiled = registry.classes[resourceOwnerId]
+      if (!compiled?.resources) continue
 
-    out.push({
-      resourceId: resource.id,
-      label: resource.label,
-      maxCount,
-      rechargeOn: mapResetKind(resolveResourceResetKind(resource.charges.resetKind, resource.id, modifierEntries)),
-      sourceFeatureId: cls.classId
-    })
+      const resource = compiled.resources
+      const maxCount = resolveCompiledChargeMaximum(resource.charges, {
+        abilities: snapshot.abilities,
+        classLevels,
+        sourceClassLevel: cls.level,
+        proficiencyBonus,
+        totalLevel: snapshot.totalLevel
+      })
+      if (maxCount <= 0) continue
+
+      out.push({
+        resourceId: resource.id,
+        label: resource.label,
+        maxCount,
+        rechargeOn: mapResetKind(resolveResourceResetKind(resource.charges.resetKind, resource.id, modifierEntries)),
+        sourceFeatureId: resourceOwnerId
+      })
+    }
   }
 
   return out

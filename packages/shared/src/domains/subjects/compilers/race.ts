@@ -205,6 +205,7 @@ export function resolveRaceAuthored(
     label: authored.label,
     quote: authored.quote,
     description: authored.description,
+    status: authored.status,
     category: authored.category,
     parentRaceId: authored.parentRaceId,
     heritageIds: resolvedParent.heritageIds?.length

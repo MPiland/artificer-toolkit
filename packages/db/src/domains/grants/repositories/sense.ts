@@ -1,8 +1,18 @@
-import type { SenseGrantAuthored } from '@artificer-toolkit/shared'
-import type { DBLike } from '#types'
+import {
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  type RangeAuthored,
+  type ScalableValueAuthored,
+  type SenseGrantAuthored
+} from '@artificer-toolkit/shared'
+import type { DBLike, Json } from '#types'
 import { upsertSenseGrant } from '../upserts/sense.js'
 import { hydrateFacetById } from '../../shared/facets.js'
-import { hydrateChargeById } from './helpers.js'
+import {
+  hydrateChargeById,
+  requireNoSelectionDuplicatePolicy,
+  requireSelectionDuplicatePolicy
+} from './helpers.js'
 import type { SenseGrantRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
@@ -100,6 +110,63 @@ function requireScalingKind(
   return value
 }
 
+function hydrateSenseGrantRange(row: {
+  range_id: string | null
+  range_kind: string | null
+  range_amount: number | string | null
+  range_unit: string | null
+  range_scaling: Json | null
+}): RangeAuthored | undefined {
+  if (!row.range_id) {
+    if (
+      row.range_kind != null
+      || row.range_amount != null
+      || row.range_unit != null
+      || row.range_scaling != null
+    ) {
+      throw new Error('Sense grant range payload exists without range_id.')
+    }
+    return undefined
+  }
+
+  if (!row.range_kind || !(row.range_kind in RANGE_KIND)) {
+    throw new Error(`Sense grant range "${row.range_id}" has invalid range_kind "${String(row.range_kind)}".`)
+  }
+  const rangeKind = row.range_kind as keyof typeof RANGE_KIND
+
+  if (rangeKind !== RANGE_KIND.DISTANCE) {
+    if (row.range_amount != null || row.range_unit != null || row.range_scaling != null) {
+      throw new Error(`Sense grant range "${row.range_id}" has DISTANCE-only payload for ${rangeKind}.`)
+    }
+    return { id: row.range_id, rangeKind }
+  }
+
+  const amount = typeof row.range_amount === 'number'
+    ? row.range_amount
+    : row.range_amount == null
+      ? Number.NaN
+      : Number(row.range_amount)
+  if (!Number.isFinite(amount)) {
+    throw new Error(`Sense grant range "${row.range_id}" is missing a numeric amount.`)
+  }
+  if (!row.range_unit || !(row.range_unit in MEASUREMENT_UNIT_CODE)) {
+    throw new Error(`Sense grant range "${row.range_id}" has invalid range_unit "${String(row.range_unit)}".`)
+  }
+
+  return {
+    id: row.range_id,
+    rangeKind,
+    amount,
+    unit: row.range_unit as keyof typeof MEASUREMENT_UNIT_CODE,
+    scaling: row.range_scaling == null
+      ? undefined
+      : row.range_scaling as ScalableValueAuthored<{
+          amount: number
+          unit: keyof typeof MEASUREMENT_UNIT_CODE
+        }>
+  }
+}
+
 async function hydrateSenseGrantById(
   db: DBLike,
   id: string
@@ -113,10 +180,16 @@ async function hydrateSenseGrantById(
       'scaling_kind',
       'authoring_mode_kind',
       'selection_count',
+      'selection_duplicate_policy',
       'scaling_source',
       'class_id',
       'charge_id',
-      'restriction_id'
+      'restriction_id',
+      'range_id',
+      'range_kind',
+      'range_amount',
+      'range_unit',
+      'range_scaling'
     ] as const)
     .where('id', '=', id)
     .executeTakeFirst()
@@ -127,9 +200,10 @@ async function hydrateSenseGrantById(
     db.selectFrom('sense_grant_senses')
       .select(['sense_grant_id', 'sense_id'])
       .where('sense_grant_id', '=', id)
+      .orderBy('sense_id')
       .execute(),
     db.selectFrom('sense_grant_scaling_levels')
-      .select(['id', 'sense_grant_id', 'level', 'sort_order', 'authoring_mode_kind', 'selection_count'])
+      .select(['id', 'sense_grant_id', 'level', 'sort_order', 'authoring_mode_kind', 'selection_count', 'selection_duplicate_policy'])
       .where('sense_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
@@ -141,6 +215,7 @@ async function hydrateSenseGrantById(
     ? await db.selectFrom('sense_grant_scaling_level_senses')
         .select(['scaling_level_id', 'sense_id'])
         .where('scaling_level_id', 'in', scalingLevelIds)
+        .orderBy('sense_id')
         .execute()
     : []
 
@@ -152,11 +227,13 @@ async function hydrateSenseGrantById(
     ])
   }
 
+  const range = hydrateSenseGrantRange(root)
   const base = {
     id: root.id,
     grantKind: 'SENSE_GRANT' as const,
     order: root.sort_order,
-    charges: charge ?? undefined
+    charges: charge ?? undefined,
+    ...(range ? { range } : {})
   }
   const scalingKind = requireScalingKind(root.scaling_kind, `Sense grant "${id}" has invalid scaling_kind "${root.scaling_kind}".`)
 
@@ -164,6 +241,7 @@ async function hydrateSenseGrantById(
     const selectionKind = requireSelectionKind(root.selection_kind, `Sense grant "${id}" has invalid selection_kind "${root.selection_kind}".`)
     if (selectionKind === 'GRANTED') {
       requireNoGrantedCount(root.selection_count, `Sense grant "${id}" cannot hydrate selection_count for GRANTED payload.`)
+      requireNoSelectionDuplicatePolicy(`Sense grant "${id}"`, root.selection_duplicate_policy)
     }
     const authoringModeKind = requireAuthoringModeKind(root.authoring_mode_kind, `Sense grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`)
     if (authoringModeKind === 'ALL') {
@@ -181,6 +259,12 @@ async function hydrateSenseGrantById(
       count: root.selection_kind === 'CHOSEN'
         ? requireChosenCount(root.selection_count, `Sense grant "${id}" is missing selection_count for CHOSEN payload.`)
         : undefined,
+      selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+          `Sense grant "${id}"`,
+          root.selection_duplicate_policy
+        )
+        : undefined,
       senseIds: authoringModeKind === 'SELECTED'
         ? rootSenses.map((row) => row.sense_id)
         : undefined,
@@ -189,6 +273,12 @@ async function hydrateSenseGrantById(
         : undefined
     } as SenseGrantAuthored
   }
+
+  requireNoSelectionDuplicatePolicy(
+    `Sense grant "${id}"`,
+    root.selection_duplicate_policy,
+    'at the root for PER_LEVEL payload'
+  )
 
   return {
     ...base,
@@ -199,6 +289,10 @@ async function hydrateSenseGrantById(
           requireNoGrantedCount(
             level.selection_count,
             `Sense grant "${id}" level "${level.id}" cannot hydrate selection_count for GRANTED payload.`
+          )
+          requireNoSelectionDuplicatePolicy(
+            `Sense grant "${id}" level "${level.id}"`,
+            level.selection_duplicate_policy
           )
         }
       }
@@ -227,6 +321,12 @@ async function hydrateSenseGrantById(
           authoringModeKind,
           count: root.selection_kind === 'CHOSEN'
             ? requireChosenCount(level.selection_count, `Sense grant "${id}" level "${level.id}" is missing selection_count for CHOSEN payload.`)
+            : undefined,
+          selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
+            ? requireSelectionDuplicatePolicy(
+              `Sense grant "${id}" level "${level.id}"`,
+              level.selection_duplicate_policy
+            )
             : undefined,
           senseIds: authoringModeKind === 'SELECTED'
             ? senseIds

@@ -2,22 +2,11 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../../../css/foundations.css.ts'
 import { app } from '../../../css/layers.css.ts'
 
-export const workspaceContent = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flex: '1 1 auto',
-      minBlockSize: 0,
-      minInlineSize: 0,
-      overflow: 'hidden'
-    }
-  }
-})
-
 export const tooltipTarget = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex'
+      display: 'inline-flex',
+      flexShrink: 0
     }
   }
 })
@@ -25,8 +14,9 @@ export const tooltipTarget = style({
 export const headerIconButton = style({
   '@layer': {
     [app]: {
-      inlineSize: 24,
-      blockSize: 24,
+      inlineSize: 44,
+      blockSize: 44,
+      flexShrink: 0,
       border: '1px solid transparent',
       borderRadius: foundationVars.radius.sm,
       backgroundColor: foundationVars.color.surface.subtle,
@@ -88,15 +78,40 @@ export const headerIconButton = style({
   }
 })
 
-export const mobileHeaderAction = style({
+export const lifecycleButton = style({
   '@layer': {
     [app]: {
-      inlineSize: 36,
-      blockSize: 36,
+      inlineSize: 124,
+      minInlineSize: 124,
+      minBlockSize: 44,
+      flexShrink: 0,
       borderRadius: foundationVars.radius.sm,
+      fontWeight: foundationVars.fontWeight.semibold,
       ':focus-visible': {
         outline: 'none',
         boxShadow: foundationVars.shadow.focus
+      }
+    }
+  }
+})
+
+export const activateButton = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.button.primary.border,
+      backgroundColor: foundationVars.color.button.primary.background,
+      color: foundationVars.color.button.primary.text,
+      ':hover': {
+        backgroundColor: foundationVars.color.button.primary.hover,
+        color: foundationVars.color.button.primary.text
+      },
+      ':active': {
+        backgroundColor: foundationVars.color.button.primary.active
+      },
+      ':disabled': {
+        borderColor: foundationVars.color.border.strong,
+        backgroundColor: foundationVars.color.surface.subtle,
+        color: foundationVars.color.text.muted
       }
     }
   }
@@ -120,16 +135,6 @@ export const confirmationText = style({
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       lineHeight: '20px'
-    }
-  }
-})
-
-export const previewDrawerBody = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[3],
-      minBlockSize: 0
     }
   }
 })

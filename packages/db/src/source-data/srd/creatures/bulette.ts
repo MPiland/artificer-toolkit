@@ -6,7 +6,6 @@ export const bulette: CreatureAuthored = {
     label: 'Bulette',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const bulette: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 10,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',
@@ -73,7 +71,7 @@ export const bulette: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(9521, 3),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

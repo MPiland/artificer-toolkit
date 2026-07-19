@@ -1,18 +1,29 @@
 import { Alert, Tabs } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
+import clsx from 'clsx'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
-import { CharacterSheetActions } from './CharacterSheetActions'
 import { CharacterSheetHero } from './CharacterSheetHero'
-import { CharacterSheetHistory } from './CharacterSheetHistory'
-import { CharacterSheetInventory } from './CharacterSheetInventory'
-import { CharacterSheetNotes } from './CharacterSheetNotes'
+import { CharacterSheetMobilePager } from './CharacterSheetMobilePager'
 import { CharacterSheetOverview } from './CharacterSheetOverview'
-import { CharacterSheetReference } from './CharacterSheetReference'
-import { CharacterSheetResources } from './CharacterSheetResources'
-import { CharacterSheetSpells } from './CharacterSheetSpells'
+import { CharacterSheetOverviewAbilities } from './CharacterSheetOverviewAbilities'
+import { CharacterSheetOverviewStatusStrip } from './CharacterSheetOverviewStatusStrip'
+import { CharacterSheetOverviewVitals } from './CharacterSheetOverviewVitals'
+import { CharacterSheetPanelContent } from './CharacterSheetPanelContent'
 import * as styles from './characterSheet.css'
-import { isCharacterSheetTabId } from './characterSheet.utils'
-import type { CharacterSheet, CharacterSheetTabId } from './CharacterSheet.types'
+import {
+  CHARACTER_SHEET_DESKTOP_TABS,
+  CHARACTER_SHEET_TABLET_TABS,
+  getMobilePageForTab,
+  getTabForMobilePage
+} from './characterSheetTabs'
+import { isCharacterSheetMobilePageId, isCharacterSheetTabId } from './characterSheet.utils'
+import type {
+  CharacterSheet,
+  CharacterSheetCommandDraft,
+  CharacterSheetMobilePageId,
+  CharacterSheetTabId
+} from './CharacterSheet.types'
 
 export function CharacterSheetView({
   characterPublicId,
@@ -26,21 +37,51 @@ export function CharacterSheetView({
   sheet: CharacterSheet
 }) {
   const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(initialTab)
+  const [activeMobilePage, setActiveMobilePage] = useState<CharacterSheetMobilePageId>(getMobilePageForTab(initialTab))
+  const isMobileSheet = useMediaQuery('(max-width: 760px)', false)
+  const isDesktopSheet = useMediaQuery('(min-width: 1200px)', false)
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
   const pending = commandMutation.isPending
   const sectionProps = {
     pending,
     sheet,
-    submitCommand: commandMutation.mutate
+    submitCommand: async (command: CharacterSheetCommandDraft) => {
+      try {
+        await commandMutation.mutateAsync({ ...command, commandId: crypto.randomUUID() })
+        return true
+      } catch {
+        return false
+      }
+    }
   }
 
   useEffect(() => {
     setActiveTab(initialTab)
+    setActiveMobilePage(getMobilePageForTab(initialTab))
   }, [initialTab])
 
+  function setMobilePage(page: CharacterSheetMobilePageId) {
+    setActiveMobilePage(page)
+    setActiveTab(getTabForMobilePage(page))
+  }
+
   return (
-    <div className={styles.shell}>
-      <CharacterSheetHero characterPublicId={characterPublicId} hasDraft={hasDraft} sheet={sheet} />
+    <div className={clsx(
+      styles.shell,
+      isMobileSheet ? styles.sheetMobile : isDesktopSheet ? styles.sheetDesktop : styles.sheetTablet
+    )}>
+      <div className={styles.sheetTopGrid}>
+        <CharacterSheetHero characterPublicId={characterPublicId} hasDraft={hasDraft} sheet={sheet} />
+        <CharacterSheetOverviewVitals {...sectionProps} />
+      </div>
+      {!isMobileSheet
+        ? (
+            <div className={styles.sheetAbilityStatusGrid}>
+              <CharacterSheetOverviewAbilities abilities={sheet.overview.abilities} />
+              <CharacterSheetOverviewStatusStrip {...sectionProps} />
+            </div>
+          )
+        : null}
       {hasDraft
         ? (
             <Alert color='yellow'>
@@ -52,54 +93,71 @@ export function CharacterSheetView({
         ? <Alert color='red'>{commandMutation.error.message}</Alert>
         : null}
 
-      <Tabs
-        keepMounted={false}
-        value={activeTab}
-        onChange={(value) => {
-          if (isCharacterSheetTabId(value)) setActiveTab(value)
-        }}
-      >
-        <Tabs.List className={styles.tabList}>
-          <Tabs.Tab className={styles.tab} value='overview'>Overview</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='actions'>Actions</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='resources'>Resources</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='spells'>Spells</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='inventory'>Inventory</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='reference'>Reference</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='notes'>Notes</Tabs.Tab>
-          <Tabs.Tab className={styles.tab} value='history'>History</Tabs.Tab>
-        </Tabs.List>
+      {isMobileSheet
+        ? (
+            <CharacterSheetMobilePager activePage={activeMobilePage} onPageChange={setMobilePage}>
+              <CharacterSheetPanelContent
+                mobile
+                sectionProps={sectionProps}
+                tab={activeMobilePage}
+              />
+            </CharacterSheetMobilePager>
+          )
+        : isDesktopSheet
+          ? (
+              <div className={styles.desktopSheetCanvas}>
+                <CharacterSheetOverview {...sectionProps} />
+                <section className={styles.desktopWorkspace} aria-label='Character workspace'>
+                  <Tabs
+                    keepMounted={false}
+                    value={activeTab === 'overview' ? 'actions' : activeTab}
+                    onChange={(value) => {
+                      if (isCharacterSheetTabId(value) && value !== 'overview') setActiveTab(value)
+                    }}
+                  >
+                    <Tabs.List className={styles.tabList}>
+                      {CHARACTER_SHEET_DESKTOP_TABS.filter((tab) => tab.id !== 'overview').map((tab) => (
+                        <Tabs.Tab className={styles.tab} key={tab.id} value={tab.id}>{tab.label}</Tabs.Tab>
+                      ))}
+                    </Tabs.List>
+                    {CHARACTER_SHEET_DESKTOP_TABS.filter((tab) => tab.id !== 'overview').map((tab) => (
+                      <Tabs.Panel key={tab.id} value={tab.id} pt='md'>
+                        <CharacterSheetPanelContent sectionProps={sectionProps} tab={tab.id} />
+                      </Tabs.Panel>
+                    ))}
+                  </Tabs>
+                </section>
+              </div>
+            )
+          : (
+            <Tabs
+              keepMounted={false}
+              value={activeMobilePage}
+              onChange={(value) => {
+                if (isCharacterSheetMobilePageId(value)) {
+                  setActiveTab(getTabForMobilePage(value))
+                  setActiveMobilePage(value)
+                }
+              }}
+            >
+              <Tabs.List className={styles.tabList}>
+                {CHARACTER_SHEET_TABLET_TABS.map((tab) => (
+                  <Tabs.Tab className={styles.tab} key={tab.id} value={tab.id}>
+                    {tab.label}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
 
-        <Tabs.Panel value='overview' pt='md'>
-          <div className={styles.contentGrid}>
-            <CharacterSheetOverview {...sectionProps} />
-            <aside className={styles.sidebar}>
-              <CharacterSheetResources {...sectionProps} />
-            </aside>
-          </div>
-        </Tabs.Panel>
-        <Tabs.Panel value='actions' pt='md'>
-          <CharacterSheetActions sheet={sheet} />
-        </Tabs.Panel>
-        <Tabs.Panel value='resources' pt='md'>
-          <CharacterSheetResources {...sectionProps} />
-        </Tabs.Panel>
-        <Tabs.Panel value='spells' pt='md'>
-          <CharacterSheetSpells {...sectionProps} />
-        </Tabs.Panel>
-        <Tabs.Panel value='inventory' pt='md'>
-          <CharacterSheetInventory {...sectionProps} />
-        </Tabs.Panel>
-        <Tabs.Panel value='reference' pt='md'>
-          <CharacterSheetReference sheet={sheet} />
-        </Tabs.Panel>
-        <Tabs.Panel value='notes' pt='md'>
-          <CharacterSheetNotes {...sectionProps} />
-        </Tabs.Panel>
-        <Tabs.Panel value='history' pt='md'>
-          <CharacterSheetHistory characterId={sheet.meta.characterId} />
-        </Tabs.Panel>
-      </Tabs>
+              {CHARACTER_SHEET_TABLET_TABS.map((tab) => (
+                <Tabs.Panel key={tab.id} value={tab.id} pt='md'>
+                  <CharacterSheetPanelContent
+                    sectionProps={sectionProps}
+                    tab={tab.id}
+                  />
+                </Tabs.Panel>
+              ))}
+            </Tabs>
+            )}
     </div>
   )
 }

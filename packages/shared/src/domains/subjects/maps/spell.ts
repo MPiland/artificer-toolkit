@@ -22,7 +22,7 @@ export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ ma
   const { selectSingle, number } = nodes
   map
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CASTING_TIME_UNIT_OPTIONS
     }))
     .set('amount', number(['amount'], 'Amount'))
@@ -35,7 +35,7 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
   const { table } = data
   const local = cond.local()
   map
-    .set('kind', text(['kind'], 'Kind'))
+    .set('kind', text(['kind'], 'Kind', { authoring: { exposure: 'system' } }))
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', {
       section: SPELL_SECTIONS.basics,
@@ -53,11 +53,11 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SPELL_ATTRIBUTE_OPTIONS
     }, { section: SPELL_SECTIONS.casting, order: 20 }))
     .set('components', selectMulti(['components'], 'Components', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SPELL_COMPONENT_OPTIONS
     }, { section: SPELL_SECTIONS.casting, order: 30 }))
     .set('classIds', selectMulti(['classIds'], 'Classes', {
@@ -72,7 +72,11 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
         selectColumns: ['id', 'label']
       })
     }, { section: SPELL_SECTIONS.casting, order: 10 }))
-    .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP, { section: SPELL_SECTIONS.casting, order: 5 }))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: SPELL_SECTIONS.effects, order: 10 }))
+    .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP, { presentation: 'inline', section: SPELL_SECTIONS.casting, order: 5 }))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
+      section: SPELL_SECTIONS.effects,
+      order: 10,
+      presentation: 'branch'
+    }))
 })
 

@@ -1,5 +1,7 @@
 # Backend Package Contracts
 
+> **Document status:** Transitional boundary reference. The canonical load-bearing decision is [ADR 0001](docs/adr/0001-package-boundaries.md); cross-module behavior belongs in [the architecture guides](docs/architecture/overview.md). Treat current code and tests as authoritative when this document drifts.
+
 ## Summary
 
 This document defines the intended backend package boundaries for the rebuild. It is the working contract for Phase 0 through Phase 7 and should be used to decide where new code belongs.

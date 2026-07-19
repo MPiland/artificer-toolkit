@@ -68,7 +68,15 @@ function collectNodeMap(
   registry: Map<string, RuntimeNodeMap>
 ) {
   const runtimeNodeMap = nodeMap as unknown as RuntimeNodeMap
-  if (registry.has(runtimeNodeMap.mapId)) return
+  const existing = registry.get(runtimeNodeMap.mapId)
+  if (existing) {
+    if (nodeMapContractSignature(existing) !== nodeMapContractSignature(runtimeNodeMap)) {
+      throw new NodeRuntimeInputError(
+        `Conflicting node map contracts share map id: ${runtimeNodeMap.mapId}`
+      )
+    }
+    return
+  }
 
   registry.set(runtimeNodeMap.mapId, runtimeNodeMap)
 
@@ -78,4 +86,20 @@ function collectNodeMap(
     const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
     collectNodeMap(childMap, registry)
   }
+}
+
+function nodeMapContractSignature(nodeMap: RuntimeNodeMap): string {
+  const nodes = Object.entries(nodeMap.nodes)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([id, node]) => {
+      if (node.kind === 'INPUT') return [id, node]
+
+      const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+      const contract = Object.fromEntries(
+        Object.entries(node).filter(([key]) => key !== 'nodes')
+      )
+      return [id, { ...contract, childMapId: childMap.mapId }]
+    })
+
+  return JSON.stringify({ authoring: nodeMap.authoring, nodes })
 }

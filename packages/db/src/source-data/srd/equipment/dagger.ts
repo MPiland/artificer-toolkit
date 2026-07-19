@@ -12,7 +12,7 @@ export const dagger: EquipmentAuthored = {
     cost: S.gp(2),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,
-    modifiers: S.finesseWeaponWithRangedModifiers(S.equipId(10)),
+    modifiers: S.finesseWeaponWithRangedModifiers(S.equipId(2)),
   userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

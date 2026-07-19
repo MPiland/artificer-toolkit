@@ -101,7 +101,10 @@ CREATE TABLE IF NOT EXISTS public.spell_classes (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  class_id uuid NOT NULL,
+  class_id uuid NOT NULL
+    REFERENCES public.classes(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   PRIMARY KEY (spell_id, class_id)
 );

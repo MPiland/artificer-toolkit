@@ -5,7 +5,6 @@ export const greenDragonWyrmling: CreatureAuthored = {
     label: 'Green Dragon Wyrmling',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const greenDragonWyrmling: CreatureAuthored = {
         INTELLIGENCE: 14,
         WISDOM: 11,
         CHARISMA: 13,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',

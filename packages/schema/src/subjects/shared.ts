@@ -3,6 +3,7 @@ export * from '../effects/index.js'
 export * from '../grants/index.js'
 export * from '../features/index.js'
 
+import { PREPARE_LIMIT_METHOD_KIND } from '@artificer-toolkit/shared/subjects/core'
 import { z } from 'zod'
 import { chargeDtoSchema } from '../shared/charge.js'
 import { featureDtoSchema } from '../features/feature.js'
@@ -10,7 +11,9 @@ import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import {
   abilityCodeSchema,
   measurementUnitCodeSchema,
-  operationCodeSchema
+  operationCodeSchema,
+  roundingCodeSchema,
+  scalingAmountKindSchema
 } from '../shared/enums.js'
 
 export const classSpellSlotDtoSchema = z.object({
@@ -37,9 +40,9 @@ export const classPrepareLimitPerLevelDtoSchema = z.object({
 })
 
 export const classPrepareLimitDtoSchema = z.object({
-  methodKinds: z.array(z.string()),
-  scaling: z.string().optional(),
-  rounding: z.string().optional(),
+  methodKinds: z.array(z.enum(PREPARE_LIMIT_METHOD_KIND)),
+  scaling: scalingAmountKindSchema.optional(),
+  rounding: roundingCodeSchema.optional(),
   perLevel: z.array(classPrepareLimitPerLevelDtoSchema).optional()
 })
 export type ClassPrepareLimitDto = z.infer<typeof classPrepareLimitDtoSchema>

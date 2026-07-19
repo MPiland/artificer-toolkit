@@ -18,10 +18,10 @@ export const SHAPE_MEASUREMENT_NODE_MAP = shapeMeasurement.define('shapeMeasurem
       requiredIf: true
     }))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }))
-    .set('scaling', groupObject(['scaling'], 'Scaling', () => SHAPE_MEASUREMENT_SCALING_NODE_MAP, {
+    .set('scaling', groupObject(['scaling'], 'Scaling', () => SHAPE_MEASUREMENT_SCALING_NODE_MAP, { presentation: 'inline',
       order: 3
     }))
 })
@@ -35,13 +35,13 @@ export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }
 
   map
     .set('shapeKind', selectSingle(['shapeKind'], 'Shape Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SHAPE_KIND_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
-    .set('length', groupObject(['length'], 'Length', () => SHAPE_MEASUREMENT_NODE_MAP, {
+    .set('length', groupObject(['length'], 'Length', () => SHAPE_MEASUREMENT_NODE_MAP, { presentation: 'inline',
       order: 2,
       showIf: or([
         local.field(['shapeKind']).eq('LINE'),
@@ -49,19 +49,22 @@ export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }
         local.field(['shapeKind']).eq('WALL')
       ])
     }))
-    .set('edgeLength', groupObject(['length'], 'Edge Length', () => SHAPE_MEASUREMENT_NODE_MAP, {
+    .set('edgeLength', groupObject(['edgeLength'], 'Edge Length', () => SHAPE_MEASUREMENT_NODE_MAP, { presentation: 'inline',
       order: 2,
       showIf: local.field(['shapeKind']).eq('CUBE')
     }))
-    .set('height', groupObject(['height'], 'Height', () => SHAPE_MEASUREMENT_NODE_MAP, {
+    .set('height', groupObject(['height'], 'Height', () => SHAPE_MEASUREMENT_NODE_MAP, { presentation: 'inline',
       order: 2,
       showIf: or([
-        local.field(['shapeKind']).eq('CUBE'),
+        local.field(['shapeKind']).eq('CYLINDER'),
         local.field(['shapeKind']).eq('WALL')
       ]),
-      requiredIf: local.field(['shapeKind']).eq('WALL')
+      requiredIf: or([
+        local.field(['shapeKind']).eq('CYLINDER'),
+        local.field(['shapeKind']).eq('WALL')
+      ])
     }))
-    .set('radius', groupObject(['radius'], 'Radius', () => SHAPE_MEASUREMENT_NODE_MAP, {
+    .set('radius', groupObject(['radius'], 'Radius', () => SHAPE_MEASUREMENT_NODE_MAP, { presentation: 'inline',
       order: 2,
       showIf: or([
         local.field(['shapeKind']).eq('CYLINDER'),
@@ -71,7 +74,7 @@ export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }
       ]),
       requiredIf: true
     }))
-    .set('thickness', groupObject(['thickness'], 'Thickness', () => SHAPE_MEASUREMENT_NODE_MAP, {
+    .set('thickness', groupObject(['thickness'], 'Thickness', () => SHAPE_MEASUREMENT_NODE_MAP, { presentation: 'inline',
       order: 2,
       showIf: local.field(['shapeKind']).eq('WALL')
     }))

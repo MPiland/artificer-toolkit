@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useMemo } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,11 @@ import type {
   NodeRuntimeNodeDto,
   NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  resolveArrayAuthoringMeta,
+  resolveInputAuthoringMeta,
+  resolveObjectAuthoringMeta
+} from '@artificer-toolkit/shared/maps'
 import {
   AuthoringLayout,
   chooseInitialAuthoringFormValues,
@@ -21,9 +26,11 @@ import { TestRouterProvider } from '#test/TestRouterProvider'
 import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
 import { toAuthoringRailSummaries } from '../layout/Steps/Steps.utils'
 import { getAuthoringProgress } from '../validation/authoringProgress'
+import { withStaticResolvedScopes } from './withStaticResolvedScopes'
 
 type TestFormValues = {
   category: string | undefined
+  complex?: Record<string, unknown>
   description: string
   features?: Array<Record<string, unknown>>
   id: string
@@ -31,6 +38,8 @@ type TestFormValues = {
   name: string
   notes: string
   order: number
+  outcomes?: Array<Record<string, unknown>>
+  simple?: Record<string, unknown>
   systemId: string
 }
 
@@ -43,6 +52,22 @@ const testDefaults: TestFormValues = {
   notes: '',
   order: 1,
   systemId: 'system-1'
+}
+
+const inputAuthoring = resolveInputAuthoringMeta(undefined)
+const systemInputAuthoring = resolveInputAuthoringMeta({ exposure: 'system' })
+
+function arrayAuthoring(
+  label: string,
+  presentation: 'inline' | 'table' | 'summary' | 'branch' | 'focused',
+  rowSummary?: 'outcome'
+) {
+  return resolveArrayAuthoringMeta(
+    label,
+    presentation,
+    undefined,
+    rowSummary ? { collection: { rowSummary } } : undefined
+  )
 }
 
 const testModel = {
@@ -67,7 +92,9 @@ const testModel = {
               type: 'TEXT',
               visible: true,
               required: true,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: systemInputAuthoring
             },
             {
               id: 'order',
@@ -77,7 +104,9 @@ const testModel = {
               type: 'NUMBER',
               visible: true,
               required: true,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: systemInputAuthoring
             },
             {
               id: 'hiddenText',
@@ -87,7 +116,9 @@ const testModel = {
               type: 'TEXT',
               visible: false,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             },
             {
               id: 'name',
@@ -97,7 +128,9 @@ const testModel = {
               type: 'TEXT',
               visible: true,
               required: true,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             },
             {
               id: 'level',
@@ -107,7 +140,9 @@ const testModel = {
               type: 'NUMBER',
               visible: true,
               required: true,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             },
             {
               id: 'category',
@@ -118,7 +153,9 @@ const testModel = {
               visible: true,
               required: false,
               options: [{ value: 'spell', label: 'Spell' }],
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             },
             {
               id: 'description',
@@ -128,7 +165,9 @@ const testModel = {
               type: 'RICH_TEXT',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             }
           ]
         }
@@ -152,13 +191,16 @@ const testModel = {
               type: 'TEXT',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             }
           ]
         }
       ]
     }
-  ]
+  ],
+  scopes: []
 } satisfies NodeRuntimeResolveResponseDto
 
 const groupModel = {
@@ -181,9 +223,154 @@ const groupModel = {
               kind: 'GROUP',
               groupKind: 'ARRAY',
               childMapId: 'feature',
+              presentation: 'focused',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: arrayAuthoring('Feature', 'focused')
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const summaryGroupModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'outcomes',
+      label: 'Outcomes',
+      order: 1,
+      sections: [
+        {
+          id: 'outcomes-section',
+          label: 'Outcomes',
+          order: 1,
+          nodes: [
+            {
+              id: 'outcomes',
+              path: ['outcomes'],
+              label: 'Outcomes',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'outcome',
+              presentation: 'summary',
+              visible: true,
+              required: false,
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: arrayAuthoring('Outcome', 'summary', 'outcome')
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const focusedGroupModel = {
+  ...summaryGroupModel,
+  steps: summaryGroupModel.steps.map((step) => ({
+    ...step,
+    sections: step.sections.map((section) => ({
+      ...section,
+      nodes: section.nodes.map((node) => ({
+        ...node,
+        presentation: 'focused' as const,
+        authoring: arrayAuthoring('Outcome', 'focused', 'outcome')
+      }))
+    }))
+  }))
+} satisfies NodeRuntimeResolveResponseDto
+
+const summaryGroupWithNameModel = {
+  ...summaryGroupModel,
+  steps: summaryGroupModel.steps.map((step) => ({
+    ...step,
+    sections: step.sections.map((section) => ({
+      ...section,
+      nodes: [
+        {
+          id: 'name',
+          path: ['name'],
+          label: 'Name',
+          kind: 'INPUT' as const,
+          type: 'TEXT' as const,
+          visible: true,
+          required: true,
+          hiddenBehavior: 'KEEP',
+          clearPaths: [],
+          authoring: inputAuthoring
+        },
+        ...section.nodes
+      ]
+    }))
+  }))
+} satisfies NodeRuntimeResolveResponseDto
+
+const complexObjectModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'configuration',
+      label: 'Configuration',
+      order: 1,
+      sections: [
+        {
+          id: 'configuration-section',
+          label: 'Configuration',
+          order: 1,
+          nodes: [
+            {
+              id: 'complex',
+              path: ['complex'],
+              label: 'Feature Configuration',
+              kind: 'GROUP',
+              groupKind: 'OBJECT',
+              childMapId: 'feature',
+              presentation: 'branch',
+              visible: true,
+              required: false,
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: resolveObjectAuthoringMeta('Feature Configuration', undefined)
+            }
+          ]
+        }
+      ]
+    }
+  ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const simpleObjectModel = {
+  ...testModel,
+  steps: [
+    {
+      id: 'configuration',
+      label: 'Configuration',
+      order: 1,
+      sections: [
+        {
+          id: 'configuration-section',
+          label: 'Configuration',
+          order: 1,
+          nodes: [
+            {
+              id: 'simple',
+              path: ['simple'],
+              label: 'Weight',
+              kind: 'GROUP',
+              groupKind: 'OBJECT',
+              childMapId: 'weight',
+              presentation: 'inline',
+              visible: true,
+              required: false,
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: resolveObjectAuthoringMeta('Weight', undefined)
             }
           ]
         }
@@ -214,7 +401,9 @@ const mixedGroupModel = {
               visible: true,
               required: true,
               options: [{ value: 'MEDIUM', label: 'Medium' }],
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: inputAuthoring
             },
             {
               id: 'details',
@@ -223,9 +412,12 @@ const mixedGroupModel = {
               kind: 'GROUP',
               groupKind: 'ARRAY',
               childMapId: 'feature',
+              presentation: 'inline',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: arrayAuthoring('Details', 'inline')
             }
           ]
         }
@@ -254,9 +446,12 @@ const simpleArrayModel = {
               kind: 'GROUP',
               groupKind: 'ARRAY',
               childMapId: 'detail',
+              presentation: 'inline',
               visible: true,
               required: false,
-              clearPaths: []
+              hiddenBehavior: 'KEEP',
+              clearPaths: [],
+              authoring: arrayAuthoring('Details', 'inline')
             }
           ]
         }
@@ -270,13 +465,19 @@ const AuthoringRenderer = FormRenderer({
 })
 
 function TestAuthoringForm({
+  canSaveDraft = false,
+  defaultValues: defaultValuesInput = testDefaults,
   model: modelInput = testModel,
-  onCancel = vi.fn()
+  onCancel = vi.fn(),
+  onSaveDraft = vi.fn()
 }: {
+  canSaveDraft?: boolean
+  defaultValues?: TestFormValues
   model?: NodeRuntimeResolveResponseDto
   onCancel?: () => void
+  onSaveDraft?: () => void
 }) {
-  const defaultValues = useMemo(() => structuredClone(testDefaults), [])
+  const defaultValues = useMemo(() => structuredClone(defaultValuesInput), [defaultValuesInput])
   const model = useMemo(() => structuredClone(modelInput), [modelInput])
   const form = useAppForm({
     defaultValues,
@@ -286,7 +487,13 @@ function TestAuthoringForm({
   return (
     <AuthoringLayout>
       <form.AppForm>
-        <TestAuthoringContent form={form} model={model} onCancel={onCancel} />
+        <TestAuthoringContent
+          canSaveDraft={canSaveDraft}
+          form={form}
+          model={model}
+          onCancel={onCancel}
+          onSaveDraft={onSaveDraft}
+        />
       </form.AppForm>
     </AuthoringLayout>
   )
@@ -295,28 +502,33 @@ function TestAuthoringForm({
 const TestAuthoringContent = withForm({
   defaultValues: testDefaults,
   props: {} as {
+    canSaveDraft: boolean
     model: NodeRuntimeResolveResponseDto
     onCancel: () => void
+    onSaveDraft: () => void
   },
-  render: function TestAuthoringContent({ form, model, onCancel }) {
-    const {
-      updateAuthoringFormActions,
-      updateAuthoringFormState
-    } = useAuthoringForm()
+  render: function TestAuthoringContent({ canSaveDraft, form, model, onCancel, onSaveDraft }) {
+    const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
     const nameValue = useStore(form.store, (state) => state.values.name)
+    const formValues = useStore(form.store, (state) => state.values)
+    const resolvedModel = useMemo(
+      () => withStaticResolvedScopes(model, formValues),
+      [formValues, model]
+    )
     const statePatch = useMemo(
       () => ({
+        canSaveDraft,
         cancelLabel: 'Cancel',
         mapId: 'test-authoring-form',
         mode: 'edit' as const,
-        providedModel: model,
+        providedModel: resolvedModel,
         readOnly: false,
         resolveModel: false,
         subjectKindLabel: 'Test Form'
       }),
-      [model]
+      [canSaveDraft, resolvedModel]
     )
-    const actions = useMemo(() => ({ onCancel }), [onCancel])
+    const actions = useMemo(() => ({ onCancel, onSaveDraft }), [onCancel, onSaveDraft])
 
     useEffect(() => {
       updateAuthoringFormState(statePatch)
@@ -330,6 +542,7 @@ const TestAuthoringContent = withForm({
       <>
         <AuthoringRenderer form={form} />
         <output aria-label='name value'>{nameValue}</output>
+        <output aria-label='form values'>{JSON.stringify(formValues)}</output>
       </>
     )
   }
@@ -352,8 +565,7 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
   })
 
-  it('calls cancel when Cancel is clicked on the first step', async () => {
-    const user = userEvent.setup()
+  it('disables Back on the first step without presenting a duplicate Cancel action', () => {
     const onCancel = vi.fn()
 
     render(
@@ -362,9 +574,9 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
-
-    expect(onCancel).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
+    expect(onCancel).not.toHaveBeenCalled()
   })
 
   it('moves Back to the previous step after the first step', async () => {
@@ -403,7 +615,7 @@ describe('authoring form platform', () => {
     await user.click(nextButton)
 
     expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^next$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /^activate$/i })).toBeEnabled()
   })
 
@@ -428,13 +640,14 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument()
+    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /features/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^add feature$/i })).toBeInTheDocument()
     expect(screen.getByText('No features added yet.')).toBeInTheDocument()
     expect(screen.queryByText('Feature 1')).not.toBeInTheDocument()
   })
 
-  it('adds an array group item and selects its first child leaf', async () => {
+  it('adds a focused array item in the overlay editor', async () => {
     const user = userEvent.setup()
 
     render(
@@ -448,9 +661,217 @@ describe('authoring form platform', () => {
     await user.click(screen.getByRole('button', { name: /^add feature$/i }))
 
     expect(screen.getAllByText('Feature 1').length).toBeGreaterThan(0)
-    expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /add feature/i })
+    expect(await within(dialog).findByRole('textbox', { name: /name/i })).toBeInTheDocument()
+    expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
+    expect(document.querySelector('.mantine-Drawer-overlay')).not.toBeNull()
   })
 
+  it('cancels a staged summary add and restores focus without changing the owning leaf', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm
+          canSaveDraft
+          defaultValues={{ ...testDefaults, outcomes: [] }}
+          model={summaryGroupModel}
+        />
+      </TestRouterProvider>
+    )
+
+    const addOutcome = screen.getByRole('button', { name: /^add outcome$/i })
+    const valuesBefore = screen.getByLabelText('form values').textContent
+    expect(screen.getByText('All changes saved')).toBeInTheDocument()
+    await user.click(addOutcome)
+
+    const drawer = screen.getByRole('dialog', { name: /add outcome/i })
+    expect(drawer).toBeInTheDocument()
+    expect(document.querySelector('.mantine-Drawer-overlay')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save draft/i })).toBeDisabled()
+
+    await user.click(within(drawer).getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('form values').textContent).toBe(valuesBefore)
+    expect(screen.getByText('No outcomes added yet.')).toBeInTheDocument()
+    expect(screen.getByText('All changes saved')).toBeInTheDocument()
+    await waitFor(() => expect(addOutcome).toHaveFocus())
+  })
+
+  it('restores a cancelled summary edit exactly and retains a saved edit', async () => {
+    const user = userEvent.setup()
+    const initialValues: TestFormValues = {
+      ...testDefaults,
+      outcomes: [
+        {
+          id: 'damage-1',
+          effectKind: 'DAMAGE',
+          valueKind: 'DICE',
+          scalingKind: 'NONE',
+          diceConfig: '1d6',
+          damageTypeId: 'fire'
+        }
+      ]
+    }
+
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={summaryGroupModel} />
+      </TestRouterProvider>
+    )
+
+    const damageOpener = screen.getByRole('button', { name: /^damage$/i })
+    const valuesBefore = screen.getByLabelText('form values').textContent
+    expect(screen.getByText('All changes saved')).toBeInTheDocument()
+    await user.click(damageOpener)
+
+    let drawer = screen.getByRole('dialog', { name: /edit damage/i })
+    let diceConfig = within(drawer).getByRole('textbox', { name: /dice config/i })
+    await user.clear(diceConfig)
+    await user.type(diceConfig, '9d9')
+    expect(screen.getByRole('button', { name: /save draft/i })).toBeDisabled()
+
+    await user.click(within(drawer).getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('form values').textContent).toBe(valuesBefore)
+    expect(screen.getByText('All changes saved')).toBeInTheDocument()
+    await waitFor(() => expect(damageOpener).toHaveFocus())
+
+    await user.click(damageOpener)
+    drawer = screen.getByRole('dialog', { name: /edit damage/i })
+    diceConfig = within(drawer).getByRole('textbox', { name: /dice config/i })
+    expect(diceConfig).toHaveValue('1d6')
+    await user.clear(diceConfig)
+    await user.type(diceConfig, '2d8')
+    await user.click(within(drawer).getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByLabelText('form values')).toHaveTextContent('"diceConfig":"2d8"')
+    expect(screen.getByRole('button', { name: /save draft/i })).toBeEnabled()
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+    await waitFor(() => expect(damageOpener).toHaveFocus())
+  }, 10_000)
+
+  it('restores only the cancelled drawer subtree while retaining unrelated dirty state', async () => {
+    const user = userEvent.setup()
+    const initialValues: TestFormValues = {
+      ...testDefaults,
+      outcomes: [
+        {
+          id: 'damage-1',
+          effectKind: 'DAMAGE',
+          valueKind: 'DICE',
+          scalingKind: 'NONE',
+          diceConfig: '1d6',
+          damageTypeId: 'fire'
+        }
+      ]
+    }
+
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm
+          canSaveDraft
+          defaultValues={initialValues}
+          model={summaryGroupWithNameModel}
+        />
+      </TestRouterProvider>
+    )
+
+    const name = screen.getByRole('textbox', { name: /^name$/i })
+    await user.type(name, 'Kept edit')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    const damageOpener = screen.getByRole('button', { name: /^damage$/i })
+    await user.click(damageOpener)
+    const drawer = screen.getByRole('dialog', { name: /edit damage/i })
+    const diceConfig = within(drawer).getByRole('textbox', { name: /dice config/i })
+    await user.clear(diceConfig)
+    await user.type(diceConfig, '9d9')
+    await user.click(within(drawer).getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(name).toHaveValue('Kept edit')
+    expect(screen.getByLabelText('form values')).toHaveTextContent('"diceConfig":"1d6"')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+  })
+
+  it('keeps a focused drawer collection on the canvas while editing a leaf in an overlay', async () => {
+    const user = userEvent.setup()
+    const initialValues: TestFormValues = {
+      ...testDefaults,
+      outcomes: [
+        {
+          id: 'damage-1',
+          effectKind: 'DAMAGE',
+          valueKind: 'DICE',
+          scalingKind: 'NONE',
+          diceConfig: '1d6',
+          damageTypeId: 'fire'
+        }
+      ]
+    }
+
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={focusedGroupModel} />
+      </TestRouterProvider>
+    )
+
+    const damageOpener = screen.getByRole('button', { name: /^edit damage$/i })
+    const canvasHeading = screen.getByRole('heading', { name: /^outcomes$/i })
+    const canvasWidth = canvasHeading.closest('section')?.getBoundingClientRect().width
+    await user.click(damageOpener)
+
+    const drawer = screen.getByRole('dialog', { name: /edit damage/i })
+    expect(drawer).toBeInTheDocument()
+    expect(document.querySelector('.mantine-Drawer-overlay')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^outcomes$/i })).toBeInTheDocument()
+    expect(canvasHeading.closest('section')?.getBoundingClientRect().width).toBe(canvasWidth)
+
+    await user.click(within(drawer).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^edit damage$/i })).toHaveFocus()
+    )
+
+    const navigation = screen.getByRole('navigation', { name: /^authoring steps$/i })
+    await user.click(within(navigation).getByRole('button', { name: /^damage/i }))
+
+    const railDrawer = screen.getByRole('dialog', { name: /edit damage/i })
+    expect(railDrawer).toBeInTheDocument()
+    await user.click(within(railDrawer).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('keeps an absent optional complex object inline so it can be added', () => {
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm model={complexObjectModel} />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByRole('button', { name: /^add feature configuration$/i })).toBeInTheDocument()
+    expect(
+      screen.getByText('Feature Configuration has not been configured yet.')
+    ).toBeInTheDocument()
+  })
+
+  it('keeps populated simple object groups inline', () => {
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm
+          defaultValues={{ ...testDefaults, simple: { amount: 12, unit: 'POUNDS' } }}
+          model={simpleObjectModel}
+        />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByRole('textbox', { name: /amount/i })).toHaveValue('12')
+    expect(screen.getByRole('combobox', { name: /unit/i })).toBeInTheDocument()
+  })
 })
 
 describe('authoring navigation tree', () => {
@@ -468,7 +889,9 @@ describe('authoring navigation tree', () => {
       expect.objectContaining({ status: 'incomplete' })
     )
     expect(navigation.progressSummary.incompleteCount).toBeGreaterThan(0)
-    expect(navigation.progressSummary.completeCount).toBeLessThan(navigation.progressSummary.stepCount)
+    expect(navigation.progressSummary.completeCount).toBeLessThan(
+      navigation.progressSummary.stepCount
+    )
   })
 
   it('shows empty arrays as a selectable step without item rows', () => {
@@ -494,15 +917,15 @@ describe('authoring navigation tree', () => {
     expect(JSON.stringify(navigation.navigationTree)).not.toContain('Feature 1')
   })
 
-  it('adds array item rows with child step leaves when values exist', () => {
+  it('adds focused array rows as drawer leaves when values exist', () => {
     const values = { ...testDefaults, features: [{ label: '' }] }
     const navigation = buildAuthoringNavigationTree({
       mapId: groupModel.mapId,
-      model: groupModel,
+      model: withStaticResolvedScopes(groupModel, values),
       values
     })
-    const nestedFeatureTarget = navigation.navigationTargets.find((target) =>
-      target.fieldPathPrefix === 'features[0]' && target.kind === 'step'
+    const nestedFeatureTarget = navigation.navigationTargets.find(
+      (target) => target.fieldPathPrefix === 'features[0]' && target.kind === 'drawer-item'
     )
 
     expect(JSON.stringify(navigation.navigationTree)).toContain('Feature 1')
@@ -510,13 +933,106 @@ describe('authoring navigation tree', () => {
       expect.arrayContaining([
         expect.objectContaining({
           fieldPathPrefix: 'features[0]',
-          kind: 'step',
+          kind: 'drawer-item',
           mapId: 'feature'
         })
       ])
     )
     expect(nestedFeatureTarget?.parentValues).toBe(values)
     expect(nestedFeatureTarget?.parentValues).not.toBe(values.features?.[0])
+  })
+
+  it('exposes focused drawer rows as rail leaves without expanding their child map', () => {
+    const navigation = buildAuthoringNavigationTree({
+      mapId: focusedGroupModel.mapId,
+      model: focusedGroupModel,
+      values: {
+        ...testDefaults,
+        outcomes: [{ id: 'damage-1', effectKind: 'DAMAGE' }]
+      }
+    })
+
+    expect(navigation.navigationTargets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          collectionFieldName: 'outcomes',
+          kind: 'overview'
+        }),
+        expect.objectContaining({
+          collectionFieldName: 'outcomes',
+          drawerRowIndex: 0,
+          fieldPathPrefix: 'outcomes[0]',
+          kind: 'drawer-item',
+          mapId: 'outcome'
+        })
+      ])
+    )
+    expect(navigation.navigationTree).toEqual([
+      expect.objectContaining({
+        children: [expect.objectContaining({ label: 'Damage' })],
+        label: 'Outcomes'
+      })
+    ])
+    expect(navigation.navigationTargets).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'step', mapId: 'outcome' })])
+    )
+  })
+
+  it('uses populated complex object groups as rail branches', () => {
+    const values = {
+      ...testDefaults,
+      complex: {
+        id: 'feature-1',
+        label: 'Nested Feature',
+        description: '',
+        order: 1,
+        attributes: [],
+        details: [],
+        effects: [],
+        optionChoices: [],
+        options: []
+      }
+    }
+    const navigation = buildAuthoringNavigationTree({
+      mapId: complexObjectModel.mapId,
+      model: withStaticResolvedScopes(complexObjectModel, values),
+      values
+    })
+
+    expect(navigation.navigationTargets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fieldPathPrefix: 'complex',
+          kind: 'step',
+          mapId: 'feature'
+        })
+      ])
+    )
+    expect(JSON.stringify(navigation.navigationTree)).toContain('Feature Configuration')
+  })
+
+  it('keeps absent complex and populated simple object groups in their owning leaf', () => {
+    const absentComplex = buildAuthoringNavigationTree({
+      mapId: complexObjectModel.mapId,
+      model: complexObjectModel,
+      values: testDefaults
+    })
+    const populatedSimple = buildAuthoringNavigationTree({
+      mapId: simpleObjectModel.mapId,
+      model: simpleObjectModel,
+      values: { ...testDefaults, simple: { amount: 12, unit: 'POUNDS' } }
+    })
+
+    expect(absentComplex.navigationTargets).toEqual([
+      expect.objectContaining({ kind: 'step', stepId: 'configuration' })
+    ])
+    expect(absentComplex.navigationTargets[0]?.ownedFieldPaths).toContain('complex')
+    expect(populatedSimple.navigationTargets).toEqual([
+      expect.objectContaining({ kind: 'step', stepId: 'configuration' })
+    ])
+    expect(populatedSimple.navigationTargets).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ fieldPathPrefix: 'simple' })])
+    )
   })
 
   it('keeps simple child maps inline in the owning step', () => {
@@ -581,18 +1097,13 @@ describe('authoring rail summaries', () => {
     const summaries = toAuthoringRailSummaries({
       hasChanges: false,
       mode: 'create',
-      stepStatuses: {
-        basics: 'incomplete',
-        details: 'complete'
-      },
       summary: {
         completeCount: 1,
         errorCount: 0,
         incompleteCount: 1,
         stepCount: 2,
         warningCount: 0
-      },
-      visitedStepIds: new Set(['details'])
+      }
     })
 
     expect(summaries).toEqual([
@@ -621,17 +1132,13 @@ describe('authoring rail summaries', () => {
     const summaries = toAuthoringRailSummaries({
       hasChanges: false,
       mode: 'edit',
-      stepStatuses: {
-        basics: 'complete'
-      },
       summary: {
         completeCount: 1,
         errorCount: 0,
         incompleteCount: 0,
         stepCount: 1,
         warningCount: 0
-      },
-      visitedStepIds: new Set()
+      }
     })
 
     expect(summaries).toEqual([
@@ -639,6 +1146,22 @@ describe('authoring rail summaries', () => {
       expect.objectContaining({ label: 'issues', markerLabel: 'No issues', status: 'complete' }),
       expect.objectContaining({ label: 'status', status: 'complete', value: 'Saved' })
     ])
+  })
+
+  it('counts completed create steps even before they are visited', () => {
+    const summaries = toAuthoringRailSummaries({
+      hasChanges: false,
+      mode: 'create',
+      summary: {
+        completeCount: 2,
+        errorCount: 0,
+        incompleteCount: 0,
+        stepCount: 2,
+        warningCount: 0
+      }
+    })
+
+    expect(summaries[0]).toEqual(expect.objectContaining({ value: '2/2' }))
   })
 })
 
@@ -688,9 +1211,12 @@ describe('authoring progress', () => {
                   kind: 'GROUP',
                   groupKind: 'OBJECT',
                   childMapId: 'charges',
+                  presentation: 'inline',
                   visible: true,
                   required: false,
-                  clearPaths: []
+                  hiddenBehavior: 'KEEP',
+                  clearPaths: [],
+                  authoring: resolveObjectAuthoringMeta('Charges', undefined)
                 }
               ]
             }
@@ -699,9 +1225,10 @@ describe('authoring progress', () => {
       ]
     } satisfies NodeRuntimeResolveResponseDto
 
+    const values = { ...testDefaults, charges: { id: 'charges-1' } }
     const progress = getAuthoringProgress({
-      model: requiredChildGroupModel,
-      values: { ...testDefaults, charges: {} }
+      model: withStaticResolvedScopes(requiredChildGroupModel, values),
+      values
     })
 
     expect(progress.stepStatuses.charges).toBe('incomplete')
@@ -752,9 +1279,12 @@ describe('authoring default value helpers', () => {
       kind: 'GROUP',
       groupKind: 'ARRAY',
       childMapId: 'feature',
+      presentation: 'inline',
       visible: true,
       required: false,
-      clearPaths: []
+      hiddenBehavior: 'KEEP',
+      clearPaths: [],
+      authoring: arrayAuthoring('Features', 'inline')
     }
     const objectNode: NodeRuntimeNodeDto = {
       id: 'cost',
@@ -763,9 +1293,12 @@ describe('authoring default value helpers', () => {
       kind: 'GROUP',
       groupKind: 'OBJECT',
       childMapId: 'cost',
+      presentation: 'inline',
       visible: true,
       required: false,
-      clearPaths: []
+      hiddenBehavior: 'KEEP',
+      clearPaths: [],
+      authoring: resolveObjectAuthoringMeta('Cost', undefined)
     }
 
     expect(createDefaultAuthoringArrayItem(arrayNode, 1)).toEqual(

@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS public.damages (
 
   value_kind text NOT NULL,        -- DAMAGE_VALUE_KIND: FIXED | DICE | POOL
   scaling_kind text NOT NULL,      -- SCALING_KIND: NONE | PER_LEVEL
+  amount_kind text,                -- SCALING_AMOUNT_KIND: FULL | HALF | DOUBLE
+  amount_multiplier numeric,
 
   scaling_source text,             -- SCALING_SOURCE: CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL
   class_id uuid,                   -- CLASS_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql

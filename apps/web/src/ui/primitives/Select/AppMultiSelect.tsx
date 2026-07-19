@@ -4,6 +4,7 @@ import {
   addAllOption,
   DEFAULT_ALL_OPTION_LABEL,
   DEFAULT_ALL_OPTION_VALUE,
+  getClearButtonAriaLabel,
   resolveMultiSelectValue,
   toComboboxData
 } from './selectOptions'
@@ -73,30 +74,40 @@ export function AppMultiSelect({
       disabled={disabled}
       clearable={clearable}
       clearButtonProps={{
-        'aria-label': props.label
-          ? `Clear ${props.label}`
-          : 'Clear selected options',
+        'aria-label': getClearButtonAriaLabel(props.label, 'Clear selected options'),
         ...clearButtonProps
       }}
       searchable={searchable}
       checkIconPosition='right'
       comboboxProps={{
-        shadow: 'md',
         withinPortal: true,
         ...comboboxProps
       }}
-      classNames={{
-        root: selectStyles.root,
-        label: selectStyles.label,
-        description: selectStyles.description,
-        required: selectStyles.required,
-        input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
-        dropdown: selectStyles.dropdown,
-        option: selectStyles.option,
-        pillsList: selectStyles.pillsList,
-        inputField: selectStyles.inputField,
-        ...classNames
-      }}
+      classNames={typeof classNames === 'function'
+        ? (theme, multiSelectProps, context) => ({
+            root: selectStyles.root,
+            label: selectStyles.label,
+            description: selectStyles.description,
+            required: selectStyles.required,
+            input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
+            dropdown: selectStyles.dropdown,
+            option: selectStyles.option,
+            pillsList: selectStyles.pillsList,
+            inputField: selectStyles.inputField,
+            ...classNames(theme, multiSelectProps, context)
+          })
+        : {
+            root: selectStyles.root,
+            label: selectStyles.label,
+            description: selectStyles.description,
+            required: selectStyles.required,
+            input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
+            dropdown: selectStyles.dropdown,
+            option: selectStyles.option,
+            pillsList: selectStyles.pillsList,
+            inputField: selectStyles.inputField,
+            ...classNames
+          }}
       renderPill={renderPill ?? renderAppMultiSelectPill}
       {...props}
     />

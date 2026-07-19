@@ -3,11 +3,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 
 export function CharacterSheetDraftOnlyState({
-  characterId,
   characterPublicId,
   label
 }: {
-  characterId: string
   characterPublicId: string
   label?: string
 }) {
@@ -19,16 +17,24 @@ export function CharacterSheetDraftOnlyState({
     <Stack>
       <Alert color='yellow' title='Builder draft in progress'>
         <Text>
-          {displayLabel}
-          {' '}
-          is still a builder draft. Finish or resume the builder before opening the interactive sheet.
+          {displayLabel} is still a builder draft. Finish or resume the builder before opening the
+          interactive sheet.
         </Text>
       </Alert>
       <Group>
-        <Button onClick={() => navigate({ to: '/characters/$characterPublicId/$characterSlug/edit', params: characterParams })}>
+        <Button
+          onClick={() =>
+            navigate({
+              to: '/characters/$characterPublicId/$characterSlug/edit',
+              params: characterParams
+            })
+          }
+        >
           Resume Builder
         </Button>
-        <Button variant='default' onClick={() => navigate({ to: '/characters' })}>Back to characters</Button>
+        <Button variant='default' onClick={() => navigate({ to: '/characters' })}>
+          Back to characters
+        </Button>
       </Group>
     </Stack>
   )

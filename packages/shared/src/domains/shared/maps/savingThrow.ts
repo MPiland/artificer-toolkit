@@ -17,14 +17,14 @@ const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define('savingThrowDcB
 
   map
     .set('bonusKind', selectSingle(['bonusKind'], 'Bonus Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SAVING_THROW_DC_BONUS_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
     .set('ability', selectSingle(['ability'], 'DC Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       order: 2,
@@ -45,14 +45,14 @@ export const SAVING_THROW_NODE_MAP = savingThrow.define('savingThrow', ({ map, c
 
   map
     .set('dcMethod', selectSingle(['dcMethod'], 'DC Method', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SAVING_THROW_DC_METHOD_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
     .set('ability', selectSingle(['ability'], 'Save Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       order: 2,
@@ -71,7 +71,7 @@ export const SAVING_THROW_NODE_MAP = savingThrow.define('savingThrow', ({ map, c
         local.field(['dcMethod']).eq(SAVING_THROW_DC_METHOD.DERIVED_DC)
       ])
     }))
-    .set('bonuses', groupArray(['bonuses'], 'DC Bonuses', () => SAVING_THROW_DC_BONUS_NODE_MAP, {
+    .set('bonuses', groupArray(['bonuses'], 'DC Bonuses', () => SAVING_THROW_DC_BONUS_NODE_MAP, { presentation: 'inline',
       order: 4,
       showIf: or([
         local.field(['dcMethod']).eq(SAVING_THROW_DC_METHOD.FIXED_DC),

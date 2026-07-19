@@ -5,7 +5,11 @@ import {
 import type { DBLike } from '#types'
 import { upsertSpellGrant } from '../upserts/spell.js'
 import { hydrateFacetById } from '../../shared/facets.js'
-import { hydrateChargeById } from './helpers.js'
+import {
+  hydrateChargeById,
+  requireNoSelectionDuplicatePolicy,
+  requireSelectionDuplicatePolicy
+} from './helpers.js'
 import type { SpellGrantRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
@@ -147,6 +151,7 @@ async function hydrateSpellGrantById(
       'scaling_kind',
       'authoring_mode_kind',
       'selection_count',
+      'selection_duplicate_policy',
       'scaling_source',
       'class_id',
       'charge_id',
@@ -170,7 +175,7 @@ async function hydrateSpellGrantById(
       .where('spell_grant_id', '=', id)
       .execute(),
     db.selectFrom('spell_grant_scaling_levels')
-      .select(['id', 'spell_grant_id', 'level', 'sort_order', 'authoring_mode_kind', 'selection_count'])
+      .select(['id', 'spell_grant_id', 'level', 'sort_order', 'authoring_mode_kind', 'selection_count', 'selection_duplicate_policy'])
       .where('spell_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
@@ -211,6 +216,7 @@ async function hydrateSpellGrantById(
     const selectionKind = requireSelectionKind(root.selection_kind, `Spell grant "${id}" has invalid selection_kind "${root.selection_kind}".`)
     if (selectionKind === 'GRANTED') {
       requireNoGrantedCount(root.selection_count, `Spell grant "${id}" cannot hydrate selection_count for GRANTED payload.`)
+      requireNoSelectionDuplicatePolicy(`Spell grant "${id}"`, root.selection_duplicate_policy)
     }
     const authoringModeKind = requireAuthoringModeKind(root.authoring_mode_kind, `Spell grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`)
     if (authoringModeKind === 'ALL') {
@@ -228,6 +234,12 @@ async function hydrateSpellGrantById(
       count: root.selection_kind === 'CHOSEN'
         ? requireChosenCount(root.selection_count, `Spell grant "${id}" is missing selection_count for CHOSEN payload.`)
         : undefined,
+      selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+          `Spell grant "${id}"`,
+          root.selection_duplicate_policy
+        )
+        : undefined,
       spellIds: authoringModeKind === 'SELECTED'
         ? rootSpells.map((row) => row.spell_id)
         : undefined,
@@ -240,6 +252,12 @@ async function hydrateSpellGrantById(
     } as SpellGrantAuthored
   }
 
+  requireNoSelectionDuplicatePolicy(
+    `Spell grant "${id}"`,
+    root.selection_duplicate_policy,
+    'at the root for PER_LEVEL payload'
+  )
+
   return {
     ...base,
     selectionKind: (() => {
@@ -249,6 +267,10 @@ async function hydrateSpellGrantById(
           requireNoGrantedCount(
             level.selection_count,
             `Spell grant "${id}" level "${level.id}" cannot hydrate selection_count for GRANTED payload.`
+          )
+          requireNoSelectionDuplicatePolicy(
+            `Spell grant "${id}" level "${level.id}"`,
+            level.selection_duplicate_policy
           )
         }
       }
@@ -277,6 +299,12 @@ async function hydrateSpellGrantById(
           authoringModeKind,
           count: root.selection_kind === 'CHOSEN'
             ? requireChosenCount(level.selection_count, `Spell grant "${id}" level "${level.id}" is missing selection_count for CHOSEN payload.`)
+            : undefined,
+          selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
+            ? requireSelectionDuplicatePolicy(
+              `Spell grant "${id}" level "${level.id}"`,
+              level.selection_duplicate_policy
+            )
             : undefined,
           spellIds: authoringModeKind === 'SELECTED'
             ? spellIds

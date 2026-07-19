@@ -3,9 +3,15 @@ import type {
   VehicleListResponseDto,
   VehicleResponseDto
 } from '@artificer-toolkit/schema/api/content'
+import {
+  createRuntimeGroupNode as groupNode,
+  createRuntimeInputNode as inputNode,
+  createRuntimeSelectNode as selectNode
+} from '../authoredRouteRuntime.fixtures'
 
 export const ownedVehicleResponseFixture = {
   publicId: 'vehicle-owned',
+  activeRevisionId: 'vehicle-owned-active-revision',
   item: {
     id: 'vehicle-owned',
     label: 'Sky Skiff',
@@ -59,6 +65,7 @@ export const ownedVehicleResponseFixture = {
 
 export const masterVehicleResponseFixture = {
   publicId: 'vehicle-master',
+  activeRevisionId: 'vehicle-master-active-revision',
   item: {
     id: 'vehicle-master',
     label: 'Galley',
@@ -90,6 +97,7 @@ export const vehicleListFixture = {
     {
       id: ownedVehicleResponseFixture.item.id,
       publicId: ownedVehicleResponseFixture.publicId,
+      activeRevisionId: ownedVehicleResponseFixture.activeRevisionId,
       label: ownedVehicleResponseFixture.item.label,
       description: ownedVehicleResponseFixture.item.description,
       status: 'ACTIVE',
@@ -102,6 +110,7 @@ export const vehicleListFixture = {
     {
       id: masterVehicleResponseFixture.item.id,
       publicId: masterVehicleResponseFixture.publicId,
+      activeRevisionId: masterVehicleResponseFixture.activeRevisionId,
       label: masterVehicleResponseFixture.item.label,
       description: masterVehicleResponseFixture.item.description,
       status: 'ACTIVE',
@@ -119,6 +128,7 @@ export const vehicleListFixture = {
 export const vehicleRuntimeFixture = {
   mapId: 'vehicle',
   clearPaths: [],
+  scopes: [],
   steps: [
     {
       id: 'overview',
@@ -214,62 +224,3 @@ export const vehicleRuntimeFixture = {
     }
   ]
 } satisfies NodeRuntimeResolveResponseDto
-
-function inputNode(
-  id: string,
-  path: string[],
-  label: string,
-  type: 'TEXT' | 'NUMBER' | 'RICH_TEXT',
-  required = false
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type,
-    visible: true,
-    required,
-    clearPaths: []
-  }
-}
-
-function selectNode(
-  id: string,
-  path: string[],
-  label: string,
-  options: NonNullable<NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number]['options']>,
-  required = false
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type: 'SELECT_SINGLE',
-    visible: true,
-    required,
-    clearPaths: [],
-    options
-  }
-}
-
-function groupNode(
-  id: string,
-  path: string[],
-  label: string,
-  groupKind: 'OBJECT' | 'ARRAY',
-  childMapId: string
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'GROUP',
-    groupKind,
-    childMapId,
-    visible: true,
-    required: false,
-    clearPaths: []
-  }
-}

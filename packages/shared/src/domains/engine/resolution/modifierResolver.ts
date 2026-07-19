@@ -3,7 +3,7 @@ import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { EngineAccumulatedState } from './grantApplicator.js'
 import type { EngineProficiency } from '../contracts/engineState.js'
-import { normalizeAbilityKey, resolveAbilityRecordKey } from './abilityKey.js'
+import { resolveAbilityRecordKey } from './abilityKey.js'
 import { parseModifierDomainKey } from './modifierDomainKey.js'
 
 type ModifierResolutionContext = {
@@ -22,9 +22,16 @@ export function resolveModifiers(
   rules: RulesSystem,
   context: ModifierResolutionContext = {}
 ): Record<string, number> {
-  const effectiveAbilityScores = resolveEffectiveAbilityScores(modifierEntries, rules, context.snapshot)
+  const effectiveAbilityScores = resolveEffectiveAbilityScores(
+    modifierEntries,
+    rules,
+    context.snapshot
+  )
 
-  const groups = new Map<string, { modifierKind: string; valueDomainCode: string; values: number[] }>()
+  const groups = new Map<
+    string,
+    { modifierKind: string; valueDomainCode: string; values: number[] }
+  >()
 
   for (const entry of modifierEntries) {
     const parsed = parseModifierDomainKey(entry.domainKey)
@@ -45,7 +52,10 @@ export function resolveModifiers(
   const resolved: Record<string, number> = {}
 
   for (const [key, group] of groups) {
-    const config = rules.stackingConfig(group.valueDomainCode as ValueDomainCode, group.modifierKind)
+    const config = rules.stackingConfig(
+      group.valueDomainCode as ValueDomainCode,
+      group.modifierKind
+    )
 
     switch (config.rule) {
       case 'additive':
@@ -105,7 +115,8 @@ function resolveEffectiveAbilityScores(
   }
 
   for (const [ability, values] of abilityScoreBonuses) {
-    resolvedScores[ability] = (resolvedScores[ability] ?? 10) + values.reduce((sum, value) => sum + value, 0)
+    resolvedScores[ability] =
+      (resolvedScores[ability] ?? 10) + values.reduce((sum, value) => sum + value, 0)
   }
 
   return resolvedScores
@@ -151,7 +162,11 @@ function extractNumericValue(
         effectiveAbilityScores
       )
     case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
-      return resolveOptionalAbilityModifierBonus(g.payload?.abilities, rules, effectiveAbilityScores)
+      return resolveOptionalAbilityModifierBonus(
+        g.payload?.abilities,
+        rules,
+        effectiveAbilityScores
+      )
     case 'ADVANTAGE':
     case 'DISADVANTAGE':
     case 'ADD_OPTION':
@@ -216,7 +231,8 @@ function resolveAbilityModifierBonus(
   const normalizedAbility = resolveAbilityRecordKey(effectiveAbilityScores, ability)
   if (!normalizedAbility) return 0
 
-  const raw = rules.abilityModifier(effectiveAbilityScores[normalizedAbility] ?? 10) * (multiplier ?? 1)
+  const raw =
+    rules.abilityModifier(effectiveAbilityScores[normalizedAbility] ?? 10) * (multiplier ?? 1)
   return clamp(raw, min, max)
 }
 

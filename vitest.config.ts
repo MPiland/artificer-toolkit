@@ -20,9 +20,11 @@ export default defineConfig({
     }
   },
   test: {
+    allowOnly: false,
     environment: 'node',
     pool: 'threads',
     include: [
+      'packages/design-system/src/__tests__/**/*.test.ts',
       'packages/shared/src/__tests__/**/*.test.ts',
       'packages/schema/src/__tests__/**/*.test.ts',
       'packages/db/src/__tests__/**/*.test.ts',

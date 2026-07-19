@@ -6,7 +6,6 @@ export const greenHag: CreatureAuthored = {
   label: 'Green Hag',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.FEY,
   size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const greenHag: CreatureAuthored = {
     INTELLIGENCE: 13,
     WISDOM: 14,
     CHARISMA: 14,
-    SPELLCASTING: 0
   },
   armorClass: 17,
   armorClassNote: 'natural armor',

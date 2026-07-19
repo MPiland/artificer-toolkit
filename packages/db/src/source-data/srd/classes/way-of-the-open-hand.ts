@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CLASS_CATEGORY, EFFECT_KIND, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, TRIGGER, type ClassAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CLASS_CATEGORY, EFFECT_KIND, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, TRIGGER, type ClassAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js';
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 function classRowId(classIndex: number, group: number, entry: number): string {

@@ -19,39 +19,40 @@ export type CharacterProvenance
     | { kind: 'OPTION', acquiredParentId: string, optionId: string }
     | { kind: 'MANUAL', reason?: string }
 
+export function getCharacterProvenanceIdentityKey(source: CharacterProvenance): string {
+  switch (source.kind) {
+    case 'CLASS':
+      return `CLASS:${encodeURIComponent(source.classId)}`
+    case 'SUBCLASS':
+      return `SUBCLASS:${encodeURIComponent(source.subclassId)}`
+    case 'RACE':
+      return `RACE:${encodeURIComponent(source.raceId)}`
+    case 'SUBRACE':
+      return `SUBRACE:${encodeURIComponent(source.subraceId)}`
+    case 'ANCESTRY':
+      return `ANCESTRY:${encodeURIComponent(source.ancestryId)}:${encodeURIComponent(source.optionId)}`
+    case 'BACKGROUND':
+      return `BACKGROUND:${encodeURIComponent(source.backgroundId)}`
+    case 'FEAT':
+      return `FEAT:${encodeURIComponent(source.featId)}`
+    case 'FEATURE':
+      return `FEATURE:${encodeURIComponent(source.featureId)}`
+    case 'OPTION':
+      return `OPTION:${encodeURIComponent(source.acquiredParentId)}:${encodeURIComponent(source.optionId)}`
+    case 'MANUAL':
+      return source.reason === undefined
+        ? 'MANUAL:0'
+        : `MANUAL:1:${encodeURIComponent(source.reason)}`
+  }
+}
+
 export function isSameCharacterProvenanceIdentity(
   left: CharacterProvenance,
   right: CharacterProvenance
 ): boolean {
-  if (left.kind !== right.kind) return false
-
-  switch (left.kind) {
-    case 'CLASS':
-      return right.kind === 'CLASS' && left.classId === right.classId
-    case 'SUBCLASS':
-      return right.kind === 'SUBCLASS' && left.subclassId === right.subclassId
-    case 'RACE':
-      return right.kind === 'RACE' && left.raceId === right.raceId
-    case 'SUBRACE':
-      return right.kind === 'SUBRACE' && left.subraceId === right.subraceId
-    case 'ANCESTRY':
-      return right.kind === 'ANCESTRY'
-        && left.ancestryId === right.ancestryId
-        && left.optionId === right.optionId
-    case 'BACKGROUND':
-      return right.kind === 'BACKGROUND' && left.backgroundId === right.backgroundId
-    case 'FEAT':
-      return right.kind === 'FEAT' && left.featId === right.featId
-    case 'FEATURE':
-      return right.kind === 'FEATURE' && left.featureId === right.featureId
-    case 'OPTION':
-      return right.kind === 'OPTION'
-        && left.acquiredParentId === right.acquiredParentId
-        && left.optionId === right.optionId
-    case 'MANUAL':
-      return right.kind === 'MANUAL' && left.reason === right.reason
-  }
+  return getCharacterProvenanceIdentityKey(left) === getCharacterProvenanceIdentityKey(right)
 }
+
 
 /* ──────────────────────────────────────────────
  * Timing
@@ -94,6 +95,34 @@ export interface CharacterFeatureAcquisitionRecord {
   selections?: CharacterFeatureSelectionRecord[]
 }
 
+export interface CharacterChosenGrantSelectionIdentity {
+  /** The authored proficiency, spell, feat, sense, or modifier grant being resolved. */
+  grantId: string
+  /** The active character source that owns the grant. */
+  source: CharacterProvenance
+  /** Present when a PER_LEVEL progression entry owns this choice. */
+  progressionLevel?: number
+}
+
+export function getCharacterChosenGrantSelectionIdentityKey(
+  selection: CharacterChosenGrantSelectionIdentity
+): string {
+  return [
+    encodeURIComponent(selection.grantId),
+    selection.progressionLevel ?? 'root',
+    encodeURIComponent(getCharacterProvenanceIdentityKey(selection.source))
+  ].join(':')
+}
+
+export interface CharacterChosenGrantSelectionRecord extends CharacterChosenGrantSelectionIdentity {
+  /** Unique to this character selection record. */
+  id: string
+  /** When the owning source became active. */
+  timing: CharacterAcquisitionTiming
+  /** Ordered slot values. Duplicates are meaningful for REPEATABLE grants. */
+  targetIds: string[]
+}
+
 /* ──────────────────────────────────────────────
  * Advancement
  * ────────────────────────────────────────────── */
@@ -113,6 +142,8 @@ export interface CharacterDieRollRecord {
 
 export interface CharacterHitpointLevelEntry {
   level: number
+  classId: string
+  classLevel: number
   value: number
   rolls?: CharacterDieRollRecord[]
   overridden?: boolean
@@ -302,6 +333,7 @@ export interface CharacterIntent {
   }
 
   featureAcquisitions: CharacterFeatureAcquisitionRecord[]
+  chosenGrantSelections?: CharacterChosenGrantSelectionRecord[]
   spellSelections?: CharacterSpellSelectionRecord[]
   resourceGrants?: CharacterResourceGrantRecord[]
 }

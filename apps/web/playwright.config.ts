@@ -1,9 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const appBaseURL = process.env.APP_E2E_BASE_URL ?? 'http://127.0.0.1:3000'
+const appUrl = new URL(appBaseURL)
+const appPort = appUrl.port || (appUrl.protocol === 'https:' ? '443' : '80')
+
 const appWebServer = {
   name: 'app',
-  command: 'yarn exec vite dev --host 127.0.0.1 --port 3000',
-  url: 'http://127.0.0.1:3000',
+  command: `yarn exec vite dev --host ${appUrl.hostname} --port ${appPort}`,
+  url: appBaseURL,
   reuseExistingServer: !process.env.CI,
   cwd: '.'
 }
@@ -73,6 +77,7 @@ function getScopedWebServers() {
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
+  forbidOnly: true,
   fullyParallel: false,
   reporter: 'list',
   workers: 1,
@@ -87,7 +92,7 @@ export default defineConfig({
       testDir: './tests/e2e/app',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://127.0.0.1:3000'
+        baseURL: appBaseURL
       }
     },
     {

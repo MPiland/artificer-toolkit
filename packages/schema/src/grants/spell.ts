@@ -3,7 +3,11 @@ import { z } from 'zod'
 import { chargeDtoSchema } from '../shared/charge.js'
 import { authoringModeKindSchema, spellGrantAttributeSchema } from '../shared/enums.js'
 import { facetDtoSchema } from '../shared/facet.js'
-import { grantProgressionFieldsDtoSchema, scalingGrantBaseDtoSchema } from './grant.js'
+import {
+  createGrantProgressionFieldsDtoSchema,
+  scalingGrantBaseDtoSchema,
+  validateGrantProgressionSelectionFields
+} from './grant.js'
 
 const spellGrantTargetDtoSchema = z.union([
   z.object({
@@ -14,6 +18,9 @@ const spellGrantTargetDtoSchema = z.union([
     spellIds: z.array(z.string())
   })
 ])
+const spellGrantProgressionFieldsDtoSchema = createGrantProgressionFieldsDtoSchema(
+  spellGrantTargetDtoSchema
+)
 
 export const spellGrantDtoSchema = scalingGrantBaseDtoSchema.extend({
   grantKind: z.literal('SPELL_GRANT'),
@@ -27,7 +34,7 @@ export const spellGrantDtoSchema = scalingGrantBaseDtoSchema.extend({
   }),
   z.object({
     scalingKind: z.literal('PER_LEVEL')
-  }).and(grantProgressionFieldsDtoSchema)
-]))
+  }).and(spellGrantProgressionFieldsDtoSchema)
+])).superRefine(validateGrantProgressionSelectionFields)
 
 export type SpellGrantDto = z.infer<typeof spellGrantDtoSchema>

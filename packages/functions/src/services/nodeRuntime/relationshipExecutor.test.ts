@@ -1,13 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { DBLike } from '@artificer-toolkit/db'
-import type { RelationshipPlan } from '@artificer-toolkit/shared/maps'
+import type { DBLike, NodeRuntimeQueryWhere } from '@artificer-toolkit/db'
+import type { RelationshipPlan, WhereExpr } from '@artificer-toolkit/shared/maps'
 import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
+import {
+  nodeRuntimeSourceManifest,
+  type NodeRuntimeSourceTable
+} from './nodeRuntimeSourceManifest.js'
 
 const dbMock = {} as DBLike
 const nodeRuntimeQueryMock = vi.hoisted(() => ({
   rowsByTable: new Map<string, Record<string, unknown>[]>(),
-  selectNodeRuntimeRows: vi.fn(async (_db: DBLike, tableName: string) =>
-    nodeRuntimeQueryMock.rowsByTable.get(tableName) ?? []
+  selectNodeRuntimeRows: vi.fn(
+    async (
+      _db: DBLike,
+      tableName: string,
+      _columns: readonly string[],
+      _where?: NodeRuntimeQueryWhere,
+      _systemId?: string
+    ) => nodeRuntimeQueryMock.rowsByTable.get(tableName) ?? []
   )
 }))
 
@@ -37,105 +47,81 @@ describe('node runtime relationship executor', () => {
       selectColumns: ['id', 'label']
     } satisfies RelationshipPlan
 
-    const result = streamToOptions(await executeRelationshipPlan(dbMock, plan, { values: {} }))
+    const result = streamToOptions(
+      await executeRelationshipPlan(dbMock, plan, {
+        systemId: 'dnd5e2014',
+        values: {}
+      })
+    )
 
     expect(result).toEqual([
       { value: 'wizard', label: 'Wizard', description: undefined },
       { value: 'fighter', label: 'Fighter', description: undefined }
     ])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenCalledWith(
+      dbMock,
+      'classes',
+      ['id', 'label'],
+      undefined,
+      'dnd5e2014'
+    )
+  })
+
+  it('preserves implicit option fields without selecting whole rows', async () => {
+    nodeRuntimeQueryMock.rowsByTable.set('currencies', [
+      {
+        id: 'gold-piece',
+        code: 'GP',
+        label: 'Gold Piece',
+        short: 'gp',
+        tooltip: 'The standard gold coin.',
+        description: null
+      }
+    ])
+
+    const plan = {
+      kind: 'TABLE',
+      table: 'currencies'
+    } satisfies RelationshipPlan
+
+    const result = streamToOptions(await executeRelationshipPlan(dbMock, plan, { values: {} }))
+
+    expect(result).toEqual([
+      {
+        value: 'gold-piece',
+        label: 'Gold Piece',
+        description: 'The standard gold coin.'
+      }
+    ])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenCalledWith(
+      dbMock,
+      'currencies',
+      ['id', 'code', 'label', 'short', 'tooltip', 'description'],
+      undefined,
+      undefined
+    )
   })
 
   it('trusts all table relationships used by shipped node maps', async () => {
-    const shippedRuntimeTables = [
-      'alignments',
-      'background_features',
-      'background_proficiency_grants',
-      'backgrounds',
-      'challenge_ratings',
-      'characteristic_durations',
-      'characteristic_ranges',
-      'charge_limits',
-      'charges',
-      'class_features',
-      'class_proficiency_grants',
-      'class_resources',
-      'class_specializations',
-      'class_spellcasting',
-      'classes',
-      'condition_types',
-      'conditions',
-      'creature_types',
-      'creatures',
-      'currencies',
-      'damage_types',
-      'damages',
-      'effect_invocations',
-      'effect_path_choice_options',
-      'effect_path_roll_table_rows',
-      'effect_paths',
-      'effect_result_block_outcomes',
-      'effect_result_blocks',
-      'equipment',
-      'equipment_effects',
-      'equipment_features',
-      'equipment_properties',
-      'feat_effects',
-      'feat_features',
-      'feat_proficiency_grants',
-      'feats',
-      'feature_effects',
-      'feature_options',
-      'feature_proficiency_grants',
-      'features',
-      'heritages',
-      'languages',
-      'magic_schools',
-      'option_effects',
-      'option_proficiency_grants',
-      'options',
-      'proficiency_grant_equipment',
-      'proficiency_grant_equipment_properties',
-      'proficiency_grant_languages',
-      'proficiency_grant_save_abilities',
-      'race_ancestries',
-      'race_ancestry_option_features',
-      'race_ancestry_options',
-      'race_features',
-      'races',
-      'rarities',
-      'senses',
-      'skills',
-      'speeds',
-      'spell_effects',
-      'spells'
-    ] as const
+    const shippedRuntimeSources = Object.entries(nodeRuntimeSourceManifest) as readonly [
+      NodeRuntimeSourceTable,
+      readonly [string, ...string[]]
+    ][]
 
-    shippedRuntimeTables.forEach((tableName) => {
-      nodeRuntimeQueryMock.rowsByTable.set(tableName, [
-        { id: `${tableName}-id`, label: tableName }
-      ])
-    })
+    const results = await Promise.all(
+      shippedRuntimeSources.map(async ([tableName, selectColumns]) => {
+        nodeRuntimeQueryMock.rowsByTable.set(tableName, [])
+        const plan = {
+          kind: 'TABLE',
+          table: tableName,
+          selectColumns
+        } satisfies RelationshipPlan
 
-    const results = await Promise.all(shippedRuntimeTables.map(async (tableName) => {
-      const plan = {
-        kind: 'TABLE',
-        table: tableName,
-        selectColumns: ['id', 'label']
-      } satisfies RelationshipPlan
+        return executeRelationshipPlan(dbMock, plan, { values: {} })
+      })
+    )
 
-      return streamToOptions(await executeRelationshipPlan(dbMock, plan, { values: {} }))
-    }))
-
-    expect(results).toHaveLength(shippedRuntimeTables.length)
-    expect(results.at(shippedRuntimeTables.indexOf('creature_types'))).toEqual([
-      { value: 'creature_types-id', label: 'creature_types', description: undefined }
-    ])
-    expect(results.at(shippedRuntimeTables.indexOf('alignments'))).toEqual([
-      { value: 'alignments-id', label: 'alignments', description: undefined }
-    ])
-    expect(results.at(shippedRuntimeTables.indexOf('challenge_ratings'))).toEqual([
-      { value: 'challenge_ratings-id', label: 'challenge_ratings', description: undefined }
-    ])
+    expect(results).toEqual(shippedRuntimeSources.map(() => []))
   })
 
   it('applies trusted where expressions with local IdRefs', async () => {
@@ -148,16 +134,117 @@ describe('node runtime relationship executor', () => {
       kind: 'TABLE',
       table: 'equipment',
       selectColumns: ['id', 'label'],
-      where: { column: 'category', op: 'IN', values: { from: 'LOCAL', path: ['categories'] } }
+      where: {
+        kind: 'PREDICATE',
+        column: 'category',
+        op: 'IN',
+        values: { from: 'LOCAL', path: ['categories'] }
+      }
     } satisfies RelationshipPlan
 
-    const result = streamToOptions(await executeRelationshipPlan(dbMock, plan, {
-      values: { categories: ['WEAPON'] }
-    }))
+    const result = streamToOptions(
+      await executeRelationshipPlan(dbMock, plan, {
+        values: { categories: ['WEAPON'] }
+      })
+    )
 
-    expect(result).toEqual([
-      { value: 'rapier', label: 'Rapier', description: undefined }
+    expect(result).toEqual([{ value: 'rapier', label: 'Rapier', description: undefined }])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenCalledWith(
+      dbMock,
+      'equipment',
+      ['id', 'label', 'category'],
+      { kind: 'PREDICATE', column: 'category', op: 'IN', values: ['WEAPON'] },
+      undefined
+    )
+  })
+
+  it('pushes resolved boolean predicates into the database query', async () => {
+    nodeRuntimeQueryMock.rowsByTable.set('equipment', [
+      { id: 'rapier', label: 'Rapier', category: 'WEAPON' },
+      { id: 'shield', label: 'Shield', category: 'ARMOR' }
     ])
+
+    const plan = {
+      kind: 'TABLE',
+      table: 'equipment',
+      selectColumns: ['id', 'label'],
+      where: {
+        kind: 'AND',
+        expressions: [
+          { kind: 'PREDICATE', column: 'category', op: '!=', value: 'ARMOR' },
+          {
+            kind: 'OR',
+            expressions: [
+              {
+                kind: 'PREDICATE',
+                column: 'id',
+                op: '=',
+                value: { from: 'LOCAL', path: ['selectedId'] }
+              },
+              {
+                kind: 'NOT',
+                expression: {
+                  kind: 'PREDICATE',
+                  column: 'id',
+                  op: 'IN',
+                  values: ['rapier', 'shield']
+                }
+              }
+            ]
+          }
+        ]
+      }
+    } satisfies RelationshipPlan
+
+    const result = streamToOptions(
+      await executeRelationshipPlan(dbMock, plan, {
+        values: { selectedId: 'rapier' }
+      })
+    )
+
+    expect(result).toEqual([{ value: 'rapier', label: 'Rapier', description: undefined }])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenCalledWith(
+      dbMock,
+      'equipment',
+      ['id', 'label', 'category'],
+      {
+        kind: 'AND',
+        expressions: [
+          { kind: 'PREDICATE', column: 'category', op: '!=', value: 'ARMOR' },
+          {
+            kind: 'OR',
+            expressions: [
+              { kind: 'PREDICATE', column: 'id', op: '=', value: 'rapier' },
+              {
+                kind: 'NOT',
+                expression: {
+                  kind: 'PREDICATE',
+                  column: 'id',
+                  op: 'IN',
+                  values: ['rapier', 'shield']
+                }
+              }
+            ]
+          }
+        ]
+      },
+      undefined
+    )
+  })
+
+  it('rejects legacy property-presence where expressions', async () => {
+    // @ts-expect-error Legacy where expressions are intentionally unsupported.
+    const legacyWhere: WhereExpr = { and: [] }
+    const plan = {
+      kind: 'TABLE',
+      table: 'equipment',
+      selectColumns: ['id'],
+      where: legacyWhere
+    } satisfies RelationshipPlan
+
+    await expect(executeRelationshipPlan(dbMock, plan, { values: {} })).rejects.toThrow(
+      'Unknown relationship where kind'
+    )
   })
 
   it('resolves chain mapValues plans from local input values', async () => {
@@ -191,13 +278,30 @@ describe('node runtime relationship executor', () => {
       ]
     } satisfies RelationshipPlan
 
-    const result = streamToOptions(await executeRelationshipPlan(dbMock, plan, {
-      values: { properties: ['FINESSE'] }
-    }))
+    const result = streamToOptions(
+      await executeRelationshipPlan(dbMock, plan, {
+        systemId: 'dnd5e2014',
+        values: { properties: ['FINESSE'] }
+      })
+    )
 
-    expect(result).toEqual([
-      { value: 'rapier', label: 'Rapier', description: undefined }
-    ])
+    expect(result).toEqual([{ value: 'rapier', label: 'Rapier', description: undefined }])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenNthCalledWith(
+      1,
+      dbMock,
+      'equipment_properties',
+      ['property_code', 'equipment_id'],
+      { kind: 'PREDICATE', column: 'property_code', op: 'IN', values: ['FINESSE'] },
+      'dnd5e2014'
+    )
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenNthCalledWith(
+      2,
+      dbMock,
+      'equipment',
+      ['id', 'label'],
+      { kind: 'PREDICATE', column: 'id', op: 'IN', values: ['rapier'] },
+      'dnd5e2014'
+    )
   })
 
   it('selects condition branches from runtime values', async () => {
@@ -205,21 +309,27 @@ describe('node runtime relationship executor', () => {
       { id: 'rapier', label: 'Rapier', category: 'WEAPON' },
       { id: 'shield', label: 'Shield', category: 'ARMOR' }
     ])
-    nodeRuntimeQueryMock.rowsByTable.set('classes', [
-      { id: 'wizard', label: 'Wizard' }
-    ])
+    nodeRuntimeQueryMock.rowsByTable.set('classes', [{ id: 'wizard', label: 'Wizard' }])
 
     const plan = {
       kind: 'CONDITION',
-      choices: [{
-        useIf: { from: 'LOCAL', path: ['category'], op: '=', value: 'WEAPON' },
-        plan: {
-          kind: 'TABLE',
-          table: 'equipment',
-          selectColumns: ['id', 'label'],
-          where: { column: 'category', op: '=', value: 'WEAPON' }
+      choices: [
+        {
+          useIf: {
+            kind: 'PREDICATE',
+            from: 'LOCAL',
+            path: ['category'],
+            op: '=',
+            value: 'WEAPON'
+          },
+          plan: {
+            kind: 'TABLE',
+            table: 'equipment',
+            selectColumns: ['id', 'label'],
+            where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'WEAPON' }
+          }
         }
-      }],
+      ],
       fallback: {
         kind: 'TABLE',
         table: 'classes',
@@ -227,13 +337,13 @@ describe('node runtime relationship executor', () => {
       }
     } satisfies RelationshipPlan
 
-    const result = streamToOptions(await executeRelationshipPlan(dbMock, plan, {
-      values: { category: 'WEAPON' }
-    }))
+    const result = streamToOptions(
+      await executeRelationshipPlan(dbMock, plan, {
+        values: { category: 'WEAPON' }
+      })
+    )
 
-    expect(result).toEqual([
-      { value: 'rapier', label: 'Rapier', description: undefined }
-    ])
+    expect(result).toEqual([{ value: 'rapier', label: 'Rapier', description: undefined }])
   })
 
   it('merges union branch results inside chained relationships', async () => {
@@ -257,26 +367,30 @@ describe('node runtime relationship executor', () => {
             {
               kind: 'CHAIN',
               mode: 'CONTINUE',
-              steps: [{
-                kind: 'MAP_VALUES',
-                table: 'equipment',
-                whereColumn: 'id',
-                valueColumn: 'id',
-                selectColumns: ['id', 'label'],
-                where: { column: 'category', op: '=', value: 'WEAPON' }
-              }]
+              steps: [
+                {
+                  kind: 'MAP_VALUES',
+                  table: 'equipment',
+                  whereColumn: 'id',
+                  valueColumn: 'id',
+                  selectColumns: ['id', 'label'],
+                  where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'WEAPON' }
+                }
+              ]
             },
             {
               kind: 'CHAIN',
               mode: 'CONTINUE',
-              steps: [{
-                kind: 'MAP_VALUES',
-                table: 'equipment',
-                whereColumn: 'id',
-                valueColumn: 'id',
-                selectColumns: ['id', 'label'],
-                where: { column: 'category', op: '=', value: 'ARMOR' }
-              }]
+              steps: [
+                {
+                  kind: 'MAP_VALUES',
+                  table: 'equipment',
+                  whereColumn: 'id',
+                  valueColumn: 'id',
+                  selectColumns: ['id', 'label'],
+                  where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'ARMOR' }
+                }
+              ]
             }
           ]
         }
@@ -297,7 +411,20 @@ describe('node runtime relationship executor', () => {
       table: 'not_allowed'
     } satisfies RelationshipPlan
 
-    await expect(executeRelationshipPlan(dbMock, plan, { values: {} }))
-      .rejects.toThrow('Untrusted node runtime table')
+    await expect(executeRelationshipPlan(dbMock, plan, { values: {} })).rejects.toThrow(
+      'Untrusted node runtime table'
+    )
+  })
+
+  it('rejects a trusted column when it is not allowed for the selected table', async () => {
+    const plan = {
+      kind: 'TABLE',
+      table: 'classes',
+      selectColumns: ['skill_id']
+    } as unknown as RelationshipPlan
+
+    await expect(executeRelationshipPlan(dbMock, plan, { values: {} })).rejects.toThrow(
+      'Untrusted node runtime column for classes: skill_id'
+    )
   })
 })

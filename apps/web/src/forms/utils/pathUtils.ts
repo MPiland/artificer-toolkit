@@ -51,6 +51,16 @@ export function parseAuthoringFieldName(fieldName: string): readonly (string | n
   return segments
 }
 
+export function areAuthoringFieldPathsRelated(left: string, right: string) {
+  return (
+    left === right ||
+    left.startsWith(`${right}.`) ||
+    left.startsWith(`${right}[`) ||
+    right.startsWith(`${left}.`) ||
+    right.startsWith(`${left}[`)
+  )
+}
+
 export function getAuthoringFieldValue(values: Record<string, unknown>, fieldName: string): unknown {
   let current: unknown = values
 
@@ -62,6 +72,28 @@ export function getAuthoringFieldValue(values: Record<string, unknown>, fieldNam
   return current
 }
 
+export function setAuthoringFieldValue(
+  values: Record<string, unknown>,
+  fieldName: string,
+  value: unknown
+): Record<string, unknown> {
+  return setAuthoringValueAtPath(values, parseAuthoringFieldName(fieldName), value) as Record<
+    string,
+    unknown
+  >
+}
+
+export function hasMeaningfulAuthoringValueAtPaths(
+  values: Record<string, unknown>,
+  paths: readonly NodeRuntimePathDto[]
+): boolean {
+  return paths.some((path) =>
+    hasMeaningfulAuthoringValue(
+      getAuthoringFieldValue(values, toAuthoringFieldName(undefined, path))
+    )
+  )
+}
+
 export function prefixRuntimePaths(
   fieldPathPrefix: string | undefined,
   paths: readonly NodeRuntimePathDto[]
@@ -70,4 +102,35 @@ export function prefixRuntimePaths(
 
   const prefix = parseAuthoringFieldName(fieldPathPrefix)
   return paths.map((path) => [...prefix, ...path] as NodeRuntimePathDto)
+}
+
+function setAuthoringValueAtPath(
+  current: unknown,
+  path: readonly (string | number)[],
+  value: unknown
+): unknown {
+  const [segment, ...remainingPath] = path
+  if (segment === undefined) return value
+
+  if (typeof segment === 'number') {
+    const next = Array.isArray(current) ? [...current] : []
+    next[segment] = setAuthoringValueAtPath(next[segment], remainingPath, value)
+    return next
+  }
+
+  const next = isRecord(current) ? { ...current } : {}
+  next[segment] = setAuthoringValueAtPath(next[segment], remainingPath, value)
+  return next
+}
+
+function hasMeaningfulAuthoringValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.some(hasMeaningfulAuthoringValue)
+  if (isRecord(value)) return Object.values(value).some(hasMeaningfulAuthoringValue)
+  return true
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

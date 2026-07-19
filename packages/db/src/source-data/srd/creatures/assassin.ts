@@ -5,7 +5,6 @@ export const assassin: CreatureAuthored = {
     label: 'Assassin',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.NPC,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const assassin: CreatureAuthored = {
         INTELLIGENCE: 13,
         WISDOM: 11,
         CHARISMA: 10,
-        SPELLCASTING: 0
     },
     armorClass: 15,
     armorClassNote: 'studded leather',

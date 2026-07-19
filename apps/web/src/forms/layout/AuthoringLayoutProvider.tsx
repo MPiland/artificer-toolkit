@@ -23,7 +23,8 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     mode,
     isDraft
   } = useAuthoringForm()
-  const { isMobile, isTablet } = useBreakpoints()
+  const { isMobile, isTablet, isTabletPortrait } = useBreakpoints()
+  const usesOverlayNavigation = isMobile || isTabletPortrait
   const [
     stepsNavigationOpen,
     { close: closeStepsNavigation, open: openStepsNavigation, toggle: toggleStepsNavigation }
@@ -44,13 +45,13 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (isMobile) {
+    if (usesOverlayNavigation) {
       closeStepsNavigation()
       return
     }
 
     openStepsNavigation()
-  }, [closeStepsNavigation, isMobile, openStepsNavigation])
+  }, [closeStepsNavigation, openStepsNavigation, usesOverlayNavigation])
 
   useEffect(() => {
     if (isMobile || isTablet) {

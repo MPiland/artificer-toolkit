@@ -63,7 +63,7 @@ export const characterFixture = {
     },
     hitpoints: {
       method: HITPOINT_CALCULATION_METHOD_CODE.FIXED,
-      levels: [{ level: 1, value: 6 }]
+      levels: [{ level: 1, classId: 'class-wizard', classLevel: 1, value: 6 }]
     },
     featureAcquisitions: [],
     spellSelections: [],
@@ -84,6 +84,7 @@ export const characterFixture = {
     },
     currency: [
       {
+        id: 'currency-group-carried',
         currencies: [
           {
             currencyId: 'gp',
@@ -245,6 +246,7 @@ export const characterBuilderPayloadFixture = {
   },
   view: {
     race: {
+      grantChoices: [],
       raceOptions: [{ id: 'race-elf', label: 'Elf' }],
       subraceOptions: [{ id: 'subrace-sea-elf', label: 'Sea Elf' }],
       ancestry: {
@@ -277,6 +279,7 @@ export const characterBuilderPayloadFixture = {
           classId: 'class-wizard',
           classLabel: 'Wizard',
           classLevel: 1,
+          grantChoices: [],
           subclassOptions: [{ id: 'subclass-scribe', label: 'Order of Scribes' }],
           specializationOptions: [{ id: 'scribe-awakened', label: 'Awakened Quill' }],
           featureLabels: ['Spellcasting'],
@@ -297,6 +300,7 @@ export const characterBuilderPayloadFixture = {
       ]
     },
     background: {
+      grantChoices: [],
       backgroundOptions: [{ id: 'background-sage', label: 'Sage' }],
       features: [
         {
@@ -466,7 +470,22 @@ export const characterSheetFixture = {
         notes: 'Spider venom, save at end of turn.'
       }
     ],
-    hitDice: [{ die: 6, total: 3, used: 1, remaining: 2 }]
+    hitDice: [{ die: 6, total: 3, used: 1, remaining: 2 }],
+    savingThrows: [
+      { ability: 'STRENGTH', label: 'Strength', total: -1, proficiency: 'NONE' },
+      { ability: 'DEXTERITY', label: 'Dexterity', total: 2, proficiency: 'NONE' },
+      { ability: 'CONSTITUTION', label: 'Constitution', total: 1, proficiency: 'NONE' },
+      { ability: 'INTELLIGENCE', label: 'Intelligence', total: 5, proficiency: 'FULL' },
+      { ability: 'WISDOM', label: 'Wisdom', total: 3, proficiency: 'FULL' },
+      { ability: 'CHARISMA', label: 'Charisma', total: 0, proficiency: 'NONE' }
+    ],
+    skills: [
+      { skillId: 'arcana', code: 'ARCANA', label: 'Arcana', ability: 'INTELLIGENCE', total: 5, proficiency: 'FULL' },
+      { skillId: 'history', code: 'HISTORY', label: 'History', ability: 'INTELLIGENCE', total: 5, proficiency: 'FULL' },
+      { skillId: 'investigation', code: 'INVESTIGATION', label: 'Investigation', ability: 'INTELLIGENCE', total: 3, proficiency: 'NONE' },
+      { skillId: 'perception', code: 'PERCEPTION', label: 'Perception', ability: 'WISDOM', total: 3, proficiency: 'FULL' },
+      { skillId: 'stealth', code: 'STEALTH', label: 'Stealth', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' }
+    ]
   },
   actions: {
     items: [
@@ -475,7 +494,22 @@ export const characterSheetFixture = {
         label: 'Arcane Recovery',
         kind: 'OTHER',
         sourceLabel: 'Wizard',
-        description: '<p>Once per day after a short rest, recover expended spell slots.</p>'
+        description: '<p>Once per day after a short rest, recover expended spell slots.</p>',
+        rollable: false,
+        mechanic: {
+          effectId: 'effect-arcane-recovery',
+          trigger: 'ACTIVATED',
+          activation: { kind: 'OTHER', amount: 1 },
+          rangeLabel: 'Self',
+          outcomes: [
+            {
+              kind: 'EFFECT',
+              pathCode: 'ON_USE',
+              effectKind: 'RESOURCE_RECOVERY',
+              label: 'Recover expended spell slots'
+            }
+          ]
+        }
       },
       {
         id: 'action-trance',
@@ -538,7 +572,23 @@ export const characterSheetFixture = {
         prepared: true,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: true }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', provenance: 'CLASS', acquisition: 'PREPARED', castMode: 'SPELL_SLOT', canPrepare: true, prepared: true }],
+        mechanics: [
+          {
+            effectId: 'effect-shield',
+            trigger: 'ACTIVATED',
+            activation: { kind: 'REACTION', amount: 1 },
+            rangeLabel: 'Self',
+            outcomes: [
+              {
+                kind: 'EFFECT',
+                pathCode: 'ON_USE',
+                effectKind: 'ARMOR_CLASS',
+                label: '+5 Armor Class until the start of your next turn'
+              }
+            ]
+          }
+        ]
       },
       {
         id: 'spell-magic-missile',
@@ -552,7 +602,28 @@ export const characterSheetFixture = {
         prepared: false,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', provenance: 'CLASS', acquisition: 'PREPARED', castMode: 'SPELL_SLOT', canPrepare: true, prepared: false }],
+        mechanics: [
+          {
+            effectId: 'effect-magic-missile',
+            trigger: 'ACTIVATED',
+            activation: { kind: 'ACTION', amount: 1 },
+            rangeLabel: '120 ft',
+            outcomes: [
+              {
+                kind: 'DAMAGE',
+                pathCode: 'ON_USE',
+                expression: '3 × (1d4 + 1)',
+                damageTypeId: 'force',
+                damageTypeLabel: 'Force',
+                scaling: [
+                  { level: 1, expression: '3 × (1d4 + 1)' },
+                  { level: 2, expression: '4 × (1d4 + 1)' }
+                ]
+              }
+            ]
+          }
+        ]
       },
       {
         id: 'spell-detect-magic',
@@ -566,7 +637,23 @@ export const characterSheetFixture = {
         prepared: false,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', provenance: 'CLASS', acquisition: 'PREPARED', castMode: 'SPELL_SLOT', canPrepare: true, prepared: false }],
+        mechanics: [
+          {
+            effectId: 'effect-detect-magic',
+            trigger: 'ACTIVATED',
+            activation: { kind: 'ACTION', amount: 1 },
+            rangeLabel: 'Self',
+            outcomes: [
+              {
+                kind: 'EFFECT',
+                pathCode: 'ON_USE',
+                effectKind: 'SENSE',
+                label: 'Sense nearby magic'
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -585,6 +672,7 @@ export const characterSheetFixture = {
         quantity: 1,
         equipped: true,
         attuned: false,
+        requiresAttunement: false,
         notes: 'Used as a walking stick between delves.'
       },
       {
@@ -596,7 +684,8 @@ export const characterSheetFixture = {
         customName: 'Tidebound Folio',
         quantity: 1,
         equipped: false,
-        attuned: true
+        attuned: true,
+        requiresAttunement: true
       }
     ],
     currencies: [
@@ -626,8 +715,8 @@ export const characterSheetFixture = {
       { label: 'History', value: 'Skill - Proficient' },
       { label: 'Quarterstaff', value: 'Weapon - Proficient' }
     ],
-    defenses: [{ label: 'Poison', value: 'Advantage on saves' }],
-    senses: [{ label: 'Darkvision', value: '60 feet' }],
+    defenses: [{ kind: 'RESISTANCE', damageTypeId: 'poison', label: 'Poison', value: 'Resistance' }],
+    senses: [{ senseId: 'darkvision', label: 'Darkvision', value: '60 feet' }],
     conditionOptions: [
       {
         id: 'condition-blinded',
@@ -646,9 +735,24 @@ export const characterSheetFixture = {
       }
     ],
     equipmentOptions: [
-      { id: 'equipment-staff', label: 'Quarterstaff' },
-      { id: 'equipment-spellbook', label: 'Spellbook' },
-      { id: 'equipment-component-pouch', label: 'Component Pouch' }
+      {
+        id: 'equipment-staff',
+        label: 'Quarterstaff',
+        isContainer: false,
+        requiresAttunement: false
+      },
+      {
+        id: 'equipment-spellbook',
+        label: 'Spellbook',
+        isContainer: false,
+        requiresAttunement: true
+      },
+      {
+        id: 'equipment-component-pouch',
+        label: 'Component Pouch',
+        isContainer: false,
+        requiresAttunement: false
+      }
     ],
     currencyOptions: [
       { id: 'gp', label: 'Gold' },

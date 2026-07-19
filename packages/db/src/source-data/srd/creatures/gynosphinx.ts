@@ -6,7 +6,6 @@ export const gynosphinx: CreatureAuthored = {
   label: 'Gynosphinx',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const gynosphinx: CreatureAuthored = {
     INTELLIGENCE: 18,
     WISDOM: 18,
     CHARISMA: 18,
-    SPELLCASTING: 0
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -70,6 +68,7 @@ export const gynosphinx: CreatureAuthored = {
     {
       id: S.featureId(157, 6),
       label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
       description: 'Legendary Actions. The sphinx can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The sphinx regains spent legendary actions at the start of its turn. Claw Attack. The sphinx makes one claw attack. Teleport (Costs 2 Actions). The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see. Cast a Spell (Costs 3 Actions). The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.',
       order: 6
     }

@@ -36,16 +36,25 @@ function isPromiseLike(value: unknown): value is Promise<unknown> {
     && typeof (value as { then?: unknown }).then === 'function'
 }
 
-function readQueryOperation(args: readonly unknown[]): string {
+function readQueryText(args: readonly unknown[]): string {
   const first = args[0]
-  const text = typeof first === 'string'
+  return typeof first === 'string'
     ? first
     : typeof first === 'object' && first !== null && 'text' in first && typeof (first as { text?: unknown }).text === 'string'
       ? (first as { text: string }).text
       : ''
+}
+
+function readQueryOperation(args: readonly unknown[]): string {
+  const text = readQueryText(args)
   const match = text.trimStart().match(/^[a-z]+/i)
 
   return match?.[0]?.toUpperCase() ?? 'QUERY'
+}
+
+function readQueryRelation(args: readonly unknown[]): string | undefined {
+  const match = readQueryText(args).match(/\b(?:from|into|update|join)\s+"?([a-z_][a-z0-9_]*)"?/i)
+  return match?.[1]
 }
 
 function installQueryTrace(pool: Pool): Pool {
@@ -53,39 +62,43 @@ function installQueryTrace(pool: Pool): Pool {
     return pool
   }
 
-  const originalQuery = pool.query.bind(pool) as (...args: unknown[]) => unknown
   let queryCount = 0
+  pool.on('connect', (client) => {
+    const originalQuery = client.query.bind(client) as (...args: unknown[]) => unknown
 
-  pool.query = ((...args: unknown[]) => {
-    const operation = readQueryOperation(args)
-    const startedAt = Date.now()
-    const sequence = ++queryCount
-    const result = originalQuery(...args)
-    const logQuery = (ok: boolean) => {
-      console.info('[artificer-db-query]', JSON.stringify({
-        durationMs: Date.now() - startedAt,
-        ok,
-        operation,
-        sequence
-      }))
-    }
+    client.query = ((...args: unknown[]) => {
+      const operation = readQueryOperation(args)
+      const relation = readQueryRelation(args)
+      const startedAt = Date.now()
+      const sequence = ++queryCount
+      const result = originalQuery(...args)
+      const logQuery = (ok: boolean) => {
+        console.info('[artificer-db-query]', JSON.stringify({
+          durationMs: Date.now() - startedAt,
+          ok,
+          operation,
+          relation,
+          sequence
+        }))
+      }
 
-    if (isPromiseLike(result)) {
-      return result.then(
-        (value) => {
-          logQuery(true)
-          return value
-        },
-        (error: unknown) => {
-          logQuery(false)
-          throw error
-        }
-      )
-    }
+      if (isPromiseLike(result)) {
+        return result.then(
+          (value) => {
+            logQuery(true)
+            return value
+          },
+          (error: unknown) => {
+            logQuery(false)
+            throw error
+          }
+        )
+      }
 
-    logQuery(true)
-    return result
-  }) as Pool['query']
+      logQuery(true)
+      return result
+    }) as typeof client.query
+  })
 
   return pool
 }

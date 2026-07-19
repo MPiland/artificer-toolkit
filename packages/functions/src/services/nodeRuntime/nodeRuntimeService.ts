@@ -4,18 +4,28 @@ import type {
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeNodeDto,
   NodeRuntimeOptionDto,
+  NodeRuntimeResolvedScopeDto,
   NodeRuntimeResolveRequestDto,
   NodeRuntimeResolveResponseDto,
   NodeRuntimeSectionDto,
   NodeRuntimeStepDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
-import type { InlineFilter, NodeEntry, NodeSelectSource } from '@artificer-toolkit/shared/maps'
+import type {
+  ArrayGroupPresentation,
+  InlineFilter,
+  NodeArrayAuthoringMeta,
+  NodeEntry,
+  NodeSelectSource
+} from '@artificer-toolkit/shared/maps'
 import {
   clearValuesAtPaths,
   evaluateConditionIf,
   getValueAtPath,
   isRuntimeRecord,
+  resolveArrayAuthoringMeta,
+  resolveInputAuthoringMeta,
   resolveNodeMapSteps,
+  resolveObjectAuthoringMeta,
   type NodeRuntimeScope,
   type RuntimePath,
   type SectionedNodeGroup,
@@ -28,6 +38,19 @@ export async function resolveNodeRuntime(
   db: DBLike,
   request: NodeRuntimeResolveRequestDto
 ): Promise<NodeRuntimeResolveResponseDto> {
+  const resolved = await resolveNodeRuntimeScope(db, request)
+  const scopes = await resolveNestedRuntimeScopes(db, request, resolved.steps)
+
+  return {
+    ...resolved,
+    scopes
+  }
+}
+
+async function resolveNodeRuntimeScope(
+  db: DBLike,
+  request: NodeRuntimeResolveRequestDto
+): Promise<ResolvedRuntimeScope> {
   const nodeMap = getRuntimeNodeMap(request.mapId)
   const scope = toScope(request)
   const steps = resolveRuntimeSteps(nodeMap)
@@ -55,27 +78,154 @@ export async function resolveNodeRuntime(
     })
   }
 
+  const effectiveClearPaths = removePathsOwnedByVisibleNodes(clearPaths, resolvedSteps)
+
   return {
     mapId: nodeMap.mapId,
-    steps: resolvedSteps,
-    clearPaths
+    steps: reconcileNodeClearPaths(resolvedSteps, effectiveClearPaths),
+    clearPaths: effectiveClearPaths
   }
+}
+
+async function resolveNestedRuntimeScopes(
+  db: DBLike,
+  request: NodeRuntimeResolveRequestDto,
+  steps: readonly NodeRuntimeStepDto[],
+  parentPath: RuntimePath = []
+): Promise<NodeRuntimeResolvedScopeDto[]> {
+  const scopes: NodeRuntimeResolvedScopeDto[] = []
+
+  for (const step of steps) {
+    for (const section of step.sections) {
+      for (const node of section.nodes) {
+        if (!node.visible || node.kind !== 'GROUP' || !node.childMapId) continue
+
+        const groupValue = getValueAtPath(request.values, node.path)
+        const childAncestors = [request.values, ...(request.ancestors ?? [])]
+
+        if (node.groupKind === 'OBJECT') {
+          if (!isPopulatedRuntimeRecord(groupValue)) continue
+
+          const childPath = [...parentPath, ...node.path]
+          const childRequest = {
+            mapId: node.childMapId,
+            values: groupValue,
+            parentValues: request.values,
+            ancestors: childAncestors,
+            systemId: request.systemId
+          }
+          const child = await resolveNodeRuntimeScope(db, childRequest)
+
+          scopes.push({
+            mapId: child.mapId,
+            path: childPath,
+            steps: child.steps,
+            clearPaths: child.clearPaths
+          })
+          scopes.push(
+            ...(await resolveNestedRuntimeScopes(db, childRequest, child.steps, childPath))
+          )
+          continue
+        }
+
+        if (!Array.isArray(groupValue)) continue
+
+        for (const [index, row] of groupValue.entries()) {
+          if (!isPopulatedRuntimeRecord(row)) continue
+
+          const childPath = [...parentPath, ...node.path, index]
+          const childRequest = {
+            mapId: node.childMapId,
+            values: row,
+            parentValues: request.values,
+            ancestors: childAncestors,
+            systemId: request.systemId
+          }
+          const child = await resolveNodeRuntimeScope(db, childRequest)
+
+          scopes.push({
+            mapId: child.mapId,
+            path: childPath,
+            steps: child.steps,
+            clearPaths: child.clearPaths
+          })
+          scopes.push(
+            ...(await resolveNestedRuntimeScopes(db, childRequest, child.steps, childPath))
+          )
+        }
+      }
+    }
+  }
+
+  return scopes
+}
+
+function isPopulatedRuntimeRecord(value: unknown): value is Record<string, unknown> {
+  return isRuntimeRecord(value) && Object.keys(value).length > 0
+}
+
+function reconcileNodeClearPaths(
+  steps: readonly NodeRuntimeStepDto[],
+  clearPaths: readonly RuntimePath[]
+): NodeRuntimeStepDto[] {
+  const effectivePaths = new Set(clearPaths.map((path) => JSON.stringify(path)))
+
+  return steps.map((step) => ({
+    ...step,
+    sections: step.sections.map((section) => ({
+      ...section,
+      nodes: section.nodes.map((node) => ({
+        ...node,
+        clearPaths: node.clearPaths.filter((path) => effectivePaths.has(JSON.stringify(path)))
+      }))
+    }))
+  }))
+}
+
+function removePathsOwnedByVisibleNodes(
+  clearPaths: readonly RuntimePath[],
+  steps: readonly NodeRuntimeStepDto[]
+): RuntimePath[] {
+  const visiblePaths = new Set<string>()
+
+  for (const step of steps) {
+    for (const section of step.sections) {
+      for (const node of section.nodes) {
+        if (node.visible) visiblePaths.add(JSON.stringify(node.path))
+      }
+    }
+  }
+
+  const retained = new Map<string, RuntimePath>()
+  for (const path of clearPaths) {
+    const key = JSON.stringify(path)
+    if (!visiblePaths.has(key)) retained.set(key, path)
+  }
+
+  return [...retained.values()]
 }
 
 export async function normalizeNodeRuntimeValues(
   db: DBLike,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  const resolved = await resolveNodeRuntime(db, request)
+  const resolved = await resolveNodeRuntimeScope(db, request)
   const values = isRuntimeRecord(request.values) ? request.values : {}
   const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
-  const normalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
+  const hiddenNormalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
+  const nestedNormalized = await normalizeVisibleGroups(
+    db,
+    hiddenNormalized.values,
+    resolved.steps,
+    request
+  )
 
   return {
-    values: normalized.values,
+    values: nestedNormalized.values,
     clearedPaths: [
       ...optionNormalized.clearedPaths,
-      ...normalized.clearedPaths
+      ...hiddenNormalized.clearedPaths,
+      ...nestedNormalized.clearedPaths
     ]
   }
 }
@@ -83,7 +233,7 @@ export async function normalizeNodeRuntimeValues(
 function normalizeVisibleSelectOptions(
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[]
-): { values: Record<string, unknown>, clearedPaths: RuntimePath[] } {
+): { values: Record<string, unknown>; clearedPaths: RuntimePath[] } {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
 
@@ -94,8 +244,6 @@ function normalizeVisibleSelectOptions(
         if (node.type !== 'SELECT_SINGLE' && node.type !== 'SELECT_MULTI') continue
 
         const allowedValues = new Set((node.options ?? []).map((option) => option.value))
-        if (allowedValues.size === 0) continue
-
         const currentValue = getValueAtPath(nextValues, node.path)
 
         if (node.type === 'SELECT_SINGLE') {
@@ -118,6 +266,65 @@ function normalizeVisibleSelectOptions(
 
         nextValues = setValueAtPath(nextValues, node.path, nextArrayValue)
         clearedPaths.push(node.path)
+      }
+    }
+  }
+
+  return { values: nextValues, clearedPaths }
+}
+
+async function normalizeVisibleGroups(
+  db: DBLike,
+  values: Record<string, unknown>,
+  steps: readonly NodeRuntimeStepDto[],
+  request: NodeRuntimeNormalizeValuesRequestDto
+): Promise<{ values: Record<string, unknown>; clearedPaths: RuntimePath[] }> {
+  let nextValues = values
+  const clearedPaths: RuntimePath[] = []
+
+  for (const step of steps) {
+    for (const section of step.sections) {
+      for (const node of section.nodes) {
+        if (!node.visible || node.kind !== 'GROUP' || !node.childMapId) continue
+
+        const childMapId = node.childMapId
+        const groupValue = getValueAtPath(nextValues, node.path)
+        const childAncestors = [nextValues, ...(request.ancestors ?? [])]
+
+        if (node.groupKind === 'OBJECT') {
+          if (!isRuntimeRecord(groupValue)) continue
+
+          const child = await normalizeNodeRuntimeValues(db, {
+            mapId: childMapId,
+            values: groupValue,
+            parentValues: nextValues,
+            ancestors: childAncestors,
+            systemId: request.systemId
+          })
+          nextValues = setValueAtPath(nextValues, node.path, child.values)
+          clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, ...path]))
+          continue
+        }
+
+        if (!Array.isArray(groupValue)) continue
+
+        const normalizedRows = await Promise.all(
+          groupValue.map(async (row, index) => {
+            if (!isRuntimeRecord(row)) return row
+
+            const child = await normalizeNodeRuntimeValues(db, {
+              mapId: childMapId,
+              values: row,
+              parentValues: nextValues,
+              ancestors: childAncestors,
+              systemId: request.systemId
+            })
+            clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
+            return child.values
+          })
+        )
+
+        nextValues = setValueAtPath(nextValues, node.path, normalizedRows)
       }
     }
   }
@@ -173,8 +380,10 @@ async function resolveNode(
   clearPaths: RuntimePath[]
 ): Promise<NodeRuntimeNodeDto> {
   const visible = evaluateConditionIf(node.showIf, scope)
-  const required = visible
-    && (node.requiredIf === true || (node.requiredIf !== undefined && evaluateConditionIf(node.requiredIf, scope)))
+  const required =
+    visible &&
+    (node.requiredIf === true ||
+      (node.requiredIf !== undefined && evaluateConditionIf(node.requiredIf, scope)))
   const nodeClearPaths = visible || node.hiddenBehavior !== 'CLEAR' ? [] : [node.path]
   clearPaths.push(...nodeClearPaths)
 
@@ -182,34 +391,56 @@ async function resolveNode(
     id,
     path: [...node.path],
     label: node.label,
-    kind: node.kind,
     visible,
     required,
-    hiddenBehavior: node.hiddenBehavior,
+    hiddenBehavior: node.hiddenBehavior ?? 'KEEP',
     clearPaths: nodeClearPaths
-  } satisfies Omit<NodeRuntimeNodeDto, 'type' | 'groupKind' | 'options'>
+  }
 
   if (node.kind === 'GROUP') {
     const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
 
+    if (node.groupKind === 'OBJECT') {
+      return {
+        ...baseNode,
+        kind: 'GROUP',
+        groupKind: 'OBJECT',
+        presentation: node.presentation,
+        childMapId: childMap.mapId,
+        authoring: resolveObjectAuthoringMeta(node.label, node.authoring)
+      }
+    }
+
     return {
       ...baseNode,
-      groupKind: node.groupKind,
-      childMapId: childMap.mapId
+      kind: 'GROUP',
+      groupKind: 'ARRAY',
+      presentation: node.presentation as ArrayGroupPresentation,
+      childMapId: childMap.mapId,
+      authoring: resolveArrayAuthoringMeta(
+        node.label,
+        node.presentation as ArrayGroupPresentation,
+        node.authoring as NodeArrayAuthoringMeta | undefined,
+        childMap.authoring
+      )
     }
   }
 
   if (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI') {
     return {
       ...baseNode,
+      kind: 'INPUT',
       type: node.type,
-      options: visible ? await resolveOptions(db, node.source, scope) : []
+      options: visible ? await resolveOptions(db, node.source, scope) : [],
+      authoring: resolveInputAuthoringMeta(node.authoring)
     }
   }
 
   return {
     ...baseNode,
-    type: node.type
+    kind: 'INPUT',
+    type: node.type,
+    authoring: resolveInputAuthoringMeta(node.authoring)
   }
 }
 
@@ -218,20 +449,24 @@ async function resolveOptions(
   source: NodeSelectSource,
   scope: NodeRuntimeScope
 ): Promise<NodeRuntimeOptionDto[]> {
-  if (source.kind === 'DATA') {
-    return streamToOptions(await executeRelationshipPlan(db, source.relationship, scope))
+  switch (source.kind) {
+    case 'DATA':
+      return streamToOptions(await executeRelationshipPlan(db, source.relationship, scope))
+    case 'INLINE_OPTIONS':
+      return applyInlineFilter(db, toOptions(source.options), source.filter, scope)
+    case 'INLINE_GROUPS': {
+      const groups = source.optionGroups.filter((group) =>
+        evaluateConditionIf(group.showIf, scope)
+      )
+      const optionSets = await Promise.all(
+        groups.map(async (group) => {
+          return applyInlineFilter(db, toOptions(group.options), group.filter, scope)
+        })
+      )
+
+      return dedupeOptions(optionSets.flat())
+    }
   }
-
-  if ('options' in source) {
-    return applyInlineFilter(db, toOptions(source.options), source.filter, scope)
-  }
-
-  const groups = source.optionGroups.filter((group) => evaluateConditionIf(group.showIf, scope))
-  const optionSets = await Promise.all(groups.map(async (group) => {
-    return applyInlineFilter(db, toOptions(group.options), group.filter, scope)
-  }))
-
-  return dedupeOptions(optionSets.flat())
 }
 
 async function applyInlineFilter(
@@ -254,6 +489,7 @@ async function applyInlineFilter(
 
 function toScope(request: NodeRuntimeResolveRequestDto): NodeRuntimeScope {
   return {
+    systemId: request.systemId,
     values: request.values,
     parentValues: request.parentValues,
     ancestors: request.ancestors
@@ -289,7 +525,14 @@ function resolveRuntimeSteps(
   ]
 }
 
-function toOptions(options: readonly { code: unknown, label: string, tooltip?: string | null, description?: string | null }[]): NodeRuntimeOptionDto[] {
+function toOptions(
+  options: readonly {
+    code: unknown
+    label: string
+    tooltip?: string | null
+    description?: string | null
+  }[]
+): NodeRuntimeOptionDto[] {
   return options.map((option) => ({
     value: String(option.code),
     label: option.label,
@@ -305,3 +548,7 @@ function dedupeOptions(options: readonly NodeRuntimeOptionDto[]): NodeRuntimeOpt
     return true
   })
 }
+type ResolvedRuntimeScope = Pick<
+  NodeRuntimeResolveResponseDto,
+  'mapId' | 'steps' | 'clearPaths'
+>

@@ -1,13 +1,12 @@
 import type {
+  NodeRuntimeGroupNodeDto,
   NodeRuntimeNodeDto,
   NodeRuntimeResolveResponseDto,
   NodeRuntimeSectionDto,
   NodeRuntimeStepDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { getAuthoringFieldValue, toAuthoringFieldName } from '../utils/pathUtils'
-import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
-
-const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
+import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 
 export type AuthoringStepProgressStatus = 'complete' | 'incomplete' | 'warning' | 'error'
 export type AuthoringStepDirtyMap = Partial<Record<string, boolean>>
@@ -63,6 +62,7 @@ export function getAuthoringProgress({
     const status = getStepStatus({
       fieldMeta,
       fieldPathPrefix,
+      model,
       step,
       values,
       warning: warnings?.[step.id] === true
@@ -106,19 +106,21 @@ export function getAuthoringProgress({
 function getStepStatus({
   fieldMeta,
   fieldPathPrefix,
+  model,
   step,
   values,
   warning
 }: {
   fieldMeta?: Partial<Record<string, FieldMetaSnapshot>>
   fieldPathPrefix?: string
+  model?: NodeRuntimeResolveResponseDto
   step: NodeRuntimeStepDto
   values: Record<string, unknown>
   warning: boolean
 }): AuthoringStepProgressStatus {
   if (hasStepErrors({ fieldMeta, fieldPathPrefix, step })) return 'error'
   if (warning) return 'warning'
-  if (hasMissingRequiredFields(step.sections, values, fieldPathPrefix)) return 'incomplete'
+  if (hasMissingRequiredFields(step.sections, values, fieldPathPrefix, model)) return 'incomplete'
   return 'complete'
 }
 
@@ -131,12 +133,16 @@ function hasStepErrors({
   fieldPathPrefix?: string
   step: NodeRuntimeStepDto
 }) {
-  return step.sections.some((section) => section.nodes.some((node) => {
-    if (!isUserEditableVisibleNode(node)) return false
-    return hasFieldMetaForPath(fieldMeta, toAuthoringFieldName(fieldPathPrefix, node.path), (meta) => (
-      (meta.errors?.length ?? 0) > 0
-    ))
-  }))
+  return step.sections.some((section) =>
+    section.nodes.some((node) => {
+      if (!isUserEditableVisibleNode(node)) return false
+      return hasFieldMetaForPath(
+        fieldMeta,
+        toAuthoringFieldName(fieldPathPrefix, node.path),
+        (meta) => (meta.errors?.length ?? 0) > 0
+      )
+    })
+  )
 }
 
 function isStepDirty({
@@ -148,18 +154,23 @@ function isStepDirty({
   fieldPathPrefix?: string
   step: NodeRuntimeStepDto
 }) {
-  return step.sections.some((section) => section.nodes.some((node) => {
-    if (!isUserEditableVisibleNode(node)) return false
-    return hasFieldMetaForPath(fieldMeta, toAuthoringFieldName(fieldPathPrefix, node.path), (meta) => (
-      meta.isDirty === true
-    ))
-  }))
+  return step.sections.some((section) =>
+    section.nodes.some((node) => {
+      if (!isUserEditableVisibleNode(node)) return false
+      return hasFieldMetaForPath(
+        fieldMeta,
+        toAuthoringFieldName(fieldPathPrefix, node.path),
+        (meta) => meta.isDirty === true
+      )
+    })
+  )
 }
 
 function hasMissingRequiredFields(
   sections: readonly NodeRuntimeSectionDto[],
   values: Record<string, unknown>,
-  fieldPathPrefix?: string
+  fieldPathPrefix: string | undefined,
+  model: NodeRuntimeResolveResponseDto | undefined
 ) {
   for (const section of sections) {
     for (const node of section.nodes) {
@@ -167,7 +178,10 @@ function hasMissingRequiredFields(
 
       const value = readNodeValue(values, node, fieldPathPrefix)
       if (node.required && isMissingRequiredValue(value)) return true
-      if (node.kind === 'GROUP' && hasMissingRequiredGroupFields(node, value, values, fieldPathPrefix)) {
+      if (
+        node.kind === 'GROUP' &&
+        hasMissingRequiredGroupFields(node, value, values, fieldPathPrefix, model)
+      ) {
         return true
       }
     }
@@ -177,10 +191,11 @@ function hasMissingRequiredFields(
 }
 
 function hasMissingRequiredGroupFields(
-  node: NodeRuntimeNodeDto,
+  node: NodeRuntimeGroupNodeDto,
   value: unknown,
   values: Record<string, unknown>,
-  fieldPathPrefix?: string
+  fieldPathPrefix: string | undefined,
+  model: NodeRuntimeResolveResponseDto | undefined
 ) {
   if (!node.childMapId) return false
 
@@ -190,28 +205,23 @@ function hasMissingRequiredGroupFields(
   if (node.groupKind === 'OBJECT') {
     if (!isRecord(value)) return false
 
-    const childModel = createStaticResolvedFormModel(childMapId, {
-      parentValues: value,
-      values: value
-    })
+    const childModel = getResolvedAuthoringScope(model, childMapId, fieldName)
     if (!childModel) return false
 
     const childSections = childModel.steps.flatMap((step) => step.sections)
-    return hasMissingRequiredFields(childSections, values, fieldName)
+    return hasMissingRequiredFields(childSections, values, fieldName, childModel)
   }
 
   if (!Array.isArray(value)) return false
 
   return value.some((row, index) => {
-    const rowValues = isRecord(row) ? row : {}
-    const childModel = createStaticResolvedFormModel(childMapId, {
-      parentValues: rowValues,
-      values: rowValues
-    })
+    if (!isRecord(row)) return false
+    const rowFieldName = `${fieldName}[${index}]`
+    const childModel = getResolvedAuthoringScope(model, childMapId, rowFieldName)
     if (!childModel) return false
 
     const childSections = childModel.steps.flatMap((step) => step.sections)
-    return hasMissingRequiredFields(childSections, values, `${fieldName}[${index}]`)
+    return hasMissingRequiredFields(childSections, values, rowFieldName, childModel)
   })
 }
 
@@ -241,24 +251,19 @@ function hasFieldMetaForPath(
   fieldName: string,
   predicate: (meta: FieldMetaSnapshot) => boolean
 ) {
-  return Object.entries(fieldMeta ?? {}).some(([registeredFieldName, meta]) => (
-    (registeredFieldName === fieldName || isDescendantFieldName(registeredFieldName, fieldName))
-    && meta !== undefined
-    && predicate(meta)
-  ))
+  return Object.entries(fieldMeta ?? {}).some(
+    ([registeredFieldName, meta]) =>
+      (registeredFieldName === fieldName ||
+        isDescendantFieldName(registeredFieldName, fieldName)) &&
+      meta !== undefined &&
+      predicate(meta)
+  )
 }
 
 function isUserEditableVisibleNode(node: NodeRuntimeNodeDto) {
-  if (!node.visible) return false
-  if (node.readOnly || node.disabled) return false
-  if (node.kind === 'GROUP') return true
-  if (node.kind !== 'INPUT') return false
-
-  const fieldKey = node.path[node.path.length - 1]
-  return !(typeof fieldKey === 'string' && SYSTEM_MANAGED_FIELD_KEYS.has(fieldKey))
+  return node.visible && node.authoring.exposure !== 'system'
 }
 
 function isDescendantFieldName(fieldName: string, parentFieldName: string) {
-  return fieldName.startsWith(`${parentFieldName}.`)
-    || fieldName.startsWith(`${parentFieldName}[`)
+  return fieldName.startsWith(`${parentFieldName}.`) || fieldName.startsWith(`${parentFieldName}[`)
 }

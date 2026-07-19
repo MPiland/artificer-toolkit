@@ -1,4 +1,4 @@
-import type { AssembledCharacterSnapshot } from '../../core/assemblerContract.js'
+import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { CompiledClass } from '../../subjects/compilers/class.js'
 import type { CompiledModifierGrant } from '../../grants/compilers/modifier.js'
 import type { CompiledProficiencyGrant } from '../../grants/compilers/proficiency.js'
@@ -6,8 +6,15 @@ import type { CompiledSenseGrant } from '../../grants/compilers/sense.js'
 import type { CompiledRange } from '../../shared/compilers/range.js'
 import type { EngineProficiency, EngineSense } from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
-import type { CharacterAssemblyRegistry } from '../registry.js'
+import type { CharacterAssemblyRegistry, CharacterAssemblyRegistryFeature } from '../registry.js'
+import {
+  getCharacterChosenGrantSelectionIdentityKey,
+  type CharacterProvenance
+} from '../../subjects/authored/character/intent.js'
 import { buildModifierDomainKey } from './modifierDomainKey.js'
+import { evaluateCharacterFacet, type CharacterEligibilityContext } from '../prerequisiteEval.js'
+
+const FEATURE_CHOICE_SELECTION_KEY = 'options'
 
 /**
  * Accumulated state built up by processing all features in source order,
@@ -33,17 +40,33 @@ export interface EngineAccumulatedState {
   }>
   unlockedFeatIds: string[]
   unlockedSpellIds: string[]
+  /** Equipment instances whose root eligibility and attunement requirements passed. */
+  activeEquipmentInstanceIds: string[]
 }
 
 /* ──────────────────────────────────────────────
  * Proficiency extraction helpers
  * ────────────────────────────────────────────── */
 
-function extractProficiencies(grants: CompiledProficiencyGrant[]): EngineProficiency[] {
+function extractProficiencies(
+  grants: CompiledProficiencyGrant[],
+  snapshot: CharacterBuildSnapshot,
+  ownerSource: CharacterProvenance
+): EngineProficiency[] {
   const out: EngineProficiency[] = []
 
   for (const grant of grants) {
     const scaling = grantScaling(grant)
+
+    if (grant.selectionKind === 'CHOSEN') {
+      pushProficiencies(
+        out,
+        grant,
+        getSelectedGrantTargetIds(snapshot, grant.id, ownerSource),
+        scaling
+      )
+      continue
+    }
 
     // Only GRANTED mode has concrete pre-selected IDs at this point.
     // CHOSEN mode requires player selection stored in featureAcquisitions.selections —
@@ -53,7 +76,20 @@ function extractProficiencies(grants: CompiledProficiencyGrant[]): EngineProfici
     if (mode === 'ALL') {
       // ALL mode: all items of this kind are included (e.g. all saves, all skills)
       // Store as a single entry with subjectId='*' — derived stat calculator handles expansion
-      out.push({ kind: grant.proficiencyKind, subjectId: '*', scaling })
+      const category =
+        grant.proficiencyKind === 'EQUIPMENT_PROPERTY'
+          ? (
+              grant as CompiledProficiencyGrant<'EQUIPMENT_PROPERTY'> & {
+                category?: EngineProficiency['category']
+              }
+            ).category
+          : undefined
+      out.push({
+        kind: grant.proficiencyKind,
+        subjectId: '*',
+        scaling,
+        ...(category ? { category } : {})
+      })
       continue
     }
 
@@ -88,9 +124,17 @@ function extractProficiencies(grants: CompiledProficiencyGrant[]): EngineProfici
         break
       }
       case 'EQUIPMENT_PROPERTY': {
-        const g = grant as CompiledProficiencyGrant<'EQUIPMENT_PROPERTY'> & { properties?: string[] }
+        const g = grant as CompiledProficiencyGrant<'EQUIPMENT_PROPERTY'> & {
+          properties?: string[]
+          category?: EngineProficiency['category']
+        }
         for (const prop of g.properties ?? []) {
-          out.push({ kind: 'EQUIPMENT_PROPERTY', subjectId: prop, scaling })
+          out.push({
+            kind: 'EQUIPMENT_PROPERTY',
+            subjectId: prop,
+            scaling,
+            ...(g.category ? { category: g.category } : {})
+          })
         }
         break
       }
@@ -98,6 +142,30 @@ function extractProficiencies(grants: CompiledProficiencyGrant[]): EngineProfici
   }
 
   return out
+}
+
+function pushProficiencies(
+  out: EngineProficiency[],
+  grant: CompiledProficiencyGrant,
+  ids: readonly string[],
+  scaling: EngineProficiency['scaling']
+): void {
+  const category =
+    grant.proficiencyKind === 'EQUIPMENT_PROPERTY'
+      ? (
+          grant as CompiledProficiencyGrant<'EQUIPMENT_PROPERTY'> & {
+            category?: EngineProficiency['category']
+          }
+        ).category
+      : undefined
+  for (const id of ids) {
+    out.push({
+      kind: grant.proficiencyKind,
+      subjectId: id,
+      scaling,
+      ...(category ? { category } : {})
+    })
+  }
 }
 
 function grantScaling(grant: CompiledProficiencyGrant): EngineProficiency['scaling'] {
@@ -111,16 +179,43 @@ function grantScaling(grant: CompiledProficiencyGrant): EngineProficiency['scali
  * Sense extraction helpers
  * ────────────────────────────────────────────── */
 
-function extractSenses(grants: CompiledSenseGrant[]): EngineSense[] {
+function extractSenses(
+  grants: CompiledSenseGrant[],
+  snapshot: CharacterBuildSnapshot,
+  activeLevel: number,
+  ownerSource: CharacterProvenance
+): EngineSense[] {
   const out: EngineSense[] = []
 
   for (const grant of grants) {
     // SCALING.NONE grants: pull senseIds from the payload if present
-    const g = grant as { senseIds?: string[], range?: CompiledRange, scalingKind?: string }
-    if (g.senseIds) {
-      for (const senseCode of g.senseIds) {
-        out.push({ senseCode, range: g.range })
+    const g = grant as {
+      senseIds?: string[]
+      range?: CompiledRange
+      scalingKind?: string
+      selectionKind?: string
+      levels?: Array<{ level: number; senseIds?: string[] }>
+    }
+    if (g.scalingKind === 'PER_LEVEL') {
+      for (const level of g.levels ?? []) {
+        if (level.level > activeLevel) continue
+        const ids =
+          g.selectionKind === 'CHOSEN'
+            ? getSelectedGrantTargetIds(snapshot, grant.id, ownerSource, level.level)
+            : (level.senseIds ?? [])
+        for (const senseCode of ids) {
+          out.push({ senseCode, range: g.range })
+        }
       }
+      continue
+    }
+
+    const ids =
+      g.selectionKind === 'CHOSEN'
+        ? getSelectedGrantTargetIds(snapshot, grant.id, ownerSource)
+        : (g.senseIds ?? [])
+    for (const senseCode of ids) {
+      out.push({ senseCode, range: g.range })
     }
   }
 
@@ -135,58 +230,81 @@ function extractSenses(grants: CompiledSenseGrant[]): EngineSense[] {
  * Collects modifier grants into the accumulated state, evaluating restrictions:
  *
  * - CHARACTER-subject contexts: gate whether the grant is collected at all.
- *   Supported predicates: SPELL_OBTAINED (checks snapshot.spellAccess).
- *   Unsupported predicates pass through (fail-open) until implemented.
+ *   The shared facet evaluator owns predicate support and fails closed for
+ *   predicates that cannot be evaluated from the supplied character context.
  *
  * - Non-CHARACTER subject contexts (e.g. SPELL): tag the entry with scope IDs
  *   so the character sheet knows where the modifier applies.
  *   SPELL-subject contexts populate `scopeSpellIds`.
  */
+export function createCharacterEligibilityContext(
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: readonly { spellId: string }[],
+  acc: EngineAccumulatedState,
+  sourceState?: CharacterEligibilityContext['sourceState']
+): CharacterEligibilityContext {
+  const featIds = snapshot.features.flatMap((feature) => {
+    if (feature.source.kind !== 'FEAT') return []
+    const featId = feature.source.featId
+    return typeof featId === 'string' ? [featId] : []
+  })
+  const optionIds = snapshot.features.flatMap((feature) => [...getSelectedOptionIds(feature)])
+
+  return {
+    systemId: snapshot.systemId,
+    raceId: snapshot.raceId,
+    subraceId: snapshot.subraceId,
+    classes: snapshot.classes.map((entry) => ({
+      classId: entry.classId,
+      level: entry.level
+    })),
+    abilityScores: snapshot.abilities,
+    featIds: [...featIds, ...acc.unlockedFeatIds],
+    spellIds: [...spellAccess.map((entry) => entry.spellId), ...acc.unlockedSpellIds],
+    featureIds: snapshot.features.map((feature) => feature.featureId),
+    optionIds,
+    proficiencies: acc.proficiencies,
+    equipment: snapshot.equipmentItems.map((item) => ({
+      equipmentId: item.contentRef.definitionId,
+      category: item.compiledItem.category,
+      properties: item.compiledItem.properties,
+      equipped: Boolean(item.equippedState),
+      attuned: item.attuned
+    })),
+    ...(sourceState ? { sourceState } : {})
+  }
+}
+
 function collectModifiers(
   grants: CompiledModifierGrant[],
-  snapshot: AssembledCharacterSnapshot,
-  out: EngineAccumulatedState['modifierEntries']
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: readonly { spellId: string }[],
+  registry: CharacterAssemblyRegistry,
+  acc: EngineAccumulatedState
 ): void {
-  const obtainedSpellIds = new Set(snapshot.spellAccess.map((s) => s.spellId))
-  const obtainedFeatureIds = new Set(snapshot.features.map((f) => f.featureId))
-
   for (const grant of grants) {
-    const restrictions = (grant as { restrictions?: unknown }).restrictions as
-      { groups?: Array<{ contexts?: Array<{ subject?: string, spellIds?: string[], conditions?: Array<{ predicateCode?: string, spellIds?: string[] }> }> }> }
-      | undefined
+    const restrictions = grant.restrictions
 
-    // Evaluate CHARACTER-subject restriction contexts — gate eligibility
-    if (restrictions?.groups) {
-      let eligible = true
-      for (const group of restrictions.groups) {
-        for (const ctx of (group.contexts ?? [])) {
-          if (ctx.subject !== 'CHARACTER') continue
-          for (const condition of (ctx.conditions ?? [])) {
-            if (condition.predicateCode === 'SPELL_OBTAINED') {
-              const required = condition.spellIds ?? []
-              if (required.some((id) => !obtainedSpellIds.has(id))) {
-                eligible = false
-              }
-            } else if (condition.predicateCode === 'FEATURE_OBTAINED') {
-              const required = condition.spellIds ?? [] // spellIds is a misnomer here — featureIds
-              if (required.some((id) => !obtainedFeatureIds.has(id))) {
-                eligible = false
-              }
-            }
-            // Other predicates: fail-open until implemented
-          }
-        }
-      }
-      if (!eligible) continue
-    }
+    if (
+      !evaluateCharacterFacet(
+        restrictions,
+        createCharacterEligibilityContext(snapshot, spellAccess, acc),
+        registry
+      ).passed
+    )
+      continue
 
     // Extract SPELL-subject scope IDs for character sheet display
     let scopeSpellIds: string[] | undefined
     if (restrictions?.groups) {
       const spellIds: string[] = []
       for (const group of restrictions.groups) {
-        for (const ctx of (group.contexts ?? [])) {
-          if (ctx.subject === 'SPELL' && ctx.spellIds?.length) {
+        for (const ctx of group.contexts ?? []) {
+          if (
+            ctx.subject === 'SPELL' &&
+            ctx.authoringModeKind === 'SELECTED' &&
+            ctx.spellIds.length > 0
+          ) {
             spellIds.push(...ctx.spellIds)
           }
         }
@@ -201,7 +319,7 @@ function collectModifiers(
     }
     const valueDomainCode = g.valueDomainCode ?? 'UNKNOWN'
     const kind = g.modifierKind ?? 'BONUS'
-    out.push({
+    acc.modifierEntries.push({
       domainKey: buildModifierDomainKey(valueDomainCode, kind, g.domain),
       modifierKind: kind,
       grant,
@@ -210,30 +328,208 @@ function collectModifiers(
   }
 }
 
+type GrantBearingSource = Pick<
+  CharacterAssemblyRegistryFeature,
+  'feats' | 'modifiers' | 'proficiencies' | 'restrictions' | 'senses' | 'spells'
+>
+
+function applyGrantBearingSource(
+  source: GrantBearingSource,
+  ownerSource: CharacterProvenance,
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: readonly { spellId: string }[],
+  acc: EngineAccumulatedState,
+  rules: RulesSystem,
+  registry: CharacterAssemblyRegistry,
+  context?: {
+    activeLevel: number
+    sourceState?: CharacterEligibilityContext['sourceState']
+  }
+): void {
+  if (
+    !evaluateCharacterFacet(
+      source.restrictions,
+      createCharacterEligibilityContext(snapshot, spellAccess, acc, context?.sourceState),
+      registry
+    ).passed
+  )
+    return
+
+  for (const grantKind of rules.grantApplicationOrder) {
+    switch (grantKind) {
+      case 'PROFICIENCY_GRANT':
+        if (source.proficiencies?.length) {
+          acc.proficiencies.push(
+            ...extractProficiencies(source.proficiencies, snapshot, ownerSource)
+          )
+        }
+        break
+      case 'SENSE_GRANT':
+        if (source.senses?.length) {
+          const activeLevel =
+            context?.activeLevel ??
+            snapshot.classes.reduce((total, classRecord) => total + classRecord.level, 0)
+          acc.senses.push(...extractSenses(source.senses, snapshot, activeLevel, ownerSource))
+        }
+        break
+      case 'MODIFIER_GRANT':
+        if (source.modifiers?.length) {
+          collectModifiers(source.modifiers, snapshot, spellAccess, registry, acc)
+        }
+        break
+      case 'FEAT_GRANT':
+        for (const grant of source.feats ?? []) {
+          acc.unlockedFeatIds.push(
+            ...getSelectedOrGrantedScalingIds(grant, 'featIds', snapshot, ownerSource, context)
+          )
+        }
+        break
+      case 'SPELL_GRANT':
+        for (const grant of source.spells ?? []) {
+          acc.unlockedSpellIds.push(
+            ...getSelectedOrGrantedScalingIds(grant, 'spellIds', snapshot, ownerSource, context)
+          )
+        }
+        break
+    }
+  }
+}
+
+function getSelectedOrGrantedScalingIds(
+  grant: { id: string },
+  idKey: 'featIds' | 'spellIds',
+  snapshot: CharacterBuildSnapshot,
+  ownerSource: CharacterProvenance,
+  context:
+    | {
+        activeLevel: number
+      }
+    | undefined
+): string[] {
+  const g = grant as {
+    id: string
+    selectionKind?: string
+    scalingKind?: string
+    levels?: Array<{ level: number } & Partial<Record<typeof idKey, string[]>>>
+  } & Partial<Record<typeof idKey, string[]>>
+
+  if (g.scalingKind === 'PER_LEVEL') {
+    return (g.levels ?? []).flatMap((level) => {
+      if (level.level > (context?.activeLevel ?? 0)) return []
+
+      return g.selectionKind === 'CHOSEN'
+        ? getSelectedGrantTargetIds(snapshot, g.id, ownerSource, level.level)
+        : (level[idKey] ?? [])
+    })
+  }
+
+  return g.selectionKind === 'CHOSEN'
+    ? getSelectedGrantTargetIds(snapshot, g.id, ownerSource)
+    : (g[idKey] ?? [])
+}
+
+function getSelectedGrantTargetIds(
+  snapshot: CharacterBuildSnapshot,
+  grantId: string,
+  source: CharacterProvenance,
+  progressionLevel?: number
+): string[] {
+  const identityKey = getCharacterChosenGrantSelectionIdentityKey({
+    grantId,
+    source,
+    progressionLevel
+  })
+  return (
+    snapshot.chosenGrantSelections?.find(
+      (selection) => getCharacterChosenGrantSelectionIdentityKey(selection) === identityKey
+    )?.targetIds ?? []
+  )
+}
+
+function getSelectedFeatureOptions(
+  feature: CharacterBuildSnapshot['features'][number],
+  registryFeature: CharacterAssemblyRegistryFeature
+): Array<{
+  option: NonNullable<CharacterAssemblyRegistryFeature['options']>[number]
+  source: CharacterProvenance
+}> {
+  const selectedOptionIds = getSelectedOptionIds(feature)
+  const acquisitionId = feature.acquisitionId
+  if (!acquisitionId || selectedOptionIds.size === 0) return []
+
+  return (registryFeature.options ?? [])
+    .filter((option) => selectedOptionIds.has(option.id))
+    .map((option) => ({
+      option,
+      source: {
+        kind: 'OPTION',
+        acquiredParentId: acquisitionId,
+        optionId: option.id
+      }
+    }))
+}
+
+function getSelectedOptionIds(feature: CharacterBuildSnapshot['features'][number]): Set<string> {
+  const optionIds = new Set<string>()
+
+  for (const selection of feature.selections ?? []) {
+    if (selection.selectionKey !== FEATURE_CHOICE_SELECTION_KEY) continue
+    for (const value of selection.values) {
+      if (value.kind === 'ID') optionIds.add(value.id)
+      if (value.kind === 'IDS') {
+        for (const id of value.ids) optionIds.add(id)
+      }
+    }
+  }
+
+  return optionIds
+}
+
 /* ──────────────────────────────────────────────
  * Grant applicator
  * ────────────────────────────────────────────── */
 
+function getFeatureActiveLevel(
+  snapshot: CharacterBuildSnapshot,
+  feature: CharacterBuildSnapshot['features'][number]
+): number {
+  if (
+    (feature.source.kind === 'CLASS' || feature.source.kind === 'SUBCLASS') &&
+    typeof feature.source.classLevel === 'number'
+  )
+    return feature.source.classLevel
+
+  if (feature.timing.kind === 'CLASS_LEVEL') return feature.timing.classLevel
+  if (feature.timing.kind === 'CHARACTER_LEVEL') return feature.timing.level
+
+  return Math.max(
+    snapshot.classes.reduce((sum, classRecord) => sum + classRecord.level, 0),
+    1
+  )
+}
+
 /**
- * Applies all grants from all features in the assembled snapshot, following the
+ * Applies all grants from the engine snapshot, following the
  * RulesSystem's featureSourceOrder and grantApplicationOrder.
  *
  * Rule ordering is defined in `dnd5e2014/RULE_ORDER.md` §1 and §2.
  */
 export function applyGrants(
-  snapshot: AssembledCharacterSnapshot,
+  snapshot: CharacterBuildSnapshot,
   registry: CharacterAssemblyRegistry,
-  rules: RulesSystem
+  rules: RulesSystem,
+  spellAccess: readonly { spellId: string }[]
 ): EngineAccumulatedState {
   const acc: EngineAccumulatedState = {
     proficiencies: [],
     senses: [],
     modifierEntries: [],
     unlockedFeatIds: [],
-    unlockedSpellIds: []
+    unlockedSpellIds: [],
+    activeEquipmentInstanceIds: []
   }
 
-  // Sort assembled features by source order
+  // Sort active features by source order
   const sourceOrderIndex = new Map<string, number>(
     rules.featureSourceOrder.map((kind: string, i: number) => [kind, i] as [string, number])
   )
@@ -242,48 +538,108 @@ export function applyGrants(
     const bi = sourceOrderIndex.get(b.source.kind) ?? 999
     return ai - bi
   })
-
-  for (const feature of sortedFeatures) {
-    // Apply modifier grants from the feature registry
-    const registryFeature = registry.features[feature.featureId]
-    if (registryFeature?.modifiers?.length) {
-      collectModifiers(registryFeature.modifiers, snapshot, acc.modifierEntries)
+  for (const [classIndex, classRecord] of snapshot.classes.entries()) {
+    const compiledClass = registry.classes[classRecord.classId]
+    if (compiledClass) {
+      const proficiencies =
+        classIndex > 0 && compiledClass.category === 'BASE'
+          ? compiledClass.multiclass.proficiencies
+          : compiledClass.proficiencies
+      applyClassGrants(
+        compiledClass,
+        { kind: 'CLASS', classId: classRecord.classId },
+        snapshot,
+        spellAccess,
+        acc,
+        rules,
+        registry,
+        classRecord.level,
+        proficiencies
+      )
     }
 
-    // Apply grants from classes referenced by this feature's source
-    if (feature.source.kind === 'CLASS' || feature.source.kind === 'SUBCLASS') {
-      const classId = feature.source.kind === 'CLASS'
-        ? (feature.source as { classId: string }).classId
-        : (feature.source as { subclassId: string }).subclassId
-      const compiledClass = registry.classes[classId]
-      if (compiledClass) {
-        applyClassGrants(compiledClass, acc, rules)
+    const compiledSubclass = classRecord.subclassId
+      ? registry.classes[classRecord.subclassId]
+      : undefined
+    if (
+      compiledSubclass?.category === 'SUBCLASS' &&
+      compiledSubclass.parentClassId === classRecord.classId
+    ) {
+      applyClassGrants(
+        compiledSubclass,
+        { kind: 'SUBCLASS', subclassId: compiledSubclass.id },
+        snapshot,
+        spellAccess,
+        acc,
+        rules,
+        registry,
+        classRecord.level
+      )
+    }
+  }
+
+  const background = snapshot.backgroundId
+    ? registry.backgrounds?.[snapshot.backgroundId]
+    : undefined
+  if (background && snapshot.backgroundId) {
+    applyGrantBearingSource(
+      background,
+      { kind: 'BACKGROUND', backgroundId: snapshot.backgroundId },
+      snapshot,
+      spellAccess,
+      acc,
+      rules,
+      registry
+    )
+  }
+
+  for (const feature of sortedFeatures) {
+    const registryFeature = registry.features[feature.featureId]
+    const grantContext = {
+      activeLevel: getFeatureActiveLevel(snapshot, feature)
+    }
+    if (registryFeature) {
+      applyGrantBearingSource(
+        registryFeature,
+        feature.source,
+        snapshot,
+        spellAccess,
+        acc,
+        rules,
+        registry,
+        grantContext
+      )
+
+      for (const selected of getSelectedFeatureOptions(feature, registryFeature)) {
+        applyGrantBearingSource(
+          selected.option,
+          selected.source,
+          snapshot,
+          spellAccess,
+          acc,
+          rules,
+          registry,
+          grantContext
+        )
       }
     }
 
     // Apply grants from feats referenced by this feature's source
     if (feature.source.kind === 'FEAT') {
-      const featId = (feature.source as { featId: string }).featId
-      const compiledFeat = registry.feats[featId]
-      if (compiledFeat) {
-        for (const grantKind of rules.grantApplicationOrder) {
-          switch (grantKind) {
-            case 'PROFICIENCY_GRANT':
-              if (compiledFeat.proficiencies?.length) {
-                acc.proficiencies.push(...extractProficiencies(compiledFeat.proficiencies))
-              }
-              break
-            case 'SENSE_GRANT':
-              if (compiledFeat.senses?.length) {
-                acc.senses.push(...extractSenses(compiledFeat.senses))
-              }
-              break
-            case 'MODIFIER_GRANT':
-              if (compiledFeat.modifiers?.length) {
-                collectModifiers(compiledFeat.modifiers, snapshot, acc.modifierEntries)
-              }
-              break
-          }
+      const featId = feature.source.featId
+      if (typeof featId === 'string') {
+        const compiledFeat = registry.feats[featId]
+        if (compiledFeat) {
+          applyGrantBearingSource(
+            compiledFeat,
+            feature.source,
+            snapshot,
+            spellAccess,
+            acc,
+            rules,
+            registry,
+            grantContext
+          )
         }
       }
     }
@@ -293,28 +649,75 @@ export function applyGrants(
     // tracking resolves which items are active.
   }
 
-  // Also collect modifier grants already assembled on the snapshot.
-  // Avoid double-counting by only adding grants not already captured from the registry.features path above.
-  // Route through collectModifiers so restrictions are evaluated consistently.
-  if (snapshot.modifierGrants.length) {
-    collectModifiers(snapshot.modifierGrants.map((mg) => mg.grant), snapshot, acc.modifierEntries)
-  }
+  applyEquipmentGrants(snapshot, spellAccess, acc, rules, registry)
 
   return acc
 }
 
-function applyClassGrants(
-  compiledClass: CompiledClass,
+function applyEquipmentGrants(
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: readonly { spellId: string }[],
   acc: EngineAccumulatedState,
-  rules: RulesSystem
+  rules: RulesSystem,
+  registry: CharacterAssemblyRegistry
 ): void {
-  for (const grantKind of rules.grantApplicationOrder) {
-    switch (grantKind) {
-      case 'PROFICIENCY_GRANT':
-        if (compiledClass.proficiencies?.length) {
-          acc.proficiencies.push(...extractProficiencies(compiledClass.proficiencies))
+  const activeLevel = Math.max(snapshot.totalLevel, 1)
+
+  for (const item of snapshot.equipmentItems) {
+    if (item.compiledItem.requiresAttunement && !item.attuned) continue
+
+    const sourceState = {
+      carried: true,
+      equipped: Boolean(item.equippedState),
+      attuned: item.attuned
+    }
+    if (
+      !evaluateCharacterFacet(
+        item.compiledItem.restrictions,
+        createCharacterEligibilityContext(snapshot, spellAccess, acc, sourceState),
+        registry
+      ).passed
+    )
+      continue
+
+    acc.activeEquipmentInstanceIds.push(item.instanceId)
+    for (const feature of item.compiledItem.features ?? []) {
+      applyGrantBearingSource(
+        feature,
+        { kind: 'FEATURE', featureId: feature.id },
+        snapshot,
+        spellAccess,
+        acc,
+        rules,
+        registry,
+        {
+          activeLevel,
+          sourceState
         }
-        break
+      )
     }
   }
+}
+
+function applyClassGrants(
+  compiledClass: CompiledClass,
+  ownerSource: CharacterProvenance,
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: readonly { spellId: string }[],
+  acc: EngineAccumulatedState,
+  rules: RulesSystem,
+  registry: CharacterAssemblyRegistry,
+  activeLevel: number,
+  proficiencies: CompiledProficiencyGrant[] | undefined = compiledClass.proficiencies
+): void {
+  applyGrantBearingSource(
+    { ...compiledClass, proficiencies },
+    ownerSource,
+    snapshot,
+    spellAccess,
+    acc,
+    rules,
+    registry,
+    { activeLevel }
+  )
 }

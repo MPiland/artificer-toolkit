@@ -32,18 +32,21 @@ describe('class authoring utilities', () => {
     const baseClass = normalizeClassForSubmit({
       ...createEmptyClass({ systemId: 'system-1' }),
       label: ' Fighter ',
-      category: 'BASE'
+      category: 'BASE',
+      subclassSelectionLevel: 3
     })
     const subclass = normalizeClassForSubmit({
       ...createEmptyClass({ systemId: 'system-1' }),
       label: ' Champion ',
       category: 'SUBCLASS',
+      subclassSelectionLevel: undefined,
       parentClassId: 'fighter'
     })
 
     expect(baseClass).toMatchObject({
       label: 'Fighter',
       category: 'BASE',
+      subclassSelectionLevel: 3,
       startingGold: expect.any(Object),
       startingEquipment: expect.any(Object),
       hitpoint: expect.any(Object),
@@ -63,6 +66,7 @@ describe('class authoring utilities', () => {
       ...createEmptyClass({ systemId: 'system-1' }),
       label: 'Champion',
       category: 'SUBCLASS',
+      subclassSelectionLevel: undefined,
       parentClassId: '   '
     })
 

@@ -1,4 +1,4 @@
-import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const ettercap: CreatureAuthored = {
@@ -6,7 +6,6 @@ export const ettercap: CreatureAuthored = {
     label: 'Ettercap',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const ettercap: CreatureAuthored = {
         INTELLIGENCE: 7,
         WISDOM: 12,
         CHARISMA: 8,
-        SPELLCASTING: 0
     },
     armorClass: 13,
     armorClassNote: 'natural armor',

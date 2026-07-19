@@ -5,6 +5,7 @@ import {
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema
 } from './enums.js'
+import { characterFacetDtoSchema } from './facet.js'
 
 export const startingEquipmentCurrencyDtoSchema = z.object({
   currencyId: z.string(),
@@ -64,6 +65,7 @@ export const startingEquipmentItemDtoSchema = z.union([
 export const startingEquipmentOptionDtoSchema = z.object({
   id: z.string(),
   order: z.number().int(),
+  eligibility: characterFacetDtoSchema.optional(),
   items: z.array(startingEquipmentItemDtoSchema)
 })
 

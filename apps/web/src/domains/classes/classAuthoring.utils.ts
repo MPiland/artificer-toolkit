@@ -33,7 +33,7 @@ export interface ResolveClassEditReadOnlyInput {
   hasActiveClass: boolean
 }
 
-export function createEmptyClass({ systemId }: CreateEmptyClassInput): ClassFormValues {
+export function createEmptyClass({ systemId }: CreateEmptyClassInput): Extract<ClassFormValues, { category?: undefined }> {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -47,7 +47,7 @@ export function createEmptyClass({ systemId }: CreateEmptyClassInput): ClassForm
 }
 
 export function toClassFormValues(
-  classRecord: ClassAuthoringInputDto | ClassAuthoredDto | ClassFormValues
+  classRecord: ClassAuthoringInputDto | ClassAuthoredDto
 ): ClassFormValues {
   return {
     ...classRecord,
@@ -59,7 +59,7 @@ export function toClassFormValues(
 }
 
 export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuthoringInputDto {
-  const base = {
+  const common = {
     id: classRecord.id,
     label: classRecord.label.trim() || 'Untitled Class',
     description: classRecord.description ?? '',
@@ -69,15 +69,15 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
     spellcasting: classRecord.spellcasting,
     resources: classRecord.resources,
     features: classRecord.features ?? [],
-    systemId: classRecord.systemId,
-    category: classRecord.category,
-    attributes: classRecord.attributes ?? []
-  } satisfies ClassAuthoringInputDto
+    systemId: classRecord.systemId
+  }
 
   if (classRecord.category === CLASS_CATEGORY.BASE) {
     return {
-      ...base,
+      ...common,
       category: CLASS_CATEGORY.BASE,
+      attributes: classRecord.attributes ?? [],
+      subclassSelectionLevel: classRecord.subclassSelectionLevel,
       startingGold: classRecord.startingGold ?? createEmptyStartingGold(),
       startingEquipment: classRecord.startingEquipment ?? createEmptyStartingEquipment(),
       hitpoint: classRecord.hitpoint ?? createEmptyHitpoint(),
@@ -89,14 +89,18 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
     const parentClassId = classRecord.parentClassId?.trim()
 
     return {
-      ...base,
+      ...common,
       category: CLASS_CATEGORY.SUBCLASS,
+      attributes: classRecord.attributes ?? [],
       ...(parentClassId ? { parentClassId } : {}),
       specializations: classRecord.specializations ?? []
     }
   }
 
-  return base
+  return {
+    ...common,
+    attributes: classRecord.attributes ?? []
+  }
 }
 
 export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
@@ -134,6 +138,7 @@ export function createEmptyProficiency(order: number): ProficiencyGrantDto {
     id: crypto.randomUUID(),
     order,
     selectionKind: 'GRANTED',
+    scalingKind: 'NONE',
     proficiencyKind: 'SKILL',
     authoringModeKind: 'ALL',
     level: 'FULL'

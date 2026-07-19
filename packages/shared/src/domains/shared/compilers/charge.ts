@@ -216,8 +216,11 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
 }
 
 export interface ResolveCompiledChargeMaximumContext {
-  abilities: Partial<Record<string, number>>
-  classLevel: number
+  abilities: Partial<Record<AbilityCode, number>>
+  classLevels?: Readonly<Partial<Record<string, number>>>
+  sourceClassLevel?: number
+  spellCastLevel?: number
+  skillBonuses?: Readonly<Partial<Record<string, number>>>
   proficiencyBonus: number
   totalLevel: number
 }
@@ -240,9 +243,13 @@ export function resolveCompiledChargeMaximum(
   let base = 0
 
   if (charge.scalingKind === SCALING.PER_LEVEL) {
+    const sourceClassLevel = context.sourceClassLevel
+    if (sourceClassLevel === undefined) {
+      throw new Error(`Cannot resolve charge "${charge.id}": source class level is required for per-level scaling.`)
+    }
     const entry = [...charge.levels]
       .sort((left, right) => right.level - left.level)
-      .find((candidate) => candidate.level <= context.classLevel)
+      .find((candidate) => candidate.level <= sourceClassLevel)
     base = entry?.amount ?? 0
   } else {
     switch (charge.limitKind) {
@@ -253,7 +260,10 @@ export function resolveCompiledChargeMaximum(
           min?: number
           multiplier?: number
         }
-        const score = context.abilities[abilityCharge.ability] ?? 10
+        const score = context.abilities[abilityCharge.ability as AbilityCode]
+        if (score === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": ability score "${abilityCharge.ability}" is missing.`)
+        }
         const raw = abilityModifier(score) * (abilityCharge.multiplier ?? 1)
         base = clampInteger(raw, abilityCharge.min, abilityCharge.max)
         break
@@ -262,14 +272,34 @@ export function resolveCompiledChargeMaximum(
         base = clampInteger(context.totalLevel * (charge.multiplier ?? 1), charge.min, charge.max)
         break
       case 'CLASS_LEVEL':
+      {
+        const classCharge = charge as CompiledCharge & {
+          classId: string
+          multiplier?: number
+          min?: number
+          max?: number
+        }
+        const classLevel = context.classLevels?.[classCharge.classId]
+        if (classLevel === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": class level for "${classCharge.classId}" is missing.`)
+        }
+        base = clampInteger(classLevel * (classCharge.multiplier ?? 1), classCharge.min, classCharge.max)
+        break
+      }
       case 'PARENT_CLASS_LEVEL':
-        base = clampInteger(context.classLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        if (context.sourceClassLevel === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": source class level is required.`)
+        }
+        base = clampInteger(context.sourceClassLevel * (charge.multiplier ?? 1), charge.min, charge.max)
         break
       case 'FIXED_AMOUNT':
         base = charge.amount
         break
       case 'SPELL_CAST_LEVEL':
-        base = 0
+        if (context.spellCastLevel === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": spell cast level is required.`)
+        }
+        base = clampInteger(context.spellCastLevel * (charge.multiplier ?? 1), charge.min, charge.max)
         break
     }
   }
@@ -277,15 +307,24 @@ export function resolveCompiledChargeMaximum(
   for (const bonus of charge.bonuses ?? []) {
     switch (bonus.bonusKind) {
       case CHARGE_BONUS_KIND.ABILITY_MODIFIER: {
-        const score = context.abilities[bonus.ability] ?? 10
+        const score = context.abilities[bonus.ability]
+        if (score === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": bonus ability score "${bonus.ability}" is missing.`)
+        }
         base += clampInteger(abilityModifier(score) * (bonus.multiplier ?? 1), bonus.min, bonus.max)
         break
       }
       case CHARGE_BONUS_KIND.PROFICIENCY_BONUS:
         base += clampInteger(context.proficiencyBonus * (bonus.multiplier ?? 1), bonus.min, bonus.max)
         break
-      case CHARGE_BONUS_KIND.SKILL_BONUS:
+      case CHARGE_BONUS_KIND.SKILL_BONUS: {
+        const skillBonus = context.skillBonuses?.[bonus.skillId]
+        if (skillBonus === undefined) {
+          throw new Error(`Cannot resolve charge "${charge.id}": skill bonus for "${bonus.skillId}" is missing.`)
+        }
+        base += clampInteger(skillBonus * (bonus.multiplier ?? 1), bonus.min, bonus.max)
         break
+      }
     }
   }
 

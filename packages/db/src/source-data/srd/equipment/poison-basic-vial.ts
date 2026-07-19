@@ -42,7 +42,7 @@ export const poisonBasicVial: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(364), 0x212, 1),
-                effectKind: S.EFFECT_KIND.RULE
+                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
               }
             ]
           }

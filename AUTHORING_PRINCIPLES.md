@@ -1,5 +1,7 @@
 # Authoring Principles
 
+> **Document status:** Historical/working principles. Vocabulary and data-layer boundaries are canonical in [ADR 0003](docs/adr/0003-vocabulary-authored-compiled-engine-data.md); node-map ownership is canonical in [ADR 0004](docs/adr/0004-backend-resolved-node-maps.md). Use [CONTEXT.md](CONTEXT.md) for current terminology.
+
 ## Authored Object ID Uniqueness
 
 Every authored object — feature, grant, facet, option — has a **unique ID that belongs to exactly one parent**.

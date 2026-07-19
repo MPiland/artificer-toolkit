@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { vi } from 'vitest'
@@ -6,12 +6,12 @@ import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
 import { CharacterSheetActions } from '../components/sheet/CharacterSheetActions'
-import { CharacterSheetConditions } from '../components/sheet/CharacterSheetConditions'
 import { CharacterSheetHero } from '../components/sheet/CharacterSheetHero'
-import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
+import { CharacterSheetOverviewStatusStrip } from '../components/sheet/CharacterSheetOverviewStatusStrip'
+import { CharacterSheetOverviewVitals } from '../components/sheet/CharacterSheetOverviewVitals'
 import { CharacterSheetReference } from '../components/sheet/CharacterSheetReference'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
@@ -32,8 +32,20 @@ function createSheet(): CharacterSheetResponseDto {
       totalLevel: 1
     },
     overview: {
-      abilities: [{ ability: 'DEXTERITY', score: 14, modifier: 2 }],
-      facts: [],
+      abilities: [
+        { ability: 'STRENGTH', score: 10, modifier: 0 },
+        { ability: 'DEXTERITY', score: 14, modifier: 2 },
+        { ability: 'CONSTITUTION', score: 12, modifier: 1 },
+        { ability: 'INTELLIGENCE', score: 8, modifier: -1 },
+        { ability: 'WISDOM', score: 13, modifier: 1 },
+        { ability: 'CHARISMA', score: 11, modifier: 0 }
+      ],
+      facts: [
+        { label: 'Speed', value: '30 feet' },
+        { label: 'Passive Perception', value: '11' },
+        { label: 'Passive Investigation', value: '9' },
+        { label: 'Passive Insight', value: '11' }
+      ],
       armorClass: 12,
       initiative: 2,
       proficiencyBonus: 2,
@@ -43,12 +55,37 @@ function createSheet(): CharacterSheetResponseDto {
       maxHitPointsOverride: null,
       exhaustionLevel: 0,
       conditions: [],
-      hitDice: []
+      hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }],
+      savingThrows: [
+        { ability: 'STRENGTH', label: 'Strength', total: 2, proficiency: 'FULL' },
+        { ability: 'DEXTERITY', label: 'Dexterity', total: 2, proficiency: 'NONE' },
+        { ability: 'CONSTITUTION', label: 'Constitution', total: 3, proficiency: 'FULL' },
+        { ability: 'INTELLIGENCE', label: 'Intelligence', total: -1, proficiency: 'NONE' },
+        { ability: 'WISDOM', label: 'Wisdom', total: 1, proficiency: 'NONE' },
+        { ability: 'CHARISMA', label: 'Charisma', total: 0, proficiency: 'NONE' }
+      ],
+      skills: [
+        { skillId: 'athletics', code: 'ATHLETICS', label: 'Athletics', ability: 'STRENGTH', total: 2, proficiency: 'FULL' },
+        { skillId: 'perception', code: 'PERCEPTION', label: 'Perception', ability: 'WISDOM', total: 1, proficiency: 'NONE' },
+        { skillId: 'investigation', code: 'INVESTIGATION', label: 'Investigation', ability: 'INTELLIGENCE', total: -1, proficiency: 'NONE' },
+        { skillId: 'insight', code: 'INSIGHT', label: 'Insight', ability: 'WISDOM', total: 1, proficiency: 'NONE' },
+        { skillId: 'stealth', code: 'STEALTH', label: 'Stealth', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' }
+      ]
     },
     actions: { items: [] },
     resources: {
-      items: [],
-      hitDice: []
+      items: [
+        {
+          id: 'resource-1',
+          label: 'Second Wind',
+          sourceLabel: 'Fighter',
+          used: 0,
+          max: 1,
+          remaining: 1,
+          recovery: 'SHORT_REST'
+        }
+      ],
+      hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }]
     },
     spells: {
       saveDc: null,
@@ -64,7 +101,8 @@ function createSheet(): CharacterSheetResponseDto {
           label: 'Longsword',
           quantity: 1,
           equipped: false,
-          attuned: false
+          attuned: false,
+          requiresAttunement: true
         }
       ],
       currencies: []
@@ -81,7 +119,14 @@ function createSheet(): CharacterSheetResponseDto {
           description: 'A poisoned creature suffers from toxins affecting its body.'
         }
       ],
-      equipmentOptions: [{ id: 'equipment-1', label: 'Longsword' }],
+      equipmentOptions: [
+        {
+          id: 'equipment-1',
+          label: 'Longsword',
+          isContainer: false,
+          requiresAttunement: true
+        }
+      ],
       currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
     },
     notes: {}
@@ -114,6 +159,51 @@ function readBatchedInput<TInput>(body: unknown): TInput {
   return (body as { 0: TInput })[0]
 }
 
+async function openHpControls(user: ReturnType<typeof userEvent.setup>) {
+  const manageButton = screen.getByRole('button', { name: /manage hp/i })
+  if (manageButton.getAttribute('aria-expanded') !== 'true') {
+    await user.click(manageButton)
+  }
+  await screen.findByLabelText(/^amount$/i)
+}
+
+async function openEquipmentManager(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /manage equipment/i }))
+  await screen.findByRole('dialog', { name: /manage equipment/i })
+}
+
+async function showCarriedEquipment(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('tab', { name: /containers/i }))
+  await screen.findByText(/items not assigned to a container/i)
+}
+
+function mockMobileSheetViewport() {
+  const originalMatchMedia = window.matchMedia
+
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('max-width: 760px'),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }))
+  })
+
+  return () => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: originalMatchMedia
+    })
+  }
+}
+
 describe('Character Sheet sections', () => {
   it('submits sheet commands through the production command mutation path', async () => {
     const user = userEvent.setup()
@@ -136,6 +226,7 @@ describe('Character Sheet sections', () => {
 
     renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={createSheet()} />)
 
+    await openHpControls(user)
     await user.click(screen.getByRole('button', { name: /apply damage/i }))
 
     await waitFor(() => expect(submittedCommand).toMatchObject({
@@ -157,6 +248,7 @@ describe('Character Sheet sections', () => {
     renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft sheet={createSheet()} />)
 
     expect(screen.getByText(/builder draft work/i)).toBeInTheDocument()
+    await openHpControls(user)
     await user.click(screen.getByRole('button', { name: /apply damage/i }))
 
     expect(await screen.findByText(/changed in another tab/i)).toBeInTheDocument()
@@ -183,25 +275,94 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByRole('tab', { name: /inventory/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /^equipment$/i })).toHaveAttribute('aria-selected', 'true')
   })
 
-  it('renders action descriptions as playable reference text', () => {
+  it('renders and filters actions by action type', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
     sheet.actions.items = [
       {
         id: 'feature-1',
-        label: 'Second Wind',
-        kind: 'OTHER',
+        label: 'Action Surge',
+        kind: 'ACTION',
         sourceLabel: 'Fighter',
-        description: '<p>Regain hit points as a bonus action.</p>'
+        description: '<p>Take one additional action on your turn.</p>'
+      },
+      {
+        id: 'feature-2',
+        label: 'Parry',
+        kind: 'REACTION',
+        sourceLabel: 'Fighter',
+        description: '<p>Reduce incoming melee damage.</p>'
       }
     ]
 
     renderWithAppProviders(<CharacterSheetActions sheet={sheet} />)
 
-    expect(screen.getByText(/second wind/i)).toBeInTheDocument()
-    expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
+    expect(screen.getByText(/action surge/i)).toBeInTheDocument()
+    expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^reaction$/i }))
+
+    expect(screen.getByText(/parry/i)).toBeInTheDocument()
+    expect(screen.queryByText(/action surge/i)).not.toBeInTheDocument()
+  })
+
+  it('renders resolved action mechanics without inventing roll controls', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    sheet.inventory.items = []
+    sheet.resources.items = []
+    sheet.actions.items = [
+      {
+        id: 'feature-option:force-ballista',
+        label: 'Force Ballista',
+        kind: 'ACTION',
+        sourceLabel: 'Artificer',
+        rollable: true,
+        mechanic: {
+          effectId: 'force-ballista-effect',
+          trigger: 'ATTACK_ROLL',
+          activation: { kind: 'ACTION', amount: 1 },
+          rangeLabel: '120 ft',
+          attackBonus: 7,
+          outcomes: [
+            {
+              kind: 'DAMAGE',
+              pathCode: 'ON_HIT',
+              expression: '2d8',
+              damageTypeId: 'force',
+              damageTypeLabel: 'Force'
+            }
+          ]
+        }
+      },
+      {
+        id: 'feature:dash',
+        label: 'Dash',
+        kind: 'ACTION',
+        sourceLabel: 'Core action',
+        rollable: false,
+        mechanic: {
+          effectId: 'dash-effect',
+          trigger: 'ACTIVATED',
+          activation: { kind: 'ACTION', amount: 1 },
+          outcomes: [{ kind: 'EFFECT', pathCode: 'ON_USE', effectKind: 'MOVEMENT', label: 'Gain extra movement' }]
+        }
+      }
+    ]
+
+    renderWithAppProviders(<CharacterSheetActions sheet={sheet} />)
+
+    const ballista = screen.getByRole('group', { name: 'Force Ballista' })
+    expect(within(ballista).getByText(/120 ft · \+7 to hit/i)).toBeInTheDocument()
+    expect(within(ballista).getByText(/2d8 · force damage · on hit/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^roll$/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^attack$/i }))
+    expect(screen.getByRole('group', { name: 'Force Ballista' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Dash' })).not.toBeInTheDocument()
   })
 
   it('renders rich text character identity without exposing markup', () => {
@@ -226,7 +387,7 @@ describe('Character Sheet sections', () => {
       }
     ]
     sheet.reference.proficiencies = [{ label: 'Athletics', value: 'Skill · Proficient' }]
-    sheet.reference.senses = [{ label: 'Darkvision', value: '60 feet' }]
+    sheet.reference.senses = [{ senseId: 'darkvision', label: 'Darkvision', value: '60 feet' }]
 
     renderWithAppProviders(<CharacterSheetReference sheet={sheet} />)
 
@@ -243,13 +404,14 @@ describe('Character Sheet sections', () => {
     const submitCommand = vi.fn()
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewVitals
         pending={false}
         sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
+    await openHpControls(user)
     await user.click(screen.getByRole('button', { name: /apply damage/i }))
 
     expect(submitCommand).toHaveBeenCalledWith(expect.objectContaining({
@@ -258,39 +420,136 @@ describe('Character Sheet sections', () => {
     }))
   })
 
-  it('locks overview health and exhaustion inputs while a sheet command is pending', () => {
+  it('renders the overview as a dense digital sheet scan path', () => {
+    const sheet = createSheet()
+    sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]
+    sheet.reference.features = [
+      {
+        id: 'feature-1',
+        label: 'Action Surge',
+        sourceLabel: 'Fighter',
+        source: { kind: 'CLASS', classId: 'fighter', classLevel: 2 },
+        description: '<p>Take one additional action on your turn.</p>'
+      }
+    ]
+
+    renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />)
+
+    expect(screen.getByRole('heading', { name: /^overview$/i })).toBeInTheDocument()
+    const abilityStrip = screen.getByRole('region', { name: /ability scores/i })
+    expect(within(abilityStrip).getByText('STR')).toBeInTheDocument()
+    expect(within(abilityStrip).getByText('DEX')).toBeInTheDocument()
+
+    const combatSection = screen.getByRole('heading', { name: /combat facts and hit points/i }).closest('section')
+    expect(combatSection).not.toBeNull()
+    expect(within(combatSection as HTMLElement).getByText(/armor class/i)).toBeInTheDocument()
+    expect(within(combatSection as HTMLElement).getByText(/30 feet/i)).toBeInTheDocument()
+    expect(within(combatSection as HTMLElement).getByText(/^hp$/i)).toBeInTheDocument()
+
+    const statusSummary = screen.getByRole('region', { name: /status summary/i })
+    expect(within(statusSummary).getByText(/exhaustion/i)).toBeInTheDocument()
+    expect(within(statusSummary).getAllByText(/poisoned/i).length).toBeGreaterThan(0)
+
+    const savesSection = screen.getByRole('heading', { name: /saving throws/i }).closest('section')
+    expect(savesSection).not.toBeNull()
+    expect(within(savesSection as HTMLElement).getByText(/strength/i)).toBeInTheDocument()
+
+    const skillsSection = screen.getByRole('heading', { name: /^skills$/i }).closest('section')
+    expect(skillsSection).not.toBeNull()
+    expect(within(skillsSection as HTMLElement).getByText(/athletics/i)).toBeInTheDocument()
+
+    const sensesSection = screen.getByText(/^senses$/i).closest('section')
+    expect(sensesSection).not.toBeNull()
+    expect(within(sensesSection as HTMLElement).getByText(/passive perception/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /equipment summary/i })).not.toBeInTheDocument()
+
+    const actionsSection = screen.getByRole('heading', { name: /^actions$/i }).closest('section')
+    expect(actionsSection).not.toBeNull()
+    expect(within(actionsSection as HTMLElement).getByText(/second wind/i)).toBeInTheDocument()
+
+    const featuresSection = screen.getByRole('heading', { name: /features & traits/i }).closest('section')
+    expect(featuresSection).not.toBeNull()
+    expect(within(featuresSection as HTMLElement).getByText(/action surge/i)).toBeInTheDocument()
+    expect(within(featuresSection as HTMLElement).getByText(/take one additional action/i)).toBeInTheDocument()
+
+    const resourceSection = screen.getByRole('heading', { name: /^resources$/i }).closest('section')
+    expect(resourceSection).not.toBeNull()
+    expect(within(resourceSection as HTMLElement).getByText(/second wind/i)).toBeInTheDocument()
+    expect(within(resourceSection as HTMLElement).queryByText(/hit dice/i)).not.toBeInTheDocument()
+  })
+
+  it('groups mobile sheet pages by in-game task', async () => {
+    const restoreViewport = mockMobileSheetViewport()
+    const user = userEvent.setup()
+
+    try {
+      renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={createSheet()} />)
+
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+      expect(screen.getAllByText(/^Overview$/).length).toBeGreaterThan(0)
+      expect(screen.getByRole('region', { name: /ability scores/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /saving throws/i })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: /^skills$/i })).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: /open sheet section menu/i }))
+      expect(screen.queryByRole('button', { name: /history/i })).not.toBeInTheDocument()
+      await user.click(await screen.findByRole('button', { name: /^skills$/i }))
+      expect(screen.getAllByRole('heading', { name: /^skills$/i }).length).toBeGreaterThan(0)
+
+      await user.click(await screen.findByRole('button', { name: /open sheet section menu/i }))
+      await user.click(await screen.findByRole('button', { name: /equipment/i }))
+
+      expect(screen.getAllByText(/^Equipment$/).length).toBeGreaterThan(0)
+      expect(screen.getByRole('heading', { name: /^equipment$/i, level: 1 })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /containers/i })).toBeInTheDocument()
+    } finally {
+      restoreViewport()
+    }
+  })
+
+  it('locks overview health and status controls while a sheet command is pending', () => {
     const sheet = createSheet()
     sheet.overview.exhaustionLevel = 1
 
     renderWithAppProviders(
-      <CharacterSheetOverview
-        pending
-        sheet={sheet}
-        submitCommand={vi.fn()}
-      />
+      <>
+        <CharacterSheetOverviewVitals
+          pending
+          sheet={sheet}
+          submitCommand={vi.fn()}
+        />
+        <CharacterSheetOverview
+          pending
+          sheet={sheet}
+          submitCommand={vi.fn()}
+        />
+        <CharacterSheetOverviewStatusStrip
+          pending
+          sheet={sheet}
+          submitCommand={vi.fn()}
+        />
+      </>
     )
 
-    expect(screen.getByRole('textbox', { name: /^amount$/i })).toBeDisabled()
-    expect(screen.getByRole('textbox', { name: /^temp hp$/i })).toBeDisabled()
-    expect(screen.getByRole('textbox', { name: /^max hp override$/i })).toBeDisabled()
-    expect(screen.getByLabelText(/exhaustion notes/i)).toBeDisabled()
-    expect(screen.getByRole('button', { name: /apply damage/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /save exhaustion notes/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /manage hp/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /clear exhaustion/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /add condition/i })).toBeDisabled()
   })
 
-  it('adds conditions with notes from the overview panel', async () => {
+  it('adds conditions with notes from the compact status strip', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewStatusStrip
         pending={false}
         sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
-    await user.click(screen.getByPlaceholderText(/add condition/i))
+    await user.click(screen.getByRole('button', { name: /add condition/i }))
+    await user.click(await screen.findByPlaceholderText(/add condition/i))
     await user.click(await screen.findByText(/poisoned/i))
     expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
     await user.type(screen.getByLabelText(/condition notes/i), 'Spider venom')
@@ -304,46 +563,40 @@ describe('Character Sheet sections', () => {
     })
   })
 
-  it('locks condition inputs while a sheet command is pending', () => {
+  it('locks condition controls while a sheet command is pending', () => {
     renderWithAppProviders(
-      <CharacterSheetConditions
+      <CharacterSheetOverviewStatusStrip
         pending
         sheet={createSheet()}
         submitCommand={vi.fn()}
       />
     )
 
-    expect(screen.getByPlaceholderText(/add condition/i)).toBeDisabled()
-    expect(screen.getByLabelText(/condition notes/i)).toBeDisabled()
-    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /add condition/i })).toBeDisabled()
   })
 
-  it('saves exhaustion notes through the overview panel', async () => {
+  it('sets exhaustion through the compact status strip', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
-    const sheet = createSheet()
-    sheet.overview.exhaustionLevel = 1
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewStatusStrip
         pending={false}
-        sheet={sheet}
+        sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
-    await user.type(screen.getByLabelText(/exhaustion notes/i), 'Forced march through the swamp')
-    await user.click(screen.getByRole('button', { name: /save exhaustion notes/i }))
+    await user.click(screen.getByRole('button', { name: /set exhaustion level 2/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'SET_EXHAUSTION',
-      level: 1,
-      notes: 'Forced march through the swamp',
+      level: 2,
       expectedVersion: 4
     })
   })
 
-  it('updates active condition notes through the overview panel', async () => {
+  it('updates active condition notes through the compact status strip', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
@@ -357,20 +610,20 @@ describe('Character Sheet sections', () => {
     ]
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewStatusStrip
         pending={false}
         sheet={sheet}
         submitCommand={submitCommand}
       />
     )
 
-    expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
-    expect(screen.queryByText(/<p>a poisoned creature/i)).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /edit poisoned notes/i }))
-    const notesField = await screen.findByDisplayValue('Spider venom')
+    await user.click(screen.getByRole('button', { name: /poisoned/i }))
+    await user.click(await screen.findByRole('button', { name: /edit poisoned notes/i }))
+    const notesField = screen.getByLabelText(/condition notes/i)
+    expect(notesField).toHaveValue('Spider venom')
     await user.clear(notesField)
     await user.type(notesField, 'Wyvern sting')
-    await user.click(screen.getByRole('button', { name: /save notes/i }))
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADD_CONDITION',
@@ -380,7 +633,7 @@ describe('Character Sheet sections', () => {
     })
   })
 
-  it('removes active conditions from the overview panel', async () => {
+  it('removes active conditions from the compact status strip', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
@@ -393,14 +646,15 @@ describe('Character Sheet sections', () => {
     ]
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewStatusStrip
         pending={false}
         sheet={sheet}
         submitCommand={submitCommand}
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /remove poisoned condition/i }))
+    await user.click(screen.getByRole('button', { name: /poisoned/i }))
+    await user.click(await screen.findByRole('button', { name: /remove poisoned condition/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'REMOVE_CONDITION',
@@ -421,6 +675,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    await openEquipmentManager(user)
     await user.click(screen.getByRole('button', { name: /apply currency/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
@@ -431,7 +686,8 @@ describe('Character Sheet sections', () => {
     })
   })
 
-  it('locks inventory inputs while a sheet command is pending', () => {
+  it('locks inventory inputs while a sheet command is pending', async () => {
+    const user = userEvent.setup()
     renderWithAppProviders(
       <CharacterSheetInventory
         pending
@@ -440,10 +696,11 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByRole('combobox', { name: /^add equipment$/i })).toBeDisabled()
+    await openEquipmentManager(user)
+    expect(screen.getByRole('combobox', { name: /^equipment$/i })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: /^quantity$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
-    expect(screen.getByRole('combobox', { name: /^adjust currency$/i })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: /^currency type$/i })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: /^amount$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /apply currency/i })).toBeDisabled()
   })
@@ -460,6 +717,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    await showCarriedEquipment(user)
     await user.click(screen.getByRole('button', { name: /increase longsword quantity/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
@@ -482,7 +740,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    await showCarriedEquipment(user)
     await user.click(screen.getByRole('button', { name: /decrease longsword quantity/i }))
+    await user.click(within(await screen.findByRole('dialog', { name: /remove longsword/i })).getByRole('button', { name: /remove item/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'REMOVE_INVENTORY_ITEM',
@@ -504,9 +764,11 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    await showCarriedEquipment(user)
     await user.click(screen.getByRole('button', { name: /equip longsword/i }))
     await user.click(screen.getByRole('button', { name: /attune longsword/i }))
     await user.click(screen.getByRole('button', { name: /remove longsword/i }))
+    await user.click(within(await screen.findByRole('dialog', { name: /remove longsword/i })).getByRole('button', { name: /remove item/i }))
 
     expect(submitCommand).toHaveBeenNthCalledWith(1, {
       type: 'EQUIP_ITEM',
@@ -528,7 +790,10 @@ describe('Character Sheet sections', () => {
   it('adds inventory items through sheet commands', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
-    const originalScrollIntoView = Element.prototype.scrollIntoView
+    const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      'scrollIntoView'
+    )
     Element.prototype.scrollIntoView = vi.fn()
 
     try {
@@ -540,11 +805,16 @@ describe('Character Sheet sections', () => {
         />
       )
 
-      await user.click(screen.getByRole('combobox', { name: /^add equipment$/i }))
+      await openEquipmentManager(user)
+      await user.click(screen.getByRole('combobox', { name: /^equipment$/i }))
       await user.keyboard('{ArrowDown}{Enter}')
       await user.click(screen.getByRole('button', { name: /add item/i }))
     } finally {
-      Element.prototype.scrollIntoView = originalScrollIntoView
+      if (scrollIntoViewDescriptor) {
+        Object.defineProperty(Element.prototype, 'scrollIntoView', scrollIntoViewDescriptor)
+      } else {
+        Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+      }
     }
 
     expect(submitCommand).toHaveBeenCalledWith({
@@ -567,7 +837,8 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /details/i }))
+    await showCarriedEquipment(user)
+    await user.click(screen.getByRole('button', { name: /edit longsword details/i }))
     await user.type(screen.getByLabelText(/custom name/i), 'Moonlit Blade')
     await user.type(screen.getByLabelText(/item notes/i), 'Loaned by the captain')
     await user.click(screen.getByRole('button', { name: /save details/i }))
@@ -600,7 +871,8 @@ describe('Character Sheet sections', () => {
         customName: 'Moonlit Blade',
         quantity: 1,
         equipped: true,
-        attuned: false
+        attuned: false,
+        requiresAttunement: false
       }
     ]
 
@@ -612,15 +884,16 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByText(/moonlit blade/i)).toBeInTheDocument()
+    await showCarriedEquipment(user)
+    expect(screen.getAllByText(/moonlit blade/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/longsword/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/qty 1 - weapon - 3 pounds - 15 gold - equipped/i)).toBeInTheDocument()
-    expect(screen.getByText(/properties:/i)).toBeInTheDocument()
-    expect(screen.getByText(/martial, melee/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/qty 1 - weapon - 3 pounds - 15 gold - equipped/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/properties:/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/martial, melee/i).length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: /details/i }))
+    await user.click(screen.getByRole('button', { name: /edit moonlit blade details/i }))
 
-    expect(screen.getByText(/a balanced knightly blade/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/a balanced knightly blade/i).length).toBeGreaterThan(0)
   })
 
   it('uses resources, restores resources, spends hit dice, and applies rests from the resources panel', async () => {
@@ -687,24 +960,26 @@ describe('Character Sheet sections', () => {
     refreshedSheet.overview.maxHitPointsOverride = 18
 
     const { rerender } = renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewVitals
         pending={false}
         sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
+    await openHpControls(user)
     await user.clear(screen.getByLabelText(/temp hp/i))
     await user.type(screen.getByLabelText(/temp hp/i), '9')
 
     rerender(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewVitals
         pending={false}
         sheet={refreshedSheet}
         submitCommand={submitCommand}
       />
     )
 
+    await openHpControls(user)
     await waitFor(() => expect(screen.getByLabelText(/temp hp/i)).toHaveValue('1'))
     await user.click(screen.getByRole('button', { name: /save hp settings/i }))
 
@@ -721,13 +996,14 @@ describe('Character Sheet sections', () => {
     const submitCommand = vi.fn()
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewVitals
         pending={false}
         sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
+    await openHpControls(user)
     await user.clear(screen.getByLabelText(/temp hp/i))
     await user.type(screen.getByLabelText(/temp hp/i), '5')
     await user.click(screen.getByRole('button', { name: /save hp settings/i }))
@@ -745,13 +1021,14 @@ describe('Character Sheet sections', () => {
     const submitCommand = vi.fn()
 
     renderWithAppProviders(
-      <CharacterSheetOverview
+      <CharacterSheetOverviewVitals
         pending={false}
         sheet={createSheet()}
         submitCommand={submitCommand}
       />
     )
 
+    await openHpControls(user)
     await user.clear(screen.getByRole('textbox', { name: /^amount$/i }))
     await user.type(screen.getByRole('textbox', { name: /^amount$/i }), '0')
 
@@ -799,7 +1076,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /prepare shield for wizard/i }))
+    await user.click(screen.getByRole('button', { name: /manage spells/i }))
+    const manageDialog = await screen.findByRole('dialog', { name: /manage spells/i })
+    await user.click(within(manageDialog).getByRole('button', { name: /^prepare$/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'SET_PREPARED_SPELLS',
@@ -809,7 +1088,8 @@ describe('Character Sheet sections', () => {
     })
   })
 
-  it('does not render spell preparation controls for known-spell sources', () => {
+  it('does not render spell preparation controls for known-spell sources', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
     sheet.spells.spells = [
       {
@@ -831,7 +1111,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.queryByRole('button', { name: /prepare charm person for bard/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /manage spells/i }))
+    const manageDialog = await screen.findByRole('dialog', { name: /manage spells/i })
+    expect(within(manageDialog).queryByRole('button', { name: /^prepare$/i })).not.toBeInTheDocument()
   })
 
   it('restores a single spell slot without clearing the full slot pool', async () => {
@@ -857,7 +1139,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /restore 1 level 1 spell slot/i }))
+    await user.click(screen.getByRole('button', { name: /level 1: 1 of 3 remaining/i }))
+    const slotDialog = await screen.findByRole('dialog', { name: /manage spell slot/i })
+    await user.click(within(slotDialog).getByRole('button', { name: /restore one/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'RESTORE_SPELL_SLOT',
@@ -889,7 +1173,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /use level 1 spell slot/i }))
+    await user.click(screen.getByRole('button', { name: /level 1: 3 of 3 remaining/i }))
+    const slotDialog = await screen.findByRole('dialog', { name: /manage spell slot/i })
+    await user.click(within(slotDialog).getByRole('button', { name: /use one slot/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_SPELL_SLOT',
@@ -898,7 +1184,9 @@ describe('Character Sheet sections', () => {
     })
   })
 
-  it('renders spell casting details and rules text', () => {
+  it('renders spell casting details and submits casts through the focused drawer', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
     const sheet = createSheet()
     sheet.spells.spells = [
       {
@@ -912,7 +1200,8 @@ describe('Character Sheet sections', () => {
         attributes: ['CONCENTRATION'],
         materialDescription: '<p>A pinch of powdered silver.</p>',
         prepared: true,
-        known: true
+        known: true,
+        sources: [{ id: 'wizard-source', classId: 'wizard', label: 'Wizard', castMode: 'AT_WILL', canPrepare: true, prepared: true }]
       }
     ]
 
@@ -920,31 +1209,128 @@ describe('Character Sheet sections', () => {
       <CharacterSheetSpells
         pending={false}
         sheet={sheet}
-        submitCommand={vi.fn()}
+        submitCommand={submitCommand}
       />
     )
 
+    expect(screen.getByRole('group', { name: 'Shield' })).toBeInTheDocument()
     expect(screen.getByText(/level 1 - abjuration - 1 round - verbal, somatic, material/i)).toBeInTheDocument()
     expect(screen.getByText(/attributes:/i)).toBeInTheDocument()
     expect(screen.getByText(/concentration/i)).toBeInTheDocument()
     expect(screen.getByText(/a shimmering barrier protects you/i)).toBeInTheDocument()
-    expect(screen.getByText(/a pinch of powdered silver/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^cast$/i }))
+    const castDialog = await screen.findByRole('dialog', { name: /cast shield/i })
+    await user.click(within(castDialog).getByRole('button', { name: /cast shield/i }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'CAST_SPELL',
+      spellId: 'spell-1',
+      sourceId: 'wizard-source',
+      expectedVersion: 4
+    })
   })
 
-  it('resyncs session notes when refreshed sheet data changes', async () => {
+  it('shows spell level, provenance, mechanics, and the selected upcast result', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn()
+    })
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
-    sheet.notes.notes = '<p>Old notes</p>'
+    sheet.spells.slots = [
+      { slotKey: 'STANDARD:1', label: 'Level 1', level: 1, used: 0, max: 4, remaining: 4 },
+      { slotKey: 'STANDARD:2', label: 'Level 2', level: 2, used: 0, max: 2, remaining: 2 }
+    ]
+    sheet.spells.spells = [
+      {
+        id: 'healing-word',
+        label: 'Healing Word',
+        level: 1,
+        school: 'EVOCATION',
+        prepared: true,
+        known: true,
+        sources: [
+          {
+            id: 'artificer-source',
+            classId: 'artificer',
+            label: 'Artificer',
+            provenance: 'CLASS',
+            acquisition: 'PREPARED',
+            castMode: 'SPELL_SLOT',
+            canPrepare: true,
+            prepared: true
+          }
+        ],
+        mechanics: [
+          {
+            effectId: 'healing-word-effect',
+            trigger: 'ACTIVATED',
+            activation: { kind: 'BONUS_ACTION', amount: 1 },
+            rangeLabel: '60 ft',
+            outcomes: [
+              {
+                kind: 'HEAL',
+                pathCode: 'ON_USE',
+                expression: '1d4 + 4',
+                temporary: false,
+                scaling: [
+                  { level: 1, expression: '1d4 + 4' },
+                  { level: 2, expression: '2d4 + 4' }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    const spellCard = screen.getByRole('group', { name: 'Healing Word' })
+    expect(within(spellCard).getAllByText(/level 1/i).length).toBeGreaterThan(0)
+    expect(within(spellCard).getByText(/artificer · class · prepared · spell slot/i)).toBeInTheDocument()
+    expect(within(spellCard).getByText(/60 ft/i)).toBeInTheDocument()
+    expect(within(spellCard).getByText(/1d4 \+ 4 · healing/i)).toBeInTheDocument()
+    expect(within(spellCard).getByText(/higher-level spell slot/i)).toBeInTheDocument()
+
+    await user.click(within(spellCard).getByRole('button', { name: /^cast$/i }))
+    const castDialog = await screen.findByRole('dialog', { name: /cast healing word/i })
+    expect(within(castDialog).getByText(/1d4 \+ 4 · healing/i)).toBeInTheDocument()
+
+    await user.click(within(castDialog).getByRole('combobox', { name: /cast using/i }))
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: /level 2 · 2\/2/i }))
+
+    expect(within(castDialog).getByText(/2d4 \+ 4 · healing/i)).toBeInTheDocument()
+    await user.click(within(castDialog).getByRole('button', { name: /cast healing word/i }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'CAST_SPELL',
+      spellId: 'healing-word',
+      sourceId: 'artificer-source',
+      slotKey: 'STANDARD:2',
+      expectedVersion: 4
+    })
+  })
+
+  it('resyncs the selected note when refreshed sheet data changes', async () => {
+    const sheet = createSheet()
+    sheet.notes.groups = [{ id: 'session', label: 'Session Notes', kind: 'SESSION', sortOrder: 0 }]
+    sheet.notes.items = [{ id: 'note-1', title: 'Session One', body: '<p>Old notes</p>', groupId: 'session', pinned: false, createdAt: '2026-07-10T12:00:00.000Z', updatedAt: '2026-07-10T12:00:00.000Z' }]
     const refreshedSheet = createSheet()
     refreshedSheet.meta.streamVersion = 5
-    refreshedSheet.notes.notes = '<p>Updated notes</p>'
+    refreshedSheet.notes.groups = sheet.notes.groups
+    refreshedSheet.notes.items = [{ id: 'note-1', title: 'Session One', body: '<p>Updated notes</p>', groupId: 'session', pinned: true, createdAt: '2026-07-10T12:00:00.000Z', updatedAt: '2026-07-11T12:00:00.000Z' }]
 
     const { rerender } = renderWithAppProviders(
       <CharacterSheetNotes
         pending={false}
         sheet={sheet}
-        submitCommand={submitCommand}
+        submitCommand={vi.fn()}
       />
     )
 
@@ -952,23 +1338,19 @@ describe('Character Sheet sections', () => {
       <CharacterSheetNotes
         pending={false}
         sheet={refreshedSheet}
-        submitCommand={submitCommand}
+        submitCommand={vi.fn()}
       />
     )
 
-    await screen.findByText(/updated notes/i)
-    await user.click(screen.getByRole('button', { name: /save notes/i }))
-
-    expect(submitCommand).toHaveBeenCalledWith({
-      type: 'UPDATE_NOTES',
-      notes: '<p>Updated notes</p>',
-      expectedVersion: 5
-    })
+    expect(await screen.findByText(/updated notes/i)).toBeInTheDocument()
+    expect(screen.getByText(/pinned/i)).toBeInTheDocument()
+    expect(screen.getByText(/edited/i)).toBeInTheDocument()
   })
 
-  it('locks session notes editing while a sheet command is pending', () => {
+  it('locks note content and submission while a sheet command is pending', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
-    sheet.notes.notes = '<p>Keep watch at midnight.</p>'
+    sheet.notes.groups = [{ id: 'session', label: 'Session Notes', kind: 'SESSION', sortOrder: 0 }]
 
     renderWithAppProviders(
       <CharacterSheetNotes
@@ -978,11 +1360,14 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByLabelText(/session notes/i)).toHaveAttribute('contenteditable', 'false')
-    expect(screen.getByRole('button', { name: /save notes/i })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /new note/i }))
+    const editor = await screen.findByRole('dialog', { name: /new note/i })
+    expect(within(editor).getByLabelText(/^note$/i)).toHaveAttribute('contenteditable', 'false')
+    expect(within(editor).getByRole('button', { name: /create note/i })).toBeDisabled()
   })
 
-  it('renders rich text background notes without exposing markup', () => {
+  it('renders Builder-owned backstory as read-only rich text without exposing markup', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
     sheet.notes.alignment = 'Chaotic Good'
     sheet.notes.lifestyle = 'Modest'
@@ -1007,39 +1392,10 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByText(/alignment: chaotic good/i)).toBeInTheDocument()
-    expect(screen.getByText(/lifestyle: modest/i)).toBeInTheDocument()
-    expect(screen.getByText(/faith: oghma/i)).toBeInTheDocument()
-    expect(screen.getByText(/gender: nonbinary/i)).toBeInTheDocument()
-    expect(screen.getByText(/age: 32/i)).toBeInTheDocument()
-    expect(screen.getByText(/weathered blue cloak/i)).toBeInTheDocument()
-    expect(screen.getByText(/asks one question/i)).toBeInTheDocument()
-    expect(screen.getByText(/knowledge should help people/i)).toBeInTheDocument()
-    expect(screen.getByText(/protects a missing mentor/i)).toBeInTheDocument()
-    expect(screen.getByText(/cannot leave a sealed door/i)).toBeInTheDocument()
-    expect(screen.getByText(/archive lanterns/i)).toBeInTheDocument()
-    expect(screen.getByText(/captain merrow/i)).toBeInTheDocument()
-    expect(screen.getByText(/sable index/i)).toBeInTheDocument()
+    await user.click(screen.getByText(/character backstory/i))
     expect(screen.getByText(/raised among dangerous archives/i)).toBeInTheDocument()
-    expect(screen.queryByText(/<p>asks one question/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/<p>raised among dangerous archives/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit backstory/i })).not.toBeInTheDocument()
   })
 
-  it('renders sheet command history entries without needing the builder', () => {
-    renderWithAppProviders(
-      <CharacterSheetHistoryList
-        entries={[
-          {
-            eventId: 'event-1',
-            occurredAt: '2026-05-05T14:15:00.000Z',
-            actorId: 'user-1',
-            eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
-            summary: '3 damage applied'
-          }
-        ]}
-      />
-    )
-
-    expect(screen.getByText(/3 damage applied/i)).toBeInTheDocument()
-    expect(screen.getByText(/character sheet command applied/i)).toBeInTheDocument()
-  })
 })

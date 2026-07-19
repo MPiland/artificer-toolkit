@@ -6,7 +6,6 @@ export const fireElemental: CreatureAuthored = {
   label: 'Fire Elemental',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
   size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const fireElemental: CreatureAuthored = {
     INTELLIGENCE: 6,
     WISDOM: 10,
     CHARISMA: 7,
-    SPELLCASTING: 0
   },
   armorClass: 13,
   hitPoints: 102,

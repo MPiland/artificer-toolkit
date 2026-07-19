@@ -1,12 +1,19 @@
 import type { CompiledEquipment, CompiledEquipmentVariant } from '../subjects/compilers/equipment.js'
+import type {
+  CharacterAcquisitionTiming,
+  CharacterChosenGrantSelectionRecord,
+  CharacterFeatureSelectionRecord,
+  CharacterProvenance
+} from '../subjects/authored/character/intent.js'
 
-/**
- * Stable reference to authored content. contentVersionId is optional now;
- * required once the marketplace/versioning phase is active.
- */
+export type ContentRevisionBinding =
+  | { kind: 'ACTIVE' }
+  | { kind: 'REVISION', revisionId: string }
+
+/** Stable definition identity plus the revision-binding policy used for resolution. */
 export interface ContentRef {
-  contentId: string
-  contentVersionId?: string
+  definitionId: string
+  binding: ContentRevisionBinding
   systemId: string
 }
 
@@ -38,15 +45,18 @@ export interface OwnedEquipmentInstance {
 }
 
 /**
- * Ephemeral engine input assembled from CharacterBuildState + CharacterAssemblyRegistry.
+ * Ephemeral engine input assembled from CharacterAuthored intent/state and CharacterAssemblyRegistry.
  *
- * This type replaces the old AssembledCharacterSnapshot as the engine input.
  * It is never persisted — build it fresh from the current character before each engine run.
  */
 export interface CharacterBuildSnapshot {
   characterId: string
   systemId: string
   totalLevel: number
+  raceId?: string
+  subraceId?: string
+  backgroundId?: string
+  chosenGrantSelections?: CharacterChosenGrantSelectionRecord[]
 
   /** Each class the character has levels in */
   classes: Array<{
@@ -67,24 +77,23 @@ export interface CharacterBuildSnapshot {
   }>
 
   /**
-   * Assembled feature acquisitions — sourced from CharacterBuildState.
+   * Assembled feature acquisitions sourced from CharacterAuthored intent.
    * The engine uses these to drive grant accumulation.
    */
   features: Array<{
+    acquisitionId?: string
     featureId: string
-    source: { kind: string } & Record<string, unknown>
-    timing: { kind: string } & Record<string, unknown>
+    source: CharacterProvenance
+    timing: CharacterAcquisitionTiming
+    selections?: CharacterFeatureSelectionRecord[]
   }>
 
-  /**
-   * Equipped items with their resolved compiled form.
-   * Only equipped items (equippedState is present) should be included here.
-   * Items in inventory only are excluded.
-   */
-  equippedItems: Array<{
+  /** Inventory items with their resolved compiled form and current play state. */
+  equipmentItems: Array<{
     instanceId: string
     contentRef: ContentRef
-    equippedState: EquippedState
+    equippedState?: EquippedState
+    attuned: boolean
     compiledItem: CompiledEquipment | CompiledEquipmentVariant
   }>
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getCharacterChosenGrantSelectionIdentityKey,
   isSameCharacterProvenanceIdentity,
   type CharacterProvenance
 } from '#authored'
@@ -32,5 +33,23 @@ describe('character provenance identity', () => {
 
     expect(isSameCharacterProvenanceIdentity(wizardSource, fighterSource)).toBe(false)
     expect(isSameCharacterProvenanceIdentity(arcanaOptionSource, historyOptionSource)).toBe(false)
+  })
+
+  it('includes owner identity in a chosen grant selection key', () => {
+    const classKey = getCharacterChosenGrantSelectionIdentityKey({
+      grantId: 'shared-grant',
+      source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 }
+    })
+    const sameClassAtAnotherLevel = getCharacterChosenGrantSelectionIdentityKey({
+      grantId: 'shared-grant',
+      source: { kind: 'CLASS', classId: 'wizard', classLevel: 5 }
+    })
+    const featureKey = getCharacterChosenGrantSelectionIdentityKey({
+      grantId: 'shared-grant',
+      source: { kind: 'FEATURE', featureId: 'wizard' }
+    })
+
+    expect(classKey).toBe(sameClassAtAnotherLevel)
+    expect(classKey).not.toBe(featureKey)
   })
 })

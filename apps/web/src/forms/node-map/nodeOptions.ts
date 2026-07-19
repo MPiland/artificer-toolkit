@@ -18,33 +18,30 @@ export function defaultSourceOptionResolver<TValues extends object>({
   source,
   values
 }: DefaultSourceOptionResolverArgs<TValues>): SelectOption[] {
-  if (source.kind === 'INLINE' && 'options' in source) {
-    return source.options.map((option) => ({
-      value: String(option.code),
-      label: option.label
-    }))
-  }
-
-  if (source.kind === 'INLINE' && 'optionGroups' in source) {
-    return source.optionGroups
-      .filter((group) => values === undefined || isConditionVisible(group.showIf, values))
-      .flatMap((group) => group.options.map((option) => ({
+  switch (source.kind) {
+    case 'INLINE_OPTIONS':
+      return source.options.map((option) => ({
         value: String(option.code),
         label: option.label
-      })))
+      }))
+    case 'INLINE_GROUPS':
+      return source.optionGroups
+        .filter((group) => values === undefined || isConditionVisible(group.showIf, values))
+        .flatMap((group) =>
+          group.options.map((option) => ({
+            value: String(option.code),
+            label: option.label
+          }))
+        )
+    case 'DATA':
+      return [
+        {
+          value: '__runtime_options_unresolved__',
+          label: 'Runtime options unavailable',
+          disabled: true
+        }
+      ]
   }
-
-  if (source.kind === 'DATA') {
-    return [
-      {
-        value: '__runtime_options_unresolved__',
-        label: 'Runtime options unavailable',
-        disabled: true
-      }
-    ]
-  }
-
-  return []
 }
 
 export function defaultOptionResolver<TValues extends object>({

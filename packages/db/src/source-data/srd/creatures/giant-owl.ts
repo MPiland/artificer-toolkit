@@ -5,7 +5,6 @@ export const giantOwl: CreatureAuthored = {
     label: 'Giant Owl',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.LARGE,
@@ -16,7 +15,6 @@ export const giantOwl: CreatureAuthored = {
         INTELLIGENCE: 8,
         WISDOM: 13,
         CHARISMA: 10,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     hitPoints: 19,

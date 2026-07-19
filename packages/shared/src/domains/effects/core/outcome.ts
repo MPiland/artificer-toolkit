@@ -11,7 +11,7 @@ export const EFFECT_KIND = {
   MANIFEST: 'MANIFEST',
   MOVE_MANIFEST: 'MOVE_MANIFEST',
   COMMAND_MANIFEST: 'COMMAND_MANIFEST',
-  RULE: 'RULE'
+  MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
 
 export const MANIFEST_KIND = {
@@ -136,11 +136,11 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     tooltip: 'This effect commands a previously created manifestation to use one of its behaviors.',
     description: 'This effect commands a previously created manifestation to use one of its behaviors.'
   },
-  [EFFECT_KIND.RULE]: {
-    code: EFFECT_KIND.RULE,
-    label: 'Rule',
-    tooltip: 'This effect records a constrained rules fallback when no better typed outcome exists yet.',
-    description: 'This effect records a constrained rules fallback when no better typed outcome exists yet.'
+  [EFFECT_KIND.MANUAL_ADJUDICATION]: {
+    code: EFFECT_KIND.MANUAL_ADJUDICATION,
+    label: 'Manual Adjudication',
+    tooltip: 'This outcome is descriptive and must be resolved by a player or GM.',
+    description: 'Marks behavior the engine intentionally does not automate.'
   }
 } as const
 

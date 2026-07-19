@@ -10,6 +10,7 @@ const itemSchema = z.object({
 
 const response = {
   publicId: '1',
+  activeRevisionId: 'active-revision-id',
   item: {
     id: 'active-id',
     label: 'Active Record',
@@ -29,7 +30,6 @@ const response = {
 
 function draft(payload: Record<string, unknown>, overrides: Partial<AuthoredDraftDto> = {}): AuthoredDraftDto {
   return {
-    id: 'draft-row-id',
     subjectKind: 'SPELL',
     subjectId: 'active-id',
     publicId: '1',
@@ -38,7 +38,10 @@ function draft(payload: Record<string, unknown>, overrides: Partial<AuthoredDraf
     label: 'Draft Record',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
-    baseActiveUpdatedAt: null,
+    revisionId: 'draft-revision-id',
+    revisionNumber: 2,
+    activeRevisionId: 'active-revision-id',
+    baseActiveRevisionId: 'active-revision-id',
     payload,
     ...overrides
   }

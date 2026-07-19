@@ -57,7 +57,7 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: VEHICLE_CATEGORY_OPTIONS
     }, {
       section: VEHICLE_SECTIONS.basics,
@@ -65,7 +65,7 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       requiredIf: true
     }))
     .set('size', selectSingle(['size'], 'Size', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SIZE_OPTIONS
     }, { section: VEHICLE_SECTIONS.stats, order: 10 }))
     .set('armorClass', number(['armorClass'], 'Armor Class', { section: VEHICLE_SECTIONS.stats, order: 20 }))
@@ -76,8 +76,8 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
     .set('crewMax', number(['crewMax'], 'Maximum Crew', { section: VEHICLE_SECTIONS.capacity, order: 20 }))
     .set('passengerCapacity', number(['passengerCapacity'], 'Passenger Capacity', { section: VEHICLE_SECTIONS.capacity, order: 30 }))
     .set('cargoCapacity', text(['cargoCapacity'], 'Cargo Capacity', { section: VEHICLE_SECTIONS.capacity, order: 40 }))
-    .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, { section: VEHICLE_SECTIONS.economy, order: 10 }))
-    .set('properties', groupArray(['properties'], 'Properties', () => stringNode, { section: VEHICLE_SECTIONS.economy, order: 20 }))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: VEHICLE_SECTIONS.content, order: 10 }))
-    .set('details', groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, { section: VEHICLE_SECTIONS.content, order: 20 }))
+    .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, { presentation: 'inline', section: VEHICLE_SECTIONS.economy, order: 10 }))
+    .set('properties', groupArray(['properties'], 'Properties', () => stringNode, { presentation: 'inline', section: VEHICLE_SECTIONS.economy, order: 20 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { presentation: 'branch', section: VEHICLE_SECTIONS.content, order: 10 }))
+    .set('details', groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, { presentation: 'inline', section: VEHICLE_SECTIONS.content, order: 20 }))
 })

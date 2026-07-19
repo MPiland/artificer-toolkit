@@ -13,6 +13,7 @@ const response: SpellListResponseDto = {
     {
       id: 'magic-missile',
       publicId: 'magic-missile',
+      activeRevisionId: 'magic-missile-active-revision',
       label: 'Magic Missile',
       description: 'Force darts.',
       status: 'ACTIVE',
@@ -28,6 +29,7 @@ const response: SpellListResponseDto = {
     {
       id: 'ember-lace',
       publicId: 'ember-lace',
+      activeRevisionId: 'ember-lace-active-revision',
       label: 'Ember Lace',
       description: 'Homebrew fire spell.',
       status: 'DRAFT',

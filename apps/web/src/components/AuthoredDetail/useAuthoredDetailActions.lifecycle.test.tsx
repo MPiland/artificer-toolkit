@@ -29,7 +29,6 @@ function createDeferred<T>(): Deferred<T> {
 
 function createCopiedDraft(): AuthoredDraftDto {
   return {
-    id: 'draft-row-id',
     subjectKind: 'RACE',
     subjectId: 'race-copy',
     publicId: 'dragonborn-copy',
@@ -38,6 +37,10 @@ function createCopiedDraft(): AuthoredDraftDto {
     label: 'Dragonborn Copy',
     status: 'DRAFT',
     draftState: 'DRAFT_ONLY',
+    revisionId: 'draft-revision-id',
+    revisionNumber: 1,
+    activeRevisionId: null,
+    baseActiveRevisionId: null,
     payload: {
       id: 'race-copy',
       label: 'Dragonborn Copy'

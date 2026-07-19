@@ -1,35 +1,27 @@
-import type {
-  EffectDto,
-  PathDto,
-  TargetingDto
-} from '@artificer-toolkit/schema/effects'
+import type { EffectDto, PathDto, TargetingDto } from '@artificer-toolkit/schema/effects'
 import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
-import type { NodeRuntimeNodeDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type {
+  NodeRuntimeArrayGroupNodeDto,
+  NodeRuntimeGroupNodeDto,
+  NodeRuntimeObjectGroupNodeDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { getAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
 
 export type AuthoringGroupValues = Record<string, unknown>
-
-export type EffectEditorReferenceData = {
-  damageTypes: Array<{ value: string, label: string }>
-  conditionTypes: Array<{ value: string, label: string }>
-  creatures: Array<{ value: string, label: string }>
-}
-
-type ResultBlockLike = {
-  outcomes?: unknown
-}
-
-export type OutcomeDraft = Record<string, unknown>
-export type StartingEquipmentItemDto = StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
+export type StartingEquipmentItemDto =
+  StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
 
 export function createDefaultAuthoringArrayItem(
-  node: NodeRuntimeNodeDto,
+  node: NodeRuntimeArrayGroupNodeDto,
   currentLength: number
 ): AuthoringGroupValues {
   return createDefaultAuthoringNodeValue(getChildMapId(node), currentLength + 1)
 }
 
-export function createDefaultAuthoringObjectItem(node: NodeRuntimeNodeDto): AuthoringGroupValues {
+export function createDefaultAuthoringObjectItem(
+  node: NodeRuntimeObjectGroupNodeDto
+): AuthoringGroupValues {
   return createDefaultAuthoringNodeValue(getChildMapId(node), 1)
 }
 
@@ -37,28 +29,34 @@ export function createDefaultAuthoringNodeValue(
   childMapId: string,
   order = 1
 ): AuthoringGroupValues {
-  switch (childMapId) {
+  const defaultKind = getAuthoringDefaultKind(childMapId)
+
+  switch (defaultKind) {
     case 'abilityScores':
-    case 'summonAbilityScores':
       return createAbilityScores()
     case 'capacity':
-    case 'creatureCapacity':
       return createMeasurement('POUNDS')
     case 'activation':
-    case 'castingTime':
       return {
         amount: 1,
         unit: 'ROUND'
       }
+    case 'applyGrants':
+      return {
+        modifiers: [],
+        proficiencies: [],
+        senses: []
+      }
     case 'chargeBonus':
       return createChargeBonus(order)
+    case 'chargeLevelScaling':
+      return {
+        level: order,
+        amount: 1
+      }
     case 'charges':
       return createChargeRules()
     case 'classDetail':
-    case 'creatureDetail':
-    case 'detail':
-    case 'raceDetail':
-    case 'vehicleDetail':
       return createDetail(order)
     case 'classHitpoint':
       return {
@@ -138,7 +136,6 @@ export function createDefaultAuthoringNodeValue(
         quantity: 1
       }
     case 'cost':
-    case 'creatureCost':
       return {
         amount: 0,
         currencyId: ''
@@ -186,6 +183,13 @@ export function createDefaultAuthoringNodeValue(
       return {
         durationKind: 'INSTANTANEOUS'
       }
+    case 'durationScalingBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: { amount: 1 }
+      }
     case 'durationValue':
       return { amount: 1 }
     case 'facet':
@@ -199,19 +203,48 @@ export function createDefaultAuthoringNodeValue(
         groups: []
       }
     case 'facetBodyGroup':
-      return { conditions: [] }
+      return {
+        id: crypto.randomUUID(),
+        order,
+        conditions: []
+      }
+    case 'facetCondition':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        kind: 'PREDICATE',
+        constraint: 'INCLUDE'
+      }
     case 'facetContext':
-      return { conditions: [] }
+      return {
+        id: crypto.randomUUID(),
+        order,
+        subject: 'CHARACTER',
+        conditions: [
+          {
+            id: crypto.randomUUID(),
+            order: 1,
+            kind: 'PREDICATE',
+            constraint: 'INCLUDE'
+          }
+        ]
+      }
     case 'facetExists':
       return {
-        constraint: 'REQUIRED',
+        id: crypto.randomUUID(),
+        order,
+        kind: 'EXISTS',
+        constraint: 'INCLUDE',
         relationCode: 'FEATURE',
         authoringModeKind: 'ALL'
       }
     case 'facetGroup':
-      return { contexts: [] }
+      return {
+        id: crypto.randomUUID(),
+        order,
+        contexts: []
+      }
     case 'feature':
-    case 'featureBasics':
       return createFeatureLike(order)
     case 'option':
       return createOption(order)
@@ -250,23 +283,56 @@ export function createDefaultAuthoringNodeValue(
         activation: { code: 'ACTION', amount: 1 },
         range: createRange('SELF')
       }
+    case 'manifestBehavior':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        invocation: {
+          kind: 'ACTION',
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'ACTION', amount: 1 },
+          range: createRange('SELF')
+        },
+        paths: []
+      }
     case 'measurement':
-    case 'shapeMeasurement':
       return createMeasurement('FEET')
-    case 'nonManifestOutcome':
+    case 'measurementScalingBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: createMeasurement('FEET')
+      }
     case 'outcome':
       return {
         id: crypto.randomUUID(),
-        effectKind: 'RULE'
+        effectKind: 'MANUAL_ADJUDICATION'
       }
-    case 'nonManifestResultBlock':
+    case 'outcomeBonus':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        bonusKind: 'PROFICIENCY_BONUS'
+      }
+    case 'pathChoiceOption':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        label: '',
+        description: '',
+        resultBlock: {
+          id: crypto.randomUUID(),
+          resultKind: 'SINGLE',
+          outcomes: []
+        }
+      }
     case 'resultBlock':
       return {
         id: crypto.randomUUID(),
         resultKind: 'SINGLE',
         outcomes: []
       }
-    case 'numericAtom':
     case 'numericExpr':
       return {
         valueKind: 'FIXED',
@@ -274,6 +340,18 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'pathLifecycle':
       return {}
+    case 'pathRollTableRow':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        rollRange: [order, order],
+        rollValue: order,
+        resultBlock: {
+          id: crypto.randomUUID(),
+          resultKind: 'SINGLE',
+          outcomes: []
+        }
+      }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':
@@ -293,6 +371,12 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'range':
       return createRange('DISTANCE')
+    case 'scaling':
+      return {
+        scalingKind: 'BREAKPOINTS',
+        scalingSource: 'CHARACTER_LEVEL',
+        breakpoints: []
+      }
     case 'savingThrow':
       return {
         id: crypto.randomUUID(),
@@ -356,22 +440,31 @@ export function createDefaultAuthoringNodeValue(
         order,
         groups: []
       }
-    case 'vehicleString':
     case 'string':
-    case 'logisticsNote':
-    case 'regionalEffect':
-    case 'tag':
       return { value: '' }
+    case 'summonStatBlock':
+      return {}
+    case 'targetCount':
+      return { amount: 1 }
     case 'targeting':
       return createTargeting('SELF') as AuthoringGroupValues
+    case 'damageLevelScalingEntry':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        amount: 1,
+        diceConfig: '1d6'
+      }
     case 'weight':
       return createMeasurement('POUNDS')
     default:
-      return {
-        id: crypto.randomUUID(),
-        order
-      }
+      return assertUnreachableDefaultKind(defaultKind)
   }
+}
+
+function assertUnreachableDefaultKind(kind: never): never {
+  throw new Error(`Unsupported authoring default kind: ${String(kind)}`)
 }
 
 export function createEmptyStartingEquipment(): StartingEquipmentDto {
@@ -392,7 +485,9 @@ export function createEmptyStartingEquipmentItem(order: number): StartingEquipme
   }
 }
 
-export function addStartingEquipmentItem(startingEquipment: StartingEquipmentDto | undefined): StartingEquipmentDto {
+export function addStartingEquipmentItem(
+  startingEquipment: StartingEquipmentDto | undefined
+): StartingEquipmentDto {
   const next = startingEquipment ?? createEmptyStartingEquipment()
   const itemCount = getStartingEquipmentItems(next).length
 
@@ -416,44 +511,28 @@ export function replaceStartingEquipmentItem(
   itemId: string,
   replacement: StartingEquipmentItemDto
 ): StartingEquipmentDto {
-  return updateStartingEquipmentItems(startingEquipment, (items) => (
-    items.map((item) => item.id === itemId ? replacement : item)
-  ))
+  return updateStartingEquipmentItems(startingEquipment, (items) =>
+    items.map((item) => (item.id === itemId ? replacement : item))
+  )
 }
 
-export function removeStartingEquipmentItem(startingEquipment: StartingEquipmentDto, itemId: string): StartingEquipmentDto {
-  return updateStartingEquipmentItems(startingEquipment, (items) => items.filter((item) => item.id !== itemId))
+export function removeStartingEquipmentItem(
+  startingEquipment: StartingEquipmentDto,
+  itemId: string
+): StartingEquipmentDto {
+  return updateStartingEquipmentItems(startingEquipment, (items) =>
+    items.filter((item) => item.id !== itemId)
+  )
 }
 
-export function getStartingEquipmentItems(startingEquipment: StartingEquipmentDto | undefined): StartingEquipmentItemDto[] {
+export function getStartingEquipmentItems(
+  startingEquipment: StartingEquipmentDto | undefined
+): StartingEquipmentItemDto[] {
   if (!startingEquipment) return []
 
-  return startingEquipment.sets.flatMap((set) => (
+  return startingEquipment.sets.flatMap((set) =>
     set.groups.flatMap((group) => group.options.flatMap((option) => option.items))
-  ))
-}
-
-export function formatStartingEquipmentTitle(item: StartingEquipmentItemDto): string {
-  return item.startingEquipmentKind === 'CURRENCY' ? 'Currency' : 'Equipment'
-}
-
-export function formatStartingEquipmentDescription(item: StartingEquipmentItemDto): string {
-  if (item.startingEquipmentKind === 'CURRENCY') {
-    return item.currencies
-      .map((currency) => isRecord(currency) ? `${currency.amount ?? 0} ${currency.currencyId ?? ''}` : '')
-      .filter(Boolean)
-      .join(', ') || 'No currency selected yet.'
-  }
-
-  const amount = item.selectionKind === 'CHOSEN'
-    ? `Player chooses ${item.count ?? 1}`
-    : `Grants ${item.quantity ?? 1}`
-  const equipmentIds = item.authoringModeKind === 'SELECTED' ? item.equipmentIds : []
-  const target = item.authoringModeKind === 'SELECTED'
-    ? `${equipmentIds.length} selected option${equipmentIds.length === 1 ? '' : 's'}`
-    : 'matching equipment'
-
-  return `${amount} from ${target}.`
+  )
 }
 
 export function createDefaultEffect(order: number): EffectDto {
@@ -470,7 +549,10 @@ export function createDefaultEffect(order: number): EffectDto {
   }
 }
 
-export function createDefaultPath(order: number, pathCode: PathDto['pathCode'] = 'ON_USE'): PathDto {
+export function createDefaultPath(
+  order: number,
+  pathCode: PathDto['pathCode'] = 'ON_USE'
+): PathDto {
   return {
     id: crypto.randomUUID(),
     order,
@@ -485,187 +567,26 @@ export function createDefaultPath(order: number, pathCode: PathDto['pathCode'] =
   } as PathDto
 }
 
-export function createPathForSelection({
-  id,
-  order,
-  pathCode,
-  selectionKind
-}: {
-  id: string
-  order: number
-  pathCode: PathDto['pathCode']
-  selectionKind: 'FIXED' | 'CHOICE' | 'ROLL_TABLE'
-}): PathDto {
-  if (selectionKind === 'CHOICE') {
-    return {
-      id,
-      order,
-      pathCode,
-      groupType: 'CHOICE',
-      selectionKind: 'CHOICE',
-      options: []
-    } as PathDto
-  }
-
-  if (selectionKind === 'ROLL_TABLE') {
-    return {
-      id,
-      order,
-      pathCode,
-      groupType: 'SINGLE',
-      selectionKind: 'ROLL_TABLE',
-      rollTableKind: 'RANGE',
-      dieConfig: '1d6',
-      rows: []
-    } as PathDto
-  }
-
-  return {
-    ...createDefaultPath(order, pathCode),
-    id
-  }
-}
-
 export function createRange(rangeKind = 'SELF', amount = 30): RangeDto {
   return rangeKind === 'DISTANCE'
     ? { id: crypto.randomUUID(), rangeKind: 'DISTANCE', amount, unit: 'FEET' }
-    : { id: crypto.randomUUID(), rangeKind: rangeKind as Exclude<RangeDto['rangeKind'], 'DISTANCE'> }
+    : {
+        id: crypto.randomUUID(),
+        rangeKind: rangeKind as Exclude<RangeDto['rangeKind'], 'DISTANCE'>
+      }
 }
 
 export function createTargeting(selectionKind = 'SELF'): TargetingDto {
   if (selectionKind === 'SELF') return { selectionKind: 'SELF' }
-  if (selectionKind === 'CHOSEN_CREATURES') return { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY', maxTargets: 1 }
-  if (selectionKind === 'AREA_CONTENTS') return { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
+  if (selectionKind === 'CHOSEN_CREATURES')
+    return { selectionKind: 'CHOSEN_CREATURES', dispositionKind: 'ANY', maxTargets: 1 }
+  if (selectionKind === 'AREA_CONTENTS')
+    return { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
   return { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
 }
 
-export function createOutcome(kind: string, references: EffectEditorReferenceData): Record<string, unknown> {
-  const id = crypto.randomUUID()
-
-  switch (kind) {
-    case 'DAMAGE':
-      return {
-        id,
-        effectKind: 'DAMAGE',
-        valueKind: 'DICE',
-        scalingKind: 'NONE',
-        diceConfig: '1d6',
-        damageTypeId: references.damageTypes[0]?.value ?? ''
-      }
-    case 'CONDITION':
-      return { id, effectKind: 'CONDITION', conditionId: references.conditionTypes[0]?.value ?? '' }
-    case 'HEAL':
-      return { id, effectKind: 'HEAL', valueKind: 'DICE', scalingKind: 'NONE', diceConfig: '1d6' }
-    case 'APPLY_GRANT':
-      return { id, effectKind: 'APPLY_GRANT', grants: {} }
-    case 'FORCED_MOVEMENT':
-      return {
-        id,
-        effectKind: 'FORCED_MOVEMENT',
-        direction: 'AWAY_FROM_SOURCE',
-        actionEconomy: 'NONE',
-        distanceMode: 'FIXED_DISTANCE',
-        amount: 10,
-        unit: 'FEET'
-      }
-    case 'TELEPORT':
-      return {
-        id,
-        effectKind: 'TELEPORT',
-        targetKind: 'TARGET',
-        destinationKind: 'VISIBLE',
-        distance: createRange('DISTANCE', 30)
-      }
-    case 'MANIFEST':
-      return { id, effectKind: 'MANIFEST', manifestKind: 'ZONE', label: 'Manifested effect' }
-    case 'MOVE_MANIFEST':
-      return { id, effectKind: 'MOVE_MANIFEST', manifestId: '', amount: 30, unit: 'FEET' }
-    case 'COMMAND_MANIFEST':
-      return { id, effectKind: 'COMMAND_MANIFEST', manifestId: '' }
-    default:
-      return { id, effectKind: 'RULE' }
-  }
-}
-
-export function formatEffectSummary(effect: EffectDto): string {
-  return toTitleCase(effect.invocation.triggerCode.replaceAll('_', ' '))
-}
-
-export function formatEffectDescription(effect: EffectDto): string | undefined {
-  if (effect.paths.length === 0) return 'No outcome paths configured'
-
-  return effect.paths
-    .map((path) => `${formatPathResultLabel(path.pathCode)}: ${formatPathOutcomeSummary(path)}`)
-    .join('; ')
-}
-
-export function formatResultBlockSummary(resultBlock: unknown): string | undefined {
-  const outcomes = getOutcomesFromResultBlock(resultBlock)
-  if (outcomes.length === 0) return undefined
-
-  return outcomes
-    .map(formatOutcomeSummary)
-    .filter((summary, index, summaries) => summaries.indexOf(summary) === index)
-    .join(', ')
-}
-
-function formatPathResultLabel(pathCode: PathDto['pathCode']): string {
-  switch (pathCode) {
-    case 'ON_SAVE_FAIL':
-      return 'Failed'
-    case 'ON_SAVE_SUCCESS':
-      return 'Success'
-    case 'ON_HIT':
-      return 'Hit'
-    case 'ON_MISS':
-      return 'Miss'
-    case 'ON_CRIT':
-      return 'Critical'
-    default:
-      return toTitleCase(String(pathCode).replaceAll('_', ' '))
-  }
-}
-
-function formatPathOutcomeSummary(path: PathDto): string {
-  const outcomes = getPathOutcomes(path)
-  if (outcomes.length === 0) return 'No effect'
-
-  return formatResultBlockSummary({ outcomes }) ?? 'No effect'
-}
-
-function formatOutcomeSummary(outcome: OutcomeDraft): string {
-  const effectKind = typeof outcome.effectKind === 'string' ? outcome.effectKind : 'RULE'
-
-  if (effectKind === 'DAMAGE') {
-    return outcome.amountKind === 'HALF' ? 'Half damage' : 'Damage'
-  }
-
-  if (effectKind === 'HEAL') return 'Healing'
-  if (effectKind === 'CONDITION') return 'Condition'
-  if (effectKind === 'APPLY_GRANT') return 'Grant'
-
-  return toTitleCase(effectKind.replaceAll('_', ' '))
-}
-
-export function getPathOutcomes(path: PathDto): OutcomeDraft[] {
-  if ('resultBlock' in path) {
-    return getOutcomesFromResultBlock(path.resultBlock)
-  }
-
-  if ('options' in path) {
-    return path.options.flatMap((option) => getOutcomesFromResultBlock(option.resultBlock))
-  }
-
-  if ('rows' in path) {
-    return path.rows.flatMap((row) => getOutcomesFromResultBlock(row.resultBlock))
-  }
-
-  return []
-}
-
-function getChildMapId(node: NodeRuntimeNodeDto): string {
-  if (node.childMapId) return node.childMapId
-  throw new Error(`Cannot create default value for group node "${node.id}" without childMapId.`)
+function getChildMapId(node: NodeRuntimeGroupNodeDto): string {
+  return node.childMapId
 }
 
 function createAbilityScores() {
@@ -675,8 +596,7 @@ function createAbilityScores() {
     CONSTITUTION: 10,
     INTELLIGENCE: 10,
     WISDOM: 10,
-    CHARISMA: 10,
-    SPELLCASTING: 0
+    CHARISMA: 10
   }
 }
 
@@ -788,6 +708,7 @@ function createProficiencyGrant(order: number) {
     id: crypto.randomUUID(),
     order,
     selectionKind: 'GRANTED',
+    scalingKind: 'NONE',
     proficiencyKind: 'SKILL',
     authoringModeKind: 'ALL',
     level: 'FULL'
@@ -886,27 +807,4 @@ function updateStartingEquipmentItems(
       }))
     }))
   }
-}
-
-function getOutcomesFromResultBlock(resultBlock: unknown): OutcomeDraft[] {
-  if (!isResultBlockLike(resultBlock) || !Array.isArray(resultBlock.outcomes)) return []
-  return resultBlock.outcomes.filter(isOutcomeDraft)
-}
-
-function isResultBlockLike(value: unknown): value is ResultBlockLike {
-  return typeof value === 'object' && value !== null && 'outcomes' in value
-}
-
-function isOutcomeDraft(value: unknown): value is OutcomeDraft {
-  return typeof value === 'object' && value !== null
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-function toTitleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }

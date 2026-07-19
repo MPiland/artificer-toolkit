@@ -7,7 +7,8 @@ export const shell = style({
     [app]: {
       borderInlineEnd: `1px solid ${foundationVars.color.border.strong}`,
       inlineSize: '20rem',
-      maxInlineSize: '100%'
+      maxInlineSize: '100%',
+      backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
@@ -37,6 +38,20 @@ export const drawerBody = style({
       overflow: 'hidden',
       padding: 0,
       backgroundColor: foundationVars.color.surface.recessed
+    }
+  }
+})
+
+export const drawerAccessibleHeader = style({
+  '@layer': {
+    [app]: {
+      position: 'absolute',
+      inlineSize: '1px',
+      blockSize: '1px',
+      padding: 0,
+      overflow: 'hidden',
+      clip: 'rect(0 0 0 0)',
+      whiteSpace: 'nowrap'
     }
   }
 })

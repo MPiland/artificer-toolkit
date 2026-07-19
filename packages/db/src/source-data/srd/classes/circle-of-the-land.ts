@@ -1,5 +1,6 @@
 import {
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   GRANT_KIND,
@@ -209,6 +210,7 @@ export const circleOfTheLand: ClassAuthored = {
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: druidCantripIds,

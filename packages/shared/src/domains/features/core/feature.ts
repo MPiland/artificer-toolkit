@@ -61,3 +61,42 @@ export const FEATURE_ATTRIBUTE_REGISTRY: Record<
 export const FEATURE_ATTRIBUTE_OPTIONS = valuesOf(
   FEATURE_ATTRIBUTE_REGISTRY
 ) as readonly FeatureAttributeOption[]
+
+export const FEATURE_SECTION = {
+  TRAIT: 'TRAIT',
+  ACTION: 'ACTION',
+  BONUS_ACTION: 'BONUS_ACTION',
+  REACTION: 'REACTION',
+  LEGENDARY_ACTION: 'LEGENDARY_ACTION',
+  LAIR_ACTION: 'LAIR_ACTION',
+  REGIONAL_EFFECT: 'REGIONAL_EFFECT',
+  OTHER: 'OTHER'
+} as const
+
+export type FeatureSection = keyof typeof FEATURE_SECTION
+
+export type FeatureSectionOption = CoreMeta<FeatureSection>
+
+export const FEATURE_SECTION_REGISTRY: Record<
+  FeatureSection,
+  FeatureSectionOption
+> = {
+  TRAIT: { code: FEATURE_SECTION.TRAIT, label: 'Trait' },
+  ACTION: { code: FEATURE_SECTION.ACTION, label: 'Action' },
+  BONUS_ACTION: { code: FEATURE_SECTION.BONUS_ACTION, label: 'Bonus Action' },
+  REACTION: { code: FEATURE_SECTION.REACTION, label: 'Reaction' },
+  LEGENDARY_ACTION: {
+    code: FEATURE_SECTION.LEGENDARY_ACTION,
+    label: 'Legendary Action'
+  },
+  LAIR_ACTION: { code: FEATURE_SECTION.LAIR_ACTION, label: 'Lair Action' },
+  REGIONAL_EFFECT: {
+    code: FEATURE_SECTION.REGIONAL_EFFECT,
+    label: 'Regional Effect'
+  },
+  OTHER: { code: FEATURE_SECTION.OTHER, label: 'Other' }
+} as const
+
+export const FEATURE_SECTION_OPTIONS = valuesOf(
+  FEATURE_SECTION_REGISTRY
+) as readonly FeatureSectionOption[]

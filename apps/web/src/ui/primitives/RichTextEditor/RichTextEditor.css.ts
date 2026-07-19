@@ -41,6 +41,16 @@ export const editorRequired = style({
   }
 })
 
+export const editorError = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.input.border.error,
+      fontSize: foundationVars.typography.label.fontSize,
+      lineHeight: foundationVars.typography.label.lineHeight
+    }
+  }
+})
+
 export const editorToolbar = style({
   '@layer': {
     [app]: {
@@ -101,7 +111,7 @@ globalStyle(`${editorContent} .tableWrapper > table`, {
 globalStyle(`${editorContent} table .selectedCell:after`, {
   '@layer': {
     [app]: {
-      background: 'rgba(200, 200, 255, 0.4)',
+      background: foundationVars.color.accent.soft,
       content: '',
       left: 0,
       right: 0,
@@ -132,8 +142,8 @@ export const editorControl = style({
       padding: 0,
       '@media': {
         'screen and (max-width: 760px)': {
-          minWidth: '30px',
-          minHeight: '30px'
+          minWidth: '44px',
+          minHeight: '44px'
         }
       }
     }
@@ -275,7 +285,8 @@ export const editor_table_th = style({
   '@layer': {
     [app]: {
       border: editorBorder,
-      backgroundColor: 'lightgrey',
+      backgroundColor: foundationVars.color.surface.raised,
+      color: foundationVars.color.text.primary,
       borderBottomWidth: '2px',
       fontWeight: 'bold',
       textAlign: 'left',

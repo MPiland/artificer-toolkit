@@ -22,14 +22,14 @@ export const builderHeader = style({
   }
 })
 
-export const eyebrow = style({
+export const stepDescription = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.muted,
-      fontSize: '0.85rem',
-      fontWeight: 700,
-      letterSpacing: '0.02em',
-      textTransform: 'uppercase'
+      fontSize: '1rem',
+      lineHeight: 1.45,
+      marginTop: '6px',
+      maxWidth: '68ch'
     }
   }
 })
@@ -50,7 +50,7 @@ export const builderShell = style({
     [app]: {
       background: foundationVars.color.surface.panel,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: '20px',
+      borderRadius: foundationVars.radius.xl,
       boxShadow: foundationVars.shadow.card,
       display: 'grid',
       gap: '24px',
@@ -169,7 +169,7 @@ export const inlinePanel = style({
     [app]: {
       background: foundationVars.color.surface.subtle,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: '14px',
+      borderRadius: foundationVars.radius.lg,
       display: 'grid',
       gap: '12px',
       padding: '16px'
@@ -191,7 +191,7 @@ export const grantedFeatureItem = style({
     [app]: {
       background: foundationVars.color.surface.panel,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: '12px',
+      borderRadius: foundationVars.radius.lg,
       display: 'grid',
       gap: '12px',
       padding: '14px'
@@ -225,6 +225,84 @@ export const grantedFeatureChoices = style({
     [app]: {
       display: 'grid',
       gap: '12px'
+    }
+  }
+})
+
+export const choiceSlotGrid = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '12px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+    }
+  }
+})
+
+export const startingEquipmentPanel = style({
+  '@layer': {
+    [app]: {
+      gap: '14px'
+    }
+  }
+})
+
+export const startingEquipmentGroup = style({
+  '@layer': {
+    [app]: {
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      display: 'grid',
+      gap: '12px',
+      padding: '14px'
+    }
+  }
+})
+
+export const startingEquipmentGroupHeader = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: '12px',
+      alignItems: 'flex-start'
+    }
+  }
+})
+
+export const startingEquipmentOptionDetails = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '12px'
+    }
+  }
+})
+
+export const startingEquipmentIncludedList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '8px'
+    }
+  }
+})
+
+export const startingEquipmentItemRow = style({
+  '@layer': {
+    [app]: {
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
+      color: foundationVars.color.text.primary,
+      paddingTop: '8px'
+    }
+  }
+})
+
+export const startingEquipmentChoiceList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '10px'
     }
   }
 })

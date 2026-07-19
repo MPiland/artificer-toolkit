@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -16,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_HALFLING_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_HALFLING_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function conditionTypeId(code: string): string {
   const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
@@ -39,12 +40,6 @@ function raceFeatureId(raceIndex: number, group: number, entry: number): string 
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
-
-function skillId(code: string): string {
-  const entry = SRD_SKILLS.find((s) => s.code === code)
-  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
-  return entry.id
-}
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -97,6 +92,7 @@ export const halfling: RaceAuthored = {
     {
       id: raceFeatureId(3, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Dexterity score increases by 2.',
       availableAtLevel: 1,
       order: 0,
@@ -158,6 +154,7 @@ export const halfling: RaceAuthored = {
     {
       id: raceFeatureId(3, 5, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Halfling. The Halfling language is not secret, but halflings are loath to share it with others.',
       availableAtLevel: 1,
       order: 4,
@@ -194,6 +191,7 @@ export const lightfoot: RaceAuthored = {
     {
       id: raceFeatureId(106, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Charisma score increases by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -236,6 +234,7 @@ export const stout: RaceAuthored = {
     {
       id: raceFeatureId(107, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Constitution score increases by 1.',
       availableAtLevel: 1,
       order: 0,

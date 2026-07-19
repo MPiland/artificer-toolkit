@@ -66,6 +66,7 @@ export interface ResolvedEquipmentVariantInherited {
   contains?: BaseEquipmentAuthored['contains']
   features?: BaseEquipmentAuthored['features']
   restrictions?: BaseEquipmentAuthored['restrictions']
+  requiresAttunement?: BaseEquipmentAuthored['requiresAttunement']
 }
 
 export interface ResolvedEquipmentVariantMeta {
@@ -88,6 +89,8 @@ export type ResolvedEquipment = Omit<
 
 export type CompiledEquipmentBase = {
   id: string
+  restrictions?: BaseEquipmentAuthored['restrictions']
+  requiresAttunement?: BaseEquipmentAuthored['requiresAttunement']
   cost?: CompiledCost
   weight?: CompiledWeight
   attributes?: EquipmentAttribute[]
@@ -163,6 +166,8 @@ function compileEquipmentBase(
 
   return {
     id: authored.id,
+    restrictions: authored.restrictions,
+    requiresAttunement: authored.requiresAttunement,
     cost: 'cost' in authored ? authored.cost : undefined,
     weight: 'weight' in authored ? authored.weight : undefined,
     attributes: 'attributes' in authored ? authored.attributes : undefined,
@@ -218,6 +223,7 @@ export function resolveEquipmentAuthored(
     id: authored.id,
     label: authored.label,
     description: authored.description ?? resolvedParent.description,
+    status: authored.status,
     attributes: resolvedParent.attributes,
     quote: authored.quote ?? resolvedParent.quote,
     cost: resolvedParent.cost,
@@ -242,6 +248,7 @@ export function resolveEquipmentAuthored(
       authored.features
     ),
     restrictions: authored.restrictions ?? resolvedParent.restrictions,
+    requiresAttunement: authored.requiresAttunement ?? resolvedParent.requiresAttunement,
     userId: authored.userId,
     systemId: authored.systemId,
     category: resolvedParent.category,
@@ -267,7 +274,8 @@ export function resolveEquipmentAuthored(
         armorClass: resolvedParent.armorClass,
         contains: resolvedParent.contains,
         features: resolvedParent.features,
-        restrictions: resolvedParent.restrictions
+        restrictions: resolvedParent.restrictions,
+        requiresAttunement: resolvedParent.requiresAttunement
       }
     }
   }

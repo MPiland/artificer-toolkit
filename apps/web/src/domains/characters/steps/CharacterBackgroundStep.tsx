@@ -1,4 +1,3 @@
-import { Alert } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import {
@@ -7,6 +6,7 @@ import {
   createFallbackCharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import { CharacterChosenGrantChoices } from './CharacterChosenGrantChoices'
 import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 
@@ -44,9 +44,16 @@ export const CharacterBackgroundStep = withForm({
             </form.AppField>
           </div>
         </div>
-        {payload.resolution.summary.selectedBackground
-          ? <Alert color='blue'>{`Selected: ${payload.resolution.summary.selectedBackground.label}.`}</Alert>
-          : null}
+        <form.AppField name='intent.chosenGrantSelections'>
+          {(field) => (
+            <CharacterChosenGrantChoices
+              choices={payload.view.background.grantChoices}
+              selections={field.state.value}
+              readOnly={readOnly}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
         <form.AppField name='intent.featureAcquisitions'>
           {(field) => (
             <CharacterGrantedFeatures

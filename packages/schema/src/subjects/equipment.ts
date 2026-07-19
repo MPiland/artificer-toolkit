@@ -12,7 +12,7 @@ import {
   chargeDtoSchema,
   equipmentAttributeCodeSchema,
   equipmentPropertyCodeSchema,
-  facetDtoSchema
+  characterFacetDtoSchema
 } from '../shared/index.js'
 import { effectDtoSchema } from '../effects/index.js'
 import { featureDtoSchema } from '../features/index.js'
@@ -46,7 +46,8 @@ const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
     .optional(),
   contains: z.array(containsDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional(),
-  restrictions: facetDtoSchema.optional(),
+  restrictions: characterFacetDtoSchema.optional(),
+  requiresAttunement: z.boolean().optional(),
   properties: z.array(equipmentPropertyCodeSchema),
   category: z.enum([
     EQUIPMENT_CATEGORY_CODE.WEAPON,
@@ -67,7 +68,8 @@ const equipmentVariantAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   maxBonus: z.number().int()
     .optional(),
   features: z.array(featureDtoSchema).optional(),
-  restrictions: facetDtoSchema.optional()
+  restrictions: characterFacetDtoSchema.optional(),
+  requiresAttunement: z.boolean().optional()
 })
 
 const baseEquipmentAuthoringInputDtoSchemaBase = baseEquipmentAuthoredDtoSchemaBase.extend({

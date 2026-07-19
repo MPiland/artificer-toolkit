@@ -14,7 +14,10 @@ export interface ModifierStackingConfig {
  * See `dnd5e2014/RULE_ORDER.md` for the correctness contract behind that impl.
  */
 export interface RulesSystem {
-  id: string
+  identity: {
+    code: string
+    version: string
+  }
   label: string
 
   /**

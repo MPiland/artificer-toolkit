@@ -4,6 +4,7 @@ import type {
   NodeRuntimeResolveResponseDto
 } from '#app/lib/api'
 import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
+import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 
 export const ownedMonsterFixture: CreatureAuthoredDto = {
   id: 'owned-owlbear',
@@ -11,7 +12,6 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
   description: 'A territorial owlbear with pale feathers and a thunderous warning cry.',
   quote: 'The trees go quiet before it charges.',
   status: 'ACTIVE',
-  recordKind: 'STAT_BLOCK',
   category: 'MONSTER',
   creatureTypeId: 'monstrosity',
   size: 'LARGE',
@@ -26,7 +26,6 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
     INTELLIGENCE: 3,
     WISDOM: 12,
     CHARISMA: 7,
-    SPELLCASTING: 0
   },
   armorClass: 13,
   hitPoints: 68,
@@ -40,27 +39,31 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
   damageResistances: [],
   damageImmunities: [],
   conditionImmunities: [],
-  actions: [
+  details: [],
+  features: [
     {
       id: 'beak',
       label: 'Beak',
       description: 'Melee weapon attack against one target.',
-      attackBonus: 7,
-      damage: '1d10 + 5 piercing'
+      section: 'ACTION',
+      order: 1
+    },
+    {
+      id: 'legendary-actions',
+      label: 'Legendary Actions',
+      description: 'The owlbear can take two legendary actions.',
+      section: 'LEGENDARY_ACTION',
+      order: 2
+    },
+    {
+      id: 'regional-owls',
+      label: 'Silent Forest',
+      description: 'Owls refuse to nest within a mile of the den.',
+      section: 'REGIONAL_EFFECT',
+      order: 3
     }
   ],
-  bonusActions: [],
-  reactions: [],
-  details: [],
-  features: [],
   proficiencies: [],
-  legendaryProfile: {
-    actionsCount: 2,
-    legendaryResistanceCount: 1
-  },
-  lairProfile: {
-    regionalEffects: ['Owls refuse to nest within a mile of the den.']
-  }
 }
 
 export const beastMountFixture: CreatureAuthoredDto = {
@@ -73,9 +76,7 @@ export const beastMountFixture: CreatureAuthoredDto = {
   size: 'LARGE',
   tags: ['mount', 'travel'],
   challengeRatingId: 'cr-1-4',
-  actions: [],
-  legendaryProfile: undefined,
-  lairProfile: undefined,
+  features: [],
   cost: {
     amount: 75,
     currencyId: 'gold'
@@ -101,8 +102,7 @@ export const npcFixture: CreatureAuthoredDto = {
   creatureTypeId: 'humanoid',
   size: 'MEDIUM',
   tags: ['social', 'urban'],
-  legendaryProfile: undefined,
-  lairProfile: undefined,
+  features: [],
   npcProfile: {
     personalityTraits: ['Never names a source.'],
     ideals: ['Information keeps people alive.'],
@@ -120,8 +120,7 @@ export const companionFixture: CreatureAuthoredDto = {
   creatureTypeId: 'beast',
   size: 'TINY',
   tags: ['familiar', 'scout'],
-  legendaryProfile: undefined,
-  lairProfile: undefined,
+  features: [],
   companionProfile: {
     bondType: 'FAMILIAR',
     initiativeMode: 'USES_PC_INITIATIVE',
@@ -138,8 +137,7 @@ export const summonFixture: CreatureAuthoredDto = {
   creatureTypeId: 'elemental',
   size: 'MEDIUM',
   tags: ['summon', 'guardian'],
-  legendaryProfile: undefined,
-  lairProfile: undefined,
+  features: [],
   companionProfile: {
     bondType: 'SUMMON',
     initiativeMode: 'USES_PC_INITIATIVE',
@@ -149,6 +147,7 @@ export const summonFixture: CreatureAuthoredDto = {
 
 export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: ownedMonsterFixture.id,
+  activeRevisionId: 'owned-owlbear-active-revision',
   item: ownedMonsterFixture,
   provenance: {
     kind: 'OWNED',
@@ -164,6 +163,7 @@ export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
 
 export const masterCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: 'master-owlbear',
+  activeRevisionId: 'master-owlbear-active-revision',
   item: {
     ...ownedMonsterFixture,
     id: 'master-owlbear',
@@ -187,6 +187,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: ownedMonsterFixture.id,
       publicId: ownedMonsterFixture.id,
+      activeRevisionId: 'owned-owlbear-active-revision',
       label: ownedMonsterFixture.label,
       description: ownedMonsterFixture.description,
       status: 'ACTIVE',
@@ -199,6 +200,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: beastMountFixture.id,
       publicId: beastMountFixture.id,
+      activeRevisionId: 'owned-river-hart-active-revision',
       label: beastMountFixture.label,
       description: beastMountFixture.description,
       status: 'DRAFT',
@@ -215,12 +217,17 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
         systemId: beastMountFixture.systemId,
         label: beastMountFixture.label,
         status: 'DRAFT',
-        draftState: 'DRAFT_ONLY'
+        draftState: 'DRAFT_ONLY',
+        revisionId: 'owned-river-hart-draft-revision',
+        revisionNumber: 1,
+        activeRevisionId: null,
+        baseActiveRevisionId: null
       }
     },
     {
       id: npcFixture.id,
       publicId: npcFixture.id,
+      activeRevisionId: 'owned-sable-informant-active-revision',
       label: npcFixture.label,
       description: npcFixture.description,
       status: 'ACTIVE',
@@ -233,6 +240,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: companionFixture.id,
       publicId: companionFixture.id,
+      activeRevisionId: 'owned-ashwing-familiar-active-revision',
       label: companionFixture.label,
       description: companionFixture.description,
       status: 'ACTIVE',
@@ -245,6 +253,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: summonFixture.id,
       publicId: summonFixture.id,
+      activeRevisionId: 'owned-cinder-sentinel-active-revision',
       label: summonFixture.label,
       description: summonFixture.description,
       status: 'ACTIVE',
@@ -257,6 +266,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: masterCreatureResponseFixture.item!.id,
       publicId: masterCreatureResponseFixture.publicId,
+      activeRevisionId: 'master-owlbear-active-revision',
       label: masterCreatureResponseFixture.item!.label,
       description: masterCreatureResponseFixture.item!.description,
       status: 'ACTIVE',
@@ -274,6 +284,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
 export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'creature',
   clearPaths: [],
+  scopes: [],
   steps: [
     {
       id: 'basics',
@@ -374,25 +385,4 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
       ]
     }
   ]
-}
-
-function selectNode(
-  id: string,
-  path: string[],
-  label: string,
-  options: Array<{ value: string, label: string }>,
-  required: boolean,
-  type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type,
-    visible: true,
-    required,
-    clearPaths: [],
-    options
-  }
 }

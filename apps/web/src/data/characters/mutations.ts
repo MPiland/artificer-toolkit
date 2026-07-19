@@ -19,6 +19,7 @@ export function useCreateCharacterDraftMutation() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
       queryClient.setQueryData(queryKeys.characters.detail(response.character.id), response)
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.draft(response.character.id) })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.sheet(response.character.id) })
     }
   })
 }
@@ -50,7 +51,10 @@ export function useDiscardCharacterDraftMutation(characterId: string) {
 
 export function useResolveCharacterBuilderMutation() {
   return useMutation({
-    mutationFn: (input: CharacterBuilderResolveRequestDto) => api.characters.resolve(input)
+    mutationFn: ({ request, signal }: {
+      request: CharacterBuilderResolveRequestDto
+      signal?: AbortSignal
+    }) => api.characters.resolve(request, { signal })
   })
 }
 
@@ -69,6 +73,7 @@ export function useCommitCharacterBuilderMutation() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
       queryClient.setQueryData(queryKeys.characters.detail(response.character.id), response)
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.draft(response.character.id) })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.sheet(response.character.id) })
     }
   })
 }
@@ -81,7 +86,6 @@ export function useCharacterSheetCommandMutation(characterId: string) {
     onSuccess: async (response) => {
       queryClient.setQueryData(queryKeys.characters.sheet(characterId), response.sheet)
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.detail(characterId), exact: true })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.history(characterId) })
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
     },
     onError: async () => {

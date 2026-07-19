@@ -1,15 +1,19 @@
 import type { DBLike } from '#types'
 import {
   ADVANCEMENT_METHOD_CODE,
-  CHARACTER_ABILITY_GENERATION_METHOD,
+  CHARACTER_ABILITY_GENERATION_METHOD
+} from '@artificer-toolkit/shared/core'
+import {
+  getCharacterChosenGrantSelectionIdentityKey,
   type CharacterAuthored
-} from '@artificer-toolkit/shared'
-import { assertNever } from '../../../utils/index.js'
+} from '@artificer-toolkit/shared/subjects/authored'
+import { assertNever, withTransaction } from '../../../utils/index.js'
 import { normalizeSubjectStatus } from '../status.js'
 import {
   countRolls,
   deleteExistingCharacterChildren,
   insertRows,
+  mapChosenGrantSelectionSource,
   mapFeatureSource,
   mapResourceGrantSource,
   mapSpellSelectionSource,
@@ -27,9 +31,18 @@ export async function upsertCharacter(
     afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
   } = {}
 ): Promise<number> {
-  const trx = await db.startTransaction().execute()
+  const chosenGrantSelectionIdentities = new Set<string>()
+  for (const selection of json_data.intent.chosenGrantSelections ?? []) {
+    const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
+    if (chosenGrantSelectionIdentities.has(identity)) {
+      throw new Error(
+        `Character ${json_data.id} contains duplicate chosen grant selection identity ${identity}.`
+      )
+    }
+    chosenGrantSelectionIdentities.add(identity)
+  }
 
-  try {
+  return withTransaction(db, async (trx) => {
     const lockedVersionRow = await trx
       .selectFrom('characters')
       .select('stream_version')
@@ -55,15 +68,17 @@ export async function upsertCharacter(
         label: json_data.label,
         description: json_data.description ?? null,
         status: normalizeSubjectStatus(json_data.status),
+        inspiration: json_data.state.inspiration ?? false,
         stream_version: nextStreamVersion
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        stream_version: ref('excluded.stream_version')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        inspiration: eb.ref('excluded.inspiration'),
+        stream_version: eb.ref('excluded.stream_version')
       })))
       .execute()
 
@@ -146,6 +161,8 @@ export async function upsertCharacter(
     await insertRows(trx, 'character_hitpoint_levels', json_data.intent.hitpoints.levels.map((level) => ({
       character_id: json_data.id,
       char_level: level.level,
+      class_id: level.classId,
+      class_level: level.classLevel,
       value: level.value,
       overridden: level.overridden ?? null
     })))
@@ -194,6 +211,46 @@ export async function upsertCharacter(
         }
       ])
     }
+
+    const noteGroups = json_data.state.noteGroups ?? []
+    const noteGroupIds = new Set<string>()
+    for (const group of noteGroups) {
+      if (noteGroupIds.has(group.id)) {
+        throw new Error(`Character ${json_data.id} has duplicate note group ${group.id}.`)
+      }
+      noteGroupIds.add(group.id)
+    }
+
+    const notes = json_data.state.notes ?? []
+    const noteIds = new Set<string>()
+    for (const note of notes) {
+      if (noteIds.has(note.id)) {
+        throw new Error(`Character ${json_data.id} has duplicate note ${note.id}.`)
+      }
+      if (!noteGroupIds.has(note.groupId)) {
+        throw new Error(`Character ${json_data.id} note ${note.id} references missing note group ${note.groupId}.`)
+      }
+      noteIds.add(note.id)
+    }
+
+    await insertRows(trx, 'character_note_groups', noteGroups.map((group) => ({
+      id: group.id,
+      character_id: json_data.id,
+      label: group.label,
+      sort_order: group.sortOrder,
+      kind: group.kind
+    })))
+
+    await insertRows(trx, 'character_notes', notes.map((note) => ({
+      id: note.id,
+      character_id: json_data.id,
+      group_id: note.groupId,
+      title: note.title,
+      body: note.body ?? null,
+      pinned: note.pinned ?? false,
+      created_at: note.createdAt,
+      updated_at: note.updatedAt
+    })))
 
     await insertRows(trx, 'character_class_spells', (json_data.state.classes ?? []).flatMap((classState) => [
       ...(classState.spells?.learned ?? []).map((spellId) => ({
@@ -309,11 +366,22 @@ export async function upsertCharacter(
     await insertRows(trx, 'character_creature_equipment', creatureEquipmentRows)
     await insertRows(trx, 'character_vehicle_equipment', vehicleEquipmentRows)
 
-    const currencyGroupRows = json_data.state.currency.map((group, index) => ({
-      id: `${json_data.id}::currency-group::${index + 1}`,
-      character_id: json_data.id,
-      container_id: group.containerId ?? null
-    }))
+    const currencyGroupIds = new Set<string>()
+    const currencyGroupRows = json_data.state.currency.map((group) => {
+      if (!group.id) {
+        throw new Error(`Character ${json_data.id} has a currency group without an id.`)
+      }
+      if (currencyGroupIds.has(group.id)) {
+        throw new Error(`Character ${json_data.id} has duplicate currency group ${group.id}.`)
+      }
+      currencyGroupIds.add(group.id)
+
+      return {
+        id: group.id,
+        character_id: json_data.id,
+        container_id: group.containerId ?? null
+      }
+    })
 
     for (const group of json_data.state.currency) {
       if (group.containerId && !inventoryIds.has(group.containerId)) {
@@ -323,8 +391,9 @@ export async function upsertCharacter(
 
     await insertRows(trx, 'character_currency_groups', currencyGroupRows)
 
-    await insertRows(trx, 'character_currencies', json_data.state.currency.flatMap((group, index) => group.currencies.map((currency) => ({
-      group_id: currencyGroupRows[index]?.id,
+    await insertRows(trx, 'character_currencies', json_data.state.currency.flatMap((group) => group.currencies.map((currency) => ({
+      character_id: json_data.id,
+      group_id: group.id,
       currency_id: currency.currencyId,
       amount: currency.amount
     }))))
@@ -353,6 +422,31 @@ export async function upsertCharacter(
       value_index: index,
       ...serializeSelectionValue(value)
     })))))
+
+    const chosenGrantSelections = json_data.intent.chosenGrantSelections ?? []
+
+    for (const selection of chosenGrantSelections) {
+      if (selection.source.kind === 'OPTION' && !featureAcquisitionIds.has(selection.source.acquiredParentId)) {
+        throw new Error(`Character ${json_data.id} chosen grant selection ${selection.id} references missing feature acquisition ${selection.source.acquiredParentId}.`)
+      }
+    }
+
+    await insertRows(trx, 'character_chosen_grant_selections', chosenGrantSelections.map((selection) => ({
+      id: selection.id,
+      character_id: json_data.id,
+      grant_id: selection.grantId,
+      ...mapChosenGrantSelectionSource(selection.source),
+      ...mapTiming(selection.timing),
+      progression_level: selection.progressionLevel ?? null
+    })))
+
+    await insertRows(trx, 'character_chosen_grant_selection_targets', chosenGrantSelections.flatMap((selection) => (
+      selection.targetIds.map((targetId, slotIndex) => ({
+        selection_id: selection.id,
+        slot_index: slotIndex,
+        target_id: targetId
+      }))
+    )))
 
     const orderedSpellSelections = sortByDependency(json_data.intent.spellSelections ?? [], (selection) => selection.id, (selection) => selection.replacedSelectionId, `Character spell selections for ${json_data.id}`)
 
@@ -534,10 +628,6 @@ export async function upsertCharacter(
 
     await options.afterPersist?.(trx, nextStreamVersion)
 
-    await trx.commit().execute()
     return nextStreamVersion
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

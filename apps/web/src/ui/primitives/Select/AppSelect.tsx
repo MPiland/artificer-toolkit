@@ -1,6 +1,6 @@
 import { Select } from '@mantine/core'
 import type { AppSelectProps } from './Select.types'
-import { toComboboxData } from './selectOptions'
+import { getClearButtonAriaLabel, toComboboxData } from './selectOptions'
 import * as selectStyles from './Select.css.ts'
 
 export function AppSelect({
@@ -23,28 +23,36 @@ export function AppSelect({
       disabled={disabled}
       clearable={clearable}
       clearButtonProps={{
-        'aria-label': props.label
-          ? `Clear ${props.label}`
-          : 'Clear selected option',
+        'aria-label': getClearButtonAriaLabel(props.label, 'Clear selected option'),
         ...clearButtonProps
       }}
       searchable={searchable}
       checkIconPosition='right'
       comboboxProps={{
-        shadow: 'md',
         withinPortal: true,
         ...comboboxProps
       }}
-      classNames={{
-        root: selectStyles.root,
-        label: selectStyles.label,
-        description: selectStyles.description,
-        required: selectStyles.required,
-        input: selectStyles.input,
-        dropdown: selectStyles.dropdown,
-        option: selectStyles.option,
-        ...classNames
-      }}
+      classNames={typeof classNames === 'function'
+        ? (theme, selectProps, context) => ({
+            root: selectStyles.root,
+            label: selectStyles.label,
+            description: selectStyles.description,
+            required: selectStyles.required,
+            input: selectStyles.input,
+            dropdown: selectStyles.dropdown,
+            option: selectStyles.option,
+            ...classNames(theme, selectProps, context)
+          })
+        : {
+            root: selectStyles.root,
+            label: selectStyles.label,
+            description: selectStyles.description,
+            required: selectStyles.required,
+            input: selectStyles.input,
+            dropdown: selectStyles.dropdown,
+            option: selectStyles.option,
+            ...classNames
+          }}
       {...props}
     />
   )

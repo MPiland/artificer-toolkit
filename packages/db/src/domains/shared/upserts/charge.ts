@@ -4,7 +4,7 @@ import {
   type ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
-import { assertNever } from '../../../utils/index.js'
+import { assertNever, withTransaction } from '../../../utils/index.js'
 
 type ChargeAuthoredWrite = ChargeAuthored | ({
   limitKind: 'CLASS_LEVEL'
@@ -285,8 +285,7 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
   const limit = mapChargeLimitToRow(chargeData, chargeData.id)
   const levels = mapChargeScalingToRow(chargeData, chargeData.id)
   const bonuses = chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? []
-  const trx = await db.startTransaction().execute()
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('charges')
       .values({
@@ -294,9 +293,9 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         scaling_kind: scalingKind,
         reset_kind: resetKind
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        scaling_kind: ref('excluded.scaling_kind'),
-        reset_kind: ref('excluded.reset_kind')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        scaling_kind: eb.ref('excluded.scaling_kind'),
+        reset_kind: eb.ref('excluded.reset_kind')
       })))
       .execute()
 
@@ -311,14 +310,14 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
           await trx
             .insertInto('charge_limits')
             .values(limit)
-            .onConflict((oc) => oc.column('charge_id').doUpdateSet(({ ref }) => ({
-              limit_kind: ref('excluded.limit_kind'),
-              class_id: ref('excluded.class_id'),
-              ability_code: ref('excluded.ability_code'),
-              amount: ref('excluded.amount'),
-              multiplier: ref('excluded.multiplier'),
-              min: ref('excluded.min'),
-              max: ref('excluded.max')
+            .onConflict((oc) => oc.column('charge_id').doUpdateSet((eb) => ({
+              limit_kind: eb.ref('excluded.limit_kind'),
+              class_id: eb.ref('excluded.class_id'),
+              ability_code: eb.ref('excluded.ability_code'),
+              amount: eb.ref('excluded.amount'),
+              multiplier: eb.ref('excluded.multiplier'),
+              min: eb.ref('excluded.min'),
+              max: eb.ref('excluded.max')
             })))
             .execute()
         }
@@ -367,9 +366,5 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

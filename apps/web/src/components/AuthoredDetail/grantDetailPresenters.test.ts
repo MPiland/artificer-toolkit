@@ -34,6 +34,7 @@ describe('grant detail presenters', () => {
       {
         id: 'skills',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'SKILL',
         selectionKind: 'GRANTED',
         level: 'FULL',
@@ -44,6 +45,7 @@ describe('grant detail presenters', () => {
       {
         id: 'languages',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'LANGUAGE',
         selectionKind: 'CHOSEN',
         level: 'FULL',
@@ -68,6 +70,7 @@ describe('grant detail presenters', () => {
       {
         id: 'armor',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'EQUIPMENT_PROPERTY',
         selectionKind: 'GRANTED',
         level: 'FULL',
@@ -79,6 +82,7 @@ describe('grant detail presenters', () => {
       {
         id: 'shield',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'EQUIPMENT',
         selectionKind: 'GRANTED',
         level: 'FULL',
@@ -89,6 +93,7 @@ describe('grant detail presenters', () => {
       {
         id: 'weapons',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'EQUIPMENT_PROPERTY',
         selectionKind: 'GRANTED',
         level: 'FULL',
@@ -100,6 +105,7 @@ describe('grant detail presenters', () => {
       {
         id: 'saves',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'SAVE_ABILITY',
         selectionKind: 'GRANTED',
         level: 'FULL',
@@ -110,6 +116,7 @@ describe('grant detail presenters', () => {
       {
         id: 'skills',
         grantKind: 'PROFICIENCY_GRANT',
+        scalingKind: 'NONE',
         proficiencyKind: 'SKILL',
         selectionKind: 'CHOSEN',
         level: 'FULL',

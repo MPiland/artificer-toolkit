@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useRouter } from '@tanstack/react-router'
+import { useBlocker, useNavigate, useRouter } from '@tanstack/react-router'
 import type {
   NodeRuntimePathDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { ApiError } from '#lib/api'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import {
   AuthoringFormContext,
@@ -34,6 +36,11 @@ import type {
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
+import {
+  areAuthoringFieldPathsRelated,
+  toAuthoringFieldName
+} from '../utils/pathUtils'
+import { findAuthoringValidationTarget } from './authoringNavigation'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
@@ -72,11 +79,58 @@ export function AuthoringFormProvider({
     createInitialSession({ data, domain, kind, mode })
   )
   const actionsRef = useRef<AuthoringFormActionHandlers>({})
+  const intentionalNavigationRef = useRef(false)
   const authoredSession = session.authoredSession
   const navigate = useNavigate()
   const router = useRouter()
   const queryClient = useQueryClient()
+  const hasUnsavedAuthoredChanges =
+    session.authoringKind === 'authored-form' && session.hasChanges
+  const shouldBlockNavigation = useCallback(
+    () => hasUnsavedAuthoredChanges && !intentionalNavigationRef.current,
+    [hasUnsavedAuthoredChanges]
+  )
+  const navigationBlocker = useBlocker({
+    disabled: !hasUnsavedAuthoredChanges,
+    enableBeforeUnload: shouldBlockNavigation,
+    shouldBlockFn: shouldBlockNavigation,
+    withResolver: true
+  })
+  const navigateWithoutBlock = useCallback<typeof navigate>(
+    async (options) => {
+      intentionalNavigationRef.current = true
+      try {
+        await navigate(options)
+      } finally {
+        intentionalNavigationRef.current = false
+      }
+    },
+    [navigate]
+  )
   const operations = authoredSession?.operations ?? EMPTY_OPERATION_CONFIG
+  const recordValidationIssues = useCallback((error: unknown) => {
+    if (!(error instanceof ApiError) || error.validationIssues.length === 0) return
+
+    setSession((current) => {
+      const target = error.validationIssues
+        .map((issue) => findAuthoringValidationTarget(issue.path, current.navigationTargets ?? []))
+        .find((candidate) => candidate !== undefined)
+      const fallbackStepId = current.activeStepId || current.navigationTargets?.find((entry) => entry.stepId)?.stepId
+
+      return {
+        ...current,
+        ...(target
+          ? {
+              activeNavigationTargetId: target.id,
+              activeStepId: target.stepId ?? target.canvasStepId ?? fallbackStepId,
+              activeStepLabel: target.canvasLabel ?? target.label,
+              fieldPathPrefix: target.fieldPathPrefix
+            }
+          : {}),
+        validationIssues: error.validationIssues
+      }
+    })
+  }, [])
   const resolvedModel = session.resolvedModel
   const modelVisibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
   const visibleSteps = session.visibleSteps ?? modelVisibleSteps
@@ -95,13 +149,17 @@ export function AuthoringFormProvider({
     : -1
   const activateMutation = useMutation({
     mutationFn: (payload: object) => operations.activate(payload),
+    onError: recordValidationIssues,
     onSuccess: async (response: ActivatedAuthoringResponse) => {
+      setSession((current) => ({ ...current, validationIssues: [] }))
       await operations.onActivateSuccess?.(queryClient, response)
     }
   })
   const saveDraftMutation = useMutation({
     mutationFn: (payload: object) => operations.saveDraft(payload),
+    onError: recordValidationIssues,
     onSuccess: async (draft: DraftAuthoringResponse) => {
+      setSession((current) => ({ ...current, validationIssues: [] }))
       await operations.onSaveDraftSuccess?.(queryClient, draft)
     }
   })
@@ -125,7 +183,8 @@ export function AuthoringFormProvider({
   } = useAuthoredDeleteAction({
     ...(authoredSession?.deleteConfig ?? EMPTY_DELETE_CONFIG),
     domainLabel: authoredSession?.subjectKindLabel ?? 'Item',
-    onDeleted: async () => navigate({ to: authoredSession?.actionFactory.listPath ?? '/' })
+    onDeleted: async () =>
+      navigateWithoutBlock({ to: authoredSession?.actionFactory.listPath ?? '/' })
   })
   const activateAction = useMemo(() => {
     if (!authoredSession) return undefined
@@ -135,13 +194,13 @@ export function AuthoringFormProvider({
       buildRouteParams: authoredSession.actionFactory.buildRouteParams,
       detailPath: authoredSession.actionFactory.activatePath,
       messages: authoredSession.actionFactory.messages,
-      navigate,
+      navigate: navigateWithoutBlock,
       notifier: notifications,
       readOnly: authoredSession.readOnly,
       router,
       subjectId: authoredSession.subjectId
     })
-  }, [activateMutation, authoredSession, navigate, router])
+  }, [activateMutation, authoredSession, navigateWithoutBlock, router])
   const cancelAction = useMemo(
     () =>
       authoredSession
@@ -157,11 +216,11 @@ export function AuthoringFormProvider({
       duplicateMutation,
       editPath: authoredSession.actionFactory.editPath,
       messages: authoredSession.actionFactory.messages,
-      navigate,
+      navigate: navigateWithoutBlock,
       notifier: notifications,
       subjectId: authoredSession.subjectId
     })
-  }, [authoredSession, duplicateMutation, navigate])
+  }, [authoredSession, duplicateMutation, navigateWithoutBlock])
   const deleteAction = useMemo(() => {
     if (!authoredSession?.subjectId) return undefined
 
@@ -184,11 +243,11 @@ export function AuthoringFormProvider({
       discardDraftMutation,
       listPath: authoredSession.actionFactory.listPath,
       messages: authoredSession.actionFactory.messages,
-      navigate,
+      navigate: navigateWithoutBlock,
       notifier: notifications,
       router
     })
-  }, [authoredSession, discardDraftMutation, navigate, router])
+  }, [authoredSession, discardDraftMutation, navigateWithoutBlock, router])
   const saveDraftAction = useMemo(() => {
     if (!authoredSession) return undefined
 
@@ -198,7 +257,7 @@ export function AuthoringFormProvider({
         draftMutation: saveDraftMutation,
         editPath: authoredSession.actionFactory.editPath,
         messages: authoredSession.actionFactory.messages,
-        navigate,
+        navigate: navigateWithoutBlock,
         notifier: notifications
       })
     }
@@ -210,7 +269,7 @@ export function AuthoringFormProvider({
       readOnly: authoredSession.readOnly,
       router
     })
-  }, [authoredSession, navigate, router, saveDraftMutation])
+  }, [authoredSession, navigateWithoutBlock, router, saveDraftMutation])
   const registerDomain = useCallback((registration: AuthoredFormDomain | AuthoringDomainRegistration) => {
     setSession((current) => {
       const next =
@@ -321,6 +380,22 @@ export function AuthoringFormProvider({
   const clearRegisteredPaths = useCallback((paths: readonly NodeRuntimePathDto[]) => {
     actionsRef.current.onClearPaths?.(paths)
   }, [])
+  const clearValidationIssues = useCallback((fieldName: string) => {
+    setSession((current) => {
+      const validationIssues = current.validationIssues.filter(
+        (issue) => !areAuthoringFieldPathsRelated(
+          toAuthoringFieldName(undefined, issue.path),
+          fieldName
+        )
+      )
+      if (validationIssues.length === current.validationIssues.length) return current
+
+      return {
+        ...current,
+        validationIssues
+      }
+    })
+  }, [])
   const copy = useCallback(() => {
     void (copyAction ?? actionsRef.current.onCopy)?.()
   }, [copyAction])
@@ -359,7 +434,7 @@ export function AuthoringFormProvider({
           ...current,
           activeNavigationTargetId: target.id,
           activeStepId: target.stepId,
-          activeStepLabel: target.label,
+          activeStepLabel: target.canvasLabel ?? target.label,
           fieldPathPrefix: target.fieldPathPrefix
         }
 
@@ -479,8 +554,10 @@ export function AuthoringFormProvider({
       ...(activeNavigationTarget
         ? {
             activeNavigationTargetId: activeNavigationTarget.id,
-            activeStepId: activeNavigationTarget.stepId,
-            activeStepLabel: activeNavigationTarget.label,
+            activeStepId:
+              activeNavigationTarget.stepId ?? activeNavigationTarget.canvasStepId,
+            activeStepLabel:
+              activeNavigationTarget.canvasLabel ?? activeNavigationTarget.label,
             fieldPathPrefix: activeNavigationTarget.fieldPathPrefix,
             isFirstStep: activeNavigationTargetIndex <= 0,
             isLastStep:
@@ -524,6 +601,7 @@ export function AuthoringFormProvider({
       activeNavigationTarget,
       activeStep,
       cancel,
+      clearValidationIssues,
       clearPaths: clearRegisteredPaths,
       copy,
       deleteRecord,
@@ -548,6 +626,7 @@ export function AuthoringFormProvider({
       activeNavigationTarget,
       activeStep,
       cancel,
+      clearValidationIssues,
       clearRegisteredPaths,
       copy,
       contextSession,
@@ -573,6 +652,41 @@ export function AuthoringFormProvider({
     <AuthoringFormContext value={value}>
       {children}
       {deleteConfirmation}
+      <Modal
+        centered
+        closeOnClickOutside={false}
+        onClose={() => {
+          if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
+        }}
+        opened={navigationBlocker.status === 'blocked'}
+        title='Leave without saving?'
+      >
+        <Stack gap='md'>
+          <Text size='sm'>
+            Your unsaved changes will be discarded if you leave this authoring workspace.
+          </Text>
+          <Group justify='flex-end'>
+            <Button
+              type='button'
+              variant='default'
+              onClick={() => {
+                if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
+              }}
+            >
+              Stay
+            </Button>
+            <Button
+              color='red'
+              type='button'
+              onClick={() => {
+                if (navigationBlocker.status === 'blocked') navigationBlocker.proceed()
+              }}
+            >
+              Leave without saving
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </AuthoringFormContext>
   )
 }
@@ -623,6 +737,7 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     left.resetFormLabel === right.resetFormLabel &&
     left.resetStepLabel === right.resetStepLabel &&
     left.saveDraftLabel === right.saveDraftLabel &&
+    left.stagedEditorOpen === right.stagedEditorOpen &&
     isSameRecord(left.stepDirty, right.stepDirty) &&
     isSameRecord(left.stepStatuses, right.stepStatuses) &&
     isSameRecord(left.stepWarnings, right.stepWarnings) &&
@@ -630,6 +745,7 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     left.subjectKindLabel === right.subjectKindLabel &&
     left.subjectLabel === right.subjectLabel &&
     left.systemId === right.systemId &&
+    left.validationIssues === right.validationIssues &&
     left.visibleSteps === right.visibleSteps
   )
 }
@@ -660,6 +776,7 @@ function getDomainRegistration(
     providedModel: undefined,
     resolvedModel: undefined,
     subjectKindLabel: factory.subjectKindLabel,
+    validationIssues: [],
     ...(authoredSession
       ? {
           canCopy: authoredSession.canCopy,
@@ -761,6 +878,7 @@ function getCharacterBuilderRegistration(
     subjectKindLabel: 'Character',
     subjectLabel: nextCharacterSession?.subjectLabel,
     systemId: nextCharacterSession?.systemId,
+    validationIssues: [],
     visibleSteps: undefined
   }
 }
@@ -848,6 +966,7 @@ function createDefaultSession(): AuthoringFormSessionState {
     isLastStep: true,
     isDeleting: false,
     isSubmitting: false,
+    stagedEditorOpen: false,
     mode: 'create',
     readOnly: false,
     resolveModel: true,
@@ -857,7 +976,8 @@ function createDefaultSession(): AuthoringFormSessionState {
     stepDirty: EMPTY_STEP_DIRTY,
     stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
-    subjectKindLabel: 'Item'
+    subjectKindLabel: 'Item',
+    validationIssues: []
   }
 }
 

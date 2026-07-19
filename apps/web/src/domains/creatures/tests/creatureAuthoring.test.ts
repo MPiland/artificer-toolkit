@@ -1,17 +1,12 @@
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
   createDefaultAbilityScores,
-  createEmptyAction,
   createEmptyCreature,
   createEmptyMountProfile,
   normalizeCreatureForSubmit,
-  resolveCreateCreatureSystemId
+  resolveCreateCreatureSystemId,
+  toCreatureFormValues
 } from '../creatureAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
@@ -28,7 +23,6 @@ describe('creature authoring helpers', () => {
       id: generatedId,
       label: '',
       status: 'DRAFT',
-      recordKind: 'STAT_BLOCK',
       category: 'MONSTER',
       size: 'MEDIUM',
       systemId: 'dnd-5e-srd',
@@ -52,10 +46,53 @@ describe('creature authoring helpers', () => {
     expect(normalized).toMatchObject({
       label: 'Untitled Creature',
       description: '',
-      recordKind: 'STAT_BLOCK',
       category: 'MONSTER',
-      actions: [],
       speeds: []
+    })
+  })
+
+  it('adapts primitive authored arrays to editable rows and back', () => {
+    const authored = normalizeCreatureForSubmit(createEmptyCreature({ systemId: 'dnd-5e-srd' }))
+    const formValues = toCreatureFormValues({
+      ...authored,
+      tags: ['forest', 'ambush'],
+      senses: ['darkvision 60 ft.'],
+      logisticsNotes: ['Requires a saddle.'],
+      npcProfile: {
+        bonds: ['Protects the village.'],
+        flaws: ['Trusts too easily.'],
+        ideals: ['Community.'],
+        personalityTraits: ['Never names a source.']
+      }
+    })
+
+    expect(formValues).toMatchObject({
+      tags: [{ value: 'forest' }, { value: 'ambush' }],
+      senses: [{ value: 'darkvision 60 ft.' }],
+      logisticsNotes: [{ value: 'Requires a saddle.' }],
+      npcProfile: {
+        bonds: [{ value: 'Protects the village.' }],
+        flaws: [{ value: 'Trusts too easily.' }],
+        ideals: [{ value: 'Community.' }],
+        personalityTraits: [{ value: 'Never names a source.' }]
+      }
+    })
+
+    const normalized = normalizeCreatureForSubmit({
+      ...formValues,
+      tags: [...(formValues.tags ?? []), { value: '  ' }]
+    })
+
+    expect(normalized).toMatchObject({
+      tags: ['forest', 'ambush'],
+      senses: ['darkvision 60 ft.'],
+      logisticsNotes: ['Requires a saddle.'],
+      npcProfile: {
+        bonds: ['Protects the village.'],
+        flaws: ['Trusts too easily.'],
+        ideals: ['Community.'],
+        personalityTraits: ['Never names a source.']
+      }
     })
   })
 
@@ -75,7 +112,13 @@ describe('creature authoring helpers', () => {
         currencyId: 'gold'
       },
       mountProfile: createEmptyMountProfile(),
-      actions: [createEmptyAction()]
+      features: [{
+        id: 'trampling-charge',
+        label: 'Trampling Charge',
+        description: 'The hart charges a nearby target.',
+        section: 'ACTION',
+        order: 1
+      }]
     })
 
     expect(creatureAuthoredDtoSchema.parse(creature)).toMatchObject({
@@ -87,7 +130,8 @@ describe('creature authoring helpers', () => {
       },
       mountProfile: {
         mountType: 'CONTROLLED'
-      }
+      },
+      features: [{ section: 'ACTION' }]
     })
   })
 })

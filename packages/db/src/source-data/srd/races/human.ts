@@ -1,7 +1,9 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -86,6 +88,7 @@ export const human: RaceAuthored = {
     {
       id: raceFeatureId(4, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your ability scores each increase by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -175,6 +178,7 @@ export const human: RaceAuthored = {
             level: SCALING_AMOUNT_KIND.FULL,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             languageIds: availableLanguageIds(['COMMON']),
@@ -186,6 +190,7 @@ export const human: RaceAuthored = {
     {
       id: raceFeatureId(4, 3, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common.',
       availableAtLevel: 1,
       order: 2,

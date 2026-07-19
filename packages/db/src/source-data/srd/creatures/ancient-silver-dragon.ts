@@ -5,7 +5,6 @@ export const ancientSilverDragon: CreatureAuthored = {
     label: 'Ancient Silver Dragon',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.GARGANTUAN,
@@ -17,7 +16,6 @@ export const ancientSilverDragon: CreatureAuthored = {
         INTELLIGENCE: 18,
         WISDOM: 15,
         CHARISMA: 23,
-        SPELLCASTING: 0
     },
     armorClass: 22,
     armorClassNote: 'natural armor',
@@ -76,7 +74,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(22, 12),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -296,7 +294,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(22, 27),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -334,7 +332,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(22, 30),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -449,7 +447,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(22, 39),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -487,7 +485,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(22, 42),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -500,6 +498,7 @@ export const ancientSilverDragon: CreatureAuthored = {
         {
             id: S.featureId(22, 11),
             label: 'Legendary Actions',
+            section: 'LEGENDARY_ACTION',
             description: "The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The dragon regains spent legendary actions at the start of its turn.",
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
             charges: {
@@ -533,7 +532,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.legendaryActionId(22, 24),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -563,7 +562,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.legendaryActionId(22, 27),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -593,7 +592,7 @@ export const ancientSilverDragon: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.legendaryActionId(22, 30),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

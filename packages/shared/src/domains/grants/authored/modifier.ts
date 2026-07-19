@@ -17,19 +17,14 @@ export type ModifierGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> =
     domain: ValueDomainParam<V>
     modifierKind: ModifierKindsByDomiain<V>
     scope: ModifierScopeKind
-  }
-  & (
-    ModifierKindsByDomiain<V> extends infer K
-      ? K extends ModifierKindsByDomiain<V>
-        ? ModifierPayloadByDomain<V, K> extends infer P
-          ? (P extends undefined ? { payload?: undefined } : { payload: P })
-          : never
+  } & (ModifierKindsByDomiain<V> extends infer K
+    ? K extends ModifierKindsByDomiain<V>
+      ? ModifierPayloadByDomain<V, K> extends infer P
+        ? P extends undefined
+          ? { payload?: undefined }
+          : { payload: P }
         : never
       : never
-  )
-  & GrantBaseAuthored<N>
-  & (
-    | { selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED }
-    | { selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN, count: number }
-  )
+    : never) &
+    GrantBaseAuthored<N> & { selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED }
 }[ValueDomainCode]

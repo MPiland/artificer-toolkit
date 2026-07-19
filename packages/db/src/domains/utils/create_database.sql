@@ -19,7 +19,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/utils/tables/utils.sql'
 \i :etl_root'/utils/tables/user_management.sql'
 \i :etl_root'/subjects/tables/systems.sql'
-\i :etl_root'/subjects/tables/authored_subject_drafts.sql'
+\i :etl_root'/subjects/tables/authored_definitions.sql'
 \i :etl_root'/subjects/tables/character_builder_drafts.sql'
 \i :etl_root'/shared/tables/charges.sql'
 \i :etl_root'/shared/tables/details.sql'

@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -85,6 +86,7 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Intelligence score increases by 1, and your Charisma score increases by 2.',
       availableAtLevel: 1,
       order: 0,
@@ -205,6 +207,7 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 5, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Infernal.',
       availableAtLevel: 1,
       order: 4,

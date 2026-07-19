@@ -3,9 +3,12 @@ import { z } from 'zod'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD,
-  CharacterStartingEquipmentSource,
   HITPOINT_CALCULATION_METHOD_CODE
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import {
+  CharacterStartingEquipmentSource,
+  getCharacterChosenGrantSelectionIdentityKey
+} from '@artificer-toolkit/shared/subjects/authored'
 
 import {
   abilityCodeSchema,
@@ -131,6 +134,33 @@ const characterFeatureAcquisitionRecordDtoSchemaRaw = z.object({
   selections: z.array(characterFeatureSelectionRecordDtoSchemaRaw).optional()
 })
 
+const characterChosenGrantSelectionRecordDtoSchemaRaw = z.object({
+  id: z.string(),
+  grantId: z.string(),
+  source: characterProvenanceDtoSchemaRaw,
+  timing: characterAcquisitionTimingDtoSchemaRaw,
+  progressionLevel: z.number().int().positive().optional(),
+  targetIds: z.array(z.string())
+})
+
+const characterChosenGrantSelectionsDtoSchemaRaw = z.array(
+  characterChosenGrantSelectionRecordDtoSchemaRaw
+).superRefine((selections, context) => {
+  const seen = new Set<string>()
+
+  selections.forEach((selection, index) => {
+    const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
+    if (seen.has(identity)) {
+      context.addIssue({
+        code: 'custom',
+        path: [index],
+        message: 'Chosen grant selections must be unique by grant, source, and progression level.'
+      })
+    }
+    seen.add(identity)
+  })
+})
+
 const characterAdvancementIntentDtoSchemaRaw = z.union([
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.EXPERIENCE),
@@ -148,7 +178,9 @@ const characterDieRollRecordDtoSchemaRaw = z.object({
 })
 
 const characterHitpointLevelEntryDtoSchemaRaw = z.object({
-  level: z.number().int(),
+  level: z.number().int().positive(),
+  classId: z.string().min(1),
+  classLevel: z.number().int().positive(),
   value: z.number().int(),
   rolls: z.array(characterDieRollRecordDtoSchemaRaw).optional(),
   overridden: z.boolean().optional()
@@ -336,6 +368,7 @@ const characterIntentDtoSchemaRaw = z.object({
     background: characterStartingEquipmentDecisionDtoSchemaRaw.optional()
   }).optional(),
   featureAcquisitions: z.array(characterFeatureAcquisitionRecordDtoSchemaRaw),
+  chosenGrantSelections: characterChosenGrantSelectionsDtoSchemaRaw.optional(),
   spellSelections: z.array(characterSpellSelectionRecordDtoSchemaRaw).optional(),
   resourceGrants: z.array(characterResourceGrantRecordDtoSchemaRaw).optional()
 })
@@ -384,6 +417,7 @@ const characterCurrencyAmountStateDtoSchemaRaw = z.object({
 })
 
 const characterCurrencyGroupStateDtoSchemaRaw = z.object({
+  id: z.string(),
   containerId: z.string().optional(),
   currencies: z.array(characterCurrencyAmountStateDtoSchemaRaw)
 })
@@ -421,6 +455,23 @@ const characterExhaustionStateDtoSchemaRaw = z.object({
   notes: z.string().optional()
 })
 
+const characterNoteGroupStateDtoSchemaRaw = z.object({
+  id: z.string(),
+  label: z.string(),
+  sortOrder: z.number().int(),
+  kind: z.enum(['SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM'])
+})
+
+const characterNoteStateDtoSchemaRaw = z.object({
+  id: z.string(),
+  title: z.string(),
+  body: z.string().optional(),
+  groupId: z.string(),
+  pinned: z.boolean().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string()
+})
+
 const characterHitDiceUsageStateDtoSchemaRaw = z.object({
   die: z.number().int(),
   total: z.number().int(),
@@ -440,11 +491,14 @@ const characterStateDtoSchemaRaw = z.object({
   equipment: characterEquipmentStateDtoSchemaRaw,
   currency: z.array(characterCurrencyGroupStateDtoSchemaRaw),
   hitpoints: characterHitpointsStateDtoSchemaRaw,
+  inspiration: z.boolean().optional(),
   classes: z.array(characterClassStateDtoSchemaRaw).optional(),
   resources: z.array(characterResourceUsageStateDtoSchemaRaw).optional(),
   spellSlots: z.array(characterSpellSlotUsageStateDtoSchemaRaw).optional(),
   conditions: z.array(characterConditionStateDtoSchemaRaw).optional(),
   exhaustion: characterExhaustionStateDtoSchemaRaw.optional(),
+  noteGroups: z.array(characterNoteGroupStateDtoSchemaRaw).optional(),
+  notes: z.array(characterNoteStateDtoSchemaRaw).optional(),
   creatures: z.array(characterOwnedCreatureStateDtoSchemaRaw).optional(),
   vehicles: z.array(characterOwnedVehicleStateDtoSchemaRaw).optional(),
   creatureEquipment: z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw)).optional(),
@@ -469,6 +523,7 @@ export type CharacterAcquisitionTimingDto = z.infer<typeof characterAcquisitionT
 export type CharacterFeatureSelectionValueDto = z.infer<typeof characterFeatureSelectionValueDtoSchemaRaw>
 export type CharacterFeatureSelectionRecordDto = z.infer<typeof characterFeatureSelectionRecordDtoSchemaRaw>
 export type CharacterFeatureAcquisitionRecordDto = z.infer<typeof characterFeatureAcquisitionRecordDtoSchemaRaw>
+export type CharacterChosenGrantSelectionRecordDto = z.infer<typeof characterChosenGrantSelectionRecordDtoSchemaRaw>
 export type CharacterAdvancementIntentDto = z.infer<typeof characterAdvancementIntentDtoSchemaRaw>
 export type CharacterDieRollRecordDto = z.infer<typeof characterDieRollRecordDtoSchemaRaw>
 export type CharacterHitpointLevelEntryDto = z.infer<typeof characterHitpointLevelEntryDtoSchemaRaw>
@@ -491,6 +546,7 @@ export const characterAcquisitionTimingDtoSchema = characterAcquisitionTimingDto
 export const characterFeatureSelectionValueDtoSchema = characterFeatureSelectionValueDtoSchemaRaw
 export const characterFeatureSelectionRecordDtoSchema = characterFeatureSelectionRecordDtoSchemaRaw
 export const characterFeatureAcquisitionRecordDtoSchema = characterFeatureAcquisitionRecordDtoSchemaRaw
+export const characterChosenGrantSelectionRecordDtoSchema = characterChosenGrantSelectionRecordDtoSchemaRaw
 export const characterAdvancementIntentDtoSchema = characterAdvancementIntentDtoSchemaRaw
 export const characterDieRollRecordDtoSchema = characterDieRollRecordDtoSchemaRaw
 export const characterHitpointLevelEntryDtoSchema = characterHitpointLevelEntryDtoSchemaRaw

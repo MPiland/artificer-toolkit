@@ -1,12 +1,13 @@
 import { HttpResponse, http } from 'msw'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { NodeRuntimeResolveRequestDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   authoredCreateRouteLoaderData,
   authoredEditRouteLoaderData,
-  authoredRouteStoryRecords
+  authoredRouteStoryRecords,
+  authoredRouteStorySystem
 } from '#domains/authoredRouteStory.fixtures'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { server } from '#test/msw/server'
@@ -29,46 +30,130 @@ describe('non-character authored domain layout coverage', () => {
   it.each(DOMAINS)('renders the %s create authoring route data', async (domain) => {
     useStaticNodeRuntimeResolver()
 
-    render(
-      <TestRouterProvider>
-        {renderCreateLayout(domain)}
-      </TestRouterProvider>
-    )
+    render(<TestRouterProvider>{renderCreateLayout(domain)}</TestRouterProvider>)
 
     expect(await screen.findByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
   })
 
   it('shows Back after advancing from the first create step', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
 
-    render(
-      <TestRouterProvider>
-        {renderCreateLayout('race')}
-      </TestRouterProvider>
-    )
+    render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
 
     await user.type(await screen.findByRole('textbox', { name: /name/i }), 'Test Race')
     await user.click(screen.getByRole('button', { name: /^next$/i }))
 
-    expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeEnabled()
   })
 
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {
     useStaticNodeRuntimeResolver()
 
+    render(<TestRouterProvider>{renderEditLayout(domain)}</TestRouterProvider>)
+
+    expect(
+      await screen.findByDisplayValue(authoredRouteStoryRecords[domain].label)
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
+    expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
+  })
+
+  it(
+    'guards populated Spell material values before deselecting Material',
+    async () => {
+      const user = userEvent.setup()
+      useStaticNodeRuntimeResolver()
+
+      render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
+
+      await user.click(await screen.findByRole('button', { name: /^casting/i }))
+      const components = await screen.findByRole('combobox', { name: /components/i })
+      expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
+
+      await user.click(components)
+      await user.keyboard('{Backspace}')
+      const confirmation = await screen.findByRole('dialog', { name: /clear hidden values/i })
+      expect(screen.getByText('Material Description')).toBeInTheDocument()
+
+      await user.click(within(confirmation).getByRole('button', { name: /^cancel$/i }))
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: /clear hidden values/i })).not.toBeInTheDocument()
+      })
+      expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
+
+      await user.click(components)
+      await user.keyboard('{Backspace}')
+      await user.click(
+        within(await screen.findByRole('dialog', { name: /clear hidden values/i })).getByRole(
+          'button',
+          { name: /clear and continue/i }
+        )
+      )
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: /remove material/i })).not.toBeInTheDocument()
+        expect(screen.queryByText('Material Description')).not.toBeInTheDocument()
+      })
+    },
+    15_000
+  )
+
+  it('clears an empty Spell material branch without prompting', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    const spell = authoredEditRouteLoaderData.spell.authoringData.response.item
+    if (!spell) throw new Error('Expected the owned Spell fixture.')
+
     render(
       <TestRouterProvider>
-        {renderEditLayout(domain)}
+        <AuthoringLayout
+          data={{
+            ...authoredEditRouteLoaderData.spell.authoringData,
+            response: {
+              ...authoredEditRouteLoaderData.spell.authoringData.response,
+              item: { ...spell, materialDescription: '' }
+            }
+          }}
+          domain='spell'
+          mode='edit'
+        />
       </TestRouterProvider>
     )
 
-    expect(await screen.findByDisplayValue(authoredRouteStoryRecords[domain].label)).toBeInTheDocument()
-    expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
-    expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: /^casting/i }))
+    const components = await screen.findByRole('combobox', { name: /components/i })
+    expect(await screen.findByText('Material Description')).toBeInTheDocument()
+
+    await user.click(components)
+    await user.keyboard('{Backspace}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /clear hidden values/i })).not.toBeInTheDocument()
+      expect(screen.queryByText('Material Description')).not.toBeInTheDocument()
+    })
+  })
+
+  it('preserves the Spell branch when normalization fails', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    server.use(
+      http.post('*/api/trpc/nodeRuntime.normalizeValues*', () => HttpResponse.error())
+    )
+
+    render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
+
+    await user.click(await screen.findByRole('button', { name: /^casting/i }))
+    const components = await screen.findByRole('combobox', { name: /components/i })
+    await user.click(components)
+    await user.keyboard('{Backspace}')
+
+    expect(await screen.findByText('This change could not be verified. Try again.')).toBeVisible()
+    expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
   })
 })
 
@@ -78,13 +163,19 @@ function useStaticNodeRuntimeResolver() {
       const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
 
       return trpcBatchJson(
-        inputs.map((input) => (
-          createStaticResolvedFormModel(input.mapId) ?? {
-            mapId: input.mapId,
-            steps: [],
-            clearPaths: []
-          }
-        ))
+        inputs.map(
+          (input) =>
+            createStaticResolvedFormModel(input.mapId, {
+              ancestors: input.ancestors,
+              parentValues: input.parentValues,
+              system: authoredRouteStorySystem,
+              values: input.values
+            }) ?? {
+              mapId: input.mapId,
+              steps: [],
+              clearPaths: []
+            }
+        )
       )
     })
   )

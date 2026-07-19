@@ -9,6 +9,7 @@ import {
   SelectField,
   TagsField,
   TextField,
+  ToggleField,
   TextareaField
 } from '../fields/AppFormFields'
 
@@ -19,6 +20,7 @@ const appFieldComponents = {
   TextField,
   TextareaField,
   NumberField,
+  ToggleField,
   SelectField,
   MultiSelectField,
   TagsField,

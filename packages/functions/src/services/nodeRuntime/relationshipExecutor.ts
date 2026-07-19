@@ -1,4 +1,4 @@
-import type { DBLike, NodeRuntimeQueryRow } from '@artificer-toolkit/db'
+import type { DBLike, NodeRuntimeQueryRow, NodeRuntimeQueryWhere } from '@artificer-toolkit/db'
 import { selectNodeRuntimeRows } from '@artificer-toolkit/db'
 import type {
   ChainedStep,
@@ -17,111 +17,15 @@ import {
 } from '@artificer-toolkit/shared/utils'
 import type { NodeRuntimeOptionDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { NodeRuntimeInputError } from './mapRegistry.js'
+import {
+  isNodeRuntimeSourceColumn,
+  isNodeRuntimeSourceTable,
+  type NodeRuntimeSourceTable
+} from './nodeRuntimeSourceManifest.js'
 
-const trustedTables = new Set([
-  'alignments',
-  'background_features',
-  'background_proficiency_grants',
-  'backgrounds',
-  'characteristic_durations',
-  'characteristic_ranges',
-  'challenge_ratings',
-  'charge_limits',
-  'charges',
-  'class_features',
-  'class_proficiency_grants',
-  'class_resources',
-  'class_specializations',
-  'class_spellcasting',
-  'classes',
-  'condition_types',
-  'conditions',
-  'creature_types',
-  'creatures',
-  'currencies',
-  'damage_types',
-  'damages',
-  'effect_invocations',
-  'effect_path_choice_options',
-  'effect_path_roll_table_rows',
-  'effect_paths',
-  'effect_result_block_outcomes',
-  'effect_result_blocks',
-  'equipment',
-  'equipment_effects',
-  'equipment_features',
-  'equipment_properties',
-  'feat_effects',
-  'feat_features',
-  'feat_proficiency_grants',
-  'feats',
-  'feature_effects',
-  'feature_options',
-  'feature_proficiency_grants',
-  'features',
-  'heritages',
-  'languages',
-  'magic_schools',
-  'option_effects',
-  'option_proficiency_grants',
-  'options',
-  'proficiency_grant_equipment',
-  'proficiency_grant_equipment_properties',
-  'proficiency_grant_languages',
-  'proficiency_grant_save_abilities',
-  'race_ancestries',
-  'race_ancestry_option_features',
-  'race_ancestry_options',
-  'race_features',
-  'races',
-  'rarities',
-  'senses',
-  'skills',
-  'speeds',
-  'spell_effects',
-  'spells'
-])
-
-const trustedColumns = new Set([
-  'ability_code',
-  'ancestry_id',
-  'ancestry_option_id',
-  'background_id',
-  'category',
-  'characteristic_id',
-  'charge_id',
-  'class_id',
-  'code',
-  'condition_type_id',
-  'damage_type_id',
-  'description',
-  'duration_id',
-  'effect_id',
-  'equipment_id',
-  'feat_id',
-  'feature_id',
-  'id',
-  'kind',
-  'label',
-  'language_id',
-  'limit_kind',
-  'magic_school_id',
-  'option_id',
-  'outcome_id',
-  'parent_class_id',
-  'parent_race_id',
-  'path_id',
-  'proficiency_grant_id',
-  'property_code',
-  'race_id',
-  'range_characteristic_id',
-  'reset_kind',
-  'result_block_id',
-  'short',
-  'spell_id',
-  'system_id',
-  'tooltip'
-])
+const implicitTableOptionColumns: Readonly<Record<string, readonly string[]>> = {
+  currencies: ['id', 'code', 'label', 'short', 'tooltip', 'description']
+}
 
 type RuntimeStream = readonly unknown[]
 
@@ -134,21 +38,23 @@ export async function executeRelationshipPlan(
 }
 
 export function streamToOptions(stream: RuntimeStream): NodeRuntimeOptionDto[] {
-  return dedupeByValue(stream.map((item) => {
-    if (isRuntimeRecord(item)) {
-      const value = stringFromFirst(item, ['id', 'code', 'value'])
-      const label = stringFromFirst(item, ['label', 'name', 'short', 'code', 'id'])
+  return dedupeByValue(
+    stream.map((item) => {
+      if (isRuntimeRecord(item)) {
+        const value = stringFromFirst(item, ['id', 'code', 'value'])
+        const label = stringFromFirst(item, ['label', 'name', 'short', 'code', 'id'])
 
-      return {
-        value,
-        label,
-        description: stringFromOptional(item, ['tooltip', 'description'])
+        return {
+          value,
+          label,
+          description: stringFromOptional(item, ['tooltip', 'description'])
+        }
       }
-    }
 
-    const value = String(item)
-    return { value, label: value }
-  }))
+      const value = String(item)
+      return { value, label: value }
+    })
+  )
 }
 
 async function executeRelationship(
@@ -158,8 +64,16 @@ async function executeRelationship(
   stream: RuntimeStream
 ): Promise<RuntimeStream> {
   switch (plan.kind) {
-    case 'TABLE':
-      return filterRows(await queryTrustedTable(db, plan.table), plan.where, scope)
+    case 'TABLE': {
+      const table = assertTrustedTable(plan.table)
+      const where = resolveWhere(plan.where, scope, table)
+      const selectedColumns = plan.selectColumns ?? implicitTableOptionColumns[plan.table] ?? ['id']
+      const columns = requiredColumns(table, selectedColumns, where)
+      return filterRows(
+        await queryTrustedTable(db, table, columns, where, scope.systemId),
+        where
+      )
+    }
     case 'MAP_VALUES':
       return executeMapValues(db, plan, scope, stream)
     case 'CHAIN':
@@ -176,9 +90,16 @@ async function executeStep(
   stream: RuntimeStream
 ): Promise<RuntimeStream> {
   switch (step.kind) {
-    case 'SEED':
-      return filterRows(await queryTrustedTable(db, step.table), step.where, scope)
-        .map((row) => row[assertTrustedColumn(step.valueColumn)])
+    case 'SEED': {
+      const table = assertTrustedTable(step.table)
+      const valueColumn = assertTrustedColumn(table, step.valueColumn)
+      const where = resolveWhere(step.where, scope, table)
+      const columns = requiredColumns(table, [valueColumn], where)
+      return filterRows(
+        await queryTrustedTable(db, table, columns, where, scope.systemId),
+        where
+      ).map((row) => row[valueColumn])
+    }
     case 'MAP_VALUES':
       return executeMapValues(db, step, scope, stream)
     case 'CHAIN':
@@ -242,8 +163,8 @@ async function executeConditionPlan<P extends RelationshipPlan | StepPlan | Chai
   scope: NodeRuntimeScope,
   stream: RuntimeStream
 ): Promise<RuntimeStream> {
-  const selected = plan.choices.find((choice) => evaluateConditionIf(choice.useIf, scope))?.plan
-    ?? plan.fallback
+  const selected =
+    plan.choices.find((choice) => evaluateConditionIf(choice.useIf, scope))?.plan ?? plan.fallback
 
   if (!selected) return []
 
@@ -260,15 +181,23 @@ async function executeMapValues(
   stream: RuntimeStream
 ): Promise<RuntimeStream> {
   const table = assertTrustedTable(step.table)
-  const whereColumn = assertTrustedColumn(step.whereColumn)
-  const valueColumn = assertTrustedColumn(step.valueColumn)
-  step.selectColumns?.forEach(assertTrustedColumn)
+  const whereColumn = assertTrustedColumn(table, step.whereColumn)
+  const valueColumn = assertTrustedColumn(table, step.valueColumn)
+  step.selectColumns?.forEach((column) => assertTrustedColumn(table, column))
 
-  const inputValues = 'input' in step && step.input ? toArray(resolveIdRef(step.input, scope)) : stream
+  const inputValues =
+    'input' in step && step.input ? toArray(resolveIdRef(step.input, scope)) : stream
   if (inputValues.length === 0) return []
 
-  const rows = filterRows(await queryTrustedTable(db, table), step.where, scope)
-    .filter((row) => inputValues.includes(row[whereColumn]))
+  const where = andWhere(resolveWhere(step.where, scope, table), {
+    kind: 'PREDICATE',
+    column: whereColumn,
+    op: 'IN',
+    values: inputValues
+  })
+  const selectedColumns = step.selectColumns ?? [valueColumn]
+  const columns = requiredColumns(table, [whereColumn, valueColumn, ...selectedColumns], where)
+  const rows = filterRows(await queryTrustedTable(db, table, columns, where, scope.systemId), where)
 
   if (step.selectColumns) {
     const columns = step.selectColumns
@@ -278,69 +207,181 @@ async function executeMapValues(
   return rows.map((row) => row[valueColumn])
 }
 
-async function queryTrustedTable(db: DBLike, tableName: string): Promise<NodeRuntimeQueryRow[]> {
+async function queryTrustedTable(
+  db: DBLike,
+  tableName: string,
+  columns: readonly string[],
+  where: NodeRuntimeQueryWhere | undefined,
+  systemId: string | undefined
+): Promise<NodeRuntimeQueryRow[]> {
   const table = assertTrustedTable(tableName)
-  return selectNodeRuntimeRows(db, table, [])
+  columns.forEach((column) => assertTrustedColumn(table, column))
+  return selectNodeRuntimeRows(db, table, columns, where, systemId)
 }
 
 function filterRows(
   rows: readonly NodeRuntimeQueryRow[],
-  where: WhereExpr | undefined,
-  scope: NodeRuntimeScope
+  where: NodeRuntimeQueryWhere | undefined
 ): NodeRuntimeQueryRow[] {
   if (!where) return [...rows]
-  return rows.filter((row) => evaluateWhere(row, where, scope))
+  return rows.filter((row) => evaluateWhere(row, where))
 }
 
-function evaluateWhere(row: NodeRuntimeQueryRow, where: WhereExpr, scope: NodeRuntimeScope): boolean {
-  if ('and' in where) return where.and.every((expr) => evaluateWhere(row, expr, scope))
-  if ('or' in where) return where.or.some((expr) => evaluateWhere(row, expr, scope))
-  if ('not' in where) return !evaluateWhere(row, where.not, scope)
+function evaluateWhere(row: NodeRuntimeQueryRow, where: NodeRuntimeQueryWhere): boolean {
+  switch (where.kind) {
+    case 'CONSTANT':
+      return where.value
+    case 'AND':
+      return where.expressions.every((expr) => evaluateWhere(row, expr))
+    case 'OR':
+      return where.expressions.some((expr) => evaluateWhere(row, expr))
+    case 'NOT':
+      return !evaluateWhere(row, where.expression)
+    case 'PREDICATE': {
+      const left = row[where.column]
 
-  const column = assertTrustedColumn(where.column)
-  const left = row[column]
+      if (where.op === 'IN') return where.values.includes(left)
+      if (where.op === '=') return left === where.value
+      if (where.op === '!=') return left !== where.value
 
-  if (where.op !== 'IN') {
-    return where.op === '='
-      ? left === resolveWhereValue(where.value, scope)
-      : left !== resolveWhereValue(where.value, scope)
+      throw new Error(`Unknown node runtime predicate: ${JSON.stringify(where)}`)
+    }
+    default: {
+      const impossibleWhere: never = where
+      throw new Error(`Unknown node runtime where kind: ${JSON.stringify(impossibleWhere)}`)
+    }
   }
-
-  const values = isIdRef(where.values)
-    ? toArray(resolveIdRef(where.values, scope))
-    : [...where.values]
-  return values.includes(left)
 }
 
-function resolveWhereValue(value: unknown, scope: NodeRuntimeScope): unknown {
-  return isIdRef(value) ? resolveIdRef(value, scope) : value
+function resolveWhere(
+  where: WhereExpr | undefined,
+  scope: NodeRuntimeScope,
+  table: NodeRuntimeSourceTable
+): NodeRuntimeQueryWhere | undefined {
+  if (!where) return undefined
+
+  switch (where.kind) {
+    case 'AND':
+      return {
+        kind: 'AND',
+        expressions: where.expressions.map(
+          (expr) => resolveWhere(expr, scope, table) ?? { kind: 'CONSTANT', value: true }
+        )
+      }
+    case 'OR':
+      return {
+        kind: 'OR',
+        expressions: where.expressions.map(
+          (expr) => resolveWhere(expr, scope, table) ?? { kind: 'CONSTANT', value: false }
+        )
+      }
+    case 'NOT':
+      return {
+        kind: 'NOT',
+        expression: resolveWhere(where.expression, scope, table) ?? {
+          kind: 'CONSTANT',
+          value: true
+        }
+      }
+    case 'PREDICATE': {
+      const column = assertTrustedColumn(table, where.column)
+      if (where.op === 'IN') {
+        const values = isIdRef(where.values)
+          ? toArray(resolveIdRef(where.values, scope))
+          : [...where.values]
+        return { kind: 'PREDICATE', column, op: 'IN', values }
+      }
+
+      const value = isIdRef(where.value) ? resolveIdRef(where.value, scope) : where.value
+      if (value === undefined) return { kind: 'CONSTANT', value: where.op === '!=' }
+      return { kind: 'PREDICATE', column, op: where.op, value }
+    }
+    default: {
+      const impossibleWhere: never = where
+      throw new Error(`Unknown relationship where kind: ${JSON.stringify(impossibleWhere)}`)
+    }
+  }
+}
+
+function andWhere(
+  ...where: readonly (NodeRuntimeQueryWhere | undefined)[]
+): NodeRuntimeQueryWhere | undefined {
+  const predicates = where.filter(
+    (predicate): predicate is NodeRuntimeQueryWhere => predicate !== undefined
+  )
+  if (predicates.length === 0) return undefined
+  if (predicates.length === 1) return predicates[0]
+  return { kind: 'AND', expressions: predicates }
+}
+
+function requiredColumns(
+  table: NodeRuntimeSourceTable,
+  selectedColumns: readonly string[],
+  where: NodeRuntimeQueryWhere | undefined
+): string[] {
+  const columns = new Set(selectedColumns.map((column) => assertTrustedColumn(table, column)))
+  collectWhereColumns(table, where, columns)
+  return [...columns]
+}
+
+function collectWhereColumns(
+  table: NodeRuntimeSourceTable,
+  where: NodeRuntimeQueryWhere | undefined,
+  columns: Set<string>
+): void {
+  if (!where) return
+
+  switch (where.kind) {
+    case 'CONSTANT':
+      return
+    case 'AND':
+    case 'OR':
+      where.expressions.forEach((expr) => collectWhereColumns(table, expr, columns))
+      return
+    case 'NOT':
+      collectWhereColumns(table, where.expression, columns)
+      return
+    case 'PREDICATE':
+      columns.add(assertTrustedColumn(table, where.column))
+      return
+    default: {
+      const impossibleWhere: never = where
+      throw new Error(`Unknown node runtime where kind: ${JSON.stringify(impossibleWhere)}`)
+    }
+  }
 }
 
 function isStepPlan(value: RelationshipPlan | StepPlan | ChainedStep): value is StepPlan {
-  return value.kind === 'SEED'
-    || value.kind === 'MAP_VALUES'
-    || value.kind === 'CHAIN'
-    || value.kind === 'CONDITION'
+  return (
+    value.kind === 'SEED' ||
+    value.kind === 'MAP_VALUES' ||
+    value.kind === 'CHAIN' ||
+    value.kind === 'CONDITION'
+  )
 }
 
 function isChainedStep(value: RelationshipPlan | StepPlan | ChainedStep): value is ChainedStep {
-  return value.kind === 'MAP_VALUES'
-    || value.kind === 'CHAIN'
-    || value.kind === 'UNION'
-    || value.kind === 'CONDITION'
+  return (
+    value.kind === 'MAP_VALUES' ||
+    value.kind === 'CHAIN' ||
+    value.kind === 'UNION' ||
+    value.kind === 'CONDITION'
+  )
 }
 
-function assertTrustedTable(tableName: string): string {
-  if (!trustedTables.has(tableName)) {
+function assertTrustedTable(tableName: string): NodeRuntimeSourceTable {
+  if (!isNodeRuntimeSourceTable(tableName)) {
     throw new NodeRuntimeInputError(`Untrusted node runtime table: ${tableName}`)
   }
 
   return tableName
 }
 
-function assertTrustedColumn(columnName: string): string {
-  if (!trustedColumns.has(columnName)) {
-    throw new NodeRuntimeInputError(`Untrusted node runtime column: ${columnName}`)
+function assertTrustedColumn(table: NodeRuntimeSourceTable, columnName: string): string {
+  if (!isNodeRuntimeSourceColumn(table, columnName)) {
+    throw new NodeRuntimeInputError(
+      `Untrusted node runtime column for ${table}: ${columnName}`
+    )
   }
 
   return columnName
@@ -351,10 +392,7 @@ function toArray(value: unknown): unknown[] {
   return value == null ? [] : [value]
 }
 
-function pickColumns(
-  row: NodeRuntimeQueryRow,
-  columns: readonly string[]
-): NodeRuntimeQueryRow {
+function pickColumns(row: NodeRuntimeQueryRow, columns: readonly string[]): NodeRuntimeQueryRow {
   return columns.reduce<NodeRuntimeQueryRow>((picked, column) => {
     picked[column] = row[column]
     return picked
@@ -371,7 +409,10 @@ function stringFromFirst(row: Record<string, unknown>, keys: readonly string[]):
   return ''
 }
 
-function stringFromOptional(row: Record<string, unknown>, keys: readonly string[]): string | undefined {
+function stringFromOptional(
+  row: Record<string, unknown>,
+  keys: readonly string[]
+): string | undefined {
   for (const key of keys) {
     const value = row[key]
     if (typeof value === 'string' && value.length > 0) return value
@@ -401,7 +442,9 @@ function dedupeUnknown(values: readonly unknown[]): unknown[] {
 
 function stableKey(value: unknown): string {
   if (isRuntimeRecord(value)) {
-    return JSON.stringify(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))
+    return JSON.stringify(
+      Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+    )
   }
 
   return String(value)

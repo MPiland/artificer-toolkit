@@ -1,8 +1,8 @@
 import { sql } from 'kysely'
 import type { DBLike } from '#types'
-import type { AuthoredSubjectDraftKind } from './authoredSubjectDraft.js'
+import type { AuthoredSubjectKind } from './authoredDefinition.js'
 
-export type AuthoredRouteSubjectKind = AuthoredSubjectDraftKind | 'CHARACTER'
+export type AuthoredRouteSubjectKind = AuthoredSubjectKind | 'CHARACTER'
 
 export interface AuthoredRouteIdentity {
   subjectKind: AuthoredRouteSubjectKind

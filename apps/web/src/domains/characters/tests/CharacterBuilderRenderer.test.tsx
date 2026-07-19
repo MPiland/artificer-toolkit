@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useMemo } from 'react'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
@@ -37,6 +37,22 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /^race$/i })).toBeInTheDocument()
+    expect(screen.queryByText(/source context/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/resolver reports/i)).not.toBeInTheDocument()
+  })
+
+  it('publishes builder navigation through the production character authoring registration', async () => {
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+        kind='character-builder'
+        mode='create'
+      />
+    )
+
+    const navigation = await screen.findByRole('navigation', { name: 'Authoring steps' })
+    expect(within(navigation).getByText('Basics', { exact: true }).closest('button')).toBeVisible()
+    expect(within(navigation).getByText('Review', { exact: true }).closest('button')).toBeVisible()
   })
 
   it('uses draft readiness from the backend view to keep finalize unavailable', async () => {
@@ -53,6 +69,15 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByText(/needs attention/i)).toBeInTheDocument()
     expect(screen.getByText(/choose a race/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /finalize character/i })).toBeDisabled()
+  })
+
+  it('publishes builder step statuses for the authoring rail', async () => {
+    renderCharacterBuilderHarness({ payload: characterBuilderDraftPayloadFixture })
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"RACE":"incomplete"')
+    })
+    expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"BASICS":"incomplete"')
   })
 
   it('adds a selected class before resolver refresh', async () => {
@@ -88,6 +113,58 @@ describe('CharacterBuilderRenderer', () => {
         }
       ])
     })
+  })
+
+  it('resolves after replacing the background-owned intent subtree', async () => {
+    const user = userEvent.setup()
+    const resolvedValues: CharacterFormValues[] = []
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderDraftPayloadFixture,
+        resolution: {
+          ...characterBuilderDraftPayloadFixture.resolution,
+          recommendedSectionId: 'BACKGROUND'
+        }
+      },
+      resolveDebounceMs: 1,
+      onResolve: (character) => {
+        resolvedValues.push(character)
+      }
+    })
+
+    await user.click(screen.getByRole('combobox', { name: /^background$/i }))
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: 'Sage' }))
+
+    await waitFor(() => {
+      expect(resolvedValues.at(-1)?.intent.background?.backgroundId).toBe('background-sage')
+    })
+  })
+
+  it('does not resolve again for prose-only edits', async () => {
+    vi.useFakeTimers()
+    const resolvedValues: CharacterFormValues[] = []
+
+    try {
+      renderCharacterBuilderHarness({
+        payload: characterBuilderPayloadFixture,
+        resolveDebounceMs: 1,
+        showProseEditTestToggle: true,
+        onResolve: (character) => {
+          resolvedValues.push(character)
+        }
+      })
+
+      await act(async () => vi.advanceTimersByTimeAsync(2))
+      expect(resolvedValues).toHaveLength(1)
+
+      fireEvent.click(screen.getByRole('button', { name: /update table notes/i }))
+      await act(async () => vi.advanceTimersByTimeAsync(2))
+
+      expect(resolvedValues).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('renders resolver-provided starting equipment choices on the equipment step', () => {
@@ -146,7 +223,97 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /equipment/i })).toBeInTheDocument()
     expect(screen.getByText(/wizard starting equipment/i)).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: /group 1/i })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /group 1/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /choose 1 quarterstaff or scholar pack/i })).toBeInTheDocument()
+  })
+
+  it('resolves after selecting a starting equipment group option', async () => {
+    const user = userEvent.setup()
+    const resolvedValues: CharacterFormValues[] = []
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            startingEquipment: undefined
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'EQUIPMENT'
+        },
+        view: {
+          ...characterBuilderPayloadFixture.view,
+          equipment: {
+            ...characterBuilderPayloadFixture.view.equipment,
+            classStartingEquipmentRequired: true,
+            classStartingEquipment: {
+              source: 'CLASS',
+              sourceLabel: 'Wizard',
+              startingEquipment: {
+                id: 'wizard-starting-equipment',
+                sets: [{
+                  id: 'wizard-set',
+                  order: 1,
+                  groups: [{
+                    id: 'wizard-group',
+                    order: 1,
+                    options: [
+                      {
+                        id: 'staff-option',
+                        order: 1,
+                        items: [{
+                          id: 'staff-item',
+                          order: 1,
+                          startingEquipmentKind: 'EQUIPMENT',
+                          selectionKind: 'GRANTED',
+                          quantity: 1,
+                          authoringModeKind: 'SELECTED',
+                          equipmentIds: ['equipment-staff']
+                        }]
+                      },
+                      {
+                        id: 'pack-option',
+                        order: 2,
+                        items: [{
+                          id: 'pack-item',
+                          order: 1,
+                          startingEquipmentKind: 'EQUIPMENT',
+                          selectionKind: 'GRANTED',
+                          quantity: 1,
+                          authoringModeKind: 'SELECTED',
+                          equipmentIds: ['equipment-pack']
+                        }]
+                      }
+                    ]
+                  }]
+                }]
+              }
+            }
+          }
+        }
+      },
+      resolveDebounceMs: 1,
+      onResolve: (character) => {
+        resolvedValues.push(character)
+      }
+    })
+
+    await user.click(screen.getByRole('combobox', { name: /^option$/i }))
+    fireEvent.click(await screen.findByRole('option', { hidden: true, name: '1 Quarterstaff' }))
+
+    await waitFor(() => {
+      expect(resolvedValues.at(-1)?.intent.startingEquipment?.class?.groups).toEqual([
+        {
+          groupId: 'wizard-group',
+          optionId: 'staff-option',
+          selections: []
+        }
+      ])
+    })
   })
 
   it('renders resolver-provided source-local features and embedded choices on the owning step', () => {
@@ -177,11 +344,12 @@ describe('CharacterBuilderRenderer', () => {
                 sourceLabel: 'Elf',
                 source: { kind: 'RACE', raceId: 'race-elf' },
                 selectionKey: 'options',
-                requiredCount: 1,
+                requiredCount: 2,
                 selectedOptionIds: [],
                 options: [
                   { id: 'option-perception', label: 'Perception' },
-                  { id: 'option-stealth', label: 'Stealth' }
+                  { id: 'option-stealth', label: 'Stealth' },
+                  { id: 'option-survival', label: 'Survival' }
                 ]
               }
             ]
@@ -192,7 +360,8 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
     expect(screen.getByText(/choose one practiced elven skill/i)).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: /elven training choice/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /elven training choice 1 of 2/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /elven training choice 2 of 2/i })).toBeInTheDocument()
   })
 
   it('shows Dragonborn ancestry choices after the resolver selects Dragonborn', () => {
@@ -238,6 +407,7 @@ describe('CharacterBuilderRenderer', () => {
           race: {
             raceOptions: [{ id: 'race-dragonborn', label: 'Dragonborn' }],
             subraceOptions: [],
+            grantChoices: [],
             ancestry: {
               ancestryId: 'ancestry-draconic',
               label: 'Draconic Ancestry',
@@ -262,7 +432,7 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     expect(screen.getByRole('combobox', { name: /^race$/i })).toHaveValue('Dragonborn')
-    expect(screen.getByRole('combobox', { name: /draconic ancestry/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /draconic ancestry option/i })).toBeInTheDocument()
     expect(screen.getByText(/choose one type of dragon/i)).toBeInTheDocument()
   })
 
@@ -306,6 +476,7 @@ describe('CharacterBuilderRenderer', () => {
           race: {
             raceOptions: [{ id: 'race-dragonborn', label: 'Dragonborn' }],
             subraceOptions: [],
+            grantChoices: [],
             ancestry: {
               ancestryId: 'ancestry-draconic',
               label: 'Draconic Ancestry',
@@ -754,7 +925,7 @@ describe('CharacterBuilderRenderer', () => {
             ...characterBuilderPayloadFixture.character.intent,
             hitpoints: {
               method: HITPOINT_CALCULATION_METHOD_CODE.MANUAL,
-              levels: [{ level: 1, value: 7 }]
+              levels: [{ level: 1, classId: 'class-wizard', classLevel: 1, value: 7 }]
             }
           }
         },
@@ -784,6 +955,7 @@ function renderCharacterBuilderHarness({
   readOnly = false,
   showAbilityMethodTestToggle = false,
   showAncestrySelectionTestToggle = false,
+  showProseEditTestToggle = false,
   resolveDebounceMs = 60_000,
   onResolve = () => undefined
 }: {
@@ -791,6 +963,7 @@ function renderCharacterBuilderHarness({
   readOnly?: boolean
   showAbilityMethodTestToggle?: boolean
   showAncestrySelectionTestToggle?: boolean
+  showProseEditTestToggle?: boolean
   resolveDebounceMs?: number
   onResolve?: (character: CharacterFormValues) => Promise<void> | void
 }) {
@@ -803,6 +976,7 @@ function renderCharacterBuilderHarness({
         resolveDebounceMs={resolveDebounceMs}
         showAncestrySelectionTestToggle={showAncestrySelectionTestToggle}
         showAbilityMethodTestToggle={showAbilityMethodTestToggle}
+        showProseEditTestToggle={showProseEditTestToggle}
       />
     </AuthoringLayout>
   )
@@ -814,7 +988,8 @@ function CharacterBuilderTestHarness({
   readOnly,
   resolveDebounceMs,
   showAncestrySelectionTestToggle,
-  showAbilityMethodTestToggle
+  showAbilityMethodTestToggle,
+  showProseEditTestToggle
 }: {
   onResolve: (character: CharacterFormValues) => Promise<void> | void
   payload: CharacterBuilderPayloadDto
@@ -822,6 +997,7 @@ function CharacterBuilderTestHarness({
   resolveDebounceMs: number
   showAncestrySelectionTestToggle: boolean
   showAbilityMethodTestToggle: boolean
+  showProseEditTestToggle: boolean
 }) {
   const {
     updateAuthoringFormActions,
@@ -870,7 +1046,6 @@ function CharacterBuilderTestHarness({
           onClick={() => {
             form.setFieldValue('intent.abilities', {
               method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-              assignments: [],
               state: {
                 assignments: [],
                 rollGroups: []
@@ -904,12 +1079,26 @@ function CharacterBuilderTestHarness({
           Set Forest Ancestry
         </button>
       ) : null}
+      {showProseEditTestToggle ? (
+        <button
+          type='button'
+          onClick={() => form.setFieldValue('profile.notes', 'Updated table notes.')}
+        >
+          Update table notes
+        </button>
+      ) : null}
       <CharacterBuilderRenderer
         form={form}
         payload={payload}
         resolveDebounceMs={resolveDebounceMs}
         onResolve={onResolve}
       />
+      <CharacterBuilderStateProbe />
     </form.AppForm>
   )
+}
+
+function CharacterBuilderStateProbe() {
+  const { stepStatuses } = useAuthoringForm()
+  return <output aria-label='builder step statuses'>{JSON.stringify(stepStatuses)}</output>
 }

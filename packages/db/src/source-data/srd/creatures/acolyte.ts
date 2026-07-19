@@ -5,7 +5,6 @@ export const acolyte: CreatureAuthored = {
     label: 'Acolyte',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.NPC,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const acolyte: CreatureAuthored = {
         INTELLIGENCE: 10,
         WISDOM: 14,
         CHARISMA: 11,
-        SPELLCASTING: 0
     },
     armorClass: 10,
     hitPoints: 9,

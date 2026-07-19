@@ -12,7 +12,6 @@ import {
   CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_INITIATIVE_MODE_CODE,
   CREATURE_MOUNT_TYPE_CODE,
-  CREATURE_RECORD_KIND_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
@@ -234,7 +233,7 @@ export function grantedLanguageProficiency(
     scalingKind: SCALING.NONE,
     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
     level: SCALING_AMOUNT_KIND.FULL,
-    languageIds: languageCodes.map(languageId),
+    languageIds: languageCodes.map(languageId).sort(),
     order
   }
 }
@@ -469,7 +468,6 @@ export {
   CREATURE_IDS,
   CREATURE_INITIATIVE_MODE_CODE,
   CREATURE_MOUNT_TYPE_CODE,
-  CREATURE_RECORD_KIND_CODE,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,

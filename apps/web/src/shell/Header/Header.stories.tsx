@@ -13,11 +13,8 @@ const meta = {
     layout: 'fullscreen'
   },
   decorators: [
-    (Story, context) => (
-      <Box
-        mih='100dvh'
-        bg='var(--mantine-color-body)'
-      >
+    (Story) => (
+      <Box mih='100dvh' bg='var(--mantine-color-body)'>
         <Story />
       </Box>
     )

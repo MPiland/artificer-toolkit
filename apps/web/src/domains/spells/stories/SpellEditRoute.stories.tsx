@@ -1,11 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, waitFor } from 'storybook/test'
+import { expect } from 'storybook/test'
 import { Route } from '#routes/_authed/spells/$spellPublicId/$spellSlug/edit'
 import {
   authoredRouteStoryParams,
   authoredRouteStoryRecords,
   authoredRouteStoryUser
 } from '#domains/authoredRouteStory.fixtures'
+import {
+  expandAuthoringBranch,
+  expectAuthoringTargetLabels,
+  expectMasterLockedAuthoringRoute,
+  expectOwnedActiveAuthoringRoute,
+  expectOwnedDraftAuthoringRoute,
+  getStoryDocument,
+  selectAuthoringChildTarget
+} from '#domains/authoredRouteStory.play'
 import {
   authoredRouteNodeRuntimeHandlers,
   createAuthoredEditRouteOverrides
@@ -36,12 +45,63 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Draft: Story = {
-  play: async ({ canvas }) => {
-    await waitFor(() => {
-      expect(canvas.getByDisplayValue(authoredRouteStoryRecords.spell.label)).toBeInTheDocument()
-    })
-    expect(canvas.getByTestId('authoring-form-canvas')).toBeInTheDocument()
-    expect(canvas.getByTestId('authoring-action-bar')).toBeInTheDocument()
+export const OwnedActive: Story = {
+  play: async ({ canvasElement }) =>
+    expectOwnedActiveAuthoringRoute(canvasElement, authoredRouteStoryRecords.spell.label)
+}
+export const OwnedDraft: Story = {
+  parameters: {
+    tanstack: {
+      router: {
+        routeOverrides: createAuthoredEditRouteOverrides(
+          'spell',
+          '/_authed/spells/$spellPublicId/$spellSlug/edit',
+          '/spells/$spellPublicId/$spellSlug/edit',
+          'ownedDraft'
+        )
+      }
+    }
+  },
+  play: async ({ canvasElement }) =>
+    expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.spell.label)
+}
+
+export const FireballSavingThrowEffect: Story = {
+  parameters: OwnedDraft.parameters,
+  play: async ({ canvasElement }) => {
+    await expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.spell.label)
+    await expandAuthoringBranch(canvasElement, /^effects\b/i)
+    await expandAuthoringBranch(canvasElement, /^saving throw\b/i)
+    await expandAuthoringBranch(canvasElement, /^details\b/i)
+    await expandAuthoringBranch(canvasElement, /^outcome paths\b/i)
+    await expectAuthoringTargetLabels(canvasElement, [
+      /^saving throw\b/i,
+      /^on save failure\b/i,
+      /^on save success\b/i
+    ])
+    await selectAuthoringChildTarget(canvasElement, /^on save failure\b/i, /^details\b/i)
+
+    const story = getStoryDocument(canvasElement)
+    await expect(await story.findByRole('combobox', { name: /outcome path/i })).toHaveDisplayValue(
+      'On Save Failure'
+    )
+    await expect(await story.findByRole('button', { name: /^damage$/i })).toBeInTheDocument()
+    await expect(story.queryByText('ON_SAVE_FAIL')).not.toBeInTheDocument()
   }
+}
+export const MasterLocked: Story = {
+  parameters: {
+    tanstack: {
+      router: {
+        routeOverrides: createAuthoredEditRouteOverrides(
+          'spell',
+          '/_authed/spells/$spellPublicId/$spellSlug/edit',
+          '/spells/$spellPublicId/$spellSlug/edit',
+          'masterLocked'
+        )
+      }
+    }
+  },
+  play: async ({ canvasElement }) =>
+    expectMasterLockedAuthoringRoute(canvasElement, authoredRouteStoryRecords.spell.label)
 }

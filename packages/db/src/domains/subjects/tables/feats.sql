@@ -140,6 +140,35 @@ $$;
 /* ──────────────────────────────────────────────
 * FEAT — MODIFIER GRANTS
 * ────────────────────────────────────────────── */
+/* FEAT — FEAT GRANTS (OWNED) */
+CREATE TABLE IF NOT EXISTS public.feat_feat_grants (
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feat_id, feat_grant_id)
+);
+
+ALTER TABLE public.feat_feat_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_feat_feat_grants_feat
+  ON public.feat_feat_grants (feat_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feat_feat_grants_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feat_feat_grants_owned
+    AFTER DELETE ON public.feat_feat_grants
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.feat_grants", "columns": ["feat_grant_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS public.feat_modifier_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   modifier_grant_id uuid NOT NULL,

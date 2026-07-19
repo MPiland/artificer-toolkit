@@ -23,8 +23,26 @@ import { createProficiencyGrantRepository } from '../../grants/repositories/prof
 import { createSenseGrantRepository } from '../../grants/repositories/sense.js'
 import { createSpellGrantRepository } from '../../grants/repositories/spell.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
-import type { OptionRepository } from '../../../repositories/contracts.js'
+import type {
+  OptionRepository,
+  RepositoryFindAllOptions
+} from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
+
+export interface OptionRepositoryReadOptions extends RepositoryFindAllOptions {
+  includeEffects?: boolean
+}
+
+export type OptionRepositoryWithReadOptions<N extends NodeSubjectCode = NodeSubjectCode> = Omit<
+  OptionRepository<N>,
+  'findById' | 'findByIds'
+> & {
+  findById(id: string, filter?: OptionRepositoryReadOptions): Promise<OptionAuthored<N> | null>
+  findByIds(
+    ids: readonly string[],
+    filter?: OptionRepositoryReadOptions
+  ): Promise<Map<string, OptionAuthored<N>>>
+}
 
 type OptionRow = {
   id: string
@@ -133,7 +151,8 @@ function orderedOptionRows(rows: readonly OptionRow[], ids: readonly string[]): 
 
 async function hydrateOptionsByIds<N extends NodeSubjectCode>(
   db: DBLike,
-  ids: readonly string[]
+  ids: readonly string[],
+  options: OptionRepositoryReadOptions = {}
 ): Promise<Map<string, OptionAuthored<N>>> {
   const distinctIds = uniqueIds(ids)
   if (distinctIds.length === 0) {
@@ -168,10 +187,12 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
     senseGrantLinks,
     spellGrantLinks
   ] = await Promise.all([
-    db.selectFrom('option_effects')
-      .select(['option_id', 'effect_id'])
-      .where('option_id', 'in', optionIds)
-      .execute() as Promise<OptionEffectLinkRow[]>,
+    options.includeEffects === false
+      ? Promise.resolve([] as OptionEffectLinkRow[])
+      : db.selectFrom('option_effects')
+          .select(['option_id', 'effect_id'])
+          .where('option_id', 'in', optionIds)
+          .execute() as Promise<OptionEffectLinkRow[]>,
     db.selectFrom('option_details')
       .select(['option_id', 'detail_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
@@ -209,7 +230,6 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
       .execute() as Promise<OptionSpellGrantLinkRow[]>
   ])
 
-  const effectRepository = createEffectRepository(db)
   const detailRepository = createDetailRepository(db)
   const featGrantRepository = createFeatGrantRepository(db)
   const modifierGrantRepository = createModifierGrantRepository(db)
@@ -233,7 +253,9 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
       rows.flatMap((row) => row.restriction_id ? [row.restriction_id] : []),
       (restrictionId) => hydrateFacetById(db, restrictionId)
     ),
-    effectRepository.findByIds(effectLinks.map((link) => link.effect_id)),
+    options.includeEffects === false
+      ? Promise.resolve(new Map<string, EffectAuthored>())
+      : createEffectRepository(db).findByIds(effectLinks.map((link) => link.effect_id)),
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     featGrantRepository.findByIds(featGrantLinks.map((link) => link.feat_grant_id)),
     modifierGrantRepository.findByIds(modifierGrantLinks.map((link) => link.modifier_grant_id)),
@@ -345,34 +367,36 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
 
 export async function hydrateOptionById(
   db: DBLike,
-  id: string
+  id: string,
+  options: OptionRepositoryReadOptions = {}
 ): Promise<OptionAuthored | null> {
-  const optionsById = await hydrateOptionsByIds<NodeSubjectCode>(db, [id])
+  const optionsById = await hydrateOptionsByIds<NodeSubjectCode>(db, [id], options)
   return optionsById.get(id) ?? null
 }
 
 async function hydrateOptionByIdTyped<N extends NodeSubjectCode>(
   db: DBLike,
-  id: string
+  id: string,
+  options: OptionRepositoryReadOptions = {}
 ): Promise<OptionAuthored<N> | null> {
-  return hydrateOptionById(db, id) as Promise<OptionAuthored<N> | null>
+  return hydrateOptionById(db, id, options) as Promise<OptionAuthored<N> | null>
 }
 
 export function createOptionRepository<N extends NodeSubjectCode = NodeSubjectCode>(
   db: DBLike,
   defaultSystemId?: string
-): OptionRepository<N> {
+): OptionRepositoryWithReadOptions<N> {
   return {
     async upsert(entity) {
       await upsertOption(db, entity, defaultSystemId)
     },
 
-    async findById(id) {
-      return hydrateOptionByIdTyped<N>(db, id)
+    async findById(id, filter) {
+      return hydrateOptionByIdTyped<N>(db, id, filter)
     },
 
-    async findByIds(ids) {
-      return hydrateOptionsByIds<N>(db, ids)
+    async findByIds(ids, filter) {
+      return hydrateOptionsByIds<N>(db, ids, filter)
     },
 
     async findAll() {

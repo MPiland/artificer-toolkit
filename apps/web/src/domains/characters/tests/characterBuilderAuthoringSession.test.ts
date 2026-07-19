@@ -17,7 +17,9 @@ const draftFixture = {
   status: AUTHORED_RECORD_STATUS.DRAFT,
   draftState: 'ACTIVE_WITH_DRAFT',
   mode: 'edit',
-  payload: {},
+  payload: {
+    character: characterFixture
+  },
   baseActiveUpdatedAt: '2026-05-03T10:15:30.000Z',
   createdAt: '2026-05-04T10:15:30.000Z',
   updatedAt: '2026-05-05T10:15:30.000Z'

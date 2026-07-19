@@ -63,7 +63,7 @@ const snapshot: CharacterBuildSnapshot = {
       timing: { kind: 'IMMEDIATE' }
     }
   ],
-  equippedItems: []
+  equipmentItems: []
 }
 
 // Registry: Warlock class + Fiend subclass + Agonizing Blast feature

@@ -19,6 +19,7 @@ export default defineConfig({
     viteReact()
   ],
   test: {
+    allowOnly: false,
     coverage: {
       exclude: [
         'src/**/*.stories.{ts,tsx}',

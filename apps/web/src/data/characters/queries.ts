@@ -33,10 +33,3 @@ export function getCharacterSheet(id: string, client: Api = api) {
     queryFn: async () => await client.characters.sheet(id)
   })
 }
-
-export function getCharacterHistory(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.characters.history(id),
-    queryFn: async () => await client.characters.history(id)
-  })
-}

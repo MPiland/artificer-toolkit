@@ -30,7 +30,7 @@ export const ACTIVATION_NODE_MAP
 
     map
       .set('code', selectSingle(['code'], 'Activation', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: ACTIVATION_OPTIONS
       }, {
         order: 1,
@@ -55,38 +55,38 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap
 
     map
       .set('kind', selectSingle(['kind'], 'Kind', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: INVOCATION_KIND_OPTIONS
       }, {
         order: 1,
         requiredIf: true
       }))
       .set('triggerCode', selectSingle(['triggerCode'], 'Trigger', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: TRIGGER_OPTIONS
       }, {
         order: 2,
         requiredIf: true
       }))
-      .set('savingThrow', groupObject(['savingThrow'], 'Saving Throw', () => SAVING_THROW_NODE_MAP, {
+      .set('savingThrow', groupObject(['savingThrow'], 'Saving Throw', () => SAVING_THROW_NODE_MAP, { presentation: 'inline',
         order: 3,
         showIf: and([
           local.field(['triggerCode']).eq('SAVING_THROW')
         ])
       }))
-      .set('activation', groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, {
+      .set('activation', groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, { presentation: 'inline',
         order: 4,
         requiredIf: true,
         showIf: local.field(['kind']).eq('ACTION')
       }))
-      .set('range', groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
+      .set('range', groupObject(['range'], 'Range', () => RANGE_NODE_MAP, { presentation: 'inline',
         order: 5,
         requiredIf: true
       }))
-      .set('shape', groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {
+      .set('shape', groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline',
         order: 6
       }))
-      .set('targeting', groupObject(['targeting'], 'Targeting', () => TARGETING_NODE_MAP, {
+      .set('targeting', groupObject(['targeting'], 'Targeting', () => TARGETING_NODE_MAP, { presentation: 'inline',
         order: 7
       }))
   })
