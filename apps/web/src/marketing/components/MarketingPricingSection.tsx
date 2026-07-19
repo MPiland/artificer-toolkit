@@ -1,9 +1,7 @@
 import clsx from 'clsx'
 import { pricingPlans } from '../data/marketingContent'
 import {
-  billingActive,
-  billingMuted,
-  billingToggle,
+  billingSummary,
   planBadge,
   planFeatureList,
   planName,
@@ -33,10 +31,7 @@ export function MarketingPricingSection() {
         </h2>
       </div>
 
-      <div className={billingToggle} aria-label='Billing cadence'>
-        <span className={billingActive}>Monthly</span>
-        <span className={billingMuted}>Annual - Save 20%</span>
-      </div>
+      <p className={billingSummary}>Monthly plans shown. Annual billing saves 20%.</p>
 
       <div className={pricingGrid}>
         {pricingPlans.map((plan) => (

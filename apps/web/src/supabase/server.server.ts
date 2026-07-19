@@ -4,7 +4,7 @@ import type { SupabaseDatabase } from '@artificer-toolkit/db/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export function getSupabaseServerClient(): SupabaseClient<SupabaseDatabase> {
-  return createServerClient<SupabaseDatabase>(import.meta.env.VITE_SUPABASE_URL!, import.meta.env.VITE_SUPABASE_ANON_KEY!, {
+  return createServerClient<SupabaseDatabase>(import.meta.env.VITE_SUPABASE_URL!, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY!, {
     cookies: {
       getAll() {
         return Object.entries(getCookies()).map(([name, value]) => ({

@@ -69,7 +69,7 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
   const responseCookies: ResponseCookie[] = []
   const supabase = createServerClient(
     import.meta.env.VITE_SUPABASE_URL!,
-    import.meta.env.VITE_SUPABASE_ANON_KEY!,
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
