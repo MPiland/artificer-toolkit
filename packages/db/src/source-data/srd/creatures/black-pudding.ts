@@ -5,7 +5,6 @@ export const blackPudding: CreatureAuthored = {
     label: 'Black Pudding',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.OOZE,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const blackPudding: CreatureAuthored = {
         INTELLIGENCE: 1,
         WISDOM: 6,
         CHARISMA: 1,
-        SPELLCASTING: 0
     },
     armorClass: 7,
     hitPoints: 68,
@@ -118,7 +116,7 @@ export const blackPudding: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(5665, 5),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -162,7 +160,7 @@ export const blackPudding: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.reactionId(5665, 3),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

@@ -18,7 +18,7 @@ export const MEASUREMENT_NODE_MAP = measurement.define('measurement', ({ map, no
       requiredIf: true
     }))
     .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: MEASUREMENT_UNIT_OPTIONS
     }, {
       order: 2,

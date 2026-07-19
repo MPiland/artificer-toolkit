@@ -9,7 +9,7 @@ ALTER TABLE IF EXISTS public.character_resources
 
 ALTER TABLE IF EXISTS public.character_resources
   ADD CONSTRAINT character_resources_resource_grant_id_fkey
-  FOREIGN KEY (resource_grant_id)
-  REFERENCES public.character_resource_grants (id)
+  FOREIGN KEY (character_id, resource_grant_id)
+  REFERENCES public.character_resource_grants (character_id, id)
   ON DELETE CASCADE
   DEFERRABLE;

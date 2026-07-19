@@ -1,0 +1,174 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { notifications } from '@mantine/notifications'
+import {
+  clearResolvedNodeFormPaths,
+  toResolvedNodeValues,
+  type ResolvedNodeClearableForm
+} from '../node-map/nodeFormUtils'
+import { hasMeaningfulAuthoringValueAtPaths, setAuthoringFieldValue } from '../utils/pathUtils'
+import { api } from '#app/lib/api'
+
+export type StructuralChangeRequest = {
+  commit: () => void
+  fieldName: string
+  label: string
+  nextValue: unknown
+}
+
+export type StructuralChangeConfirmation = StructuralChangeRequest & {
+  baseValuesFingerprint: string
+  clearPaths: readonly NodeRuntimePathDto[]
+  opener: HTMLElement | null
+}
+
+export type StructuralChangeGuard = {
+  blocked: boolean
+  cancel: () => void
+  confirm: () => void
+  confirmation?: StructuralChangeConfirmation
+  request: (request: StructuralChangeRequest) => void
+}
+
+type UseStructuralChangeGuardOptions<TValues extends object> = {
+  form: ResolvedNodeClearableForm<TValues>
+  rootMapId?: string
+  rootSystemId?: string
+  rootValues: Record<string, unknown>
+}
+
+export function useStructuralChangeGuard<TValues extends object>({
+  form,
+  rootMapId,
+  rootSystemId,
+  rootValues
+}: UseStructuralChangeGuardOptions<TValues>): StructuralChangeGuard {
+  const [pending, setPending] = useState(false)
+  const [confirmation, setConfirmation] = useState<StructuralChangeConfirmation>()
+  const requestSequence = useRef(0)
+  const restoreFocus = useCallback((opener: HTMLElement | null) => {
+    window.setTimeout(() => {
+      if (opener?.isConnected) opener.focus()
+    }, 0)
+  }, [])
+
+  const cancel = useCallback(() => {
+    const opener = confirmation?.opener ?? null
+    requestSequence.current += 1
+    setConfirmation(undefined)
+    restoreFocus(opener)
+  }, [confirmation, restoreFocus])
+
+  const confirm = useCallback(() => {
+    if (!confirmation) return
+
+    requestSequence.current += 1
+    if (
+      fingerprintAuthoringValues(toResolvedNodeValues(form.state.values)) !==
+      confirmation.baseValuesFingerprint
+    ) {
+      setConfirmation(undefined)
+      restoreFocus(confirmation.opener)
+      showChangeVerificationError(
+        'The form changed before this update was confirmed. Try the change again.'
+      )
+      return
+    }
+
+    confirmation.commit()
+    clearResolvedNodeFormPaths(form, confirmation.clearPaths)
+    setConfirmation(undefined)
+    restoreFocus(confirmation.opener)
+  }, [confirmation, form, restoreFocus])
+
+  const request = useCallback(
+    (change: StructuralChangeRequest) => {
+      const requestId = requestSequence.current + 1
+      requestSequence.current = requestId
+      const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+
+      if (!rootMapId || !rootSystemId) {
+        showChangeVerificationError('This change could not be verified. Try again.')
+        return
+      }
+
+      const baseValuesFingerprint = fingerprintAuthoringValues(rootValues)
+      const prospectiveValues = setAuthoringFieldValue(
+        rootValues,
+        change.fieldName,
+        change.nextValue
+      )
+      setPending(true)
+
+      void api.nodeRuntime
+        .normalizeValues({
+          mapId: rootMapId,
+          systemId: rootSystemId,
+          values: prospectiveValues
+        })
+        .then((normalization) => {
+          if (requestSequence.current !== requestId) return
+          if (
+            fingerprintAuthoringValues(toResolvedNodeValues(form.state.values)) !==
+            baseValuesFingerprint
+          ) {
+            showChangeVerificationError(
+              'The form changed before this update was verified. Try the change again.'
+            )
+            return
+          }
+
+          if (hasMeaningfulAuthoringValueAtPaths(prospectiveValues, normalization.clearedPaths)) {
+            setConfirmation({
+              ...change,
+              baseValuesFingerprint,
+              clearPaths: normalization.clearedPaths,
+              opener
+            })
+            return
+          }
+
+          change.commit()
+          clearResolvedNodeFormPaths(form, normalization.clearedPaths)
+        })
+        .catch(() => {
+          if (requestSequence.current !== requestId) return
+          showChangeVerificationError('This change could not be verified. Try again.')
+        })
+        .finally(() => {
+          if (requestSequence.current === requestId) setPending(false)
+        })
+    },
+    [form, rootMapId, rootSystemId, rootValues]
+  )
+
+  useEffect(
+    () => () => {
+      requestSequence.current += 1
+    },
+    []
+  )
+
+  return useMemo(
+    () => ({
+      blocked: pending || Boolean(confirmation),
+      cancel,
+      confirm,
+      confirmation,
+      request
+    }),
+    [cancel, confirmation, confirm, pending, request]
+  )
+}
+
+function fingerprintAuthoringValues(values: Record<string, unknown>): string {
+  return JSON.stringify(values) ?? ''
+}
+
+function showChangeVerificationError(message: string) {
+  notifications.show({
+    color: 'red',
+    message,
+    title: 'Change not applied'
+  })
+}

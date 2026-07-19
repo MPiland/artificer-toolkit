@@ -68,3 +68,12 @@ export const rowActions = style({
     }
   }
 })
+
+export const rowAction = style({
+  '@layer': {
+    [app]: {
+      minInlineSize: 44,
+      minBlockSize: 44
+    }
+  }
+})

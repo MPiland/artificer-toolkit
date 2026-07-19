@@ -7,12 +7,16 @@
 
 import type { CompiledRange } from '../../shared/compilers/range.js'
 import type { CompiledCharacterClassState } from '../../subjects/compilers/character/state.js'
+import type { ContentRef } from '../snapshot.js'
+import type { EquipmentCategoryCode } from '../../subjects/core/equipment.js'
 
 export interface EngineProficiency {
   /** PROFICIENCY_KIND value (SKILL, SAVE_ABILITY, LANGUAGE, EQUIPMENT, EQUIPMENT_PROPERTY) */
   kind: string
   /** skillId / ability code / languageId / equipmentId depending on kind */
   subjectId: string
+  /** Retains category scope for equipment-property proficiencies with overlapping property codes. */
+  category?: EquipmentCategoryCode
   /** Proficiency scaling applied when computing bonuses */
   scaling: 'FULL' | 'HALF' | 'DOUBLE'
 }
@@ -20,6 +24,11 @@ export interface EngineProficiency {
 export interface EngineSense {
   senseCode: string
   range?: CompiledRange
+}
+
+export interface EngineDefense {
+  kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
+  damageTypeId: string
 }
 
 export interface EngineDerivedStats {
@@ -83,7 +92,7 @@ export interface EngineResource {
  */
 export interface EngineItemContribution {
   instanceId: string
-  contentId: string
+  contentRef: ContentRef
   /** Modifier domain keys this item contributed to (e.g. "ARMOR_CLASS:BONUS") */
   modifiersApplied: string[]
 }
@@ -93,6 +102,7 @@ export interface EngineCharacterOutput {
   systemId: string
   proficiencies: EngineProficiency[]
   senses: EngineSense[]
+  defenses: EngineDefense[]
   derivedStats: EngineDerivedStats
   /** Resolved class-scoped spell state derived from grants */
   spellState?: CompiledCharacterClassState[]

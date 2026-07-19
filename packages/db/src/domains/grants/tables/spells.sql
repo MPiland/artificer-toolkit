@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   scaling_kind text NOT NULL, -- NONE | PER_LEVEL
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
+  selection_duplicate_policy text, -- CHOSEN + NONE only
   scaling_source text, -- ScalingSource (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -43,9 +44,20 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
     scaling_kind IN ('NONE', 'PER_LEVEL')
   ),
   CONSTRAINT spell_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind <> 'CHOSEN'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind = 'CHOSEN'
+      AND selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT spell_grants_root_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -157,6 +169,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
   sort_order integer NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer,
+  selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT spell_grant_scaling_levels_level_chk CHECK (
@@ -169,7 +182,12 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
     authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT spell_grant_scaling_levels_selection_count_chk CHECK (
-    selection_count IS NULL OR selection_count > 0
+    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   )
 );
 

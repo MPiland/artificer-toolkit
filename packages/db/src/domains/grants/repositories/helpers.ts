@@ -1,8 +1,12 @@
 import type {
+  AuthoringSelectionDuplicatePolicy,
   ChargeAuthored,
   ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
-import { ABILITY_CODE } from '@artificer-toolkit/shared'
+import {
+  ABILITY_CODE,
+  AUTHORING_SELECTION_DUPLICATE_POLICY
+} from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { uniqueIds } from '../../../repositories/batch.js'
 
@@ -49,6 +53,27 @@ function requireAbilityCode(
   }
 
   return value as keyof typeof ABILITY_CODE
+}
+
+export function requireSelectionDuplicatePolicy(
+  subject: string,
+  value: string | null | undefined
+): AuthoringSelectionDuplicatePolicy {
+  if (!value || !(value in AUTHORING_SELECTION_DUPLICATE_POLICY)) {
+    throw new Error(`${subject} has invalid selection_duplicate_policy "${String(value)}".`)
+  }
+
+  return value as AuthoringSelectionDuplicatePolicy
+}
+
+export function requireNoSelectionDuplicatePolicy(
+  subject: string,
+  value: string | null | undefined,
+  reason = 'for GRANTED payload'
+): void {
+  if (value != null) {
+    throw new Error(`${subject} cannot persist selection_duplicate_policy ${reason}.`)
+  }
 }
 
 function hydrateChargeBonus(row: ChargeBonusRow): ChargeBonusAuthored {

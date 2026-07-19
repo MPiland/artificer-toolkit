@@ -162,7 +162,7 @@ export const CharacterEquipmentStep = withForm({
                 {rows.length === 0
                   ? <Text className={styles.mutedText}>No manual currency has been added.</Text>
                   : rows.map((row, index) => (
-                      <Group key={`currency-${index}`} align='flex-end'>
+                      <Group key={row.id} align='flex-end'>
                         <AppSelect
                           label='Currency'
                           data={currencyOptions}
@@ -215,6 +215,7 @@ function createInventoryItem(): InventoryItem {
 
 function createCurrencyGroup(): CurrencyGroup {
   return {
+    id: crypto.randomUUID(),
     currencies: [
       {
         currencyId: '',

@@ -1,6 +1,6 @@
 import { assertNever } from '#utils'
 
-import type { StartingEquipmentGroupAuthored, StartingEquipmentOptionAuthored, StartingEquipmentItemAuthored, StartingEquipmentSetAuthored, StartingEquipmentAuthored } from '#authored'
+import type { FacetAuthored, StartingEquipmentGroupAuthored, StartingEquipmentOptionAuthored, StartingEquipmentItemAuthored, StartingEquipmentSetAuthored, StartingEquipmentAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, STARTING_EQUIPMENT_KIND } from '#core'
 import type { EquipmentCategoryCode, EquipmentPropertyCode } from '#core'
 
@@ -24,6 +24,7 @@ export interface CompiledEquipmentGroup {
 export interface CompiledEquipmentOption {
   id: string
   order: number
+  eligibility?: FacetAuthored<'CHARACTER'>
   items: CompiledEquipmentOptionItem[]
 }
 
@@ -112,6 +113,7 @@ export function compileStartingEquipmentOption(option: StartingEquipmentOptionAu
   return {
     id: option.id,
     order: option.order,
+    eligibility: option.eligibility,
     items: option.items.map((item) => compileStartingEquipmentItem(item))
   }
 }

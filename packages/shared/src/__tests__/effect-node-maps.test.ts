@@ -1,9 +1,29 @@
 import { describe, expect, it } from 'vitest'
 
 import { EFFECT_KIND } from '#core'
-import { MANIFEST_NESTED_EFFECT_NODE_MAP, PATH_NODE_MAP } from '#maps'
+import {
+  EFFECT_NODE_MAP,
+  MANIFEST_NESTED_EFFECT_NODE_MAP,
+  PATH_NODE_MAP,
+  SPELL_NODE_MAP
+} from '#maps'
 
 describe('effect node maps', () => {
+  it('declares explicit authoring presentation for effect groups', () => {
+    const effectsNode = SPELL_NODE_MAP.nodes.effects
+    const invocationNode = EFFECT_NODE_MAP.nodes.invocation
+    const pathsNode = EFFECT_NODE_MAP.nodes.paths
+    const levelsNode = PATH_NODE_MAP.nodes.resultBlock
+
+    expect(effectsNode.kind).toBe('GROUP')
+    expect(invocationNode.kind).toBe('GROUP')
+    expect(pathsNode.kind).toBe('GROUP')
+    expect(effectsNode.kind === 'GROUP' && effectsNode.presentation).toBe('branch')
+    expect(invocationNode.kind === 'GROUP' && invocationNode.presentation).toBe('inline')
+    expect(pathsNode.kind === 'GROUP' && pathsNode.presentation).toBe('branch')
+    expect(levelsNode.kind === 'GROUP' && levelsNode.presentation).toBe('inline')
+  })
+
   it('exposes result structure on all effect result blocks', () => {
     const directResultNode = PATH_NODE_MAP.nodes.resultBlock
     const choiceOptionsNode = PATH_NODE_MAP.nodes.options
@@ -26,21 +46,21 @@ describe('effect node maps', () => {
       throw new Error('Expected nested paths to be a group node')
     }
 
-    const directResultMap = typeof directResultNode.nodes === 'function'
-      ? directResultNode.nodes()
-      : directResultNode.nodes
+    const directResultMap =
+      typeof directResultNode.nodes === 'function'
+        ? directResultNode.nodes()
+        : directResultNode.nodes
 
-    const choiceOptionMap = typeof choiceOptionsNode.nodes === 'function'
-      ? choiceOptionsNode.nodes()
-      : choiceOptionsNode.nodes
+    const choiceOptionMap =
+      typeof choiceOptionsNode.nodes === 'function'
+        ? choiceOptionsNode.nodes()
+        : choiceOptionsNode.nodes
 
-    const rollRowMap = typeof rollRowsNode.nodes === 'function'
-      ? rollRowsNode.nodes()
-      : rollRowsNode.nodes
+    const rollRowMap =
+      typeof rollRowsNode.nodes === 'function' ? rollRowsNode.nodes() : rollRowsNode.nodes
 
-    const nestedPathMap = typeof nestedPathsNode.nodes === 'function'
-      ? nestedPathsNode.nodes()
-      : nestedPathsNode.nodes
+    const nestedPathMap =
+      typeof nestedPathsNode.nodes === 'function' ? nestedPathsNode.nodes() : nestedPathsNode.nodes
 
     const choiceResultNode = choiceOptionMap.nodes.resultBlock
     const rollResultNode = rollRowMap.nodes.resultBlock
@@ -68,25 +88,28 @@ describe('effect node maps', () => {
       throw new Error('Expected nested roll rows to be a group node')
     }
 
-    const choiceResultMap = typeof choiceResultNode.nodes === 'function'
-      ? choiceResultNode.nodes()
-      : choiceResultNode.nodes
+    const choiceResultMap =
+      typeof choiceResultNode.nodes === 'function'
+        ? choiceResultNode.nodes()
+        : choiceResultNode.nodes
 
-    const rollResultMap = typeof rollResultNode.nodes === 'function'
-      ? rollResultNode.nodes()
-      : rollResultNode.nodes
+    const rollResultMap =
+      typeof rollResultNode.nodes === 'function' ? rollResultNode.nodes() : rollResultNode.nodes
 
-    const nestedDirectResultMap = typeof nestedDirectResultNode.nodes === 'function'
-      ? nestedDirectResultNode.nodes()
-      : nestedDirectResultNode.nodes
+    const nestedDirectResultMap =
+      typeof nestedDirectResultNode.nodes === 'function'
+        ? nestedDirectResultNode.nodes()
+        : nestedDirectResultNode.nodes
 
-    const nestedChoiceOptionMap = typeof nestedChoiceOptionsNode.nodes === 'function'
-      ? nestedChoiceOptionsNode.nodes()
-      : nestedChoiceOptionsNode.nodes
+    const nestedChoiceOptionMap =
+      typeof nestedChoiceOptionsNode.nodes === 'function'
+        ? nestedChoiceOptionsNode.nodes()
+        : nestedChoiceOptionsNode.nodes
 
-    const nestedRollRowMap = typeof nestedRollRowsNode.nodes === 'function'
-      ? nestedRollRowsNode.nodes()
-      : nestedRollRowsNode.nodes
+    const nestedRollRowMap =
+      typeof nestedRollRowsNode.nodes === 'function'
+        ? nestedRollRowsNode.nodes()
+        : nestedRollRowsNode.nodes
 
     const nestedChoiceResultNode = nestedChoiceOptionMap.nodes.resultBlock
     const nestedRollResultNode = nestedRollRowMap.nodes.resultBlock
@@ -99,13 +122,15 @@ describe('effect node maps', () => {
       throw new Error('Expected nested roll result block to be a group node')
     }
 
-    const nestedChoiceResultMap = typeof nestedChoiceResultNode.nodes === 'function'
-      ? nestedChoiceResultNode.nodes()
-      : nestedChoiceResultNode.nodes
+    const nestedChoiceResultMap =
+      typeof nestedChoiceResultNode.nodes === 'function'
+        ? nestedChoiceResultNode.nodes()
+        : nestedChoiceResultNode.nodes
 
-    const nestedRollResultMap = typeof nestedRollResultNode.nodes === 'function'
-      ? nestedRollResultNode.nodes()
-      : nestedRollResultNode.nodes
+    const nestedRollResultMap =
+      typeof nestedRollResultNode.nodes === 'function'
+        ? nestedRollResultNode.nodes()
+        : nestedRollResultNode.nodes
 
     for (const resultMap of [
       directResultMap,
@@ -113,7 +138,7 @@ describe('effect node maps', () => {
       rollResultMap,
       nestedDirectResultMap,
       nestedChoiceResultMap,
-      nestedRollResultMap,
+      nestedRollResultMap
     ]) {
       const resultKindNode = resultMap.nodes.resultKind
       expect(resultKindNode?.kind).toBe('INPUT')
@@ -132,9 +157,7 @@ describe('effect node maps', () => {
       throw new Error('Expected paths to be a group node')
     }
 
-    const pathMap = typeof pathsNode.nodes === 'function'
-      ? pathsNode.nodes()
-      : pathsNode.nodes
+    const pathMap = typeof pathsNode.nodes === 'function' ? pathsNode.nodes() : pathsNode.nodes
 
     const optionsNode = pathMap.nodes.options
     const rowsNode = pathMap.nodes.rows
@@ -147,13 +170,10 @@ describe('effect node maps', () => {
       throw new Error('Expected roll-table rows to be a group node')
     }
 
-    const choiceOptionMap = typeof optionsNode.nodes === 'function'
-      ? optionsNode.nodes()
-      : optionsNode.nodes
+    const choiceOptionMap =
+      typeof optionsNode.nodes === 'function' ? optionsNode.nodes() : optionsNode.nodes
 
-    const rollRowMap = typeof rowsNode.nodes === 'function'
-      ? rowsNode.nodes()
-      : rowsNode.nodes
+    const rollRowMap = typeof rowsNode.nodes === 'function' ? rowsNode.nodes() : rowsNode.nodes
 
     const choiceResultNode = choiceOptionMap.nodes.resultBlock
     const rollResultNode = rollRowMap.nodes.resultBlock
@@ -166,13 +186,13 @@ describe('effect node maps', () => {
       throw new Error('Expected roll row result block to be a group node')
     }
 
-    const choiceResultMap = typeof choiceResultNode.nodes === 'function'
-      ? choiceResultNode.nodes()
-      : choiceResultNode.nodes
+    const choiceResultMap =
+      typeof choiceResultNode.nodes === 'function'
+        ? choiceResultNode.nodes()
+        : choiceResultNode.nodes
 
-    const rollResultMap = typeof rollResultNode.nodes === 'function'
-      ? rollResultNode.nodes()
-      : rollResultNode.nodes
+    const rollResultMap =
+      typeof rollResultNode.nodes === 'function' ? rollResultNode.nodes() : rollResultNode.nodes
 
     const choiceOutcomesNode = choiceResultMap.nodes.outcomes
     const rollOutcomesNode = rollResultMap.nodes.outcomes
@@ -185,31 +205,34 @@ describe('effect node maps', () => {
       throw new Error('Expected roll outcomes to be a group node')
     }
 
-    const choiceOutcomeMap = typeof choiceOutcomesNode.nodes === 'function'
-      ? choiceOutcomesNode.nodes()
-      : choiceOutcomesNode.nodes
+    expect(choiceOutcomesNode.presentation).toBe('summary')
+    expect(rollOutcomesNode.presentation).toBe('summary')
 
-    const rollOutcomeMap = typeof rollOutcomesNode.nodes === 'function'
-      ? rollOutcomesNode.nodes()
-      : rollOutcomesNode.nodes
+    const choiceOutcomeMap =
+      typeof choiceOutcomesNode.nodes === 'function'
+        ? choiceOutcomesNode.nodes()
+        : choiceOutcomesNode.nodes
+
+    const rollOutcomeMap =
+      typeof rollOutcomesNode.nodes === 'function'
+        ? rollOutcomesNode.nodes()
+        : rollOutcomesNode.nodes
 
     const directEffectKindNode = choiceOutcomeMap.nodes.effectKind
     const rollTableEffectKindNode = rollOutcomeMap.nodes.effectKind
 
     if (
-      directEffectKindNode.kind !== 'INPUT'
-      || directEffectKindNode.type !== 'SELECT_SINGLE'
-      || directEffectKindNode.source.kind !== 'INLINE'
-      || !('options' in directEffectKindNode.source)
+      directEffectKindNode.kind !== 'INPUT' ||
+      directEffectKindNode.type !== 'SELECT_SINGLE' ||
+      directEffectKindNode.source.kind !== 'INLINE_OPTIONS'
     ) {
       throw new Error('Expected direct effect kind to be an inline select')
     }
 
     if (
-      rollTableEffectKindNode.kind !== 'INPUT'
-      || rollTableEffectKindNode.type !== 'SELECT_SINGLE'
-      || rollTableEffectKindNode.source.kind !== 'INLINE'
-      || !('options' in rollTableEffectKindNode.source)
+      rollTableEffectKindNode.kind !== 'INPUT' ||
+      rollTableEffectKindNode.type !== 'SELECT_SINGLE' ||
+      rollTableEffectKindNode.source.kind !== 'INLINE_OPTIONS'
     ) {
       throw new Error('Expected roll-table effect kind to be an inline select')
     }
@@ -221,4 +244,3 @@ describe('effect node maps', () => {
     expect(rollTableCodes).not.toContain(EFFECT_KIND.MANIFEST)
   })
 })
-

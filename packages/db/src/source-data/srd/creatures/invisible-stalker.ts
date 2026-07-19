@@ -5,7 +5,6 @@ export const invisibleStalker: CreatureAuthored = {
     label: 'Invisible Stalker',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const invisibleStalker: CreatureAuthored = {
         INTELLIGENCE: 10,
         WISDOM: 15,
         CHARISMA: 11,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     hitPoints: 104,

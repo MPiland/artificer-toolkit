@@ -6,7 +6,6 @@ export const ankheg: CreatureAuthored = {
     label: 'Ankheg',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const ankheg: CreatureAuthored = {
         INTELLIGENCE: 1,
         WISDOM: 13,
         CHARISMA: 6,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     armorClassNote: 'natural armor',

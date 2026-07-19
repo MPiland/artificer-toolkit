@@ -7,6 +7,7 @@ import {
 import type { DBLike } from '#types'
 import { upsertProficiencyGrant } from '../upserts/proficiency.js'
 import { hydrateFacetById } from '../../shared/facets.js'
+import { requireNoSelectionDuplicatePolicy, requireSelectionDuplicatePolicy } from './helpers.js'
 import type { ProficiencyGrantRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 
@@ -17,6 +18,7 @@ type ProficiencyGrantRow = {
   selection_kind: string
   authoring_mode_kind: string
   count: number | null
+  selection_duplicate_policy: string | null
   level: string
   rounding: string | null
   restriction_id: string | null
@@ -30,6 +32,7 @@ type ProficiencyGrantSkillRow = {
 type ProficiencyGrantSaveAbilityRow = {
   proficiency_grant_id: string
   ability_code: string
+  sort_order: number
 }
 
 type ProficiencyGrantLanguageRow = {
@@ -72,10 +75,7 @@ function requireLinkedRecord<T>(value: T | null | undefined, message: string): T
   return value
 }
 
-function requireSelectionKind(
-  value: string,
-  message: string
-): 'GRANTED' | 'CHOSEN' {
+function requireSelectionKind(value: string, message: string): 'GRANTED' | 'CHOSEN' {
   if (value !== 'GRANTED' && value !== 'CHOSEN') {
     throw new Error(message)
   }
@@ -83,10 +83,7 @@ function requireSelectionKind(
   return value
 }
 
-function requireAuthoringModeKind(
-  value: string,
-  message: string
-): 'ALL' | 'SELECTED' {
+function requireAuthoringModeKind(value: string, message: string): 'ALL' | 'SELECTED' {
   if (value !== 'ALL' && value !== 'SELECTED') {
     throw new Error(message)
   }
@@ -94,10 +91,7 @@ function requireAuthoringModeKind(
   return value
 }
 
-function requireProficiencyLevel(
-  value: string,
-  message: string
-): 'FULL' | 'HALF' | 'DOUBLE' {
+function requireProficiencyLevel(value: string, message: string): 'FULL' | 'HALF' | 'DOUBLE' {
   if (value !== 'FULL' && value !== 'HALF' && value !== 'DOUBLE') {
     throw new Error(message)
   }
@@ -105,10 +99,7 @@ function requireProficiencyLevel(
   return value
 }
 
-function requireAbilityCode(
-  value: string,
-  message: string
-): keyof typeof ABILITY_CODE {
+function requireAbilityCode(value: string, message: string): keyof typeof ABILITY_CODE {
   if (!(value in ABILITY_CODE)) {
     throw new Error(message)
   }
@@ -127,10 +118,7 @@ function requireEquipmentCategoryCode(
   return value as keyof typeof EQUIPMENT_CATEGORY_CODE
 }
 
-function requireEquipmentPropertyCodes(
-  grantId: string,
-  values: string[]
-): string[] {
+function requireEquipmentPropertyCodes(grantId: string, values: string[]): string[] {
   for (const value of values) {
     if (!(value in EQUIPMENT_PROPERTY_CODE)) {
       throw new Error(`Proficiency grant "${grantId}" has invalid property_code "${value}".`)
@@ -146,14 +134,13 @@ function requireNoPersistedSelectedValues(
   field: string
 ): void {
   if (values.length > 0) {
-    throw new Error(`Proficiency grant "${grantId}" cannot hydrate ${field} when authoring_mode_kind is ALL.`)
+    throw new Error(
+      `Proficiency grant "${grantId}" cannot hydrate ${field} when authoring_mode_kind is ALL.`
+    )
   }
 }
 
-function requireNoGrantedCount(
-  grantId: string,
-  count: number | null
-) {
+function requireNoGrantedCount(grantId: string, count: number | null) {
   if (count != null) {
     throw new Error(`Proficiency grant "${grantId}" cannot hydrate count for GRANTED payload.`)
   }
@@ -169,17 +156,24 @@ function requireNoUnexpectedRounding(
   }
 }
 
-function groupByGrantId<T extends { proficiency_grant_id: string }>(rows: readonly T[]): Map<string, T[]> {
+function groupByGrantId<T extends { proficiency_grant_id: string }>(
+  rows: readonly T[]
+): Map<string, T[]> {
   const rowsByGrantId = new Map<string, T[]>()
 
   for (const row of rows) {
-    rowsByGrantId.set(row.proficiency_grant_id, [...(rowsByGrantId.get(row.proficiency_grant_id) ?? []), row])
+    rowsByGrantId.set(row.proficiency_grant_id, [
+      ...(rowsByGrantId.get(row.proficiency_grant_id) ?? []),
+      row
+    ])
   }
 
   return rowsByGrantId
 }
 
-function firstByGrantId<T extends { proficiency_grant_id: string }>(rows: readonly T[]): Map<string, T> {
+function firstByGrantId<T extends { proficiency_grant_id: string }>(
+  rows: readonly T[]
+): Map<string, T> {
   const rowsByGrantId = new Map<string, T>()
 
   for (const row of rows) {
@@ -191,7 +185,10 @@ function firstByGrantId<T extends { proficiency_grant_id: string }>(rows: readon
   return rowsByGrantId
 }
 
-function orderedGrantRows(rows: readonly ProficiencyGrantRow[], ids: readonly string[]): ProficiencyGrantRow[] {
+function orderedGrantRows(
+  rows: readonly ProficiencyGrantRow[],
+  ids: readonly string[]
+): ProficiencyGrantRow[] {
   const rowsById = new Map(rows.map((row) => [row.id, row]))
 
   return ids.flatMap((id) => {
@@ -200,13 +197,27 @@ function orderedGrantRows(rows: readonly ProficiencyGrantRow[], ids: readonly st
   })
 }
 
-function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrantRows): ProficiencyGrantAuthored {
+function buildProficiencyGrant(
+  root: ProficiencyGrantRow,
+  rows: ProficiencyGrantRows
+): ProficiencyGrantAuthored {
   const id = root.id
-  const equipmentFilterPropertyCodes = rows.equipmentFilterProperties.map((row) => row.property_code)
+  const equipmentFilterPropertyCodes = rows.equipmentFilterProperties.map(
+    (row) => row.property_code
+  )
   const equipmentPropertyCodes = rows.equipmentProperties.map((row) => row.property_code)
-  const selectionKind = requireSelectionKind(root.selection_kind, `Proficiency grant "${id}" has invalid selection_kind "${root.selection_kind}".`)
-  const authoringModeKind = requireAuthoringModeKind(root.authoring_mode_kind, `Proficiency grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`)
-  const level = requireProficiencyLevel(root.level, `Proficiency grant "${id}" has invalid level "${root.level}".`)
+  const selectionKind = requireSelectionKind(
+    root.selection_kind,
+    `Proficiency grant "${id}" has invalid selection_kind "${root.selection_kind}".`
+  )
+  const authoringModeKind = requireAuthoringModeKind(
+    root.authoring_mode_kind,
+    `Proficiency grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`
+  )
+  const level = requireProficiencyLevel(
+    root.level,
+    `Proficiency grant "${id}" has invalid level "${root.level}".`
+  )
 
   if (selectionKind === 'CHOSEN' && root.count == null) {
     throw new Error(`Proficiency grant "${id}" is missing count for CHOSEN payload.`)
@@ -214,6 +225,7 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
 
   if (selectionKind === 'GRANTED') {
     requireNoGrantedCount(id, root.count)
+    requireNoSelectionDuplicatePolicy(`Proficiency grant "${id}"`, root.selection_duplicate_policy)
   }
 
   if (level === 'HALF' && !root.rounding) {
@@ -228,13 +240,24 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
     proficiencyKind: root.proficiency_kind as ProficiencyGrantAuthored['proficiencyKind'],
     order: root.sort_order,
     selectionKind,
+    scalingKind: 'NONE' as const,
     authoringModeKind,
     level,
     rounding: root.rounding ?? undefined,
-    count: selectionKind === 'CHOSEN' ? root.count : undefined
+    count: selectionKind === 'CHOSEN' ? root.count : undefined,
+    selectionDuplicatePolicy:
+      selectionKind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+            `Proficiency grant "${id}"`,
+            root.selection_duplicate_policy
+          )
+        : undefined
   }
   const restrictions = root.restriction_id
-    ? requireLinkedRecord(rows.restriction, `Proficiency grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+    ? requireLinkedRecord(
+        rows.restriction,
+        `Proficiency grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`
+      )
     : undefined
 
   switch (root.proficiency_kind) {
@@ -245,9 +268,10 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       return {
         ...base,
         proficiencyKind: 'SKILL',
-        skillIds: base.authoringModeKind === 'SELECTED'
-          ? rows.skills.map((row) => row.skill_id)
-          : undefined,
+        skillIds:
+          base.authoringModeKind === 'SELECTED'
+            ? rows.skills.map((row) => row.skill_id)
+            : undefined,
         restrictions
       } as ProficiencyGrantAuthored
 
@@ -258,12 +282,15 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       return {
         ...base,
         proficiencyKind: 'SAVE_ABILITY',
-        abilities: base.authoringModeKind === 'SELECTED'
-          ? rows.saveAbilities.map((row) => requireAbilityCode(
-              row.ability_code,
-              `Proficiency grant "${id}" has invalid ability_code "${row.ability_code}".`
-            ))
-          : undefined,
+        abilities:
+          base.authoringModeKind === 'SELECTED'
+            ? rows.saveAbilities.map((row) =>
+                requireAbilityCode(
+                  row.ability_code,
+                  `Proficiency grant "${id}" has invalid ability_code "${row.ability_code}".`
+                )
+              )
+            : undefined,
         restrictions
       } as ProficiencyGrantAuthored
 
@@ -274,9 +301,10 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       return {
         ...base,
         proficiencyKind: 'LANGUAGE',
-        languageIds: base.authoringModeKind === 'SELECTED'
-          ? rows.languages.map((row) => row.language_id)
-          : undefined,
+        languageIds:
+          base.authoringModeKind === 'SELECTED'
+            ? rows.languages.map((row) => row.language_id)
+            : undefined,
         restrictions
       } as ProficiencyGrantAuthored
 
@@ -288,18 +316,20 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       return {
         ...base,
         proficiencyKind: 'EQUIPMENT',
-        equipmentIds: base.authoringModeKind === 'SELECTED'
-          ? rows.equipment.map((row) => row.equipment_id)
-          : undefined,
+        equipmentIds:
+          base.authoringModeKind === 'SELECTED'
+            ? rows.equipment.map((row) => row.equipment_id)
+            : undefined,
         category: rows.equipmentFilters?.category_code
           ? requireEquipmentCategoryCode(
               rows.equipmentFilters.category_code,
               `Proficiency grant "${id}" has invalid category_code "${rows.equipmentFilters.category_code}".`
             )
           : undefined,
-        properties: equipmentFilterPropertyCodes.length > 0
-          ? requireEquipmentPropertyCodes(id, equipmentFilterPropertyCodes)
-          : undefined,
+        properties:
+          equipmentFilterPropertyCodes.length > 0
+            ? requireEquipmentPropertyCodes(id, equipmentFilterPropertyCodes)
+            : undefined,
         restrictions
       } as ProficiencyGrantAuthored
 
@@ -311,9 +341,10 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       return {
         ...base,
         proficiencyKind: 'EQUIPMENT_PROPERTY',
-        properties: base.authoringModeKind === 'SELECTED'
-          ? requireEquipmentPropertyCodes(id, equipmentPropertyCodes)
-          : undefined,
+        properties:
+          base.authoringModeKind === 'SELECTED'
+            ? requireEquipmentPropertyCodes(id, equipmentPropertyCodes)
+            : undefined,
         category: rows.equipmentPropertyFilters?.category_code
           ? requireEquipmentCategoryCode(
               rows.equipmentPropertyFilters.category_code,
@@ -324,7 +355,9 @@ function buildProficiencyGrant(root: ProficiencyGrantRow, rows: ProficiencyGrant
       } as ProficiencyGrantAuthored
 
     default:
-      throw new Error(`Proficiency grant "${id}" has invalid proficiency_kind "${root.proficiency_kind}".`)
+      throw new Error(
+        `Proficiency grant "${id}" has invalid proficiency_kind "${root.proficiency_kind}".`
+      )
   }
 }
 
@@ -337,7 +370,7 @@ async function hydrateProficiencyGrantsByIds(
     return new Map()
   }
 
-  const roots = await db
+  const roots = (await db
     .selectFrom('proficiency_grants')
     .select([
       'id',
@@ -346,12 +379,13 @@ async function hydrateProficiencyGrantsByIds(
       'selection_kind',
       'authoring_mode_kind',
       'count',
+      'selection_duplicate_policy',
       'level',
       'rounding',
       'restriction_id'
     ])
     .where('id', 'in', distinctIds)
-    .execute() as ProficiencyGrantRow[]
+    .execute()) as ProficiencyGrantRow[]
 
   const grantIds = roots.map((row) => row.id)
   if (grantIds.length === 0) {
@@ -369,40 +403,51 @@ async function hydrateProficiencyGrantsByIds(
     equipmentPropertyFilters,
     restrictionsById
   ] = await Promise.all([
-    db.selectFrom('proficiency_grant_skills')
+    db
+      .selectFrom('proficiency_grant_skills')
       .select(['proficiency_grant_id', 'skill_id'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantSkillRow[]>,
-    db.selectFrom('proficiency_grant_save_abilities')
-      .select(['proficiency_grant_id', 'ability_code'])
+    db
+      .selectFrom('proficiency_grant_save_abilities')
+      .select(['proficiency_grant_id', 'ability_code', 'sort_order'])
       .where('proficiency_grant_id', 'in', grantIds)
+      .orderBy('sort_order')
       .execute() as Promise<ProficiencyGrantSaveAbilityRow[]>,
-    db.selectFrom('proficiency_grant_languages')
+    db
+      .selectFrom('proficiency_grant_languages')
       .select(['proficiency_grant_id', 'language_id'])
       .where('proficiency_grant_id', 'in', grantIds)
+      .orderBy('proficiency_grant_id')
+      .orderBy('language_id')
       .execute() as Promise<ProficiencyGrantLanguageRow[]>,
-    db.selectFrom('proficiency_grant_equipment')
+    db
+      .selectFrom('proficiency_grant_equipment')
       .select(['proficiency_grant_id', 'equipment_id'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantEquipmentRow[]>,
-    db.selectFrom('proficiency_grant_equipment_filters')
+    db
+      .selectFrom('proficiency_grant_equipment_filters')
       .select(['proficiency_grant_id', 'category_code'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantCategoryFilterRow[]>,
-    db.selectFrom('proficiency_grant_equipment_filter_properties')
+    db
+      .selectFrom('proficiency_grant_equipment_filter_properties')
       .select(['proficiency_grant_id', 'property_code'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantPropertyRow[]>,
-    db.selectFrom('proficiency_grant_equipment_properties')
+    db
+      .selectFrom('proficiency_grant_equipment_properties')
       .select(['proficiency_grant_id', 'property_code'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantPropertyRow[]>,
-    db.selectFrom('proficiency_grant_equipment_property_filters')
+    db
+      .selectFrom('proficiency_grant_equipment_property_filters')
       .select(['proficiency_grant_id', 'category_code'])
       .where('proficiency_grant_id', 'in', grantIds)
       .execute() as Promise<ProficiencyGrantCategoryFilterRow[]>,
     hydrateByIds(
-      roots.flatMap((root) => root.restriction_id ? [root.restriction_id] : []),
+      roots.flatMap((root) => (root.restriction_id ? [root.restriction_id] : [])),
       (restrictionId) => hydrateFacetById(db, restrictionId)
     )
   ])
@@ -418,17 +463,22 @@ async function hydrateProficiencyGrantsByIds(
   const grantsById = new Map<string, ProficiencyGrantAuthored>()
 
   for (const root of orderedGrantRows(roots, distinctIds)) {
-    grantsById.set(root.id, buildProficiencyGrant(root, {
-      equipment: equipmentByGrantId.get(root.id) ?? [],
-      equipmentFilterProperties: equipmentFilterPropertiesByGrantId.get(root.id) ?? [],
-      equipmentFilters: equipmentFiltersByGrantId.get(root.id),
-      equipmentProperties: equipmentPropertiesByGrantId.get(root.id) ?? [],
-      equipmentPropertyFilters: equipmentPropertyFiltersByGrantId.get(root.id),
-      languages: languagesByGrantId.get(root.id) ?? [],
-      restriction: root.restriction_id ? restrictionsById.get(root.restriction_id) ?? null : null,
-      saveAbilities: saveAbilitiesByGrantId.get(root.id) ?? [],
-      skills: skillsByGrantId.get(root.id) ?? []
-    }))
+    grantsById.set(
+      root.id,
+      buildProficiencyGrant(root, {
+        equipment: equipmentByGrantId.get(root.id) ?? [],
+        equipmentFilterProperties: equipmentFilterPropertiesByGrantId.get(root.id) ?? [],
+        equipmentFilters: equipmentFiltersByGrantId.get(root.id),
+        equipmentProperties: equipmentPropertiesByGrantId.get(root.id) ?? [],
+        equipmentPropertyFilters: equipmentPropertyFiltersByGrantId.get(root.id),
+        languages: languagesByGrantId.get(root.id) ?? [],
+        restriction: root.restriction_id
+          ? (restrictionsById.get(root.restriction_id) ?? null)
+          : null,
+        saveAbilities: saveAbilitiesByGrantId.get(root.id) ?? [],
+        skills: skillsByGrantId.get(root.id) ?? []
+      })
+    )
   }
 
   return grantsById
@@ -465,7 +515,10 @@ export function createProficiencyGrantRepository(db: DBLike): ProficiencyGrantRe
 
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateProficiencyGrantsByIds(db, rows.map((row) => row.id))
+        await hydrateProficiencyGrantsByIds(
+          db,
+          rows.map((row) => row.id)
+        )
       )
     }
   }

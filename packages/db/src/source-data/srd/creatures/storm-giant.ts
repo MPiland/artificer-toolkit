@@ -5,7 +5,6 @@ export const stormGiant: CreatureAuthored = {
     label: 'Storm Giant',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.GIANT,
     size: S.SIZE_CODE.HUGE,
@@ -17,7 +16,6 @@ export const stormGiant: CreatureAuthored = {
         INTELLIGENCE: 16,
         WISDOM: 18,
         CHARISMA: 18,
-        SPELLCASTING: 0
     },
     armorClass: 16,
     armorClassNote: 'scale mail',

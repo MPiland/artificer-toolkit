@@ -31,7 +31,12 @@ export function SectionRow({
       <div className={styles.rowActions}>
         {onOpen ? (
           <Tooltip label={readOnly ? 'View' : 'Edit'} withArrow>
-            <ActionIcon aria-label={actionLabel} variant='subtle' onClick={onOpen}>
+            <ActionIcon
+              aria-label={actionLabel}
+              className={styles.rowAction}
+              variant='subtle'
+              onClick={onOpen}
+            >
               {readOnly ? <IExternalLink size={16} /> : <IEdit size={16} />}
             </ActionIcon>
           </Tooltip>
@@ -40,6 +45,7 @@ export function SectionRow({
           <Tooltip label='Remove' withArrow>
             <ActionIcon
               aria-label={`Remove ${itemLabel}`}
+              className={styles.rowAction}
               color='red'
               variant='subtle'
               onClick={onRemove}

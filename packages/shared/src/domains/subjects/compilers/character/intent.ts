@@ -1,6 +1,6 @@
 import { assertNever } from '#utils'
 
-import type { CharacterAbilityRollGroupRecord, CharacterAbilityScoresIntent, CharacterAcquisitionTiming, CharacterAdvancementIntent, CharacterAncestryAcquisition, CharacterBackgroundIntent, CharacterClassIntent, CharacterDieRollRecord, CharacterFeatureAcquisitionRecord, CharacterFeatureSelectionRecord, CharacterFeatureSelectionValue, CharacterFeatureSource, CharacterHitpointLevelEntry, CharacterHitpointsIntent, CharacterIntent, CharacterManualAbilityAssignment, CharacterManualRolledAbilityRecord, CharacterPointBuyAssignment, CharacterRaceIntent, CharacterResourceGrantRecord, CharacterSpellSelectionRecord, CharacterStandardArrayAssignment, CharacterStartingEquipmentDecision, CharacterStartingEquipmentGroupSelection, CharacterStartingGoldSelection } from '#authored'
+import type { CharacterAbilityRollGroupRecord, CharacterAbilityScoresIntent, CharacterAcquisitionTiming, CharacterAdvancementIntent, CharacterAncestryAcquisition, CharacterBackgroundIntent, CharacterChosenGrantSelectionRecord, CharacterClassIntent, CharacterDieRollRecord, CharacterFeatureAcquisitionRecord, CharacterFeatureSelectionRecord, CharacterFeatureSelectionValue, CharacterFeatureSource, CharacterHitpointLevelEntry, CharacterHitpointsIntent, CharacterIntent, CharacterManualAbilityAssignment, CharacterManualRolledAbilityRecord, CharacterPointBuyAssignment, CharacterRaceIntent, CharacterResourceGrantRecord, CharacterSpellSelectionRecord, CharacterStandardArrayAssignment, CharacterStartingEquipmentDecision, CharacterStartingEquipmentGroupSelection, CharacterStartingGoldSelection } from '#authored'
 import type { AbilityCode, HitpointCalculationMethodCode } from '#core'
 import { ADVANCEMENT_METHOD_CODE, CHARACTER_ABILITY_GENERATION_METHOD } from '#core'
 
@@ -24,6 +24,8 @@ export type CompiledCharacterIntent = {
   }
 
   featureAcquisitions: CompiledCharacterFeatureAcquisition[]
+
+  chosenGrantSelections?: CompiledCharacterChosenGrantSelection[]
 
   spellSelections?: CompiledCharacterSpellSelection[]
 
@@ -318,6 +320,21 @@ export function compileFeatureAcquisition(
   }
 }
 
+
+export type CompiledCharacterChosenGrantSelection = CharacterChosenGrantSelectionRecord
+
+export function compileChosenGrantSelection(
+  authored: CharacterChosenGrantSelectionRecord
+): CompiledCharacterChosenGrantSelection {
+  return {
+    id: authored.id,
+    grantId: authored.grantId,
+    source: authored.source,
+    timing: authored.timing,
+    progressionLevel: authored.progressionLevel,
+    targetIds: [...authored.targetIds]
+  }
+}
 /* ──────────────────────────────────────────────────────────────
  * Spell selections
  * ────────────────────────────────────────────────────────────── */
@@ -386,6 +403,11 @@ export function compileCharacterIntent(authored: CharacterIntent): CompiledChara
       ? authored.spellSelections.map(compileSpellSelection)
       : undefined
 
+  const chosenGrantSelections
+    = authored.chosenGrantSelections && authored.chosenGrantSelections.length
+      ? authored.chosenGrantSelections.map(compileChosenGrantSelection)
+      : undefined
+
   const resourceGrants
     = authored.resourceGrants && authored.resourceGrants.length
       ? authored.resourceGrants.map(compileResourceGrant)
@@ -408,6 +430,8 @@ export function compileCharacterIntent(authored: CharacterIntent): CompiledChara
     startingEquipment,
 
     featureAcquisitions: authored.featureAcquisitions.map(compileFeatureAcquisition),
+
+    chosenGrantSelections,
 
     spellSelections,
 

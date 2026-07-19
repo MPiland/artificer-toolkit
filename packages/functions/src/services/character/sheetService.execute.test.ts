@@ -5,10 +5,11 @@ import type { CharacterBuilderResolution } from './builderService.js'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
+  findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
-  resolveCharacterBuilder: vi.fn(),
-  upsertAuthored: vi.fn()
+  patchSheetState: vi.fn(),
+  resolveCharacterBuilder: vi.fn()
 }))
 
 class MockConcurrencyError extends Error {
@@ -24,12 +25,13 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     ...actual,
     ConcurrencyError: MockConcurrencyError,
     createCharacterEventRepository: () => ({
-      append: mocks.appendEvent
+      append: mocks.appendEvent,
+      findByCommandId: mocks.findByCommandId
     }),
     createCharacterRepository: () => ({
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
-      upsertAuthored: mocks.upsertAuthored
+      patchSheetState: mocks.patchSheetState
     })
   }
 })
@@ -41,6 +43,8 @@ vi.mock('./builderService.js', async (importOriginal) => {
     resolveCharacterBuilder: mocks.resolveCharacterBuilder
   }
 })
+
+const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
 const db = {
   selectFrom: () => ({
@@ -73,7 +77,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
       },
       hitpoints: {
         method: 'FIXED',
-        levels: [{ level: 1, value: 10 }]
+        levels: [{ level: 1, classId: 'class-1', classLevel: 1, value: 10 }]
       },
       featureAcquisitions: []
     },
@@ -96,15 +100,24 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
 function createResolution(): CharacterBuilderResolution {
   return {
     mode: 'edit',
+    catalog: {
+      races: [],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      feats: [],
+      spells: []
+    },
     registry: {
       system: {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
         currencies: [{ id: 'currency-1', label: 'Gold' }]
       } as CharacterBuilderResolution['registry']['system'],
       races: [],
       classes: [],
       backgrounds: [],
       equipment: [],
-      spells: [],
       features: []
     },
     summary: {
@@ -117,6 +130,7 @@ function createResolution(): CharacterBuilderResolution {
       resources: [],
       spellcasting: []
     },
+    chosenGrantChoices: [],
     outstandingChoices: [],
     validations: [],
     readiness: {
@@ -132,24 +146,24 @@ describe('executeCharacterSheetCommand', () => {
   beforeEach(() => {
     mocks.appendEvent.mockReset()
     mocks.findById.mockReset()
+    mocks.findByCommandId.mockReset()
     mocks.findAuthoredById.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
-    mocks.upsertAuthored.mockReset()
+    mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
       stream_version: 1
     })
+    mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
     mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
-    mocks.upsertAuthored.mockImplementation(async (_character, options) => {
+    mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
     })
   })
 
   it('persists sheet commands with expected version and appends history in the same write callback', async () => {
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
-
     const response = await executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
@@ -159,26 +173,24 @@ describe('executeCharacterSheetCommand', () => {
         mode: 'DAMAGE',
         amount: 3,
         expectedVersion: 1,
-        commandId: 'command-1'
+        commandId: '00000000-0000-4000-8000-000000000001'
       }
     })
 
-    expect(mocks.upsertAuthored).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'character-1',
-      state: expect.objectContaining({
-        hitpoints: expect.objectContaining({ current: 7 })
-      })
-    }), expect.objectContaining({
+    expect(mocks.patchSheetState).toHaveBeenCalledWith('character-1', [{
+      kind: 'HITPOINTS',
+      value: expect.objectContaining({ current: 7 })
+    }], expect.objectContaining({
       expectedStreamVersion: 1,
-      incrementStreamVersion: true,
       afterPersist: expect.any(Function)
     }))
     expect(mocks.appendEvent).toHaveBeenCalledWith(expect.objectContaining({
       type: 'CHARACTER_SHEET_COMMAND_APPLIED',
       characterId: 'character-1',
       actorId: 'user-1',
-      commandId: 'command-1',
+      commandId: '00000000-0000-4000-8000-000000000001',
       commandType: 'ADJUST_HIT_POINTS',
+      commandFingerprint: expect.any(String),
       summary: '3 damage applied'
     }))
     expect(response.streamVersion).toBe(2)
@@ -186,11 +198,12 @@ describe('executeCharacterSheetCommand', () => {
       eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
       summary: '3 damage applied'
     })
+    expect(mocks.findAuthoredById).toHaveBeenCalledTimes(1)
+    expect(mocks.resolveCharacterBuilder).toHaveBeenCalledTimes(1)
   })
 
   it('rejects commands for characters owned by another user', async () => {
     mocks.findAuthoredById.mockResolvedValue(createCharacter({ userId: 'other-user' }))
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
     await expect(executeCharacterSheetCommand({
       db: db as unknown as DBLike,
@@ -200,10 +213,78 @@ describe('executeCharacterSheetCommand', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        expectedVersion: 1
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000002'
       }
     })).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
-    expect(mocks.upsertAuthored).not.toHaveBeenCalled()
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
+  })
+
+  it('returns the current sheet without writing when a command id was already applied', async () => {
+    const command = {
+      type: 'ADJUST_HIT_POINTS' as const,
+      mode: 'DAMAGE' as const,
+      amount: 3,
+      expectedVersion: 1,
+      commandId: '00000000-0000-4000-8000-000000000001'
+    }
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command
+    })
+    const persistedEvent = mocks.appendEvent.mock.calls[0]?.[0]
+    expect(persistedEvent).toBeDefined()
+    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findByCommandId.mockResolvedValue(persistedEvent)
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command
+    })
+
+    expect(response.streamVersion).toBe(2)
+    expect(response.historyEntry?.eventId).toBe(persistedEvent.eventId)
+    expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
+    expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects reusing a command id with different input', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000001'
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 3,
+        expectedVersion: 1,
+        commandId
+      }
+    })
+    const persistedEvent = mocks.appendEvent.mock.calls[0]?.[0]
+    expect(persistedEvent).toBeDefined()
+    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findByCommandId.mockResolvedValue(persistedEvent)
+
+    await expect(executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 4,
+        expectedVersion: 1,
+        commandId
+      }
+    })).rejects.toThrow('already used with different input')
+    expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
+    expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
   })
 
   it('rejects stale expected versions before writing state or history', async () => {
@@ -211,7 +292,6 @@ describe('executeCharacterSheetCommand', () => {
       id: 'character-1',
       stream_version: 2
     })
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
     await expect(executeCharacterSheetCommand({
       db: db as unknown as DBLike,
@@ -221,16 +301,16 @@ describe('executeCharacterSheetCommand', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        expectedVersion: 1
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000003'
       }
     })).rejects.toMatchObject({ name: 'ConcurrencyError' })
-    expect(mocks.upsertAuthored).not.toHaveBeenCalled()
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
     expect(mocks.appendEvent).not.toHaveBeenCalled()
   })
 
   it('rejects sheet commands against unfinalized draft characters', async () => {
     mocks.findAuthoredById.mockResolvedValue(createCharacter({ status: 'DRAFT' }))
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
     await expect(executeCharacterSheetCommand({
       db: db as unknown as DBLike,
@@ -240,9 +320,10 @@ describe('executeCharacterSheetCommand', () => {
         type: 'ADJUST_HIT_POINTS',
         mode: 'DAMAGE',
         amount: 1,
-        expectedVersion: 1
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000004'
       }
     })).rejects.toMatchObject({ name: 'CharacterSheetCommandError' })
-    expect(mocks.upsertAuthored).not.toHaveBeenCalled()
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
   })
 })

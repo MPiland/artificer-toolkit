@@ -18,6 +18,7 @@ export interface CompiledFeatureOptionChoice {
 }
 
 export type CompiledFeature = CompiledFeatureBase & {
+  section?: FeatureAuthored['section']
   optionChoices?: CompiledFeatureOptionChoice[]
   options?: CompiledFeatureOption[] 
   availableAtLevel?: number
@@ -32,6 +33,7 @@ export function compileFeatureResult(authored: FeatureAuthored): CompileResult<C
 
   return compileSuccess({
     ...base,
+    section: authored.section,
     optionChoices: authored.optionChoices,
     options,
     availableAtLevel: authored.availableAtLevel,

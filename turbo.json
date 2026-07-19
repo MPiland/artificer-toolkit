@@ -42,9 +42,6 @@
     "test:authoring": {
       "outputs": []
     },
-    "test:browser": {
-      "outputs": []
-    },
     "test:coverage": {
       "outputs": [
         "coverage/**"
@@ -59,6 +56,13 @@
       "outputs": []
     },
     "test:e2e": {
+      "passThroughEnv": [
+        "APP_E2E_BASE_URL",
+        "CI",
+        "MVP_AUDIT_EMAIL",
+        "MVP_AUDIT_PASSWORD",
+        "MVP_AUDIT_STORAGE_STATE"
+      ],
       "outputs": [
         "playwright-report/**",
         "test-results/**"
@@ -75,7 +79,8 @@
     },
     "typecheck": {
       "outputs": [
-        ".cache/tsc/*.tsbuildinfo"
+        ".cache/tsc/*.tsbuildinfo",
+        "tsconfig*.tsbuildinfo"
       ]
     },
     "typecheck:app": {

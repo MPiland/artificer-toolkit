@@ -143,6 +143,14 @@ export const contentArea = style({
   }
 })
 
+export const contentAreaWide = style({
+  '@layer': {
+    [app]: {
+      inlineSize: '100%'
+    }
+  }
+})
+
 export const searchDrawerContent = style({
   '@layer': {
     [app]: {

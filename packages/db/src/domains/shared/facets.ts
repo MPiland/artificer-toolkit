@@ -7,7 +7,6 @@ import {
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
   CREATURE_CATEGORY_CODE,
-  CREATURE_RECORD_KIND_CODE,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -205,17 +204,6 @@ function requireSizeCode(
   }
 
   return value as keyof typeof SIZE_CODE
-}
-
-function requireCreatureRecordKind(
-  ownerId: string,
-  value: string
-): keyof typeof CREATURE_RECORD_KIND_CODE {
-  if (!(value in CREATURE_RECORD_KIND_CODE)) {
-    throw new Error(`${ownerId} has invalid creature record kind "${value}".`)
-  }
-
-  return value as keyof typeof CREATURE_RECORD_KIND_CODE
 }
 
 function requireCreatureCategory(
@@ -713,6 +701,7 @@ async function writeIdItems(
     | 'facet_predicate_condition_type_items'
     | 'facet_predicate_spell_items'
     | 'facet_predicate_feat_items'
+    | 'facet_predicate_class_items'
     | 'facet_predicate_heritage_items'
     | 'facet_predicate_feature_items'
     | 'facet_predicate_option_items'
@@ -725,6 +714,7 @@ async function writeIdItems(
     | 'condition_type_id'
     | 'spell_id'
     | 'feat_id'
+    | 'class_id'
     | 'heritage_id'
     | 'feature_id'
     | 'option_id'
@@ -749,10 +739,9 @@ async function writeIdItems(
 async function writeTextItems(
   db: DBLike,
   table:
-    | 'facet_predicate_creature_record_kind_items'
     | 'facet_predicate_creature_category_items'
     | 'facet_predicate_vehicle_category_items',
-  column: 'record_kind' | 'category_code',
+  column: 'category_code',
   conditionId: string,
   values: string[]
 ): Promise<void> {
@@ -778,6 +767,17 @@ async function writePredicatePayload(
 
   switch (condition.predicateCode) {
     case 'CLASS_LEVEL':
+      await db
+        .insertInto('facet_predicate_numeric_ranges')
+        .values({
+          facet_condition_id: conditionId,
+          min_value: condition.min,
+          max_value: condition.max ?? null
+        })
+        .execute()
+      await writeIdItems(db, 'facet_predicate_class_items', 'class_id', conditionId, condition.classIds)
+      return
+
     case 'CHARACTER_LEVEL':
     case 'SPELL_LEVEL':
     case 'SAVING_THROW_DC':
@@ -1163,13 +1163,6 @@ async function writePredicatePayload(
       }
       return
 
-    case 'CREATURE_RECORD_KIND':
-      await insertPredicateSelectableHeader(db, condition)
-      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(db, 'facet_predicate_creature_record_kind_items', 'record_kind', conditionId, condition.recordKinds.map((value) => requireCreatureRecordKind(`facet condition "${conditionId}"`, value)))
-      }
-      return
-
     case 'CREATURE_CATEGORY':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
@@ -1449,7 +1442,31 @@ async function hydratePredicateCondition(
   }
 
   switch (predicateCode) {
-    case 'CLASS_LEVEL':
+    case 'CLASS_LEVEL': {
+      const [range, classItems] = await Promise.all([
+        db.selectFrom('facet_predicate_numeric_ranges')
+          .select(['min_value', 'max_value'])
+          .where('facet_condition_id', '=', row.id)
+          .executeTakeFirst(),
+        db.selectFrom('facet_predicate_class_items')
+          .select(['class_id', 'sort_order'])
+          .where('facet_condition_id', '=', row.id)
+          .orderBy('sort_order')
+          .execute()
+      ])
+      const requiredRange = requireLinkedRecord(
+        range,
+        `facet condition "${row.id}" is missing numeric range payload.`
+      )
+
+      return {
+        ...base,
+        classIds: classItems.map((item) => item.class_id),
+        min: Number(requiredRange.min_value),
+        ...(requiredRange.max_value == null ? {} : { max: Number(requiredRange.max_value) })
+      } as PredicateConditionAuthored
+    }
+
     case 'CHARACTER_LEVEL':
     case 'SPELL_LEVEL':
     case 'SAVING_THROW_DC':
@@ -1462,7 +1479,7 @@ async function hydratePredicateCondition(
       return {
         ...base,
         min: Number(range.min_value),
-        max: range.max_value == null ? undefined : Number(range.max_value)
+        ...(range.max_value == null ? {} : { max: Number(range.max_value) })
       } as PredicateConditionAuthored
     }
 
@@ -1945,23 +1962,6 @@ async function hydratePredicateCondition(
       } as PredicateConditionAuthored
     }
 
-    case 'CREATURE_RECORD_KIND': {
-      const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_creature_record_kind_items')
-        .select(['record_kind', 'sort_order'])
-        .where('facet_condition_id', '=', row.id)
-        .orderBy('sort_order')
-        .execute()
-
-      return {
-        ...base,
-        ...selection,
-        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { recordKinds: items.map((item) => requireCreatureRecordKind(`facet condition "${row.id}"`, item.record_kind)) }
-          : {})
-      } as PredicateConditionAuthored
-    }
-
     case 'CREATURE_CATEGORY': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const items = await db.selectFrom('facet_predicate_creature_category_items')
@@ -2124,7 +2124,7 @@ async function hydratePredicateCondition(
 
     default:
       throw new Error(
-        `Facet condition "${row.id}" uses unsupported predicate "${predicateCode}" for typed hydration.`
+        `Facet condition "${row.id}" uses unsupported predicate "${String(predicateCode)}" for typed hydration.`
       )
   }
 }
@@ -2193,12 +2193,14 @@ async function hydrateBodyById(
       .orderBy('sort_order')
       .execute()
 
+    const conditions = await Promise.all(
+      conditionRows.map((conditionRow) => hydrateCondition(db, conditionRow as PredicateRow, subject))
+    )
+
     return {
       id: groupRow.id,
       order: groupRow.sort_order,
-      conditions: await Promise.all(
-        conditionRows.map((conditionRow) => hydrateCondition(db, conditionRow as PredicateRow, subject))
-      )
+      ...(conditions.length > 0 ? { conditions } : {})
     }
   }))
 
@@ -2274,7 +2276,7 @@ export async function hydrateFacetById<N extends NodeSubjectCode = NodeSubjectCo
           id: contextRow.id,
           order: contextRow.sort_order,
           subject,
-          conditions
+          ...(conditions.length > 0 ? { conditions } : {})
         } as unknown as FacetContextAuthored
       }
 
@@ -2285,7 +2287,7 @@ export async function hydrateFacetById<N extends NodeSubjectCode = NodeSubjectCo
         order: contextRow.sort_order,
         subject,
         ...selection,
-        conditions
+        ...(conditions.length > 0 ? { conditions } : {})
       } as unknown as FacetContextAuthored
     }))
 

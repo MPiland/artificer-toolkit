@@ -1,5 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+
 import * as S from './shared.js'
 
 export const merrow: CreatureAuthored = {
@@ -7,7 +7,6 @@ export const merrow: CreatureAuthored = {
   label: 'Merrow',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
   size: S.SIZE_CODE.LARGE,
@@ -19,7 +18,6 @@ export const merrow: CreatureAuthored = {
     INTELLIGENCE: 8,
     WISDOM: 10,
     CHARISMA: 9,
-    SPELLCASTING: 0
   },
   armorClass: 13,
   armorClassNote: 'natural armor',

@@ -21,13 +21,15 @@ CREATE TABLE IF NOT EXISTS public.modifier_grants (
   scope text NOT NULL,
   selection_kind text NOT NULL,
   count integer,
+  selection_duplicate_policy text,
   sort_order integer NOT NULL,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT modifier_grants_count_chk CHECK (
-    (selection_kind <> 'CHOSEN' AND count IS NULL)
-    OR (selection_kind = 'CHOSEN' AND count IS NOT NULL AND count > 0)
+  CONSTRAINT modifier_grants_selection_chk CHECK (
+    selection_kind = 'GRANTED'
+    AND count IS NULL
+    AND selection_duplicate_policy IS NULL
   )
 );
 
@@ -177,7 +179,9 @@ CREATE INDEX IF NOT EXISTS idx_modifier_grant_charge_levels_grant ON public.modi
 CREATE TABLE IF NOT EXISTS public.modifier_grant_optional_abilities (
   modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   ability_code text NOT NULL,
-  PRIMARY KEY (modifier_grant_id, ability_code)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (modifier_grant_id, ability_code),
+  UNIQUE (modifier_grant_id, sort_order)
 );
 
 ALTER TABLE public.modifier_grant_optional_abilities ENABLE ROW LEVEL SECURITY;

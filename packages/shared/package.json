@@ -85,10 +85,14 @@
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "vitest run src/__tests__"
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/shared/src/__tests__"
+  },
+  "dependencies": {
+    "@artificer-toolkit/design-system": "workspace:^"
   },
   "devDependencies": {
     "type-fest": "^5.6.0",
+    "typescript": "^6.0.3",
     "zod": "^4.4.3"
   }
 }

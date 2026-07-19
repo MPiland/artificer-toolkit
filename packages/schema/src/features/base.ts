@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { chargeDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
+import { featureAttributeSchema } from '../shared/enums.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import {
   featGrantDtoSchema,
@@ -27,7 +28,7 @@ const featureBaseDtoSchemaBase = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
-  attributes: z.array(z.string()).optional(),
+  attributes: z.array(featureAttributeSchema).optional(),
   detail: z.never().optional(),
   details: z.array(detailDtoSchema).optional(),
   effects: z.array(effectDtoSchema).optional(),

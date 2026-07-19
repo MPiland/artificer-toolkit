@@ -1,10 +1,13 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -12,17 +15,13 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  STARTING_EQUIPMENT_KIND,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -74,26 +73,250 @@ const bardSlotCharge = {
 
 // Bard spell slots per level (full caster progression)
 const bardSpellLimits = [
-  { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], learnedSpellsLimit: 4, cantripsLimit: 2 },
-  { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 3 }], learnedSpellsLimit: 5, cantripsLimit: 2 },
-  { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 6, cantripsLimit: 2 },
-  { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }], learnedSpellsLimit: 7, cantripsLimit: 3 },
-  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }], learnedSpellsLimit: 8, cantripsLimit: 3 },
-  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 9, cantripsLimit: 3 },
-  { classLevel: 7, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }], learnedSpellsLimit: 10, cantripsLimit: 3 },
-  { classLevel: 8, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }], learnedSpellsLimit: 11, cantripsLimit: 3 },
-  { classLevel: 9, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }], learnedSpellsLimit: 12, cantripsLimit: 3 },
-  { classLevel: 10, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }], learnedSpellsLimit: 14, cantripsLimit: 4 },
-  { classLevel: 11, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 4 },
-  { classLevel: 12, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 4 },
-  { classLevel: 13, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }], learnedSpellsLimit: 16, cantripsLimit: 4 },
-  { classLevel: 14, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }], learnedSpellsLimit: 18, cantripsLimit: 4 },
-  { classLevel: 15, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }], learnedSpellsLimit: 19, cantripsLimit: 4 },
-  { classLevel: 16, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }], learnedSpellsLimit: 19, cantripsLimit: 4 },
-  { classLevel: 17, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 20, cantripsLimit: 4 },
-  { classLevel: 18, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 22, cantripsLimit: 4 },
-  { classLevel: 19, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 22, cantripsLimit: 4 },
-  { classLevel: 20, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 2 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 22, cantripsLimit: 4 }
+  {
+    classLevel: 1,
+    slots: [{ spellLevel: 1, slotCount: 2 }],
+    learnedSpellsLimit: 4,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 2,
+    slots: [{ spellLevel: 1, slotCount: 3 }],
+    learnedSpellsLimit: 5,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 3,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 6,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 4,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 7,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 5,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 8,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 6,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 9,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 7,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 10,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 8,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 11,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 9,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 12,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 10,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 14,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 11,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 12,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 13,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 16,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 14,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 18,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 15,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 19,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 16,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 19,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 17,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 20,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 18,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 22,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 19,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 22,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 20,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 2 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 22,
+    cantripsLimit: 4
+  }
 ]
 
 const bardicInspirationCharge = {
@@ -105,10 +328,16 @@ const bardicInspirationCharge = {
   min: 1
 }
 
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
+}
+
 export const bard: ClassAuthored = {
   id: CLASS_IDS.BARD,
   label: 'Bard',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
   description: 'An inspiring magician whose power echoes the music of creation.',
   userId: SRD_USER_ID,
@@ -153,13 +382,175 @@ export const bard: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(BD, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(BD, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(BD, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(BD, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(26)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(BD, 98, 6),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(22)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(BD, 98, 8),
+                order: 2,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 9),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(BD, 98, 10),
+            order: 1,
+            options: [
+              {
+                id: classRowId(BD, 98, 11),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 12),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(183)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(BD, 98, 13),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 14),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(185)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(BD, 98, 15),
+            order: 2,
+            options: [
+              {
+                id: classRowId(BD, 98, 16),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 17),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(73)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(BD, 98, 18),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 19),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [68, 69, 70, 71, 72, 74, 75, 76, 77].map(equipmentId),
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(BD, 98, 20),
+            order: 3,
+            options: [
+              {
+                id: classRowId(BD, 98, 21),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(BD, 98, 22),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(BD, 98, 23),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(2)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   resources: {
     id: classRowId(BD, 5, 1),
     label: 'Bardic Inspiration',
-    description: '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>',
+    description:
+      '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>',
     availableAtLevel: 1,
     charges: bardicInspirationCharge
   },
@@ -171,31 +562,38 @@ export const bard: ClassAuthored = {
     details: classSpellcastingDetails(BD, [
       {
         label: 'Spellcasting',
-        description: '<p>You have learned to untangle and reshape the fabric of reality in harmony with your wishes and music. Your spells are part of your vast repertoire, magic that you can tune to different situations.</p>'
+        description:
+          '<p>You have learned to untangle and reshape the fabric of reality in harmony with your wishes and music. Your spells are part of your vast repertoire, magic that you can tune to different situations.</p>'
       },
       {
         label: 'Cantrips',
-        description: '<p>You know two cantrips of your choice from the bard spell list. You learn additional bard cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Bard table.</p>'
+        description:
+          '<p>You know two cantrips of your choice from the bard spell list. You learn additional bard cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Bard table.</p>'
       },
       {
         label: 'Spell Slots',
-        description: '<p>The Bard table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>cure wounds</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>cure wounds</em> using either slot.</p>'
+        description:
+          "<p>The Bard table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>cure wounds</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>cure wounds</em> using either slot.</p>"
       },
       {
         label: 'Spells Known of 1st Level and Higher',
-        description: '<p>You know four 1st-level spells of your choice from the bard spell list.</p><p>The Spells Known column of the Bard table shows when you learn more bard spells of your choice. Each of these spells must be of a level for which you have spell slots, as shown on the table. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the bard spells you know and replace it with another spell from the bard spell list, which also must be of a level for which you have spell slots.</p>'
+        description:
+          '<p>You know four 1st-level spells of your choice from the bard spell list.</p><p>The Spells Known column of the Bard table shows when you learn more bard spells of your choice. Each of these spells must be of a level for which you have spell slots, as shown on the table. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the bard spells you know and replace it with another spell from the bard spell list, which also must be of a level for which you have spell slots.</p>'
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Charisma is your spellcasting ability for your bard spells. Your magic comes from the heart and soul you pour into the performance of your music or oration. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a bard spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+        description:
+          '<p>Charisma is your spellcasting ability for your bard spells. Your magic comes from the heart and soul you pour into the performance of your music or oration. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a bard spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
       },
       {
         label: 'Ritual Casting',
-        description: '<p>You can cast any bard spell you know as a ritual if that spell has the ritual tag.</p>'
+        description:
+          '<p>You can cast any bard spell you know as a ritual if that spell has the ritual tag.</p>'
       },
       {
         label: 'Spellcasting Focus',
-        description: '<p>You can use a musical instrument as a spellcasting focus for your bard spells.</p>'
+        description:
+          '<p>You can use a musical instrument as a spellcasting focus for your bard spells.</p>'
       }
     ]),
     charges: bardSlotCharge,
@@ -250,14 +648,27 @@ export const bard: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 3,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
-        skillId('ACROBATICS'), skillId('ANIMAL_HANDLING'), skillId('ARCANA'),
-        skillId('ATHLETICS'), skillId('DECEPTION'), skillId('HISTORY'),
-        skillId('INSIGHT'), skillId('INTIMIDATION'), skillId('INVESTIGATION'),
-        skillId('MEDICINE'), skillId('NATURE'), skillId('PERCEPTION'),
-        skillId('PERFORMANCE'), skillId('PERSUASION'), skillId('RELIGION'),
-        skillId('SLEIGHT_OF_HAND'), skillId('STEALTH'), skillId('SURVIVAL')
+        skillId('ACROBATICS'),
+        skillId('ANIMAL_HANDLING'),
+        skillId('ARCANA'),
+        skillId('ATHLETICS'),
+        skillId('DECEPTION'),
+        skillId('HISTORY'),
+        skillId('INSIGHT'),
+        skillId('INTIMIDATION'),
+        skillId('INVESTIGATION'),
+        skillId('MEDICINE'),
+        skillId('NATURE'),
+        skillId('PERCEPTION'),
+        skillId('PERFORMANCE'),
+        skillId('PERSUASION'),
+        skillId('RELIGION'),
+        skillId('SLEIGHT_OF_HAND'),
+        skillId('STEALTH'),
+        skillId('SURVIVAL')
       ],
       order: 3
     }
@@ -267,28 +678,32 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 3),
       label: 'Jack of All Trades',
-      description: 'Starting at 2nd level, you can add half your proficiency bonus, rounded down, to any ability check you make that doesn\'t already include your proficiency bonus.',
+      description:
+        "Starting at 2nd level, you can add half your proficiency bonus, rounded down, to any ability check you make that doesn't already include your proficiency bonus.",
       availableAtLevel: 2,
       order: 2
     },
     {
       id: classRowId(BD, 3, 4),
       label: 'Song of Rest',
-      description: 'Beginning at 2nd level, you can use soothing music or oration to help revitalize your wounded allies during a short rest.',
+      description:
+        'Beginning at 2nd level, you can use soothing music or oration to help revitalize your wounded allies during a short rest.',
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(BD, 3, 5),
       label: 'Bard College',
-      description: 'At 3rd level, you delve into the advanced techniques of a bard college of your choice.',
+      description:
+        'At 3rd level, you delve into the advanced techniques of a bard college of your choice.',
       availableAtLevel: 3,
       order: 4
     },
     {
       id: classRowId(BD, 3, 6),
       label: 'Expertise',
-      description: 'At 3rd level, choose two of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
+      description:
+        'At 3rd level, choose two of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
       availableAtLevel: 3,
       order: 5,
       grants: {
@@ -300,6 +715,7 @@ export const bard: ClassAuthored = {
             level: SCALING_AMOUNT_KIND.DOUBLE,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 2,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             skillIds: [
@@ -330,14 +746,16 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 7),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 6
     },
     {
       id: classRowId(BD, 3, 8),
       label: 'Font of Inspiration',
-      description: 'Beginning when you reach 5th level, you regain all of your expended uses of Bardic Inspiration when you finish a short or long rest.',
+      description:
+        'Beginning when you reach 5th level, you regain all of your expended uses of Bardic Inspiration when you finish a short or long rest.',
       availableAtLevel: 5,
       order: 7,
       grants: {
@@ -364,8 +782,7 @@ export const bard: ClassAuthored = {
                       order: 0,
                       subject: 'RESOURCE',
                       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                      resourceIds: [classRowId(BD, 5, 1)],
-                      conditions: []
+                      resourceIds: [classRowId(BD, 5, 1)]
                     }
                   ]
                 }
@@ -378,7 +795,8 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 9),
       label: 'Countercharm',
-      description: 'At 6th level, you gain the ability to use musical notes or words of power to disrupt mind-influencing effects.',
+      description:
+        'At 6th level, you gain the ability to use musical notes or words of power to disrupt mind-influencing effects.',
       availableAtLevel: 6,
       order: 8
     },
@@ -392,14 +810,16 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 11),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 10
     },
     {
       id: classRowId(BD, 3, 12),
       label: 'Expertise',
-      description: 'At 10th level, choose two more of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
+      description:
+        'At 10th level, choose two more of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
       availableAtLevel: 10,
       order: 11,
       grants: {
@@ -411,6 +831,7 @@ export const bard: ClassAuthored = {
             level: SCALING_AMOUNT_KIND.DOUBLE,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 2,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             skillIds: [
@@ -441,14 +862,16 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 13),
       label: 'Magical Secrets',
-      description: 'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one.',
+      description:
+        'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one.',
       availableAtLevel: 10,
       order: 12
     },
     {
       id: classRowId(BD, 3, 14),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 13
     },
@@ -469,7 +892,8 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 17),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 16
     },
@@ -483,14 +907,16 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 19),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 18
     },
     {
       id: classRowId(BD, 3, 20),
       label: 'Superior Inspiration',
-      description: 'At 20th level, when you roll initiative and have no uses of Bardic Inspiration left, you regain one use.',
+      description:
+        'At 20th level, when you roll initiative and have no uses of Bardic Inspiration left, you regain one use.',
       availableAtLevel: 20,
       order: 19
     }

@@ -74,6 +74,7 @@ describe('grant repositories', () => {
         scaling_kind: 'NONE',
         authoring_mode_kind: 'SELECTED',
         selection_count: 2,
+        selection_duplicate_policy: 'UNIQUE',
         scaling_source: null,
         class_id: null,
         charge_id: 'charge-1',
@@ -99,6 +100,7 @@ describe('grant repositories', () => {
       scalingKind: 'NONE',
       authoringModeKind: 'SELECTED',
       count: 2,
+      selectionDuplicatePolicy: 'UNIQUE',
       featIds: ['feat-1', 'feat-2'],
       charges: {
         id: 'charge-1',
@@ -232,6 +234,7 @@ describe('grant repositories', () => {
         scaling_kind: 'PER_LEVEL',
         authoring_mode_kind: 'ALL',
         selection_count: null,
+        selection_duplicate_policy: null,
         scaling_source: 'CLASS_LEVEL',
         class_id: 'class-1',
         charge_id: 'charge-1',
@@ -251,7 +254,8 @@ describe('grant repositories', () => {
           level: 5,
           sort_order: 1,
           authoring_mode_kind: 'SELECTED',
-          selection_count: 1
+          selection_count: 1,
+          selection_duplicate_policy: 'UNIQUE'
         }
       ],
       spell_grant_scaling_level_spells: [
@@ -281,6 +285,7 @@ describe('grant repositories', () => {
             order: 1,
             authoringModeKind: 'SELECTED',
             count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
             spellIds: ['spell-1']
           }
         ]

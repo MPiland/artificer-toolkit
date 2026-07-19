@@ -56,7 +56,7 @@ async function hydrateSystemById(
   const row = await db
     .selectFrom('systems')
     .select([
-      'id', 'label', 'description', 'user_id'
+      'id', 'label', 'description', 'ruleset_code', 'ruleset_version', 'user_id'
     ])
     .where('id', '=', id)
     .executeTakeFirst()
@@ -106,6 +106,8 @@ async function hydrateSystemById(
     id: row.id,
     label: row.label,
     description: row.description,
+    rulesetCode: row.ruleset_code,
+    rulesetVersion: row.ruleset_version,
     userId: row.user_id,
     alignments,
     challengeRatings,

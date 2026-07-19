@@ -73,6 +73,7 @@ export function createEmptyProficiency(order: number): ProficiencyGrantDto {
     id: crypto.randomUUID(),
     order,
     selectionKind: 'GRANTED',
+    scalingKind: 'NONE',
     proficiencyKind: 'SKILL',
     authoringModeKind: 'ALL',
     level: 'FULL'

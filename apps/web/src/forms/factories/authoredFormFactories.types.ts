@@ -87,6 +87,7 @@ export type AuthoredFormSession = {
   normalizeForSubmit: (values: object) => object
   notFound: boolean
   operations: AuthoredFormOperationConfig
+  provenanceKind: 'MASTER' | 'OWNED' | null
   readOnly: boolean
   renderPreview?: (context: AuthoredFormPreviewContext) => ReactNode
   subjectId?: string

@@ -93,7 +93,7 @@ export type ShapePayloadByType = {
     edgeLength: ShapeMeasurementAuthored
   }
   [SHAPE_KIND.CYLINDER]: {
-    height?: ShapeMeasurementAuthored
+    height: ShapeMeasurementAuthored
     radius: ShapeMeasurementAuthored
   }
   [SHAPE_KIND.SPHERE]: {

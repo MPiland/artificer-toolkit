@@ -7,7 +7,6 @@ export const knight: CreatureAuthored = {
   description: 'A heavily armored warrior sworn to a lord or cause, trained in the finest martial traditions.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const knight: CreatureAuthored = {
     INTELLIGENCE: 11,
     WISDOM: 11,
     CHARISMA: 15,
-    SPELLCASTING: 0
   },
   armorClass: 18,
   armorClassNote: 'plate armor',

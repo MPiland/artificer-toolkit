@@ -4,7 +4,6 @@ import { SUBJECT_REGISTRY,
   type ChargeResetKind,
   type CoreMeta,
   type CreatureCategoryCode,
-  type CreatureRecordKindCode,
   type DurationKind,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode,
@@ -315,6 +314,7 @@ export type PredicatePayloadByCode = {
     max?: number
   }
   CLASS_LEVEL: {
+    classIds: string[]
     min: number
     max?: number
   }
@@ -345,9 +345,6 @@ export type PredicatePayloadByCode = {
   WHILE_SOURCE_CARRIED: EmptyObject
   WHILE_SOURCE_EQUIPPED: EmptyObject
   WHILE_SOURCE_ATTUNED: EmptyObject
-  CREATURE_RECORD_KIND: Selectable<
-    { recordKinds: CreatureRecordKindCode[] }
-  >
   CREATURE_CATEGORY: Selectable<
     { categories: CreatureCategoryCode[] }
   >
@@ -397,7 +394,6 @@ export const SELECTABLE_PREDICATE_CODES = [
   'SKILL_SCORE',
   'ABILITY_SCORE',
   'SAVING_THROW_ABILITY_BONUS',
-  'CREATURE_RECORD_KIND',
   'CREATURE_CATEGORY',
   'CREATURE_TYPE',
   'CREATURE_SIZE',
@@ -674,8 +670,7 @@ export const PREDICATE_REGISTRY = {
     code: 'EQUIPMENT_PROPERTY_PROFICIENCY',
     label: 'Equipment Property Proficiency',
     tooltip: 'Narrows selection to proficiency with equipment that has certain properties.',
-    description:
-          'Narrows selection to proficiency with equipment that has certain properties and optionally the level.',
+    description: 'Narrows selection to proficiency with equipment that has certain properties.',
     subjects: [
       'CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION'
     ]
@@ -772,14 +767,6 @@ export const PREDICATE_REGISTRY = {
           'The modifier applies only when the character is attuned to the item. Attunement is required in addition to equipping the item.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
-  },
-
-  CREATURE_RECORD_KIND: {
-    code: 'CREATURE_RECORD_KIND',
-    label: 'Creature Record Kind',
-    tooltip: 'Narrows selection to creature record kinds.',
-    description: 'Narrows creature applicability to stat-block or logistics creature records.',
-    subjects: ['CREATURE']
   },
 
   CREATURE_CATEGORY: {

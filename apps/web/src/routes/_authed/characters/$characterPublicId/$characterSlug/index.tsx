@@ -3,6 +3,7 @@ import { getCharacter, getCharacterDraft, getCharacterSheet } from '#app/data/ch
 import { createServerApi } from '#app/lib/api'
 import {
   isCanonicalAuthoredRouteHandle,
+  isLegacyAuthoredRouteId,
   parseAuthoredRouteId
 } from '#app/routing/authoredRouteHandles'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
@@ -13,13 +14,21 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
   loader: async ({ context, params }): Promise<CharacterSheetLoaderData> => {
     const client = createServerApi()
     const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
-    const [response, draft] = await Promise.all([
-      context.queryClient.ensureQueryData(getCharacterSheet(routeCharacterId, client)),
-      context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId, client))
-    ])
+    const routeUsesCanonicalId = isLegacyAuthoredRouteId(routeCharacterId)
+    const [response, draft] = routeUsesCanonicalId
+      ? await Promise.all([
+          context.queryClient.ensureQueryData(getCharacterSheet(routeCharacterId, client)),
+          context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId, client))
+        ])
+      : await Promise.all([
+          client.characters.sheet(routeCharacterId),
+          client.characters.getDraft(routeCharacterId)
+        ])
     const fallbackCharacter =
       !response && !draft
-        ? await context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client))
+        ? routeUsesCanonicalId
+          ? await context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client))
+          : await client.characters.get(routeCharacterId)
         : null
     const breadcrumbLabel =
       draft?.label ?? response?.identity.label ?? fallbackCharacter?.character.label ?? null
@@ -51,7 +60,7 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
       })
     }
 
-    if (characterId !== routeCharacterId) {
+    if (!routeUsesCanonicalId || characterId !== routeCharacterId) {
       context.queryClient.setQueryData(getCharacterSheet(characterId, client).queryKey, response)
       context.queryClient.setQueryData(getCharacterDraft(characterId, client).queryKey, draft)
       if (fallbackCharacter) {
@@ -60,6 +69,18 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
           fallbackCharacter
         )
       }
+      context.queryClient.removeQueries({
+        exact: true,
+        queryKey: getCharacterSheet(routeCharacterId, client).queryKey
+      })
+      context.queryClient.removeQueries({
+        exact: true,
+        queryKey: getCharacterDraft(routeCharacterId, client).queryKey
+      })
+      context.queryClient.removeQueries({
+        exact: true,
+        queryKey: getCharacter(routeCharacterId, client).queryKey
+      })
     }
 
     return {

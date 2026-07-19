@@ -10,9 +10,12 @@ import {
   clearClassOwnedChoices,
   clearPrimaryClassDependents,
   clearRaceDependents,
+  clearSubraceDependents,
   clearSubclassOwnedChoices,
   createFallbackCharacterFormValues,
   createStartingEquipmentDecision,
+  getAssignedAbilityCodes,
+  getCharacterBuilderResolutionFingerprint,
   getInactiveAbilityIntentMethodLabels,
   getReadinessMessages,
   normalizeCharacterForCommit,
@@ -65,14 +68,46 @@ describe('character builder utilities', () => {
     })
   })
 
+  it('fingerprints only fields that affect Builder resolution', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+    const initialFingerprint = getCharacterBuilderResolutionFingerprint(values)
+    const proseEdit = structuredClone(values)
+    proseEdit.description = '<p>Updated prose that does not affect the build.</p>'
+    proseEdit.profile.notes = 'Updated table notes.'
+    proseEdit.state.hitpoints.current = 3
+    if (proseEdit.state.equipment.inventory[0]) {
+      proseEdit.state.equipment.inventory[0].notes = 'Updated inventory notes.'
+    }
+
+    expect(getCharacterBuilderResolutionFingerprint(proseEdit)).toBe(initialFingerprint)
+
+    const structuralEdit = structuredClone(values)
+    structuralEdit.intent.classes[0].classLevel += 1
+
+    expect(getCharacterBuilderResolutionFingerprint(structuralEdit)).not.toBe(initialFingerprint)
+  })
+
   it('converts manual ability form state without leaking roll metadata into invalid shapes', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
     values.intent.abilities = {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-      assignments: [],
       state: {
         assignments: [{ ability: 'STRENGTH', score: 16 }],
-        rollGroups: [{ temporary: true }]
+        rollGroups: [{
+          id: 'roll-group-1',
+          rolls: [
+            { die: 6, value: 6 },
+            { die: 6, value: 5 },
+            { die: 6, value: 4 },
+            { die: 6, value: 1 }
+          ],
+          kept: [
+            { die: 6, value: 6 },
+            { die: 6, value: 5 },
+            { die: 6, value: 4 }
+          ],
+          score: 15
+        }]
       }
     }
 
@@ -86,20 +121,40 @@ describe('character builder utilities', () => {
     })
   })
 
+  it('counts manual ability assignments outside standard-array values', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+    values.intent.abilities = {
+      method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+      state: {
+        assignments: [{ ability: 'STRENGTH', score: 18 }]
+      }
+    }
+
+    expect(getAssignedAbilityCodes(values.intent.abilities)).toEqual(['STRENGTH'])
+  })
+
   it('preserves inactive ability method intent in the draft-only builder cache', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
     values.intent.abilities = {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-      assignments: [],
       state: {
         assignments: [{ ability: 'STRENGTH', score: 16 }],
         rollGroups: [
-          { rolls: [
-            6,
-            5,
-            4,
-            1
-          ], total: 15 }
+          {
+            id: 'roll-group-1',
+            rolls: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 },
+              { die: 6, value: 1 }
+            ],
+            kept: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 }
+            ],
+            score: 15
+          }
         ]
       }
     }
@@ -123,12 +178,21 @@ describe('character builder utilities', () => {
       state: {
         assignments: [{ ability: 'STRENGTH', score: 16 }],
         rollGroups: [
-          { rolls: [
-            6,
-            5,
-            4,
-            1
-          ], total: 15 }
+          {
+            id: 'roll-group-1',
+            rolls: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 },
+              { die: 6, value: 1 }
+            ],
+            kept: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 }
+            ],
+            score: 15
+          }
         ]
       }
     })
@@ -148,7 +212,6 @@ describe('character builder utilities', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
     values.intent.abilities = {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-      assignments: [],
       state: {
         assignments: [{ ability: 'STRENGTH', score: 16 }]
       }
@@ -325,4 +388,60 @@ describe('character builder utilities', () => {
     expect(cleared.intent.startingEquipment).toBeUndefined()
     expect(cleared.intent.featureAcquisitions).toEqual([])
   })
+  it('clears chosen grant selections with their owning source', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+    values.intent.chosenGrantSelections = [
+      createChosenGrantSelection('race', { kind: 'RACE', raceId: 'race-elf' }),
+      createChosenGrantSelection('subrace', { kind: 'SUBRACE', subraceId: 'subrace-sea-elf' }),
+      createChosenGrantSelection('ancestry', { kind: 'ANCESTRY', ancestryId: 'ancestry-elf', optionId: 'ancestry-ocean' }),
+      createChosenGrantSelection('class', { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 }),
+      createChosenGrantSelection('subclass', { kind: 'SUBCLASS', subclassId: 'subclass-scribe', classLevel: 1 }),
+      createChosenGrantSelection('background', { kind: 'BACKGROUND', backgroundId: 'background-sage' })
+    ]
+
+    expect(clearRaceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
+      'class',
+      'subclass',
+      'background'
+    ])
+    expect(clearSubraceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
+      'race',
+      'class',
+      'subclass',
+      'background'
+    ])
+    expect(clearClassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
+      'race',
+      'subrace',
+      'ancestry',
+      'background'
+    ])
+    expect(clearSubclassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
+      'race',
+      'subrace',
+      'ancestry',
+      'class',
+      'background'
+    ])
+    expect(clearBackgroundDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
+      'race',
+      'subrace',
+      'ancestry',
+      'class',
+      'subclass'
+    ])
+  })
 })
+
+function createChosenGrantSelection(
+  id: string,
+  source: NonNullable<ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']>[number]['source']
+): NonNullable<ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']>[number] {
+  return {
+    id,
+    grantId: 'grant-' + id,
+    source,
+    timing: { kind: 'IMMEDIATE' },
+    targetIds: ['target-' + id]
+  }
+}

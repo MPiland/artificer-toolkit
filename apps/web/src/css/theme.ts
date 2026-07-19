@@ -19,10 +19,14 @@ export const theme = createTheme({
   components: {
     Button: Button.extend({
       vars: (_theme, props) => {
-        const isSecondary = props.variant === 'default'
-        const button = isSecondary
-          ? foundationVars.color.button.secondary
-          : foundationVars.color.button.primary
+        const button =
+          props.variant === 'filled'
+            ? foundationVars.color.button.primary
+            : props.variant === 'default'
+              ? foundationVars.color.button.secondary
+              : undefined
+
+        if (!button) return { root: {} }
 
         return {
           root: {

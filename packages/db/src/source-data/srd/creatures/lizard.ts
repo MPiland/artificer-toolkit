@@ -5,7 +5,6 @@ export const lizard: CreatureAuthored = {
     label: 'Lizard',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.TINY,
@@ -17,7 +16,6 @@ export const lizard: CreatureAuthored = {
         INTELLIGENCE: 1,
         WISDOM: 8,
         CHARISMA: 3,
-        SPELLCASTING: 0
     },
     armorClass: 10,
     hitPoints: 2,

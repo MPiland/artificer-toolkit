@@ -6,7 +6,6 @@ export const giantToad: CreatureAuthored = {
     label: 'Giant Toad',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const giantToad: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 10,
         CHARISMA: 3,
-        SPELLCASTING: 0
     },
     armorClass: 11,
     hitPoints: 39,
@@ -178,7 +176,7 @@ export const giantToad: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(4874, 9),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

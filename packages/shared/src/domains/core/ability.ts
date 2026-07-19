@@ -7,8 +7,7 @@ export const ABILITY_CODE = {
   DEXTERITY: 'DEXTERITY',
   INTELLIGENCE: 'INTELLIGENCE',
   STRENGTH: 'STRENGTH',
-  WISDOM: 'WISDOM',
-  SPELLCASTING: 'SPELLCASTING'
+  WISDOM: 'WISDOM'
 } as const
 
 export type AbilityCode = keyof typeof ABILITY_CODE
@@ -57,13 +56,28 @@ export const ABILITIES: Record<AbilityCode, AbilityOption> = {
     short: 'CHA',
     description: 'Charisma measures confidence, presence, and the ability to influence others.',
     tooltip: 'Presence and influence.'
-  },
-  [ABILITY_CODE.SPELLCASTING]: {
-    code: ABILITY_CODE.SPELLCASTING,
-    label: 'Spellcasting',
-    description: 'Spellcasting is the spellcasting ability determined for the spellcasting class.',
-    tooltip: 'Spellcasting ability.'
   }
 } as const
 
 export const ABILITY_OPTIONS = valuesOf(ABILITIES) as readonly AbilityOption[]
+
+export const SPELLCASTING_ABILITY_REFERENCE = 'SPELLCASTING' as const
+
+/**
+ * References either a concrete ability or the spellcasting ability supplied by
+ * the effect's source. This is not an ability score and must not be used as a
+ * key in ability-score records.
+ */
+export type AbilityModifierReference = AbilityCode | typeof SPELLCASTING_ABILITY_REFERENCE
+
+export type AbilityModifierReferenceOption = CoreMeta<AbilityModifierReference>
+
+export const ABILITY_MODIFIER_REFERENCE_OPTIONS: readonly AbilityModifierReferenceOption[] = [
+  ...ABILITY_OPTIONS,
+  {
+    code: SPELLCASTING_ABILITY_REFERENCE,
+    label: 'Spellcasting',
+    description: 'Uses the spellcasting ability determined by the effect source.',
+    tooltip: 'Source spellcasting ability.'
+  }
+]

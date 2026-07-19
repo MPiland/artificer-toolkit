@@ -78,7 +78,7 @@ const CLASS_SPELL_LIMITS_NODE_MAP = classSpellLimits.define('classSpellLimits', 
 
   map
     .set('classLevel', number(['classLevel'], 'Class Level'))
-    .set('slots', groupArray(['slots'], 'Slots', () => CLASS_SPELL_SLOT_NODE_MAP))
+    .set('slots', groupArray(['slots'], 'Slots', () => CLASS_SPELL_SLOT_NODE_MAP, { presentation: 'table' }))
     .set('learnedSpellsLimit', number(['learnedSpellsLimit'], 'Known Spells Limit'))
     .set('preparedSpellsLimit', number(['preparedSpellsLimit'], 'Prepared Spells Limit'))
     .set('cantripsLimit', number(['cantripsLimit'], 'Cantrips Limit'))
@@ -103,20 +103,20 @@ export const CLASS_PREPARE_LIMIT_NODE_MAP = classPrepareLimitNode.define('classP
 
   map
     .set('methodKinds', selectMulti(['methodKinds'], 'Method Kinds', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: PREPARE_LIMIT_METHOD_OPTIONS
     }))
     .set('scaling', selectSingle(['scaling'], 'Scaling Amount', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SCALING_AMOUNT_OPTIONS
     }))
     .set('rounding', selectSingle(['rounding'], 'Rounding', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ROUNDING_OPTIONS
     }, {
       showIf: local.field(['scaling']).eq('HALF')
     }))
-    .set('perLevel', groupArray(['perLevel'], 'Per-Level Limits', () => CLASS_PREPARE_LIMIT_PER_LEVEL_NODE_MAP, {
+    .set('perLevel', groupArray(['perLevel'], 'Per-Level Limits', () => CLASS_PREPARE_LIMIT_PER_LEVEL_NODE_MAP, { presentation: 'table',
       showIf: or([
         local.field(['methodKinds']).contains(['PER_LEVEL']),
         local.field(['scaling']).eq('FULL'),
@@ -133,20 +133,20 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSp
   const local = cond.local()
 
   map
-    .set('spellLimits', groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
+    .set('spellLimits', groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP, { presentation: 'table' }))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { presentation: 'inline' }))
     .set('magicName', text(['magicName'], 'Magic Name'))
     .set('ability', selectSingle(['ability'], 'Spellcasting Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }))
     .set('maxSpellLevel', number(['maxSpellLevel'], 'Max Spell Level'))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SPELLCASTING_ATTRIBUTE_OPTIONS
     }))
-    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
-    .set('prepareLimit', groupObject(['prepareLimit'], 'Prepare Limit', () => CLASS_PREPARE_LIMIT_NODE_MAP, {
+    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, { presentation: 'inline' }))
+    .set('prepareLimit', groupObject(['prepareLimit'], 'Prepare Limit', () => CLASS_PREPARE_LIMIT_NODE_MAP, { presentation: 'inline',
       showIf: local.field(['attributes']).contains(['PREPARES_SPELLS'])
     }))
 })
@@ -161,7 +161,7 @@ export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource',
     .set('label', text(['label'], 'Label'))
     .set('description', richText(['description'], 'Description'))
     .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
-    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
+    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, { presentation: 'inline' }))
 })
 
 const classHitpointNode = buildNodeMap<ClassHitpointAuthored>()
@@ -171,7 +171,7 @@ const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define('classHitpoint', ({ map
 
   map
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }))
     .set('dieConfig', text(['dieConfig'], 'Die Config'))
@@ -202,7 +202,7 @@ const CLASS_MULTICLASS_REQUIREMENT_NODE_MAP = classRequirementNode.define('class
   map
     .set('id', text(['id'], 'ID'))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }))
     .set('min', number(['min'], 'Minimum'))
@@ -215,7 +215,7 @@ const CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP = classRequirementGroupNode.de
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('requirements', groupArray(['requirements'], 'Requirements', () => CLASS_MULTICLASS_REQUIREMENT_NODE_MAP))
+    .set('requirements', groupArray(['requirements'], 'Requirements', () => CLASS_MULTICLASS_REQUIREMENT_NODE_MAP, { presentation: 'inline' }))
 })
 
 const classMulticlassNode = buildNodeMap<ClassMulticlassAuthored>()
@@ -225,8 +225,8 @@ const CLASS_MULTICLASS_NODE_MAP = classMulticlassNode.define('classMulticlass', 
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('requirementGroups', groupObject(['requirementGroups'], 'Requirement Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP))
+    .set('requirementGroups', groupObject(['requirementGroups'], 'Requirement Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP, { presentation: 'inline' }))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { presentation: 'inline' }))
 })
 
 const classRequirementGroupsNode = buildNodeMap<ClassMulticlassAuthored['requirementGroups']>()
@@ -234,7 +234,7 @@ const classRequirementGroupsNode = buildNodeMap<ClassMulticlassAuthored['require
 const CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP = classRequirementGroupsNode.define('classMulticlassRequirementGroups', ({ map, nodes }) => {
   const { groupArray } = nodes
 
-  map.set('groups', groupArray(['groups'], 'Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP))
+  map.set('groups', groupArray(['groups'], 'Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP, { presentation: 'inline' }))
 })
 
 const classSpecializationNode = buildNodeMap<ClassSpecializationAuthored>()
@@ -251,7 +251,7 @@ const CLASS_SPECIALIZATION_NODE_MAP = classSpecializationNode.define('classSpeci
 const classNode = buildNodeMap<ClassAuthored>()
 
 export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, data }) => {
-  const { text, richText, selectMulti, selectSingle, groupArray, groupObject } = nodes
+  const { text, richText, number, selectMulti, selectSingle, groupArray, groupObject } = nodes
   const local = cond.local()
   const { table } = data
 
@@ -262,47 +262,52 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', { section: CLASS_SECTIONS.basics, order: 10, requiredIf: true }))
     .set('description', richText(['description'], 'Description', { section: CLASS_SECTIONS.basics, order: 20 }))
-    .set('details', groupArray(['details'], 'Details', () => CLASS_DETAIL_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 10 }))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 20 }))
-    .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP, { section: CLASS_SECTIONS.spellcasting, order: 10 }))
-    .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP, { section: CLASS_SECTIONS.advancement, order: 20 }))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: CLASS_SECTIONS.advancement, order: 10 }))
+    .set('details', groupArray(['details'], 'Details', () => CLASS_DETAIL_NODE_MAP, { presentation: 'inline', section: CLASS_SECTIONS.classDetails, order: 10 }))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { presentation: 'branch', section: CLASS_SECTIONS.classDetails, order: 20 }))
+    .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP, { presentation: 'branch', section: CLASS_SECTIONS.spellcasting, order: 10 }))
+    .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP, { presentation: 'inline', section: CLASS_SECTIONS.advancement, order: 20 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { presentation: 'branch', section: CLASS_SECTIONS.advancement, order: 10 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CLASS_CATEGORY_OPTIONS
     }, { section: CLASS_SECTIONS.basics, order: 30, requiredIf: true }))
     .set('baseAttributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CLASS_ATTRIBUTE_OPTIONS
     }, {
       section: CLASS_SECTIONS.classDetails,
       order: 30,
       showIf: isBaseClass
     }))
-    .set('startingGold', groupObject(['startingGold'], 'Starting Gold', () => CLASS_STARTING_GOLD_NODE_MAP, {
+    .set('subclassSelectionLevel', number(['subclassSelectionLevel'], 'Subclass Selection Level', {
+      section: CLASS_SECTIONS.basics,
+      order: 40,
+      showIf: isBaseClass
+    }))
+    .set('startingGold', groupObject(['startingGold'], 'Starting Gold', () => CLASS_STARTING_GOLD_NODE_MAP, { presentation: 'inline',
       section: CLASS_SECTIONS.equipment,
       order: 10,
       showIf: isBaseClass
     }))
-    .set('startingEquipment', groupObject(['startingEquipment'], 'Starting Equipment', () => STARTING_EQUIPMENT_NODE_MAP, {
+    .set('startingEquipment', groupObject(['startingEquipment'], 'Starting Equipment', () => STARTING_EQUIPMENT_NODE_MAP, { presentation: 'branch',
       section: CLASS_SECTIONS.equipment,
       order: 20,
       showIf: isBaseClass
     }))
-    .set('hitpoint', groupObject(['hitpoint'], 'Hit Point', () => CLASS_HITPOINT_NODE_MAP, {
+    .set('hitpoint', groupObject(['hitpoint'], 'Hit Point', () => CLASS_HITPOINT_NODE_MAP, { presentation: 'inline',
       section: CLASS_SECTIONS.classDetails,
       order: 40,
       showIf: isBaseClass
     }))
-    .set('multiclass', groupObject(['multiclass'], 'Multiclass', () => CLASS_MULTICLASS_NODE_MAP, {
+    .set('multiclass', groupObject(['multiclass'], 'Multiclass', () => CLASS_MULTICLASS_NODE_MAP, { presentation: 'branch',
       section: CLASS_SECTIONS.classDetails,
       order: 50,
       showIf: isBaseClass
     }))
     .set('subclassAttributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SUBCLASS_ATTRIBUTE_OPTIONS
     }, {
       section: CLASS_SECTIONS.classDetails,
@@ -321,7 +326,7 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
       showIf: isSubclass,
       requiredIf: isSubclass
     }))
-    .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, {
+    .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, { presentation: 'branch',
       section: CLASS_SECTIONS.classDetails,
       order: 60,
       showIf: isSubclass

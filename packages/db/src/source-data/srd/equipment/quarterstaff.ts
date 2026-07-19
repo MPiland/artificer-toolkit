@@ -10,7 +10,7 @@ export const quarterstaff: EquipmentAuthored = {
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.VERSATILE],
     modifiers: S.meleeWeaponAbilityModifiers(S.equipId(8)),
     effects: S.meleeVersatileWeaponEffects(S.equipId(8), 'BLUDGEONING', '1d6', '1d8'),
-    cost: S.gp(0.2),
+    cost: S.sp(2),
     weight: S.lbs(4),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,

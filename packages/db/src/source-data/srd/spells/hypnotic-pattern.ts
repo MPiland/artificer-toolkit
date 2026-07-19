@@ -1,4 +1,4 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 import { spellChildId } from './shared.js';
@@ -73,7 +73,7 @@ export const hypnoticPattern: SpellAuthored = {
                         outcomes: [
                             {
                                 id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x213, 1),
-                                effectKind: EFFECT_KIND.RULE
+                                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }
@@ -91,7 +91,7 @@ export const hypnoticPattern: SpellAuthored = {
                         outcomes: [
                             {
                                 id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x216, 1),
-                                effectKind: EFFECT_KIND.RULE
+                                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

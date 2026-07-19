@@ -5,7 +5,6 @@ export const wyvern: CreatureAuthored = {
     label: 'Wyvern',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const wyvern: CreatureAuthored = {
         INTELLIGENCE: 5,
         WISDOM: 12,
         CHARISMA: 6,
-        SPELLCASTING: 0
     },
     armorClass: 13,
     armorClassNote: 'natural armor',

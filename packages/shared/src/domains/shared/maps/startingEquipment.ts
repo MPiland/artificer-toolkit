@@ -14,7 +14,12 @@ import {
   PROPERTIES_BY_CATEGORY,
   STARTING_EQUIPMENT_KIND_OPTIONS
 } from '#core'
-import { buildNodeMap, buildRegistryOptionGroups } from '#utils'
+import {
+  AUTHORING_ACTION_PRESENTATIONS,
+  buildNodeMap,
+  buildRegistryOptionGroups
+} from '#utils'
+import { CHARACTER_FACET_NODE_MAP } from './facet.js'
 
 const startingEquipmentOptionCurrency = buildNodeMap<StartingEquipmentCurrencyAuthored>()
 
@@ -52,14 +57,14 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
 
     map
       .set('startingEquipmentKind', selectSingle(['startingEquipmentKind'], 'Equipment Kind', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: STARTING_EQUIPMENT_KIND_OPTIONS
       }, {
         order: 1,
         requiredIf: true
       }))
       .set('selectionKind', selectSingle(['selectionKind'], 'Selection Kind', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: AUTHORING_SELECTION_OPTIONS
       }, {
         order: 2,
@@ -83,14 +88,14 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         ])
       }))
       .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: AUTHORING_MODE_KIND_OPTIONS
       }, {
         order: 3,
         showIf: isEquipment
       }))
       .set('category', selectSingle(['category'], 'Category', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: EQUIPMENT_CATEGORY_OPTIONS,
         filter: {
           kind: 'ALLOW',
@@ -121,7 +126,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         showIf: isEquipment
       }))
       .set('properties', selectMulti(['properties'], 'Properties', {
-        kind: 'INLINE',
+        kind: 'INLINE_GROUPS',
         optionGroups: equipmentPropertyOptionGroups
       }, {
         order: 5,
@@ -181,7 +186,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
           local.field(['authoringModeKind']).eq('SELECTED')
         ])
       }))
-      .set('currencies', groupArray(['currencies'], 'Currencies', () => STARTING_EQUIPMENT_CURRENCY_NODE_MAP, {
+      .set('currencies', groupArray(['currencies'], 'Currencies', () => STARTING_EQUIPMENT_CURRENCY_NODE_MAP, { presentation: 'inline',
         order: 3,
         showIf: local.field(['startingEquipmentKind']).eq('CURRENCY')
       }))
@@ -191,10 +196,24 @@ const startingEquipmentOption = buildNodeMap<StartingEquipmentOptionAuthored>()
 
 export const STARTING_EQUIPMENT_OPTION_NODE_MAP
   = startingEquipmentOption.define('startingEquipmentOption', ({ map, nodes }) => {
-    const { groupArray } = nodes
+    const { groupArray, groupObject } = nodes
 
     map
-      .set('items', groupArray(['items'], 'Items', () => STARTING_EQUIPMENT_ITEM_NODE_MAP))
+      .set('eligibility', groupObject(['eligibility'], 'Eligibility', () => CHARACTER_FACET_NODE_MAP, { presentation: 'branch',
+        order: 1,
+        authoring: {
+          actions: [
+            {
+              type: 'collection.add',
+              label: 'Add',
+              presentation: AUTHORING_ACTION_PRESENTATIONS.button
+            }
+          ]
+        }
+      }))
+      .set('items', groupArray(['items'], 'Items', () => STARTING_EQUIPMENT_ITEM_NODE_MAP, { presentation: 'inline',
+        order: 2
+      }))
   })
 
 const startingEquipmentGroup = buildNodeMap<StartingEquipmentGroupAuthored>()
@@ -204,7 +223,7 @@ export const STARTING_EQUIPMENT_GROUP_NODE_MAP
     const { groupArray } = nodes
 
     map
-      .set('options', groupArray(['options'], 'Options', () => STARTING_EQUIPMENT_OPTION_NODE_MAP))
+      .set('options', groupArray(['options'], 'Options', () => STARTING_EQUIPMENT_OPTION_NODE_MAP, { presentation: 'branch' }))
   })
 
 const startingEquipmentSet = buildNodeMap<StartingEquipmentSetAuthored>()
@@ -214,7 +233,7 @@ export const STARTING_EQUIPMENT_SET_NODE_MAP
     const { groupArray } = nodes
 
     map
-      .set('groups', groupArray(['groups'], 'Groups', () => STARTING_EQUIPMENT_GROUP_NODE_MAP))
+      .set('groups', groupArray(['groups'], 'Groups', () => STARTING_EQUIPMENT_GROUP_NODE_MAP, { presentation: 'branch' }))
   })
 
 const startingEquipment = buildNodeMap<StartingEquipmentAuthored>()
@@ -222,5 +241,5 @@ const startingEquipment = buildNodeMap<StartingEquipmentAuthored>()
 export const STARTING_EQUIPMENT_NODE_MAP = startingEquipment.define('startingEquipment', ({ map, nodes }) => {
   const { groupArray } = nodes
   map
-    .set('sets', groupArray(['sets'], 'Sets', () => STARTING_EQUIPMENT_SET_NODE_MAP))
+    .set('sets', groupArray(['sets'], 'Sets', () => STARTING_EQUIPMENT_SET_NODE_MAP, { presentation: 'branch' }))
 })

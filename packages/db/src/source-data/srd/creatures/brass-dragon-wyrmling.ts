@@ -1,4 +1,4 @@
-import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import { conditionTypeId } from '../equipment/shared.js';
 import * as S from './shared.js';
 export const brassDragonWyrmling: CreatureAuthored = {
@@ -6,7 +6,6 @@ export const brassDragonWyrmling: CreatureAuthored = {
     label: 'Brass Dragon Wyrmling',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const brassDragonWyrmling: CreatureAuthored = {
         INTELLIGENCE: 10,
         WISDOM: 11,
         CHARISMA: 13,
-        SPELLCASTING: 0
     },
     armorClass: 16,
     armorClassNote: 'natural armor',

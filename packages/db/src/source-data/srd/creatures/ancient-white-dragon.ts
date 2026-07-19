@@ -6,7 +6,6 @@ export const ancientWhiteDragon: CreatureAuthored = {
   label: 'Ancient White Dragon',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.DRAGON,
   size: S.SIZE_CODE.GARGANTUAN,
@@ -18,7 +17,6 @@ export const ancientWhiteDragon: CreatureAuthored = {
     INTELLIGENCE: 10,
     WISDOM: 13,
     CHARISMA: 14,
-    SPELLCASTING: 0
   },
   armorClass: 20,
   armorClassNote: 'natural armor',
@@ -392,6 +390,7 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 9),
       label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
       description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {

@@ -10,14 +10,12 @@ import {
   spellAuthoredDtoSchema,
   vehicleAuthoredDtoSchema
 } from '../subjects/index.js'
-import { featureDtoSchema } from '../features/index.js'
 import {
   authoredContentPermissionsDtoSchema,
   authoredContentProvenanceDtoSchema,
   authoredResourceResponseDtoSchema,
   listResponseDtoSchema,
-  ownerContextDtoSchema,
-  singleResourceResponseDtoSchema
+  ownerContextDtoSchema
 } from './common.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'
 import { unknownObjectSchema } from '../shared/facet.js'
@@ -53,18 +51,25 @@ export const authoredDraftSummaryDtoSchema = z.object({
   castingTimeUnit: z.string().optional(),
   castingTimeAmount: z.number().int().optional(),
   draftState: authoredDraftStateDtoSchema,
-  baseActiveUpdatedAt: z.string().nullable()
-    .optional(),
+  revisionId: z.string(),
+  revisionNumber: z.number().int().positive(),
+  activeRevisionId: z.string().nullable(),
+  baseActiveRevisionId: z.string().nullable(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional()
 })
 
 export const authoredDraftDtoSchema = authoredDraftSummaryDtoSchema.extend({
-  id: z.string(),
   payload: unknownObjectSchema
 })
 
 export const authoredDetailViewDtoSchema = z.enum(['active', 'draft'])
+
+export const authoredValidationIssueDtoSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  path: z.array(z.union([z.string(), z.number()]))
+})
 
 export const authoredDetailRequestDtoSchema = z.object({
   id: z.string().min(1),
@@ -78,9 +83,7 @@ export const authoredDraftSaveRequestDtoSchema = z.object({
   subjectId: z.string(),
   systemId: z.string(),
   label: z.string(),
-  payload: unknownObjectSchema,
-  baseActiveUpdatedAt: z.string().nullable()
-    .optional()
+  payload: unknownObjectSchema
 })
 
 export const authoredDraftActivateRequestDtoSchema = z.object({
@@ -91,6 +94,7 @@ export const authoredDraftActivateRequestDtoSchema = z.object({
 const authoredContentListItemBaseDtoSchema = z.object({
   id: z.string(),
   publicId: z.string(),
+  activeRevisionId: z.string(),
   label: z.string(),
   status: authoredRecordStatusSchema,
   description: z.string().nullable()
@@ -133,13 +137,6 @@ export const vehicleListItemDtoSchema = authoredContentListItemBaseDtoSchema.ext
   category: z.string().optional()
 })
 
-export const featureListItemDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string(),
-  order: z.number().int()
-})
-
 function authoredContentListResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
   return listResponseDtoSchema(itemSchema).extend({
     drafts: z.array(authoredDraftSummaryDtoSchema)
@@ -154,7 +151,6 @@ export const raceListResponseDtoSchema = authoredContentListResponseDtoSchema(ra
 export const spellListResponseDtoSchema = authoredContentListResponseDtoSchema(spellListItemDtoSchema)
 export const creatureListResponseDtoSchema = authoredContentListResponseDtoSchema(creatureListItemDtoSchema)
 export const vehicleListResponseDtoSchema = authoredContentListResponseDtoSchema(vehicleListItemDtoSchema)
-export const featureListResponseDtoSchema = listResponseDtoSchema(featureListItemDtoSchema)
 
 const detailReferenceOptionDtoSchema = z.object({
   value: z.string(),
@@ -162,8 +158,10 @@ const detailReferenceOptionDtoSchema = z.object({
 })
 
 const detailResponseExtrasDtoSchema = <TSchema extends z.ZodTypeAny>(metaSchema: TSchema) => z.object({
+  activeRevisionId: z.string().nullable(),
   draft: authoredDraftDtoSchema.nullable().optional(),
-  meta: metaSchema.optional()
+  meta: metaSchema.optional(),
+  validationIssues: z.array(authoredValidationIssueDtoSchema).optional()
 })
 
 type AuthoredDetailResponseDtoSchema<
@@ -172,10 +170,12 @@ type AuthoredDetailResponseDtoSchema<
 > = z.ZodNullable<z.ZodObject<{
   item: z.ZodNullable<TItemSchema>
   publicId: z.ZodString
+  activeRevisionId: z.ZodNullable<z.ZodString>
   provenance: typeof authoredContentProvenanceDtoSchema
   permissions: typeof authoredContentPermissionsDtoSchema
   draft: z.ZodOptional<z.ZodNullable<typeof authoredDraftDtoSchema>>
   meta: z.ZodOptional<TMetaSchema>
+  validationIssues: z.ZodOptional<z.ZodArray<typeof authoredValidationIssueDtoSchema>>
 }>>
 
 export const emptyDetailMetaDtoSchema = z.object({})
@@ -222,7 +222,6 @@ export const raceResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof raceA
 export const spellResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof spellAuthoredDtoSchema, typeof spellDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(spellAuthoredDtoSchema, detailResponseExtrasDtoSchema(spellDetailMetaDtoSchema))
 export const creatureResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof creatureAuthoredDtoSchema, typeof creatureDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(creatureAuthoredDtoSchema, detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema))
 export const vehicleResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof vehicleAuthoredDtoSchema, typeof vehicleDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(vehicleAuthoredDtoSchema, detailResponseExtrasDtoSchema(vehicleDetailMetaDtoSchema))
-export const featureResponseDtoSchema = singleResourceResponseDtoSchema(featureDtoSchema)
 
 // Named TypeScript types for list item DTOs
 export type BackgroundListItemDto = z.infer<typeof backgroundListItemDtoSchema>
@@ -233,7 +232,6 @@ export type RaceListItemDto = z.infer<typeof raceListItemDtoSchema>
 export type SpellListItemDto = z.infer<typeof spellListItemDtoSchema>
 export type CreatureListItemDto = z.infer<typeof creatureListItemDtoSchema>
 export type VehicleListItemDto = z.infer<typeof vehicleListItemDtoSchema>
-export type FeatureListItemDto = z.infer<typeof featureListItemDtoSchema>
 export type AuthoredSubjectKindDto = z.infer<typeof authoredSubjectKindDtoSchema>
 export type AuthoredDraftStateDto = z.infer<typeof authoredDraftStateDtoSchema>
 export type AuthoredDraftSummaryDto = z.infer<typeof authoredDraftSummaryDtoSchema>
@@ -242,6 +240,22 @@ export type AuthoredDraftSaveRequestDto = z.infer<typeof authoredDraftSaveReques
 export type AuthoredDraftActivateRequestDto = z.infer<typeof authoredDraftActivateRequestDtoSchema>
 export type AuthoredDetailViewDto = z.infer<typeof authoredDetailViewDtoSchema>
 export type AuthoredDetailRequestDto = z.infer<typeof authoredDetailRequestDtoSchema>
+export type AuthoredValidationIssueDto = z.infer<typeof authoredValidationIssueDtoSchema>
+
+export function toAuthoredValidationIssues(
+  issues: ReadonlyArray<{
+    code: string
+    message: string
+    path: readonly PropertyKey[]
+  }>
+): AuthoredValidationIssueDto[] {
+  return issues.map((issue) => ({
+    code: issue.code,
+    message: issue.message,
+    path: issue.path.map((segment) => typeof segment === 'symbol' ? String(segment) : segment)
+  }))
+}
+
 export type ClassDetailMetaDto = z.infer<typeof classDetailMetaDtoSchema>
 export type EquipmentDetailMetaDto = z.infer<typeof equipmentDetailMetaDtoSchema>
 export type RaceDetailMetaDto = z.infer<typeof raceDetailMetaDtoSchema>
@@ -258,7 +272,6 @@ export type RaceListResponseDto = z.infer<typeof raceListResponseDtoSchema>
 export type SpellListResponseDto = z.infer<typeof spellListResponseDtoSchema>
 export type CreatureListResponseDto = z.infer<typeof creatureListResponseDtoSchema>
 export type VehicleListResponseDto = z.infer<typeof vehicleListResponseDtoSchema>
-export type FeatureListResponseDto = z.infer<typeof featureListResponseDtoSchema>
 
 export type BackgroundResponseDto = z.infer<typeof backgroundResponseDtoSchema>
 export type ClassResponseDto = z.infer<typeof classResponseDtoSchema>
@@ -268,4 +281,3 @@ export type RaceResponseDto = z.infer<typeof raceResponseDtoSchema>
 export type SpellResponseDto = z.infer<typeof spellResponseDtoSchema>
 export type CreatureResponseDto = z.infer<typeof creatureResponseDtoSchema>
 export type VehicleResponseDto = z.infer<typeof vehicleResponseDtoSchema>
-export type FeatureResponseDto = z.infer<typeof featureResponseDtoSchema>

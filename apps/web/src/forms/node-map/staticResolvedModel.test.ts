@@ -28,9 +28,13 @@ describe('createStaticResolvedFormModel', () => {
       .flatMap((section) => section.nodes)
       .find((node) => node.id === 'speedId')
 
+    if (!speedNode || speedNode.kind !== 'INPUT' || speedNode.type !== 'SELECT_SINGLE') {
+      throw new Error('Expected speedId to resolve as a single select.')
+    }
+
     const walkingSpeed = speedOptions.find((option) => option.code === SpeedType.WALKING)
 
-    expect(speedNode?.options).toContainEqual({
+    expect(speedNode.options).toContainEqual({
       value: walkingSpeed?.id,
       label: walkingSpeed?.label,
       description: walkingSpeed?.description
@@ -51,7 +55,7 @@ describe('createStaticResolvedFormModel', () => {
     })
     expect(getNode(model, 'classId')).toMatchObject({
       visible: false,
-      required: true
+      required: false
     })
   })
 
@@ -75,7 +79,29 @@ describe('createStaticResolvedFormModel', () => {
     })
     expect(getNode(model, 'rollValue')).toMatchObject({
       visible: false,
-      required: true
+      required: false
+    })
+  })
+
+  it('carries map-owned presentation semantics into nested collection nodes', () => {
+    const model = createStaticResolvedFormModel('featureGrants')
+
+    expect(getNode(model, 'modifiers')).toMatchObject({
+      authoring: {
+        collection: {
+          rowSummary: 'modifier'
+        }
+      }
+    })
+  })
+
+  it('marks system-owned grant discriminators as non-renderable authoring fields', () => {
+    const model = createStaticResolvedFormModel('modifierGrant')
+
+    expect(getNode(model, 'grantKind')).toMatchObject({
+      authoring: {
+        exposure: 'system'
+      }
     })
   })
 })

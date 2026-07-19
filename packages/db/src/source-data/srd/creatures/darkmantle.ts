@@ -6,7 +6,6 @@ export const darkmantle: CreatureAuthored = {
     label: 'Darkmantle',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.ABERRATION,
     size: S.SIZE_CODE.SMALL,
@@ -18,7 +17,6 @@ export const darkmantle: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 10,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 11,
     armorClassNote: 'natural armor',
@@ -140,7 +138,7 @@ export const darkmantle: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(6527, 6),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -184,7 +182,7 @@ export const darkmantle: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(6527, 9),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

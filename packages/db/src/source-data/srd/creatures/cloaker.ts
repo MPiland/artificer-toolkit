@@ -5,7 +5,6 @@ export const cloaker: CreatureAuthored = {
     label: 'Cloaker',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.ABERRATION,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const cloaker: CreatureAuthored = {
         INTELLIGENCE: 13,
         WISDOM: 12,
         CHARISMA: 14,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     armorClassNote: 'natural armor',
@@ -192,7 +190,7 @@ export const cloaker: CreatureAuthored = {
                     ]
                 }
             ],
-            order: 1
+            order: 8
         }
     ]
 };

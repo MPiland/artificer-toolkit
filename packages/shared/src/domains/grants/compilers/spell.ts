@@ -81,7 +81,8 @@ export function compileSpellGrantResult(
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileSpellTarget(authored),
-            count: authored.count
+            count: authored.count,
+            selectionDuplicatePolicy: authored.selectionDuplicatePolicy
           })
         }
 
@@ -102,6 +103,7 @@ export function compileSpellGrantResult(
             levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               count: entry.count,
+              selectionDuplicatePolicy: entry.selectionDuplicatePolicy,
               order: entry.order,
               ...compileSpellTarget(entry)
             }))

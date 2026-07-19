@@ -8,8 +8,14 @@ import { Content } from './Content/Content'
 import { Footer } from './Footer/Footer'
 import { Collapse, Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
-import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.utils'
+import {
+  aggregateRailStatus,
+  toAuthoringNavigationRailItems,
+  toAuthoringRailItems
+} from './Steps.utils'
 import { clsx } from 'clsx'
+import { readReactNodeText } from '../AuthoringLayout.utils'
+import type { ItemProps } from './Item/Item.types'
 
 export function Steps() {
   const {
@@ -19,11 +25,20 @@ export function Steps() {
     toggleStepsNavigation,
     activeSections,
     stepId,
-    visibleSteps,
+    visibleSteps
   } = useAuthoringLayout()
-  const { isMobile } = useBreakpoints()
+  const { isMobile, isTabletPortrait } = useBreakpoints()
+  const usesOverlayNavigation = isMobile || isTabletPortrait
 
-  const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses } = useAuthoringForm()
+  const {
+    goToNavigationTarget,
+    goToStep,
+    mode,
+    navigationTree,
+    stepStatuses,
+    subjectKindLabel,
+    subjectLabel
+  } = useAuthoringForm()
 
   const handleStepSelect = useCallback(
     (stepId: string) => {
@@ -34,14 +49,14 @@ export function Steps() {
         return next
       })
       goToStep(stepId)
-      if (isMobile) {
+      if (usesOverlayNavigation) {
         toggleStepsNavigation()
       }
     },
-    [goToStep, isMobile, setVisitedStepIds, toggleStepsNavigation]
+    [goToStep, setVisitedStepIds, toggleStepsNavigation, usesOverlayNavigation]
   )
   const handleTargetSelect = useCallback(
-    (targetId: string) => {
+    (targetId: string, hasChildren: boolean) => {
       setVisitedStepIds((current) => {
         if (current.has(targetId)) return current
         const next = new Set(current)
@@ -49,58 +64,72 @@ export function Steps() {
         return next
       })
       goToNavigationTarget(targetId)
-      if (isMobile) {
+      if (usesOverlayNavigation && !hasChildren) {
         toggleStepsNavigation()
       }
     },
-    [goToNavigationTarget, isMobile, setVisitedStepIds, toggleStepsNavigation]
+    [goToNavigationTarget, setVisitedStepIds, toggleStepsNavigation, usesOverlayNavigation]
   )
 
-  const stepItems = useMemo(
-    () =>
-      (navigationTree?.length
-        ? toAuthoringNavigationRailItems({
-            activeTargetId: stepId,
-            mode,
-            navigationTree,
-            onTargetSelect: handleTargetSelect,
-            visitedStepIds
-          })
-        : toAuthoringRailItems({
-            activeSections,
-            activeStepId: stepId,
-            mode,
-            onStepSelect: handleStepSelect,
-            steps: visibleSteps,
-            stepStatuses,
-            visitedStepIds
-          })
-      ).map((item) => <Item key={item.id} item={item} />),
-    [
-      activeSections,
-      handleStepSelect,
-      handleTargetSelect,
-      mode,
-      navigationTree,
-      stepId,
-      stepStatuses,
-      visibleSteps,
-      visitedStepIds
-    ]
-  )
+  const railItems = useMemo(() => {
+    const items = navigationTree?.length
+      ? toAuthoringNavigationRailItems({
+          activeTargetId: stepId,
+          mode,
+          navigationTree,
+          onTargetSelect: handleTargetSelect,
+          visitedStepIds
+        })
+      : toAuthoringRailItems({
+          activeSections,
+          activeStepId: stepId,
+          mode,
+          onStepSelect: handleStepSelect,
+          steps: visibleSteps,
+          stepStatuses,
+          visitedStepIds
+        })
 
-  return isMobile ? (
+    const rootItem: ItemProps = {
+      children: items.map((item) => offsetRailLevel(item, 1)),
+      expanded: true,
+      icon: 'cube',
+      id: 'authoring-subject-root',
+      label: readReactNodeText(subjectLabel) ?? subjectKindLabel,
+      level: 0,
+      status: aggregateRailStatus(items.map((item) => item.status))
+    }
+
+    return [rootItem]
+  }, [
+    activeSections,
+    handleStepSelect,
+    handleTargetSelect,
+    mode,
+    navigationTree,
+    stepId,
+    stepStatuses,
+    subjectKindLabel,
+    subjectLabel,
+    visibleSteps,
+    visitedStepIds
+  ])
+
+  const stepItems = railItems.map((item) => <Item key={item.id} item={item} />)
+
+  return usesOverlayNavigation ? (
     <Drawer
       classNames={{
         body: styles.drawerBody,
-        content: styles.drawerContent
+        content: styles.drawerContent,
+        header: styles.drawerAccessibleHeader
       }}
       onClose={toggleStepsNavigation}
       opened={stepsNavigationOpen}
       position='left'
-      size='min(20rem, 86vw)'
+      size='min(18rem, 86vw)'
+      title='Authoring steps'
       withCloseButton={false}
-      aria-label='Authoring steps'
     >
       <Rail
         aria-hidden={!stepsNavigationOpen}
@@ -125,10 +154,20 @@ export function Steps() {
         aria-hidden={!stepsNavigationOpen}
         className={clsx(styles.shell, { ['hidden']: !stepsNavigationOpen })}
         aria-label={'Authoring steps navigation'}
+        id='authoring-steps-navigation'
       >
+        <Header />
         <Content>{stepItems}</Content>
         <Footer />
       </Rail>
     </Collapse>
   )
+}
+
+function offsetRailLevel(item: ItemProps, amount: number): ItemProps {
+  return {
+    ...item,
+    children: item.children?.map((child) => offsetRailLevel(child, amount)),
+    level: (item.level ?? 0) + amount
+  }
 }

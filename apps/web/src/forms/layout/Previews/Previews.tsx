@@ -1,9 +1,9 @@
 import { Rail, useBreakpoints } from '#ui'
 import * as styles from './Previews.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
-import { Collapse, Drawer, CloseButton } from '@mantine/core'
+import { CloseButton, Collapse, Drawer } from '@mantine/core'
 
-function PreviewContent() {
+function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean }) {
   const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
 
   return (
@@ -14,7 +14,13 @@ function PreviewContent() {
       className={styles.shell}
     >
       <Rail.Header className={styles.header}>
-        <CloseButton onClick={() => togglePreview()} className={styles.closeButton} />
+        {showCloseButton ? (
+          <CloseButton
+            aria-label='Close preview'
+            onClick={() => togglePreview()}
+            className={styles.closeButton}
+          />
+        ) : null}
         Preview
       </Rail.Header>
       <Rail.Content className={styles.content}>{previewContent}</Rail.Content>
@@ -24,22 +30,23 @@ function PreviewContent() {
 
 export function Previews() {
   const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
-  const { isMobile, isTablet } = useBreakpoints()
+  const { isMobile, isTabletPortrait } = useBreakpoints()
+  const usesOverlayPreview = isMobile || isTabletPortrait
 
   if (!previewContent) return null
 
-  return isTablet || isMobile ? (
+  return usesOverlayPreview ? (
     <Drawer
       opened={previewOpen}
       onClose={togglePreview}
       position={isMobile ? 'bottom' : 'right'}
-      size={isMobile ? '80%' : '20rem'}
+      size={isMobile ? 'min(80dvh, 42rem)' : '18rem'}
       withCloseButton={false}
       classNames={{
         body: styles.drawerBody
       }}
     >
-      <PreviewContent />
+      <PreviewContent showCloseButton />
     </Drawer>
   ) : (
     <Collapse
@@ -47,7 +54,6 @@ export function Previews() {
       orientation='horizontal'
       transitionDuration={180}
       transitionTimingFunction='ease'
-      aria-label='Preview details'
     >
       <PreviewContent />
     </Collapse>

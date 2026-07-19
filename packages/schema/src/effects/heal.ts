@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
+import { abilityModifierReferenceSchema, scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 
 const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
   z.object({
     id: z.string(),
     bonusKind: z.literal('ABILITY_BONUS'),
-    ability: z.enum(['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM', 'SPELLCASTING']),
+    ability: abilityModifierReferenceSchema,
     min: z.number().optional(),
     max: z.number().optional(),
     multiplier: z.number().optional(),

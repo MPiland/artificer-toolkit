@@ -9,7 +9,7 @@ export function CharacterClassGrantedSummary({
   spellcastingLabels: string[]
 }) {
   const summary = [
-    ...resourceLabels.map((label) => `Resource: ${label}`),
+    ...resourceLabels.map((label) => `Class resource: ${label}`),
     ...spellcastingLabels.map((label) => `Spellcasting: ${label}`)
   ]
 

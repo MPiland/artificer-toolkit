@@ -17,8 +17,7 @@
     "typecheck:diagnostics": "node --max-old-space-size=8192 ../../node_modules/typescript/bin/tsc -p tsconfig.typecheck.app.json --extendedDiagnostics --pretty false",
     "test": "vitest run --config vitest.config.ts --project=unit",
     "test:forms": "vitest run --config vitest.config.ts --project=unit src/forms/tests/FormPlatform.test.tsx src/forms/hooks/useResolvedNodeModel.test.tsx",
-    "test:authoring": "vitest run --config vitest.config.ts --project=unit src/forms/tests/AuthoringFormPlatform.test.tsx src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx src/forms/layout/AuthoringFormProvider.test.tsx src/forms/factories/authoredFormFactories.test.ts src/forms/actions/authoringActionBuilders.test.ts",
-    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:authoring": "vitest run --config vitest.config.ts --project=unit src/forms/tests/AuthoringFormPlatform.test.tsx src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx src/forms/tests/AuthoredDomainFieldParity.test.tsx src/forms/tests/authoringNavigation.validation.test.ts src/forms/layout/AuthoringFormProvider.test.tsx src/forms/factories/authoredFormFactories.test.ts src/forms/actions/authoringActionBuilders.test.ts src/forms/rendering/AuthoringActionControl.test.tsx src/forms/rendering/ManualCollectionOrdering.test.tsx src/forms/rendering/authoringActionDispatcher.test.ts src/forms/rendering/authoringCollectionValues.test.ts src/forms/rendering/authoringNodeDefaultInventory.test.ts src/forms/rendering/authoringNodeDefaultRegistry.test.ts src/forms/rendering/authoringPresentationAdapter.test.ts src/forms/rendering/collectionOrdering.test.ts",
     "test:watch": "vitest --config vitest.config.ts --project=unit",
     "test:coverage": "vitest run --config vitest.config.ts --project=unit --coverage",
     "test:coverage:storybook": "vitest run --config vitest.config.ts --project=storybook --coverage",
@@ -29,12 +28,16 @@
     "test:e2e:authoring-storybook": "playwright test --project=storybook tests/e2e/storybook/authoringWalkthrough.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:storybook": "playwright test --project=storybook",
-    "test:e2e:app": "playwright test --project=app"
+    "test:e2e:app": "playwright test --project=app",
+    "test:e2e:mvp-audit": "playwright test --config playwright.mvp-audit.config.ts"
   },
   "dependencies": {
     "@artificer-toolkit/apis": "workspace:",
     "@artificer-toolkit/db": "workspace:^",
+    "@artificer-toolkit/design-system": "workspace:^",
+    "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
+    "@dnd-kit/react": "^0.5.0",
     "@mantine/core": "9.2.2",
     "@mantine/hooks": "9.2.2",
     "@mantine/notifications": "9.2.2",

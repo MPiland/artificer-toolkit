@@ -5,7 +5,6 @@ export const erinyes: CreatureAuthored = {
     label: 'Erinyes',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FIEND,
     size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const erinyes: CreatureAuthored = {
         INTELLIGENCE: 14,
         WISDOM: 14,
         CHARISMA: 18,
-        SPELLCASTING: 0
     },
     armorClass: 18,
     armorClassNote: 'plate',
@@ -83,7 +81,7 @@ export const erinyes: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(98, 6),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -125,7 +123,7 @@ export const erinyes: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(98, 9),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -224,7 +222,7 @@ export const erinyes: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(98, 15),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -262,7 +260,7 @@ export const erinyes: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.reactionId(98, 3),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

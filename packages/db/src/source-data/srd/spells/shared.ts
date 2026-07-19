@@ -45,11 +45,12 @@ export function creatureTypeId(code: string): string {
 
 export function spellChildId(spellId: string, bucket: number, index: number): string {
   const parts = spellId.split('-')
+  const spellDomain = parts[3]
   const spellSuffix = parts[4]
   const bucketHex = bucket.toString(16).padStart(4, '0')
   const indexHex = index.toString(16).padStart(12, '0')
 
-  return `00000000-0000-${bucketHex}-${spellSuffix.slice(0, 4)}-${indexHex}`
+  return `${spellDomain.padStart(8, '0')}-0000-${bucketHex}-${spellSuffix.slice(0, 4)}-${indexHex}`
 }
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }

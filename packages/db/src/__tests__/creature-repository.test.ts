@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { DBLike } from '#types'
 import { createCreatureRepository } from '../domains/subjects/repositories/creature.js'
 import { CREATURE_IDS } from '../source-data/srd/ids.js'
 import { srdCreatures } from '../source-data/srd/creatures/index.js'
@@ -49,7 +50,14 @@ function createFakeDb(rowsByTable: RowMap) {
   }
 }
 
-const BASE_ABILITY_SCORES = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }
+const BASE_ABILITY_SCORES = {
+  STRENGTH: 10,
+  DEXTERITY: 10,
+  CONSTITUTION: 10,
+  INTELLIGENCE: 10,
+  WISDOM: 10,
+  CHARISMA: 10
+}
 
 function emptyGrantTables() {
   return {
@@ -91,9 +99,49 @@ describe('createCreatureRepository', () => {
         'Tail Attack',
         'Wing Attack (Costs 2 Actions)'
       ])
+      expect(legendaryActions?.section).toBe('LEGENDARY_ACTION')
       expect(legendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects?.length).toBeGreaterThan(0)
       expect(legendaryResistance, `${creature.label} legendary resistance`).toBeDefined()
     }
+  })
+
+  it('persists and hydrates creature damage type collections in authored order', async () => {
+    const db = new InMemoryDb()
+    const repository = createCreatureRepository(db as never)
+    const source = srdCreatures.find((candidate) => candidate.id === CREATURE_IDS.ADULT_BLACK_DRAGON)
+    if (!source) throw new Error('Missing Adult Black Dragon source creature.')
+
+    const creature = {
+      ...source,
+      id: 'creature-damage-order',
+      label: 'Damage Order Creature',
+      features: undefined,
+      proficiencies: undefined,
+      damageResistances: ['damage-cold', 'damage-lightning'],
+      damageImmunities: ['damage-poison', 'damage-fire'],
+      damageVulnerabilities: ['damage-radiant', 'damage-force']
+    }
+
+    await repository.upsert(creature)
+
+    expect(db.snapshot('creature_damage_resistances')).toEqual([
+      { creature_id: creature.id, damage_type_id: 'damage-cold', sort_order: 1 },
+      { creature_id: creature.id, damage_type_id: 'damage-lightning', sort_order: 2 }
+    ])
+    expect(db.snapshot('creature_damage_immunities')).toEqual([
+      { creature_id: creature.id, damage_type_id: 'damage-poison', sort_order: 1 },
+      { creature_id: creature.id, damage_type_id: 'damage-fire', sort_order: 2 }
+    ])
+    expect(db.snapshot('creature_damage_vulnerabilities')).toEqual([
+      { creature_id: creature.id, damage_type_id: 'damage-radiant', sort_order: 1 },
+      { creature_id: creature.id, damage_type_id: 'damage-force', sort_order: 2 }
+    ])
+
+    await expect(repository.findById(creature.id)).resolves.toMatchObject({
+      damageResistances: creature.damageResistances,
+      damageImmunities: creature.damageImmunities,
+      damageVulnerabilities: creature.damageVulnerabilities
+    })
   })
 
   it('hydrates a minimal NPC creature with root language proficiency grants', async () => {
@@ -106,7 +154,6 @@ describe('createCreatureRepository', () => {
           label: 'Town Guard',
           quote: null,
           description: 'A stalwart defender.',
-          record_kind: 'STAT_BLOCK',
           category: 'NPC',
           creature_type_id: 'humanoid',
           size_code: 'MEDIUM',
@@ -121,8 +168,6 @@ describe('createCreatureRepository', () => {
           passive_perception: 10,
           challenge_rating_id: 'cr-1-8',
           xp: 25,
-          legendary_profile: null,
-          lair_profile: null,
           mount_profile: null,
           companion_profile: null,
           npc_profile: null,
@@ -135,19 +180,6 @@ describe('createCreatureRepository', () => {
       creature_details: [],
       creature_speeds: [
         { creature_id: 'creature-npc-1', speed_id: 'walk', amount: 30, unit_code: 'FEET' }
-      ],
-      creature_actions: [
-        {
-          id: 'action-1',
-          creature_id: 'creature-npc-1',
-          action_type: 'ACTION',
-          sort_order: 0,
-          label: 'Spear',
-          description: 'Melee or Ranged Weapon Attack.',
-          attack_bonus: 3,
-          damage: '1d6+1 piercing',
-          recharge: null,
-        }
       ],
       features: [],
       feature_effects: [],
@@ -204,7 +236,6 @@ describe('createCreatureRepository', () => {
       ],
       userId: 'user-1',
       systemId: 'system-1',
-      recordKind: 'STAT_BLOCK',
       category: 'NPC',
       creatureTypeId: 'humanoid',
       size: 'MEDIUM',
@@ -217,7 +248,6 @@ describe('createCreatureRepository', () => {
         INTELLIGENCE: 10,
         WISDOM: 10,
         CHARISMA: 10,
-        SPELLCASTING: 0
       },
       armorClass: 16,
       armorClassNote: 'Chain mail',
@@ -228,24 +258,6 @@ describe('createCreatureRepository', () => {
       passivePerception: 10,
       challengeRatingId: 'cr-1-8',
       xp: 25,
-      actions: [
-        {
-          id: 'action-1',
-          label: 'Spear',
-          description: 'Melee or Ranged Weapon Attack.',
-          attackBonus: 3,
-          damage: '1d6+1 piercing',
-          recharge: undefined,
-        }
-      ],
-      bonusActions: [],
-      reactions: [],
-      damageVulnerabilities: [],
-      damageResistances: [],
-      damageImmunities: [],
-      conditionImmunities: [],
-      legendaryProfile: undefined,
-      lairProfile: undefined,
       mountProfile: undefined,
       companionProfile: undefined,
       npcProfile: undefined,
@@ -269,13 +281,19 @@ describe('createCreatureRepository', () => {
           label: 'Warhorse',
           quote: null,
           description: null,
-          record_kind: 'STAT_BLOCK',
           category: 'BEAST',
           creature_type_id: 'beast',
           size_code: 'LARGE',
           alignment_id: null,
           tags: null,
-          ability_scores: { STR: 18, DEX: 12, CON: 13, INT: 2, WIS: 12, CHA: 7 },
+          ability_scores: {
+            STRENGTH: 18,
+            DEXTERITY: 12,
+            CONSTITUTION: 13,
+            INTELLIGENCE: 2,
+            WISDOM: 12,
+            CHARISMA: 7
+          },
           armor_class: 11,
           armor_class_note: null,
           hit_points: 19,
@@ -284,8 +302,6 @@ describe('createCreatureRepository', () => {
           passive_perception: 11,
           challenge_rating_id: 'cr-1-2',
           xp: 100,
-          legendary_profile: null,
-          lair_profile: null,
           mount_profile: mountProfile,
           companion_profile: null,
           npc_profile: null,
@@ -297,7 +313,6 @@ describe('createCreatureRepository', () => {
       creature_speeds: [
         { creature_id: 'creature-beast-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
       ],
-      creature_actions: [],
       features: [],
       feature_effects: [],
       feature_attributes: [],
@@ -315,7 +330,6 @@ describe('createCreatureRepository', () => {
     const result = await repo.findById('creature-beast-1')
     expect(result).toMatchObject({
       id: 'creature-beast-1',
-      recordKind: 'STAT_BLOCK',
       category: 'BEAST',
       size: 'LARGE',
       proficiencies: undefined,
@@ -325,27 +339,11 @@ describe('createCreatureRepository', () => {
         riderCount: 1,
         notes: 'War horse',
       },
-      legendaryProfile: undefined,
-      lairProfile: undefined,
     })
     expect(result?.speeds).toEqual([{ speedId: 'walk', amount: 60, unit: 'FEET' }])
   })
 
   it('hydrates a MONSTER with root save, skill, and language proficiency grants', async () => {
-    const legendaryProfile = {
-      legendaryResistanceCount: 3,
-      actionsCount: 3,
-      actions: [
-        { id: 'leg-1', label: 'Tail Attack', description: 'Whip its tail.', attackBonus: 7, damage: '2d6+4 bludgeoning', recharge: null }
-      ],
-    }
-    const lairProfile = {
-      lairActions: [
-        { id: 'lair-1', label: 'Tremor', description: 'The earth shakes.', attackBonus: null, damage: null, recharge: null }
-      ],
-      regionalEffects: ['Vegetation withers within 6 miles.'],
-    }
-
     const repo = createCreatureRepository(createFakeDb({
       creatures: [
         {
@@ -355,13 +353,19 @@ describe('createCreatureRepository', () => {
           label: 'Ancient Red Dragon',
           quote: 'I am fire. I am death.',
           description: 'The apex of draconic might.',
-          record_kind: 'STAT_BLOCK',
           category: 'MONSTER',
           creature_type_id: 'dragon',
           size_code: 'GARGANTUAN',
           alignment_id: 'chaotic-evil',
           tags: ['dragon', 'legendary'],
-          ability_scores: { STR: 30, DEX: 10, CON: 29, INT: 18, WIS: 15, CHA: 23 },
+          ability_scores: {
+            STRENGTH: 30,
+            DEXTERITY: 10,
+            CONSTITUTION: 29,
+            INTELLIGENCE: 18,
+            WISDOM: 15,
+            CHARISMA: 23
+          },
           armor_class: 22,
           armor_class_note: 'Natural armor',
           hit_points: 546,
@@ -370,8 +374,6 @@ describe('createCreatureRepository', () => {
           passive_perception: 26,
           challenge_rating_id: 'cr-24',
           xp: 62000,
-          legendary_profile: legendaryProfile,
-          lair_profile: lairProfile,
           mount_profile: null,
           companion_profile: null,
           npc_profile: null,
@@ -390,57 +392,25 @@ describe('createCreatureRepository', () => {
         { creature_id: 'creature-monster-1', speed_id: 'walk', amount: 40, unit_code: 'FEET' },
         { creature_id: 'creature-monster-1', speed_id: 'fly', amount: 80, unit_code: 'FEET' },
       ],
-      creature_actions: [
-        {
-          id: 'action-bite',
-          creature_id: 'creature-monster-1',
-          action_type: 'ACTION',
-          sort_order: 0,
-          label: 'Bite',
-          description: 'Melee Weapon Attack.',
-          attack_bonus: 17,
-          damage: '2d10+10 piercing',
-          recharge: null,
-        },
-        {
-          id: 'action-fire-breath',
-          creature_id: 'creature-monster-1',
-          action_type: 'ACTION',
-          sort_order: 1,
-          label: 'Fire Breath',
-          description: 'Exhale fire in a 90-foot cone.',
-          attack_bonus: null,
-          damage: '26d6 fire',
-          recharge: '5-6',
-        },
-        {
-          id: 'bonus-detect',
-          creature_id: 'creature-monster-1',
-          action_type: 'BONUS_ACTION',
-          sort_order: 0,
-          label: 'Detect',
-          description: 'Make a Wisdom (Perception) check.',
-          attack_bonus: null,
-          damage: null,
-          recharge: null,
-        },
-        {
-          id: 'reaction-wing',
-          creature_id: 'creature-monster-1',
-          action_type: 'REACTION',
-          sort_order: 0,
-          label: 'Wing Attack',
-          description: 'Beat its wings.',
-          attack_bonus: null,
-          damage: '2d6+10 bludgeoning',
-          recharge: null,
-        },
+      creature_damage_resistances: [
+        { creature_id: 'creature-monster-1', damage_type_id: 'lightning', sort_order: 2 },
+        { creature_id: 'creature-monster-1', damage_type_id: 'cold', sort_order: 1 }
       ],
+      creature_damage_immunities: [
+        { creature_id: 'creature-monster-1', damage_type_id: 'poison', sort_order: 2 },
+        { creature_id: 'creature-monster-1', damage_type_id: 'fire', sort_order: 1 }
+      ],
+      creature_damage_vulnerabilities: [
+        { creature_id: 'creature-monster-1', damage_type_id: 'force', sort_order: 2 },
+        { creature_id: 'creature-monster-1', damage_type_id: 'radiant', sort_order: 1 }
+      ],
+      creature_condition_immunities: [],
       features: [
         {
           id: 'feature-legendary',
           label: 'Legendary Resistance',
           description: 'If the dragon fails a saving throw, it can choose to succeed instead.',
+          section_code: 'TRAIT',
           charge_id: null,
           restriction_id: null,
           sort_order: 0,
@@ -514,7 +484,6 @@ describe('createCreatureRepository', () => {
     expect(result).toMatchObject({
       id: 'creature-monster-1',
       label: 'Ancient Red Dragon',
-      recordKind: 'STAT_BLOCK',
       category: 'MONSTER',
       size: 'GARGANTUAN',
       tags: ['dragon', 'legendary'],
@@ -540,28 +509,23 @@ describe('createCreatureRepository', () => {
       ],
       challengeRatingId: 'cr-24',
       xp: 62000,
+      damageResistances: ['cold', 'lightning'],
+      damageImmunities: ['fire', 'poison'],
+      damageVulnerabilities: ['radiant', 'force']
     })
 
     expect(result?.features).toHaveLength(1)
     expect(result?.features?.[0]).toMatchObject({
       id: 'feature-legendary',
       label: 'Legendary Resistance',
+      section: 'TRAIT'
     })
 
     expect(result?.speeds).toHaveLength(2)
-    expect(result?.actions).toHaveLength(2)
-    expect(result?.actions?.[0]).toMatchObject({ id: 'action-bite', attackBonus: 17 })
-    expect(result?.actions?.[1]).toMatchObject({ id: 'action-fire-breath', recharge: '5-6', attackBonus: undefined })
-    expect(result?.bonusActions).toHaveLength(1)
-    expect(result?.bonusActions?.[0]).toMatchObject({ id: 'bonus-detect' })
-    expect(result?.reactions).toHaveLength(1)
-    expect(result?.reactions?.[0]).toMatchObject({ id: 'reaction-wing' })
-    expect(result?.legendaryProfile).toEqual(legendaryProfile)
-    expect(result?.lairProfile).toEqual(lairProfile)
     expect(result?.mountProfile).toBeUndefined()
   })
 
-  it('hydrates a logistics-only creature record', async () => {
+  it('hydrates creature logistics fields without a competing record kind', async () => {
     const repo = createCreatureRepository(createFakeDb({
       creatures: [
         {
@@ -571,7 +535,6 @@ describe('createCreatureRepository', () => {
           label: 'Riding Horse',
           quote: null,
           description: 'A dependable riding animal.',
-          record_kind: 'LOGISTICS',
           category: 'BEAST',
           creature_type_id: 'beast',
           size_code: null,
@@ -586,8 +549,6 @@ describe('createCreatureRepository', () => {
           passive_perception: null,
           challenge_rating_id: null,
           xp: null,
-          legendary_profile: null,
-          lair_profile: null,
           mount_profile: { mountType: 'CONTROLLED', riderCount: 1, capacity: 1, notes: 'Common mount' },
           companion_profile: null,
           npc_profile: null,
@@ -603,7 +564,6 @@ describe('createCreatureRepository', () => {
       creature_speeds: [
         { creature_id: 'creature-logistics-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
       ],
-      creature_actions: [],
       creature_damage_resistances: [],
       creature_damage_immunities: [],
       creature_damage_vulnerabilities: [],
@@ -633,7 +593,6 @@ describe('createCreatureRepository', () => {
       proficiencies: undefined,
       userId: 'user-1',
       systemId: 'system-1',
-      recordKind: 'LOGISTICS',
       category: 'BEAST',
       creatureTypeId: 'beast',
       size: 'MEDIUM',
@@ -658,6 +617,43 @@ describe('createCreatureRepository', () => {
     await expect(repo.findById('does-not-exist')).resolves.toBeNull()
   })
 
+  it('rejects malformed JSON profiles instead of asserting them as authored data', async () => {
+    const repo = createCreatureRepository(createFakeDb({
+      creatures: [{
+        id: 'creature-invalid-profile',
+        system_id: 'system-1',
+        user_id: 'user-1',
+        label: 'Invalid Creature',
+        category: 'MONSTER',
+        creature_type_id: 'creature-type-1',
+        size_code: 'MEDIUM',
+        ability_scores: {
+          STRENGTH: 10,
+          DEXTERITY: 10,
+          CONSTITUTION: 10,
+          INTELLIGENCE: 10,
+          WISDOM: 10,
+          CHARISMA: 10
+        },
+        armor_class: 10,
+        hit_points: 10,
+        mount_profile: { mountType: 'CONTROLLED', riderCount: 'one' }
+      }],
+      creature_proficiency_grants: [],
+      creature_features: [],
+      creature_details: [],
+      creature_speeds: [],
+      creature_damage_resistances: [],
+      creature_damage_immunities: [],
+      creature_damage_vulnerabilities: [],
+      creature_condition_immunities: []
+    }) as unknown as DBLike)
+
+    await expect(repo.findById('creature-invalid-profile')).rejects.toThrow(
+      'Creature "creature-invalid-profile" has invalid mount_profile.'
+    )
+  })
+
   it('throws when creature is missing user_id', async () => {
     const repo = createCreatureRepository(createFakeDb({
       creatures: [
@@ -668,7 +664,6 @@ describe('createCreatureRepository', () => {
           label: 'Ghost',
           quote: null,
           description: null,
-          record_kind: 'STAT_BLOCK',
           category: 'MONSTER',
           creature_type_id: null,
           size_code: 'MEDIUM',
@@ -683,8 +678,6 @@ describe('createCreatureRepository', () => {
           passive_perception: 11,
           challenge_rating_id: null,
           xp: null,
-          legendary_profile: null,
-          lair_profile: null,
           mount_profile: null,
           companion_profile: null,
           npc_profile: null,
@@ -694,7 +687,6 @@ describe('createCreatureRepository', () => {
       creature_features: [],
       creature_details: [],
       creature_speeds: [],
-      creature_actions: [],
       features: [],
       feature_effects: [],
       feature_attributes: [],

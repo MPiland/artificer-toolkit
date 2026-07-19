@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  abilityCodeSchema,
+  abilityModifierReferenceSchema,
   scalingAmountKindSchema,
   scalingKindSchema,
   scalingSourceSchema
@@ -11,7 +11,7 @@ export const damageBonusDtoSchema = z.union([
   z.object({
     id: z.string(),
     bonusKind: z.literal('ABILITY_BONUS'),
-    ability: abilityCodeSchema,
+    ability: abilityModifierReferenceSchema,
     min: z.number().optional(),
     max: z.number().optional(),
     multiplier: z.number().optional(),

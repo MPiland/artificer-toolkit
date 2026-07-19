@@ -1,5 +1,7 @@
 # Creature RULE Blockers — Model Gap Reference
 
+> **Document status:** Transitional rule-gap inventory. The engine boundary and system-specific policy are canonical in [ADR 0005](docs/adr/0005-pure-rules-system-engine.md) and [the engine architecture guide](docs/architecture/engine.md); validate blocker status against current source and tests.
+
 This file catalogs every remaining `EFFECT_KIND.RULE` blocker in creature source data after the Phase 7.7 Tranche 1 floor pass (2026-03-24).
 
 Use this as the design input when deciding whether to expand or refactor authored types, core primitives, or the engine resolution layer.

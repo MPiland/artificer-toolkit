@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { ActionIcon, Button, Menu, Tooltip } from '@mantine/core'
-import { ChevronLeft, Eye, PanelLeft, RotateCcw, Save, Trash2 } from 'lucide-react'
+import { Ellipsis, Eye, PanelLeft, RotateCcw, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthoringForm } from '../AuthoringFormContext'
 import * as styles from './Actions.css'
@@ -77,12 +77,16 @@ export function ResetActionMenu() {
   const { readOnly, canResetStep, canResetForm, hasStepChanges, hasChanges, resetStep } =
     useAuthoringForm()
   const { toggleResetFormConfirm } = useAuthoringLayout()
-  if (readOnly || !canResetStep) return null
+  if (readOnly || (!canResetStep && !canResetForm)) return null
 
   return (
     <Menu>
       <Menu.Target>
-        <ActionIcon aria-label='Reset actions' className={styles.headerIconButton}>
+        <ActionIcon
+          aria-label='Reset actions'
+          className={styles.headerIconButton}
+          variant='transparent'
+        >
           <RotateCcw size={14} aria-hidden='true' />
         </ActionIcon>
       </Menu.Target>
@@ -107,19 +111,46 @@ export function ResetActionMenu() {
 }
 
 export function SaveDraftAction() {
-  const { readOnly, canSaveDraft, hasChanges, saveDraftLabel, saveDraft, isSubmitting } =
-    useAuthoringForm()
+  const {
+    readOnly,
+    canSaveDraft,
+    hasChanges,
+    saveDraftLabel,
+    saveDraft,
+    isSubmitting,
+    stagedEditorOpen
+  } = useAuthoringForm()
   if (readOnly || !canSaveDraft) return null
 
   return (
-    <HeaderIconAction
-      disabled={!hasChanges}
-      label={saveDraftLabel}
+    <Button
+      className={styles.lifecycleButton}
+      disabled={!hasChanges || stagedEditorOpen}
       loading={isSubmitting}
       onClick={() => void saveDraft()}
+      type='button'
+      variant='default'
     >
-      <Save size={14} aria-hidden='true' />
-    </HeaderIconAction>
+      {saveDraftLabel}
+    </Button>
+  )
+}
+
+export function ActivateAction() {
+  const { activate, activateLabel, canFinalize, isSubmitting, readOnly, stagedEditorOpen } =
+    useAuthoringForm()
+  if (readOnly) return null
+
+  return (
+    <Button
+      className={clsx(styles.lifecycleButton, styles.activateButton)}
+      disabled={!canFinalize || stagedEditorOpen}
+      loading={isSubmitting}
+      onClick={() => void activate()}
+      type='button'
+    >
+      {activateLabel ?? 'Activate'}
+    </Button>
   )
 }
 
@@ -142,40 +173,31 @@ export function PreviewToggleAction() {
   )
 }
 
-export function AuthoringBackAction() {
-  const { isFirstStep, goToPreviousStep, cancel, cancelLabel } = useAuthoringForm()
-  if (!isFirstStep) {
-    return (
-      <Button
-        leftSection={<ChevronLeft size={16} aria-hidden='true' />}
-        type='button'
-        variant='default'
-        onClick={() => void goToPreviousStep()}
-      >
-        Back
-      </Button>
-    )
-  }
-
-  return (
-    <Button type='button' variant='default' onClick={() => void cancel()}>
-      {cancelLabel}
-    </Button>
-  )
-}
-
-export function DeleteRecordAction() {
+export function OverflowActionMenu() {
   const { canDelete, isDeleting, deleteRecord, deleteLabel } = useAuthoringForm()
   if (!canDelete) return null
 
   return (
-    <HeaderIconAction
-      isDestructive
-      label={deleteLabel}
-      loading={isDeleting}
-      onClick={() => void deleteRecord()}
-    >
-      <Trash2 size={14} aria-hidden='true' />
-    </HeaderIconAction>
+    <Menu position='bottom-end'>
+      <Menu.Target>
+        <ActionIcon
+          aria-label='More authoring actions'
+          className={styles.headerIconButton}
+          variant='transparent'
+        >
+          <Ellipsis size={18} aria-hidden='true' />
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item
+          color='red'
+          disabled={isDeleting}
+          leftSection={<Trash2 size={14} aria-hidden='true' />}
+          onClick={() => void deleteRecord()}
+        >
+          {deleteLabel}
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   )
 }

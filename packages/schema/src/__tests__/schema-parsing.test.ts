@@ -7,13 +7,14 @@ import { facetDtoSchema } from '../shared/facet.js'
 import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
+import { senseGrantDtoSchema } from '../grants/sense.js'
+import { spellGrantDtoSchema } from '../grants/spell.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import {
   authoredDraftDtoSchema,
   authoredDraftSaveRequestDtoSchema,
   backgroundListResponseDtoSchema,
-  featureResponseDtoSchema,
   spellResponseDtoSchema
 } from '../api/content.js'
 import {
@@ -21,9 +22,15 @@ import {
   nodeRuntimeResolveRequestDtoSchema,
   nodeRuntimeResolveResponseDtoSchema
 } from '../api/nodeRuntime.js'
-import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
-import { classAuthoredDtoSchema } from '../subjects/class.js'
+import {
+  resourceIdParamsDtoSchema,
+  systemAuthoredDtoSchema,
+  systemListResponseDtoSchema
+} from '../index.js'
+import { classAuthoredDtoSchema, classAuthoringInputDtoSchema } from '../subjects/class.js'
+import { classPrepareLimitDtoSchema } from '../subjects/shared.js'
 import { creatureAuthoredDtoSchema } from '../subjects/creature.js'
+import { equipmentAuthoredDtoSchema } from '../subjects/equipment.js'
 import { featAuthoredDtoSchema } from '../subjects/feat.js'
 import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
@@ -39,15 +46,21 @@ type ParsedEffectForAssertions = {
     options?: Array<Record<string, unknown>>
     rows?: Array<Record<string, unknown>>
     resultBlock?: {
-      outcomes?: Array<Record<string, unknown> & {
-        bonuses?: Array<Record<string, unknown>>
-      }>
+      outcomes?: Array<
+        Record<string, unknown> & {
+          bonuses?: Array<Record<string, unknown>>
+        }
+      >
       lifecycle?: Record<string, unknown>
     }
   }>
 }
 
-function singleResultBlock(id: string, outcome: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+function singleResultBlock(
+  id: string,
+  outcome: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+) {
   return {
     id,
     resultKind: 'SINGLE',
@@ -56,7 +69,11 @@ function singleResultBlock(id: string, outcome: Record<string, unknown>, extra: 
   }
 }
 
-function sequenceResultBlock(id: string, outcomes: Record<string, unknown>[], extra: Record<string, unknown> = {}) {
+function sequenceResultBlock(
+  id: string,
+  outcomes: Record<string, unknown>[],
+  extra: Record<string, unknown> = {}
+) {
   return {
     id,
     resultKind: 'SEQUENCE',
@@ -103,41 +120,47 @@ function choicePath(
 
 describe('saving throw DTOs', () => {
   it('accepts fixed, source, and derived DC methods', () => {
-    expect(savingThrowDtoSchema.parse({
-      id: 'fixed-save',
-      dcMethod: 'FIXED_DC',
-      ability: 'DEXTERITY',
-      baseDc: 15,
-      bonuses: [
-        { id: 'fixed-save-static', bonusKind: 'STATIC_BONUS', amount: 1 }
-      ]
-    })).toMatchObject({ dcMethod: 'FIXED_DC', baseDc: 15 })
+    expect(
+      savingThrowDtoSchema.parse({
+        id: 'fixed-save',
+        dcMethod: 'FIXED_DC',
+        ability: 'DEXTERITY',
+        baseDc: 15,
+        bonuses: [{ id: 'fixed-save-static', bonusKind: 'STATIC_BONUS', amount: 1 }]
+      })
+    ).toMatchObject({ dcMethod: 'FIXED_DC', baseDc: 15 })
 
-    expect(savingThrowDtoSchema.parse({
-      id: 'source-save',
-      dcMethod: 'SOURCE_SAVE_DC',
-      ability: 'WISDOM'
-    })).toMatchObject({ dcMethod: 'SOURCE_SAVE_DC' })
+    expect(
+      savingThrowDtoSchema.parse({
+        id: 'source-save',
+        dcMethod: 'SOURCE_SAVE_DC',
+        ability: 'WISDOM'
+      })
+    ).toMatchObject({ dcMethod: 'SOURCE_SAVE_DC' })
 
-    expect(savingThrowDtoSchema.parse({
-      id: 'derived-save',
-      dcMethod: 'DERIVED_DC',
-      ability: 'CONSTITUTION',
-      baseDc: 8,
-      bonuses: [
-        { id: 'derived-save-ability', bonusKind: 'ABILITY_MODIFIER', ability: 'CONSTITUTION' },
-        { id: 'derived-save-proficiency', bonusKind: 'PROFICIENCY_BONUS' }
-      ]
-    })).toMatchObject({ dcMethod: 'DERIVED_DC', baseDc: 8 })
+    expect(
+      savingThrowDtoSchema.parse({
+        id: 'derived-save',
+        dcMethod: 'DERIVED_DC',
+        ability: 'CONSTITUTION',
+        baseDc: 8,
+        bonuses: [
+          { id: 'derived-save-ability', bonusKind: 'ABILITY_MODIFIER', ability: 'CONSTITUTION' },
+          { id: 'derived-save-proficiency', bonusKind: 'PROFICIENCY_BONUS' }
+        ]
+      })
+    ).toMatchObject({ dcMethod: 'DERIVED_DC', baseDc: 8 })
   })
 
   it('rejects legacy sourceAbility payloads', () => {
-    expect(() => savingThrowDtoSchema.parse({
-      id: 'legacy-save',
-      dcMethod: 'SOURCE_SAVE_DC',
-      ability: 'DEXTERITY',
-      sourceAbility: 'CONSTITUTION'
-    })).toThrow()
+    expect(() =>
+      savingThrowDtoSchema.parse({
+        id: 'legacy-save',
+        dcMethod: 'SOURCE_SAVE_DC',
+        ability: 'DEXTERITY',
+        sourceAbility: 'CONSTITUTION'
+      })
+    ).toThrow()
   })
 })
 
@@ -161,26 +184,6 @@ function exactRollTablePath(
   }
 }
 
-function rangeRollTablePath(
-  id: string,
-  order: number,
-  pathCode: string,
-  rows: Record<string, unknown>[],
-  extra: Record<string, unknown> = {}
-) {
-  return {
-    id,
-    order,
-    pathCode,
-    groupType: 'SINGLE',
-    selectionKind: 'ROLL_TABLE',
-    rollTableKind: 'RANGE',
-    dieConfig: '1d4',
-    rows,
-    ...extra
-  }
-}
-
 describe('schema package parsing', () => {
   it('parses generic authored draft save and response contracts', () => {
     const saveRequest = authoredDraftSaveRequestDtoSchema.parse({
@@ -196,13 +199,15 @@ describe('schema package parsing', () => {
       }
     })
     const draft = authoredDraftDtoSchema.parse({
-      id: 'draft-1',
       publicId: 'draft-1',
       ...saveRequest,
       userId: 'user-1',
       status: 'DRAFT',
       draftState: 'DRAFT_ONLY',
-      baseActiveUpdatedAt: null,
+      revisionId: 'revision-1',
+      revisionNumber: 1,
+      activeRevisionId: null,
+      baseActiveRevisionId: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
@@ -386,20 +391,20 @@ describe('schema package parsing', () => {
             rollValue: 1,
             resultBlock: singleResultBlock('choice-copy-roll-result', {
               id: 'choice-copy-roll-outcome',
-              effectKind: 'RULE'
+              effectKind: 'MANUAL_ADJUDICATION'
             })
           }
         ])
       ]
     }) as unknown as ParsedEffectForAssertions
 
-    expect(parsed.paths[0].options[0]).toMatchObject({
+    expect(parsed.paths[0]?.options?.[0]).toMatchObject({
       label: 'Primary Result',
       description: 'The main outcome when the effect resolves.'
     })
 
-    expect(parsed.paths[1].rows[0]).not.toHaveProperty('label')
-    expect(parsed.paths[1].rows[0]).not.toHaveProperty('description')
+    expect(parsed.paths[1]?.rows?.[0]).not.toHaveProperty('label')
+    expect(parsed.paths[1]?.rows?.[0]).not.toHaveProperty('description')
   })
 
   it('parses non-damage outcome families such as apply-grant and rule fallbacks', () => {
@@ -450,7 +455,7 @@ describe('schema package parsing', () => {
           'ON_CAST',
           singleResultBlock('shield-rule-result', {
             id: 'shield-rule-entry',
-            effectKind: 'RULE'
+            effectKind: 'MANUAL_ADJUDICATION'
           })
         )
       ]
@@ -566,8 +571,7 @@ describe('schema package parsing', () => {
               {
                 id: 'second-wind-fighter-level',
                 bonusKind: 'CLASS_LEVEL',
-                classId: 'fighter'
-                ,
+                classId: 'fighter',
                 order: 1
               }
             ]
@@ -579,7 +583,7 @@ describe('schema package parsing', () => {
         pathCode?: string
         resultBlock?: {
           outcomes?: Array<{
-            bonuses?: Array<{ bonusKind?: string, classId?: string }>
+            bonuses?: Array<{ bonusKind?: string; classId?: string }>
           }>
         }
       }>
@@ -654,8 +658,10 @@ describe('schema package parsing', () => {
       systemId: 'system-1'
     }) as {
       effects?: Array<{
-        invocation?: { activation?: { code?: string, amount?: number } }
-        paths?: Array<{ resultBlock?: { outcomes?: Array<{ effectKind?: string, manifestKind?: string }> } }>
+        invocation?: { activation?: { code?: string; amount?: number } }
+        paths?: Array<{
+          resultBlock?: { outcomes?: Array<{ effectKind?: string; manifestKind?: string }> }
+        }>
       }>
     }
 
@@ -663,7 +669,11 @@ describe('schema package parsing', () => {
       code: 'ACTION',
       amount: 1
     })
-    expect((parsed as { components?: string[] }).components).toEqual(['VERBAL', 'SOMATIC', 'MATERIAL'])
+    expect((parsed as { components?: string[] }).components).toEqual([
+      'VERBAL',
+      'SOMATIC',
+      'MATERIAL'
+    ])
     expect(parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]).toMatchObject({
       effectKind: 'MANIFEST',
       manifestKind: 'CREATURE'
@@ -766,87 +776,92 @@ describe('schema package parsing', () => {
       }>
     }
 
-    expect(parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]?.behaviors?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]).toMatchObject({
+    expect(
+      parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]?.behaviors?.[0]?.paths?.[0]
+        ?.resultBlock?.outcomes?.[0]
+    ).toMatchObject({
       effectKind: 'DAMAGE'
     })
   })
 
   it('rejects manifest-owned nested behaviors that try to manifest again', () => {
-    expect(() => spellAuthoredDtoSchema.parse({
-      kind: 'SPELL',
-      id: 'bad-nested-manifest',
-      label: 'Bad Nested Manifest',
-      description: 'A recursive manifest payload.',
-      castingTime: {
-        unit: 'ROUND',
-        amount: 1
-      },
-      level: 4,
-      classIds: ['wizard'],
-      magicSchoolId: 'conjuration',
-      effects: [
-        {
-          id: 'outer-effect',
-          order: 1,
-          invocation: {
-            triggerCode: 'ACTIVATED',
-            activation: {
-              code: 'ACTION',
-              amount: 1
+    expect(() =>
+      spellAuthoredDtoSchema.parse({
+        kind: 'SPELL',
+        id: 'bad-nested-manifest',
+        label: 'Bad Nested Manifest',
+        description: 'A recursive manifest payload.',
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 4,
+        classIds: ['wizard'],
+        magicSchoolId: 'conjuration',
+        effects: [
+          {
+            id: 'outer-effect',
+            order: 1,
+            invocation: {
+              triggerCode: 'ACTIVATED',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'outer-range',
+                rangeKind: 'DISTANCE',
+                amount: 30,
+                unit: 'FEET'
+              }
             },
-            range: {
-              id: 'outer-range',
-              rangeKind: 'DISTANCE',
-              amount: 30,
-              unit: 'FEET'
-            }
-          },
-          paths: [
-            fixedPath(
-              'outer-path',
-              1,
-              'ON_USE',
-              singleResultBlock('outer-result', {
-                id: 'outer-manifest',
-                effectKind: 'MANIFEST',
-                manifestKind: 'SUMMON',
-                behaviors: [
-                  {
-                    id: 'nested-effect',
-                    order: 1,
-                    invocation: {
-                      triggerCode: 'ACTIVATED',
-                      activation: {
-                        code: 'ACTION',
-                        amount: 1
+            paths: [
+              fixedPath(
+                'outer-path',
+                1,
+                'ON_USE',
+                singleResultBlock('outer-result', {
+                  id: 'outer-manifest',
+                  effectKind: 'MANIFEST',
+                  manifestKind: 'SUMMON',
+                  behaviors: [
+                    {
+                      id: 'nested-effect',
+                      order: 1,
+                      invocation: {
+                        triggerCode: 'ACTIVATED',
+                        activation: {
+                          code: 'ACTION',
+                          amount: 1
+                        },
+                        range: {
+                          id: 'nested-range',
+                          rangeKind: 'SELF'
+                        }
                       },
-                      range: {
-                        id: 'nested-range',
-                        rangeKind: 'SELF'
-                      }
-                    },
-                    paths: [
-                      fixedPath(
-                        'nested-path',
-                        1,
-                        'ON_USE',
-                        singleResultBlock('nested-result', {
-                          id: 'recursive-manifest',
-                          effectKind: 'MANIFEST',
-                          manifestKind: 'OBJECT'
-                        })
-                      )
-                    ]
-                  }
-                ]
-              })
-            )
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })).toThrow()
+                      paths: [
+                        fixedPath(
+                          'nested-path',
+                          1,
+                          'ON_USE',
+                          singleResultBlock('nested-result', {
+                            id: 'recursive-manifest',
+                            effectKind: 'MANIFEST',
+                            manifestKind: 'OBJECT'
+                          })
+                        )
+                      ]
+                    }
+                  ]
+                })
+              )
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      })
+    ).toThrow()
   })
 
   it('strips roll-table row labels and descriptions', () => {
@@ -876,7 +891,7 @@ describe('schema package parsing', () => {
             rollValue: 1,
             resultBlock: singleResultBlock('bad-roll-result', {
               id: 'bad-roll-outcome',
-              effectKind: 'RULE'
+              effectKind: 'MANUAL_ADJUDICATION'
             })
           }
         ])
@@ -922,7 +937,8 @@ describe('schema package parsing', () => {
       ]
     })
 
-    const outcome = (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]
+    const outcome = (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock
+      ?.outcomes?.[0]
 
     expect(outcome).toMatchObject({
       manifestKind: 'CREATURE',
@@ -987,7 +1003,9 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect((parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]).toMatchObject({
+    expect(
+      (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]
+    ).toMatchObject({
       manifestKind: 'SUMMON',
       statBlock: {
         size: 'LARGE',
@@ -1022,6 +1040,7 @@ describe('schema package parsing', () => {
       id: 'fighting-style',
       label: 'Fighting Style',
       description: 'Choose a style.',
+      section: 'TRAIT',
       details: [
         {
           id: 'fighting-style-detail',
@@ -1040,6 +1059,7 @@ describe('schema package parsing', () => {
             selectionKind: 'CHOSEN',
             scalingKind: 'NONE',
             count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
             featIds: ['archery']
           }
         ]
@@ -1055,18 +1075,21 @@ describe('schema package parsing', () => {
     })
 
     expect(parsed.grants?.feats?.[0]?.grantKind).toBe('FEAT_GRANT')
+    expect(parsed.section).toBe('TRAIT')
     expect(parsed.details?.[0]?.label).toBe('Detail')
     expect(parsed.options?.[0]?.label).toBe('Archery')
   })
 
   it('rejects legacy singular feature detail fields', () => {
-    expect(() => featureDtoSchema.parse({
-      id: 'legacy-feature',
-      label: 'Legacy Feature',
-      description: 'Old shape.',
-      detail: 'Old prose.',
-      order: 1
-    })).toThrow()
+    expect(() =>
+      featureDtoSchema.parse({
+        id: 'legacy-feature',
+        label: 'Legacy Feature',
+        description: 'Old shape.',
+        detail: 'Old prose.',
+        order: 1
+      })
+    ).toThrow()
   })
 
   it('parses recursive facet restrictions with predicate and exists conditions', () => {
@@ -1088,6 +1111,7 @@ describe('schema package parsing', () => {
                   kind: 'PREDICATE',
                   constraint: 'INCLUDE',
                   predicateCode: 'CLASS_LEVEL',
+                  classIds: ['fighter'],
                   min: 1
                 },
                 {
@@ -1182,6 +1206,24 @@ describe('schema package parsing', () => {
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
   })
 
+  it('rejects chosen modifier grants without a target-binding model', () => {
+    expect(() =>
+      modifierGrantDtoSchema.parse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'chosen-ability-score-increase',
+        order: 1,
+        selectionKind: 'CHOSEN',
+        count: 2,
+        selectionDuplicatePolicy: 'UNIQUE',
+        valueDomainCode: 'ABILITY_SCORE',
+        domain: { ability: 'STRENGTH' },
+        modifierKind: 'BONUS',
+        scope: 'GLOBAL',
+        payload: { valueKind: 'FIXED', amount: 1 }
+      })
+    ).toThrow()
+  })
+
   it('parses attack roll advantage modifiers without payloads', () => {
     const parsed = modifierGrantDtoSchema.parse({
       grantKind: 'MODIFIER_GRANT',
@@ -1214,14 +1256,16 @@ describe('schema package parsing', () => {
   })
 
   it('rejects selected grant targets that omit their required ids', () => {
-    expect(() => featGrantDtoSchema.parse({
-      grantKind: 'FEAT_GRANT',
-      id: 'bad-selected-feat-grant',
-      order: 1,
-      selectionKind: 'GRANTED',
-      scalingKind: 'NONE',
-      authoringModeKind: 'SELECTED'
-    })).toThrow()
+    expect(() =>
+      featGrantDtoSchema.parse({
+        grantKind: 'FEAT_GRANT',
+        id: 'bad-selected-feat-grant',
+        order: 1,
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED'
+      })
+    ).toThrow()
   })
 
   it('parses explicit ALL proficiency authoring mode', () => {
@@ -1231,6 +1275,7 @@ describe('schema package parsing', () => {
       order: 1,
       proficiencyKind: 'SKILL',
       selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
       level: 'FULL',
       authoringModeKind: 'ALL'
     })
@@ -1239,62 +1284,229 @@ describe('schema package parsing', () => {
   })
 
   it('rejects selected proficiency targets that omit their required payload ids', () => {
-    expect(() => proficiencyGrantDtoSchema.parse({
-      grantKind: 'PROFICIENCY_GRANT',
-      id: 'bad-selected-proficiency',
-      order: 1,
-      proficiencyKind: 'SKILL',
-      selectionKind: 'GRANTED',
-      level: 'FULL',
-      authoringModeKind: 'SELECTED'
-    })).toThrow()
+    expect(() =>
+      proficiencyGrantDtoSchema.parse({
+        grantKind: 'PROFICIENCY_GRANT',
+        id: 'bad-selected-proficiency',
+        order: 1,
+        proficiencyKind: 'SKILL',
+        selectionKind: 'GRANTED',
+        level: 'FULL',
+        authoringModeKind: 'SELECTED'
+      })
+    ).toThrow()
   })
 
   it('rejects modifier payloads that do not match the selected domain', () => {
-    expect(() => modifierGrantDtoSchema.parse({
-      grantKind: 'MODIFIER_GRANT',
-      id: 'bad-modifier',
-      order: 1,
-      selectionKind: 'GRANTED',
-      valueDomainCode: 'ATTACK_ROLL',
-      domain: {
-        ability: 'INTELLIGENCE'
+    expect(() =>
+      modifierGrantDtoSchema.parse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'bad-modifier',
+        order: 1,
+        selectionKind: 'GRANTED',
+        valueDomainCode: 'ATTACK_ROLL',
+        domain: {
+          ability: 'INTELLIGENCE'
+        },
+        modifierKind: 'BONUS',
+        scope: 'GLOBAL',
+        payload: {
+          valueKind: 'FIXED',
+          amount: 2
+        }
+      })
+    ).toThrow()
+  })
+
+  it('requires duplicate policy only for chosen grant targets', () => {
+    const cases = [
+      {
+        schema: proficiencyGrantDtoSchema,
+        chosen: {
+          grantKind: 'PROFICIENCY_GRANT',
+          id: 'chosen-proficiency',
+          order: 1,
+          proficiencyKind: 'SKILL',
+          selectionKind: 'CHOSEN',
+          scalingKind: 'NONE',
+          count: 2,
+          level: 'FULL',
+          authoringModeKind: 'SELECTED',
+          skillIds: ['acrobatics', 'arcana']
+        },
+        granted: {
+          grantKind: 'PROFICIENCY_GRANT',
+          id: 'granted-proficiency',
+          order: 1,
+          proficiencyKind: 'SKILL',
+          selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
+          level: 'FULL',
+          authoringModeKind: 'SELECTED',
+          skillIds: ['acrobatics']
+        }
       },
-      modifierKind: 'BONUS',
-      scope: 'GLOBAL',
-      payload: {
-        valueKind: 'FIXED',
-        amount: 2
+      {
+        schema: spellGrantDtoSchema,
+        chosen: {
+          grantKind: 'SPELL_GRANT',
+          id: 'chosen-spell',
+          order: 1,
+          selectionKind: 'CHOSEN',
+          scalingKind: 'NONE',
+          count: 1,
+          authoringModeKind: 'SELECTED',
+          spellIds: ['fire-bolt']
+        },
+        granted: {
+          grantKind: 'SPELL_GRANT',
+          id: 'granted-spell',
+          order: 1,
+          selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
+          authoringModeKind: 'SELECTED',
+          spellIds: ['fire-bolt']
+        }
+      },
+      {
+        schema: featGrantDtoSchema,
+        chosen: {
+          grantKind: 'FEAT_GRANT',
+          id: 'chosen-feat',
+          order: 1,
+          selectionKind: 'CHOSEN',
+          scalingKind: 'NONE',
+          count: 1,
+          authoringModeKind: 'SELECTED',
+          featIds: ['archery']
+        },
+        granted: {
+          grantKind: 'FEAT_GRANT',
+          id: 'granted-feat',
+          order: 1,
+          selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
+          authoringModeKind: 'SELECTED',
+          featIds: ['archery']
+        }
+      },
+      {
+        schema: senseGrantDtoSchema,
+        chosen: {
+          grantKind: 'SENSE_GRANT',
+          id: 'chosen-sense',
+          order: 1,
+          selectionKind: 'CHOSEN',
+          scalingKind: 'NONE',
+          count: 1,
+          authoringModeKind: 'SELECTED',
+          senseIds: ['darkvision']
+        },
+        granted: {
+          grantKind: 'SENSE_GRANT',
+          id: 'granted-sense',
+          order: 1,
+          selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
+          authoringModeKind: 'SELECTED',
+          senseIds: ['darkvision']
+        }
       }
-    })).toThrow()
+    ] as const
+
+    for (const { schema, chosen, granted } of cases) {
+      expect(schema.safeParse(chosen).success).toBe(false)
+
+      const uniqueParse = schema.safeParse({
+        ...chosen,
+        selectionDuplicatePolicy: 'UNIQUE'
+      })
+      expect(uniqueParse.success).toBe(true)
+      expect(uniqueParse.success ? uniqueParse.data.selectionDuplicatePolicy : undefined).toBe(
+        'UNIQUE'
+      )
+
+      const repeatableParse = schema.safeParse({
+        ...chosen,
+        selectionDuplicatePolicy: 'REPEATABLE'
+      })
+      expect(repeatableParse.success).toBe(true)
+      expect(
+        repeatableParse.success ? repeatableParse.data.selectionDuplicatePolicy : undefined
+      ).toBe('REPEATABLE')
+
+      expect(
+        schema.safeParse({
+          ...granted,
+          selectionDuplicatePolicy: 'UNIQUE'
+        }).success
+      ).toBe(false)
+    }
+  })
+
+  it('keeps duplicate policy on chosen per-level grant progression entries', () => {
+    const parsed = spellGrantDtoSchema.parse({
+      grantKind: 'SPELL_GRANT',
+      id: 'per-level-spell',
+      order: 1,
+      selectionKind: 'CHOSEN',
+      scalingKind: 'PER_LEVEL',
+      progression: {
+        scalingSource: 'CHARACTER_LEVEL',
+        levels: [
+          {
+            id: 'per-level-spell-1',
+            level: 3,
+            order: 1,
+            authoringModeKind: 'SELECTED',
+            count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
+            spellIds: ['misty-step']
+          }
+        ]
+      }
+    })
+
+    expect(
+      (parsed as { progression?: { levels: Array<{ selectionDuplicatePolicy?: string }> } })
+        .progression?.levels[0]?.selectionDuplicatePolicy
+    ).toBe('UNIQUE')
+    expect(
+      spellGrantDtoSchema.safeParse({
+        ...parsed,
+        selectionDuplicatePolicy: 'UNIQUE'
+      }).success
+    ).toBe(false)
   })
 
   it('rejects invalid facet predicate payloads once predicate correlation is enforced', () => {
-    expect(() => facetDtoSchema.parse({
-      id: 'bad-facet',
-      groups: [
-        {
-          id: 'group-1',
-          order: 1,
-          contexts: [
-            {
-              id: 'context-1',
-              order: 1,
-              subject: 'CHARACTER',
-              conditions: [
-                {
-                  id: 'condition-1',
-                  order: 1,
-                  kind: 'PREDICATE',
-                  constraint: 'INCLUDE',
-                  predicateCode: 'SPELL_LEVEL'
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    })).toThrow()
+    expect(() =>
+      facetDtoSchema.parse({
+        id: 'bad-facet',
+        groups: [
+          {
+            id: 'group-1',
+            order: 1,
+            contexts: [
+              {
+                id: 'context-1',
+                order: 1,
+                subject: 'CHARACTER',
+                conditions: [
+                  {
+                    id: 'condition-1',
+                    order: 1,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'SPELL_LEVEL'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    ).toThrow()
   })
 
   it('parses starting equipment item unions with selected equipment choices', () => {
@@ -1312,6 +1524,34 @@ describe('schema package parsing', () => {
                 {
                   id: 'fighter-option',
                   order: 1,
+                  eligibility: {
+                    id: 'fighter-option-eligibility',
+                    groups: [
+                      {
+                        id: 'fighter-option-eligibility-group',
+                        order: 1,
+                        contexts: [
+                          {
+                            id: 'fighter-option-eligibility-context',
+                            order: 1,
+                            subject: 'CHARACTER',
+                            conditions: [
+                              {
+                                id: 'fighter-option-eligibility-condition',
+                                order: 1,
+                                kind: 'PREDICATE',
+                                constraint: 'INCLUDE',
+                                predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                                authoringModeKind: 'SELECTED',
+                                category: 'ARMOR',
+                                properties: ['HEAVY']
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
                   items: [
                     {
                       id: 'martial-weapon-choice',
@@ -1333,6 +1573,56 @@ describe('schema package parsing', () => {
     })
 
     expect(parsed.sets[0]?.groups[0]?.options[0]?.items[0]?.startingEquipmentKind).toBe('EQUIPMENT')
+    expect(
+      parsed.sets[0]?.groups[0]?.options[0]?.eligibility?.groups[0]?.contexts[0]?.conditions?.[0]
+    ).toMatchObject({
+      predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+      category: 'ARMOR',
+      properties: ['HEAVY']
+    })
+  })
+
+  it('rejects non-character eligibility facets on starting equipment options', () => {
+    const result = startingEquipmentDtoSchema.safeParse({
+      id: 'invalid-starting-equipment',
+      sets: [
+        {
+          id: 'invalid-set',
+          order: 1,
+          groups: [
+            {
+              id: 'invalid-group',
+              order: 1,
+              options: [
+                {
+                  id: 'invalid-option',
+                  order: 1,
+                  eligibility: {
+                    id: 'invalid-eligibility',
+                    groups: [
+                      {
+                        id: 'invalid-eligibility-group',
+                        order: 1,
+                        contexts: [
+                          {
+                            id: 'invalid-eligibility-context',
+                            order: 1,
+                            subject: 'CREATURE'
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  items: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(result.success).toBe(false)
   })
 
   it('parses a base class with nested authored substructures', () => {
@@ -1340,6 +1630,7 @@ describe('schema package parsing', () => {
       id: 'wizard',
       category: 'BASE',
       label: 'Wizard',
+      subclassSelectionLevel: 2,
       description: 'A scholarly spellcaster.',
       details: [
         {
@@ -1356,6 +1647,7 @@ describe('schema package parsing', () => {
           order: 1,
           proficiencyKind: 'SAVE_ABILITY',
           selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
           level: 'FULL',
           abilities: ['INTELLIGENCE', 'WISDOM'],
           authoringModeKind: 'SELECTED'
@@ -1414,18 +1706,96 @@ describe('schema package parsing', () => {
           groups: [
             {
               id: 'wizard-req-group',
-              requirements: [
-                { id: 'int-req', ability: 'INTELLIGENCE', min: 13 }
-              ]
+              requirements: [{ id: 'int-req', ability: 'INTELLIGENCE', min: 13 }]
             }
           ]
         }
       }
-    }) as { category?: string, features?: Array<{ id?: string }>, spellcasting?: { details?: Array<{ label?: string }> } }
+    }) as {
+      category?: string
+      subclassSelectionLevel?: number
+      features?: Array<{ id?: string }>
+      spellcasting?: { details?: Array<{ label?: string }> }
+    }
 
     expect(parsed.category).toBe('BASE')
+    expect(parsed.subclassSelectionLevel).toBe(2)
     expect(parsed.features?.[0]?.id).toBe('arcane-recovery')
     expect(parsed.spellcasting?.details?.[0]?.label).toBe('Spellbook')
+  })
+
+  it('keeps class authoring attributes category-correct', () => {
+    const input = {
+      id: 'class-draft',
+      label: 'Class Draft',
+      systemId: 'system-1'
+    }
+
+    expect(
+      classAuthoringInputDtoSchema.safeParse({
+        ...input,
+        category: 'BASE',
+        attributes: ['SPECIALIZATION']
+      }).success
+    ).toBe(false)
+
+    expect(
+      classAuthoringInputDtoSchema.safeParse({
+        ...input,
+        category: 'SUBCLASS',
+        attributes: ['SPECIALIZATION']
+      }).success
+    ).toBe(true)
+
+    expect(
+      classAuthoringInputDtoSchema.safeParse({
+        ...input,
+        category: 'BASE',
+        subclassSelectionLevel: 0
+      }).success
+    ).toBe(false)
+    expect(
+      classAuthoringInputDtoSchema.safeParse({
+        ...input,
+        category: 'BASE',
+        subclassSelectionLevel: 21
+      }).success
+    ).toBe(false)
+    expect(
+      classAuthoringInputDtoSchema.safeParse({
+        ...input,
+        category: 'SUBCLASS',
+        subclassSelectionLevel: 3
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects unknown class preparation-limit codes', () => {
+    expect(
+      classPrepareLimitDtoSchema.safeParse({
+        methodKinds: ['CLASS_LEVEL'],
+        scaling: 'HALF',
+        rounding: 'DOWN'
+      }).success
+    ).toBe(true)
+
+    expect(
+      classPrepareLimitDtoSchema.safeParse({
+        methodKinds: ['UNKNOWN']
+      }).success
+    ).toBe(false)
+    expect(
+      classPrepareLimitDtoSchema.safeParse({
+        methodKinds: ['CLASS_LEVEL'],
+        scaling: 'UNKNOWN'
+      }).success
+    ).toBe(false)
+    expect(
+      classPrepareLimitDtoSchema.safeParse({
+        methodKinds: ['CLASS_LEVEL'],
+        rounding: 'UNKNOWN'
+      }).success
+    ).toBe(false)
   })
 
   it('parses a spell with effect-owned range/shape and structured scaling', () => {
@@ -1456,16 +1826,16 @@ describe('schema package parsing', () => {
               code: 'ACTION',
               amount: 1
             },
-          range: {
-            id: 'burning-hands-effect-range',
-            rangeKind: 'SELF'
-          },
-          targeting: {
-            selectionKind: 'AREA_CONTENTS'
-          },
-          shape: {
-            id: 'burning-hands-cone',
-            shapeKind: 'CONE',
+            range: {
+              id: 'burning-hands-effect-range',
+              rangeKind: 'SELF'
+            },
+            targeting: {
+              selectionKind: 'AREA_CONTENTS'
+            },
+            shape: {
+              id: 'burning-hands-cone',
+              shapeKind: 'CONE',
               length: {
                 amount: 15,
                 unit: 'FEET'
@@ -1593,42 +1963,44 @@ describe('schema package parsing', () => {
   })
 
   it('rejects legacy placeholder values once nested enums are tightened', () => {
-    expect(() => effectDtoSchema.parse({
-      id: 'bad-effect',
-      order: 1,
-      invocation: {
-        triggerCode: 'SAVING_THROW',
-        savingThrow: {
-          id: 'dex-save',
-          dcMethod: 'FIXED_DC',
-          ability: 'DEXTERITY',
-          baseDc: 13
+    expect(() =>
+      effectDtoSchema.parse({
+        id: 'bad-effect',
+        order: 1,
+        invocation: {
+          triggerCode: 'SAVING_THROW',
+          savingThrow: {
+            id: 'dex-save',
+            dcMethod: 'FIXED_DC',
+            ability: 'DEXTERITY',
+            baseDc: 13
+          },
+          activation: {
+            code: 'ACTION',
+            amount: 1
+          },
+          range: {
+            id: 'self-range',
+            rangeKind: 'SELF'
+          }
         },
-        activation: {
-          code: 'ACTION',
-          amount: 1
-        },
-        range: {
-          id: 'self-range',
-          rangeKind: 'SELF'
-        }
-      },
-      paths: [
-        fixedPath(
-          'bad-moment',
-          1,
-          'IMMEDIATE',
-          singleResultBlock('bad-result', {
-            id: 'bad-moment-entry',
-            effectKind: 'DAMAGE',
-            damageTypeId: 'fire',
-            valueKind: 'DICE',
-            scalingKind: 'NONE',
-            diceConfig: '3d6'
-          })
-        )
-      ]
-    })).toThrow()
+        paths: [
+          fixedPath(
+            'bad-moment',
+            1,
+            'IMMEDIATE',
+            singleResultBlock('bad-result', {
+              id: 'bad-moment-entry',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'DICE',
+              scalingKind: 'NONE',
+              diceConfig: '3d6'
+            })
+          )
+        ]
+      })
+    ).toThrow()
   })
 
   it('parses system vocabulary payloads and transport wrappers', () => {
@@ -1636,6 +2008,8 @@ describe('schema package parsing', () => {
       id: 'dnd-5e-srd',
       label: 'D&D 5e SRD',
       description: 'Baseline SRD system data.',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
       alignments: [],
       challengeRatings: [],
       conditionTypes: [],
@@ -1660,6 +2034,8 @@ describe('schema package parsing', () => {
         id: system.id,
         label: system.label,
         description: system.description,
+        rulesetCode: system.rulesetCode,
+        rulesetVersion: system.rulesetVersion,
         userId: system.userId
       }
     ]) as { label?: string }[]
@@ -1667,6 +2043,8 @@ describe('schema package parsing', () => {
     const params = resourceIdParamsDtoSchema.parse({ id: system.id })
 
     expect(list[0]?.label).toBe('D&D 5e SRD')
+    expect(system.rulesetCode).toBe('dnd5e')
+    expect(system.rulesetVersion).toBe('2014')
     expect(params.id).toBe(system.id)
   })
 
@@ -1747,14 +2125,16 @@ describe('schema package parsing', () => {
       featIds: ['grappler']
     })
     expect(feat.details?.[0]?.label).toBe('Detail')
-    expect(() => featAuthoredDtoSchema.parse({
-      id: 'legacy-feat',
-      label: 'Legacy Feat',
-      description: 'Old shape.',
-      detail: 'Old prose.',
-      userId: 'user-1',
-      systemId: 'system-1'
-    })).toThrow()
+    expect(() =>
+      featAuthoredDtoSchema.parse({
+        id: 'legacy-feat',
+        label: 'Legacy Feat',
+        description: 'Old shape.',
+        detail: 'Old prose.',
+        userId: 'user-1',
+        systemId: 'system-1'
+      })
+    ).toThrow()
   })
 
   it('parses race heritage memberships', () => {
@@ -1777,7 +2157,10 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect(race.heritageIds).toEqual(['heritage-human', 'heritage-elven'])
+    expect(race).toMatchObject({
+      category: 'BASE',
+      heritageIds: ['heritage-human', 'heritage-elven']
+    })
   })
 
   it('parses category-driven creatures with category-specific profile data', () => {
@@ -1798,13 +2181,20 @@ describe('schema package parsing', () => {
         CONSTITUTION: 15,
         INTELLIGENCE: 3,
         WISDOM: 12,
-        CHARISMA: 7,
-        SPELLCASTING: 0
+        CHARISMA: 7
       },
       armorClass: 12,
       hitPoints: 32,
       speeds: [{ speedId: 'walk', amount: 50, unit: 'FEET' }],
-      actions: [{ id: 'gore', label: 'Gore', description: 'Melee weapon attack.' }],
+      features: [
+        {
+          id: 'gore',
+          label: 'Gore',
+          description: 'Melee weapon attack.',
+          section: 'ACTION',
+          order: 1
+        }
+      ],
       cost: { amount: 75, currencyId: 'gold' },
       carryingCapacity: { amount: 480, unit: 'POUNDS' },
       logisticsNotes: ['Can carry a rider and light travel gear.'],
@@ -1817,7 +2207,33 @@ describe('schema package parsing', () => {
 
     expect(creature.category).toBe('BEAST')
     expect(creature.mountProfile?.riderCount).toBe(1)
-    expect(creature.recordKind).toBe('STAT_BLOCK')
+    expect(creature.features?.[0]?.section).toBe('ACTION')
+  })
+
+  it('normalizes creature logistics-note editor rows to the canonical string array', () => {
+    const creature = creatureAuthoredDtoSchema.parse({
+      id: 'pack-hart',
+      label: 'Pack Hart',
+      category: 'BEAST',
+      creatureTypeId: 'beast',
+      size: 'LARGE',
+      userId: 'user-1',
+      systemId: 'system-1',
+      abilityScores: {
+        STRENGTH: 18,
+        DEXTERITY: 14,
+        CONSTITUTION: 15,
+        INTELLIGENCE: 3,
+        WISDOM: 12,
+        CHARISMA: 7
+      },
+      armorClass: 12,
+      hitPoints: 32,
+      speeds: [],
+      logisticsNotes: [{ value: 'Can carry a rider.' }, 'Requires a saddle.']
+    })
+
+    expect(creature.logisticsNotes).toEqual(['Can carry a rider.', 'Requires a saddle.'])
   })
 
   it('parses authored content list and single-resource transport wrappers', () => {
@@ -1826,6 +2242,7 @@ describe('schema package parsing', () => {
         {
           id: 'acolyte',
           publicId: 'acolyte',
+          activeRevisionId: 'acolyte-revision-1',
           label: 'Acolyte',
           description: 'Temple-trained background.',
           status: 'ACTIVE',
@@ -1849,15 +2266,9 @@ describe('schema package parsing', () => {
       }
     }) as { items: { id?: string }[] }
 
-    const feature = featureResponseDtoSchema.parse({
-      id: 'fighting-style',
-      label: 'Fighting Style',
-      description: 'Choose a martial specialization.',
-      order: 1
-    }) as { label?: string }
-
     const spell = spellResponseDtoSchema.parse({
       publicId: 'magic-missile',
+      activeRevisionId: 'magic-missile-revision-1',
       item: {
         kind: 'SPELL',
         id: 'magic-missile',
@@ -1883,13 +2294,13 @@ describe('schema package parsing', () => {
         canCopy: true,
         canDelete: false
       }
-    }) as { item?: { id?: string }, permissions?: { canEdit?: boolean } }
+    }) as { item?: { id?: string }; permissions?: { canEdit?: boolean } }
 
     const draftOnlySpell = spellResponseDtoSchema.parse({
       publicId: 'draft-spell',
+      activeRevisionId: null,
       item: null,
       draft: {
-        id: 'draft-1',
         subjectKind: 'SPELL',
         subjectId: 'draft-spell-id',
         publicId: 'draft-spell',
@@ -1898,7 +2309,10 @@ describe('schema package parsing', () => {
         label: 'Broken Draft Spell',
         status: 'DRAFT',
         draftState: 'DRAFT_ONLY',
-        baseActiveUpdatedAt: null,
+        revisionId: 'revision-1',
+        revisionNumber: 1,
+        activeRevisionId: null,
+        baseActiveRevisionId: null,
         payload: {}
       },
       provenance: {
@@ -1910,14 +2324,111 @@ describe('schema package parsing', () => {
         canEdit: true,
         canCopy: false,
         canDelete: true
-      }
-    }) as { item?: unknown, draft?: { label?: string } }
+      },
+      validationIssues: [
+        {
+          code: 'invalid_type',
+          message: 'Required input is missing',
+          path: ['castingTime', 'unit']
+        }
+      ]
+    }) as {
+      item?: unknown
+      draft?: { label?: string }
+      validationIssues?: Array<{ path: Array<string | number> }>
+    }
 
     expect(list.items[0]?.id).toBe('acolyte')
-    expect(feature?.label).toBe('Fighting Style')
     expect(spell?.permissions?.canEdit).toBe(false)
     expect(draftOnlySpell?.item).toBeNull()
     expect(draftOnlySpell?.draft?.label).toBe('Broken Draft Spell')
+    expect(draftOnlySpell?.validationIssues?.[0]?.path).toEqual(['castingTime', 'unit'])
+  })
+
+  it('parses equipment attunement and limits equipment requirements to character facets', () => {
+    const equipment = {
+      kind: 'EQUIPMENT',
+      id: 'equipment-attuned',
+      label: 'Attuned Item',
+      description: null,
+      rarityId: 'rare',
+      userId: 'user-1',
+      systemId: 'system-1',
+      weight: { amount: 1, unit: 'POUNDS' },
+      properties: [],
+      category: 'ADVENTURING_GEAR',
+      requiresAttunement: true,
+      restrictions: {
+        id: 'equipment-requirements',
+        groups: [
+          {
+            id: 'equipment-requirement-group',
+            order: 1,
+            contexts: [
+              {
+                id: 'equipment-requirement-context',
+                order: 1,
+                subject: 'CHARACTER'
+              }
+            ]
+          }
+        ]
+      }
+    } as const
+
+    expect(equipmentAuthoredDtoSchema.parse(equipment)).toMatchObject({
+      requiresAttunement: true,
+      restrictions: {
+        groups: [{ contexts: [{ subject: 'CHARACTER' }] }]
+      }
+    })
+    expect(() =>
+      equipmentAuthoredDtoSchema.parse({
+        ...equipment,
+        restrictions: {
+          ...equipment.restrictions,
+          groups: [
+            {
+              ...equipment.restrictions.groups[0],
+              contexts: [
+                {
+                  ...equipment.restrictions.groups[0].contexts[0],
+                  subject: 'EQUIPMENT'
+                }
+              ]
+            }
+          ]
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      equipmentAuthoredDtoSchema.parse({
+        ...equipment,
+        restrictions: {
+          ...equipment.restrictions,
+          groups: [
+            {
+              ...equipment.restrictions.groups[0],
+              contexts: [
+                {
+                  ...equipment.restrictions.groups[0].contexts[0],
+                  conditions: [
+                    {
+                      id: 'invalid-range-condition',
+                      order: 1,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      predicateCode: 'RANGE',
+                      rangeKind: ['DISTANCE']
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      })
+    ).toThrow(/not valid for CHARACTER/)
   })
 
   it('parses node runtime resolve and normalize contracts', () => {
@@ -1937,45 +2448,86 @@ describe('schema package parsing', () => {
     const response = nodeRuntimeResolveResponseDtoSchema.parse({
       mapId: 'startingEquipmentItem',
       clearPaths: [['equipmentIds']],
-      steps: [{
-        id: 'basics',
-        label: 'Basics',
-        order: 10,
-        sections: [{
+      steps: [
+        {
           id: 'basics',
           label: 'Basics',
           order: 10,
-          nodes: [{
-            id: 'equipmentIds',
-            path: ['equipmentIds'],
-            label: 'Equipment',
-            kind: 'INPUT',
-            type: 'SELECT_MULTI',
-            visible: true,
-            required: false,
-            clearPaths: [],
-            options: [{
-              value: 'longsword',
-              label: 'Longsword',
-              description: 'A martial melee weapon.',
-              disabled: false,
-              group: 'Weapons',
-              metadata: { category: 'WEAPON' }
-            }]
-          }]
-        }]
-      }]
+          sections: [
+            {
+              id: 'basics',
+              label: 'Basics',
+              order: 10,
+              nodes: [
+                {
+                  id: 'requiresAttunement',
+                  path: ['requiresAttunement'],
+                  label: 'Requires Attunement',
+                  kind: 'INPUT',
+                  type: 'TOGGLE',
+                  visible: true,
+                  required: false,
+                  hiddenBehavior: 'KEEP',
+                  clearPaths: [],
+                  authoring: { exposure: 'author' }
+                },
+                {
+                  id: 'equipmentIds',
+                  path: ['equipmentIds'],
+                  label: 'Equipment',
+                  kind: 'INPUT',
+                  type: 'SELECT_MULTI',
+                  visible: true,
+                  required: false,
+                  hiddenBehavior: 'KEEP',
+                  clearPaths: [],
+                  authoring: { exposure: 'author' },
+                  options: [
+                    {
+                      value: 'longsword',
+                      label: 'Longsword',
+                      description: 'A martial melee weapon.',
+                      disabled: false,
+                      group: 'Weapons',
+                      metadata: { category: 'WEAPON' }
+                    }
+                  ]
+                },
+                {
+                  id: 'effects',
+                  path: ['effects'],
+                  label: 'Effects',
+                  kind: 'GROUP',
+                  groupKind: 'ARRAY',
+                  presentation: 'focused',
+                  childMapId: 'effect',
+                  visible: true,
+                  required: false,
+                  hiddenBehavior: 'KEEP',
+                  clearPaths: [],
+                  authoring: {
+                    exposure: 'author',
+                    collection: {
+                      actions: [],
+                      ordering: { mode: 'derived' }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      scopes: []
     })
 
     const normalizeRequest = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request)
 
-    expect(response.steps[0]?.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('longsword')
+    expect(response.steps[0]?.sections[0]?.nodes).toMatchObject([
+      { type: 'TOGGLE' },
+      { options: [{ value: 'longsword' }] },
+      { presentation: 'focused' }
+    ])
     expect(normalizeRequest.mapId).toBe('startingEquipmentItem')
   })
 })
-
-
-
-
-
-

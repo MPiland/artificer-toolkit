@@ -90,6 +90,18 @@ export const BACKGROUND_IDS = {
   ACOLYTE: subjectId('0040', 1)
 } as const
 
+// SRD 5.1 includes only Grappler.
+export const FEAT_IDS = {
+  GRAPPLER: subjectId('0050', 11)
+} as const
+
+// The gaps are retired generator slots. Preserve them so stable seeded IDs are never renumbered.
+export const EQUIPMENT_IDS = [
+  ...Array.from({ length: 188 }, (_, index) => subjectId('0060', index + 1)),
+  ...Array.from({ length: 111 }, (_, index) => subjectId('0060', index + 192)),
+  ...Array.from({ length: 59 }, (_, index) => subjectId('0060', index + 306))
+] as const
+
 // ─── Spells (domain 0020) ─────────────────────────────────────────────────────
 // 319 SRD spells — indexed alphabetically
 

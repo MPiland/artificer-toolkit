@@ -25,6 +25,12 @@ acquisition purposes — they originate from racial or manual decisions.
 **Why this order matters:** Class grants (e.g. proficiencies) must not overwrite racial grants of
 the same kind when stacking; processing order determines first-write semantics for exclusive modifiers.
 
+Each snapshot class row represents one base-class progression and may name its selected subclass.
+The primary class applies its normal proficiency grants. Later base classes apply only their authored
+multiclass proficiencies, while their level-appropriate class and subclass features still apply normally.
+The selected subclass is processed immediately after its owning base class and is never added as a
+second pseudo-class level row.
+
 ---
 
 ## 2. Grant Application Order
@@ -83,7 +89,7 @@ Stats are calculated in this exact order. Each step may depend on the result of 
 
 3. **Ability modifiers computed** — `floor((finalScore - 10) / 2)` for each ability
 
-4. **Total character level computed** — sum of all `snapshot.intent.classes[].classLevel`
+4. **Total character level computed** — sum of all base-class snapshot levels
 
 5. **Proficiency bonus computed** — `floor((totalLevel - 1) / 4) + 2`
 
@@ -98,12 +104,12 @@ Stats are calculated in this exact order. Each step may depend on the result of 
    `abilityModifier(governingAbility) + (proficiencyBonus × scaling)`
    Same scaling as saving throws.
 
-8. **Hit points** — sum of `snapshot.intent.hitpoints.levels[].value` which already stores
-   per-level HP values (computed during character creation UX, includes CON modifier)
+8. **Hit points** — sum of `snapshot.intent.hitpoints.levels[].value`; each ordered row already stores
+   its character level, class identity, class level, and computed HP value (including CON modifier)
    Note: this is the already-computed HP total from the character's level entries.
 
-9. **Armor class** — `10 + DEX modifier` (base unarmored; equipped armor calculation is Phase 7)
-   Apply `ARMOR_CLASS` domain modifiers on top.
+9. **Armor class** — resolve eligible equipped armor/shields and their modifiers, otherwise use
+   `10 + DEX modifier`; then apply remaining `ARMOR_CLASS` domain modifiers.
 
 10. **Initiative** — `DEX modifier` + sum of `INITIATIVE` domain modifiers
 
@@ -122,12 +128,10 @@ Effect resolution (damage dice, healing, condition application, moment triggers)
 
 ---
 
-## 6. Out of Scope for This Implementation (Phase 7+)
+## 6. Out of Scope for This Implementation
 
-- Armor class from equipped armor / shield
 - Damage/attack roll simulation
-- Condition tracking and stacking
-- Spell slot depletion and multi-class fusion
-- Feat prerequisite validation at engine time
+- Encounter turn, target, and outcome sequencing
+- Mechanical condition consequences and stacking
 - Per-scope ENHANCEMENT bonus capping
 

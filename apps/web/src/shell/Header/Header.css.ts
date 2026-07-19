@@ -18,7 +18,6 @@ export const root = style({
       borderBlockEnd: `1px solid ${foundationVars.color.border.strong}`,
       backgroundColor: foundationVars.color.surface.header,
       color: foundationVars.color.text.primary,
-      boxShadow: '0 1px 0 rgba(255, 255, 255, 0.02)',
       '@media': {
         [tabletPortrait]: {
           gridTemplateColumns: 'minmax(0, 1fr) auto'
@@ -119,6 +118,25 @@ export const brandName = style({
           display: 'none'
         }
       }
+    }
+  }
+})
+
+export const supplement = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      minBlockSize: 24,
+      paddingInline: foundationVars.space[2],
+      border: `1px solid ${foundationVars.color.accent.border}`,
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: foundationVars.color.accent.soft,
+      color: foundationVars.color.text.accent,
+      fontSize: '12px',
+      fontWeight: foundationVars.fontWeight.bold,
+      lineHeight: '16px',
+      whiteSpace: 'nowrap'
     }
   }
 })

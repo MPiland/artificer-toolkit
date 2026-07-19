@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   EFFECT_KIND,
   type ConditionAuthored,
@@ -49,9 +50,9 @@ async function upsertGenericOutcome(
   await db
     .insertInto('effect_generic_outcomes')
     .values(mapEffectGenericOutcomeRow(outcome))
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      effect_kind: ref('excluded.effect_kind'),
-      json_data: ref('excluded.json_data')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      effect_kind: eb.ref('excluded.effect_kind'),
+      json_data: eb.ref('excluded.json_data')
     })))
     .execute()
 }
@@ -89,9 +90,7 @@ async function upsertResultBlock(
 }
 
 export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promise<void> {
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     await deleteEffectById(trx, json_data.id)
     const paths = json_data.paths ?? []
 
@@ -158,11 +157,7 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
       }
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }
 
 

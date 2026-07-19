@@ -2,6 +2,7 @@ import {
   AUTHORING_CONSTRAINT,
   type FeatAuthored
 } from '@artificer-toolkit/shared'
+import { FEAT_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 // Domain 0050 — format: 00000000-0000-0000-0050-NNNN00000000
@@ -11,7 +12,7 @@ function featId(index: number): string {
 }
 
 export const grappler: FeatAuthored = {
-  id: featId(11),
+  id: FEAT_IDS.GRAPPLER,
   label: 'Grappler',
   description:
     'You\'ve developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.',

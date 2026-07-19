@@ -1,10 +1,5 @@
 /* Optimize RLS auth checks so auth.uid()/auth.jwt() run once per statement. */
 
-DROP POLICY IF EXISTS "Admins can view admin flags." ON public.admins;
-CREATE POLICY "Admins can view admin flags."
-  ON public.admins FOR SELECT TO authenticated
-  USING (((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true');
-
 CREATE OR REPLACE FUNCTION public.apply_direct_ownership_policies(target_table text)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
@@ -342,27 +337,6 @@ CREATE POLICY "Users can delete own systems."
     user_id = (SELECT auth.uid())
     OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
-
-DROP POLICY IF EXISTS "Users can select own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can select own authored drafts"
-  ON public.authored_subject_drafts FOR SELECT TO authenticated
-  USING (user_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS "Users can insert own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can insert own authored drafts"
-  ON public.authored_subject_drafts FOR INSERT TO authenticated
-  WITH CHECK (user_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS "Users can update own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can update own authored drafts"
-  ON public.authored_subject_drafts FOR UPDATE TO authenticated
-  USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS "Users can delete own authored drafts" ON public.authored_subject_drafts;
-CREATE POLICY "Users can delete own authored drafts"
-  ON public.authored_subject_drafts FOR DELETE TO authenticated
-  USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Users can select own character builder drafts" ON public.character_builder_drafts;
 CREATE POLICY "Users can select own character builder drafts"

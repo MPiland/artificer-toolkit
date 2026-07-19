@@ -1,22 +1,28 @@
 import { style } from '@vanilla-extract/css'
-import { foundationVars } from '../../../css/foundations.css.ts'
+import { foundationVars, media } from '../../../css/foundations.css.ts'
 import { app } from '../../../css/layers.css.ts'
-
-const mobile = 'screen and (max-width: 640px)'
 
 export const header = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexDirection: 'row',
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      alignItems: 'center',
       justifyContent: 'space-between',
+      gap: foundationVars.space[4],
+      minBlockSize: 76,
       maxInlineSize: '100%',
-      paddingBlock: foundationVars.space[2],
-      paddingInline: foundationVars.space[3],
+      paddingBlock: foundationVars.space[3],
+      paddingInline: foundationVars.space[4],
       borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.header,
       '@media': {
-        [mobile]: {
+        [media.tabletPortrait]: {
+          gridTemplateColumns: 'minmax(0, 1fr)',
           gap: foundationVars.space[3]
+        },
+        [media.mobile]: {
+          paddingInline: foundationVars.space[3]
         }
       }
     }
@@ -31,6 +37,16 @@ export const titleRow = style({
       alignItems: 'center',
       minInlineSize: 0,
       gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const titleStack = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      flex: '0 1 auto',
+      minInlineSize: 0
     }
   }
 })
@@ -52,7 +68,46 @@ export const title = style({
   }
 })
 
-export const statusBadge = style({
+export const moduleLabel = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      overflow: 'hidden',
+      color: foundationVars.color.text.muted,
+      fontSize: '13px',
+      lineHeight: '18px',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }
+})
+
+export const saveState = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: foundationVars.space[1],
+      color: foundationVars.color.text.accent,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      lineHeight: '16px',
+      whiteSpace: 'nowrap',
+      selectors: {
+        '&[data-dirty="true"]': {
+          color: foundationVars.color.status.warning,
+          fontWeight: foundationVars.fontWeight.semibold
+        }
+      },
+      '@media': {
+        [media.mobile]: {
+          display: 'none'
+        }
+      }
+    }
+  }
+})
+
+export const provenanceBadge = style({
   '@layer': {
     [app]: {
       display: 'inline-flex',
@@ -60,15 +115,27 @@ export const statusBadge = style({
       gap: foundationVars.space[1],
       minBlockSize: 24,
       paddingInline: foundationVars.space[2],
-      border: `1px solid ${foundationVars.color.accent.border}`,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.text.accent,
+      backgroundColor: foundationVars.color.surface.subtle,
+      color: foundationVars.color.text.secondary,
       fontSize: '12px',
       fontWeight: foundationVars.fontWeight.bold,
       lineHeight: '16px',
       alignSelf: 'center',
       whiteSpace: 'nowrap'
+    }
+  }
+})
+
+export const viewActions = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: foundationVars.space[2],
+      marginInlineStart: foundationVars.space[2],
+      flexShrink: 0
     }
   }
 })
@@ -84,11 +151,32 @@ export const formActions = style({
       minInlineSize: 0,
       flexShrink: 0,
       '@media': {
-        [mobile]: {
-          justifyContent: 'flex-start',
-          alignSelf: 'center'
+        [media.tabletPortrait]: {
+          flexWrap: 'wrap',
+          justifyContent: 'flex-end',
+          inlineSize: '100%'
         }
       }
+    }
+  }
+})
+
+export const utilityActions = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const lifecycleActions = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: foundationVars.space[2]
     }
   }
 })

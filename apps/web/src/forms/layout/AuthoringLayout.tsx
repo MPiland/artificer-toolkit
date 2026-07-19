@@ -1,9 +1,7 @@
 import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { Alert, Button, Stack } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
 import { useMatches } from '@tanstack/react-router'
-import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import * as styles from './AuthoringLayout.css'
 import { ResetFormConfirmation } from './Actions/ResetFormConfirmation'
 import { Steps } from './Steps/Steps'
@@ -23,12 +21,11 @@ import { FormRenderer } from '../rendering/FormRenderer'
 import { InvalidDraftAlert } from './Editor/SectionRow/InvalidDraftAlert'
 import type { AuthoredFormDomainRegistration } from '../factories/authoredFormFactories'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
-import type {
-  AuthoredFormRouteMode,
-  CharacterBuilderRouteMode
-} from './authoredFormRouteContext'
+import type { AuthoredFormRouteMode, CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import { CharacterBuilderAuthoringRuntime } from '#domains/characters/components/CharacterBuilderAuthoringRuntime'
 import { useBreakpoints } from '#ui'
+import { useShellHeaderSupplement } from '#app/shell'
+import { getRulesetLabel } from './AuthoringLayout.utils'
 
 type EmptyAuthoringLayoutProps = {
   children?: ReactNode
@@ -51,7 +48,6 @@ type CharacterBuilderDomainRegistration = {
 }
 
 const EMPTY_FORM_VALUES: object = {}
-const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
 const AuthoredFormRenderer = FormRenderer({ defaultValues: EMPTY_FORM_VALUES })
 
 export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
@@ -64,47 +60,43 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const { stepsNavigationOpen, setPreviewContent } = useAuthoringLayout()
-  const { isMobile } = useBreakpoints()
+  const { isMobile, isTabletPortrait } = useBreakpoints()
+  const usesOverlayNavigation = isMobile || isTabletPortrait
   const authoring = useAuthoringForm()
   const session = authoring.authoredSession
   const characterSession = authoring.characterSession
-  const {
-    activateValues,
-    saveDraftValues,
-    updateAuthoringFormActions
-  } = authoring
+  const rulesetLabel = getRulesetLabel(session?.system)
+  useShellHeaderSupplement(rulesetLabel ?? null)
+  const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
+    authoring
   const defaultValues = useMemo(() => session?.initialValues ?? EMPTY_FORM_VALUES, [session])
   const form = useAppForm({
     defaultValues,
+    listeners: {
+      onChange: ({ fieldApi }) => clearValidationIssues(fieldApi.name)
+    },
     onSubmit: async ({ value }) => {
       if (!session) return
       await activateValues(value)
     }
   })
-  const formIsDirty = useStore(form.store, (state) => state.isDirty)
-  const clearPaths = authoring.resolvedModel?.clearPaths ?? EMPTY_CLEAR_PATHS
-  const clearPathKey = clearPaths.map((path) => path.join('.')).join('|')
-
   useEffect(() => {
     if (!session) return
     form.reset(session.initialValues)
   }, [form, session])
-
-  useEffect(() => {
-    if (!formIsDirty || clearPaths.length === 0) return
-    clearResolvedNodeFormPaths(form, clearPaths)
-  }, [clearPathKey, clearPaths, form, formIsDirty])
 
   const previewContent = useMemo(() => {
     if (!session?.renderPreview) return undefined
 
     return (
       <form.Subscribe selector={(state) => state.values}>
-        {(nextValues) => session.renderPreview?.({
-          domain: session.domain,
-          system: session.system,
-          values: nextValues
-        })}
+        {(nextValues) =>
+          session.renderPreview?.({
+            domain: session.domain,
+            system: session.system,
+            values: nextValues
+          })
+        }
       </form.Subscribe>
     )
   }, [form, session])
@@ -197,7 +189,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       <main
         className={styles.canvas}
         data-testid='authoring-form-canvas'
-        data-structure-open={!isMobile && stepsNavigationOpen ? 'true' : 'false'}
+        data-structure-open={!usesOverlayNavigation && stepsNavigationOpen ? 'true' : 'false'}
       >
         <Header />
         <section id='authoring-workspace' className={styles.workspace}>

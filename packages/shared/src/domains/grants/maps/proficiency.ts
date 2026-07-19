@@ -2,6 +2,7 @@ import type { ProficiencyGrantAuthored } from '#authored'
 import {
   ABILITY_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
+  AUTHORING_SELECTION_DUPLICATE_POLICY_OPTIONS,
   AUTHORING_SELECTION_OPTIONS,
   EQUIPMENT_CATEGORY_OPTIONS,
   EQUIPMENT_PROPERTY_OPTIONS,
@@ -10,7 +11,7 @@ import {
   SCALING_AMOUNT_OPTIONS
 } from '#core'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
-import { buildNodeMap, type NodeMap } from '#utils'
+import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap, type NodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
 type ProficiencyGrantUnion = AllUnionFields<ProficiencyGrantAuthored>
@@ -31,30 +32,38 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       .set('id', text(['id'], 'ID'))
       .set('order', number(['order'], 'Order'))
       .set('selectionKind', selectSingle(['selectionKind'], 'Selection Kind', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: AUTHORING_SELECTION_OPTIONS
       }))
       .set('count', number(['count'], 'Count', {
+        requiredIf: true,
+        showIf: local.field(['selectionKind']).eq('CHOSEN')
+      }))
+      .set('selectionDuplicatePolicy', selectSingle(['selectionDuplicatePolicy'], 'Duplicate Policy', {
+        kind: 'INLINE_OPTIONS',
+        options: AUTHORING_SELECTION_DUPLICATE_POLICY_OPTIONS
+      }, {
+        requiredIf: true,
         showIf: local.field(['selectionKind']).eq('CHOSEN')
       }))
       .set('proficiencyKind', selectSingle(['proficiencyKind'], 'Proficiency Kind', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: PROFICIENCY_KIND_OPTIONS
       }, {
         requiredIf: true
       }))
       .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: AUTHORING_MODE_KIND_OPTIONS
       }))
       .set('level', selectSingle(['level'], 'Level', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: SCALING_AMOUNT_OPTIONS
       }, {
         requiredIf: true
       }))
       .set('rounding', selectSingle(['rounding'], 'Rounding', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: ROUNDING_OPTIONS
       }, {
         requiredIf: true,
@@ -73,7 +82,7 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
         ])
       }))
       .set('abilities', selectMulti(['abilities'], 'Abilities', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: ABILITY_OPTIONS
       }, {
         requiredIf: true,
@@ -107,23 +116,17 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
         ])
       }))
       .set('category', selectSingle(['category'], 'Category', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: EQUIPMENT_CATEGORY_OPTIONS
       }, {
         requiredIf: local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY'),
         showIf: or([
-          and([
-            local.field(['authoringModeKind']).eq('SELECTED'),
-            local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY')
-          ]),
-          and([
-            local.field(['authoringModeKind']).eq('SELECTED'),
-            local.field(['proficiencyKind']).eq('EQUIPMENT')
-          ])
+          local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY'),
+          local.field(['proficiencyKind']).eq('EQUIPMENT')
         ])
       }))
       .set('properties', selectMulti(['properties'], 'Properties', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: EQUIPMENT_PROPERTY_OPTIONS
       }, {
         requiredIf: local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY'),
@@ -135,6 +138,6 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
           local.field(['proficiencyKind']).eq('EQUIPMENT')
         ])
       }))
-      .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => PROFICIENCY_RESTRICTIONS_NODE_MAP))
+      .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => PROFICIENCY_RESTRICTIONS_NODE_MAP, { presentation: 'inline', authoring: { actions: [{ type: 'collection.add', label: 'Add', presentation: AUTHORING_ACTION_PRESENTATIONS.button }] } }))
   }
 )

@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
@@ -13,6 +14,7 @@ import {
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
+import { requireNoSelectionDuplicatePolicy } from '../repositories/helpers.js'
 
 type ModifierGrantRootRow = {
   id: string
@@ -23,6 +25,7 @@ type ModifierGrantRootRow = {
   scope: string
   selection_kind: string
   count: number | null
+  selection_duplicate_policy: string | null
   sort_order: number
   restriction_id: string | null
 }
@@ -80,6 +83,7 @@ type ModifierGrantChargeLevelRow = {
 type ModifierGrantOptionalAbilityRow = {
   modifier_grant_id: string
   ability_code: string
+  sort_order: number
 }
 
 function requireSystemId(systemId: string | undefined): string {
@@ -92,21 +96,7 @@ function requireSystemId(systemId: string | undefined): string {
   return systemId
 }
 
-function requireChosenCount(
-  grantId: string,
-  count: number | undefined
-): number {
-  if (count == null) {
-    throw new Error(`Modifier grant "${grantId}" is missing count for CHOSEN payload.`)
-  }
-
-  return count
-}
-
-function rejectGrantedCount(
-  grantId: string,
-  count: number | undefined
-) {
+function rejectGrantedCount(grantId: string, count: number | undefined) {
   if (count == null) {
     return
   }
@@ -114,11 +104,7 @@ function rejectGrantedCount(
   throw new Error(`Modifier grant "${grantId}" cannot persist count for GRANTED payload.`)
 }
 
-function requireAbilityCode(
-  grantId: string,
-  value: string,
-  field: string
-): string {
+function requireAbilityCode(grantId: string, value: string, field: string): string {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`Modifier grant "${grantId}" has invalid ${field} "${value}".`)
   }
@@ -126,10 +112,7 @@ function requireAbilityCode(
   return value
 }
 
-function requireAttackDomainCode(
-  grantId: string,
-  value: string
-): string {
+function requireAttackDomainCode(grantId: string, value: string): string {
   if (!(value in ATTACK_DOMAIN_CODE)) {
     throw new Error(`Modifier grant "${grantId}" has invalid attackDomain "${value}".`)
   }
@@ -137,10 +120,7 @@ function requireAttackDomainCode(
   return value
 }
 
-function requireModifierScope(
-  grantId: string,
-  value: string
-): string {
+function requireModifierScope(grantId: string, value: string): string {
   if (!(value in MODIFIER_SCOPE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid scope "${value}".`)
   }
@@ -148,10 +128,7 @@ function requireModifierScope(
   return value
 }
 
-function requireModifierKind(
-  grantId: string,
-  value: string
-): string {
+function requireModifierKind(grantId: string, value: string): string {
   if (!(value in MODIFIER_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid modifierKind "${value}".`)
   }
@@ -159,10 +136,7 @@ function requireModifierKind(
   return value
 }
 
-function requireRangeKind(
-  grantId: string,
-  value: string
-): string {
+function requireRangeKind(grantId: string, value: string): string {
   if (!(value in RANGE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid rangeKind "${value}".`)
   }
@@ -170,10 +144,7 @@ function requireRangeKind(
   return value
 }
 
-function requireDurationKind(
-  grantId: string,
-  value: string
-): string {
+function requireDurationKind(grantId: string, value: string): string {
   if (!(value in DURATION_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid durationKind "${value}".`)
   }
@@ -181,10 +152,7 @@ function requireDurationKind(
   return value
 }
 
-function requireShapeKind(
-  grantId: string,
-  value: string
-): string {
+function requireShapeKind(grantId: string, value: string): string {
   if (!(value in SHAPE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid shapeKind "${value}".`)
   }
@@ -192,10 +160,7 @@ function requireShapeKind(
   return value
 }
 
-function requireChargeResetKind(
-  grantId: string,
-  value: string
-): string {
+function requireChargeResetKind(grantId: string, value: string): string {
   if (!(value in CHARGE_RESET_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid resetKind "${value}".`)
   }
@@ -203,10 +168,7 @@ function requireChargeResetKind(
   return value
 }
 
-function requireChargeLimitKind(
-  grantId: string,
-  value: string
-): string {
+function requireChargeLimitKind(grantId: string, value: string): string {
   if (!(value in CHARGE_LIMIT_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid limitKind "${value}".`)
   }
@@ -214,10 +176,7 @@ function requireChargeLimitKind(
   return value
 }
 
-function requireChargeScalingKind(
-  grantId: string,
-  value: string
-): string {
+function requireChargeScalingKind(grantId: string, value: string): string {
   if (!(value in CHARGE_SCALING)) {
     throw new Error(`Modifier grant "${grantId}" has invalid scalingKind "${value}".`)
   }
@@ -230,12 +189,12 @@ function requireNumericValueKind(
   value: unknown
 ): ModifierGrantPayloadRow['numeric_value_kind'] {
   if (
-    value !== 'FIXED'
-    && value !== 'PROFICIENCY_BONUS'
-    && value !== 'SKILL_BONUS'
-    && value !== 'CHARACTER_LEVEL'
-    && value !== 'CLASS_LEVEL'
-    && value !== 'SPELL_SLOT_LEVEL'
+    value !== 'FIXED' &&
+    value !== 'PROFICIENCY_BONUS' &&
+    value !== 'SKILL_BONUS' &&
+    value !== 'CHARACTER_LEVEL' &&
+    value !== 'CLASS_LEVEL' &&
+    value !== 'SPELL_SLOT_LEVEL'
   ) {
     throw new Error(`Modifier grant "${grantId}" has invalid valueKind "${String(value)}".`)
   }
@@ -243,11 +202,7 @@ function requireNumericValueKind(
   return value
 }
 
-function requirePayload<T>(
-  grantId: string,
-  payload: T | undefined,
-  modifierKind: string
-): T {
+function requirePayload<T>(grantId: string, payload: T | undefined, modifierKind: string): T {
   if (payload == null) {
     throw new Error(`Modifier grant "${grantId}" is missing payload for ${modifierKind}.`)
   }
@@ -259,8 +214,22 @@ function mapModifierGrantRootRow(
   json_data: ModifierGrantAuthored,
   systemId: string
 ): ModifierGrantRootRow {
-  if (json_data.selectionKind !== 'CHOSEN' && 'count' in json_data) {
+  const selectionKind = (json_data as { selectionKind: string }).selectionKind
+  if (selectionKind !== 'GRANTED') {
+    throw new Error(
+      `Modifier grant "${json_data.id}" has unsupported selectionKind "${selectionKind}".`
+    )
+  }
+
+  if ('count' in json_data) {
     rejectGrantedCount(json_data.id, (json_data as { count?: number }).count)
+  }
+
+  if ('selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Modifier grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+    )
   }
 
   return {
@@ -270,10 +239,9 @@ function mapModifierGrantRootRow(
     value_domain_code: json_data.valueDomainCode,
     modifier_kind: requireModifierKind(json_data.id, json_data.modifierKind),
     scope: requireModifierScope(json_data.id, json_data.scope),
-    selection_kind: json_data.selectionKind,
-    count: json_data.selectionKind === 'CHOSEN'
-      ? requireChosenCount(json_data.id, json_data.count)
-      : null,
+    selection_kind: 'GRANTED',
+    count: null,
+    selection_duplicate_policy: null,
     sort_order: json_data.order,
     restriction_id: json_data.restrictions?.id ?? null
   }
@@ -288,7 +256,10 @@ function mapModifierGrantDomainRow(
       return {
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
-        attack_domain_code: requireAttackDomainCode(json_data.id, (json_data.domain as { attackDomain?: string }).attackDomain ?? ''),
+        attack_domain_code: requireAttackDomainCode(
+          json_data.id,
+          (json_data.domain as { attackDomain?: string }).attackDomain ?? ''
+        ),
         ability_code: null,
         skill_id: null,
         speed_id: null,
@@ -302,12 +273,17 @@ function mapModifierGrantDomainRow(
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
         attack_domain_code: null,
-        ability_code: requireAbilityCode(json_data.id, (json_data.domain as { ability?: string }).ability ?? '', 'domain ability'),
+        ability_code: requireAbilityCode(
+          json_data.id,
+          (json_data.domain as { ability?: string }).ability ?? '',
+          'domain ability'
+        ),
         skill_id: null,
         speed_id: null,
         sense_code: null,
         spell_level: null,
-        condition_type_id: (json_data.domain as { conditionTypeId?: string }).conditionTypeId ?? null
+        condition_type_id:
+          (json_data.domain as { conditionTypeId?: string }).conditionTypeId ?? null
       }
 
     case 'ABILITY_SCORE':
@@ -315,7 +291,11 @@ function mapModifierGrantDomainRow(
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
         attack_domain_code: null,
-        ability_code: requireAbilityCode(json_data.id, (json_data.domain as { ability?: string }).ability ?? '', 'domain ability'),
+        ability_code: requireAbilityCode(
+          json_data.id,
+          (json_data.domain as { ability?: string }).ability ?? '',
+          'domain ability'
+        ),
         skill_id: null,
         speed_id: null,
         sense_code: null,
@@ -404,9 +384,7 @@ function mapModifierGrantDomainRow(
   }
 }
 
-function createEmptyPayloadRow(
-  json_data: ModifierGrantAuthored
-): ModifierGrantPayloadRow {
+function createEmptyPayloadRow(json_data: ModifierGrantAuthored): ModifierGrantPayloadRow {
   return {
     modifier_grant_id: json_data.id,
     modifier_kind: requireModifierKind(json_data.id, json_data.modifierKind),
@@ -438,9 +416,7 @@ function createEmptyPayloadRow(
   }
 }
 
-function mapModifierGrantPayload(
-  json_data: ModifierGrantAuthored
-): {
+function mapModifierGrantPayload(json_data: ModifierGrantAuthored): {
   payload: ModifierGrantPayloadRow | null
   chargeLevels: ModifierGrantChargeLevelRow[]
   optionalAbilities: ModifierGrantOptionalAbilityRow[]
@@ -457,7 +433,10 @@ function mapModifierGrantPayload(
     case 'PENALTY': {
       const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
       const row = createEmptyPayloadRow(json_data)
-      const valueKind = requireNumericValueKind(json_data.id, (payload as { valueKind?: string }).valueKind)
+      const valueKind = requireNumericValueKind(
+        json_data.id,
+        (payload as { valueKind?: string }).valueKind
+      )
       row.numeric_value_kind = valueKind
 
       switch (valueKind) {
@@ -502,7 +481,11 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          numeric_ability_code: requireAbilityCode(json_data.id, (payload as { ability?: string }).ability ?? '', 'payload ability'),
+          numeric_ability_code: requireAbilityCode(
+            json_data.id,
+            (payload as { ability?: string }).ability ?? '',
+            'payload ability'
+          ),
           numeric_multiplier: (payload as { multiplier?: number }).multiplier ?? null,
           numeric_min: (payload as { min?: number }).min ?? null,
           numeric_max: (payload as { max?: number }).max ?? null
@@ -621,7 +604,10 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          range_kind: requireRangeKind(json_data.id, (payload as { rangeKind?: string }).rangeKind ?? '')
+          range_kind: requireRangeKind(
+            json_data.id,
+            (payload as { rangeKind?: string }).rangeKind ?? ''
+          )
         },
         chargeLevels,
         optionalAbilities
@@ -633,7 +619,10 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          duration_kind: requireDurationKind(json_data.id, (payload as { durationKind?: string }).durationKind ?? '')
+          duration_kind: requireDurationKind(
+            json_data.id,
+            (payload as { durationKind?: string }).durationKind ?? ''
+          )
         },
         chargeLevels,
         optionalAbilities
@@ -645,7 +634,10 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          shape_kind: requireShapeKind(json_data.id, (payload as { shapeKind?: string }).shapeKind ?? '')
+          shape_kind: requireShapeKind(
+            json_data.id,
+            (payload as { shapeKind?: string }).shapeKind ?? ''
+          )
         },
         chargeLevels,
         optionalAbilities
@@ -657,7 +649,10 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          reset_kind: requireChargeResetKind(json_data.id, (payload as { resetKind?: string }).resetKind ?? '')
+          reset_kind: requireChargeResetKind(
+            json_data.id,
+            (payload as { resetKind?: string }).resetKind ?? ''
+          )
         },
         chargeLevels,
         optionalAbilities
@@ -674,9 +669,10 @@ function mapModifierGrantPayload(
       return {
         payload: createEmptyPayloadRow(json_data),
         chargeLevels,
-        optionalAbilities: abilities.map((ability) => ({
+        optionalAbilities: abilities.map((ability, index) => ({
           modifier_grant_id: json_data.id,
-          ability_code: requireAbilityCode(json_data.id, ability, 'optional ability')
+          ability_code: requireAbilityCode(json_data.id, ability, 'optional ability'),
+          sort_order: index + 1
         }))
       }
     }
@@ -684,8 +680,14 @@ function mapModifierGrantPayload(
     case 'MODIFY_CHARGE_LIMIT': {
       const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
       const row = createEmptyPayloadRow(json_data)
-      const limitKind = requireChargeLimitKind(json_data.id, (payload as { limitKind?: string }).limitKind ?? '')
-      const scalingKind = requireChargeScalingKind(json_data.id, (payload as { scalingKind?: string }).scalingKind ?? '')
+      const limitKind = requireChargeLimitKind(
+        json_data.id,
+        (payload as { limitKind?: string }).limitKind ?? ''
+      )
+      const scalingKind = requireChargeScalingKind(
+        json_data.id,
+        (payload as { scalingKind?: string }).scalingKind ?? ''
+      )
 
       row.charge_limit_kind = limitKind
       row.charge_scaling_kind = scalingKind
@@ -695,18 +697,21 @@ function mapModifierGrantPayload(
           if (scalingKind === 'NONE') {
             row.charge_amount = (payload as { amount: number }).amount
           } else {
-            const levels = (payload as { levels?: { id: string, level: number, amount: number }[] }).levels
+            const levels = (payload as { levels?: { id: string; level: number; amount: number }[] })
+              .levels
             if (!levels) {
               throw new Error(`Modifier grant "${json_data.id}" is missing payload levels.`)
             }
 
-            chargeLevels.push(...levels.map((level, index) => ({
-              id: level.id,
-              modifier_grant_id: json_data.id,
-              level: level.level,
-              amount: level.amount,
-              sort_order: index + 1
-            })))
+            chargeLevels.push(
+              ...levels.map((level, index) => ({
+                id: level.id,
+                modifier_grant_id: json_data.id,
+                level: level.level,
+                amount: level.amount,
+                sort_order: index + 1
+              }))
+            )
           }
           break
 
@@ -759,18 +764,18 @@ export async function upsertModifierGrant(
   const domainRow = mapModifierGrantDomainRow(json_data)
   const { payload, chargeLevels, optionalAbilities } = mapModifierGrantPayload(json_data)
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingGrant = await trx
       .selectFrom('modifier_grants')
       .select(['restriction_id'])
       .where('id', '=', json_data.id)
       .executeTakeFirst()
 
-    if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
-        .execute()
+    if (
+      existingGrant?.restriction_id &&
+      existingGrant.restriction_id !== json_data.restrictions?.id
+    ) {
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
     }
 
     if (json_data.restrictions) {
@@ -780,17 +785,20 @@ export async function upsertModifierGrant(
     await trx
       .insertInto('modifier_grants')
       .values(root)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        grant_kind: ref('excluded.grant_kind'),
-        value_domain_code: ref('excluded.value_domain_code'),
-        modifier_kind: ref('excluded.modifier_kind'),
-        scope: ref('excluded.scope'),
-        selection_kind: ref('excluded.selection_kind'),
-        count: ref('excluded.count'),
-        sort_order: ref('excluded.sort_order'),
-        restriction_id: ref('excluded.restriction_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          grant_kind: eb.ref('excluded.grant_kind'),
+          value_domain_code: eb.ref('excluded.value_domain_code'),
+          modifier_kind: eb.ref('excluded.modifier_kind'),
+          scope: eb.ref('excluded.scope'),
+          selection_kind: eb.ref('excluded.selection_kind'),
+          count: eb.ref('excluded.count'),
+          selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
+          sort_order: eb.ref('excluded.sort_order'),
+          restriction_id: eb.ref('excluded.restriction_id')
+        }))
+      )
       .execute()
 
     await trx
@@ -814,37 +822,19 @@ export async function upsertModifierGrant(
       .execute()
 
     if (domainRow) {
-      await trx
-        .insertInto('modifier_grant_domain_params')
-        .values(domainRow)
-        .execute()
+      await trx.insertInto('modifier_grant_domain_params').values(domainRow).execute()
     }
 
     if (payload) {
-      await trx
-        .insertInto('modifier_grant_payloads')
-        .values(payload)
-        .execute()
+      await trx.insertInto('modifier_grant_payloads').values(payload).execute()
     }
 
     if (chargeLevels.length > 0) {
-      await trx
-        .insertInto('modifier_grant_charge_levels')
-        .values(chargeLevels)
-        .execute()
+      await trx.insertInto('modifier_grant_charge_levels').values(chargeLevels).execute()
     }
 
     if (optionalAbilities.length > 0) {
-      await trx
-        .insertInto('modifier_grant_optional_abilities')
-        .values(optionalAbilities)
-        .execute()
+      await trx.insertInto('modifier_grant_optional_abilities').values(optionalAbilities).execute()
     }
-
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }
-

@@ -28,7 +28,6 @@ function createQueryClient() {
 
 function createDraft(): AuthoredDraftDto {
   return {
-    id: 'draft-id',
     subjectKind: 'SPELL',
     subjectId: 'spell-id',
     publicId: '1',
@@ -37,6 +36,10 @@ function createDraft(): AuthoredDraftDto {
     label: 'Spell Draft',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
+    revisionId: 'draft-revision-id',
+    revisionNumber: 2,
+    activeRevisionId: 'active-revision-id',
+    baseActiveRevisionId: 'active-revision-id',
     payload: {
       id: 'spell-id',
       label: 'Spell Draft'

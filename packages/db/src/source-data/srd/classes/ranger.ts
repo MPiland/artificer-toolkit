@@ -1,9 +1,12 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -11,17 +14,13 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  STARTING_EQUIPMENT_KIND,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -37,6 +36,11 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 const RA = 8 // Ranger class index
@@ -74,46 +78,168 @@ const rangerSpellLimits = [
   { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 2 }], learnedSpellsLimit: 2 },
   { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 3 }], learnedSpellsLimit: 3 },
   { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 3 }], learnedSpellsLimit: 3 },
-  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 4 },
-  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 4 },
-  { classLevel: 7, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }], learnedSpellsLimit: 5 },
-  { classLevel: 8, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }], learnedSpellsLimit: 5 },
-  { classLevel: 9, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }], learnedSpellsLimit: 6 },
-  { classLevel: 10, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }], learnedSpellsLimit: 6 },
-  { classLevel: 11, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 7 },
-  { classLevel: 12, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 7 },
-  { classLevel: 13, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }
-  ], learnedSpellsLimit: 8 },
-  { classLevel: 14, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }
-  ], learnedSpellsLimit: 8 },
-  { classLevel: 15, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }
-  ], learnedSpellsLimit: 9 },
-  { classLevel: 16, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }
-  ], learnedSpellsLimit: 9 },
-  { classLevel: 17, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }
-  ], learnedSpellsLimit: 10 },
-  { classLevel: 18, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }
-  ], learnedSpellsLimit: 10 },
-  { classLevel: 19, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }
-  ], learnedSpellsLimit: 11 },
-  { classLevel: 20, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }
-  ], learnedSpellsLimit: 11 }
+  {
+    classLevel: 5,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 4
+  },
+  {
+    classLevel: 6,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 4
+  },
+  {
+    classLevel: 7,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 5
+  },
+  {
+    classLevel: 8,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 5
+  },
+  {
+    classLevel: 9,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 6
+  },
+  {
+    classLevel: 10,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 6
+  },
+  {
+    classLevel: 11,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 7
+  },
+  {
+    classLevel: 12,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 7
+  },
+  {
+    classLevel: 13,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 8
+  },
+  {
+    classLevel: 14,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 8
+  },
+  {
+    classLevel: 15,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 9
+  },
+  {
+    classLevel: 16,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 9
+  },
+  {
+    classLevel: 17,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 10
+  },
+  {
+    classLevel: 18,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 10
+  },
+  {
+    classLevel: 19,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 11
+  },
+  {
+    classLevel: 20,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 11
+  }
 ]
 
 export const ranger: ClassAuthored = {
   id: CLASS_IDS.RANGER,
   label: 'Ranger',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description: 'A warrior who uses martial prowess and nature magic to combat threats on the edges of civilization.',
+  description:
+    'A warrior who uses martial prowess and nature magic to combat threats on the edges of civilization.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -159,7 +285,162 @@ export const ranger: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(RA, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(RA, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(RA, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(RA, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(43)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(RA, 98, 6),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(RA, 98, 8),
+            order: 1,
+            options: [
+              {
+                id: classRowId(RA, 98, 9),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 10),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(28)],
+                    quantity: 2
+                  }
+                ]
+              },
+              {
+                id: classRowId(RA, 98, 11),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 12),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE, EQUIPMENT_PROPERTY_CODE.MELEE],
+                    count: 2
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(RA, 98, 13),
+            order: 2,
+            options: [
+              {
+                id: classRowId(RA, 98, 14),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 15),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(184)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(RA, 98, 16),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 17),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(RA, 98, 18),
+            order: 3,
+            options: [
+              {
+                id: classRowId(RA, 98, 19),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(RA, 98, 20),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(36)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(RA, 98, 21),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(104)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(RA, 98, 22),
+                    order: 2,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(99)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   spellcasting: {
@@ -169,19 +450,23 @@ export const ranger: ClassAuthored = {
     details: classSpellcastingDetails(RA, [
       {
         label: 'Spellcasting',
-        description: '<p>By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells, much as a druid does.</p>'
+        description:
+          '<p>By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells, much as a druid does.</p>'
       },
       {
         label: 'Spell Slots',
-        description: '<p>The Ranger table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>animal friendship</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>animal friendship</em> using either slot.</p>'
+        description:
+          "<p>The Ranger table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>animal friendship</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>animal friendship</em> using either slot.</p>"
       },
       {
         label: 'Spells Known of 1st Level and Higher',
-        description: '<p>You know two 1st-level spells of your choice from the ranger spell list.</p><p>The Spells Known column of the Ranger table shows when you learn more ranger spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 5th level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the ranger spells you know and replace it with another spell from the ranger spell list, which also must be of a level for which you have spell slots.</p>'
+        description:
+          '<p>You know two 1st-level spells of your choice from the ranger spell list.</p><p>The Spells Known column of the Ranger table shows when you learn more ranger spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 5th level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the ranger spells you know and replace it with another spell from the ranger spell list, which also must be of a level for which you have spell slots.</p>'
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Wisdom is your spellcasting ability for your ranger spells, since your magic draws on your attunement to nature. You use your Wisdom whenever a spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a ranger spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Wisdom modifier</p>'
+        description:
+          '<p>Wisdom is your spellcasting ability for your ranger spells, since your magic draws on your attunement to nature. You use your Wisdom whenever a spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a ranger spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Wisdom modifier</p>'
       }
     ]),
     charges: rangerSlotCharge,
@@ -274,6 +559,7 @@ export const ranger: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 3,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ANIMAL_HANDLING'),
@@ -293,21 +579,24 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 1),
       label: 'Favored Enemy',
-      description: 'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.',
+      description:
+        'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.',
       availableAtLevel: 1,
       order: 0
     },
     {
       id: classRowId(RA, 3, 2),
       label: 'Natural Explorer',
-      description: 'You are a master of navigating the natural world, and you react with swift and decisive action when attacked. This grants you several benefits while you are traveling for an hour or more in your favored terrain.',
+      description:
+        'You are a master of navigating the natural world, and you react with swift and decisive action when attacked. This grants you several benefits while you are traveling for an hour or more in your favored terrain.',
       availableAtLevel: 1,
       order: 1
     },
     {
       id: classRowId(RA, 3, 3),
       label: 'Fighting Style',
-      description: 'At 2nd level, you adopt a particular style of fighting. Choose one of the following options.',
+      description:
+        'At 2nd level, you adopt a particular style of fighting. Choose one of the following options.',
       availableAtLevel: 2,
       order: 2,
       optionChoices: [{ level: 2, count: 1 }],
@@ -357,7 +646,8 @@ export const ranger: ClassAuthored = {
         {
           id: classRowId(RA, 4, 3),
           label: 'Dueling',
-          description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+          description:
+            'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
           grants: {
             modifiers: [
               {
@@ -378,7 +668,8 @@ export const ranger: ClassAuthored = {
         {
           id: classRowId(RA, 4, 4),
           label: 'Two-Weapon Fighting',
-          description: 'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
+          description:
+            'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
           order: 3
         }
       ]
@@ -386,7 +677,8 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 4),
       label: 'Spellcasting',
-      description: 'By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells.',
+      description:
+        'By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells.',
       availableAtLevel: 2,
       order: 3
     },
@@ -400,28 +692,32 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 6),
       label: 'Primeval Awareness',
-      description: 'Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you.',
+      description:
+        'Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you.',
       availableAtLevel: 3,
       order: 5
     },
     {
       id: classRowId(RA, 3, 7),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 6
     },
     {
       id: classRowId(RA, 3, 8),
       label: 'Extra Attack',
-      description: 'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      description:
+        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
       availableAtLevel: 5,
       order: 7
     },
     {
       id: classRowId(RA, 3, 9),
       label: 'Favored Enemy Improvement',
-      description: 'At 6th level, you choose one additional favored enemy, as well as an associated language.',
+      description:
+        'At 6th level, you choose one additional favored enemy, as well as an associated language.',
       availableAtLevel: 6,
       order: 8
     },
@@ -442,21 +738,24 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 12),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 11
     },
     {
       id: classRowId(RA, 3, 13),
       label: 'Hide in Plain Sight',
-      description: 'Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.',
+      description:
+        'Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.',
       availableAtLevel: 10,
       order: 12
     },
     {
       id: classRowId(RA, 3, 14),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 13
     },
@@ -470,7 +769,8 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 16),
       label: 'Vanish',
-      description: 'Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can\'t be tracked by nonmagical means, unless you choose to leave a trail.',
+      description:
+        "Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can't be tracked by nonmagical means, unless you choose to leave a trail.",
       availableAtLevel: 14,
       order: 15
     },
@@ -484,28 +784,32 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 18),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 17
     },
     {
       id: classRowId(RA, 3, 19),
       label: 'Feral Senses',
-      description: 'At 18th level, you gain preternatural senses that help you fight creatures you can\'t see. When you attack a creature you can\'t see, your inability to see it doesn\'t impose disadvantage on your attack rolls against it.',
+      description:
+        "At 18th level, you gain preternatural senses that help you fight creatures you can't see. When you attack a creature you can't see, your inability to see it doesn't impose disadvantage on your attack rolls against it.",
       availableAtLevel: 18,
       order: 18
     },
     {
       id: classRowId(RA, 3, 20),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 19
     },
     {
       id: classRowId(RA, 3, 21),
       label: 'Foe Slayer',
-      description: 'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies.',
+      description:
+        'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies.',
       availableAtLevel: 20,
       order: 20
     }

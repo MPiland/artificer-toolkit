@@ -1,5 +1,10 @@
-import { Badge, Text, Title } from '@mantine/core'
+import { Badge, Text } from '@mantine/core'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
+import {
+  CharacterSheetDetailPanel,
+  CharacterSheetDetailRow,
+  CharacterSheetDetailRowList
+} from './CharacterSheetDetailPanel'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet } from './CharacterSheet.types'
 
@@ -17,56 +22,64 @@ function ReferenceFactRows({
   return (
     <>
       {items.map((item) => (
-        <div className={styles.row} key={`${badge}:${item.label}:${item.value}`}>
-          <div>
-            <Text fw={700}>{item.label}</Text>
-            <Text className={styles.muted}>{item.value}</Text>
-          </div>
-          <Badge variant='light'>{badge}</Badge>
-        </div>
+        <CharacterSheetDetailRow
+          key={`${badge}:${item.label}:${item.value}`}
+          left={(
+            <>
+              <Text fw={700}>{item.label}</Text>
+              <Text className={styles.muted}>{item.value}</Text>
+            </>
+          )}
+          right={<Badge variant='light'>{badge}</Badge>}
+        />
       ))}
     </>
   )
 }
 
-export function CharacterSheetReference({ sheet }: { sheet: CharacterSheet }) {
+export function CharacterSheetReference({
+  mode = 'all',
+  sheet
+}: {
+  mode?: 'all' | 'features' | 'proficiencies'
+  sheet: CharacterSheet
+}) {
+  const showFeatures = mode !== 'proficiencies'
+  const showProficiencies = mode !== 'features'
+  const title = mode === 'features' ? 'Features' : mode === 'proficiencies' ? 'Proficiencies' : 'Reference'
+
   return (
-    <section className={styles.panel} aria-labelledby='character-sheet-reference'>
-      <div className={styles.panelHeader}>
-        <div>
-          <Title id='character-sheet-reference' className={styles.panelTitle}>Reference</Title>
-          <Text className={styles.muted}>Features, traits, and quick table context.</Text>
-        </div>
-      </div>
-      <div className={styles.rowList}>
-        {sheet.reference.features.length
+    <CharacterSheetDetailPanel
+      ariaId={`character-sheet-${mode}`}
+      description={mode === 'features' ? 'Class, ancestry, background, and feat-granted traits.' : mode === 'proficiencies' ? 'Training with skills, tools, armor, weapons, and languages.' : 'Features, traits, and quick table context.'}
+      title={title}
+    >
+      <CharacterSheetDetailRowList>
+        {showFeatures && sheet.reference.features.length
           ? sheet.reference.features.map((feature) => (
-              <div className={styles.row} key={`${feature.sourceLabel}:${feature.id}`}>
-                <div>
-                  <Text fw={700}>{feature.label}</Text>
-                  <Text className={styles.muted}>{feature.sourceLabel}</Text>
-                  {feature.description ? <AuthoredDetailProse html={feature.description} fallback='' /> : null}
-                </div>
-                <Badge variant='light'>Feature</Badge>
-              </div>
+              <CharacterSheetDetailRow
+                key={`${feature.sourceLabel}:${feature.id}`}
+                left={(
+                  <>
+                    <Text fw={700}>{feature.label}</Text>
+                    <Text className={styles.muted}>{feature.sourceLabel}</Text>
+                    {feature.description ? <AuthoredDetailProse html={feature.description} fallback='' /> : null}
+                  </>
+                )}
+                right={<Badge variant='light'>Feature</Badge>}
+              />
             ))
-          : <Text className={styles.muted}>No feature references are currently available.</Text>}
-        <ReferenceFactRows
-          badge='Proficiency'
-          empty='No proficiencies are currently available.'
-          items={sheet.reference.proficiencies}
-        />
-        <ReferenceFactRows
-          badge='Defense'
-          empty='No defenses are currently available.'
-          items={sheet.reference.defenses}
-        />
-        <ReferenceFactRows
-          badge='Sense'
-          empty='No senses are currently available.'
-          items={sheet.reference.senses}
-        />
-      </div>
-    </section>
+          : showFeatures ? <Text className={styles.muted}>No feature references are currently available.</Text> : null}
+        {showProficiencies
+          ? <ReferenceFactRows badge='Proficiency' empty='No proficiencies are currently available.' items={sheet.reference.proficiencies} />
+          : null}
+        {mode === 'all'
+          ? <ReferenceFactRows badge='Defense' empty='No defenses are currently available.' items={sheet.reference.defenses} />
+          : null}
+        {mode === 'all'
+          ? <ReferenceFactRows badge='Sense' empty='No senses are currently available.' items={sheet.reference.senses} />
+          : null}
+      </CharacterSheetDetailRowList>
+    </CharacterSheetDetailPanel>
   )
 }

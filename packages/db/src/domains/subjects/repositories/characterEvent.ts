@@ -11,6 +11,9 @@ export interface CharacterEventRepository {
 
   /** Returns all events for a character in chronological order. */
   listByCharacter(characterId: string): Promise<CharacterEvent[]>
+
+  /** Returns the event previously persisted for an idempotent command, if any. */
+  findByCommandId(characterId: string, commandId: string): Promise<CharacterEvent | null>
 }
 
 function toRow(event: CharacterEvent) {
@@ -46,6 +49,17 @@ export function createCharacterEventRepository(db: DBLike): CharacterEventReposi
         .execute()
 
       return rows.map((row) => row.event_data as unknown as CharacterEvent)
+    },
+
+    async findByCommandId(characterId, commandId) {
+      const row = await db
+        .selectFrom('character_events')
+        .select('event_data')
+        .where('character_id', '=', characterId)
+        .where('command_id', '=', commandId)
+        .executeTakeFirst()
+
+      return row ? row.event_data as unknown as CharacterEvent : null
     },
   }
 }

@@ -12,6 +12,7 @@ import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/index.js'
 import { upsertModifierGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { withTransaction } from '../../../utils/index.js'
 import { normalizeSubjectStatus } from '../status.js'
 
 type EquipmentRow = {
@@ -33,6 +34,7 @@ type EquipmentRow = {
   max_stack: number | null
   max_bonus: number | null
   armor_class: number | null
+  requires_attunement: boolean
   charge_id: string | null
   restriction_id: string | null
   parent_equipment_id: string | null
@@ -47,12 +49,14 @@ type EquipmentAttributeRow = {
 type EquipmentPropertyRow = {
   equipment_id: string
   property_code: string
+  sort_order: number
 }
 
 type EquipmentContainsRow = {
   equipment_id: string
   contained_equipment_id: string
   quantity: number
+  sort_order: number
 }
 
 type EquipmentModifierGrantRow = {
@@ -149,6 +153,7 @@ function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
     max_stack: isBaseEquipment(json_data) ? json_data.maxStack ?? null : null,
     max_bonus: json_data.maxBonus ?? null,
     armor_class: isBaseEquipment(json_data) ? json_data.armorClass ?? null : null,
+    requires_attunement: json_data.requiresAttunement ?? false,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
     parent_equipment_id: isBaseEquipment(json_data)
@@ -171,9 +176,10 @@ export async function upsertEquipment(
   const propertyRows: EquipmentPropertyRow[] = (isBaseEquipment(json_data)
     ? json_data.properties
     : (json_data.properties ?? [])
-  ).map((property) => ({
+  ).map((property, index) => ({
     equipment_id: json_data.id,
-    property_code: requireProperty(json_data.id, property)
+    property_code: requireProperty(json_data.id, property),
+    sort_order: index + 1
   }))
   const authoredEffects = json_data.effects ?? []
   const effectRows = authoredEffects.map((effect, index) => ({
@@ -183,15 +189,14 @@ export async function upsertEquipment(
   }))
   const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const containsRows: EquipmentContainsRow[] = (isBaseEquipment(json_data) ? (json_data.contains ?? []) : []).map((entry) => ({
+  const containsRows: EquipmentContainsRow[] = (isBaseEquipment(json_data) ? (json_data.contains ?? []) : []).map((entry, index) => ({
     equipment_id: json_data.id,
     contained_equipment_id: entry.equipmentId,
-    quantity: entry.quantity
+    quantity: entry.quantity,
+    sort_order: index + 1
   }))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingEquipment = await trx
       .selectFrom('equipment')
       .select(['restriction_id'])
@@ -219,27 +224,28 @@ export async function upsertEquipment(
     await trx
       .insertInto('equipment')
       .values(mapEquipmentRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        quote: ref('excluded.quote'),
-        status: ref('excluded.status'),
-        category: ref('excluded.category'),
-        rarity_id: ref('excluded.rarity_id'),
-        cost_amount: ref('excluded.cost_amount'),
-        cost_currency_id: ref('excluded.cost_currency_id'),
-        weight_amount: ref('excluded.weight_amount'),
-        weight_unit: ref('excluded.weight_unit'),
-        capacity_amount: ref('excluded.capacity_amount'),
-        capacity_unit: ref('excluded.capacity_unit'),
-        max_stack: ref('excluded.max_stack'),
-        max_bonus: ref('excluded.max_bonus'),
-        armor_class: ref('excluded.armor_class'),
-        charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id'),
-        parent_equipment_id: ref('excluded.parent_equipment_id')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        quote: eb.ref('excluded.quote'),
+        status: eb.ref('excluded.status'),
+        category: eb.ref('excluded.category'),
+        rarity_id: eb.ref('excluded.rarity_id'),
+        cost_amount: eb.ref('excluded.cost_amount'),
+        cost_currency_id: eb.ref('excluded.cost_currency_id'),
+        weight_amount: eb.ref('excluded.weight_amount'),
+        weight_unit: eb.ref('excluded.weight_unit'),
+        capacity_amount: eb.ref('excluded.capacity_amount'),
+        capacity_unit: eb.ref('excluded.capacity_unit'),
+        max_stack: eb.ref('excluded.max_stack'),
+        max_bonus: eb.ref('excluded.max_bonus'),
+        armor_class: eb.ref('excluded.armor_class'),
+        requires_attunement: eb.ref('excluded.requires_attunement'),
+        charge_id: eb.ref('excluded.charge_id'),
+        restriction_id: eb.ref('excluded.restriction_id'),
+        parent_equipment_id: eb.ref('excluded.parent_equipment_id')
       })))
       .execute()
 
@@ -273,8 +279,8 @@ export async function upsertEquipment(
       await trx
         .insertInto('equipment_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['equipment_id', 'effect_id']).doUpdateSet(({ ref }) => ({
-          sort_order: ref('excluded.sort_order')
+        .onConflict((oc) => oc.columns(['equipment_id', 'effect_id']).doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order')
         })))
         .execute()
     }
@@ -328,9 +334,5 @@ export async function upsertEquipment(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

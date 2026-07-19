@@ -50,7 +50,7 @@ export const contagion: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONTAGION, 0x212, 1),
-                effectKind: EFFECT_KIND.RULE
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
               }
             ]
           }
@@ -68,7 +68,7 @@ export const contagion: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONTAGION, 0x213, 1),
-                effectKind: EFFECT_KIND.RULE
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
               }
             ]
           }

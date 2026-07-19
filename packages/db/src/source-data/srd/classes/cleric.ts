@@ -1,24 +1,23 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  STARTING_EQUIPMENT_KIND,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -34,6 +33,11 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 const C = 3 // Cleric class index
@@ -71,58 +75,227 @@ const clericSlotCharge = {
 const clericSpellLimits = [
   { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 3 },
   { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 3 }], cantripsLimit: 3 },
-  { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }], cantripsLimit: 3 },
-  { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }], cantripsLimit: 4 },
-  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }], cantripsLimit: 4 },
-  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }], cantripsLimit: 4 },
-  { classLevel: 7, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }
-  ], cantripsLimit: 4 },
-  { classLevel: 8, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }
-  ], cantripsLimit: 4 },
-  { classLevel: 9, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }
-  ], cantripsLimit: 4 },
-  { classLevel: 10, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }
-  ], cantripsLimit: 5 },
-  { classLevel: 11, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 12, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 13, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 14, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 15, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 16, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 17, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 18, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 19, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }
-  ], cantripsLimit: 5 },
-  { classLevel: 20, slots: [
-    { spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 2 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }
-  ], cantripsLimit: 5 }
+  {
+    classLevel: 3,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ],
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 4,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 5,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 6,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 7,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 8,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 9,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ],
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 10,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 11,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 12,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 13,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 14,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 15,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 16,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 17,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 18,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 19,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 20,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 2 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    cantripsLimit: 5
+  }
 ]
 
 export const cleric: ClassAuthored = {
   id: CLASS_IDS.CLERIC,
   label: 'Cleric',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 1,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
   description: 'A priestly champion who wields divine magic in service of a higher power.',
   userId: SRD_USER_ID,
@@ -167,7 +340,315 @@ export const cleric: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(C, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(C, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(C, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(C, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(C, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(7)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(C, 98, 6),
+                order: 1,
+                eligibility: {
+                  id: classRowId(C, 97, 1),
+                  groups: [
+                    {
+                      id: classRowId(C, 97, 2),
+                      order: 0,
+                      contexts: [
+                        {
+                          id: classRowId(C, 97, 3),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(C, 97, 4),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_PROFICIENCY',
+                              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                              equipmentIds: [equipmentId(31)],
+                              level: SCALING_AMOUNT_KIND.FULL
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      id: classRowId(C, 97, 5),
+                      order: 1,
+                      contexts: [
+                        {
+                          id: classRowId(C, 97, 6),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(C, 97, 7),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                              category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                              properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                items: [
+                  {
+                    id: classRowId(C, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(31)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(C, 98, 8),
+            order: 1,
+            options: [
+              {
+                id: classRowId(C, 98, 9),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(C, 98, 10),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(43)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(C, 98, 11),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(C, 98, 12),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(C, 98, 13),
+                order: 2,
+                eligibility: {
+                  id: classRowId(C, 97, 8),
+                  groups: [
+                    {
+                      id: classRowId(C, 97, 9),
+                      order: 0,
+                      contexts: [
+                        {
+                          id: classRowId(C, 97, 10),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(C, 97, 11),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_PROFICIENCY',
+                              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                              equipmentIds: [equipmentId(47)],
+                              level: SCALING_AMOUNT_KIND.FULL
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      id: classRowId(C, 97, 12),
+                      order: 1,
+                      contexts: [
+                        {
+                          id: classRowId(C, 97, 13),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(C, 97, 14),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+                              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                              category: EQUIPMENT_CATEGORY_CODE.ARMOR,
+                              properties: [EQUIPMENT_PROPERTY_CODE.HEAVY]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                items: [
+                  {
+                    id: classRowId(C, 98, 14),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(47)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(C, 98, 15),
+            order: 2,
+            options: [
+              {
+                id: classRowId(C, 98, 16),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(C, 98, 17),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(11)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(C, 98, 18),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(101)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(C, 98, 19),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(C, 98, 20),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(C, 98, 21),
+            order: 3,
+            options: [
+              {
+                id: classRowId(C, 98, 22),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(C, 98, 23),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(187)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(C, 98, 24),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(C, 98, 25),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(C, 98, 26),
+            order: 4,
+            options: [
+              {
+                id: classRowId(C, 98, 27),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(C, 98, 28),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.SHIELD,
+                    count: 1
+                  },
+                  {
+                    id: classRowId(C, 98, 29),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [96, 97, 98].map(equipmentId),
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   spellcasting: {
@@ -181,23 +662,28 @@ export const cleric: ClassAuthored = {
       },
       {
         label: 'Cantrips',
-        description: '<p>At 1st level, you know three cantrips of your choice from the cleric spell list. You learn additional cleric cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Cleric table.</p>'
+        description:
+          '<p>At 1st level, you know three cantrips of your choice from the cleric spell list. You learn additional cleric cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Cleric table.</p>'
       },
       {
         label: 'Preparing and Casting Spells',
-        description: '<p>The Cleric table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>You prepare the list of cleric spells that are available for you to cast, choosing from the cleric spell list. When you do so, choose a number of cleric spells equal to your Wisdom modifier + your cleric level (minimum of one spell). The spells must be of a level for which you have spell slots.</p><p>For example, if you are a 3rd-level cleric, you have four 1st-level and two 2nd-level spell slots. With a Wisdom of 16, your list of prepared spells can include six spells of 1st or 2nd level, in any combination. If you prepare the 1st-level spell <em>cure wounds</em>, you can cast it using a 1st-level or 2nd-level slot. Casting the spell doesn\'t remove it from your list of prepared spells.</p><p>You can change your list of prepared spells when you finish a long rest. Preparing a new list of cleric spells requires time spent in prayer and meditation: at least 1 minute per spell level for each spell on your list.</p>'
+        description:
+          "<p>The Cleric table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.</p><p>You prepare the list of cleric spells that are available for you to cast, choosing from the cleric spell list. When you do so, choose a number of cleric spells equal to your Wisdom modifier + your cleric level (minimum of one spell). The spells must be of a level for which you have spell slots.</p><p>For example, if you are a 3rd-level cleric, you have four 1st-level and two 2nd-level spell slots. With a Wisdom of 16, your list of prepared spells can include six spells of 1st or 2nd level, in any combination. If you prepare the 1st-level spell <em>cure wounds</em>, you can cast it using a 1st-level or 2nd-level slot. Casting the spell doesn't remove it from your list of prepared spells.</p><p>You can change your list of prepared spells when you finish a long rest. Preparing a new list of cleric spells requires time spent in prayer and meditation: at least 1 minute per spell level for each spell on your list.</p>"
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Wisdom is your spellcasting ability for your cleric spells. The power of your spells comes from your devotion to your deity. You use your Wisdom whenever a cleric spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a cleric spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Wisdom modifier</p>'
+        description:
+          '<p>Wisdom is your spellcasting ability for your cleric spells. The power of your spells comes from your devotion to your deity. You use your Wisdom whenever a cleric spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a cleric spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Wisdom modifier</p>'
       },
       {
         label: 'Ritual Casting',
-        description: '<p>You can cast a cleric spell as a ritual if that spell has the ritual tag and you have the spell prepared.</p>'
+        description:
+          '<p>You can cast a cleric spell as a ritual if that spell has the ritual tag and you have the spell prepared.</p>'
       },
       {
         label: 'Spellcasting Focus',
-        description: '<p>You can use a holy symbol as a spellcasting focus for your cleric spells.</p>'
+        description:
+          '<p>You can use a holy symbol as a spellcasting focus for your cleric spells.</p>'
       }
     ]),
     charges: clericSlotCharge,
@@ -277,6 +763,7 @@ export const cleric: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('HISTORY'),
@@ -300,14 +787,16 @@ export const cleric: ClassAuthored = {
     {
       id: classRowId(C, 3, 2),
       label: 'Divine Domain',
-      description: 'Choose one domain related to your deity. Your choice grants you domain spells and other features when you choose it at 1st level.',
+      description:
+        'Choose one domain related to your deity. Your choice grants you domain spells and other features when you choose it at 1st level.',
       availableAtLevel: 1,
       order: 1
     },
     {
       id: classRowId(C, 3, 3),
       label: 'Channel Divinity',
-      description: 'At 2nd level, you gain the ability to channel divine energy directly from your deity, using that energy to fuel magical effects. You start with two such effects: Turn Undead and an effect determined by your domain.',
+      description:
+        'At 2nd level, you gain the ability to channel divine energy directly from your deity, using that energy to fuel magical effects. You start with two such effects: Turn Undead and an effect determined by your domain.',
       availableAtLevel: 2,
       order: 2
     },
@@ -321,14 +810,16 @@ export const cleric: ClassAuthored = {
     {
       id: classRowId(C, 3, 5),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 4
     },
     {
       id: classRowId(C, 3, 6),
       label: 'Destroy Undead',
-      description: 'Starting at 5th level, when an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its challenge rating is at or below a certain threshold.',
+      description:
+        'Starting at 5th level, when an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its challenge rating is at or below a certain threshold.',
       availableAtLevel: 5,
       order: 5
     },
@@ -342,7 +833,8 @@ export const cleric: ClassAuthored = {
     {
       id: classRowId(C, 3, 8),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 7
     },
@@ -356,14 +848,16 @@ export const cleric: ClassAuthored = {
     {
       id: classRowId(C, 3, 10),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 9
     },
     {
       id: classRowId(C, 3, 11),
       label: 'Divine Intervention',
-      description: 'Beginning at 10th level, you can call on your deity to intervene on your behalf when your need is great.',
+      description:
+        'Beginning at 10th level, you can call on your deity to intervene on your behalf when your need is great.',
       availableAtLevel: 10,
       order: 10
     },
@@ -377,14 +871,16 @@ export const cleric: ClassAuthored = {
     {
       id: classRowId(C, 3, 13),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 12
     },
     {
       id: classRowId(C, 3, 14),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 13
     }

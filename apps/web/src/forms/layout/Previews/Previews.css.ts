@@ -6,14 +6,14 @@ export const shell = style({
   '@layer': {
     [app]: {
       borderInlineStart: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.panel,
-      inlineSize: '20rem',
+      backgroundColor: foundationVars.color.surface.recessed,
+      inlineSize: '19rem',
       maxInlineSize: '100%',
       '@media': {
         [media.tablet]: {
           inlineSize: '100%',
-          borderRadius: 'none',
-          borderInlineStart: 'none'
+          borderRadius: 0,
+          borderInlineStart: 0
         }
       }
     }
@@ -29,8 +29,9 @@ export const header = style({
       backgroundColor: foundationVars.color.surface.emphasized,
       borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
       color: foundationVars.color.text.primary,
-      fontSize: '15px',
+      fontSize: foundationVars.typography.bodySm.fontSize,
       fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '0.02em',
       lineHeight: '20px'
     }
   }
@@ -42,7 +43,7 @@ export const content = style({
       display: 'grid',
       gap: foundationVars.space[3],
       blockSize: 'auto',
-      padding: foundationVars.space[4],
+      padding: foundationVars.space[3],
       overflowY: 'auto'
     }
   }
@@ -62,12 +63,7 @@ export const closeButton = style({
     [app]: {
       marginInlineEnd: 'auto',
       marginInlineStart: 0,
-      display: 'none',
-      '@media': {
-        [media.mobile]: {
-          display: 'inline-flex'
-        }
-      }
+      display: 'inline-flex'
     }
   }
 })

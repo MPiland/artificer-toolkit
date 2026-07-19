@@ -172,7 +172,7 @@ export const secondaryButton = style({
       borderRadius: foundationVars.radius.pill,
       backgroundColor: foundationVars.color.surface.raised,
       color: foundationVars.color.text.secondary,
-      boxShadow: '0 6px 8px rgba(0, 0, 0, 0.22)',
+      boxShadow: foundationVars.shadow.floatingControl,
       pointerEvents: 'auto',
       ':hover': {
         backgroundColor: foundationVars.color.surface.emphasized,
@@ -181,6 +181,13 @@ export const secondaryButton = style({
       ':focus-visible': {
         outline: 'none',
         boxShadow: foundationVars.shadow.focus
+      },
+      ':disabled': {
+        borderColor: foundationVars.color.border.subtle,
+        backgroundColor: foundationVars.color.surface.subtle,
+        color: foundationVars.color.text.dim,
+        boxShadow: 'none',
+        cursor: 'default'
       }
     }
   }
@@ -195,7 +202,7 @@ export const primaryButton = style({
       borderRadius: foundationVars.radius.pill,
       backgroundColor: foundationVars.color.button.primary.background,
       color: foundationVars.color.button.primary.text,
-      boxShadow: '0 6px 8px rgba(0, 0, 0, 0.22)',
+      boxShadow: foundationVars.shadow.floatingControl,
       pointerEvents: 'auto',
       ':hover': {
         backgroundColor: foundationVars.color.button.primary.hover,

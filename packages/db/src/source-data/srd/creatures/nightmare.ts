@@ -5,7 +5,6 @@ export const nightmare: CreatureAuthored = {
     label: 'Nightmare',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FIEND,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const nightmare: CreatureAuthored = {
         INTELLIGENCE: 10,
         WISDOM: 13,
         CHARISMA: 15,
-        SPELLCASTING: 0
     },
     armorClass: 13,
     armorClassNote: 'natural armor',

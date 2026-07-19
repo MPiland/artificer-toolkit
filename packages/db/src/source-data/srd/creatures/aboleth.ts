@@ -1,12 +1,11 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared';
-import { conditionTypeId } from '../equipment/shared.js';
+
 import * as S from './shared.js';
 export const aboleth: CreatureAuthored = {
     id: S.CREATURE_IDS.ABOLETH,
     label: 'Aboleth',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.ABERRATION,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const aboleth: CreatureAuthored = {
         INTELLIGENCE: 18,
         WISDOM: 15,
         CHARISMA: 18,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',

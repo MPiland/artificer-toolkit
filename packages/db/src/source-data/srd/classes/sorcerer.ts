@@ -1,26 +1,22 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
-  MODIFIER_KIND,
-  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
-  VALUE_DOMAIN_CODE,
+  STARTING_EQUIPMENT_KIND,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 
 function skillId(code: string): string {
@@ -37,6 +33,11 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 const S = 10 // Sorcerer class index
@@ -72,26 +73,250 @@ const sorcererSlotCharge = {
 }
 
 const sorcererSpellLimits = [
-  { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], learnedSpellsLimit: 2, cantripsLimit: 4 },
-  { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 3 }], learnedSpellsLimit: 3, cantripsLimit: 4 },
-  { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 4, cantripsLimit: 4 },
-  { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }], learnedSpellsLimit: 5, cantripsLimit: 5 },
-  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }], learnedSpellsLimit: 6, cantripsLimit: 5 },
-  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 7, cantripsLimit: 5 },
-  { classLevel: 7, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }], learnedSpellsLimit: 8, cantripsLimit: 5 },
-  { classLevel: 8, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }], learnedSpellsLimit: 9, cantripsLimit: 5 },
-  { classLevel: 9, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }], learnedSpellsLimit: 10, cantripsLimit: 5 },
-  { classLevel: 10, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }], learnedSpellsLimit: 11, cantripsLimit: 6 },
-  { classLevel: 11, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }], learnedSpellsLimit: 12, cantripsLimit: 6 },
-  { classLevel: 12, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }], learnedSpellsLimit: 12, cantripsLimit: 6 },
-  { classLevel: 13, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }], learnedSpellsLimit: 13, cantripsLimit: 6 },
-  { classLevel: 14, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }], learnedSpellsLimit: 13, cantripsLimit: 6 },
-  { classLevel: 15, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }], learnedSpellsLimit: 14, cantripsLimit: 6 },
-  { classLevel: 16, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }], learnedSpellsLimit: 14, cantripsLimit: 6 },
-  { classLevel: 17, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 6 },
-  { classLevel: 18, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 1 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 6 },
-  { classLevel: 19, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 1 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 6 },
-  { classLevel: 20, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 2 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 15, cantripsLimit: 6 }
+  {
+    classLevel: 1,
+    slots: [{ spellLevel: 1, slotCount: 2 }],
+    learnedSpellsLimit: 2,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 2,
+    slots: [{ spellLevel: 1, slotCount: 3 }],
+    learnedSpellsLimit: 3,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 3,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 4,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 4,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 5,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 5,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 6,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 6,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 }
+    ],
+    learnedSpellsLimit: 7,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 7,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 8,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 8,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 9,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 9,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 10,
+    cantripsLimit: 5
+  },
+  {
+    classLevel: 10,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 }
+    ],
+    learnedSpellsLimit: 11,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 11,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 12,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 12,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 12,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 13,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 13,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 14,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 13,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 15,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 14,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 16,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 14,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 17,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 2 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 18,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 1 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 19,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 1 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 6
+  },
+  {
+    classLevel: 20,
+    slots: [
+      { spellLevel: 1, slotCount: 4 },
+      { spellLevel: 2, slotCount: 3 },
+      { spellLevel: 3, slotCount: 3 },
+      { spellLevel: 4, slotCount: 3 },
+      { spellLevel: 5, slotCount: 3 },
+      { spellLevel: 6, slotCount: 2 },
+      { spellLevel: 7, slotCount: 2 },
+      { spellLevel: 8, slotCount: 1 },
+      { spellLevel: 9, slotCount: 1 }
+    ],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 6
+  }
 ]
 
 // Sorcery Points charge — resets on long rest
@@ -107,6 +332,7 @@ export const sorcerer: ClassAuthored = {
   id: CLASS_IDS.SORCERER,
   label: 'Sorcerer',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 1,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER, CLASS_ATTRIBUTE.RESOURCE],
   description: 'A spellcaster who draws on inherent magic from a gift or bloodline.',
   userId: SRD_USER_ID,
@@ -132,13 +358,158 @@ export const sorcerer: ClassAuthored = {
           requirements: [{ id: classRowId(S, 99, 3), ability: ABILITY_CODE.CHARISMA, min: 13 }]
         }
       ]
-    },
-    proficiencies: []
+    }
   },
 
   startingEquipment: {
     id: classRowId(S, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(S, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(S, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(S, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(S, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(11)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(S, 98, 6),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(101)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(S, 98, 7),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(S, 98, 8),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(S, 98, 9),
+            order: 1,
+            options: [
+              {
+                id: classRowId(S, 98, 10),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(S, 98, 11),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(135)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(S, 98, 12),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(S, 98, 13),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [87, 88, 89, 90, 91].map(equipmentId),
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(S, 98, 14),
+            order: 2,
+            options: [
+              {
+                id: classRowId(S, 98, 15),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(S, 98, 16),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(184)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(S, 98, 17),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(S, 98, 18),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(S, 98, 19),
+            order: 3,
+            options: [
+              {
+                id: classRowId(S, 98, 20),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(S, 98, 21),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(2)],
+                    quantity: 2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   spellcasting: {
@@ -148,27 +519,33 @@ export const sorcerer: ClassAuthored = {
     details: classSpellcastingDetails(S, [
       {
         label: 'Spellcasting',
-        description: '<p>An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic. This font of magic, whatever its origin, fuels your spells.</p>'
+        description:
+          '<p>An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic. This font of magic, whatever its origin, fuels your spells.</p>'
       },
       {
         label: 'Cantrips',
-        description: '<p>At 1st level, you know four cantrips of your choice from the sorcerer spell list. You learn additional sorcerer cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Sorcerer table.</p>'
+        description:
+          '<p>At 1st level, you know four cantrips of your choice from the sorcerer spell list. You learn additional sorcerer cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Sorcerer table.</p>'
       },
       {
         label: 'Spell Slots',
-        description: '<p>The Sorcerer table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these sorcerer spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>burning hands</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>burning hands</em> using either slot.</p>'
+        description:
+          "<p>The Sorcerer table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these sorcerer spells, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>burning hands</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>burning hands</em> using either slot.</p>"
       },
       {
         label: 'Spells Known of 1st Level and Higher',
-        description: '<p>You know two 1st-level spells of your choice from the sorcerer spell list.</p><p>The Spells Known column of the Sorcerer table shows when you learn more sorcerer spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the sorcerer spells you know and replace it with another spell from the sorcerer spell list, which also must be of a level for which you have spell slots.</p>'
+        description:
+          '<p>You know two 1st-level spells of your choice from the sorcerer spell list.</p><p>The Spells Known column of the Sorcerer table shows when you learn more sorcerer spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the sorcerer spells you know and replace it with another spell from the sorcerer spell list, which also must be of a level for which you have spell slots.</p>'
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Charisma is your spellcasting ability for your sorcerer spells, since the power of your magic relies on your ability to project your will into the world. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a sorcerer spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+        description:
+          '<p>Charisma is your spellcasting ability for your sorcerer spells, since the power of your magic relies on your ability to project your will into the world. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a sorcerer spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
       },
       {
         label: 'Spellcasting Focus',
-        description: '<p>You can use an arcane focus as a spellcasting focus for your sorcerer spells.</p>'
+        description:
+          '<p>You can use an arcane focus as a spellcasting focus for your sorcerer spells.</p>'
       }
     ]),
     charges: sorcererSlotCharge,
@@ -210,6 +587,7 @@ export const sorcerer: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ARCANA'),
@@ -234,35 +612,40 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 1),
       label: 'Spellcasting',
-      description: 'An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic.',
+      description:
+        'An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic.',
       availableAtLevel: 1,
       order: 0
     },
     {
       id: classRowId(S, 4, 2),
       label: 'Sorcerous Origin',
-      description: 'Choose a sorcerous origin, which describes the source of your innate magical power.',
+      description:
+        'Choose a sorcerous origin, which describes the source of your innate magical power.',
       availableAtLevel: 1,
       order: 1
     },
     {
       id: classRowId(S, 4, 3),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 2
     },
     {
       id: classRowId(S, 4, 4),
       label: 'Font of Magic',
-      description: 'At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.',
+      description:
+        'At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.',
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(S, 4, 5),
       label: 'Metamagic',
-      description: 'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice.',
+      description:
+        'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice.',
       availableAtLevel: 3,
       order: 4,
       optionChoices: [
@@ -274,49 +657,57 @@ export const sorcerer: ClassAuthored = {
         {
           id: classRowId(S, 13, 1),
           label: 'Careful Spell',
-          description: 'When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell\'s full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.',
+          description:
+            "When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell's full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.",
           order: 0
         },
         {
           id: classRowId(S, 13, 2),
           label: 'Distant Spell',
-          description: 'When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell. When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.',
+          description:
+            'When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell. When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.',
           order: 1
         },
         {
           id: classRowId(S, 13, 3),
           label: 'Empowered Spell',
-          description: 'When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls. You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.',
+          description:
+            'When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls. You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.',
           order: 2
         },
         {
           id: classRowId(S, 13, 4),
           label: 'Extended Spell',
-          description: 'When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.',
+          description:
+            'When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.',
           order: 3
         },
         {
           id: classRowId(S, 13, 5),
           label: 'Heightened Spell',
-          description: 'When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.',
+          description:
+            'When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.',
           order: 4
         },
         {
           id: classRowId(S, 13, 6),
           label: 'Quickened Spell',
-          description: 'When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.',
+          description:
+            'When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.',
           order: 5
         },
         {
           id: classRowId(S, 13, 7),
           label: 'Subtle Spell',
-          description: 'When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.',
+          description:
+            'When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.',
           order: 6
         },
         {
           id: classRowId(S, 13, 8),
           label: 'Twinned Spell',
-          description: 'When you cast a spell that targets only one creature and doesn\'t have a range of self, you can spend a number of sorcery points equal to the spell\'s level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip). To be eligible, a spell must be incapable of targeting more than one creature at the spell\'s current level.',
+          description:
+            "When you cast a spell that targets only one creature and doesn't have a range of self, you can spend a number of sorcery points equal to the spell's level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip). To be eligible, a spell must be incapable of targeting more than one creature at the spell's current level.",
           order: 7
         }
       ]
@@ -331,7 +722,8 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 7),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 6
     },
@@ -345,7 +737,8 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 9),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 8
     },
@@ -359,7 +752,8 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 11),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 10
     },
@@ -380,14 +774,16 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 14),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 13
     },
     {
       id: classRowId(S, 4, 15),
       label: 'Sorcerous Restoration',
-      description: 'At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.',
+      description:
+        'At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.',
       availableAtLevel: 20,
       order: 14
     }

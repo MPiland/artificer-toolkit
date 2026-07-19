@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   type BaseRaceAuthored,
   MEASUREMENT_UNIT_CODE,
@@ -186,23 +187,21 @@ export async function upsertRace(
       })))
     : []
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('races')
       .values(mapRaceRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        quote: ref('excluded.quote'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        category: ref('excluded.category'),
-        selection_mode: ref('excluded.selection_mode'),
-        parent_race_id: ref('excluded.parent_race_id'),
-        size_code: ref('excluded.size_code')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        quote: eb.ref('excluded.quote'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        category: eb.ref('excluded.category'),
+        selection_mode: eb.ref('excluded.selection_mode'),
+        parent_race_id: eb.ref('excluded.parent_race_id'),
+        size_code: eb.ref('excluded.size_code')
       })))
       .execute()
 
@@ -312,9 +311,5 @@ export async function upsertRace(
       }
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

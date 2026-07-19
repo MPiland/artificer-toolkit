@@ -5,7 +5,6 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
     label: 'Bronze Dragon Wyrmling',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
         INTELLIGENCE: 12,
         WISDOM: 11,
         CHARISMA: 15,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',
@@ -212,7 +210,7 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(6062, 13),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

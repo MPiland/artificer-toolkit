@@ -13,15 +13,19 @@ import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import type { AppRouterContext } from '#app/routerContext'
 
 const RouterDevtools = import.meta.env.DEV
-  ? lazy(() => import('@tanstack/react-router-devtools').then((module) => ({
-      default: module.TanStackRouterDevtools
-    })))
+  ? lazy(() =>
+      import('@tanstack/react-router-devtools').then((module) => ({
+        default: module.TanStackRouterDevtools
+      }))
+    )
   : null
 
 const QueryDevtools = import.meta.env.DEV
-  ? lazy(() => import('@tanstack/react-query-devtools').then((module) => ({
-      default: module.ReactQueryDevtools
-    })))
+  ? lazy(() =>
+      import('@tanstack/react-query-devtools').then((module) => ({
+        default: module.ReactQueryDevtools
+      }))
+    )
   : null
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
@@ -31,7 +35,7 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
       { title: 'Artificer Toolkit' },
       {
         name: 'description',

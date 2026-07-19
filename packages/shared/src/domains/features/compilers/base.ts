@@ -1,4 +1,4 @@
-import type { FeatureBaseAuthored } from '#authored'
+import type { FacetAuthored, FeatureBaseAuthored } from '#authored'
 import {
   type CompiledFeatGrant,
   type CompiledModifierGrant,
@@ -20,6 +20,7 @@ import type { FeatureAttribute } from '#core'
 export type CompiledFeatureBase = {
   id: string
   attributes?: FeatureAttribute[]
+  restrictions?: FacetAuthored
   effects?: CompiledEffectGroup[]
   charges?: CompiledCharge
   feats?: CompiledFeatGrant[]
@@ -59,6 +60,7 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
   return {
     id: authored.id,
     attributes: authored.attributes,
+    restrictions: authored.restrictions,
     effects,
     charges,
     feats,

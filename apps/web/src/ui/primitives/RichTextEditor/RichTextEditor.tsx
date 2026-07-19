@@ -1,11 +1,5 @@
 import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap'
-import {
-  useEffect,
-  useId,
-  type ComponentPropsWithRef,
-  type DetailedHTMLProps,
-  type HTMLAttributes
-} from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -26,6 +20,7 @@ export interface RichTextEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   label?: string
+  error?: ReactNode
   required?: boolean
   onBlur?: ({ target: { name, value } }: { target: { name: string; value: string } }) => void
   name: string
@@ -38,6 +33,7 @@ const RichTextEditor = ({
   onChange,
   placeholder,
   label,
+  error,
   required,
   onBlur,
   name,
@@ -45,12 +41,15 @@ const RichTextEditor = ({
   className
 }: RichTextEditorProps) => {
   const labelId = useId()
+  const errorId = useId()
   const editorAttributes:
     | { [name: string]: string }
     | ((state: EditorState) => { [name: string]: string }) = {
     'aria-labelledby': label ? labelId : '',
     'aria-label': label ? '' : name,
-    'aria-required': required ? 'true' : 'false'
+    'aria-required': required ? 'true' : 'false',
+    'aria-invalid': error ? 'true' : 'false',
+    'aria-describedby': error ? errorId : ''
   }
 
   const editor = useEditor({
@@ -137,6 +136,11 @@ const RichTextEditor = ({
 
         <MantineRichTextEditor.Content />
       </MantineRichTextEditor>
+      {error ? (
+        <span id={errorId} role='alert' className={editorStyles.editorError}>
+          {error}
+        </span>
+      ) : null}
     </>
   )
 }

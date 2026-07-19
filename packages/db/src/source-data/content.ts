@@ -80,6 +80,8 @@ export interface SystemSeedRecord {
   id: string
   label: string
   description?: string | null
+  rulesetCode: string
+  rulesetVersion: string
   alignments: VocabularySeedRecord[]
   challengeRatings: VocabularySeedRecord[]
   conditionTypes: VocabularySeedRecord[]
@@ -137,6 +139,28 @@ export function defineBaselineContentBundle(
       races: withActiveStatus(bundle.subjects.races),
       spells: withActiveStatus(bundle.subjects.spells),
       vehicles: withActiveStatus(bundle.subjects.vehicles)
+    }
+  }
+}
+
+export function assignBaselineContentOwner(
+  bundle: BaselineContentBundle,
+  userId: string
+): BaselineContentBundle {
+  return {
+    ...structuredClone(bundle),
+    vocabulary: {
+      systems: bundle.vocabulary.systems.map((system) => ({ ...system, userId }))
+    },
+    subjects: {
+      backgrounds: bundle.subjects.backgrounds.map((record) => ({ ...record, userId })),
+      classes: bundle.subjects.classes.map((record) => ({ ...record, userId })),
+      creatures: bundle.subjects.creatures.map((record) => ({ ...record, userId })),
+      equipment: bundle.subjects.equipment.map((record) => ({ ...record, userId })),
+      feats: bundle.subjects.feats.map((record) => ({ ...record, userId })),
+      races: bundle.subjects.races.map((record) => ({ ...record, userId })),
+      spells: bundle.subjects.spells.map((record) => ({ ...record, userId })),
+      vehicles: bundle.subjects.vehicles.map((record) => ({ ...record, userId }))
     }
   }
 }

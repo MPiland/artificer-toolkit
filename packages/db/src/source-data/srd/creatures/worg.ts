@@ -6,7 +6,6 @@ export const worg: CreatureAuthored = {
     label: 'Worg',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const worg: CreatureAuthored = {
         INTELLIGENCE: 7,
         WISDOM: 11,
         CHARISMA: 8,
-        SPELLCASTING: 0
     },
     armorClass: 13,
     armorClassNote: 'natural armor',

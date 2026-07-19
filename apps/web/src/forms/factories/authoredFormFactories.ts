@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { z } from 'zod'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import {
   backgroundAuthoringInputDtoSchema,
@@ -117,6 +118,7 @@ export type AuthoredFormEditResponse<TAuthored extends object> = {
     canDelete: boolean
     canEdit: boolean
   }
+  provenance?: AuthoredContentProvenanceDto
 }
 
 export type AuthoredFormEditData<TAuthored extends object> = {
@@ -215,11 +217,7 @@ const creatureFormFactory = {
   normalizeForSubmit: normalizeCreatureForSubmit,
   resolveCreateSystemId: resolveCreateCreatureSystemId,
   toFormValues: toCreatureFormValues
-} satisfies AuthoredFormFactory<
-  CreatureFormValues,
-  CreatureAuthoringInputDto,
-  CreatureAuthoredDto
->
+} satisfies AuthoredFormFactory<CreatureFormValues, CreatureAuthoringInputDto, CreatureAuthoredDto>
 
 const equipmentFormFactory = {
   ...createFormFactoryBase({
@@ -491,8 +489,7 @@ const spellSessionConfig = {
   getCreateContext: getSpellFormContext,
   getCreateSystems: (data) => data.systems,
   getEditContext: getSpellFormContext,
-  normalizeForSubmit: (values, context) =>
-    normalizeSpellForSubmit(values, context.magicSchoolId),
+  normalizeForSubmit: (values, context) => normalizeSpellForSubmit(values, context.magicSchoolId),
   operations: {
     activate: api.content.spells.activate,
     deleteActive: api.content.spells.deleteActive,
@@ -612,7 +609,7 @@ type AuthoredSessionConfig<
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext = undefined
 > = {
-  actionFactory: typeof authoredFormActionFactories[AuthoredFormDomain]
+  actionFactory: (typeof authoredFormActionFactories)[AuthoredFormDomain]
   createEmptyValues: (input: { systemId: string }, context: TContext) => TValues
   domain: AuthoredFormDomain
   getCreateContext?: (data: TCreateData) => TContext
@@ -678,6 +675,7 @@ function createAuthoredCreateSession<
     key: `${config.actionFactory.subjectKindLabel.toLowerCase()}:create:${systemId || 'missing-system'}`,
     mode: 'create',
     notFound: false,
+    provenanceKind: 'OWNED',
     readOnly: false,
     subjectLabel: initialValues.label || `Untitled ${config.actionFactory.subjectKindLabel}`,
     system: createData.system ?? null,
@@ -711,9 +709,11 @@ function createAuthoredEditSession<
         context
       )
   const readOnly =
-    requestedMode === 'view' || Boolean(activeRecord && editData.response?.permissions?.canEdit === false)
+    requestedMode === 'view' ||
+    Boolean(activeRecord && editData.response?.permissions?.canEdit === false)
   const canCopy = Boolean(editData.response?.permissions?.canCopy && editData.subjectId)
-  const canDelete = !readOnly && Boolean(parsedDraft.draft || editData.response?.permissions?.canDelete)
+  const canDelete =
+    !readOnly && Boolean(parsedDraft.draft || editData.response?.permissions?.canDelete)
   const invalidDraftOnly = !editData.response && parsedDraft.isInvalid
   const subjectKindLabel = config.actionFactory.subjectKindLabel
 
@@ -735,6 +735,7 @@ function createAuthoredEditSession<
     }`,
     mode: readOnly ? 'view' : 'edit',
     notFound: !editData.response && !draftItem && !invalidDraftOnly,
+    provenanceKind: editData.response?.provenance?.kind ?? (editData.draft ? 'OWNED' : null),
     readOnly,
     subjectId: editData.subjectId,
     subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
@@ -767,6 +768,7 @@ function createAuthoredSessionBase<
   key,
   mode,
   notFound,
+  provenanceKind,
   readOnly,
   subjectId,
   subjectLabel,
@@ -789,6 +791,7 @@ function createAuthoredSessionBase<
   key: string
   mode: AuthoredFormSession['mode']
   notFound: boolean
+  provenanceKind: AuthoredFormSession['provenanceKind']
   readOnly: boolean
   subjectId?: string
   subjectLabel: ReactNode
@@ -856,14 +859,16 @@ function createAuthoredSessionBase<
       saveDraft: (payload) => operations.saveDraft(payload as TSubmit),
       ...(subjectId ? { discardDraft: () => operations.discardDraft(subjectId) } : {})
     },
+    provenanceKind,
     readOnly,
     renderPreview: renderPreview
-      ? (context) => renderPreview({
-        ...context,
-        domain,
-        system,
-        values: context.values as TValues
-      })
+      ? (context) =>
+          renderPreview({
+            ...context,
+            domain,
+            system,
+            values: context.values as TValues
+          })
       : undefined,
     subjectId,
     subjectKindLabel,
@@ -933,9 +938,7 @@ type SpellFormContext = {
   magicSchoolId: string
 }
 
-function getSpellFormContext(data: {
-  system?: SystemResponseDto | null
-}): SpellFormContext {
+function getSpellFormContext(data: { system?: SystemResponseDto | null }): SpellFormContext {
   return {
     magicSchoolId: data.system?.magicSchools[0]?.id ?? ''
   }

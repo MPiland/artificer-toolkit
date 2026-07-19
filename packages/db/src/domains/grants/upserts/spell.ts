@@ -1,10 +1,15 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   SPELL_GRANT_ATTRIBUTE,
   type SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
+import {
+  requireNoSelectionDuplicatePolicy,
+  requireSelectionDuplicatePolicy
+} from '../repositories/helpers.js'
 
 type SpellGrantRootRow = {
   id: string
@@ -13,6 +18,7 @@ type SpellGrantRootRow = {
   scaling_kind: string
   authoring_mode_kind: string
   selection_count: number | null
+  selection_duplicate_policy: string | null
   scaling_source: string | null
   class_id: string | null
   charge_id: string | null
@@ -28,6 +34,7 @@ type SpellGrantScalingLevelRow = {
   sort_order: number
   authoring_mode_kind: string
   selection_count: number | null
+  selection_duplicate_policy: string | null
 }
 
 type SpellGrantScalingLevelSpellRow = {
@@ -52,6 +59,7 @@ type SpellGrantProgression = {
     authoringModeKind: string
     spellIds?: string[]
     count?: number
+    selectionDuplicatePolicy?: string
   }[]
 }
 
@@ -109,7 +117,7 @@ function getClassIdForProgression(
 function requireChosenCount(
   grantId: string,
   count: number | undefined,
-  scope: 'root' | string
+  scope: string
 ): number {
   if (count == null) {
     const suffix = scope === 'root'
@@ -124,7 +132,7 @@ function requireChosenCount(
 function rejectGrantedCount(
   grantId: string,
   count: number | undefined,
-  scope: 'root' | string
+  scope: string
 ) {
   if (count == null) {
     return
@@ -139,7 +147,7 @@ function rejectGrantedCount(
 function requireSelectedSpellIds(
   grantId: string,
   spellIds: string[] | undefined,
-  scope: 'root' | string
+  scope: string
 ): string[] {
   if (!spellIds) {
     const suffix = scope === 'root'
@@ -154,7 +162,7 @@ function requireSelectedSpellIds(
 function rejectAllModeSpellIds(
   grantId: string,
   spellIds: string[] | undefined,
-  scope: 'root' | string
+  scope: string
 ) {
   if (!spellIds || spellIds.length === 0) {
     return
@@ -174,6 +182,21 @@ function mapSpellGrantRootRow(
     rejectGrantedCount(json_data.id, (json_data as { count?: number }).count, 'root')
   }
 
+  if (json_data.selectionKind !== 'CHOSEN' && 'selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Spell grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+    )
+  }
+
+  if (json_data.scalingKind === 'PER_LEVEL' && 'selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Spell grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy,
+      'at the root for PER_LEVEL payload'
+    )
+  }
+
   if (json_data.scalingKind === 'NONE') {
     return {
       id: json_data.id,
@@ -183,6 +206,12 @@ function mapSpellGrantRootRow(
       authoring_mode_kind: json_data.authoringModeKind,
       selection_count: json_data.selectionKind === 'CHOSEN'
         ? requireChosenCount(json_data.id, json_data.count, 'root')
+        : null,
+      selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+          `Spell grant "${json_data.id}"`,
+          json_data.selectionDuplicatePolicy
+        )
         : null,
       scaling_source: null,
       class_id: null,
@@ -202,6 +231,7 @@ function mapSpellGrantRootRow(
     scaling_kind: json_data.scalingKind,
     authoring_mode_kind: 'ALL',
     selection_count: null,
+    selection_duplicate_policy: null,
     scaling_source: progression.scalingSource,
     class_id: getClassIdForProgression(json_data.id, progression),
     charge_id: chargeId,
@@ -245,6 +275,22 @@ function mapScalingLevelRows(json_data: SpellGrantAuthored): SpellGrantScalingLe
       : (
           'count' in level
             ? (rejectGrantedCount(json_data.id, (level as { count?: number }).count, level.id), null)
+            : null
+        ),
+    selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
+      ? requireSelectionDuplicatePolicy(
+        `Spell grant "${json_data.id}" level "${level.id}"`,
+        level.selectionDuplicatePolicy
+      )
+      : (
+          'selectionDuplicatePolicy' in level
+            ? (
+                requireNoSelectionDuplicatePolicy(
+                  `Spell grant "${json_data.id}" level "${level.id}"`,
+                  (level as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+                ),
+                null
+              )
             : null
         )
   }))
@@ -294,9 +340,7 @@ export async function upsertSpellGrant(
   const scalingLevels = mapScalingLevelRows(json_data)
   const scalingLevelSpells = mapScalingLevelSpellRows(json_data)
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingGrant = await trx
       .selectFrom('spell_grants')
       .select(['restriction_id', 'filter_id'])
@@ -328,18 +372,19 @@ export async function upsertSpellGrant(
     await trx
       .insertInto('spell_grants')
       .values(root)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        sort_order: ref('excluded.sort_order'),
-        selection_kind: ref('excluded.selection_kind'),
-        scaling_kind: ref('excluded.scaling_kind'),
-        authoring_mode_kind: ref('excluded.authoring_mode_kind'),
-        selection_count: ref('excluded.selection_count'),
-        scaling_source: ref('excluded.scaling_source'),
-        class_id: ref('excluded.class_id'),
-        charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id'),
-        filter_id: ref('excluded.filter_id'),
-        cast_at_level: ref('excluded.cast_at_level')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        sort_order: eb.ref('excluded.sort_order'),
+        selection_kind: eb.ref('excluded.selection_kind'),
+        scaling_kind: eb.ref('excluded.scaling_kind'),
+        authoring_mode_kind: eb.ref('excluded.authoring_mode_kind'),
+        selection_count: eb.ref('excluded.selection_count'),
+        selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
+        scaling_source: eb.ref('excluded.scaling_source'),
+        class_id: eb.ref('excluded.class_id'),
+        charge_id: eb.ref('excluded.charge_id'),
+        restriction_id: eb.ref('excluded.restriction_id'),
+        filter_id: eb.ref('excluded.filter_id'),
+        cast_at_level: eb.ref('excluded.cast_at_level')
       })))
       .execute()
 
@@ -386,9 +431,5 @@ export async function upsertSpellGrant(
       }
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

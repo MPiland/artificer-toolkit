@@ -24,12 +24,25 @@ CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
+  section_code text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   available_at_level integer,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT features_section_code_chk CHECK (
+    section_code IS NULL OR section_code IN (
+      'TRAIT',
+      'ACTION',
+      'BONUS_ACTION',
+      'REACTION',
+      'LEGENDARY_ACTION',
+      'LAIR_ACTION',
+      'REGIONAL_EFFECT',
+      'OTHER'
+    )
+  )
 );
 
 ALTER TABLE public.features ENABLE ROW LEVEL SECURITY;

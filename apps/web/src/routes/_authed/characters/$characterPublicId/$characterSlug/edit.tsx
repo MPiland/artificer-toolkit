@@ -1,5 +1,4 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { characterBuilderDraftPayloadDtoSchema } from '@artificer-toolkit/schema/api/characters'
 import { getCharacter, getCharacterDraft } from '#app/data/characters/queries'
 import { createServerApi } from '#app/lib/api'
@@ -78,12 +77,5 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
 
 function parseCharacterBuilderDraftPayload(payload: Record<string, unknown>) {
   const parsedDraftPayload = characterBuilderDraftPayloadDtoSchema.safeParse(payload)
-  if (parsedDraftPayload.success) return parsedDraftPayload.data
-
-  const parsedLegacyCharacter = characterAuthoredDtoSchema.safeParse(payload)
-  if (!parsedLegacyCharacter.success) return null
-
-  return {
-    character: parsedLegacyCharacter.data
-  }
+  return parsedDraftPayload.success ? parsedDraftPayload.data : null
 }

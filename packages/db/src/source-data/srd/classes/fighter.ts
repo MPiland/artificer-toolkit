@@ -1,20 +1,46 @@
-import { ACTIVATION_CODE, ABILITY_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, CLASS_CATEGORY, EFFECT_KIND, GRANT_KIND, MODIFIER_KIND, MODIFIER_SCOPE_KIND, PROFICIENCY_KIND, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, TARGET_SELECTION_KIND, TRIGGER, VALUE_DOMAIN_CODE, type ClassAuthored } from '@artificer-toolkit/shared'
+import {
+  ACTIVATION_CODE,
+  ABILITY_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
+  AUTHORING_SELECTION_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CLASS_CATEGORY,
+  EFFECT_KIND,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  PROFICIENCY_KIND,
+  RANGE_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
+  STARTING_EQUIPMENT_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  VALUE_DOMAIN_CODE,
+  type ClassAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
-  if (!entry)
-    throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
   return entry.id
 }
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
-if (!goldCurrencyId)
-  throw new Error('SRD GP currency required.')
+if (!goldCurrencyId) throw new Error('SRD GP currency required.')
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 const F = 5 // Fighter class index
 // Second Wind charge - resets on short or long rest
@@ -29,6 +55,7 @@ export const fighter: ClassAuthored = {
   id: CLASS_IDS.FIGHTER,
   label: 'Fighter',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   description: 'A master of martial combat, skilled with a variety of weapons and armor.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
@@ -72,7 +99,196 @@ export const fighter: ClassAuthored = {
   },
   startingEquipment: {
     id: classRowId(F, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(F, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(F, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(F, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(F, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(47)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(F, 98, 6),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(F, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(F, 98, 8),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(36)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(F, 98, 9),
+                    order: 2,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(99)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(F, 98, 10),
+            order: 1,
+            options: [
+              {
+                id: classRowId(F, 98, 11),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(F, 98, 12),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL],
+                    count: 1
+                  },
+                  {
+                    id: classRowId(F, 98, 13),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.SHIELD,
+                    count: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(F, 98, 14),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(F, 98, 15),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL],
+                    count: 2
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(F, 98, 16),
+            order: 2,
+            options: [
+              {
+                id: classRowId(F, 98, 17),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(F, 98, 18),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(11)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(F, 98, 19),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(101)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(F, 98, 20),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(F, 98, 21),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(4)],
+                    quantity: 2
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(F, 98, 22),
+            order: 3,
+            options: [
+              {
+                id: classRowId(F, 98, 23),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(F, 98, 24),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(184)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(F, 98, 25),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(F, 98, 26),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   proficiencies: [
     // All armor
@@ -147,6 +363,7 @@ export const fighter: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ACROBATICS'),
@@ -171,7 +388,8 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 1),
       label: 'Fighting Style',
-      description: 'You adopt a particular style of fighting as your specialty. Choose one of the following options: Archery, Defense, Dueling, Great Weapon Fighting, Protection, Two-Weapon Fighting.',
+      description:
+        'You adopt a particular style of fighting as your specialty. Choose one of the following options: Archery, Defense, Dueling, Great Weapon Fighting, Protection, Two-Weapon Fighting.',
       availableAtLevel: 1,
       order: 0,
       optionChoices: [{ level: 1, count: 1 }],
@@ -221,7 +439,8 @@ export const fighter: ClassAuthored = {
         {
           id: classRowId(F, 4, 3),
           label: 'Dueling',
-          description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+          description:
+            'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
           grants: {
             modifiers: [
               {
@@ -242,19 +461,22 @@ export const fighter: ClassAuthored = {
         {
           id: classRowId(F, 4, 4),
           label: 'Great Weapon Fighting',
-          description: 'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
+          description:
+            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
           order: 3
         },
         {
           id: classRowId(F, 4, 5),
           label: 'Protection',
-          description: 'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
+          description:
+            'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
           order: 4
         },
         {
           id: classRowId(F, 4, 6),
           label: 'Two-Weapon Fighting',
-          description: 'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
+          description:
+            'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
           order: 5
         }
       ]
@@ -262,7 +484,8 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 2),
       label: 'Second Wind',
-      description: 'You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.',
+      description:
+        'You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.',
       attributes: ['LIMITED_USE'],
       charges: {
         id: classRowId(F, 3, 20),
@@ -329,35 +552,40 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 3),
       label: 'Action Surge',
-      description: 'Starting at 2nd level, you can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action. Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest.',
+      description:
+        'Starting at 2nd level, you can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action. Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest.',
       availableAtLevel: 2,
       order: 2
     },
     {
       id: classRowId(F, 3, 4),
       label: 'Martial Archetype',
-      description: 'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques.',
       availableAtLevel: 3,
       order: 3
     },
     {
       id: classRowId(F, 3, 5),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 4
     },
     {
       id: classRowId(F, 3, 6),
       label: 'Extra Attack',
-      description: 'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn. The number of attacks increases to three when you reach 11th level and to four when you reach 20th level.',
+      description:
+        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn. The number of attacks increases to three when you reach 11th level and to four when you reach 20th level.',
       availableAtLevel: 5,
       order: 5
     },
     {
       id: classRowId(F, 3, 7),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 6,
       order: 6
     },
@@ -371,14 +599,16 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 9),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 8
     },
     {
       id: classRowId(F, 3, 10),
       label: 'Indomitable',
-      description: 'Beginning at 9th level, you can reroll a saving throw that you fail. If you do so, you must use the new roll. You can use this feature twice between long rests starting at 13th level and three times between long rests starting at 17th level.',
+      description:
+        'Beginning at 9th level, you can reroll a saving throw that you fail. If you do so, you must use the new roll. You can use this feature twice between long rests starting at 13th level and three times between long rests starting at 17th level.',
       availableAtLevel: 9,
       order: 9
     },
@@ -392,14 +622,16 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 12),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 11
     },
     {
       id: classRowId(F, 3, 13),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 14,
       order: 12
     },
@@ -413,14 +645,16 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 15),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 14
     },
     {
       id: classRowId(F, 3, 16),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 15
     },

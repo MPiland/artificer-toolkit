@@ -1,73 +1,14 @@
 import { style } from '@vanilla-extract/css'
-import { foundationVars, media } from '../../../../css/foundations.css.ts'
+import { foundationVars } from '../../../../css/foundations.css.ts'
 import { app } from '../../../../css/layers.css.ts'
 
-export const headerText = style({
+export const header = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gap: foundationVars.space[2],
-      minInlineSize: 0
-    }
-  }
-})
-
-export const titleRow = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexWrap: 'nowrap',
-      alignItems: 'center',
-      minInlineSize: 0,
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const titleActions = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[1]
-    }
-  }
-})
-
-export const title = style({
-  '@layer': {
-    [app]: {
-      margin: 0,
-      minInlineSize: 0,
-      overflow: 'hidden',
-      color: foundationVars.color.text.primary,
-      fontSize: '22px',
-      fontWeight: foundationVars.fontWeight.bold,
-      letterSpacing: '0',
-      lineHeight: '28px',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const statusBadge = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[1],
-      minBlockSize: 24,
-      paddingInline: foundationVars.space[2],
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.text.accent,
-      fontSize: '12px',
-      fontWeight: foundationVars.fontWeight.bold,
-      lineHeight: '16px',
-      alignSelf: 'center',
-      whiteSpace: 'nowrap'
+      minBlockSize: 60,
+      paddingInline: foundationVars.space[4],
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
@@ -81,13 +22,7 @@ export const headerActions = style({
       gap: foundationVars.space[2],
       alignSelf: 'center',
       minInlineSize: 0,
-      flexShrink: 0,
-      '@media': {
-        [media.mobile]: {
-          justifyContent: 'flex-start',
-          alignSelf: 'center'
-        }
-      }
+      flexShrink: 0
     }
   }
 })
@@ -130,7 +65,9 @@ export const sectionTitle = style({
       color: foundationVars.color.text.primary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '0.02em',
       lineHeight: '24px',
+      textTransform: 'uppercase',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
     }

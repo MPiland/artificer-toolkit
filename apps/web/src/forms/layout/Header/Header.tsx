@@ -1,41 +1,67 @@
 import { Text } from '@mantine/core'
-import { FilePenLine } from 'lucide-react'
+import { CircleCheck } from 'lucide-react'
 import * as styles from './Header.css'
 import {
-  DeleteRecordAction,
+  ActivateAction,
+  OverflowActionMenu,
   PreviewToggleAction,
   SaveDraftAction,
   ResetActionMenu,
   StepsNavigationAction
 } from '../Actions/Actions'
-import { getAuthoringStatus } from '../AuthoringLayout.utils'
+import { readReactNodeText } from '../AuthoringLayout.utils'
 import { useAuthoringForm } from '../AuthoringFormContext'
 
 export function Header() {
-  const { mode, isDraft, hasActiveDraft, activeStepLabel, subjectKindLabel } = useAuthoringForm()
+  const { hasChanges, activeStepLabel, authoredSession, subjectKindLabel, subjectLabel } =
+    useAuthoringForm()
 
-  const title = activeStepLabel ?? subjectKindLabel
-  const status = getAuthoringStatus(mode, isDraft || hasActiveDraft)
+  const title = subjectLabel ?? subjectKindLabel
+  const moduleLabel = activeStepLabel ?? subjectKindLabel
+  const titleLabel = readReactNodeText(subjectLabel) ?? subjectKindLabel
+  const provenanceLabel =
+    authoredSession?.provenanceKind === 'MASTER'
+      ? 'SRD'
+      : authoredSession?.provenanceKind === 'OWNED'
+        ? 'Homebrew'
+        : undefined
 
   return (
     <header className={styles.header}>
       <div className={styles.titleRow}>
-        <Text component='h1' className={styles.title}>
-          {title}
-        </Text>
-        <StepsNavigationAction />
-        <PreviewToggleAction />
+        <div className={styles.titleStack}>
+          <Text component='h1' className={styles.title}>
+            {title}
+          </Text>
+          {moduleLabel !== titleLabel ? (
+            <Text component='p' className={styles.moduleLabel}>
+              {moduleLabel}
+            </Text>
+          ) : null}
+        </div>
+        {provenanceLabel ? <span className={styles.provenanceBadge}>{provenanceLabel}</span> : null}
+        <div className={styles.viewActions}>
+          <StepsNavigationAction />
+          <PreviewToggleAction />
+        </div>
       </div>
       <div className={styles.formActions}>
-        <ResetActionMenu />
-        <SaveDraftAction />
-        <DeleteRecordAction />
-        {status.label ? (
-          <span className={styles.statusBadge} aria-label={`Current status: ${status.label}`}>
-            <FilePenLine size={14} aria-hidden='true' />
-            {status.label}
-          </span>
-        ) : null}
+        <span
+          className={styles.saveState}
+          data-dirty={hasChanges ? 'true' : 'false'}
+          aria-live='polite'
+        >
+          {!hasChanges ? <CircleCheck size={15} aria-hidden='true' /> : null}
+          {hasChanges ? 'Unsaved changes' : 'All changes saved'}
+        </span>
+        <div className={styles.utilityActions}>
+          <ResetActionMenu />
+          <OverflowActionMenu />
+        </div>
+        <div className={styles.lifecycleActions}>
+          <SaveDraftAction />
+          <ActivateAction />
+        </div>
       </div>
     </header>
   )

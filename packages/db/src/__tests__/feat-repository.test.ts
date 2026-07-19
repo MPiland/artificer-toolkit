@@ -214,11 +214,13 @@ describe('createFeatRepository', () => {
                     restrictions: undefined,
                     order: 1,
                     availableAtLevel: undefined,
+                    section: undefined,
                     optionChoices: undefined,
                     options: undefined
                 }
             ],
             grants: {
+                feats: undefined,
                 modifiers: undefined,
                 proficiencies: [
                     {
@@ -228,6 +230,8 @@ describe('createFeatRepository', () => {
                         order: 2,
                         selectionKind: 'GRANTED',
                         authoringModeKind: 'SELECTED',
+                        scalingKind: 'NONE',
+                        selectionDuplicatePolicy: undefined,
                         level: 'FULL',
                         rounding: undefined,
                         count: undefined,
@@ -243,6 +247,7 @@ describe('createFeatRepository', () => {
                         selectionKind: 'GRANTED',
                         scalingKind: 'NONE',
                         authoringModeKind: 'SELECTED',
+                        selectionDuplicatePolicy: undefined,
                         count: undefined,
                         senseIds: ['darkvision'],
                         charges: undefined,
@@ -258,6 +263,7 @@ describe('createFeatRepository', () => {
                         selectionKind: 'GRANTED',
                         scalingKind: 'NONE',
                         authoringModeKind: 'SELECTED',
+                        selectionDuplicatePolicy: undefined,
                         count: undefined,
                         spellIds: ['magic-missile'],
                         castAtLevel: 1,
@@ -424,6 +430,7 @@ describe('createFeatRepository', () => {
             features: undefined,
             charges: undefined,
             grants: {
+                feats: undefined,
                 modifiers: [
                     {
                         id: 'modifier-1',

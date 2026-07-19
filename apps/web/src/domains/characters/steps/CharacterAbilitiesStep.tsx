@@ -10,7 +10,9 @@ import {
   abilityOptions,
   cacheActiveAbilityIntent,
   createFallbackCharacterFormValues,
+  getAbilityGenerationMethod,
   getCachedAbilityIntent,
+  isAbilityAssignmentOption,
   hitpointMethodOptions,
   isCharacterAbilityCode,
   pointBuyOptions,
@@ -18,7 +20,9 @@ import {
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import {
+  canMoveHitpointLevel,
   createDefaultAbilityAssignments,
+  moveHitpointLevel,
   syncHitpointLevels
 } from './CharacterAbilitiesStep.utils'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
@@ -51,13 +55,14 @@ export const CharacterAbilitiesStep = withForm({
                       value={abilityMethod}
                       disabled={readOnly}
                       onChange={(value) => {
-                        if (!value) return
+                        const method = getAbilityGenerationMethod(value ?? '')
+                        if (!method) return
                         const cache = cacheActiveAbilityIntent(form.state.values.builderIntent?.abilities, abilityField.state.value)
 
-                        abilityField.handleChange(getCachedAbilityIntent(cache, value))
+                        abilityField.handleChange(getCachedAbilityIntent(cache, method))
                         form.setFieldValue('builderIntent.abilities', {
                           ...cache,
-                          activeMethod: value
+                          activeMethod: method
                         })
                       }}
                     />
@@ -73,6 +78,8 @@ export const CharacterAbilitiesStep = withForm({
                           disabled={readOnly}
                           onChange={(value) => {
                             if (!value) return
+                            if (value !== HITPOINT_CALCULATION_METHOD_CODE.FIXED && value !== HITPOINT_CALCULATION_METHOD_CODE.MANUAL) return
+
                             field.handleChange({
                               ...field.state.value,
                               method: value
@@ -134,7 +141,7 @@ export const CharacterAbilitiesStep = withForm({
                                         value={row.option}
                                         disabled={readOnly}
                                         onChange={(value) => {
-                                          if (!value) return
+                                          if (!value || !isAbilityAssignmentOption(value)) return
                                           field.replaceValue(index, {
                                             ...row,
                                             option: value
@@ -200,24 +207,62 @@ export const CharacterAbilitiesStep = withForm({
                       </Group>
                       {rows.length === 0
                         ? <Text className={styles.mutedText}>No hit point levels have been added yet.</Text>
-                        : rows.map((row, index) => (
-                            <Group key={`hp-${row.level}-${index}`} align='flex-end'>
-                              <NumberInput hideControls label='Level' value={row.level} readOnly />
-                              <NumberInput
-                                hideControls
-                                label={isManualHitpoints ? 'Rolled HP Total' : 'Fixed HP Total'}
-                                min={1}
-                                value={row.value}
-                                disabled={readOnly}
-                                onChange={(value) => {
-                                  field.replaceValue(index, {
-                                    ...row,
-                                    value: typeof value === 'number' ? value : 1
-                                  })
-                                }}
-                              />
-                            </Group>
-                          ))}
+                        : rows.map((row, index) => {
+                            const classLabel = payload.references.classes.find((record) => record.id === row.classId)?.label ?? row.classId
+
+                            return (
+                              <Group key={`hp-${row.level}-${row.classId}-${row.classLevel}-${index}`} align='flex-end'>
+                                <NumberInput hideControls label='Character Level' value={row.level} readOnly />
+                                <Stack gap={2}>
+                                  <Text size='xs' className={styles.mutedText}>Class progression</Text>
+                                  <Text>
+                                    {classLabel}
+                                    {' '}
+                                    {row.classLevel}
+                                  </Text>
+                                </Stack>
+                                <NumberInput
+                                  hideControls
+                                  label={isManualHitpoints ? 'Rolled HP Total' : 'Fixed HP Total'}
+                                  min={1}
+                                  value={row.value}
+                                  disabled={readOnly}
+                                  onChange={(value) => {
+                                    field.replaceValue(index, {
+                                      ...row,
+                                      value: typeof value === 'number' ? value : 1
+                                    })
+                                  }}
+                                />
+                                {!readOnly
+                                  ? (
+                                      <Group gap='xs' wrap='nowrap'>
+                                        <Button
+                                          type='button'
+                                          variant='default'
+                                          mih={44}
+                                          aria-label={`Move ${classLabel} level ${row.classLevel} up`}
+                                          disabled={!canMoveHitpointLevel(rows, index, 'up')}
+                                          onClick={() => field.handleChange(moveHitpointLevel(rows, index, 'up'))}
+                                        >
+                                          Move Up
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          variant='default'
+                                          mih={44}
+                                          aria-label={`Move ${classLabel} level ${row.classLevel} down`}
+                                          disabled={!canMoveHitpointLevel(rows, index, 'down')}
+                                          onClick={() => field.handleChange(moveHitpointLevel(rows, index, 'down'))}
+                                        >
+                                          Move Down
+                                        </Button>
+                                      </Group>
+                                    )
+                                  : null}
+                              </Group>
+                            )
+                          })}
                     </Stack>
                   )
                 }}

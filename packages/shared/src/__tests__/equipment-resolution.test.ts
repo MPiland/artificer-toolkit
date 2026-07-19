@@ -33,6 +33,7 @@ describe('resolveEquipmentAuthored', () => {
       ],
       category: EQUIPMENT_CATEGORY_CODE.WEAPON,
       attributes: ['LIMITED_USE'],
+      requiresAttunement: true,
       effects: [
         {
           id: 'parent-effect',
@@ -100,6 +101,7 @@ describe('resolveEquipmentAuthored', () => {
       properties: [EQUIPMENT_PROPERTY_CODE.MAGIC],
       category: EQUIPMENT_CATEGORY_CODE.VARIANT,
       parentEquipmentId: parent.id,
+      status: 'DRAFT',
       modifiers: [
         {
           id: 'variant-modifier',
@@ -126,6 +128,7 @@ describe('resolveEquipmentAuthored', () => {
     )
 
     expect(resolved.category).toBe(EQUIPMENT_CATEGORY_CODE.WEAPON)
+    expect(resolved.status).toBe('DRAFT')
     expect(resolved.description).toBe(parent.description)
     expect(resolved.properties).toEqual([
       EQUIPMENT_PROPERTY_CODE.MARTIAL,
@@ -133,6 +136,8 @@ describe('resolveEquipmentAuthored', () => {
       EQUIPMENT_PROPERTY_CODE.MAGIC
     ])
     expect(resolved.effects?.map((effect) => effect.id)).toEqual(['parent-effect'])
+    expect(resolved.requiresAttunement).toBe(true)
+    expect(resolved.variant?.inherited.requiresAttunement).toBe(true)
     expect(resolved.modifiers?.map((modifier) => modifier.id)).toEqual([
       'parent-modifier',
       'variant-modifier'
@@ -161,5 +166,12 @@ describe('resolveEquipmentAuthored', () => {
       'parent-modifier',
       'variant-modifier'
     ])
+    expect(compiled.requiresAttunement).toBe(true)
+
+    const explicitlyUnattuned = resolveEquipmentAuthored(
+      { ...variant, requiresAttunement: false },
+      (id) => id === parent.id ? parent : null
+    )
+    expect(explicitlyUnattuned.requiresAttunement).toBe(false)
   })
 })

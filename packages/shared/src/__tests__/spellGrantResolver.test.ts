@@ -42,7 +42,7 @@ function makeSnapshot(overrides: Partial<CharacterBuildSnapshot> = {}): Characte
       { classId: 'druid', classLevel: 5, value: 7 }
     ],
     features: [],
-    equippedItems: [],
+    equipmentItems: [],
     ...overrides
   }
 }

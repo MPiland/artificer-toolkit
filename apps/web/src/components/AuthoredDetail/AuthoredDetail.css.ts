@@ -587,7 +587,8 @@ export const fact = style({
       minHeight: '76px',
       padding: foundationVars.space[3],
       backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: `inset -1px -1px 0 ${foundationVars.color.border.subtle}`
+      borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`
     }
   }
 })

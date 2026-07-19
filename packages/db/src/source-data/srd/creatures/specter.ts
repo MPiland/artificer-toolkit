@@ -5,7 +5,6 @@ export const specter: CreatureAuthored = {
     label: 'Specter',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.UNDEAD,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const specter: CreatureAuthored = {
         INTELLIGENCE: 10,
         WISDOM: 10,
         CHARISMA: 11,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     hitPoints: 22,

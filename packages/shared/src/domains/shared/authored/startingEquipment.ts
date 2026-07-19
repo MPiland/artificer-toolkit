@@ -1,4 +1,5 @@
 import type { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, AuthoringSelectionKind, EquipmentCategoryCode, EquipmentPropertyCode, STARTING_EQUIPMENT_KIND, StartingEquipmentKind } from '#core'
+import type { FacetAuthored } from './facet.js'
 
 export interface StartingEquipmentAuthored {
   id: string
@@ -20,6 +21,7 @@ export interface StartingEquipmentGroupAuthored {
 export interface StartingEquipmentOptionAuthored {
   id: string
   order: number // int
+  eligibility?: FacetAuthored<'CHARACTER'>
   items: StartingEquipmentItemAuthored[]
 }
 

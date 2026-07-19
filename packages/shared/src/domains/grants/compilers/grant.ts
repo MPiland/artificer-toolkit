@@ -1,6 +1,7 @@
 import type {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  AuthoringSelectionDuplicatePolicy,
   GrantKind,
   SCALING,
   ScalingSourcePayload,
@@ -25,6 +26,7 @@ export type CompiledGrantScalingNone<TPayload> = (
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     scalingKind: typeof SCALING.NONE
     count: number
+    selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
   }
 )
 & TPayload
@@ -41,7 +43,12 @@ export type CompiledScalingPerLevel<
   | ({
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     scalingKind: typeof SCALING.PER_LEVEL
-    levels: ({ level: number, order: number, count: number } & TPayload)[]
+    levels: ({
+      level: number
+      order: number
+      count: number
+      selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
+    } & TPayload)[]
   } & ScalingPayload<TSource>)
 
 export type CompiledScalingGrant<
@@ -63,6 +70,7 @@ export type CompiledStaticGrant<
   | {
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     count: number
+    selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
   }
   | {
     selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED

@@ -24,6 +24,8 @@ export const raceStorySystems = [
     id: STORY_SYSTEM_ID,
     label: 'D&D 5e (2014)',
     description: 'Seed-derived SRD system used for Storybook authoring review.',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
     userId: 'srd'
   }
 ] satisfies SystemListResponseDto
@@ -168,6 +170,7 @@ export const seedDerivedDragonbornRace = {
             grantKind: 'PROFICIENCY_GRANT',
             proficiencyKind: 'LANGUAGE',
             selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
             level: 'FULL',
             authoringModeKind: 'SELECTED',
             languageIds: ['language-draconic'],
@@ -226,15 +229,18 @@ export const raceStoryDraft = {
   status: 'DRAFT',
   category: draftDragonbornRace.category,
   draftState: 'ACTIVE_WITH_DRAFT',
-  baseActiveUpdatedAt: '2024-03-30T12:00:00.000Z',
+  revisionId: `${seedDerivedDragonbornRace.id}-draft-revision`,
+  revisionNumber: 2,
+  activeRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
+  baseActiveRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
   createdAt: '2024-04-01T12:00:00.000Z',
   updatedAt: '2024-04-01T12:00:00.000Z',
-  id: `${seedDerivedDragonbornRace.id}-draft`,
   payload: draftDragonbornRace
 } satisfies AuthoredDraftDto
 
 export const activeRaceResponse = {
   publicId: DRAGONBORN_PUBLIC_ID,
+  activeRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
   item: seedDerivedDragonbornRace,
   draft: raceStoryDraft,
   meta: raceStoryReferences,

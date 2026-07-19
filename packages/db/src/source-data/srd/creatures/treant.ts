@@ -5,7 +5,6 @@ export const treant: CreatureAuthored = {
     label: 'Treant',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.PLANT,
     size: S.SIZE_CODE.HUGE,
@@ -17,7 +16,6 @@ export const treant: CreatureAuthored = {
         INTELLIGENCE: 12,
         WISDOM: 16,
         CHARISMA: 12,
-        SPELLCASTING: 0
     },
     armorClass: 16,
     armorClassNote: 'natural armor',

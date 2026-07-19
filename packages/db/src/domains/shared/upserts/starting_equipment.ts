@@ -1,7 +1,9 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type {
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FacetAuthored,
   StartingEquipmentAuthored,
   StartingEquipmentSetAuthored,
   StartingEquipmentGroupAuthored,
@@ -12,6 +14,7 @@ import {
   EQUIPMENT_CATEGORY_CODE as EQUIPMENT_CATEGORY_RUNTIME,
   EQUIPMENT_PROPERTY_CODE as EQUIPMENT_PROPERTY_RUNTIME
 } from '@artificer-toolkit/shared'
+import { upsertFacet } from '../facets.js'
 
 type StartingEquipmentRow = {
   id: string
@@ -32,6 +35,7 @@ type StartingEquipmentGroupRow = {
 type StartingEquipmentOptionRow = {
   id: string
   equipment_group_id: string
+  eligibility_facet_id: string | null
   sort_order: number
 }
 
@@ -90,6 +94,7 @@ type StartingEquipmentWritePlan = {
   sets: StartingEquipmentSetRow[]
   groups: StartingEquipmentGroupRow[]
   options: StartingEquipmentOptionRow[]
+  eligibilities: FacetAuthored<'CHARACTER'>[]
   items: StartingEquipmentItemRow[]
   itemEquipment: StartingEquipmentItemEquipmentRow[]
   itemProperties: StartingEquipmentItemPropertyRow[]
@@ -236,6 +241,7 @@ function mapOptionRow(
   return {
     id: option.id,
     equipment_group_id: groupId,
+    eligibility_facet_id: option.eligibility?.id ?? null,
     sort_order: option.order
   }
 }
@@ -292,6 +298,7 @@ function buildWritePlan(json_data: StartingEquipmentAuthored): StartingEquipment
     sets: [],
     groups: [],
     options: [],
+    eligibilities: [],
     items: [],
     itemEquipment: [],
     itemProperties: [],
@@ -306,6 +313,9 @@ function buildWritePlan(json_data: StartingEquipmentAuthored): StartingEquipment
 
       for (const option of group.options) {
         plan.options.push(mapOptionRow(group.id, option))
+        if (option.eligibility) {
+          plan.eligibilities.push(option.eligibility)
+        }
 
         for (const item of option.items) {
           const startingEquipmentKind = requireStartingEquipmentKind(item)
@@ -347,9 +357,7 @@ export async function upsertStartingEquipment(
   json_data: StartingEquipmentAuthored
 ) {
   const plan = buildWritePlan(json_data)
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('starting_equipment')
       .values({ id: json_data.id } satisfies StartingEquipmentRow)
@@ -373,6 +381,10 @@ export async function upsertStartingEquipment(
         .insertInto('starting_equipment_groups')
         .values(group)
         .execute()
+    }
+
+    for (const eligibility of plan.eligibilities) {
+      await upsertFacet(trx, eligibility)
     }
 
     for (const option of plan.options) {
@@ -410,9 +422,5 @@ export async function upsertStartingEquipment(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

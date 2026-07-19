@@ -1,4 +1,4 @@
-import { TARGET_DISPOSITION_KIND, DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
 import * as S from './shared.js';
 import { conditionTypeId } from '../equipment/shared.js';
 export const adultBlackDragon: CreatureAuthored = {
@@ -6,7 +6,6 @@ export const adultBlackDragon: CreatureAuthored = {
     label: 'Adult Black Dragon',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.DRAGON,
     size: S.SIZE_CODE.HUGE,
@@ -18,7 +17,6 @@ export const adultBlackDragon: CreatureAuthored = {
         INTELLIGENCE: 14,
         WISDOM: 13,
         CHARISMA: 17,
-        SPELLCASTING: 0
     },
     armorClass: 19,
     armorClassNote: 'natural armor',
@@ -408,6 +406,7 @@ export const adultBlackDragon: CreatureAuthored = {
         {
             id: S.featureId(3, 9),
             label: 'Legendary Actions',
+            section: 'LEGENDARY_ACTION',
             description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
             charges: {

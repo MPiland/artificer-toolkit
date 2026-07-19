@@ -1,21 +1,57 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  AUTHORING_MODE_KIND,
+  CLASS_CATEGORY,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   PATH_CODES_BY_TRIGGER,
-  PROFICIENCY_KIND
+  PROFICIENCY_KIND,
+  SCALING_AMOUNT_KIND
 } from '@artificer-toolkit/shared/core'
+import {
+  compileBackground,
+  compileClass,
+  compileCreature,
+  compileEquipment,
+  compileFeat,
+  compileRace,
+  compileSpell,
+  compileVehicle,
+  resolveRaceAuthored
+} from '@artificer-toolkit/shared/compilers'
+import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
+import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
+import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
+import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 
 import { mapDurationToRow } from '../domains/shared/upserts/characteristic.js'
 import { srdBaselineContent } from '../source-data/srd/index.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const RESULT_BLOCK_ID_SUFFIX = '__result'
+const CREATURE_ABILITY_SCORE_KEYS = [
+  'CHARISMA',
+  'CONSTITUTION',
+  'DEXTERITY',
+  'INTELLIGENCE',
+  'STRENGTH',
+  'WISDOM'
+] as const
 
 function isUuidKey(key: string): boolean {
-  return key === 'id' || key === 'userId' || key === 'systemId' || key.endsWith('Id') || key.endsWith('Ids')
+  return (
+    key === 'id' ||
+    key === 'userId' ||
+    key === 'systemId' ||
+    key.endsWith('Id') ||
+    key.endsWith('Ids')
+  )
 }
 
 function isValidUuidValue(path: string, key: string, value: string): boolean {
@@ -165,6 +201,33 @@ interface NestedFeatureReference {
   path: string
 }
 
+interface DurationReference {
+  id: string
+  path: string
+}
+
+function collectDurationReferences(value: unknown, path: string, references: DurationReference[]) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      collectDurationReferences(item, `${path}[${index}]`, references)
+    })
+
+    return
+  }
+
+  if (!isRecord(value)) {
+    return
+  }
+
+  if (typeof value.durationKind === 'string' && typeof value.id === 'string') {
+    references.push({ id: value.id, path })
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    collectDurationReferences(entry, path ? `${path}.${key}` : key, references)
+  }
+}
+
 function collectNestedFeatureReferences(
   value: unknown,
   path: string,
@@ -202,11 +265,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
-function collectGrantedRecordsWithCounts(
-  value: unknown,
-  path: string,
-  invalidValues: string[]
-) {
+function collectGrantedRecordsWithCounts(value: unknown, path: string, invalidValues: string[]) {
   if (Array.isArray(value)) {
     value.forEach((item, index) => {
       collectGrantedRecordsWithCounts(item, `${path}[${index}]`, invalidValues)
@@ -259,11 +318,13 @@ function collectInvalidEquipmentProficiencySelectors(
     }
 
     if (
-      value.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT
-      && value.authoringModeKind === 'SELECTED'
-      && (!Array.isArray(value.equipmentIds) || value.equipmentIds.length === 0)
+      value.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT &&
+      value.authoringModeKind === 'SELECTED' &&
+      (!Array.isArray(value.equipmentIds) || value.equipmentIds.length === 0)
     ) {
-      invalidValues.push(`${path}.equipmentIds: SELECTED equipment proficiency requires equipment IDs`)
+      invalidValues.push(
+        `${path}.equipmentIds: SELECTED equipment proficiency requires equipment IDs`
+      )
     }
   }
 
@@ -272,11 +333,7 @@ function collectInvalidEquipmentProficiencySelectors(
   }
 }
 
-function collectDurationKinds(
-  value: unknown,
-  path: string,
-  invalidValues: string[]
-) {
+function collectDurationKinds(value: unknown, path: string, invalidValues: string[]) {
   if (Array.isArray(value)) {
     value.forEach((item, index) => {
       collectDurationKinds(item, `${path}[${index}]`, invalidValues)
@@ -298,11 +355,7 @@ function collectDurationKinds(
   }
 }
 
-function collectInvalidEffectPathCodes(
-  value: unknown,
-  path: string,
-  invalidValues: string[]
-) {
+function collectInvalidEffectPathCodes(value: unknown, path: string, invalidValues: string[]) {
   if (Array.isArray(value)) {
     value.forEach((item, index) => {
       collectInvalidEffectPathCodes(item, `${path}[${index}]`, invalidValues)
@@ -317,14 +370,25 @@ function collectInvalidEffectPathCodes(
 
   const invocation = value.invocation
 
-  if (isRecord(invocation) && Array.isArray(value.paths) && typeof invocation.triggerCode === 'string') {
+  if (
+    isRecord(invocation) &&
+    Array.isArray(value.paths) &&
+    typeof invocation.triggerCode === 'string'
+  ) {
+    const triggerCode = invocation.triggerCode
     const allowedPathCodes: ReadonlySet<string> = new Set(
-      PATH_CODES_BY_TRIGGER[invocation.triggerCode as keyof typeof PATH_CODES_BY_TRIGGER] ?? []
+      PATH_CODES_BY_TRIGGER[triggerCode as keyof typeof PATH_CODES_BY_TRIGGER] ?? []
     )
 
     value.paths.forEach((effectPath, index) => {
-      if (isRecord(effectPath) && typeof effectPath.pathCode === 'string' && !allowedPathCodes.has(effectPath.pathCode)) {
-        invalidValues.push(`${path}.paths[${index}]: ${invocation.triggerCode}/${effectPath.pathCode}`)
+      if (
+        isRecord(effectPath) &&
+        typeof effectPath.pathCode === 'string' &&
+        !allowedPathCodes.has(effectPath.pathCode)
+      ) {
+        invalidValues.push(
+          `${path}.paths[${index}]: ${triggerCode}/${effectPath.pathCode}`
+        )
       }
     })
   }
@@ -351,12 +415,14 @@ function collectNonIntegerShapeDimensionAmounts(
     return
   }
 
-  for (const key of [
-    'edgeLength', 'height', 'length', 'radius', 'thickness'
-  ]) {
+  for (const key of ['edgeLength', 'height', 'length', 'radius', 'thickness']) {
     const dimension = value[key]
 
-    if (isRecord(dimension) && typeof dimension.amount === 'number' && !Number.isInteger(dimension.amount)) {
+    if (
+      isRecord(dimension) &&
+      typeof dimension.amount === 'number' &&
+      !Number.isInteger(dimension.amount)
+    ) {
       invalidValues.push(`${path}.${key}.amount: ${dimension.amount}`)
     }
   }
@@ -409,7 +475,10 @@ function hasSpellCastLevelScaling(value: unknown): boolean {
 }
 
 function stripHtml(value: string | null | undefined): string {
-  return (value ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return (value ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function paragraphCount(value: string | null | undefined): number {
@@ -450,13 +519,14 @@ function getSrdDamageTypeId(code: string): string {
 }
 
 function hasDamageOutcome(value: unknown, damageTypeId: string, diceConfig: string): boolean {
-  if (Array.isArray(value)) return value.some((item) => hasDamageOutcome(item, damageTypeId, diceConfig))
+  if (Array.isArray(value))
+    return value.some((item) => hasDamageOutcome(item, damageTypeId, diceConfig))
   if (!isRecord(value)) return false
 
   if (
-    value.effectKind === 'DAMAGE'
-    && value.damageTypeId === damageTypeId
-    && value.diceConfig === diceConfig
+    value.effectKind === 'DAMAGE' &&
+    value.damageTypeId === damageTypeId &&
+    value.diceConfig === diceConfig
   ) {
     return true
   }
@@ -475,18 +545,130 @@ function hasHealOutcome(value: unknown, diceConfig: string): boolean {
   return Object.values(value).some((entry) => hasHealOutcome(entry, diceConfig))
 }
 
-function hasRuleOutcome(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(hasRuleOutcome)
+function hasManualAdjudicationOutcome(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasManualAdjudicationOutcome)
   if (!isRecord(value)) return false
 
-  if (value.effectKind === 'RULE') {
+  if (value.effectKind === 'MANUAL_ADJUDICATION') {
     return true
   }
 
-  return Object.values(value).some(hasRuleOutcome)
+  return Object.values(value).some(hasManualAdjudicationOutcome)
 }
 
 describe('SRD source data', () => {
+  const authoredRootSchemaCases = [
+    {
+      domain: 'backgrounds',
+      schema: backgroundAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.backgrounds
+    },
+    {
+      domain: 'classes',
+      schema: classAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.classes
+    },
+    {
+      domain: 'creatures',
+      schema: creatureAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.creatures
+    },
+    {
+      domain: 'equipment',
+      schema: equipmentAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.equipment
+    },
+    { domain: 'feats', schema: featAuthoredDtoSchema, records: srdBaselineContent.subjects.feats },
+    { domain: 'races', schema: raceAuthoredDtoSchema, records: srdBaselineContent.subjects.races },
+    {
+      domain: 'spells',
+      schema: spellAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.spells
+    },
+    {
+      domain: 'vehicles',
+      schema: vehicleAuthoredDtoSchema,
+      records: srdBaselineContent.subjects.vehicles
+    }
+  ] as const
+
+  it.each(authoredRootSchemaCases)(
+    'round-trips every $domain authored root through its transport contract without loss',
+    ({ schema, records }) => {
+      for (const record of records) {
+        expect(schema.parse(record)).toEqual(record)
+      }
+    }
+  )
+
+  it('compiles every background root', () => {
+    for (const record of srdBaselineContent.subjects.backgrounds) {
+      expect(compileBackground(record).id).toBe(record.id)
+    }
+  })
+
+  it('compiles every class root', () => {
+    for (const record of srdBaselineContent.subjects.classes) {
+      expect(compileClass(record).id).toBe(record.id)
+    }
+  })
+
+  it('compiles every creature root', () => {
+    for (const record of srdBaselineContent.subjects.creatures) {
+      expect(compileCreature(record).id).toBe(record.id)
+    }
+  })
+
+  it('compiles every equipment root', () => {
+    for (const record of srdBaselineContent.subjects.equipment) {
+      expect(compileEquipment(record).id).toBe(record.id)
+    }
+  })
+
+  it('compiles every feat root', () => {
+    for (const record of srdBaselineContent.subjects.feats) {
+      expect(compileFeat(record).id).toBe(record.id)
+    }
+  })
+
+  it('resolves inheritance and compiles every race root', () => {
+    const racesById = new Map(
+      srdBaselineContent.subjects.races.map((record) => [record.id, record])
+    )
+
+    for (const record of srdBaselineContent.subjects.races) {
+      expect(compileRace(resolveRaceAuthored(record, (id) => racesById.get(id))).id).toBe(record.id)
+    }
+  })
+
+  it('compiles every spell root', () => {
+    for (const record of srdBaselineContent.subjects.spells) {
+      expect(compileSpell(record).id).toBe(record.id)
+    }
+  })
+
+  it('omits empty optional spell attribute collections', () => {
+    const emptyAttributeSpells = srdBaselineContent.subjects.spells
+      .filter((spell) => spell.attributes?.length === 0)
+      .map((spell) => spell.label)
+
+    expect(emptyAttributeSpells).toEqual([])
+  })
+
+  it('compiles every vehicle root', () => {
+    for (const record of srdBaselineContent.subjects.vehicles) {
+      expect(compileVehicle(record).id).toBe(record.id)
+    }
+  })
+
+  it('binds the SRD system container to the D&D 5e 2014 ruleset', () => {
+    expect(srdBaselineContent.vocabulary.systems).toHaveLength(1)
+    expect(srdBaselineContent.vocabulary.systems[0]).toMatchObject({
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014'
+    })
+  })
+
   it('uses valid UUID strings for deterministic ID fields', () => {
     const invalidValues: string[] = []
 
@@ -496,9 +678,10 @@ describe('SRD source data', () => {
   })
 
   it('does not define duplicate subject IDs', () => {
-    const subjectGroups = Object.values(srdBaselineContent.subjects) as readonly (readonly { id: string }[])[]
-    const subjectIds = subjectGroups
-      .flatMap((subjects) => subjects.map((subject) => subject.id))
+    const subjectGroups = Object.values(srdBaselineContent.subjects) as readonly (readonly {
+      id: string
+    }[])[]
+    const subjectIds = subjectGroups.flatMap((subjects) => subjects.map((subject) => subject.id))
 
     expect(collectDuplicateValues(subjectIds)).toEqual([])
   })
@@ -506,11 +689,13 @@ describe('SRD source data', () => {
   it('marks seeded subject records active', () => {
     const subjectGroups = Object.entries(srdBaselineContent.subjects) as readonly [
       string,
-      readonly { label: string, status: string }[]
+      readonly { label: string; status: string }[]
     ][]
-    const inactiveSubjects = subjectGroups.flatMap(([subjectKind, subjects]) => subjects
-      .filter((subject) => subject.status !== 'ACTIVE')
-      .map((subject) => `${subjectKind}: ${subject.label} (${subject.status})`))
+    const inactiveSubjects = subjectGroups.flatMap(([subjectKind, subjects]) =>
+      subjects
+        .filter((subject) => subject.status !== 'ACTIVE')
+        .map((subject) => `${subjectKind}: ${subject.label} (${subject.status})`)
+    )
 
     expect(inactiveSubjects).toEqual([])
   })
@@ -520,10 +705,29 @@ describe('SRD source data', () => {
 
     collectNestedFeatureReferences(srdBaselineContent.subjects, 'subjects', featureReferences)
 
-    const duplicateFeatureIds = new Set(collectDuplicateValues(featureReferences.map((reference) => reference.id)))
-    expect(featureReferences
-      .filter((reference) => duplicateFeatureIds.has(reference.id))
-      .map((reference) => `${reference.path}: ${reference.id}`)).toEqual([])
+    const duplicateFeatureIds = new Set(
+      collectDuplicateValues(featureReferences.map((reference) => reference.id))
+    )
+    expect(
+      featureReferences
+        .filter((reference) => duplicateFeatureIds.has(reference.id))
+        .map((reference) => `${reference.path}: ${reference.id}`)
+    ).toEqual([])
+  })
+
+  it('does not reuse duration characteristic IDs', () => {
+    const durationReferences: DurationReference[] = []
+
+    collectDurationReferences(srdBaselineContent.subjects, 'subjects', durationReferences)
+
+    const duplicateDurationIds = new Set(
+      collectDuplicateValues(durationReferences.map((reference) => reference.id))
+    )
+    expect(
+      durationReferences
+        .filter((reference) => duplicateDurationIds.has(reference.id))
+        .map((reference) => `${reference.path}: ${reference.id}`)
+    ).toEqual([])
   })
 
   it('keeps creature feature IDs scoped to their owning creature', () => {
@@ -536,6 +740,32 @@ describe('SRD source data', () => {
     })
 
     expect(mismatchedFeatureIds).toEqual([])
+  })
+
+  it('keeps equipment modifier IDs scoped to their owning equipment', () => {
+    const mismatchedModifierIds = srdBaselineContent.subjects.equipment.flatMap((equipment) => {
+      const equipmentOwnerSegment = equipment.id.split('-')[4]?.slice(0, 4)
+
+      return (equipment.modifiers ?? [])
+        .filter((modifier) => modifier.id.split('-')[3] !== equipmentOwnerSegment)
+        .map((modifier) => `${equipment.label}: ${modifier.id}`)
+    })
+
+    expect(mismatchedModifierIds).toEqual([])
+  })
+
+  it('uses contiguous one-based modifier orders within each equipment record', () => {
+    const invalidModifierOrders = srdBaselineContent.subjects.equipment.flatMap((equipment) =>
+      (equipment.modifiers ?? []).flatMap((modifier, index) =>
+        Number.isInteger(modifier.order) && modifier.order === index + 1
+          ? []
+          : [
+              `${equipment.label}: ${modifier.id} has order ${modifier.order}, expected ${index + 1}`
+            ]
+      )
+    )
+
+    expect(invalidModifierOrders).toEqual([])
   })
 
   it('does not include spells absent from the SRD PDF', () => {
@@ -559,12 +789,228 @@ describe('SRD source data', () => {
   })
 
   it('only references equipment records that exist in the SRD equipment bundle', () => {
-    const equipmentIds = new Set(srdBaselineContent.subjects.equipment.map((equipment) => equipment.id))
+    const equipmentIds = new Set(
+      srdBaselineContent.subjects.equipment.map((equipment) => equipment.id)
+    )
     const referencedEquipmentIds: string[] = []
 
     collectEquipmentReferences(srdBaselineContent, referencedEquipmentIds)
 
     expect([...new Set(referencedEquipmentIds.filter((id) => !equipmentIds.has(id)))]).toEqual([])
+  })
+
+  it('defines Barbarian starting equipment choices', () => {
+    const barbarian = getSrdClass('Barbarian')
+
+    expect(barbarian.category).toBe(CLASS_CATEGORY.BASE)
+    if (barbarian.category !== CLASS_CATEGORY.BASE) {
+      throw new Error('Expected Barbarian to be a base class.')
+    }
+
+    const [weaponGroup, secondaryWeaponGroup, fixedGearGroup] =
+      barbarian.startingEquipment.sets.flatMap((set) => set.groups)
+
+    expect(weaponGroup?.options).toHaveLength(2)
+    expect(weaponGroup?.options[0]?.items[0]).toMatchObject({
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'GRANTED',
+      quantity: 1,
+      equipmentIds: [getSrdEquipment('Greataxe').id]
+    })
+    expect(weaponGroup?.options[1]?.items[0]).toMatchObject({
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'CHOSEN',
+      category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+      properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL, EQUIPMENT_PROPERTY_CODE.MELEE],
+      count: 1
+    })
+
+    expect(secondaryWeaponGroup?.options).toHaveLength(2)
+    expect(secondaryWeaponGroup?.options[0]?.items[0]).toMatchObject({
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'GRANTED',
+      quantity: 2,
+      equipmentIds: [getSrdEquipment('Handaxe').id]
+    })
+    expect(secondaryWeaponGroup?.options[1]?.items[0]).toMatchObject({
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'CHOSEN',
+      category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+      properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+      count: 1
+    })
+
+    expect(fixedGearGroup?.options).toHaveLength(1)
+    expect(fixedGearGroup?.options[0]?.items).toMatchObject([
+      {
+        startingEquipmentKind: 'EQUIPMENT',
+        selectionKind: 'GRANTED',
+        quantity: 1,
+        equipmentIds: [getSrdEquipment("Explorer's Pack").id]
+      },
+      {
+        startingEquipmentKind: 'EQUIPMENT',
+        selectionKind: 'GRANTED',
+        quantity: 4,
+        equipmentIds: [getSrdEquipment('Javelin').id]
+      }
+    ])
+  })
+
+  it('defines satisfiable starting equipment for every base class', () => {
+    const equipmentById = new Map(
+      srdBaselineContent.subjects.equipment.map((equipment) => [equipment.id, equipment])
+    )
+    const failures: string[] = []
+    const baseClasses = srdBaselineContent.subjects.classes.filter(
+      (classRecord) => classRecord.category === CLASS_CATEGORY.BASE
+    )
+
+    expect(baseClasses).toHaveLength(12)
+
+    for (const classRecord of baseClasses) {
+      if (classRecord.startingEquipment.sets.length === 0) {
+        failures.push(`${classRecord.label}: no starting equipment sets`)
+      }
+
+      for (const set of classRecord.startingEquipment.sets) {
+        for (const group of set.groups) {
+          for (const option of group.options) {
+            for (const item of option.items) {
+              if (!('authoringModeKind' in item)) continue
+
+              if (item.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+                for (const equipmentId of 'equipmentIds' in item ? item.equipmentIds : []) {
+                  if (!equipmentById.has(equipmentId)) {
+                    failures.push(`${classRecord.label}: missing equipment ${equipmentId}`)
+                  }
+                }
+                continue
+              }
+
+              const candidates = srdBaselineContent.subjects.equipment.filter(
+                (equipment) =>
+                  (!item.category || equipment.category === item.category) &&
+                  (!item.properties ||
+                    item.properties.every((property) =>
+                      (equipment.properties ?? []).includes(property)
+                    ))
+              )
+              if (candidates.length === 0) {
+                failures.push(
+                  `${classRecord.label}: empty ${item.category ?? 'any'} / ${(item.properties ?? []).join(',')} filter`
+                )
+              }
+            }
+          }
+        }
+      }
+    }
+
+    expect(failures).toEqual([])
+  })
+
+  it('gates conditional Cleric equipment through exact-or-property proficiency', () => {
+    const cleric = getSrdClass('Cleric')
+    if (cleric.category !== CLASS_CATEGORY.BASE) {
+      throw new Error('Expected Cleric to be a base class.')
+    }
+
+    const options = cleric.startingEquipment.sets.flatMap((set) =>
+      set.groups.flatMap((group) => group.options)
+    )
+    const eligibilityForEquipment = (equipmentId: string) =>
+      options.find((option) =>
+        option.items.some(
+          (item) =>
+            'authoringModeKind' in item &&
+            item.authoringModeKind === AUTHORING_MODE_KIND.SELECTED &&
+            'equipmentIds' in item &&
+            item.equipmentIds.includes(equipmentId)
+        )
+      )?.eligibility
+
+    const warhammerId = getSrdEquipment('Warhammer').id
+    const chainMailId = getSrdEquipment('Chain Mail').id
+    const warhammerEligibility = eligibilityForEquipment(warhammerId)
+    const chainMailEligibility = eligibilityForEquipment(chainMailId)
+
+    expect(warhammerEligibility?.groups).toHaveLength(2)
+    expect(chainMailEligibility?.groups).toHaveLength(2)
+    expect(
+      warhammerEligibility?.groups.every(
+        (group) => group.contexts.length === 1 && (group.contexts[0]?.conditions ?? []).length === 1
+      )
+    ).toBe(true)
+    expect(
+      chainMailEligibility?.groups.every(
+        (group) => group.contexts.length === 1 && (group.contexts[0]?.conditions ?? []).length === 1
+      )
+    ).toBe(true)
+
+    const warhammerConditions = warhammerEligibility?.groups.flatMap((group) =>
+      group.contexts.flatMap((context) => context.conditions)
+    )
+    expect(warhammerConditions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          predicateCode: 'EQUIPMENT_PROFICIENCY',
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          equipmentIds: [warhammerId],
+          level: SCALING_AMOUNT_KIND.FULL
+        }),
+        expect.objectContaining({
+          predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+          properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL]
+        })
+      ])
+    )
+
+    const chainMailConditions = chainMailEligibility?.groups.flatMap((group) =>
+      group.contexts.flatMap((context) => context.conditions)
+    )
+    expect(chainMailConditions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          predicateCode: 'EQUIPMENT_PROFICIENCY',
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          equipmentIds: [chainMailId],
+          level: SCALING_AMOUNT_KIND.FULL
+        }),
+        expect.objectContaining({
+          predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY',
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          category: EQUIPMENT_CATEGORY_CODE.ARMOR,
+          properties: [EQUIPMENT_PROPERTY_CODE.HEAVY]
+        })
+      ])
+    )
+  })
+
+  it('defines the 2014 subclass selection level for every base class', () => {
+    const expectedLevels = new Map<string, number>([
+      ['Barbarian', 3],
+      ['Bard', 3],
+      ['Cleric', 1],
+      ['Druid', 2],
+      ['Fighter', 3],
+      ['Monk', 3],
+      ['Paladin', 3],
+      ['Ranger', 3],
+      ['Rogue', 3],
+      ['Sorcerer', 1],
+      ['Warlock', 1],
+      ['Wizard', 2]
+    ])
+    const actualLevels = new Map(
+      srdBaselineContent.subjects.classes
+        .filter((classRecord) => classRecord.category === CLASS_CATEGORY.BASE)
+        .map((classRecord) => [classRecord.label, classRecord.subclassSelectionLevel])
+    )
+
+    expect(actualLevels).toEqual(expectedLevels)
   })
 
   it('does not put choice counts on granted authoring selections', () => {
@@ -579,27 +1025,29 @@ describe('SRD source data', () => {
     const spellsWithoutEffects = srdBaselineContent.subjects.spells
       .filter((spell) => !spell.effects?.length)
       .map((spell) => spell.label)
-    const classLabelById = new Map(srdBaselineContent.subjects.classes.map((classRecord) => [
-      classRecord.id,
-      classRecord.label
-    ]))
-    const spellClassLabels = (label: string) => srdBaselineContent.subjects.spells
-      .find((spell) => spell.label === label)
-      ?.classIds.map((classId) => classLabelById.get(classId))
-      .sort()
+    const classLabelById = new Map(
+      srdBaselineContent.subjects.classes.map((classRecord) => [classRecord.id, classRecord.label])
+    )
+    const spellClassLabels = (label: string) =>
+      srdBaselineContent.subjects.spells
+        .find((spell) => spell.label === label)
+        ?.classIds.map((classId) => classLabelById.get(classId))
+        .sort()
 
     expect(spellsWithoutEffects).toEqual([])
 
-    expect(srdBaselineContent.subjects.spells.find((spell) => spell.label === 'Acid Arrow')).toMatchObject({
+    expect(
+      srdBaselineContent.subjects.spells.find((spell) => spell.label === 'Acid Arrow')
+    ).toMatchObject({
       components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
       description: expect.stringContaining('<strong>At Higher Levels.</strong>'),
       materialDescription: "powdered rhubarb leaf and an adder's stomach",
       magicSchoolId: expect.stringMatching(/00000000-0000-0000-0007-000500000000/i),
-      effects: expect.arrayContaining([
-        expect.objectContaining({ id: expect.any(String) })
-      ])
+      effects: expect.arrayContaining([expect.objectContaining({ id: expect.any(String) })])
     })
-    expect(srdBaselineContent.subjects.spells.find((spell) => spell.label === 'Contagion')).toMatchObject({
+    expect(
+      srdBaselineContent.subjects.spells.find((spell) => spell.label === 'Contagion')
+    ).toMatchObject({
       components: ['VERBAL', 'SOMATIC'],
       effects: expect.arrayContaining([
         expect.objectContaining({
@@ -632,7 +1080,9 @@ describe('SRD source data', () => {
   })
 
   it('keeps SRD background prose and detail tables populated', () => {
-    const acolyte = srdBaselineContent.subjects.backgrounds.find((background) => background.label === 'Acolyte')
+    const acolyte = srdBaselineContent.subjects.backgrounds.find(
+      (background) => background.label === 'Acolyte'
+    )
 
     expect(acolyte).toBeDefined()
     expect(paragraphCount(acolyte?.description)).toBe(2)
@@ -641,7 +1091,16 @@ describe('SRD source data', () => {
   })
 
   it('keeps SRD spellcasting class prose and Bardic Inspiration resource data populated', () => {
-    const spellcastingClassLabels = ['Bard', 'Cleric', 'Druid', 'Paladin', 'Ranger', 'Sorcerer', 'Warlock', 'Wizard']
+    const spellcastingClassLabels = [
+      'Bard',
+      'Cleric',
+      'Druid',
+      'Paladin',
+      'Ranger',
+      'Sorcerer',
+      'Warlock',
+      'Wizard'
+    ]
     const classesMissingSpellcastingDetails = spellcastingClassLabels
       .map((label) => getSrdClass(label))
       .filter((classRecord) => !classRecord.spellcasting?.details?.length)
@@ -649,7 +1108,9 @@ describe('SRD source data', () => {
 
     const bard = getSrdClass('Bard')
     const bardFeatureLabels = new Set((bard.features ?? []).map((feature) => feature.label))
-    const fontOfInspiration = bard.features?.find((feature) => feature.label === 'Font of Inspiration')
+    const fontOfInspiration = bard.features?.find(
+      (feature) => feature.label === 'Font of Inspiration'
+    )
 
     expect(classesMissingSpellcastingDetails).toEqual([])
     expect(bard.spellcasting?.details?.map((detail) => detail.label)).toEqual([
@@ -661,8 +1122,10 @@ describe('SRD source data', () => {
       'Ritual Casting',
       'Spellcasting Focus'
     ])
-    expect(bard.spellcasting?.details?.find((detail) => detail.label === 'Spellcasting Ability')?.description)
-      .toContain('Spell save DC')
+    expect(
+      bard.spellcasting?.details?.find((detail) => detail.label === 'Spellcasting Ability')
+        ?.description
+    ).toContain('Spell save DC')
     expect(bard.resources).toMatchObject({
       label: 'Bardic Inspiration',
       availableAtLevel: 1,
@@ -679,6 +1142,33 @@ describe('SRD source data', () => {
       modifierKind: 'REPLACE_CHARGE_RESET_KIND',
       payload: { resetKind: 'SHORT_REST' }
     })
+  })
+
+  it('matches the SRD Warlock Pact Magic slot progression', () => {
+    const warlock = getSrdClass('Warlock')
+    const expectedSlotCounts = [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4]
+    const expectedSlotLevels = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+    const charges = warlock.spellcasting?.charges
+
+    if (charges?.limitKind !== 'FIXED_AMOUNT' || charges.scalingKind !== 'PER_LEVEL') {
+      throw new Error('Warlock Pact Magic must use fixed per-level charges.')
+    }
+
+    expect(charges.levels.map((level) => level.amount)).toEqual(expectedSlotCounts)
+    expect(warlock.spellcasting?.spellLimits?.map((limit) => limit.slots[0]?.slotCount)).toEqual(
+      expectedSlotCounts
+    )
+    expect(warlock.spellcasting?.spellLimits?.map((limit) => limit.slots[0]?.spellLevel)).toEqual(
+      expectedSlotLevels
+    )
+  })
+
+  it('requires the complete SRD Wizard spellbook progression', () => {
+    const wizard = getSrdClass('Wizard')
+
+    expect(wizard.spellcasting?.spellLimits.map((limit) => limit.learnedSpellsLimit)).toEqual(
+      Array.from({ length: 20 }, (_, index) => 6 + index * 2)
+    )
   })
 
   it('keeps rules-heavy SRD equipment prose, properties, and mechanics populated', () => {
@@ -701,67 +1191,155 @@ describe('SRD source data', () => {
     expect(hasDamageOutcome(acid, getSrdDamageTypeId('ACID'), '2d6')).toBe(true)
 
     expect(alchemistsFire).toMatchObject({
-      description: expect.stringContaining('This sticky, adhesive fluid ignites when exposed to air.'),
+      description: expect.stringContaining(
+        'This sticky, adhesive fluid ignites when exposed to air.'
+      ),
       properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
     })
     expect(hasDamageOutcome(alchemistsFire, getSrdDamageTypeId('FIRE'), '1d4')).toBe(true)
-    expect(hasRuleOutcome(alchemistsFire)).toBe(true)
+    expect(hasManualAdjudicationOutcome(alchemistsFire)).toBe(true)
 
     expect(antitoxin).toMatchObject({
-      description: expect.stringContaining('gains advantage on saving throws against poison for 1 hour'),
-      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.VIAL, EQUIPMENT_PROPERTY_CODE.DRINK])
+      description: expect.stringContaining(
+        'gains advantage on saving throws against poison for 1 hour'
+      ),
+      properties: expect.arrayContaining([
+        EQUIPMENT_PROPERTY_CODE.VIAL,
+        EQUIPMENT_PROPERTY_CODE.DRINK
+      ])
     })
-    expect(hasRuleOutcome(antitoxin)).toBe(true)
+    expect(hasManualAdjudicationOutcome(antitoxin)).toBe(true)
 
-    expect(ballBearings.description).toContain('cover a level, square area that is 10 feet on a side')
-    expect(hasRuleOutcome(ballBearings)).toBe(true)
+    expect(ballBearings.description).toContain(
+      'cover a level, square area that is 10 feet on a side'
+    )
+    expect(hasManualAdjudicationOutcome(ballBearings)).toBe(true)
 
     expect(caltrops.description).toContain('take 1 piercing damage')
-    expect(hasRuleOutcome(caltrops)).toBe(true)
+    expect(hasManualAdjudicationOutcome(caltrops)).toBe(true)
 
     expect(holyWater).toMatchObject({
-      description: expect.stringContaining('If the target is a fiend or undead, it takes 2d6 radiant damage.'),
+      description: expect.stringContaining(
+        'If the target is a fiend or undead, it takes 2d6 radiant damage.'
+      ),
       properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
     })
     expect(hasDamageOutcome(holyWater, getSrdDamageTypeId('RADIANT'), '2d6')).toBe(true)
 
     expect(huntingTrap.description).toContain('take 1d4 piercing damage and stop moving')
-    expect(hasRuleOutcome(huntingTrap)).toBe(true)
+    expect(hasManualAdjudicationOutcome(huntingTrap)).toBe(true)
 
     expect(oil).toMatchObject({
-      description: expect.stringContaining('If the target takes any fire damage before the oil dries after 1 minute'),
+      description: expect.stringContaining(
+        'If the target takes any fire damage before the oil dries after 1 minute'
+      ),
       properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
     })
-    expect(hasRuleOutcome(oil)).toBe(true)
+    expect(hasManualAdjudicationOutcome(oil)).toBe(true)
 
     expect(poison).toMatchObject({
       description: expect.stringContaining('take 1d4 poison damage'),
-      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.VIAL, EQUIPMENT_PROPERTY_CODE.POISON])
+      properties: expect.arrayContaining([
+        EQUIPMENT_PROPERTY_CODE.VIAL,
+        EQUIPMENT_PROPERTY_CODE.POISON
+      ])
     })
-    expect(hasRuleOutcome(poison)).toBe(true)
+    expect(hasManualAdjudicationOutcome(poison)).toBe(true)
 
     expect(potion).toMatchObject({
       description: expect.stringContaining('regains 2d4 + 2 hit points'),
-      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.POTION, EQUIPMENT_PROPERTY_CODE.VIAL])
+      properties: expect.arrayContaining([
+        EQUIPMENT_PROPERTY_CODE.POTION,
+        EQUIPMENT_PROPERTY_CODE.VIAL
+      ])
     })
     expect(hasHealOutcome(potion, '2d4+2')).toBe(true)
   })
 
   it('uses SRD container properties for equipment labels that name their vessel', () => {
-    const missingContainerProperties = srdBaselineContent.subjects.equipment.flatMap((equipment) => {
-      const expectedProperties = [
-        ...(/\(vial\)$/i.test(equipment.label) || equipment.label === 'VIAL' ? [EQUIPMENT_PROPERTY_CODE.VIAL] : []),
-        ...(/\(flask\)$/i.test(equipment.label) || equipment.label === 'Flask or Tankard' ? [EQUIPMENT_PROPERTY_CODE.FLASK] : []),
-        ...(/^Potion\b/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POTION] : []),
-        ...(/^Poison,\s*Basic/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POISON] : [])
-      ]
+    const missingContainerProperties = srdBaselineContent.subjects.equipment.flatMap(
+      (equipment) => {
+        const expectedProperties = [
+          ...(/\(vial\)$/i.test(equipment.label) || equipment.label === 'VIAL'
+            ? [EQUIPMENT_PROPERTY_CODE.VIAL]
+            : []),
+          ...(/\(flask\)$/i.test(equipment.label) || equipment.label === 'Flask or Tankard'
+            ? [EQUIPMENT_PROPERTY_CODE.FLASK]
+            : []),
+          ...(/^Potion\b/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POTION] : []),
+          ...(/^Poison,\s*Basic/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POISON] : [])
+        ]
 
-      return expectedProperties
-        .filter((property) => !equipment.properties?.includes(property))
-        .map((property) => `${equipment.label}: missing ${property}`)
-    })
+        return expectedProperties
+          .filter((property) => !equipment.properties?.includes(property))
+          .map((property) => `${equipment.label}: missing ${property}`)
+      }
+    )
 
     expect(missingContainerProperties).toEqual([])
+  })
+
+  it('models Half-Elf ability score choices as distinct feature options', () => {
+    const halfElf = srdBaselineContent.subjects.races.find((race) => race.label === 'Half-Elf')
+    const abilityScoreIncrease = halfElf?.features?.find(
+      (feature) => feature.label === 'Ability Score Increase'
+    )
+
+    expect(abilityScoreIncrease?.optionChoices).toEqual([{ level: 1, count: 2 }])
+    expect(abilityScoreIncrease?.grants?.modifiers).toMatchObject([
+      {
+        selectionKind: 'GRANTED',
+        domain: { ability: 'CHARISMA' },
+        payload: { valueKind: 'FIXED', amount: 2 }
+      }
+    ])
+    expect(
+      abilityScoreIncrease?.options?.map((option) => ({
+        label: option.label,
+        modifier: option.grants?.modifiers?.[0]
+      }))
+    ).toMatchObject([
+      {
+        label: 'Strength',
+        modifier: {
+          selectionKind: 'GRANTED',
+          domain: { ability: 'STRENGTH' },
+          payload: { amount: 1 }
+        }
+      },
+      {
+        label: 'Dexterity',
+        modifier: {
+          selectionKind: 'GRANTED',
+          domain: { ability: 'DEXTERITY' },
+          payload: { amount: 1 }
+        }
+      },
+      {
+        label: 'Constitution',
+        modifier: {
+          selectionKind: 'GRANTED',
+          domain: { ability: 'CONSTITUTION' },
+          payload: { amount: 1 }
+        }
+      },
+      {
+        label: 'Intelligence',
+        modifier: {
+          selectionKind: 'GRANTED',
+          domain: { ability: 'INTELLIGENCE' },
+          payload: { amount: 1 }
+        }
+      },
+      {
+        label: 'Wisdom',
+        modifier: {
+          selectionKind: 'GRANTED',
+          domain: { ability: 'WISDOM' },
+          payload: { amount: 1 }
+        }
+      }
+    ])
   })
 
   it('keeps SRD base race descriptions and details populated', () => {
@@ -778,36 +1356,70 @@ describe('SRD source data', () => {
   })
 
   it('only references rarity records that exist in the SRD system vocabulary', () => {
-    const rarityIds = new Set(srdBaselineContent.vocabulary.systems.flatMap((system) => system.rarities.map((rarity) => rarity.id)))
-    const referencedRarityIds = srdBaselineContent.subjects.equipment.map((equipment) => equipment.rarityId)
+    const rarityIds = new Set(
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.rarities.map((rarity) => rarity.id)
+      )
+    )
+    const referencedRarityIds = srdBaselineContent.subjects.equipment.map(
+      (equipment) => equipment.rarityId
+    )
 
     expect([...new Set(referencedRarityIds.filter((id) => !rarityIds.has(id)))]).toEqual([])
   })
 
   it('only references creature type records that exist in the SRD system vocabulary', () => {
     const creatureTypeIds = new Set(
-      srdBaselineContent.vocabulary.systems.flatMap((system) => system.creatureTypes.map((creatureType) => creatureType.id))
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.creatureTypes.map((creatureType) => creatureType.id)
+      )
     )
     const referencedCreatureTypeIds: string[] = []
 
     collectStringReferencesByKey(srdBaselineContent, 'creatureTypeId', referencedCreatureTypeIds)
 
-    expect([...new Set(referencedCreatureTypeIds.filter((id) => !creatureTypeIds.has(id)))]).toEqual([])
+    expect([
+      ...new Set(referencedCreatureTypeIds.filter((id) => !creatureTypeIds.has(id)))
+    ]).toEqual([])
+  })
+
+  it('defines only the six SRD ability scores on creature stat blocks', () => {
+    const invalidAbilityScoreKeys = srdBaselineContent.subjects.creatures.flatMap((creature) => {
+      const keys = Object.keys(creature.abilityScores).sort()
+
+      return keys.join(',') === CREATURE_ABILITY_SCORE_KEYS.join(',')
+        ? []
+        : [`${creature.label}: ${keys.join(', ')}`]
+    })
+
+    expect(invalidAbilityScoreKeys).toEqual([])
   })
 
   it('only references challenge rating records that exist in the SRD system vocabulary', () => {
     const challengeRatingIds = new Set(
-      srdBaselineContent.vocabulary.systems.flatMap((system) => system.challengeRatings.map((challengeRating) => challengeRating.id))
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.challengeRatings.map((challengeRating) => challengeRating.id)
+      )
     )
     const referencedChallengeRatingIds: string[] = []
 
-    collectStringReferencesByKey(srdBaselineContent, 'challengeRatingId', referencedChallengeRatingIds)
+    collectStringReferencesByKey(
+      srdBaselineContent,
+      'challengeRatingId',
+      referencedChallengeRatingIds
+    )
 
-    expect([...new Set(referencedChallengeRatingIds.filter((id) => !challengeRatingIds.has(id)))]).toEqual([])
+    expect([
+      ...new Set(referencedChallengeRatingIds.filter((id) => !challengeRatingIds.has(id)))
+    ]).toEqual([])
   })
 
   it('only references speed records that exist in the SRD system vocabulary', () => {
-    const speedIds = new Set(srdBaselineContent.vocabulary.systems.flatMap((system) => system.speeds.map((speed) => speed.id)))
+    const speedIds = new Set(
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.speeds.map((speed) => speed.id)
+      )
+    )
     const referencedSpeedIds: string[] = []
 
     collectStringReferencesByKey(srdBaselineContent, 'speedId', referencedSpeedIds)
@@ -817,7 +1429,9 @@ describe('SRD source data', () => {
 
   it('normalizes creature damageability references to SRD damage type IDs', () => {
     const damageTypeIds = new Set(
-      srdBaselineContent.vocabulary.systems.flatMap((system) => system.damageTypes.map((damageType) => damageType.id))
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.damageTypes.map((damageType) => damageType.id)
+      )
     )
     const referencedDamageTypeIds = srdBaselineContent.subjects.creatures.flatMap((creature) => [
       ...(creature.damageResistances ?? []),
@@ -830,19 +1444,27 @@ describe('SRD source data', () => {
 
   it('normalizes creature condition immunities to SRD condition type IDs', () => {
     const conditionTypeIds = new Set(
-      srdBaselineContent.vocabulary.systems.flatMap((system) => system.conditionTypes.map((conditionType) => conditionType.id))
+      srdBaselineContent.vocabulary.systems.flatMap((system) =>
+        system.conditionTypes.map((conditionType) => conditionType.id)
+      )
     )
-    const referencedConditionTypeIds = srdBaselineContent.subjects.creatures.flatMap((creature) => creature.conditionImmunities ?? [])
+    const referencedConditionTypeIds = srdBaselineContent.subjects.creatures.flatMap(
+      (creature) => creature.conditionImmunities ?? []
+    )
 
-    expect([...new Set(referencedConditionTypeIds.filter((id) => !conditionTypeIds.has(id)))]).toEqual([])
+    expect([
+      ...new Set(referencedConditionTypeIds.filter((id) => !conditionTypeIds.has(id)))
+    ]).toEqual([])
   })
 
   it('keeps legendary action prose tied to named options', () => {
-    const missingLegendaryOptions = srdBaselineContent.subjects.creatures.flatMap((creature) => (creature.features ?? [])
-      .filter((feature) => feature.label === 'Legendary Actions')
-      .filter((feature) => /options?\s+(listed\s+)?below/i.test(stripHtml(feature.description)))
-      .filter((feature) => !feature.options?.length)
-      .map(() => creature.label))
+    const missingLegendaryOptions = srdBaselineContent.subjects.creatures.flatMap((creature) =>
+      (creature.features ?? [])
+        .filter((feature) => feature.label === 'Legendary Actions')
+        .filter((feature) => /options?\s+(listed\s+)?below/i.test(stripHtml(feature.description)))
+        .filter((feature) => !feature.options?.length)
+        .map(() => creature.label)
+    )
 
     expect(missingLegendaryOptions).toEqual([])
   })
@@ -860,7 +1482,11 @@ describe('SRD source data', () => {
   it('uses valid equipment proficiency selectors', () => {
     const invalidValues: string[] = []
 
-    collectInvalidEquipmentProficiencySelectors(srdBaselineContent, 'srdBaselineContent', invalidValues)
+    collectInvalidEquipmentProficiencySelectors(
+      srdBaselineContent,
+      'srdBaselineContent',
+      invalidValues
+    )
 
     expect(invalidValues).toEqual([])
   })
@@ -871,10 +1497,15 @@ describe('SRD source data', () => {
     collectDurationKinds(srdBaselineContent, 'srdBaselineContent', invalidValues)
 
     expect(invalidValues).toEqual([])
-    expect(mapDurationToRow({
-      id: '00000000-0000-0000-0000-000000000001',
-      durationKind: DURATION_KIND.UNTIL_DISPELLED
-    }, '00000000-0000-0000-0000-000000000001')).toMatchObject({
+    expect(
+      mapDurationToRow(
+        {
+          id: '00000000-0000-0000-0000-000000000001',
+          durationKind: DURATION_KIND.UNTIL_DISPELLED
+        },
+        '00000000-0000-0000-0000-000000000001'
+      )
+    ).toMatchObject({
       kind: DURATION_KIND.UNTIL_DISPELLED,
       amount: null,
       scaling: null

@@ -1,5 +1,5 @@
-import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
-import { buildNodeMap } from '#utils'
+import { FEATURE_ATTRIBUTE_OPTIONS, FEATURE_SECTION_OPTIONS } from '#core'
+import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
 import { EFFECT_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP, DETAIL_NODE_MAP } from '#maps'
 import { OPTION_NODE_MAP } from './option.js'
@@ -47,7 +47,7 @@ export const FEATURE_BASICS_NODE_MAP = feature.define('featureBasics', ({ map, n
 })
 
 export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond }) => {
-  const { text, richText, selectMulti, groupArray, groupObject, number } = nodes
+  const { text, richText, selectMulti, selectSingle, groupArray, groupObject, number } = nodes
   const local = cond.local()
 
   map
@@ -55,20 +55,24 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
     .set('label', text(['label'], 'Name', { section: FEATURE_SECTIONS.basics, order: 10 }))
     .set('description', richText(['description'], 'Description', { section: FEATURE_SECTIONS.basics, order: 20 }))
     .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level', { section: FEATURE_SECTIONS.basics, order: 30 }))
+    .set('section', selectSingle(['section'], 'Section', {
+      kind: 'INLINE_OPTIONS',
+      options: FEATURE_SECTION_OPTIONS
+    }, { section: FEATURE_SECTIONS.basics, order: 35 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: FEATURE_ATTRIBUTE_OPTIONS
     }, { section: FEATURE_SECTIONS.basics, order: 40 }))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: FEATURE_SECTIONS.basics, order: 50 }))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { presentation: 'inline', section: FEATURE_SECTIONS.basics, order: 50 }))
     .set('order', number(['order'], 'Order', { section: FEATURE_SECTIONS.basics, order: 60 }))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: FEATURE_SECTIONS.effects, order: 10 }))
-    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { presentation: 'branch', section: FEATURE_SECTIONS.effects, order: 10 }))
+    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, { presentation: 'inline',
       section: FEATURE_SECTIONS.usage,
       order: 20,
       showIf: local.field(['attributes']).contains(['LIMITED_USE'])
     }))
-    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, { section: FEATURE_SECTIONS.restrictions, order: 30 }))
-    .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, { section: FEATURE_SECTIONS.grants, order: 10 }))
-    .set('optionChoices', groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP, { section: FEATURE_SECTIONS.options, order: 10 }))
-    .set('options', groupArray(['options'], 'Options', () => OPTION_NODE_MAP, { section: FEATURE_SECTIONS.options, order: 20 }))
+    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, { presentation: 'branch', section: FEATURE_SECTIONS.restrictions, order: 30, authoring: { actions: [{ type: 'collection.add', label: 'Add', presentation: AUTHORING_ACTION_PRESENTATIONS.button }] } }))
+    .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, { presentation: 'branch', section: FEATURE_SECTIONS.grants, order: 10 }))
+    .set('optionChoices', groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP, { presentation: 'branch', section: FEATURE_SECTIONS.options, order: 10 }))
+    .set('options', groupArray(['options'], 'Options', () => OPTION_NODE_MAP, { presentation: 'branch', section: FEATURE_SECTIONS.options, order: 20 }))
 })

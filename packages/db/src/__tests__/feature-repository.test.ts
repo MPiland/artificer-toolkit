@@ -49,6 +49,7 @@ describe('createFeatureRepository', () => {
                     id: 'feature-1',
                     label: 'Fighting Style',
                     description: 'Choose a technique.',
+                    section_code: 'TRAIT',
                     charge_id: null,
                     restriction_id: null,
                     sort_order: 2,
@@ -101,6 +102,7 @@ describe('createFeatureRepository', () => {
             id: 'feature-1',
             label: 'Fighting Style',
             description: 'Choose a technique.',
+            section: 'TRAIT',
             attributes: ['LIMITED_USE'],
             details: [
                 {
@@ -184,6 +186,7 @@ describe('createFeatureRepository', () => {
             id: 'feature-effects-1',
             label: 'Reactive Ward',
             description: 'Feature with effects.',
+            section: 'REACTION',
             order: 1,
             effects: [
                 {
@@ -275,6 +278,7 @@ describe('createFeatureRepository', () => {
             id: 'feature-effects-1',
             label: 'Reactive Ward',
             description: 'Feature with effects.',
+            section: 'REACTION',
             attributes: undefined,
             details: undefined,
             effects: [
@@ -397,6 +401,7 @@ describe('createFeatureRepository', () => {
                                         kind: 'PREDICATE',
                                         constraint: 'INCLUDE',
                                         predicateCode: 'CLASS_LEVEL',
+                                        classIds: ['class-fighter'],
                                         min: 3
                                     }
                                 ]
@@ -497,6 +502,7 @@ describe('createFeatureRepository', () => {
             effects: undefined,
             charges: undefined,
             grants: undefined,
+            section: undefined,
             availableAtLevel: undefined,
             optionChoices: undefined,
             options: [

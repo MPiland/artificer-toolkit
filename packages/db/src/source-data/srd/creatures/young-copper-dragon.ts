@@ -6,7 +6,6 @@ export const youngCopperDragon: CreatureAuthored = {
   label: 'Young Copper Dragon',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.DRAGON,
   size: S.SIZE_CODE.LARGE,
@@ -18,7 +17,6 @@ export const youngCopperDragon: CreatureAuthored = {
     INTELLIGENCE: 16,
     WISDOM: 13,
     CHARISMA: 15,
-    SPELLCASTING: 0
   },
   armorClass: 17,
   armorClassNote: 'natural armor',

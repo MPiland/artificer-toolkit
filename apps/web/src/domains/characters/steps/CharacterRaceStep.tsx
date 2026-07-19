@@ -1,5 +1,5 @@
-import { Alert } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
+import type { CharacterBuilderGrantSummaryItemDto } from '@artificer-toolkit/schema/api/characters'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   clearRaceDependents,
@@ -9,6 +9,7 @@ import {
   type CharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import { CharacterChosenGrantChoices } from './CharacterChosenGrantChoices'
 import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 
@@ -17,6 +18,9 @@ export const CharacterRaceStep = withForm({
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterRace({ form, payload, readOnly }) {
     const raceView = payload.view.race
+    const hasAncestryFeature = raceView.ancestry
+      ? raceView.features.some((feature) => isAncestryFeature(feature, raceView.ancestry?.label))
+      : false
 
     return (
       <section className={styles.section} aria-labelledby='character-race-title'>
@@ -77,53 +81,20 @@ export const CharacterRaceStep = withForm({
                 </div>
               )
             : null}
-          {raceView.ancestry
-            ? (
-                <div className={styles.fieldSpan6}>
-                  <form.AppField name='intent.ancestrySelections'>
-                    {(field) => {
-                      const selectedAncestryOptionId = raceView.ancestry
-                        ? getSelectedAncestryOptionId(field.state.value, raceView.ancestry.ancestryId, form.state.values.intent.race)
-                        : undefined
-
-                      return (
-                        <AppSelect
-                          label={raceView.ancestry?.label ?? 'Ancestry Choice'}
-                          data={choiceOptions(raceView.ancestry?.options ?? [])}
-                          value={selectedAncestryOptionId}
-                          required
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            if (!raceView.ancestry || !value || readOnly) return
-                            const raceIntent = form.state.values.intent.race
-                            field.handleChange([
-                              {
-                                id: crypto.randomUUID(),
-                                ancestryId: raceView.ancestry.ancestryId,
-                                optionId: value,
-                                source: raceIntent.subraceId
-                                  ? { kind: 'SUBRACE', subraceId: raceIntent.subraceId }
-                                  : { kind: 'RACE', raceId: raceIntent.raceId },
-                                timing: { kind: 'IMMEDIATE' }
-                              }
-                            ])
-                          }}
-                        />
-                      )
-                    }}
-                  </form.AppField>
-                </div>
-              )
-            : null}
         </div>
-        {payload.resolution.summary.selectedRace
-          ? (
-              <Alert color='blue'>
-                {`Selected: ${payload.resolution.summary.selectedRace.subraceLabel
-                ?? payload.resolution.summary.selectedRace.raceLabel}.`}
-              </Alert>
-            )
+        {raceView.ancestry && !hasAncestryFeature
+          ? <div className={styles.inlinePanel}>{renderAncestryChoiceControl()}</div>
           : null}
+        <form.AppField name='intent.chosenGrantSelections'>
+          {(field) => (
+            <CharacterChosenGrantChoices
+              choices={raceView.grantChoices}
+              selections={field.state.value}
+              readOnly={readOnly}
+              onChange={field.handleChange}
+            />
+          )}
+        </form.AppField>
         <form.AppField name='intent.featureAcquisitions'>
           {(field) => (
             <CharacterGrantedFeatures
@@ -131,14 +102,72 @@ export const CharacterRaceStep = withForm({
               choices={raceView.featureChoices}
               acquisitions={field.state.value}
               readOnly={readOnly}
+              renderFeatureControls={(feature) => (
+                isAncestryFeature(feature, raceView.ancestry?.label)
+                  ? renderAncestryChoiceControl()
+                  : null
+              )}
               onChange={field.handleChange}
             />
           )}
         </form.AppField>
       </section>
     )
+
+    function renderAncestryChoiceControl() {
+      const ancestry = raceView.ancestry
+      if (!ancestry) return null
+
+      return (
+        <form.AppField name='intent.ancestrySelections'>
+          {(field) => {
+            const selectedAncestryOptionId = getSelectedAncestryOptionId(
+              field.state.value,
+              ancestry.ancestryId,
+              form.state.values.intent.race
+            )
+
+            return (
+              <AppSelect
+                label={`${ancestry.label} option`}
+                data={choiceOptions(ancestry.options)}
+                value={selectedAncestryOptionId}
+                required
+                disabled={readOnly}
+                onChange={(value) => {
+                  if (!value || readOnly) return
+                  const raceIntent = form.state.values.intent.race
+                  field.handleChange([
+                    {
+                      id: crypto.randomUUID(),
+                      ancestryId: ancestry.ancestryId,
+                      optionId: value,
+                      source: raceIntent.subraceId
+                        ? { kind: 'SUBRACE', subraceId: raceIntent.subraceId }
+                        : { kind: 'RACE', raceId: raceIntent.raceId },
+                      timing: { kind: 'IMMEDIATE' }
+                    }
+                  ])
+                }}
+              />
+            )
+          }}
+        </form.AppField>
+      )
+    }
   }
 })
+
+function isAncestryFeature(
+  feature: CharacterBuilderGrantSummaryItemDto,
+  ancestryLabel: string | undefined
+): boolean {
+  return Boolean(
+    ancestryLabel
+    && feature.label === ancestryLabel
+    && (feature.source.kind === 'RACE' || feature.source.kind === 'SUBRACE')
+  )
+}
 
 function getSelectedAncestryOptionId(
   selections: CharacterFormValues['intent']['ancestrySelections'],

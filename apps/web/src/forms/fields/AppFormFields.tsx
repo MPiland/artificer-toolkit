@@ -1,4 +1,4 @@
-import { Group, NumberInput, Stack, TagsInput, TextInput, Textarea } from '@mantine/core'
+import { Group, NumberInput, Stack, Switch, TagsInput, TextInput, Textarea } from '@mantine/core'
 import type { ReactNode } from 'react'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
@@ -14,6 +14,7 @@ import {
 export type AppFieldProps = {
   label?: string
   description?: string
+  error?: ReactNode
   placeholder?: string
   required?: boolean
   readOnly?: boolean
@@ -23,11 +24,17 @@ export type AppSelectFieldProps = AppFieldProps & {
   data: SelectOption[]
 }
 
+type AppStructuralFieldProps<TValue> = {
+  changePending?: boolean
+  onChangeRequest?: (value: TValue, commit: () => void) => void
+}
+
 type AppFieldRichTextProps = AppFieldProps & {
   className?: string
 }
 
 const fieldClassNames = {
+  root: inputStyles.root,
   label: inputStyles.label,
   description: inputStyles.description,
   required: inputStyles.required,
@@ -41,7 +48,14 @@ const pillsFieldClassNames = {
   inputField: inputStyles.inputField
 }
 
-export function TextField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function TextField({
+  label,
+  description,
+  error,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -52,7 +66,7 @@ export function TextField({ label, description, placeholder, required, readOnly 
       required={required}
       name={field.name}
       value={toInputValue(field.state.value)}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
@@ -66,6 +80,7 @@ export function TextField({ label, description, placeholder, required, readOnly 
 export function TextareaField({
   label,
   description,
+  error,
   placeholder,
   required,
   readOnly
@@ -82,7 +97,7 @@ export function TextareaField({
       required={required}
       name={field.name}
       value={toInputValue(field.state.value)}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
@@ -96,6 +111,7 @@ export function TextareaField({
 export function NumberField({
   label,
   description,
+  error,
   placeholder,
   required,
   readOnly
@@ -111,7 +127,7 @@ export function NumberField({
       required={required}
       name={field.name}
       value={field.state.value}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
@@ -122,14 +138,52 @@ export function NumberField({
   )
 }
 
+export function ToggleField({
+  label,
+  description,
+  error,
+  required,
+  readOnly,
+  changePending,
+  onChangeRequest
+}: AppFieldProps & AppStructuralFieldProps<boolean>) {
+  const field = useFieldContext<boolean | undefined>()
+
+  return (
+    <Switch
+      label={label}
+      description={description}
+      required={required}
+      name={field.name}
+      checked={field.state.value ?? false}
+      error={error ?? getFieldError(field)}
+      disabled={readOnly || changePending}
+      onBlur={field.handleBlur}
+      onChange={(event) => {
+        if (readOnly || changePending) return
+        const value = event.currentTarget.checked
+        const commit = () => field.handleChange(value)
+        if (onChangeRequest) {
+          onChangeRequest(value, commit)
+        } else {
+          commit()
+        }
+      }}
+    />
+  )
+}
+
 export function SelectField({
   label,
   description,
+  error,
   placeholder,
   required,
   readOnly,
-  data
-}: AppSelectFieldProps) {
+  data,
+  changePending,
+  onChangeRequest
+}: AppSelectFieldProps & AppStructuralFieldProps<string | undefined>) {
   const field = useFieldContext<string | undefined>()
 
   return (
@@ -141,12 +195,19 @@ export function SelectField({
       data={uniqueSelectOptions(data)}
       name={field.name}
       value={field.state.value ?? null}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
-      disabled={readOnly}
+      disabled={readOnly || changePending}
       onBlur={field.handleBlur}
       onChange={(value) => {
-        if (!readOnly) field.handleChange(value ?? undefined)
+        if (readOnly || changePending) return
+        const nextValue = value ?? undefined
+        const commit = () => field.handleChange(nextValue)
+        if (onChangeRequest) {
+          onChangeRequest(nextValue, commit)
+        } else {
+          commit()
+        }
       }}
     />
   )
@@ -155,11 +216,14 @@ export function SelectField({
 export function MultiSelectField({
   label,
   description,
+  error,
   placeholder,
   required,
   readOnly,
-  data
-}: AppSelectFieldProps) {
+  data,
+  changePending,
+  onChangeRequest
+}: AppSelectFieldProps & AppStructuralFieldProps<string[]>) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -171,18 +235,31 @@ export function MultiSelectField({
       data={uniqueSelectOptions(data)}
       name={field.name}
       value={field.state.value ?? []}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
-      disabled={readOnly}
+      disabled={readOnly || changePending}
       onBlur={field.handleBlur}
       onChange={(value) => {
-        if (!readOnly) field.handleChange(value)
+        if (readOnly || changePending) return
+        const commit = () => field.handleChange(value)
+        if (onChangeRequest) {
+          onChangeRequest(value, commit)
+        } else {
+          commit()
+        }
       }}
     />
   )
 }
 
-export function TagsField({ label, description, placeholder, required, readOnly }: AppFieldProps) {
+export function TagsField({
+  label,
+  description,
+  error,
+  placeholder,
+  required,
+  readOnly
+}: AppFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -193,7 +270,7 @@ export function TagsField({ label, description, placeholder, required, readOnly 
       required={required}
       name={field.name}
       value={field.state.value ?? []}
-      error={getFieldError(field)}
+      error={error ?? getFieldError(field)}
       readOnly={readOnly}
       classNames={pillsFieldClassNames}
       onBlur={field.handleBlur}
@@ -206,6 +283,7 @@ export function TagsField({ label, description, placeholder, required, readOnly 
 
 export function RichTextField({
   label,
+  error,
   placeholder,
   required,
   readOnly,
@@ -216,6 +294,7 @@ export function RichTextField({
   return (
     <RichTextEditor
       label={label}
+      error={error ?? getFieldError(field)}
       name={field.name}
       placeholder={placeholder}
       className={className}

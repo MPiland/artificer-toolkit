@@ -4,6 +4,7 @@ import type {
   NodeRuntimePathDto,
   NodeRuntimeResolveResponseDto,
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { AuthoredValidationIssueDto } from '@artificer-toolkit/schema/api/content'
 import type {
   AuthoringProgressSummary,
   AuthoringStepDirtyMap,
@@ -99,8 +100,10 @@ export type AuthoringFormStatePatch = {
   subjectLabel?: ReactNode
   systemId?: string
   visibleSteps?: VisibleAuthoringSteps
+  validationIssues?: readonly AuthoredValidationIssueDto[]
   isSubmitting?: boolean
   isDeleting?: boolean
+  stagedEditorOpen?: boolean
 }
 
 export type AuthoringFormSessionState = Pick<
@@ -159,8 +162,10 @@ export type AuthoringFormSessionState = Pick<
       | 'stepStatuses'
       | 'stepWarnings'
       | 'subjectKindLabel'
+      | 'validationIssues'
       | 'isSubmitting'
       | 'isDeleting'
+      | 'stagedEditorOpen'
     >
   >
 
@@ -170,6 +175,7 @@ export type AuthoringFormContextValue = AuthoringFormSessionState & {
   activeNavigationTarget: AuthoringNavigationTarget | undefined
   activeStep: VisibleAuthoringStep | undefined
   cancel: AuthoringFormAction
+  clearValidationIssues: (fieldName: string) => void
   clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction
   deleteRecord: AuthoringFormAction

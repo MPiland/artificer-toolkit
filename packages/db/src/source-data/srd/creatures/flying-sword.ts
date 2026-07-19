@@ -5,7 +5,6 @@ export const flyingSword: CreatureAuthored = {
     label: 'Flying Sword',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.CONSTRUCT,
     size: S.SIZE_CODE.SMALL,
@@ -18,7 +17,6 @@ export const flyingSword: CreatureAuthored = {
         INTELLIGENCE: 1,
         WISDOM: 5,
         CHARISMA: 1,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',

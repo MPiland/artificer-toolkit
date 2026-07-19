@@ -5,7 +5,7 @@ import { CharacterSheetDraftOnlyState } from '../components/sheet/CharacterSheet
 describe('CharacterSheetDraftOnlyState', () => {
   it('routes draft-only characters back into the builder instead of showing not found', () => {
     renderWithAppProviders(
-      <CharacterSheetDraftOnlyState characterId='character-draft' characterPublicId='character-draft' label='' />
+      <CharacterSheetDraftOnlyState characterPublicId='character-draft' label='' />
     )
 
     expect(screen.getByText(/builder draft in progress/i)).toBeInTheDocument()

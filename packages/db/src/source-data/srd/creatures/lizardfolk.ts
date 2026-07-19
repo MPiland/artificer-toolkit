@@ -5,7 +5,6 @@ export const lizardfolk: CreatureAuthored = {
     label: 'Lizardfolk',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const lizardfolk: CreatureAuthored = {
         INTELLIGENCE: 7,
         WISDOM: 12,
         CHARISMA: 7,
-        SPELLCASTING: 0
     },
     armorClass: 15,
     armorClassNote: 'natural armor, shield',

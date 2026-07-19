@@ -1,10 +1,12 @@
 import type { DeepKeys } from '@tanstack/form-core'
 import type {
+  NodeRuntimeInputNodeDto,
   NodeRuntimeNodeDto,
   NodeRuntimeSectionDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   requiredArray,
+  requiredBoolean,
   requiredNumber,
   requiredSelect,
   requiredString,
@@ -12,8 +14,6 @@ import {
 } from '../validation/formValidation'
 import { toTypedAuthoringFieldName } from '../utils/pathUtils'
 
-const SYSTEM_MANAGED_FIELD_KEYS = new Set(['id', 'order', 'systemId', 'userId'])
-const PROSE_FIELD_KEYS = new Set(['description', 'detail', 'quote'])
 const requiredValidatorCache = new Map<string, ReturnType<typeof validatorsFor>>()
 
 type ResettableFieldApi<TValues extends object> = {
@@ -35,7 +35,7 @@ type RootResettableFieldApi = {
   resetField: (field: string) => void
 }
 
-export function getRequiredValidators(type: NodeRuntimeNodeDto['type'], label: string) {
+export function getRequiredValidators(type: NodeRuntimeInputNodeDto['type'], label: string) {
   const cacheKey = `${type}:${label}`
   const cached = requiredValidatorCache.get(cacheKey)
   if (cached) return cached
@@ -45,9 +45,11 @@ export function getRequiredValidators(type: NodeRuntimeNodeDto['type'], label: s
       ? validatorsFor(requiredArray(label))
       : type === 'SELECT_SINGLE'
         ? validatorsFor(requiredSelect(label))
-        : type === 'NUMBER'
-          ? validatorsFor(requiredNumber(label))
-          : validatorsFor(requiredString(label))
+        : type === 'TOGGLE'
+          ? validatorsFor(requiredBoolean(label))
+          : type === 'NUMBER'
+            ? validatorsFor(requiredNumber(label))
+            : validatorsFor(requiredString(label))
 
   requiredValidatorCache.set(cacheKey, validators)
   return validators
@@ -146,42 +148,11 @@ function isDescendantFieldName(fieldName: string, parentFieldName: string) {
 }
 
 export function isRenderableNode(node: NodeRuntimeNodeDto) {
-  if (!node.visible) return false
-  if (isSystemManagedFieldNode(node)) return false
-  return node.kind === 'INPUT' || node.kind === 'GROUP'
+  return node.visible && node.authoring?.exposure !== 'system'
 }
 
 function isResettableNode(node: NodeRuntimeNodeDto) {
-  if (!isRenderableNode(node)) return false
-  return !node.readOnly && !node.disabled
-}
-
-export function getEffectiveInputType(node: NodeRuntimeNodeDto): NodeRuntimeNodeDto['type'] {
-  if (isProseFieldNode(node)) return 'RICH_TEXT'
-  return node.type
-}
-
-function isProseFieldNode(node: NodeRuntimeNodeDto): boolean {
-  if (node.kind !== 'INPUT') return false
-
-  const lastPathSegment = node.path[node.path.length - 1]
-  const pathKey = typeof lastPathSegment === 'string' ? lastPathSegment.toLowerCase() : ''
-  const labelKey = node.label.trim().toLowerCase()
-
-  return (
-    PROSE_FIELD_KEYS.has(pathKey) ||
-    pathKey.endsWith('description') ||
-    pathKey.endsWith('detail') ||
-    pathKey.endsWith('quote') ||
-    PROSE_FIELD_KEYS.has(labelKey)
-  )
-}
-
-function isSystemManagedFieldNode(node: NodeRuntimeNodeDto) {
-  if (node.kind !== 'INPUT') return false
-
-  const fieldKey = node.path[node.path.length - 1]
-  return typeof fieldKey === 'string' && SYSTEM_MANAGED_FIELD_KEYS.has(fieldKey)
+  return isRenderableNode(node)
 }
 
 export function toEditorValues(value: unknown): Record<string, unknown> {

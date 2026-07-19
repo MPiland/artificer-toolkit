@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   CASTING_TIME_UNIT_CODE,
   SPELL_ATTRIBUTE,
@@ -115,9 +116,7 @@ export async function upsertSpell(
     class_id: classId
   }))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const previousEffectRows = await trx
       .selectFrom('spell_effects')
       .select(['effect_id'])
@@ -131,17 +130,17 @@ export async function upsertSpell(
     await trx
       .insertInto('spells')
       .values(mapSpellRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        level: ref('excluded.level'),
-        magic_school_id: ref('excluded.magic_school_id'),
-        casting_time_unit: ref('excluded.casting_time_unit'),
-        casting_time_amount: ref('excluded.casting_time_amount'),
-        material_description: ref('excluded.material_description')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        level: eb.ref('excluded.level'),
+        magic_school_id: eb.ref('excluded.magic_school_id'),
+        casting_time_unit: eb.ref('excluded.casting_time_unit'),
+        casting_time_amount: eb.ref('excluded.casting_time_amount'),
+        material_description: eb.ref('excluded.material_description')
       })))
       .execute()
 
@@ -170,8 +169,8 @@ export async function upsertSpell(
       await trx
         .insertInto('spell_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['spell_id', 'effect_id']).doUpdateSet(({ ref }) => ({
-          sort_order: ref('excluded.sort_order')
+        .onConflict((oc) => oc.columns(['spell_id', 'effect_id']).doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order')
         })))
         .execute()
     }
@@ -197,11 +196,7 @@ export async function upsertSpell(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }
 
 

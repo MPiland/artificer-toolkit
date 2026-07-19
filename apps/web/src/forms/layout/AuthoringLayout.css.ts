@@ -1,5 +1,5 @@
 import { style } from '@vanilla-extract/css'
-import { foundationVars, media } from '../../css/foundations.css.ts'
+import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
 
 export const canvas = style({
@@ -9,9 +9,12 @@ export const canvas = style({
       display: 'flex',
       flexDirection: 'column',
       blockSize: '100%',
+      maxBlockSize: '100dvh',
       inlineSize: '100%',
       minBlockSize: 0,
-      minInlineSize: 0
+      minInlineSize: 0,
+      overflow: 'hidden',
+      backgroundColor: foundationVars.color.surface.canvas
     }
   }
 })
@@ -19,10 +22,14 @@ export const canvas = style({
 export const workspace = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       display: 'flex',
       flexDirection: 'row',
-      blockSize: '100%',
-      inlineSize: 'auto',
+      flex: '1 1 auto',
+      blockSize: 'auto',
+      inlineSize: '100%',
+      minBlockSize: 0,
+      minInlineSize: 0,
       overflow: 'hidden'
     }
   }

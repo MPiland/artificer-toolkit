@@ -31,7 +31,7 @@ DECLARE
   entry jsonb;
   col text;
   target_table regclass;
-  target_id uuid;
+  target_id text;
 BEGIN
   -- first argument is our JSON config
   config := TG_ARGV[0]::jsonb;
@@ -48,10 +48,10 @@ BEGIN
       SELECT
         JSONB_ARRAY_ELEMENTS_TEXT(entry -> 'columns')
         LOOP
-          target_id := (to_jsonb (OLD) ->> col)::uuid;
+          target_id := to_jsonb (OLD) ->> col;
 
           IF target_id IS NOT NULL THEN
-            EXECUTE FORMAT('delete from %s where id = $1', target_table)
+            EXECUTE FORMAT('delete from %s where id::text = $1', target_table)
             USING target_id;
           END IF;
           END LOOP;
@@ -71,8 +71,8 @@ DECLARE
   entry jsonb;
   col text;
   target_table regclass;
-  old_id uuid;
-  new_id uuid;
+  old_id text;
+  new_id text;
 BEGIN
   -- First argument is our JSON config, same shape as cleanup_owned_rows
   config := TG_ARGV[0]::jsonb;
@@ -85,13 +85,13 @@ BEGIN
     -- Loop over each column name in "columns"
     FOR col IN SELECT jsonb_array_elements_text(entry -> 'columns')
     LOOP
-      old_id := (to_jsonb(OLD) ->> col)::uuid;
-      new_id := (to_jsonb(NEW) ->> col)::uuid;
+      old_id := to_jsonb(OLD) ->> col;
+      new_id := to_jsonb(NEW) ->> col;
 
       -- If the FK changed or became NULL, delete the old owned row
       -- IS DISTINCT FROM treats NULL vs value as "different"
       IF old_id IS NOT NULL AND old_id IS DISTINCT FROM new_id THEN
-        EXECUTE format('DELETE FROM %s WHERE id = $1', target_table)
+        EXECUTE format('DELETE FROM %s WHERE id::text = $1', target_table)
         USING old_id;
       END IF;
     END LOOP;

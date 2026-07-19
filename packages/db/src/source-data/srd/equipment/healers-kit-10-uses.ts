@@ -42,7 +42,7 @@ export const healersKit10Uses: EquipmentAuthored = {
                         outcomes: [
                             {
                                 id: S.equipmentChildId(S.equipId(140), 0x212, 1),
-                                effectKind: S.EFFECT_KIND.RULE
+                                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

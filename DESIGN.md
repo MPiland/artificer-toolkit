@@ -120,7 +120,7 @@ The canonical creation surface is the Authoring Workspace. It is form-backed, bu
 
 The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
 
-This system explicitly rejects the anti-references captured in [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
+This system explicitly rejects the anti-references captured in [PRODUCT.md](PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
 
 **Key Characteristics:**
 - Playful, not gimmicky
@@ -192,11 +192,12 @@ The palette is identity-led and task-aware. Black Forge uses near-black canvas a
 
 ## Elevation
 
-Elevation is light, structural, and stateful. Cards, drawers, and raised shells use broad ambient shadows rather than sharp SaaS drops. The system is not flat, but it also does not rely on depth theatrics. In dark mode especially, tonal layering carries as much weight as the shadow itself. Interactive surfaces can feel tactile, but they should never become floaty decoration.
+Elevation is restrained, structural, and stateful. Repeated cards and working panels remain flat at rest; borders and tonal layering establish their hierarchy in both Forge themes. Compact shadows are reserved for controls that physically float above the workspace, while the focus halo communicates keyboard and selected-input state.
 
 ### Shadow Vocabulary
-- **Working Surface** (`0 18px 50px rgba(7, 16, 20, 0.16)`): Use for panels, auth cards, drawers, and framed working regions that need to separate from the canvas.
-- **Hover Lift** (`0 24px 64px rgba(7, 16, 20, 0.22)`): Use sparingly for interactive framed surfaces that need a clear hover response.
+- **Card** (`none`): Repeated cards and panels rely on surface contrast and borders at rest.
+- **Card Hover** (`none`): Hover state uses color and border changes instead of decorative lift.
+- **Floating Control** (`0 6px 8px rgba(0, 0, 0, 0.22)`): Floating authoring actions that must remain distinct from content beneath them.
 - **Focus Halo** (`0 0 0 4px rgba(14, 165, 197, 0.24)`): Keyboard focus and selected-input emphasis.
 
 ### Named Rules
@@ -218,7 +219,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 ### Cards / Containers
 - **Corner Style:** Standard working cards use `12px` radius. Hero mockups and major framed surfaces may go to `24px`.
 - **Background:** Cards sit on neutral panel surfaces in both themes.
-- **Shadow Strategy:** Use working-surface elevation for framed regions, not for every repeated cell.
+- **Shadow Strategy:** Repeated content stays flat. Use the floating-control shadow only when a control genuinely overlays the workspace.
 - **Border:** Most framed surfaces keep a `1px` subtle border. The border often does as much work as the shadow.
 - **Internal Padding:** The default content rhythm is `24px`, with tighter `16px` or `20px` use on compact controls.
 
@@ -259,7 +260,7 @@ Elevation is light, structural, and stateful. Cards, drawers, and raised shells 
 - **Controls:** Stories should expose useful controls for theme, active step, responsive mode, dirty/valid/error state, drawer opened state, and preview presence when those controls help inspect UI behavior.
 
 ### Theme Toggle
-- **Style:** Circular `40px` control with panel fill, subtle border, and card shadow.
+- **Style:** Circular `40px` control with panel fill and a subtle border; it remains flat at rest.
 - **State:** Dark-mode active state uses a soft accent fill plus border so the mode feels chosen, not merely switched.
 
 ### Mantine-First Implementation

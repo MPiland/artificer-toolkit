@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type { Json } from '../../../types/supabase.database.js'
 import {
   SIZE_CODE,
@@ -106,9 +107,7 @@ export async function upsertVehicle(
     sort_order: feature.order
   }))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('vehicles')
       .values(row)
@@ -147,9 +146,5 @@ export async function upsertVehicle(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

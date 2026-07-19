@@ -58,6 +58,8 @@ function emptySystem(systemId = 'default-system'): SystemAuthoredDto {
   return {
     id: systemId,
     label: 'Default System',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
     alignments: [],
     challengeRatings: [],
     conditionTypes: [],

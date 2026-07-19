@@ -10,7 +10,7 @@ export const club: EquipmentAuthored = {
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.LIGHT],
     modifiers: S.meleeWeaponAbilityModifiers(S.equipId(1)),
     effects: S.meleeWeaponEffects(S.equipId(1), 'BLUDGEONING', '1d4'),
-    cost: S.gp(0.1),
+    cost: S.sp(1),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,

@@ -1,5 +1,13 @@
 import { useMemo } from 'react'
-import type { NodeRuntimeNodeDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type {
+  NodeRuntimeArrayGroupNodeDto,
+  NodeRuntimeGroupNodeDto,
+  NodeRuntimeInputNodeDto,
+  NodeRuntimeNodeDto,
+  NodeRuntimeObjectGroupNodeDto,
+  NodeRuntimeResolveResponseDto,
+  NodeRuntimeSelectInputNodeDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { SelectOption } from '../utils/formUtils'
 
 export function getResolvedNode(
@@ -37,8 +45,38 @@ export function resolveResolvedNodeOptions(
   runtimeNode: NodeRuntimeNodeDto | undefined,
   fallback: () => SelectOption[]
 ): SelectOption[] {
-  if (runtimeNode?.options) return runtimeNode.options
+  if (runtimeNode && isResolvedSelectInputNode(runtimeNode)) return runtimeNode.options
   return fallback()
+}
+
+export function isResolvedInputNode(
+  node: NodeRuntimeNodeDto
+): node is NodeRuntimeInputNodeDto {
+  return node.kind === 'INPUT'
+}
+
+export function isResolvedSelectInputNode(
+  node: NodeRuntimeNodeDto
+): node is NodeRuntimeSelectInputNodeDto {
+  return node.kind === 'INPUT' && (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI')
+}
+
+export function isResolvedGroupNode(
+  node: NodeRuntimeNodeDto
+): node is NodeRuntimeGroupNodeDto {
+  return node.kind === 'GROUP'
+}
+
+export function isResolvedObjectGroupNode(
+  node: NodeRuntimeNodeDto
+): node is NodeRuntimeObjectGroupNodeDto {
+  return node.kind === 'GROUP' && node.groupKind === 'OBJECT'
+}
+
+export function isResolvedArrayGroupNode(
+  node: NodeRuntimeNodeDto
+): node is NodeRuntimeArrayGroupNodeDto {
+  return node.kind === 'GROUP' && node.groupKind === 'ARRAY'
 }
 
 export function useResolvedNodeById(runtimeModel: NodeRuntimeResolveResponseDto | undefined) {

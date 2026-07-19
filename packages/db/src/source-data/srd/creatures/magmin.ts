@@ -6,7 +6,6 @@ export const magmin: CreatureAuthored = {
   label: 'Magmin',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.ELEMENTAL,
   size: S.SIZE_CODE.SMALL,
@@ -18,7 +17,6 @@ export const magmin: CreatureAuthored = {
     INTELLIGENCE: 8,
     WISDOM: 11,
     CHARISMA: 10,
-    SPELLCASTING: 0
   },
   armorClass: 14,
   armorClassNote: 'natural armor',

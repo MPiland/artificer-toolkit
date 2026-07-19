@@ -36,14 +36,14 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored>
 
     map
       .set('selectionKind', selectSingle(['selectionKind'], 'Target Selection', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: TARGET_SELECTION_KIND_OPTIONS
       }, {
         order: 1,
         requiredIf: true
       }))
       .set('dispositionKind', selectSingle(['dispositionKind'], 'Target Eligibility', {
-        kind: 'INLINE',
+        kind: 'INLINE_OPTIONS',
         options: TARGET_DISPOSITION_KIND_OPTIONS
       }, {
         order: 2,
@@ -53,7 +53,7 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored>
         order: 3,
         showIf: local.field(['selectionKind']).eq('CHOSEN_CREATURES')
       }))
-      .set('maxTargetsScaling', groupObject(['maxTargetsScaling'], 'Max Targets Scaling', () => TARGET_COUNT_SCALING_NODE_MAP, {
+      .set('maxTargetsScaling', groupObject(['maxTargetsScaling'], 'Max Targets Scaling', () => TARGET_COUNT_SCALING_NODE_MAP, { presentation: 'inline',
         order: 4,
         showIf: local.field(['selectionKind']).eq('CHOSEN_CREATURES')
       }))

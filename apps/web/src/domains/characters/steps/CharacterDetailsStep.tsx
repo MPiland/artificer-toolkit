@@ -10,7 +10,7 @@ export const CharacterDetailsStep = withForm({
     return (
       <section className={styles.section} aria-labelledby='character-details-title'>
         <div className={styles.sectionHeader}>
-          <h3 id='character-details-title' className={styles.sectionTitle}>Details</h3>
+          <h3 id='character-details-title' className={styles.sectionTitle}>Personality & appearance</h3>
         </div>
         <div className={styles.fieldGrid}>
           <div className={styles.fieldSpan4}>

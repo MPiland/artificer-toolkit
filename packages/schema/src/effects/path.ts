@@ -8,7 +8,7 @@ import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
 import { moveManifestDtoSchema } from './moveManifest.js'
-import { ruleDtoSchema } from './rule.js'
+import { manualAdjudicationDtoSchema } from './manualAdjudication.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -38,7 +38,7 @@ const createOutcomePayloadDtoSchema = ({
       z.lazy(() => manifestDtoSchema),
       moveManifestDtoSchema,
       commandManifestDtoSchema,
-      ruleDtoSchema
+      manualAdjudicationDtoSchema
     ]
   : [
       damageDtoSchema,
@@ -49,7 +49,7 @@ const createOutcomePayloadDtoSchema = ({
       teleportDtoSchema,
       moveManifestDtoSchema,
       commandManifestDtoSchema,
-      ruleDtoSchema
+      manualAdjudicationDtoSchema
     ])
 
 export const pathLifecycleDtoSchema = z.object({

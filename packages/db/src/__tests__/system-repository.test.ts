@@ -51,6 +51,8 @@ describe('createSystemRepository', () => {
           id: 'system-1',
           label: 'SRD',
           description: 'System description',
+          ruleset_code: 'dnd5e',
+          ruleset_version: '2014',
           user_id: 'user-1'
         }
       ],
@@ -76,6 +78,8 @@ describe('createSystemRepository', () => {
       id: 'system-1',
       label: 'SRD',
       description: 'System description',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
       userId: 'user-1',
       alignments: [{ id: 'a-1', code: 'LG', label: 'Lawful Good', description: null, tooltip: null, short: 'LG' }],
       challengeRatings: [],
@@ -103,6 +107,8 @@ describe('createSystemRepository', () => {
           id: 'system-1',
           label: 'SRD',
           description: null,
+          ruleset_code: 'dnd5e',
+          ruleset_version: '2014',
           user_id: null
         }
       ]

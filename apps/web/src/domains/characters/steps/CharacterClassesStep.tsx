@@ -13,6 +13,7 @@ import {
   isChoiceOptionDisabled
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import { CharacterChosenGrantChoices } from './CharacterChosenGrantChoices'
 import { CharacterClassGrantedSummary } from './CharacterClassGrantedSummary'
 import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import { CharacterSpellChoices } from './CharacterSpellChoices'
@@ -210,6 +211,16 @@ export const CharacterClassesStep = withForm({
                             resourceLabels={view?.resourceLabels ?? []}
                             spellcastingLabels={view?.spellcastingLabels ?? []}
                           />
+                          <form.AppField name='intent.chosenGrantSelections'>
+                            {(grantField) => (
+                              <CharacterChosenGrantChoices
+                                choices={view?.grantChoices ?? []}
+                                selections={grantField.state.value}
+                                readOnly={readOnly}
+                                onChange={grantField.handleChange}
+                              />
+                            )}
+                          </form.AppField>
                           <form.AppField name='intent.featureAcquisitions'>
                             {(featureField) => (
                               <CharacterGrantedFeatures

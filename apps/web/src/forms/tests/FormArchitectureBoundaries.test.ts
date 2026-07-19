@@ -3,10 +3,7 @@ import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const sourceRoot = join(process.cwd(), 'src')
-const activeRoots = [
-  join(sourceRoot, 'domains'),
-  join(sourceRoot, 'forms')
-]
+const activeRoots = [join(sourceRoot, 'domains'), join(sourceRoot, 'forms')]
 
 describe('authoring form architecture boundaries', () => {
   it('keeps node-map-backed defaults out of components/editors imports', () => {
@@ -14,11 +11,22 @@ describe('authoring form architecture boundaries', () => {
       .flatMap((root) => readSourceFiles(root))
       .filter((filePath) => !filePath.endsWith('.test.ts') && !filePath.endsWith('.test.tsx'))
       .filter((filePath) => readFileSync(filePath, 'utf8').includes('#components/editors'))
-      .map((filePath) => relative(sourceRoot, filePath)
-        .split(sep)
-        .join('/'))
+      .map((filePath) => relative(sourceRoot, filePath).split(sep).join('/'))
 
     expect(offenders).toEqual([])
+  })
+
+  it('keeps production navigation and progress on the resolved authoring-schema contract', () => {
+    const productionConsumers = [
+      join(sourceRoot, 'forms', 'layout', 'authoringNavigation.ts'),
+      join(sourceRoot, 'forms', 'validation', 'authoringProgress.ts')
+    ]
+
+    expect(
+      productionConsumers.filter((filePath) =>
+        readFileSync(filePath, 'utf8').includes('staticResolvedModel')
+      )
+    ).toEqual([])
   })
 })
 

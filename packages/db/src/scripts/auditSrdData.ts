@@ -1,10 +1,40 @@
+import { isDeepStrictEqual } from 'node:util'
+
 import { sql } from 'kysely'
+import type { ZodType } from 'zod'
+
+import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
+import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
+import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
+import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import {
+  compileBackground,
+  compileClass,
+  compileCreature,
+  compileEquipment,
+  compileFeat,
+  compileRace,
+  compileSpell,
+  compileVehicle
+} from '@artificer-toolkit/shared/compilers'
 
 import { createDb } from '../client.js'
 import {
+  createBackgroundRepository,
+  createClassRepository,
   createCreatureRepository,
-  createEquipmentRepository
+  createEquipmentRepository,
+  createFeatRepository,
+  createRaceRepository,
+  createSpellRepository,
+  createVehicleRepository
 } from '../repositories/index.js'
+import { assignBaselineContentOwner } from '../source-data/content.js'
+import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import { loadDbScriptEnv } from './loadScriptEnv.js'
 
 loadDbScriptEnv()
@@ -46,6 +76,28 @@ interface InvalidNumericValue {
   value: unknown
 }
 
+interface RootCorpusIssue {
+  domain: string
+  id: string
+  label: string
+  issue: string
+  paths?: string[]
+}
+
+interface RootAuditRecord {
+  id: string
+  label: string
+}
+
+interface RootDomainCase {
+  domain: string
+  table: typeof subjectTables[number]
+  records: readonly RootAuditRecord[]
+  schema: ZodType<unknown>
+  findById: (id: string) => Promise<unknown>
+  compile: (id: string) => unknown
+}
+
 const subjectTables = [
   'backgrounds',
   'classes',
@@ -77,6 +129,45 @@ function columnRef(columnName: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function canonicalize(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value)) as unknown
+}
+
+function requireRootRecord<T extends RootAuditRecord>(records: readonly T[], id: string): T {
+  const record = records.find((candidate) => candidate.id === id)
+  if (!record) throw new Error(`Source record "${id}" was not found.`)
+  return record
+}
+
+function listDifferencePaths(expected: unknown, actual: unknown): string[] {
+  const differences: string[] = []
+
+  const visit = (expectedValue: unknown, actualValue: unknown, path: string) => {
+    if (differences.length >= 12 || isDeepStrictEqual(expectedValue, actualValue)) return
+
+    if (Array.isArray(expectedValue) && Array.isArray(actualValue)) {
+      const length = Math.max(expectedValue.length, actualValue.length)
+      for (let index = 0; index < length; index += 1) {
+        visit(expectedValue[index], actualValue[index], `${path}[${index}]`)
+      }
+      return
+    }
+
+    if (isRecord(expectedValue) && isRecord(actualValue)) {
+      const keys = new Set([...Object.keys(expectedValue), ...Object.keys(actualValue)])
+      for (const key of [...keys].sort()) {
+        visit(expectedValue[key], actualValue[key], `${path}.${key}`)
+      }
+      return
+    }
+
+    differences.push(path)
+  }
+
+  visit(canonicalize(expected), canonicalize(actual), '$')
+  return differences
 }
 
 function collectInvalidNumber(
@@ -285,6 +376,382 @@ async function auditFixedDamageHydration(db: Db) {
   }
 }
 
+async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
+  const systemResult = await sql<{ user_id: string | null }>`
+    select user_id::text
+    from systems
+    where id = ${SRD_SYSTEM_ID}::uuid
+    limit 1
+  `.execute(db)
+  const ownerUserId = systemResult.rows[0]?.user_id
+  if (!ownerUserId) {
+    return [{
+      domain: 'systems',
+      id: SRD_SYSTEM_ID,
+      label: 'D&D 5e 2014 SRD',
+      issue: 'missing SRD system or seed owner'
+    }]
+  }
+
+  const bundle = assignBaselineContentOwner(srdBaselineContent, ownerUserId)
+  const backgroundRepository = createBackgroundRepository(db)
+  const classRepository = createClassRepository(db)
+  const creatureRepository = createCreatureRepository(db)
+  const equipmentRepository = createEquipmentRepository(db)
+  const featRepository = createFeatRepository(db)
+  const raceRepository = createRaceRepository(db)
+  const spellRepository = createSpellRepository(db)
+  const vehicleRepository = createVehicleRepository(db)
+  const cases: RootDomainCase[] = [
+    {
+      domain: 'backgrounds',
+      table: 'backgrounds',
+      records: bundle.subjects.backgrounds,
+      schema: backgroundAuthoredDtoSchema,
+      findById: (id) => backgroundRepository.findById(id),
+      compile: (id) => compileBackground(requireRootRecord(bundle.subjects.backgrounds, id))
+    },
+    {
+      domain: 'classes',
+      table: 'classes',
+      records: bundle.subjects.classes,
+      schema: classAuthoredDtoSchema,
+      findById: (id) => classRepository.findById(id),
+      compile: (id) => compileClass(requireRootRecord(bundle.subjects.classes, id))
+    },
+    {
+      domain: 'creatures',
+      table: 'creatures',
+      records: bundle.subjects.creatures,
+      schema: creatureAuthoredDtoSchema,
+      findById: (id) => creatureRepository.findById(id),
+      compile: (id) => compileCreature(requireRootRecord(bundle.subjects.creatures, id))
+    },
+    {
+      domain: 'equipment',
+      table: 'equipment',
+      records: bundle.subjects.equipment,
+      schema: equipmentAuthoredDtoSchema,
+      findById: (id) => equipmentRepository.findById(id),
+      compile: (id) => compileEquipment(requireRootRecord(bundle.subjects.equipment, id))
+    },
+    {
+      domain: 'feats',
+      table: 'feats',
+      records: bundle.subjects.feats,
+      schema: featAuthoredDtoSchema,
+      findById: (id) => featRepository.findById(id),
+      compile: (id) => compileFeat(requireRootRecord(bundle.subjects.feats, id))
+    },
+    {
+      domain: 'races',
+      table: 'races',
+      records: bundle.subjects.races,
+      schema: raceAuthoredDtoSchema,
+      findById: (id) => raceRepository.findById(id),
+      compile: async (id) => {
+        const resolved = await raceRepository.findResolvedById(id)
+        if (!resolved) throw new Error('resolved race was not found')
+        return compileRace(resolved)
+      }
+    },
+    {
+      domain: 'spells',
+      table: 'spells',
+      records: bundle.subjects.spells,
+      schema: spellAuthoredDtoSchema,
+      findById: (id) => spellRepository.findById(id),
+      compile: (id) => compileSpell(requireRootRecord(bundle.subjects.spells, id))
+    },
+    {
+      domain: 'vehicles',
+      table: 'vehicles',
+      records: bundle.subjects.vehicles,
+      schema: vehicleAuthoredDtoSchema,
+      findById: (id) => vehicleRepository.findById(id),
+      compile: (id) => compileVehicle(requireRootRecord(bundle.subjects.vehicles, id))
+    }
+  ]
+  const expectedById = new Map(cases.flatMap((domainCase) => {
+    return domainCase.records.map((record) => [record.id, { domain: domainCase.domain, record }] as const)
+  }))
+  const revisionResult = await sql<{
+    subject_id: string
+    subject_kind: string
+    payload: unknown
+  }>`
+    select definition.subject_id::text, definition.subject_kind, revision.payload
+    from authored_definitions definition
+    join authored_definition_revisions revision
+      on revision.definition_id = definition.subject_id
+      and revision.id = definition.active_revision_id
+    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
+      and definition.is_master is true
+  `.execute(db)
+  const revisionById = new Map(revisionResult.rows.map((row) => [row.subject_id, row]))
+  const routeResult = await sql<{ subject_id: string }>`
+    select route.subject_id::text
+    from authored_route_ids route
+    join authored_definitions definition
+      on definition.subject_id = route.subject_id
+      and definition.subject_kind = route.subject_kind
+    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
+      and definition.is_master is true
+  `.execute(db)
+  const routeIds = new Set(routeResult.rows.map((row) => row.subject_id))
+  const issues: RootCorpusIssue[] = []
+
+  for (const domainCase of cases) {
+    const projectionResult = await sql<{ id: string }>`
+      select id::text
+      from ${tableRef(domainCase.table)}
+      where system_id = ${SRD_SYSTEM_ID}::uuid
+        and is_master is true
+    `.execute(db)
+    const projectionIds = new Set(projectionResult.rows.map((row) => row.id))
+    const expectedIds = new Set(domainCase.records.map((record) => record.id))
+
+    for (const unexpectedId of projectionIds) {
+      if (expectedIds.has(unexpectedId)) continue
+
+      issues.push({
+        domain: domainCase.domain,
+        id: unexpectedId,
+        label: '<unexpected master projection>',
+        issue: 'projection is absent from the SRD source corpus'
+      })
+    }
+
+    for (const record of domainCase.records) {
+      if (!projectionIds.has(record.id)) {
+        issues.push({
+          domain: domainCase.domain,
+          id: record.id,
+          label: record.label,
+          issue: 'missing master projection'
+        })
+        continue
+      }
+
+      try {
+        const hydrated = await domainCase.findById(record.id)
+        const parsed = domainCase.schema.safeParse(hydrated)
+        if (!parsed.success) {
+          issues.push({
+            domain: domainCase.domain,
+            id: record.id,
+            label: record.label,
+            issue: `hydrated projection violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
+          })
+        } else {
+          if (!isDeepStrictEqual(canonicalize(hydrated), canonicalize(record))) {
+            issues.push({
+              domain: domainCase.domain,
+              id: record.id,
+              label: record.label,
+              issue: 'hydrated projection differs from source payload',
+              paths: listDifferencePaths(record, hydrated)
+            })
+          }
+
+          try {
+            await domainCase.compile(record.id)
+          } catch (error) {
+            issues.push({
+              domain: domainCase.domain,
+              id: record.id,
+              label: record.label,
+              issue: `compiler failed: ${error instanceof Error ? error.message : String(error)}`
+            })
+          }
+        }
+      } catch (error) {
+        issues.push({
+          domain: domainCase.domain,
+          id: record.id,
+          label: record.label,
+          issue: `hydration failed: ${error instanceof Error ? error.message : String(error)}`
+        })
+      }
+
+      const revision = revisionById.get(record.id)
+      if (!revision) {
+        issues.push({
+          domain: domainCase.domain,
+          id: record.id,
+          label: record.label,
+          issue: 'missing active master revision'
+        })
+      } else if (!isDeepStrictEqual(canonicalize(revision.payload), canonicalize(record))) {
+        issues.push({
+          domain: domainCase.domain,
+          id: record.id,
+          label: record.label,
+          issue: 'active revision payload differs from source payload'
+        })
+      }
+
+      if (!routeIds.has(record.id)) {
+        issues.push({
+          domain: domainCase.domain,
+          id: record.id,
+          label: record.label,
+          issue: 'missing authored route identity'
+        })
+      }
+    }
+  }
+
+  for (const revision of revisionResult.rows) {
+    if (!expectedById.has(revision.subject_id)) {
+      issues.push({
+        domain: revision.subject_kind.toLowerCase(),
+        id: revision.subject_id,
+        label: '<unexpected master revision>',
+        issue: 'active master revision is absent from the SRD source corpus'
+      })
+    }
+  }
+
+  for (const routeId of routeIds) {
+    if (!expectedById.has(routeId)) {
+      issues.push({
+        domain: 'routes',
+        id: routeId,
+        label: '<unexpected master route>',
+        issue: 'route identity is absent from the SRD source corpus'
+      })
+    }
+  }
+
+  return issues
+}
+
+function auditSourceSemantics(): RootCorpusIssue[] {
+  const issues: RootCorpusIssue[] = []
+  const classes = srdBaselineContent.subjects.classes
+  const baseClasses = classes.filter((record) => record.category === 'BASE')
+  const subclasses = classes.filter((record) => record.category === 'SUBCLASS')
+  const equipment = srdBaselineContent.subjects.equipment
+  const equipmentIds = new Set(equipment.map((record) => record.id))
+
+  if (baseClasses.length !== 12) {
+    issues.push({
+      domain: 'classes',
+      id: '<base-class-count>',
+      label: 'Base classes',
+      issue: `expected 12 base classes but found ${baseClasses.length}`
+    })
+  }
+
+  for (const baseClass of baseClasses) {
+    if (baseClass.startingEquipment.sets.length === 0) {
+      issues.push({
+        domain: 'classes',
+        id: baseClass.id,
+        label: baseClass.label,
+        issue: 'base class has no starting equipment set'
+      })
+    }
+
+    if (
+      subclasses.some((record) => record.parentClassId === baseClass.id)
+      && baseClass.subclassSelectionLevel === undefined
+    ) {
+      issues.push({
+        domain: 'classes',
+        id: baseClass.id,
+        label: baseClass.label,
+        issue: 'base class has subclasses but no subclass selection level'
+      })
+    }
+
+    for (const set of baseClass.startingEquipment.sets) {
+      for (const group of set.groups) {
+        if (group.options.length === 0) {
+          issues.push({
+            domain: 'classes',
+            id: baseClass.id,
+            label: baseClass.label,
+            issue: `starting equipment group ${group.id} has no options`
+          })
+        }
+
+        for (const option of group.options) {
+          for (const item of option.items) {
+            if (item.startingEquipmentKind !== 'EQUIPMENT') continue
+            if (!('authoringModeKind' in item)) continue
+
+            if (item.authoringModeKind === 'SELECTED') {
+              const missingEquipmentIds = item.equipmentIds.filter((id) => !equipmentIds.has(id))
+              if (missingEquipmentIds.length > 0) {
+                issues.push({
+                  domain: 'classes',
+                  id: baseClass.id,
+                  label: baseClass.label,
+                  issue: `starting equipment item ${item.id} references missing equipment`,
+                  paths: missingEquipmentIds
+                })
+              }
+              continue
+            }
+
+            const hasCandidate = equipment.some((candidate) => (
+              (!item.category || candidate.category === item.category)
+              && (!item.properties?.length || item.properties.every((property) => candidate.properties?.includes(property)))
+            ))
+            if (!hasCandidate) {
+              issues.push({
+                domain: 'classes',
+                id: baseClass.id,
+                label: baseClass.label,
+                issue: `starting equipment item ${item.id} has no matching equipment candidate`
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const wizard = baseClasses.find((record) => record.label === 'Wizard')
+  const wizardLevel20 = wizard?.spellcasting?.spellLimits.find((limit) => limit.classLevel === 20)
+  if (wizardLevel20?.learnedSpellsLimit !== 44) {
+    issues.push({
+      domain: 'classes',
+      id: wizard?.id ?? '<wizard>',
+      label: 'Wizard',
+      issue: `expected level-20 learned spell limit 44 but found ${wizardLevel20?.learnedSpellsLimit ?? 'none'}`
+    })
+  }
+
+  const cleric = baseClasses.find((record) => record.label === 'Cleric')
+  const clericEligibilityPredicates = cleric?.startingEquipment.sets.flatMap((set) => (
+    set.groups.flatMap((group) => group.options.flatMap((option) => (
+      option.eligibility?.groups.flatMap((facetGroup) => (
+        facetGroup.contexts.flatMap((context) => (
+          (context.conditions ?? []).flatMap((condition) => (
+            condition.kind === 'PREDICATE' ? [condition.predicateCode] : []
+          ))
+        ))
+      )) ?? []
+    )))
+  )) ?? []
+  if (
+    !clericEligibilityPredicates.includes('EQUIPMENT_PROFICIENCY')
+    || !clericEligibilityPredicates.includes('EQUIPMENT_PROPERTY_PROFICIENCY')
+  ) {
+    issues.push({
+      domain: 'classes',
+      id: cleric?.id ?? '<cleric>',
+      label: 'Cleric',
+      issue: 'conditional starting equipment is missing exact or property proficiency eligibility'
+    })
+  }
+
+  return issues
+}
+
 async function main() {
   const db = createDb()
 
@@ -292,16 +759,22 @@ async function main() {
     const [
       inactiveMasterRows,
       orphanFeatureLinks,
-      fixedDamageHydration
+      fixedDamageHydration,
+      rootCorpus,
+      sourceSemantics
     ] = await Promise.all([
       listInactiveMasterRows(db),
       listOrphanFeatureLinks(db),
-      auditFixedDamageHydration(db)
+      auditFixedDamageHydration(db),
+      auditRootCorpus(db),
+      Promise.resolve(auditSourceSemantics())
     ])
     const summary = {
       inactiveMasterRows,
       orphanFeatureLinks,
-      fixedDamageHydration
+      fixedDamageHydration,
+      rootCorpus,
+      sourceSemantics
     }
 
     console.info(JSON.stringify(summary, null, 2))
@@ -311,6 +784,8 @@ async function main() {
       || orphanFeatureLinks.length > 0
       || fixedDamageHydration.hydrationFailures.length > 0
       || fixedDamageHydration.invalidNumericValues.length > 0
+      || rootCorpus.length > 0
+      || sourceSemantics.length > 0
     ) {
       throw new Error('SRD data audit failed.')
     }

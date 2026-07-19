@@ -1,7 +1,12 @@
-import type { DBLike } from '#types'
-import type { SenseGrantAuthored } from '@artificer-toolkit/shared'
+import type { DBLike, Json } from '#types'
+import { assertNever, withTransaction } from '../../../utils/index.js'
+import type { RangeAuthored, SenseGrantAuthored } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
+import {
+  requireNoSelectionDuplicatePolicy,
+  requireSelectionDuplicatePolicy
+} from '../repositories/helpers.js'
 
 type SenseGrantRootRow = {
   id: string
@@ -10,10 +15,16 @@ type SenseGrantRootRow = {
   scaling_kind: string
   authoring_mode_kind: string
   selection_count: number | null
+  selection_duplicate_policy: string | null
   scaling_source: string | null
   class_id: string | null
   charge_id: string | null
   restriction_id: string | null
+  range_id: string | null
+  range_kind: string | null
+  range_amount: number | null
+  range_unit: string | null
+  range_scaling: Json | null
 }
 
 type SenseGrantScalingLevelRow = {
@@ -23,6 +34,7 @@ type SenseGrantScalingLevelRow = {
   sort_order: number
   authoring_mode_kind: string
   selection_count: number | null
+  selection_duplicate_policy: string | null
 }
 
 type SenseGrantScalingLevelSenseRow = {
@@ -41,6 +53,7 @@ type SenseGrantProgression = {
     authoringModeKind: string
     senseIds?: string[]
     count?: number
+    selectionDuplicatePolicy?: string
   }[]
 }
 
@@ -66,7 +79,7 @@ function getClassIdForProgression(
 function requireChosenCount(
   grantId: string,
   count: number | undefined,
-  scope: 'root' | string
+  scope: string
 ): number {
   if (count == null) {
     const suffix = scope === 'root'
@@ -81,7 +94,7 @@ function requireChosenCount(
 function rejectGrantedCount(
   grantId: string,
   count: number | undefined,
-  scope: 'root' | string
+  scope: string
 ) {
   if (count == null) {
     return
@@ -96,7 +109,7 @@ function rejectGrantedCount(
 function requireSelectedSenseIds(
   grantId: string,
   senseIds: string[] | undefined,
-  scope: 'root' | string
+  scope: string
 ): string[] {
   if (!senseIds) {
     const suffix = scope === 'root'
@@ -111,7 +124,7 @@ function requireSelectedSenseIds(
 function rejectAllModeSenseIds(
   grantId: string,
   senseIds: string[] | undefined,
-  scope: 'root' | string
+  scope: string
 ) {
   if (!senseIds || senseIds.length === 0) {
     return
@@ -123,12 +136,69 @@ function rejectAllModeSenseIds(
   throw new Error(`Sense grant "${grantId}" cannot persist senseIds when authoringModeKind is ALL for ${suffix}.`)
 }
 
+function mapSenseGrantRange(range: RangeAuthored | undefined): Pick<
+  SenseGrantRootRow,
+  'range_id' | 'range_kind' | 'range_amount' | 'range_unit' | 'range_scaling'
+> {
+  if (!range) {
+    return {
+      range_id: null,
+      range_kind: null,
+      range_amount: null,
+      range_unit: null,
+      range_scaling: null
+    }
+  }
+
+  switch (range.rangeKind) {
+    case 'DISTANCE':
+      return {
+        range_id: range.id,
+        range_kind: range.rangeKind,
+        range_amount: range.amount,
+        range_unit: range.unit,
+        range_scaling: range.scaling as Json ?? null
+      }
+
+    case 'SELF':
+    case 'SIGHT':
+    case 'SPECIAL':
+    case 'TOUCH':
+    case 'UNLIMITED':
+      return {
+        range_id: range.id,
+        range_kind: range.rangeKind,
+        range_amount: null,
+        range_unit: null,
+        range_scaling: null
+      }
+
+    default:
+      return assertNever(range)
+  }
+}
+
 function mapSenseGrantRootRow(
   json_data: SenseGrantAuthored,
   chargeId: string | null
 ): SenseGrantRootRow {
   if (json_data.selectionKind !== 'CHOSEN' && 'count' in json_data) {
     rejectGrantedCount(json_data.id, (json_data as { count?: number }).count, 'root')
+  }
+
+  if (json_data.selectionKind !== 'CHOSEN' && 'selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Sense grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+    )
+  }
+
+  if (json_data.scalingKind === 'PER_LEVEL' && 'selectionDuplicatePolicy' in json_data) {
+    requireNoSelectionDuplicatePolicy(
+      `Sense grant "${json_data.id}"`,
+      (json_data as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy,
+      'at the root for PER_LEVEL payload'
+    )
   }
 
   if (json_data.scalingKind === 'NONE') {
@@ -141,10 +211,17 @@ function mapSenseGrantRootRow(
       selection_count: json_data.selectionKind === 'CHOSEN'
         ? requireChosenCount(json_data.id, json_data.count, 'root')
         : null,
+      selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+          `Sense grant "${json_data.id}"`,
+          json_data.selectionDuplicatePolicy
+        )
+        : null,
       scaling_source: null,
       class_id: null,
       charge_id: chargeId,
-      restriction_id: json_data.restrictions?.id ?? null
+      restriction_id: json_data.restrictions?.id ?? null,
+      ...mapSenseGrantRange(json_data.range)
     }
   }
 
@@ -157,10 +234,12 @@ function mapSenseGrantRootRow(
     scaling_kind: json_data.scalingKind,
     authoring_mode_kind: 'ALL',
     selection_count: null,
+    selection_duplicate_policy: null,
     scaling_source: progression.scalingSource,
     class_id: getClassIdForProgression(json_data.id, progression),
     charge_id: chargeId,
-    restriction_id: json_data.restrictions?.id ?? null
+    restriction_id: json_data.restrictions?.id ?? null,
+    ...mapSenseGrantRange(json_data.range)
   }
 }
 
@@ -199,6 +278,22 @@ function mapScalingLevelRows(json_data: SenseGrantAuthored): SenseGrantScalingLe
           'count' in level
             ? (rejectGrantedCount(json_data.id, (level as { count?: number }).count, level.id), null)
             : null
+        ),
+    selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
+      ? requireSelectionDuplicatePolicy(
+        `Sense grant "${json_data.id}" level "${level.id}"`,
+        level.selectionDuplicatePolicy
+      )
+      : (
+          'selectionDuplicatePolicy' in level
+            ? (
+                requireNoSelectionDuplicatePolicy(
+                  `Sense grant "${json_data.id}" level "${level.id}"`,
+                  (level as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+                ),
+                null
+              )
+            : null
         )
   }))
 }
@@ -232,9 +327,7 @@ export async function upsertSenseGrant(
   const scalingLevels = mapScalingLevelRows(json_data)
   const scalingLevelSenses = mapScalingLevelSenseRows(json_data)
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingGrant = await trx
       .selectFrom('sense_grants')
       .select(['restriction_id'])
@@ -257,16 +350,22 @@ export async function upsertSenseGrant(
     await trx
       .insertInto('sense_grants')
       .values(root)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        sort_order: ref('excluded.sort_order'),
-        selection_kind: ref('excluded.selection_kind'),
-        scaling_kind: ref('excluded.scaling_kind'),
-        authoring_mode_kind: ref('excluded.authoring_mode_kind'),
-        selection_count: ref('excluded.selection_count'),
-        scaling_source: ref('excluded.scaling_source'),
-        class_id: ref('excluded.class_id'),
-        charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        sort_order: eb.ref('excluded.sort_order'),
+        selection_kind: eb.ref('excluded.selection_kind'),
+        scaling_kind: eb.ref('excluded.scaling_kind'),
+        authoring_mode_kind: eb.ref('excluded.authoring_mode_kind'),
+        selection_count: eb.ref('excluded.selection_count'),
+        selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
+        scaling_source: eb.ref('excluded.scaling_source'),
+        class_id: eb.ref('excluded.class_id'),
+        charge_id: eb.ref('excluded.charge_id'),
+        restriction_id: eb.ref('excluded.restriction_id'),
+        range_id: eb.ref('excluded.range_id'),
+        range_kind: eb.ref('excluded.range_kind'),
+        range_amount: eb.ref('excluded.range_amount'),
+        range_unit: eb.ref('excluded.range_unit'),
+        range_scaling: eb.ref('excluded.range_scaling')
       })))
       .execute()
 
@@ -301,9 +400,5 @@ export async function upsertSenseGrant(
       }
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

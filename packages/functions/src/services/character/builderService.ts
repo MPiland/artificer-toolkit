@@ -1,45 +1,64 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import {
-  createBackgroundRepository,
-  createClassRepository,
-  createEquipmentRepository,
-  createFeatureRepository,
-  createRaceRepository,
-  createSpellRepository,
-  createSystemRepository
-} from '@artificer-toolkit/db'
-import {
   ABILITY_CODE,
   ADVANCEMENT_METHOD_CODE,
+  applyGrants,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
   CHARACTER_ABILITY_GENERATION_METHOD,
+  createCharacterEligibilityContext,
+  evaluateCharacterFacet,
   HITPOINT_CALCULATION_METHOD_CODE,
   RACE_CATEGORY_CODE,
+  resolveRulesSystem,
+  resolveSpellGrantState,
   type AbilityCode,
   type AuthoredRecordStatus,
+  type CharacterBuildSnapshot,
+  type CharacterEligibilityContext,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
+  getCharacterChosenGrantSelectionIdentityKey,
   isSameCharacterProvenanceIdentity,
   type BackgroundAuthored,
   type CharacterAbilityScoresIntent,
   type CharacterAncestryAcquisition,
+  type CharacterAcquisitionTiming,
   type CharacterAuthored,
   type CharacterClassIntent,
   type CharacterFeatureAcquisitionRecord,
   type CharacterProvenance,
   type CharacterResourceGrantRecord,
+  type FeatAuthored,
   type CharacterSpellSelectionRecord,
   type ClassAuthored,
-  type ParentClassAuthored,
-  type SpellAuthored
+  type ParentClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored, StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemSeedRecord } from '@artificer-toolkit/db'
+import {
+  getSelectedFeatureOptionIds,
+  resolveCharacterChosenGrantChoices,
+  type CharacterBuilderChosenGrantChoice,
+  type CharacterChosenGrantChoiceRegistry,
+  type CharacterChosenGrantOwner
+} from './chosenGrantChoiceResolver.js'
+import {
+  createCharacterAssemblyRegistry,
+  toCharacterEngineFeatureSource,
+  toCharacterEngineFeatureTiming
+} from './characterEngine.js'
+import {
+  loadCharacterBuilderCatalog,
+  loadCharacterBuilderSpellCatalog,
+  type CharacterBuilderCatalog,
+  type CharacterBuilderClassCatalogRecord
+} from './builderCatalog.js'
+import { loadCharacterAssemblyRegistry } from './characterAssemblyOrchestrator.js'
 
 type BuilderMode = 'create' | 'edit'
 
@@ -49,14 +68,24 @@ export interface CharacterBuilderRegistry {
   classes: ClassAuthored[]
   backgrounds: BackgroundAuthored[]
   equipment: ResolvedEquipment[]
-  spells: SpellAuthored[]
+  feats?: FeatAuthored[]
   features: FeatureAuthored[]
 }
 
-type CharacterBuilderRegistryLoadOptions = {
-  includeEquipment?: boolean
-  includeFeatures?: boolean
-  includeSpells?: boolean
+export interface CharacterBuilderContext {
+  catalog: CharacterBuilderCatalog
+  registry: CharacterBuilderRegistry
+}
+
+function getCharacterChosenGrantChoiceRegistry(
+  context: CharacterBuilderContext
+): CharacterChosenGrantChoiceRegistry {
+  return {
+    system: context.registry.system,
+    equipment: context.catalog.equipment,
+    spells: context.catalog.spells,
+    feats: context.catalog.feats
+  }
 }
 
 export interface CharacterBuilderClassSummary {
@@ -96,6 +125,7 @@ export interface CharacterBuilderGrantSummaryItem {
   id: string
   label: string
   description?: string
+  attributes?: string[]
   sourceLabel: string
   source: CharacterProvenance
 }
@@ -126,16 +156,16 @@ export interface CharacterBuilderReadiness {
   outstandingRequiredChoices: string[]
 }
 
-export type CharacterBuilderSectionId
-  = | 'BASICS'
-    | 'RACE'
-    | 'CLASSES'
-    | 'BACKGROUND'
-    | 'DETAILS'
-    | 'NOTES'
-    | 'ABILITIES'
-    | 'EQUIPMENT'
-    | 'REVIEW'
+export type CharacterBuilderSectionId =
+  | 'BASICS'
+  | 'RACE'
+  | 'CLASSES'
+  | 'BACKGROUND'
+  | 'DETAILS'
+  | 'NOTES'
+  | 'ABILITIES'
+  | 'EQUIPMENT'
+  | 'REVIEW'
 
 export interface CharacterBuilderPreviewEntry {
   id: string
@@ -156,9 +186,11 @@ export interface CharacterBuilderChangePreview {
 
 export interface CharacterBuilderResolution {
   mode: BuilderMode
+  catalog: CharacterBuilderCatalog
   registry: CharacterBuilderRegistry
   summary: CharacterBuilderSummary
   grants: CharacterBuilderGrantedContent
+  chosenGrantChoices: CharacterBuilderChosenGrantChoice[]
   outstandingChoices: CharacterBuilderIssue[]
   validations: CharacterBuilderValidation[]
   readiness: CharacterBuilderReadiness
@@ -172,8 +204,11 @@ type GrantedFeatureRecord = {
   level: number
 }
 
-type CharacterStartingEquipmentDecision = NonNullable<NonNullable<CharacterAuthored['intent']['startingEquipment']>['class']>
-type StartingEquipmentItem = StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
+type CharacterStartingEquipmentDecision = NonNullable<
+  NonNullable<CharacterAuthored['intent']['startingEquipment']>['class']
+>
+type StartingEquipmentItem =
+  StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
 type ChosenStartingEquipmentItem = StartingEquipmentItem & {
   startingEquipmentKind: 'EQUIPMENT'
   category?: EquipmentCategoryCode
@@ -213,17 +248,6 @@ const abilityOrder: AbilityCode[] = [
   ABILITY_CODE.CHARISMA
 ]
 
-function optionCount(values: NonNullable<CharacterFeatureAcquisitionRecord['selections']>): number {
-  let count = 0
-  for (const selection of values) {
-    for (const value of selection.values) {
-      if (value.kind === 'ID') count += 1
-      if (value.kind === 'IDS') count += value.ids.length
-    }
-  }
-  return count
-}
-
 function getActiveSpellLimit(
   spellcasting: ClassAuthored['spellcasting'],
   classLevel: number
@@ -235,24 +259,28 @@ function getActiveSpellLimit(
 
 function getSpellSelectionCounts(
   selection: CharacterSpellSelectionRecord | undefined,
-  registry: CharacterBuilderRegistry
-): { cantrips: number, spells: number } {
+  catalog: CharacterBuilderCatalog
+): { cantrips: number; spells: number } {
   const spellIds = selection?.spells ?? []
 
   return {
-    cantrips: spellIds.filter((spellId) => registry.spells.find((spell) => spell.id === spellId)?.level === 0).length,
+    cantrips: spellIds.filter(
+      (spellId) => catalog.spells.find((spell) => spell.id === spellId)?.level === 0
+    ).length,
     spells: spellIds.filter((spellId) => {
-      const spell = registry.spells.find((record) => record.id === spellId)
+      const spell = catalog.spells.find((record) => record.id === spellId)
       return spell && spell.level > 0
     }).length
   }
 }
 
 function isSpellAllowedForClassRequirement(
-  spell: SpellAuthored,
+  spell: CharacterBuilderCatalog['spells'][number],
   requirement: CharacterSpellChoiceRequirement
 ): boolean {
-  const matchesClass = spell.classIds.some((classId) => requirement.allowedClassIds.includes(classId))
+  const matchesClass = spell.classIds.some((classId) =>
+    requirement.allowedClassIds.includes(classId)
+  )
   if (!matchesClass) return false
   if (spell.level === 0) return true
 
@@ -262,12 +290,12 @@ function isSpellAllowedForClassRequirement(
 export function getInvalidSpellSelectionIds(
   selection: CharacterSpellSelectionRecord | undefined,
   requirement: CharacterSpellChoiceRequirement,
-  registry: CharacterBuilderRegistry
+  catalog: CharacterBuilderCatalog
 ): string[] {
   if (!selection) return []
 
   return selection.spells.filter((spellId) => {
-    const spell = registry.spells.find((record) => record.id === spellId)
+    const spell = catalog.spells.find((record) => record.id === spellId)
 
     return !spell || !isSpellAllowedForClassRequirement(spell, requirement)
   })
@@ -280,34 +308,59 @@ function getClassSpellChoiceRequirements(
     const requirements: CharacterSpellChoiceRequirement[] = []
 
     if (selection.baseClass?.spellcasting) {
-      const activeLimit = getActiveSpellLimit(selection.baseClass.spellcasting, selection.row.classLevel)
-      if (activeLimit && ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)) {
+      const activeLimit = getActiveSpellLimit(
+        selection.baseClass.spellcasting,
+        selection.row.classLevel
+      )
+      if (
+        activeLimit &&
+        ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)
+      ) {
         const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
 
         requirements.push({
-          label: selection.baseClass.spellcasting.magicName ?? `${selection.baseClass.label} Spellcasting`,
+          label:
+            selection.baseClass.spellcasting.magicName ??
+            `${selection.baseClass.label} Spellcasting`,
           sourceLabel: selection.baseClass.label,
-          source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.row.classLevel },
+          source: {
+            kind: 'CLASS',
+            classId: selection.baseClass.id,
+            classLevel: selection.row.classLevel
+          },
           cantripLimit: activeLimit.cantripsLimit ?? 0,
           learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
-          maxSpellLevel: Math.max(...spellSlotLevels, 0) || selection.baseClass.spellcasting.maxSpellLevel,
+          maxSpellLevel:
+            Math.max(...spellSlotLevels, 0) || selection.baseClass.spellcasting.maxSpellLevel,
           allowedClassIds: [selection.baseClass.id]
         })
       }
     }
 
     if (selection.subclass?.spellcasting) {
-      const activeLimit = getActiveSpellLimit(selection.subclass.spellcasting, selection.row.classLevel)
-      if (activeLimit && ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)) {
+      const activeLimit = getActiveSpellLimit(
+        selection.subclass.spellcasting,
+        selection.row.classLevel
+      )
+      if (
+        activeLimit &&
+        ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)
+      ) {
         const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
 
         requirements.push({
-          label: selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
+          label:
+            selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
           sourceLabel: selection.subclass.label,
-          source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel },
+          source: {
+            kind: 'SUBCLASS',
+            subclassId: selection.subclass.id,
+            classLevel: selection.row.classLevel
+          },
           cantripLimit: activeLimit.cantripsLimit ?? 0,
           learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
-          maxSpellLevel: Math.max(...spellSlotLevels, 0) || selection.subclass.spellcasting.maxSpellLevel,
+          maxSpellLevel:
+            Math.max(...spellSlotLevels, 0) || selection.subclass.spellcasting.maxSpellLevel,
           allowedClassIds: [...new Set([selection.row.classId, selection.subclass.id])]
         })
       }
@@ -320,9 +373,9 @@ function getClassSpellChoiceRequirements(
 function isEquipmentAllowedForStartingItem(
   item: ChosenStartingEquipmentItem,
   equipmentId: string,
-  registry: CharacterBuilderRegistry
+  catalog: CharacterBuilderCatalog
 ): boolean {
-  const equipment = registry.equipment.find((record) => record.id === equipmentId)
+  const equipment = catalog.equipment.find((record) => record.id === equipmentId)
   if (!equipment) return false
 
   if (Array.isArray(item.equipmentIds) && !item.equipmentIds.includes(equipmentId)) return false
@@ -335,51 +388,63 @@ function isEquipmentAllowedForStartingItem(
 export function isStartingEquipmentDecisionComplete(
   startingEquipment: StartingEquipmentAuthored,
   decision: CharacterStartingEquipmentDecision | undefined,
-  registry: CharacterBuilderRegistry
+  catalog: CharacterBuilderCatalog
 ): boolean {
   if (startingEquipment.sets.length === 0) return true
   if (!decision) return false
 
   if (decision.tookGold) {
     return Boolean(
-      decision.gold
-      && decision.gold.goldOption.trim().length > 0
-      && decision.gold.totalGold > 0
+      decision.gold && decision.gold.goldOption.trim().length > 0 && decision.gold.totalGold > 0
     )
   }
 
   const groupSelections = new Map((decision.groups ?? []).map((group) => [group.groupId, group]))
 
-  return startingEquipment.sets.every((set) => set.groups.every((group) => {
-    const groupSelection = groupSelections.get(group.id)
-    const option = group.options.find((candidate) => candidate.id === groupSelection?.optionId)
-    if (!groupSelection || !option) return false
+  return startingEquipment.sets.every((set) =>
+    set.groups.every((group) => {
+      const groupSelection = groupSelections.get(group.id)
+      const option = group.options.find((candidate) => candidate.id === groupSelection?.optionId)
+      if (!groupSelection || !option) return false
 
-    const selectableItemIds = new Set(option.items.filter(isChosenStartingEquipmentItem).map((item) => item.id))
-    const hasInvalidSelectionKey = groupSelection.selections?.some((selection) => !selectableItemIds.has(selection.selectionKey))
-    if (hasInvalidSelectionKey) return false
+      const selectableItemIds = new Set(
+        option.items.filter(isChosenStartingEquipmentItem).map((item) => item.id)
+      )
+      const hasInvalidSelectionKey = groupSelection.selections?.some(
+        (selection) => !selectableItemIds.has(selection.selectionKey)
+      )
+      if (hasInvalidSelectionKey) return false
 
-    return option.items.every((item) => {
-      if (!isChosenStartingEquipmentItem(item)) return true
+      return option.items.every((item) => {
+        if (!isChosenStartingEquipmentItem(item)) return true
 
-      const selections = groupSelection.selections?.filter((selection) => selection.selectionKey === item.id) ?? []
-      const selectedQuantity = selections.reduce((sum, selection) => sum + selection.quantity, 0)
+        const selections =
+          groupSelection.selections?.filter((selection) => selection.selectionKey === item.id) ?? []
+        const selectedQuantity = selections.reduce((sum, selection) => sum + selection.quantity, 0)
 
-      return selectedQuantity === item.count
-        && selections.every((selection) => (
-          selection.equipmentId.trim().length > 0
-          && selection.quantity > 0
-          && isEquipmentAllowedForStartingItem(item, selection.equipmentId, registry)
-        ))
+        return (
+          selectedQuantity === item.count &&
+          selections.every(
+            (selection) =>
+              selection.equipmentId.trim().length > 0 &&
+              selection.quantity > 0 &&
+              isEquipmentAllowedForStartingItem(item, selection.equipmentId, catalog)
+          )
+        )
+      })
     })
-  }))
+  )
 }
 
-function isChosenStartingEquipmentItem(item: StartingEquipmentItem): item is ChosenStartingEquipmentItem {
-  return item.startingEquipmentKind === 'EQUIPMENT'
-    && 'selectionKind' in item
-    && item.selectionKind === 'CHOSEN'
-    && 'count' in item
+function isChosenStartingEquipmentItem(
+  item: StartingEquipmentItem
+): item is ChosenStartingEquipmentItem {
+  return (
+    item.startingEquipmentKind === 'EQUIPMENT' &&
+    'selectionKind' in item &&
+    item.selectionKind === 'CHOSEN' &&
+    'count' in item
+  )
 }
 
 function deriveAbilityScores(
@@ -400,14 +465,44 @@ function deriveAbilityScores(
   }
 }
 
+export function getAvailableSubclassesForClass(params: {
+  classId: string
+  classLevel: number
+  catalog: CharacterBuilderCatalog
+  registry: CharacterBuilderRegistry
+}): CharacterBuilderClassCatalogRecord[] {
+  const baseClass = params.registry.classes.find(
+    (record): record is ParentClassAuthored =>
+      record.category === CLASS_CATEGORY.BASE && record.id === params.classId
+  )
+
+  if (
+    baseClass?.subclassSelectionLevel === undefined ||
+    params.classLevel < baseClass.subclassSelectionLevel
+  ) {
+    return []
+  }
+
+  return params.catalog.classes.filter(
+    (record) =>
+      record.category === CLASS_CATEGORY.SUBCLASS && record.parentClassId === params.classId
+  )
+}
+
 function loadClassSelection(
   row: CharacterClassIntent,
   registry: CharacterBuilderRegistry
 ): ResolvedClassSelection {
-  const baseClass = registry.classes.find((record): record is ParentClassAuthored => record.category === CLASS_CATEGORY.BASE && record.id === row.classId)
+  const baseClass = registry.classes.find(
+    (record): record is ParentClassAuthored =>
+      record.category === CLASS_CATEGORY.BASE && record.id === row.classId
+  )
 
   const subclass = row.subclassId
-    ? registry.classes.find((record): record is Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }> => record.category === CLASS_CATEGORY.SUBCLASS && record.id === row.subclassId)
+    ? registry.classes.find(
+        (record): record is Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }> =>
+          record.category === CLASS_CATEGORY.SUBCLASS && record.id === row.subclassId
+      )
     : undefined
 
   const baseFeatures = (baseClass?.features ?? []).filter(
@@ -418,8 +513,12 @@ function loadClassSelection(
   )
 
   const resources = [
-    ...(baseClass?.resources && baseClass.resources.availableAtLevel <= row.classLevel ? [baseClass.resources] : []),
-    ...(subclass?.resources && subclass.resources.availableAtLevel <= row.classLevel ? [subclass.resources] : [])
+    ...(baseClass?.resources && baseClass.resources.availableAtLevel <= row.classLevel
+      ? [baseClass.resources]
+      : []),
+    ...(subclass?.resources && subclass.resources.availableAtLevel <= row.classLevel
+      ? [subclass.resources]
+      : [])
   ]
 
   const spellcasting = [
@@ -448,7 +547,11 @@ function validateMulticlass(
     const baseClass = selection.baseClass
     if (!baseClass) continue
 
-    const passes = baseClass.multiclass.requirementGroups.groups.some((group) => group.requirements.every((requirement) => (abilityScores[requirement.ability] ?? 0) >= requirement.min))
+    const passes = baseClass.multiclass.requirementGroups.groups.some((group) =>
+      group.requirements.every(
+        (requirement) => (abilityScores[requirement.ability] ?? 0) >= requirement.min
+      )
+    )
 
     if (!passes) {
       validations.push({
@@ -483,27 +586,38 @@ function getCharacterRaceSelection(
 ): {
   baseRace?: ResolvedRace
   selectedRace?: ResolvedRace
+  ancestryRace?: ResolvedRace
   selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
   selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
 } {
   const baseRace = character.intent.race.raceId
-    ? registry.races.find((record) => record.category === RACE_CATEGORY_CODE.BASE && record.id === character.intent.race.raceId)
+    ? registry.races.find(
+        (record) =>
+          record.category === RACE_CATEGORY_CODE.BASE && record.id === character.intent.race.raceId
+      )
     : undefined
   const selectedRace = character.intent.race.subraceId
     ? registry.races.find((record) => record.id === character.intent.race.subraceId)
     : baseRace
-  const selectedAncestry = selectedRace?.ancestry
+  const ancestryRace = selectedRace?.ancestry
+    ? selectedRace
+    : baseRace?.ancestry
+      ? baseRace
+      : undefined
+  const selectedAncestry = ancestryRace?.ancestry
     ? character.intent.ancestrySelections?.find(
-        (selection) => selection.ancestryId === selectedRace.ancestry?.id
+        (selection) => selection.ancestryId === ancestryRace.ancestry?.id
       )
     : undefined
-  const selectedAncestryOption = selectedAncestry && isValidAncestrySource(character, selectedAncestry.source)
-    ? selectedRace?.ancestry?.options.find((option) => option.id === selectedAncestry.optionId)
-    : undefined
+  const selectedAncestryOption =
+    selectedAncestry && isValidAncestrySource(character, selectedAncestry.source)
+      ? ancestryRace?.ancestry?.options.find((option) => option.id === selectedAncestry.optionId)
+      : undefined
 
   return {
     baseRace,
     selectedRace,
+    ancestryRace,
     selectedAncestry,
     selectedAncestryOption
   }
@@ -522,21 +636,29 @@ export function isCharacterBuilderProvenanceStillValid({
 }): boolean {
   switch (source.kind) {
     case 'CLASS':
-      return character.intent.classes.some((row) => row.classId === source.classId && isClassSourceLevelStillAvailable(source, row))
+      return character.intent.classes.some(
+        (row) => row.classId === source.classId && isClassSourceLevelStillAvailable(source, row)
+      )
     case 'SUBCLASS':
-      return character.intent.classes.some((row) => row.subclassId === source.subclassId && isClassSourceLevelStillAvailable(source, row))
+      return character.intent.classes.some(
+        (row) =>
+          row.subclassId === source.subclassId && isClassSourceLevelStillAvailable(source, row)
+      )
     case 'RACE':
       return character.intent.race.raceId === source.raceId
     case 'SUBRACE':
       return character.intent.race.subraceId === source.subraceId
     case 'ANCESTRY': {
-      const { selectedRace, selectedAncestry, selectedAncestryOption } = getCharacterRaceSelection(character, registry)
+      const { ancestryRace, selectedAncestry, selectedAncestryOption } = getCharacterRaceSelection(
+        character,
+        registry
+      )
       return Boolean(
-        selectedRace?.ancestry
-        && selectedAncestry
-        && selectedAncestryOption
-        && selectedAncestry.ancestryId === source.ancestryId
-        && selectedAncestry.optionId === source.optionId
+        ancestryRace?.ancestry &&
+        selectedAncestry &&
+        selectedAncestryOption &&
+        selectedAncestry.ancestryId === source.ancestryId &&
+        selectedAncestry.optionId === source.optionId
       )
     }
     case 'BACKGROUND':
@@ -546,7 +668,9 @@ export function isCharacterBuilderProvenanceStillValid({
     case 'FEATURE':
       return grantedFeatures.some((record) => record.feature.id === source.featureId)
     case 'OPTION':
-      return character.intent.featureAcquisitions.some((record) => record.id === source.acquiredParentId)
+      return character.intent.featureAcquisitions.some(
+        (record) => record.id === source.acquiredParentId
+      )
     case 'MANUAL':
       return true
     default:
@@ -574,21 +698,43 @@ function getRequiredClassResourceGrants(
   return classSelections.flatMap((selection) => {
     const grants: CharacterResourceGrantRecord[] = []
 
-    if (selection.baseClass?.resources && selection.baseClass.resources.availableAtLevel <= selection.row.classLevel) {
+    if (
+      selection.baseClass?.resources &&
+      selection.baseClass.resources.availableAtLevel <= selection.row.classLevel
+    ) {
       grants.push({
         id: `resource:${selection.baseClass.id}:${selection.baseClass.resources.id}`,
         resourceId: selection.baseClass.resources.id,
-        source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.baseClass.resources.availableAtLevel },
-        timing: { kind: 'CLASS_LEVEL', classId: selection.baseClass.id, classLevel: selection.baseClass.resources.availableAtLevel }
+        source: {
+          kind: 'CLASS',
+          classId: selection.baseClass.id,
+          classLevel: selection.baseClass.resources.availableAtLevel
+        },
+        timing: {
+          kind: 'CLASS_LEVEL',
+          classId: selection.baseClass.id,
+          classLevel: selection.baseClass.resources.availableAtLevel
+        }
       })
     }
 
-    if (selection.subclass?.resources && selection.subclass.resources.availableAtLevel <= selection.row.classLevel) {
+    if (
+      selection.subclass?.resources &&
+      selection.subclass.resources.availableAtLevel <= selection.row.classLevel
+    ) {
       grants.push({
         id: `resource:${selection.subclass.id}:${selection.subclass.resources.id}`,
         resourceId: selection.subclass.resources.id,
-        source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.subclass.resources.availableAtLevel },
-        timing: { kind: 'CLASS_LEVEL', classId: selection.row.classId, classLevel: selection.subclass.resources.availableAtLevel }
+        source: {
+          kind: 'SUBCLASS',
+          subclassId: selection.subclass.id,
+          classLevel: selection.subclass.resources.availableAtLevel
+        },
+        timing: {
+          kind: 'CLASS_LEVEL',
+          classId: selection.row.classId,
+          classLevel: selection.subclass.resources.availableAtLevel
+        }
       })
     }
 
@@ -616,8 +762,10 @@ function isSameRequiredResourceGrant(
   left: CharacterResourceGrantRecord,
   right: CharacterResourceGrantRecord
 ): boolean {
-  return left.resourceId === right.resourceId
-    && isSameRequiredResourceGrantSource(left.source, right.source)
+  return (
+    left.resourceId === right.resourceId &&
+    isSameRequiredResourceGrantSource(left.source, right.source)
+  )
 }
 
 function isSameRequiredResourceGrantSource(
@@ -637,6 +785,95 @@ function isSameRequiredResourceGrantSource(
   return isSameCharacterProvenanceIdentity(left, right)
 }
 
+type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
+type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number]
+
+export function reconcileCharacterHitpointProgression(
+  classes: CharacterAuthored['intent']['classes'],
+  levels: CharacterHitpointLevelEntry[]
+): CharacterHitpointLevelEntry[] {
+  const selectedLevelsByClass = new Map(classes.map((entry) => [entry.classId, entry.classLevel]))
+  const acceptedLevelsByClass = new Map<string, number>()
+  const reconciled: CharacterHitpointLevelEntry[] = []
+
+  for (const entry of [...levels].sort((left, right) => left.level - right.level)) {
+    const selectedClassLevel = selectedLevelsByClass.get(entry.classId)
+    const nextClassLevel = (acceptedLevelsByClass.get(entry.classId) ?? 0) + 1
+    if (
+      selectedClassLevel === undefined ||
+      entry.classLevel !== nextClassLevel ||
+      entry.classLevel > selectedClassLevel
+    ) {
+      continue
+    }
+
+    acceptedLevelsByClass.set(entry.classId, entry.classLevel)
+    reconciled.push({ ...entry, level: reconciled.length + 1 })
+  }
+
+  return reconciled
+}
+
+function parseClassHitDie(dieConfig: string | undefined): number | null {
+  const match = /^(?:1)?d([1-9]\d*)$/i.exec(dieConfig?.trim() ?? '')
+  if (!match?.[1]) return null
+
+  const die = Number(match[1])
+  return Number.isSafeInteger(die) ? die : null
+}
+
+export function reconcileCharacterHitDice(
+  selectedClasses: CharacterAuthored['intent']['classes'],
+  authoredClasses: CharacterBuilderRegistry['classes'],
+  currentHitDice: CharacterHitDie[]
+): CharacterHitDie[] {
+  const totalsByDie = new Map<number, number>()
+
+  for (const selection of selectedClasses) {
+    if (!Number.isSafeInteger(selection.classLevel) || selection.classLevel <= 0) continue
+
+    const authoredClass = authoredClasses.find((record) => record.id === selection.classId)
+    if (!authoredClass || authoredClass.category !== CLASS_CATEGORY.BASE) continue
+
+    const die = parseClassHitDie(authoredClass.hitpoint?.dieConfig)
+    if (die === null) continue
+
+    totalsByDie.set(die, (totalsByDie.get(die) ?? 0) + selection.classLevel)
+  }
+
+  const usedByDie = new Map<number, number>()
+  for (const hitDie of currentHitDice) {
+    if (!Number.isSafeInteger(hitDie.die) || hitDie.die <= 0) continue
+    const used = Number.isSafeInteger(hitDie.used) && hitDie.used > 0 ? hitDie.used : 0
+    usedByDie.set(hitDie.die, (usedByDie.get(hitDie.die) ?? 0) + used)
+  }
+
+  return [...totalsByDie].map(([die, total]) => ({
+    die,
+    total,
+    used: Math.min(usedByDie.get(die) ?? 0, total)
+  }))
+}
+
+export function isCharacterHitpointProgressionValid(
+  classes: CharacterAuthored['intent']['classes'],
+  levels: CharacterHitpointLevelEntry[],
+  requireComplete = false
+): boolean {
+  const expectedTotal = classes.reduce((sum, entry) => sum + entry.classLevel, 0)
+  const reconciled = reconcileCharacterHitpointProgression(classes, levels)
+  const structurallyValid =
+    reconciled.length === levels.length &&
+    reconciled.every(
+      (entry, index) =>
+        entry.level === levels[index]?.level &&
+        entry.classId === levels[index]?.classId &&
+        entry.classLevel === levels[index]?.classLevel
+    )
+
+  return structurallyValid && (!requireComplete || levels.length === expectedTotal)
+}
+
 function createReadiness(
   character: CharacterAuthored,
   summary: CharacterBuilderSummary,
@@ -649,12 +886,19 @@ function createReadiness(
 
   if (!character.label.trim()) blockingIssues.push('Character name is required.')
   if (!character.intent.race.raceId) blockingIssues.push('A race selection is required.')
-  if (!character.intent.background.backgroundId) blockingIssues.push('A background selection is required.')
+  if (!character.intent.background.backgroundId)
+    blockingIssues.push('A background selection is required.')
   if (summary.classes.length === 0) blockingIssues.push('At least one class is required.')
   if (Object.keys(summary.abilities).length < abilityOrder.length) {
     blockingIssues.push('All six ability scores must be assigned.')
   }
-  if (character.intent.hitpoints.levels.length < Math.max(summary.totalLevel, 1)) {
+  if (
+    !isCharacterHitpointProgressionValid(
+      character.intent.classes,
+      character.intent.hitpoints.levels,
+      true
+    )
+  ) {
     blockingIssues.push('Hit point entries are required for each character level.')
   }
 
@@ -669,21 +913,17 @@ function createReadiness(
   }
 }
 
-function hasValidationCode(
-  validations: CharacterBuilderValidation[],
-  codes: string[]
-): boolean {
+function hasValidationCode(validations: CharacterBuilderValidation[], codes: string[]): boolean {
   return validations.some((validation) => codes.includes(validation.code))
 }
 
-function hasOutstandingCode(
-  outstandingChoices: CharacterBuilderIssue[],
-  codes: string[]
-): boolean {
+function hasOutstandingCode(outstandingChoices: CharacterBuilderIssue[], codes: string[]): boolean {
   return outstandingChoices.some((choice) => codes.includes(choice.code))
 }
 
-function getCharacterBuilderSectionForSource(source: CharacterProvenance | undefined): CharacterBuilderSectionId | null {
+function getCharacterBuilderSectionForSource(
+  source: CharacterProvenance | undefined
+): CharacterBuilderSectionId | null {
   if (!source) return null
 
   switch (source.kind) {
@@ -715,27 +955,29 @@ export function resolveRecommendedCharacterBuilderSection(
   if (!character.label.trim()) return 'BASICS'
 
   if (
-    !character.intent.race.raceId
-    || hasValidationCode(validations, [
+    !character.intent.race.raceId ||
+    hasValidationCode(validations, [
       'RACE_NOT_FOUND',
       'SUBRACE_NOT_FOUND',
       'STALE_ANCESTRY_SELECTION',
       'ANCESTRY_SOURCE_MISMATCH'
-    ])
-    || hasOutstandingCode(outstandingChoices, ['ANCESTRY_SELECTION_REQUIRED'])
+    ]) ||
+    hasOutstandingCode(outstandingChoices, ['ANCESTRY_SELECTION_REQUIRED'])
   ) {
     return 'RACE'
   }
 
   if (
-    summary.classes.length === 0
-    || hasValidationCode(validations, [
+    summary.classes.length === 0 ||
+    hasValidationCode(validations, [
       'CLASS_NOT_FOUND',
       'SUBCLASS_NOT_FOUND',
+      'SUBCLASS_SELECTION_UNAVAILABLE',
       'SUBCLASS_PARENT_MISMATCH',
       'MULTICLASS_PREREQUISITE_UNMET'
-    ])
-    || hasOutstandingCode(outstandingChoices, [
+    ]) ||
+    hasOutstandingCode(outstandingChoices, [
+      'SUBCLASS_SELECTION_REQUIRED',
       'SPECIALIZATION_REQUIRED',
       'SPELL_SELECTION_REQUIRED',
       'SPELL_SELECTION_INCOMPLETE',
@@ -747,15 +989,19 @@ export function resolveRecommendedCharacterBuilderSection(
   }
 
   if (
-    !character.intent.background.backgroundId
-    || hasValidationCode(validations, ['BACKGROUND_NOT_FOUND'])
+    !character.intent.background.backgroundId ||
+    hasValidationCode(validations, ['BACKGROUND_NOT_FOUND'])
   ) {
     return 'BACKGROUND'
   }
 
   if (
-    Object.keys(summary.abilities).length < abilityOrder.length
-    || character.intent.hitpoints.levels.length < Math.max(summary.totalLevel, 1)
+    Object.keys(summary.abilities).length < abilityOrder.length ||
+    !isCharacterHitpointProgressionValid(
+      character.intent.classes,
+      character.intent.hitpoints.levels,
+      true
+    )
   ) {
     return 'ABILITIES'
   }
@@ -775,9 +1021,11 @@ export function resolveRecommendedCharacterBuilderSection(
       'FEATURE_SELECTION_INCOMPLETE'
     ])
   ) {
-    const featureChoice = outstandingChoices.find((choice) => (
-      choice.code === 'FEATURE_SELECTION_REQUIRED' || choice.code === 'FEATURE_SELECTION_INCOMPLETE'
-    ))
+    const featureChoice = outstandingChoices.find(
+      (choice) =>
+        choice.code === 'FEATURE_SELECTION_REQUIRED' ||
+        choice.code === 'FEATURE_SELECTION_INCOMPLETE'
+    )
     return getCharacterBuilderSectionForSource(featureChoice?.source) ?? 'REVIEW'
   }
 
@@ -792,8 +1040,11 @@ function buildAncestrySelectionLabel(
   selection: CharacterAncestryAcquisition,
   registry: CharacterBuilderRegistry
 ): string {
-  const race = registry.races.find((record) => record.ancestry?.id === selection.ancestryId
-    && record.ancestry.options.some((option) => option.id === selection.optionId))
+  const race = registry.races.find(
+    (record) =>
+      record.ancestry?.id === selection.ancestryId &&
+      record.ancestry.options.some((option) => option.id === selection.optionId)
+  )
   const option = race?.ancestry?.options.find((candidate) => candidate.id === selection.optionId)
   if (race?.ancestry && option) {
     return `${race.ancestry.label}: ${option.label}`
@@ -805,79 +1056,125 @@ function buildFeatureAcquisitionLabel(
   acquisition: CharacterFeatureAcquisitionRecord,
   registry: CharacterBuilderRegistry
 ): string {
-  return registry.features.find((record) => record.id === acquisition.featureId)?.label ?? acquisition.featureId
+  return (
+    registry.features.find((record) => record.id === acquisition.featureId)?.label ??
+    acquisition.featureId
+  )
 }
 
 function buildSpellSelectionLabel(
   selection: CharacterSpellSelectionRecord,
-  registry: CharacterBuilderRegistry
+  catalog: CharacterBuilderCatalog
 ): string {
   return selection.spells
-    .map((spellId) => registry.spells.find((record) => record.id === spellId)?.label ?? spellId)
+    .map((spellId) => catalog.spells.find((record) => record.id === spellId)?.label ?? spellId)
     .join(', ')
 }
 
-function buildResourceGrantLabel(
-  grant: CharacterResourceGrantRecord
-): string {
+function buildResourceGrantLabel(grant: CharacterResourceGrantRecord): string {
   return grant.resourceId
 }
 
 function summarizeRemoval(count: number, singular: string, plural = `${singular}s`): string | null {
   if (count <= 0) return null
-  return count === 1
-    ? `1 ${singular} will be removed.`
-    : `${count} ${plural} will be removed.`
+  return count === 1 ? `1 ${singular} will be removed.` : `${count} ${plural} will be removed.`
+}
+
+function removedStartingEquipmentSelection(
+  previous: CharacterStartingEquipmentDecision | undefined,
+  next: CharacterStartingEquipmentDecision | undefined
+): boolean {
+  if (!previous) return false
+  if (!next) return true
+
+  return (previous.groups ?? []).some(
+    (previousGroup) =>
+      !(next.groups ?? []).some(
+        (nextGroup) =>
+          nextGroup.groupId === previousGroup.groupId &&
+          nextGroup.optionId === previousGroup.optionId &&
+          (previousGroup.selections ?? []).every((previousSelection) =>
+            (nextGroup.selections ?? []).some(
+              (nextSelection) =>
+                nextSelection.selectionKey === previousSelection.selectionKey &&
+                nextSelection.equipmentId === previousSelection.equipmentId &&
+                nextSelection.quantity === previousSelection.quantity
+            )
+          )
+      )
+  )
 }
 
 export function createCharacterBuilderChangePreview(params: {
   previousCharacter: CharacterAuthored | null
   nextCharacter: CharacterAuthored
   predictedStatus: AuthoredRecordStatus
-  registry: CharacterBuilderRegistry
+  context: CharacterBuilderContext
 }): CharacterBuilderChangePreview {
   const previous = params.previousCharacter
   const next = params.nextCharacter
-  const registry = params.registry
+  const { catalog, registry } = params.context
 
   const removedAncestrySelections = (previous?.intent.ancestrySelections ?? [])
-    .filter((selection) => !(next.intent.ancestrySelections ?? []).some((candidate) => candidate.id === selection.id))
+    .filter(
+      (selection) =>
+        !(next.intent.ancestrySelections ?? []).some((candidate) => candidate.id === selection.id)
+    )
     .map((selection) => ({
       id: selection.id,
       label: buildAncestrySelectionLabel(selection, registry)
     }))
 
   const removedFeatureAcquisitions = (previous?.intent.featureAcquisitions ?? [])
-    .filter((acquisition) => !next.intent.featureAcquisitions.some((candidate) => candidate.id === acquisition.id))
+    .filter(
+      (acquisition) =>
+        !next.intent.featureAcquisitions.some((candidate) => candidate.id === acquisition.id)
+    )
     .map((acquisition) => ({
       id: acquisition.id,
       label: buildFeatureAcquisitionLabel(acquisition, registry)
     }))
 
   const removedSpellSelections = (previous?.intent.spellSelections ?? [])
-    .filter((selection) => !(next.intent.spellSelections ?? []).some((candidate) => candidate.id === selection.id))
+    .filter(
+      (selection) =>
+        !(next.intent.spellSelections ?? []).some((candidate) => candidate.id === selection.id)
+    )
     .map((selection) => ({
       id: selection.id,
-      label: buildSpellSelectionLabel(selection, registry)
+      label: buildSpellSelectionLabel(selection, catalog)
     }))
 
   const removedResourceGrants = (previous?.intent.resourceGrants ?? [])
-    .filter((grant) => !(next.intent.resourceGrants ?? []).some((candidate) => candidate.id === grant.id))
+    .filter(
+      (grant) => !(next.intent.resourceGrants ?? []).some((candidate) => candidate.id === grant.id)
+    )
     .map((grant) => ({
       id: grant.id,
       label: buildResourceGrantLabel(grant)
     }))
 
   const clearedStartingEquipmentSources: CharacterStartingEquipmentSource[] = []
-  if (previous?.intent.startingEquipment?.class && !next.intent.startingEquipment?.class) {
+  if (
+    removedStartingEquipmentSelection(
+      previous?.intent.startingEquipment?.class,
+      next.intent.startingEquipment?.class
+    )
+  ) {
     clearedStartingEquipmentSources.push(CharacterStartingEquipmentSource.CLASS)
   }
-  if (previous?.intent.startingEquipment?.background && !next.intent.startingEquipment?.background) {
+  if (
+    removedStartingEquipmentSelection(
+      previous?.intent.startingEquipment?.background,
+      next.intent.startingEquipment?.background
+    )
+  ) {
     clearedStartingEquipmentSources.push(CharacterStartingEquipmentSource.BACKGROUND)
   }
 
-  const downgradesStatus = previous?.status === AUTHORED_RECORD_STATUS.ACTIVE
-    && params.predictedStatus === AUTHORED_RECORD_STATUS.DRAFT
+  const downgradesStatus =
+    previous?.status === AUTHORED_RECORD_STATUS.ACTIVE &&
+    params.predictedStatus === AUTHORED_RECORD_STATUS.DRAFT
 
   const summaryLines = [
     downgradesStatus
@@ -951,91 +1248,100 @@ export function createEmptyCharacterAuthored(params: {
   }
 }
 
-export async function loadCharacterBuilderRegistry(
-  db: DBLike,
-  systemId: string,
-  options: CharacterBuilderRegistryLoadOptions = {
-    includeEquipment: true,
-    includeFeatures: true,
-    includeSpells: true
-  }
-): Promise<CharacterBuilderRegistry> {
-  const [
-    system,
-    races,
-    classes,
-    backgrounds,
-    equipment,
-    spells,
-    features
-  ] = await Promise.all([
-    createSystemRepository(db).findById(systemId),
-    createRaceRepository(db).findResolvedAll({ systemId }),
-    createClassRepository(db).findAll({ systemId }),
-    createBackgroundRepository(db).findAll({ systemId }),
-    options.includeEquipment ? createEquipmentRepository(db).findResolvedAll({ systemId }) : Promise.resolve([]),
-    options.includeSpells ? createSpellRepository(db).findAll({ systemId }) : Promise.resolve([]),
-    options.includeFeatures ? createFeatureRepository(db, systemId).findAll() : Promise.resolve([])
-  ])
-
-  return {
-    system,
-    races,
-    classes,
-    backgrounds,
-    equipment,
-    spells,
-    features
-  }
+type SpellGrantFeature = {
+  id: string
+  grants?: { spells?: readonly unknown[] }
+  options?: ReadonlyArray<{
+    id: string
+    grants?: { spells?: readonly unknown[] }
+  }>
 }
 
-async function loadCharacterBuilderResolutionRegistry(
-  db: DBLike,
-  character: CharacterAuthored
-): Promise<CharacterBuilderRegistry> {
-  const lightRegistry = await loadCharacterBuilderRegistry(db, character.systemId, {
-    includeEquipment: false,
-    includeFeatures: false,
-    includeSpells: false
-  })
-  const classSelections = character.intent.classes.map((row) => loadClassSelection(row, lightRegistry))
-  const selectedBackground = character.intent.background.backgroundId
-    ? lightRegistry.backgrounds.find((record) => record.id === character.intent.background.backgroundId)
-    : undefined
-  const needsEquipment = Boolean(
-    character.intent.startingEquipment
-    || character.state.equipment.inventory.length > 0
-    || character.state.currency.length > 0
-    || classSelections.some((selection) => selection.baseClass?.startingEquipment.sets.length)
-    || selectedBackground?.startingEquipment?.sets.length
-  )
-  const needsSpells = Boolean(
-    character.intent.spellSelections?.length
-    || classSelections.some((selection) => selection.spellcasting.length > 0)
-  )
-  const needsFeatures = character.intent.featureAcquisitions.some(
-    (acquisition) => acquisition.source.kind === 'FEATURE'
-  )
-
-  if (!needsEquipment && !needsSpells && !needsFeatures) {
-    return lightRegistry
+function featureContributesSpellGrant(
+  feature: SpellGrantFeature,
+  character: CharacterAuthored,
+  source?: CharacterProvenance
+): boolean {
+  if (feature.grants?.spells?.length) return true
+  if (!feature.options?.length) return false
+  if (!source) {
+    return feature.options.some((option) => Boolean(option.grants?.spells?.length))
   }
 
-  const [
-    equipment,
-    spells,
-    features
-  ] = await Promise.all([
-    needsEquipment ? createEquipmentRepository(db).findResolvedAll({ systemId: character.systemId }) : Promise.resolve([]),
-    needsSpells ? createSpellRepository(db).findAll({ systemId: character.systemId }) : Promise.resolve([]),
-    needsFeatures ? createFeatureRepository(db, character.systemId).findAll() : Promise.resolve([])
-  ])
+  const acquisition = character.intent.featureAcquisitions.find(
+    (record) =>
+      record.featureId === feature.id && isSameCharacterProvenanceIdentity(record.source, source)
+  )
+  const selectedOptionIds = new Set(
+    acquisition?.selections
+      ?.filter((selection) => selection.selectionKey === 'options')
+      .flatMap((selection) =>
+        selection.values.flatMap((value) => {
+          if (value.kind === 'ID') return [value.id]
+          if (value.kind === 'IDS') return value.ids
+          return []
+        })
+      ) ?? []
+  )
+  return feature.options.some(
+    (option) => selectedOptionIds.has(option.id) && Boolean(option.grants?.spells?.length)
+  )
+}
+
+export async function loadCharacterBuilderContext(
+  db: DBLike,
+  character: CharacterAuthored
+): Promise<CharacterBuilderContext> {
+  const catalog = await loadCharacterBuilderCatalog(db, character.systemId, {
+    includeSpells: false
+  })
+  const { registry: lightRegistry } = await loadCharacterAssemblyRegistry({
+    db,
+    character,
+    catalog
+  })
+  const feats = lightRegistry.feats ?? []
+  const equipment = lightRegistry.equipment
+  const featsById = new Map(feats.map((feat) => [feat.id, feat]))
+  const selectedFeaturesById = new Map(
+    lightRegistry.features.map((feature) => [feature.id, feature])
+  )
+  const { classSelections, grantedFeatures } = collectGrantedFeaturesForCharacter(
+    character,
+    lightRegistry
+  )
+  const needsSpells = Boolean(
+    character.intent.spellSelections?.length ||
+    classSelections.some((selection) => selection.spellcasting.length > 0) ||
+    grantedFeatures.some((granted) =>
+      featureContributesSpellGrant(granted.feature, character, granted.source)
+    ) ||
+    character.intent.featureAcquisitions.some((acquisition) => {
+      const feature = selectedFeaturesById.get(acquisition.featureId)
+      if (feature && featureContributesSpellGrant(feature, character, acquisition.source)) {
+        return true
+      }
+
+      if (acquisition.source.kind !== 'FEAT') return false
+      const featId = acquisition.source.featId
+      const feat = featsById.get(featId)
+      return Boolean(
+        feat?.grants?.spells?.length ||
+        feat?.features?.some((feature) => featureContributesSpellGrant(feature, character))
+      )
+    }) ||
+    equipment.some((record) =>
+      record.features?.some((feature) => featureContributesSpellGrant(feature, character))
+    )
+  )
+  const spells = needsSpells ? await loadCharacterBuilderSpellCatalog(db, character.systemId) : []
 
   return {
-    ...lightRegistry,
-    equipment,
-    spells,
-    features
+    catalog: {
+      ...catalog,
+      spells
+    },
+    registry: lightRegistry
   }
 }
 
@@ -1053,9 +1359,9 @@ function clearObsoleteStartingEquipmentSelections(
       delete nextCharacter.intent.startingEquipment?.background
     }
     if (
-      nextCharacter.intent.startingEquipment
-      && !nextCharacter.intent.startingEquipment.class
-      && !nextCharacter.intent.startingEquipment.background
+      nextCharacter.intent.startingEquipment &&
+      !nextCharacter.intent.startingEquipment.class &&
+      !nextCharacter.intent.startingEquipment.background
     ) {
       delete nextCharacter.intent.startingEquipment
     }
@@ -1070,8 +1376,8 @@ function clearObsoleteStartingEquipmentSelections(
   }
 
   if (
-    existingCharacter.intent.background.backgroundId
-    !== nextCharacter.intent.background.backgroundId
+    existingCharacter.intent.background.backgroundId !==
+    nextCharacter.intent.background.backgroundId
   ) {
     delete nextCharacter.intent.startingEquipment?.background
   }
@@ -1085,9 +1391,9 @@ function clearObsoleteStartingEquipmentSelections(
   }
 
   if (
-    nextCharacter.intent.startingEquipment
-    && !nextCharacter.intent.startingEquipment.class
-    && !nextCharacter.intent.startingEquipment.background
+    nextCharacter.intent.startingEquipment &&
+    !nextCharacter.intent.startingEquipment.class &&
+    !nextCharacter.intent.startingEquipment.background
   ) {
     delete nextCharacter.intent.startingEquipment
   }
@@ -1103,6 +1409,7 @@ function collectGrantedFeaturesForCharacter(
   totalLevel: number
   baseRace?: ResolvedRace
   selectedRace?: ResolvedRace
+  ancestryRace?: ResolvedRace
   selectedBackground?: BackgroundAuthored
   selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
   selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
@@ -1110,38 +1417,43 @@ function collectGrantedFeaturesForCharacter(
 } {
   const classSelections = character.intent.classes.map((row) => loadClassSelection(row, registry))
   const totalLevel = character.intent.classes.reduce((sum, row) => sum + row.classLevel, 0)
-  const {
-    baseRace,
-    selectedRace,
-    selectedAncestry,
-    selectedAncestryOption
-  } = getCharacterRaceSelection(character, registry)
+  const { baseRace, selectedRace, ancestryRace, selectedAncestry, selectedAncestryOption } =
+    getCharacterRaceSelection(character, registry)
   const selectedBackground = character.intent.background.backgroundId
     ? registry.backgrounds.find((record) => record.id === character.intent.background.backgroundId)
     : undefined
 
   const grantedFeatures: GrantedFeatureRecord[] = []
 
-  if (selectedRace?.features?.length) {
+  if (baseRace?.features?.length) {
+    for (const feature of baseRace.features) {
+      grantedFeatures.push({
+        feature,
+        source: { kind: 'RACE', raceId: baseRace.id },
+        sourceLabel: baseRace.label,
+        level: totalLevel
+      })
+    }
+  }
+
+  if (selectedRace && selectedRace.id !== baseRace?.id && selectedRace.features?.length) {
     for (const feature of selectedRace.features) {
       grantedFeatures.push({
         feature,
-        source: selectedRace.category === RACE_CATEGORY_CODE.SUBRACE
-          ? { kind: 'SUBRACE', subraceId: selectedRace.id }
-          : { kind: 'RACE', raceId: selectedRace.id },
+        source: { kind: 'SUBRACE', subraceId: selectedRace.id },
         sourceLabel: selectedRace.label,
         level: totalLevel
       })
     }
   }
 
-  if (selectedAncestryOption?.features?.length && selectedRace?.ancestry) {
+  if (selectedAncestryOption?.features?.length && ancestryRace?.ancestry) {
     for (const feature of selectedAncestryOption.features) {
       grantedFeatures.push({
         feature,
         source: {
           kind: 'ANCESTRY',
-          ancestryId: selectedRace.ancestry.id,
+          ancestryId: ancestryRace.ancestry.id,
           optionId: selectedAncestryOption.id
         },
         sourceLabel: selectedAncestryOption.label,
@@ -1163,16 +1475,27 @@ function collectGrantedFeaturesForCharacter(
 
   for (const selection of classSelections) {
     for (const feature of selection.features) {
-      const source = selection.subclass && (selection.subclass.features ?? []).some((record) => record.id === feature.id)
-        ? { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel } as const
-        : { kind: 'CLASS', classId: selection.row.classId, classLevel: selection.row.classLevel } as const
+      const source =
+        selection.subclass &&
+        (selection.subclass.features ?? []).some((record) => record.id === feature.id)
+          ? ({
+              kind: 'SUBCLASS',
+              subclassId: selection.subclass.id,
+              classLevel: selection.row.classLevel
+            } as const)
+          : ({
+              kind: 'CLASS',
+              classId: selection.row.classId,
+              classLevel: selection.row.classLevel
+            } as const)
 
       grantedFeatures.push({
         feature,
         source,
-        sourceLabel: source.kind === 'CLASS'
-          ? selection.baseClass?.label ?? 'Class'
-          : selection.subclass?.label ?? 'Subclass',
+        sourceLabel:
+          source.kind === 'CLASS'
+            ? (selection.baseClass?.label ?? 'Class')
+            : (selection.subclass?.label ?? 'Subclass'),
         level: selection.row.classLevel
       })
     }
@@ -1183,6 +1506,7 @@ function collectGrantedFeaturesForCharacter(
     totalLevel,
     baseRace,
     selectedRace,
+    ancestryRace,
     selectedBackground,
     selectedAncestry,
     selectedAncestryOption,
@@ -1190,20 +1514,471 @@ function collectGrantedFeaturesForCharacter(
   }
 }
 
+function getCharacterChosenGrantOwners(
+  character: CharacterAuthored,
+  classSelections: ResolvedClassSelection[],
+  selectedBackground: BackgroundAuthored | undefined,
+  grantedFeatures: GrantedFeatureRecord[]
+): CharacterChosenGrantOwner[] {
+  const owners: CharacterChosenGrantOwner[] = []
+
+  classSelections.forEach((selection, index) => {
+    const classProficiencies =
+      index === 0
+        ? selection.baseClass?.proficiencies
+        : selection.baseClass?.multiclass.proficiencies
+
+    if (classProficiencies?.length && selection.baseClass) {
+      const source = {
+        kind: 'CLASS',
+        classId: selection.baseClass.id,
+        classLevel: 1
+      } as const
+      owners.push({
+        label: selection.baseClass.label,
+        sourceLabel: selection.baseClass.label,
+        source,
+        timing: {
+          kind: 'CLASS_LEVEL',
+          classId: selection.baseClass.id,
+          classLevel: 1
+        },
+        activeLevel: selection.row.classLevel,
+        grants: { proficiencies: classProficiencies }
+      })
+    }
+
+    if (selection.subclass?.proficiencies?.length) {
+      const subclassSelectionLevel = selection.baseClass?.subclassSelectionLevel ?? 1
+      const source = {
+        kind: 'SUBCLASS',
+        subclassId: selection.subclass.id,
+        classLevel: subclassSelectionLevel
+      } as const
+      owners.push({
+        label: selection.subclass.label,
+        sourceLabel: selection.subclass.label,
+        source,
+        timing: {
+          kind: 'CLASS_LEVEL',
+          classId: selection.row.classId,
+          classLevel: subclassSelectionLevel
+        },
+        activeLevel: selection.row.classLevel,
+        grants: { proficiencies: selection.subclass.proficiencies }
+      })
+    }
+  })
+
+  if (selectedBackground?.proficiencies?.length) {
+    owners.push({
+      label: selectedBackground.label,
+      sourceLabel: selectedBackground.label,
+      source: { kind: 'BACKGROUND', backgroundId: selectedBackground.id },
+      timing: { kind: 'IMMEDIATE' },
+      activeLevel: Math.max(
+        character.intent.classes.reduce((total, row) => total + row.classLevel, 0),
+        1
+      ),
+      grants: { proficiencies: selectedBackground.proficiencies }
+    })
+  }
+
+  for (const granted of grantedFeatures) {
+    const timing = getChosenGrantOwnerTiming(character, granted)
+    if (granted.feature.grants) {
+      owners.push({
+        label: granted.feature.label,
+        sourceLabel: granted.sourceLabel,
+        source: granted.source,
+        timing,
+        activeLevel: granted.level,
+        grants: granted.feature.grants
+      })
+    }
+
+    const acquisition = character.intent.featureAcquisitions.find(
+      (record) =>
+        record.featureId === granted.feature.id &&
+        isSameCharacterProvenanceIdentity(record.source, granted.source)
+    )
+    const selectedOptionIds = new Set(
+      getSelectedFeatureOptionIds(granted.feature, character, granted.source)
+    )
+    for (const option of granted.feature.options ?? []) {
+      if (!acquisition || !selectedOptionIds.has(option.id) || !option.grants) continue
+      owners.push({
+        label: option.label,
+        sourceLabel: granted.sourceLabel,
+        source: {
+          kind: 'OPTION',
+          acquiredParentId: acquisition.id,
+          optionId: option.id
+        },
+        timing,
+        activeLevel: granted.level,
+        grants: option.grants
+      })
+    }
+  }
+
+  return owners
+}
+
+function getChosenGrantOwnerTiming(
+  character: CharacterAuthored,
+  granted: GrantedFeatureRecord
+): CharacterAcquisitionTiming {
+  const availableAtLevel = granted.feature.availableAtLevel ?? 1
+  if (granted.source.kind === 'CLASS') {
+    return {
+      kind: 'CLASS_LEVEL',
+      classId: granted.source.classId,
+      classLevel: availableAtLevel
+    }
+  }
+
+  if (granted.source.kind === 'SUBCLASS') {
+    const subclassId = granted.source.subclassId
+    const owningClass = character.intent.classes.find((record) => record.subclassId === subclassId)
+    if (owningClass) {
+      return {
+        kind: 'CLASS_LEVEL',
+        classId: owningClass.classId,
+        classLevel: availableAtLevel
+      }
+    }
+  }
+
+  return { kind: 'IMMEDIATE' }
+}
+
+function createStartingEquipmentEligibilitySnapshot(
+  character: CharacterAuthored,
+  grantedFeatures: readonly GrantedFeatureRecord[],
+  abilityScores: Partial<Record<AbilityCode, number>>
+): CharacterBuildSnapshot {
+  const abilities: Record<string, number> = {}
+  for (const [ability, score] of Object.entries(abilityScores)) {
+    if (typeof score === 'number') abilities[ability] = score
+  }
+
+  const automaticFeatures = grantedFeatures.map((granted) => {
+    const acquisition = character.intent.featureAcquisitions.find(
+      (candidate) =>
+        candidate.featureId === granted.feature.id &&
+        isSameCharacterProvenanceIdentity(candidate.source, granted.source)
+    )
+    const timing = acquisition?.timing ?? getChosenGrantOwnerTiming(character, granted)
+
+    return {
+      ...(acquisition ? { acquisitionId: acquisition.id } : {}),
+      featureId: granted.feature.id,
+      source: toCharacterEngineFeatureSource(granted.source),
+      timing: toCharacterEngineFeatureTiming(timing),
+      ...(acquisition?.selections ? { selections: acquisition.selections } : {})
+    }
+  })
+  const explicitFeatures = character.intent.featureAcquisitions
+    .filter(
+      (acquisition) =>
+        !grantedFeatures.some(
+          (granted) =>
+            acquisition.featureId === granted.feature.id &&
+            isSameCharacterProvenanceIdentity(acquisition.source, granted.source)
+        )
+    )
+    .map((acquisition) => ({
+      acquisitionId: acquisition.id,
+      featureId: acquisition.featureId,
+      source: toCharacterEngineFeatureSource(acquisition.source),
+      timing: toCharacterEngineFeatureTiming(acquisition.timing),
+      ...(acquisition.selections ? { selections: acquisition.selections } : {})
+    }))
+
+  return {
+    characterId: character.id,
+    systemId: character.systemId,
+    totalLevel: character.intent.classes.reduce((sum, entry) => sum + entry.classLevel, 0),
+    raceId: character.intent.race.raceId,
+    subraceId: character.intent.race.subraceId,
+    backgroundId: character.intent.background.backgroundId,
+    chosenGrantSelections: character.intent.chosenGrantSelections ?? [],
+    classes: character.intent.classes.map((entry) => ({
+      classId: entry.classId,
+      level: entry.classLevel,
+      subclassId: entry.subclassId,
+      specializationId: entry.specializationId
+    })),
+    abilities,
+    hitpoints: [],
+    features: [...automaticFeatures, ...explicitFeatures],
+    equipmentItems: []
+  }
+}
+
+function createStartingEquipmentEligibilityContext(params: {
+  character: CharacterAuthored
+  registry: CharacterBuilderRegistry
+  grantedFeatures: readonly GrantedFeatureRecord[]
+  abilityScores: Partial<Record<AbilityCode, number>>
+}): {
+  context: CharacterEligibilityContext
+  registry: ReturnType<typeof createCharacterAssemblyRegistry>
+} {
+  const registry = createCharacterAssemblyRegistry(params.registry)
+  const snapshot = createStartingEquipmentEligibilitySnapshot(
+    params.character,
+    params.grantedFeatures,
+    params.abilityScores
+  )
+  const rulesSystem = resolveRulesSystem({
+    code: params.registry.system?.rulesetCode ?? '',
+    version: params.registry.system?.rulesetVersion ?? ''
+  })
+  const { spellAccess } = resolveSpellGrantState(snapshot, registry)
+  const accumulatedState = applyGrants(snapshot, registry, rulesSystem, spellAccess)
+
+  return {
+    context: createCharacterEligibilityContext(snapshot, spellAccess, accumulatedState),
+    registry
+  }
+}
+
+function filterStartingEquipmentByEligibility(
+  startingEquipment: StartingEquipmentAuthored,
+  context: CharacterEligibilityContext,
+  registry: ReturnType<typeof createCharacterAssemblyRegistry>
+): StartingEquipmentAuthored {
+  return {
+    ...startingEquipment,
+    sets: startingEquipment.sets.map((set) => ({
+      ...set,
+      groups: set.groups.map((group) => ({
+        ...group,
+        options: group.options.filter(
+          (option) => evaluateCharacterFacet(option.eligibility, context, registry).passed
+        )
+      }))
+    }))
+  }
+}
+
+function resolveEligibleStartingEquipment(params: {
+  character: CharacterAuthored
+  registry: CharacterBuilderRegistry
+  grantedFeatures: readonly GrantedFeatureRecord[]
+  abilityScores: Partial<Record<AbilityCode, number>>
+  primaryClass?: ParentClassAuthored
+  selectedBackground?: BackgroundAuthored
+}): {
+  classStartingEquipment?: StartingEquipmentAuthored
+  backgroundStartingEquipment?: StartingEquipmentAuthored
+} {
+  const classStartingEquipment = params.primaryClass?.startingEquipment
+  const backgroundStartingEquipment = params.selectedBackground?.startingEquipment
+  if (!classStartingEquipment && !backgroundStartingEquipment) return {}
+
+  const hasEligibility = [classStartingEquipment, backgroundStartingEquipment]
+    .filter((record): record is StartingEquipmentAuthored => Boolean(record))
+    .some((record) =>
+      record.sets.some((set) =>
+        set.groups.some((group) => group.options.some((option) => Boolean(option.eligibility)))
+      )
+    )
+  if (!hasEligibility) {
+    return {
+      classStartingEquipment,
+      backgroundStartingEquipment
+    }
+  }
+
+  const { context, registry } = createStartingEquipmentEligibilityContext(params)
+
+  return {
+    classStartingEquipment: classStartingEquipment
+      ? filterStartingEquipmentByEligibility(classStartingEquipment, context, registry)
+      : undefined,
+    backgroundStartingEquipment: backgroundStartingEquipment
+      ? filterStartingEquipmentByEligibility(backgroundStartingEquipment, context, registry)
+      : undefined
+  }
+}
+
+function reconcileStartingEquipmentDecision(
+  decision: CharacterStartingEquipmentDecision | undefined,
+  startingEquipment: StartingEquipmentAuthored | undefined,
+  catalog: CharacterBuilderCatalog
+): CharacterStartingEquipmentDecision | undefined {
+  if (!decision || !startingEquipment || decision.tookGold) return decision
+
+  const optionsByGroup = new Map(
+    startingEquipment.sets.flatMap((set) =>
+      set.groups.map(
+        (group) => [group.id, new Map(group.options.map((option) => [option.id, option]))] as const
+      )
+    )
+  )
+  const groups = (decision.groups ?? []).flatMap((group) => {
+    const option = optionsByGroup.get(group.groupId)?.get(group.optionId)
+    if (!option) return []
+
+    const chosenItemsById = new Map(
+      option.items.filter(isChosenStartingEquipmentItem).map((item) => [item.id, item])
+    )
+    const selections = (group.selections ?? []).filter((selection) => {
+      const item = chosenItemsById.get(selection.selectionKey)
+      return Boolean(
+        item &&
+        selection.quantity > 0 &&
+        isEquipmentAllowedForStartingItem(item, selection.equipmentId, catalog)
+      )
+    })
+
+    return [
+      {
+        ...group,
+        ...(group.selections ? { selections } : {})
+      }
+    ]
+  })
+
+  if ((decision.groups?.length ?? 0) > 0 && groups.length === 0) return undefined
+
+  return {
+    ...decision,
+    groups
+  }
+}
+
+function hasStartingEquipmentGroupWithoutEligibleOptions(
+  startingEquipment: StartingEquipmentAuthored | undefined
+): boolean {
+  return Boolean(
+    startingEquipment?.sets.some((set) => set.groups.some((group) => group.options.length === 0))
+  )
+}
+
+function appendChosenGrantChoiceIssues(
+  character: CharacterAuthored,
+  choices: CharacterBuilderChosenGrantChoice[],
+  outstandingChoices: CharacterBuilderIssue[],
+  validations: CharacterBuilderValidation[]
+): void {
+  const activeKeys = new Set(
+    choices.map((choice) => getCharacterChosenGrantSelectionIdentityKey(choice))
+  )
+  const seenSelectionKeys = new Set<string>()
+  const reportedDuplicateSelectionKeys = new Set<string>()
+
+  for (const selection of character.intent.chosenGrantSelections ?? []) {
+    const key = getCharacterChosenGrantSelectionIdentityKey(selection)
+    if (seenSelectionKeys.has(key) && !reportedDuplicateSelectionKeys.has(key)) {
+      validations.push({
+        code: 'DUPLICATE_CHOSEN_GRANT_SELECTION_IDENTITY',
+        severity: 'blocking',
+        message: `Grant selection "${selection.grantId}" is recorded more than once for the same source.`
+      })
+      reportedDuplicateSelectionKeys.add(key)
+    }
+    seenSelectionKeys.add(key)
+  }
+
+  for (const choice of choices) {
+    const selectedIds = choice.selectedTargetIds
+    const allowedIds = new Set(choice.options.map((option) => option.id))
+    const invalidTarget = selectedIds.some((targetId) => !allowedIds.has(targetId))
+    const hasDuplicate = new Set(selectedIds).size !== selectedIds.length
+    const isUniqueDuplicate = choice.duplicatePolicy === 'UNIQUE' && hasDuplicate
+    const isIncomplete = selectedIds.length < choice.requiredCount
+    const isOverLimit = selectedIds.length > choice.requiredCount
+
+    if (choice.options.length === 0) {
+      validations.push({
+        code: 'CHOSEN_GRANT_OPTIONS_UNAVAILABLE',
+        severity: 'blocking',
+        message: `${choice.label} does not expose selectable targets.`
+      })
+      continue
+    }
+
+    if (invalidTarget || isUniqueDuplicate || isOverLimit) {
+      validations.push({
+        code: invalidTarget
+          ? 'CHOSEN_GRANT_SELECTION_INVALID'
+          : isUniqueDuplicate
+            ? 'CHOSEN_GRANT_SELECTION_DUPLICATE'
+            : 'CHOSEN_GRANT_SELECTION_OVER_LIMIT',
+        severity: 'blocking',
+        message: invalidTarget
+          ? `${choice.label} includes a selection that is no longer available.`
+          : isUniqueDuplicate
+            ? `${choice.label} requires different selections in each slot.`
+            : `${choice.label} has too many selections.`
+      })
+      continue
+    }
+
+    if (isIncomplete) {
+      outstandingChoices.push({
+        code:
+          selectedIds.length === 0
+            ? 'CHOSEN_GRANT_SELECTION_REQUIRED'
+            : 'CHOSEN_GRANT_SELECTION_INCOMPLETE',
+        message: `${choice.label} requires ${choice.requiredCount} selection${choice.requiredCount === 1 ? '' : 's'}.`,
+        sourceLabel: choice.sourceLabel,
+        source: choice.source,
+        required: true
+      })
+    }
+  }
+
+  for (const selection of character.intent.chosenGrantSelections ?? []) {
+    const key = getCharacterChosenGrantSelectionIdentityKey(selection)
+    if (activeKeys.has(key)) continue
+    validations.push({
+      code: 'STALE_CHOSEN_GRANT_SELECTION',
+      severity: 'blocking',
+      message: `Grant selection "${selection.grantId}" no longer matches the current build.`
+    })
+  }
+}
+
 export async function reconcileCharacterBuilderCharacter(
   db: DBLike,
   character: CharacterAuthored,
-  existingCharacter: CharacterAuthored | null = null
+  existingCharacter: CharacterAuthored | null = null,
+  providedContext?: CharacterBuilderContext
 ): Promise<CharacterAuthored> {
-  const registry = await loadCharacterBuilderRegistry(db, character.systemId)
+  const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
+  const { catalog, registry } = context
   const nextCharacter = clearObsoleteStartingEquipmentSelections(character, existingCharacter)
+  nextCharacter.intent.hitpoints.levels = reconcileCharacterHitpointProgression(
+    nextCharacter.intent.classes,
+    nextCharacter.intent.hitpoints.levels
+  )
+  nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
+    nextCharacter.intent.classes,
+    registry.classes,
+    nextCharacter.state.hitpoints.hitDice
+  )
+  if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
+      (total, level) => total + level.value,
+      0
+    )
+    if (startingHitPoints > 0) {
+      nextCharacter.state.hitpoints.current = startingHitPoints
+    }
+  }
 
   const ancestrySelections = (nextCharacter.intent.ancestrySelections ?? []).filter((selection) => {
     const race = nextCharacter.intent.race.subraceId
       ? registry.races.find((record) => record.id === nextCharacter.intent.race.subraceId)
       : registry.races.find(
-          (record) => record.category === RACE_CATEGORY_CODE.BASE
-            && record.id === nextCharacter.intent.race.raceId
+          (record) =>
+            record.category === RACE_CATEGORY_CODE.BASE &&
+            record.id === nextCharacter.intent.race.raceId
         )
 
     if (!race?.ancestry) return false
@@ -1212,9 +1987,11 @@ export async function reconcileCharacterBuilderCharacter(
     return isValidAncestrySource(nextCharacter, selection.source)
   })
 
-  nextCharacter.intent.ancestrySelections = ancestrySelections.length > 0 ? ancestrySelections : undefined
+  nextCharacter.intent.ancestrySelections =
+    ancestrySelections.length > 0 ? ancestrySelections : undefined
 
-  const { classSelections, grantedFeatures } = collectGrantedFeaturesForCharacter(nextCharacter, registry)
+  const { classSelections, grantedFeatures, selectedBackground } =
+    collectGrantedFeaturesForCharacter(nextCharacter, registry)
 
   let featureAcquisitions = [...nextCharacter.intent.featureAcquisitions]
   while (true) {
@@ -1227,7 +2004,9 @@ export async function reconcileCharacterBuilderCharacter(
       }
     }
 
-    featureAcquisitions = featureAcquisitions.filter((acquisition) => isProvenanceStillValid(acquisition.source, candidateCharacter, registry, grantedFeatures))
+    featureAcquisitions = featureAcquisitions.filter((acquisition) =>
+      isProvenanceStillValid(acquisition.source, candidateCharacter, registry, grantedFeatures)
+    )
 
     if (featureAcquisitions.length === previousCount) {
       break
@@ -1244,19 +2023,80 @@ export async function reconcileCharacterBuilderCharacter(
     }
   }
 
-  const spellSelections = (nextCharacter.intent.spellSelections ?? []).filter((selection) => isProvenanceStillValid(selection.source, filteredCharacter, registry, grantedFeatures))
+  const chosenGrantChoices = resolveCharacterChosenGrantChoices(
+    filteredCharacter,
+    getCharacterChosenGrantChoiceRegistry(context),
+    getCharacterChosenGrantOwners(
+      filteredCharacter,
+      classSelections,
+      collectGrantedFeaturesForCharacter(filteredCharacter, registry).selectedBackground,
+      grantedFeatures
+    )
+  )
+  const chosenGrantSelections = (nextCharacter.intent.chosenGrantSelections ?? []).filter(
+    (selection) =>
+      chosenGrantChoices.some(
+        (choice) =>
+          choice.grantId === selection.grantId &&
+          choice.progressionLevel === selection.progressionLevel &&
+          isSameCharacterProvenanceIdentity(choice.source, selection.source)
+      )
+  )
+  nextCharacter.intent.chosenGrantSelections =
+    chosenGrantSelections.length > 0 ? chosenGrantSelections : undefined
+  const spellSelections = (nextCharacter.intent.spellSelections ?? []).filter((selection) =>
+    isProvenanceStillValid(selection.source, filteredCharacter, registry, grantedFeatures)
+  )
   nextCharacter.intent.spellSelections = spellSelections.length > 0 ? spellSelections : undefined
 
   const requiredResourceGrants = getRequiredClassResourceGrants(classSelections)
   const validResourceGrants = (nextCharacter.intent.resourceGrants ?? [])
-    .filter((grant) => isProvenanceStillValid(grant.source, filteredCharacter, registry, grantedFeatures))
-    .filter((grant) => (
+    .filter((grant) =>
+      isProvenanceStillValid(grant.source, filteredCharacter, registry, grantedFeatures)
+    )
+    .filter((grant) =>
       isClassResourceGrantSource(grant.source)
-        ? requiredResourceGrants.some((requiredGrant) => isSameRequiredResourceGrant(grant, requiredGrant))
+        ? requiredResourceGrants.some((requiredGrant) =>
+            isSameRequiredResourceGrant(grant, requiredGrant)
+          )
         : true
-    ))
+    )
   const resourceGrants = mergeRequiredResourceGrants(validResourceGrants, requiredResourceGrants)
   nextCharacter.intent.resourceGrants = resourceGrants.length > 0 ? resourceGrants : undefined
+
+  const primaryClass = classSelections[0]?.baseClass
+  if (primaryClass || selectedBackground?.startingEquipment) {
+    const eligibleStartingEquipment = resolveEligibleStartingEquipment({
+      character: nextCharacter,
+      registry,
+      grantedFeatures,
+      abilityScores: deriveAbilityScores(nextCharacter.intent.abilities),
+      primaryClass,
+      selectedBackground
+    })
+
+    if (nextCharacter.intent.startingEquipment?.class) {
+      nextCharacter.intent.startingEquipment.class = reconcileStartingEquipmentDecision(
+        nextCharacter.intent.startingEquipment.class,
+        eligibleStartingEquipment.classStartingEquipment,
+        catalog
+      )
+    }
+    if (nextCharacter.intent.startingEquipment?.background) {
+      nextCharacter.intent.startingEquipment.background = reconcileStartingEquipmentDecision(
+        nextCharacter.intent.startingEquipment.background,
+        eligibleStartingEquipment.backgroundStartingEquipment,
+        catalog
+      )
+    }
+    if (
+      nextCharacter.intent.startingEquipment &&
+      !nextCharacter.intent.startingEquipment.class &&
+      !nextCharacter.intent.startingEquipment.background
+    ) {
+      delete nextCharacter.intent.startingEquipment
+    }
+  }
 
   return nextCharacter
 }
@@ -1268,9 +2108,11 @@ function isClassResourceGrantSource(source: CharacterProvenance): boolean {
 export async function resolveCharacterBuilder(
   db: DBLike,
   character: CharacterAuthored,
-  mode: BuilderMode
+  mode: BuilderMode,
+  providedContext?: CharacterBuilderContext
 ): Promise<CharacterBuilderResolution> {
-  const registry = await loadCharacterBuilderResolutionRegistry(db, character)
+  const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
+  const { catalog, registry } = context
   const abilityScores = deriveAbilityScores(character.intent.abilities)
   const {
     classSelections,
@@ -1282,33 +2124,83 @@ export async function resolveCharacterBuilder(
     selectedAncestryOption,
     grantedFeatures
   } = collectGrantedFeaturesForCharacter(character, registry)
+  const chosenGrantChoices = resolveCharacterChosenGrantChoices(
+    character,
+    getCharacterChosenGrantChoiceRegistry(context),
+    getCharacterChosenGrantOwners(character, classSelections, selectedBackground, grantedFeatures)
+  )
+  const primaryClass = classSelections[0]?.baseClass
+  const eligibleStartingEquipment = resolveEligibleStartingEquipment({
+    character,
+    registry,
+    grantedFeatures,
+    abilityScores,
+    primaryClass,
+    selectedBackground
+  })
+  const classStartingEquipment = eligibleStartingEquipment.classStartingEquipment
+  const backgroundStartingEquipment = eligibleStartingEquipment.backgroundStartingEquipment
+  const resolvedRegistry: CharacterBuilderRegistry = {
+    ...registry,
+    classes:
+      primaryClass && classStartingEquipment
+        ? registry.classes.map((record) =>
+            record.id === primaryClass.id && record.category === CLASS_CATEGORY.BASE
+              ? { ...record, startingEquipment: classStartingEquipment }
+              : record
+          )
+        : registry.classes,
+    backgrounds:
+      selectedBackground && backgroundStartingEquipment
+        ? registry.backgrounds.map((record) =>
+            record.id === selectedBackground.id
+              ? { ...record, startingEquipment: backgroundStartingEquipment }
+              : record
+          )
+        : registry.backgrounds
+  }
 
   const grants: CharacterBuilderGrantedContent = {
     features: grantedFeatures.map((record) => ({
       id: record.feature.id,
       label: record.feature.label,
       description: record.feature.description,
+      attributes: record.feature.attributes,
       sourceLabel: record.sourceLabel,
       source: record.source
     })),
     resources: classSelections.flatMap((selection) => {
       const items: CharacterBuilderGrantSummaryItem[] = []
-      if (selection.baseClass?.resources && selection.baseClass.resources.availableAtLevel <= selection.row.classLevel) {
+      if (
+        selection.baseClass?.resources &&
+        selection.baseClass.resources.availableAtLevel <= selection.row.classLevel
+      ) {
         items.push({
           id: selection.baseClass.resources.id,
           label: selection.baseClass.resources.label,
           description: selection.baseClass.resources.description,
           sourceLabel: selection.baseClass.label,
-          source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.row.classLevel }
+          source: {
+            kind: 'CLASS',
+            classId: selection.baseClass.id,
+            classLevel: selection.row.classLevel
+          }
         })
       }
-      if (selection.subclass?.resources && selection.subclass.resources.availableAtLevel <= selection.row.classLevel) {
+      if (
+        selection.subclass?.resources &&
+        selection.subclass.resources.availableAtLevel <= selection.row.classLevel
+      ) {
         items.push({
           id: selection.subclass.resources.id,
           label: selection.subclass.resources.label,
           description: selection.subclass.resources.description,
           sourceLabel: selection.subclass.label,
-          source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel }
+          source: {
+            kind: 'SUBCLASS',
+            subclassId: selection.subclass.id,
+            classLevel: selection.row.classLevel
+          }
         })
       }
       return items
@@ -1318,17 +2210,28 @@ export async function resolveCharacterBuilder(
       if (selection.baseClass?.spellcasting) {
         items.push({
           id: `${selection.baseClass.id}:spellcasting`,
-          label: selection.baseClass.spellcasting.magicName ?? `${selection.baseClass.label} Spellcasting`,
+          label:
+            selection.baseClass.spellcasting.magicName ??
+            `${selection.baseClass.label} Spellcasting`,
           sourceLabel: selection.baseClass.label,
-          source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.row.classLevel }
+          source: {
+            kind: 'CLASS',
+            classId: selection.baseClass.id,
+            classLevel: selection.row.classLevel
+          }
         })
       }
       if (selection.subclass?.spellcasting) {
         items.push({
           id: `${selection.subclass.id}:spellcasting`,
-          label: selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
+          label:
+            selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
           sourceLabel: selection.subclass.label,
-          source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel }
+          source: {
+            kind: 'SUBCLASS',
+            subclassId: selection.subclass.id,
+            classLevel: selection.row.classLevel
+          }
         })
       }
       return items
@@ -1342,8 +2245,10 @@ export async function resolveCharacterBuilder(
       ? {
           raceId: baseRace?.id ?? selectedRace.id,
           raceLabel: baseRace?.label ?? selectedRace.label,
-          subraceId: selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.id : undefined,
-          subraceLabel: selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.label : undefined,
+          subraceId:
+            selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.id : undefined,
+          subraceLabel:
+            selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.label : undefined,
           ancestryId: selectedRace.ancestry?.id,
           ancestryLabel: selectedRace.ancestry?.label,
           ancestryOptionId: selectedAncestryOption?.id,
@@ -1375,6 +2280,19 @@ export async function resolveCharacterBuilder(
   }
 
   const validations: CharacterBuilderValidation[] = []
+
+  if (
+    !isCharacterHitpointProgressionValid(
+      character.intent.classes,
+      character.intent.hitpoints.levels
+    )
+  ) {
+    validations.push({
+      code: 'INVALID_HITPOINT_PROGRESSION',
+      severity: 'blocking',
+      message: 'Hit point entries no longer match the selected class progression.'
+    })
+  }
 
   if (character.intent.race.raceId && !baseRace) {
     validations.push({
@@ -1417,11 +2335,32 @@ export async function resolveCharacterBuilder(
       })
     }
 
-    if (selection.baseClass && selection.subclass && selection.subclass.parentClassId !== selection.baseClass.id) {
+    if (
+      selection.baseClass &&
+      selection.subclass &&
+      selection.subclass.parentClassId !== selection.baseClass.id
+    ) {
       validations.push({
         code: 'SUBCLASS_PARENT_MISMATCH',
         severity: 'blocking',
         message: `${selection.subclass.label} no longer belongs to ${selection.baseClass.label}.`
+      })
+    }
+
+    if (
+      selection.row.subclassId &&
+      selection.baseClass &&
+      (selection.baseClass.subclassSelectionLevel === undefined ||
+        selection.row.classLevel < selection.baseClass.subclassSelectionLevel)
+    ) {
+      const availableAt = selection.baseClass.subclassSelectionLevel
+      validations.push({
+        code: 'SUBCLASS_SELECTION_UNAVAILABLE',
+        severity: 'blocking',
+        message:
+          availableAt === undefined
+            ? `${selection.baseClass.label} does not define a subclass selection level.`
+            : `${selection.baseClass.label} cannot select a subclass before class level ${availableAt}.`
       })
     }
   }
@@ -1429,6 +2368,7 @@ export async function resolveCharacterBuilder(
   validations.push(...validateMulticlass(classSelections, abilityScores))
 
   const outstandingChoices: CharacterBuilderIssue[] = []
+  appendChosenGrantChoiceIssues(character, chosenGrantChoices, outstandingChoices, validations)
 
   if (selectedRace?.ancestry && !selectedAncestryOption) {
     outstandingChoices.push({
@@ -1440,6 +2380,26 @@ export async function resolveCharacterBuilder(
   }
 
   for (const selection of classSelections) {
+    const availableSubclasses = getAvailableSubclassesForClass({
+      classId: selection.row.classId,
+      classLevel: selection.row.classLevel,
+      catalog,
+      registry
+    })
+    if (availableSubclasses.length > 0 && !selection.row.subclassId) {
+      outstandingChoices.push({
+        code: 'SUBCLASS_SELECTION_REQUIRED',
+        message: `${selection.baseClass?.label ?? 'This class'} requires a subclass selection at class level ${selection.baseClass?.subclassSelectionLevel}.`,
+        sourceLabel: selection.baseClass?.label ?? 'Class',
+        source: {
+          kind: 'CLASS',
+          classId: selection.row.classId,
+          classLevel: selection.row.classLevel
+        },
+        required: true
+      })
+    }
+
     if (selection.subclass?.specializations?.length && !selection.row.specializationId) {
       outstandingChoices.push({
         code: 'SPECIALIZATION_REQUIRED',
@@ -1451,15 +2411,18 @@ export async function resolveCharacterBuilder(
   }
 
   for (const requirement of getClassSpellChoiceRequirements(classSelections)) {
-    const spellSelection = character.intent.spellSelections?.find((selection) => isSameCharacterProvenanceIdentity(selection.source, requirement.source))
-    const selectedCounts = getSpellSelectionCounts(spellSelection, registry)
+    const spellSelection = character.intent.spellSelections?.find((selection) =>
+      isSameCharacterProvenanceIdentity(selection.source, requirement.source)
+    )
+    const selectedCounts = getSpellSelectionCounts(spellSelection, catalog)
     const missingCantrips = selectedCounts.cantrips < requirement.cantripLimit
     const missingSpells = selectedCounts.spells < requirement.learnedSpellLimit
     const tooManyCantrips = selectedCounts.cantrips > requirement.cantripLimit
     const tooManySpells = selectedCounts.spells > requirement.learnedSpellLimit
-    const invalidSpellIds = getInvalidSpellSelectionIds(spellSelection, requirement, registry)
+    const invalidSpellIds = getInvalidSpellSelectionIds(spellSelection, requirement, catalog)
     const invalidSpells = invalidSpellIds.length > 0
-    if (!missingCantrips && !missingSpells && !tooManyCantrips && !tooManySpells && !invalidSpells) continue
+    if (!missingCantrips && !missingSpells && !tooManyCantrips && !tooManySpells && !invalidSpells)
+      continue
 
     const overLimit = tooManyCantrips || tooManySpells
     const spellSelectionIssueCode = invalidSpells
@@ -1484,10 +2447,14 @@ export async function resolveCharacterBuilder(
     })
   }
 
-  const primaryClass = classSelections[0]?.baseClass
   if (
-    primaryClass?.startingEquipment.sets.length
-    && !isStartingEquipmentDecisionComplete(primaryClass.startingEquipment, character.intent.startingEquipment?.class, registry)
+    primaryClass &&
+    eligibleStartingEquipment.classStartingEquipment?.sets.length &&
+    !isStartingEquipmentDecisionComplete(
+      eligibleStartingEquipment.classStartingEquipment,
+      character.intent.startingEquipment?.class,
+      catalog
+    )
   ) {
     outstandingChoices.push({
       code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
@@ -1498,14 +2465,31 @@ export async function resolveCharacterBuilder(
   }
 
   if (
-    selectedBackground?.startingEquipment?.sets.length
-    && !isStartingEquipmentDecisionComplete(selectedBackground.startingEquipment, character.intent.startingEquipment?.background, registry)
+    selectedBackground &&
+    eligibleStartingEquipment.backgroundStartingEquipment?.sets.length &&
+    !isStartingEquipmentDecisionComplete(
+      eligibleStartingEquipment.backgroundStartingEquipment,
+      character.intent.startingEquipment?.background,
+      catalog
+    )
   ) {
     outstandingChoices.push({
       code: 'BACKGROUND_STARTING_EQUIPMENT_REQUIRED',
       message: `${selectedBackground.label} has starting equipment choices to resolve.`,
       sourceLabel: selectedBackground.label,
       required: true
+    })
+  }
+
+  if (
+    hasStartingEquipmentGroupWithoutEligibleOptions(
+      eligibleStartingEquipment.backgroundStartingEquipment
+    )
+  ) {
+    validations.push({
+      code: 'BACKGROUND_STARTING_EQUIPMENT_UNAVAILABLE',
+      severity: 'blocking',
+      message: `${selectedBackground?.label ?? 'The selected background'} has no eligible option for a required starting equipment group.`
     })
   }
 
@@ -1516,7 +2500,11 @@ export async function resolveCharacterBuilder(
 
     if (requiredOptionCount <= 0) continue
 
-    const acquisition = character.intent.featureAcquisitions.find((record) => record.featureId === granted.feature.id && isSameCharacterProvenanceIdentity(record.source, granted.source))
+    const acquisition = character.intent.featureAcquisitions.find(
+      (record) =>
+        record.featureId === granted.feature.id &&
+        isSameCharacterProvenanceIdentity(record.source, granted.source)
+    )
 
     if (!acquisition) {
       outstandingChoices.push({
@@ -1529,7 +2517,33 @@ export async function resolveCharacterBuilder(
       continue
     }
 
-    if (!acquisition.selections || optionCount(acquisition.selections) < requiredOptionCount) {
+    const selectedOptionIds = getSelectedFeatureOptionIds(
+      granted.feature,
+      character,
+      granted.source
+    )
+    const allowedOptionIds = new Set((granted.feature.options ?? []).map((option) => option.id))
+    const hasInvalidOption = selectedOptionIds.some((optionId) => !allowedOptionIds.has(optionId))
+    const hasDuplicateOption = new Set(selectedOptionIds).size !== selectedOptionIds.length
+
+    if (hasInvalidOption || hasDuplicateOption || selectedOptionIds.length > requiredOptionCount) {
+      validations.push({
+        code: hasInvalidOption
+          ? 'FEATURE_SELECTION_INVALID'
+          : hasDuplicateOption
+            ? 'FEATURE_SELECTION_DUPLICATE'
+            : 'FEATURE_SELECTION_OVER_LIMIT',
+        severity: 'blocking',
+        message: hasInvalidOption
+          ? `${granted.feature.label} includes a selection that is no longer available.`
+          : hasDuplicateOption
+            ? `${granted.feature.label} requires different selections in each slot.`
+            : `${granted.feature.label} has too many selections.`
+      })
+      continue
+    }
+
+    if (selectedOptionIds.length < requiredOptionCount) {
       outstandingChoices.push({
         code: 'FEATURE_SELECTION_INCOMPLETE',
         message: `${granted.feature.label} has incomplete selections.`,
@@ -1570,7 +2584,10 @@ export async function resolveCharacterBuilder(
     }
   }
 
-  if (selectedAncestry && !selectedRace?.ancestry?.options.some((option) => option.id === selectedAncestry.optionId)) {
+  if (
+    selectedAncestry &&
+    !selectedRace?.ancestry?.options.some((option) => option.id === selectedAncestry.optionId)
+  ) {
     validations.push({
       code: 'STALE_ANCESTRY_SELECTION',
       severity: 'blocking',
@@ -1588,12 +2605,20 @@ export async function resolveCharacterBuilder(
 
   return {
     mode,
-    registry,
+    catalog,
+    registry: resolvedRegistry,
     summary,
     grants,
+    chosenGrantChoices,
     outstandingChoices,
     validations,
     readiness: createReadiness(character, summary, validations, outstandingChoices),
-    recommendedSectionId: resolveRecommendedCharacterBuilderSection(character, mode, summary, validations, outstandingChoices)
+    recommendedSectionId: resolveRecommendedCharacterBuilderSection(
+      character,
+      mode,
+      summary,
+      validations,
+      outstandingChoices
+    )
   }
 }

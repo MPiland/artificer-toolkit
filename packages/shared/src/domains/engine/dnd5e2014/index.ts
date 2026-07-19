@@ -14,7 +14,10 @@ export { DND5E2014_FEATURE_SOURCE_ORDER, DND5E2014_GRANT_APPLICATION_ORDER } fro
  * The engine is system-agnostic — this object is passed in by the caller.
  */
 export const dnd5e2014RulesSystem: RulesSystem = {
-  id: 'dnd5e2014',
+  identity: {
+    code: 'dnd5e',
+    version: '2014',
+  },
   label: 'D&D 5e 2014 SRD',
 
   proficiencyBonus: dnd5e2014ProficiencyBonus,

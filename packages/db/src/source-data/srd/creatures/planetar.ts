@@ -5,7 +5,6 @@ export const planetar: CreatureAuthored = {
     label: 'Planetar',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.CELESTIAL,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const planetar: CreatureAuthored = {
         INTELLIGENCE: 19,
         WISDOM: 22,
         CHARISMA: 25,
-        SPELLCASTING: 0
     },
     armorClass: 19,
     armorClassNote: 'natural armor',

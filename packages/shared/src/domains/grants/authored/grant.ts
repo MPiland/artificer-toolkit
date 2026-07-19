@@ -1,6 +1,7 @@
 import type {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  AuthoringSelectionDuplicatePolicy,
   NodeSubjectCode,
   ScalingSource,
   ScalingSourcePayload
@@ -27,6 +28,7 @@ export type GrantScalingNone<TPayload>
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     scalingKind: typeof SCALING.NONE
     count: number
+    selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
   } & TPayload)
 
 export type GrantScalingPerLevel<
@@ -40,7 +42,10 @@ export type GrantScalingPerLevel<
   | {
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     scalingKind: typeof SCALING.PER_LEVEL
-    progression: GrantProgression<TPayload & { count: number }>
+    progression: GrantProgression<TPayload & {
+      count: number
+      selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
+    }>
   }
 
 export type GrantProgressionLevel<TPayload = object> = {
@@ -61,7 +66,10 @@ export type GrantScaling<TPayload>
 
 export type ChosenGrant<TPayload> = {
   selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
-} & GrantScaling<{ count: number } & TPayload>
+} & GrantScaling<{
+  count: number
+  selectionDuplicatePolicy: AuthoringSelectionDuplicatePolicy
+} & TPayload>
 
 export type GrantedGrant<TPayload> = {
   selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED

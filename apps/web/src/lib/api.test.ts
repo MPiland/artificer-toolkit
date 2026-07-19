@@ -1,11 +1,13 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { createServerApi } from './api'
+import type { SpellAuthoringInputDto } from '@artificer-toolkit/schema/subjects/spell'
+import { ApiError, createServerApi } from './api'
 import { server } from '#test/msw/server'
 
 const spellItem = {
   id: 'magic-missile',
   publicId: '1',
+  activeRevisionId: 'revision-1',
   label: 'Magic Missile',
   description: 'Force darts that strike unerringly.',
   status: 'ACTIVE',
@@ -29,6 +31,8 @@ const spellItem = {
 
 const spellDetail = {
   publicId: '2',
+  activeRevisionId: 'revision-2',
+  draft: null,
   item: {
     kind: 'SPELL',
     id: 'copy-spell',
@@ -67,6 +71,10 @@ const spellDraft = {
   label: 'Magic Missile Copy',
   status: 'DRAFT',
   draftState: 'DRAFT_ONLY',
+  revisionId: 'draft-revision-1',
+  revisionNumber: 1,
+  activeRevisionId: null,
+  baseActiveRevisionId: null,
   payload: {
     ...spellDetail.item,
     status: 'DRAFT'
@@ -75,6 +83,21 @@ const spellDraft = {
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 }
+
+const spellInput = {
+  kind: 'SPELL',
+  id: 'copy-spell',
+  label: 'Magic Missile Copy',
+  description: 'Force darts that strike unerringly.',
+  castingTime: {
+    unit: 'ROUND',
+    amount: 1
+  },
+  level: 1,
+  classIds: ['wizard'],
+  magicSchoolId: 'evocation',
+  systemId: 'dnd5e-2014'
+} satisfies SpellAuthoringInputDto
 
 function trpcJson(data: unknown) {
   return HttpResponse.json([{ result: { data } }])
@@ -166,7 +189,7 @@ describe('tRPC api adapter', () => {
   })
 
   it('resolves node runtime models through the tRPC adapter', async () => {
-    expect.assertions(7)
+    expect.assertions(9)
     server.use(
       http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
         expectNoSerializedAuth(request)
@@ -174,6 +197,7 @@ describe('tRPC api adapter', () => {
         return trpcJson({
           mapId: 'spell',
           clearPaths: [],
+          scopes: [],
           steps: [
             {
               id: 'basics',
@@ -193,8 +217,10 @@ describe('tRPC api adapter', () => {
                       type: 'SELECT_SINGLE',
                       visible: true,
                       required: false,
+                      hiddenBehavior: 'KEEP',
                       clearPaths: [],
-                      options: [{ value: 'evocation', label: 'Evocation' }]
+                      options: [{ value: 'evocation', label: 'Evocation' }],
+                      authoring: { exposure: 'author' }
                     }
                   ]
                 }
@@ -207,9 +233,68 @@ describe('tRPC api adapter', () => {
 
     const response = await createServerApi().nodeRuntime.resolve({
       mapId: 'spell',
+      systemId: 'system-1',
       values: {}
     })
 
-    expect(response.steps[0]?.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('evocation')
+    const node = response.steps[0]?.sections[0]?.nodes[0]
+    expect(node?.kind).toBe('INPUT')
+    if (!node || node.kind !== 'INPUT') {
+      throw new Error('Expected the mocked runtime node to be an input.')
+    }
+    expect(node.type).toBe('SELECT_SINGLE')
+    if (node.type !== 'SELECT_SINGLE') {
+      throw new Error('Expected the mocked runtime node to be a single select.')
+    }
+    expect(node.options[0]?.value).toBe('evocation')
+  })
+
+  it('retains authored validation issues on API errors', async () => {
+    server.use(
+      http.post('*/api/trpc/content.spells.saveDraft', () =>
+        HttpResponse.json(
+          [
+            {
+              error: {
+                code: -32600,
+                message: 'Validation failed',
+                data: {
+                  code: 'BAD_REQUEST',
+                  httpStatus: 400,
+                  path: 'content.spells.saveDraft',
+                  validationIssues: [
+                    {
+                      code: 'invalid_type',
+                      message: 'Expected a string',
+                      path: ['classIds', 1]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          { status: 400 }
+        )
+      )
+    )
+
+    let caught: unknown
+    try {
+      await createServerApi().content.spells.saveDraft(spellInput)
+    } catch (error) {
+      caught = error
+    }
+
+    expect(caught).toBeInstanceOf(ApiError)
+    expect(caught).toMatchObject({
+      status: 400,
+      validationIssues: [
+        {
+          code: 'invalid_type',
+          message: 'Expected a string',
+          path: ['classIds', 1]
+        }
+      ]
+    })
   })
 })

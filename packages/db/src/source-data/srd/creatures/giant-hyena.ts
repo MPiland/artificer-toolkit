@@ -5,7 +5,6 @@ export const giantHyena: CreatureAuthored = {
     label: 'Giant Hyena',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const giantHyena: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 12,
         CHARISMA: 7,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     hitPoints: 45,

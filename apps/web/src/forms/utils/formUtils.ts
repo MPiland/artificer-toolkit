@@ -20,8 +20,8 @@ export function getFieldError(field: {
     .join(', ')
 }
 
-export function toInputValue(value: unknown) {
-  return value === undefined || value === null ? '' : String(value)
+export function toInputValue(value: string | null | undefined) {
+  return value ?? ''
 }
 
 export function uniqueSelectOptions(options: readonly SelectOption[]): SelectOption[] {

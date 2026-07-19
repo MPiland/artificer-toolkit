@@ -1,30 +1,8 @@
 {
   "name": "@artificer-toolkit/functions",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
-  "scripts": {
-    "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json",
-    "test": "node -e \"console.log('No tests configured for @artificer-toolkit/functions')\"",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit"
-  },
-  "dependencies": {
-    "@artificer-toolkit/db": "workspace:^",
-    "@artificer-toolkit/schema": "workspace:^",
-    "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.108.2"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./*": {
-      "types": "./dist/*/index.d.ts",
-      "default": "./dist/*/index.js"
-    }
-  },
   "imports": {
     "#services": {
       "types": "./dist/services/index.d.ts",
@@ -38,5 +16,30 @@
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
     }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
+  },
+  "dependencies": {
+    "@artificer-toolkit/db": "workspace:^",
+    "@artificer-toolkit/schema": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "@supabase/supabase-js": "^2.108.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

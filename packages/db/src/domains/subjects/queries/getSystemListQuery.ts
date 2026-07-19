@@ -5,6 +5,8 @@ interface SystemListItem {
   id: string
   label: string
   description: string | null
+  rulesetCode: string
+  rulesetVersion: string
   userId: string
 }
 
@@ -15,6 +17,8 @@ export async function getSystemListQuery(db: DBLike): Promise<SystemListItem[]> 
       'id',
       'label',
       'description',
+      'ruleset_code as rulesetCode',
+      'ruleset_version as rulesetVersion',
       sql<string>`coalesce(${sql.ref('user_id')}::text, 'master')`.as('userId')
     ])
     .execute()

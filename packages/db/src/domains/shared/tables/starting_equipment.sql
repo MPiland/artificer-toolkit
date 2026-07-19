@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_options (
     REFERENCES public.starting_equipment_groups(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  eligibility_facet_id uuid
+    REFERENCES public.facets(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -91,7 +95,44 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_options (
 CREATE INDEX IF NOT EXISTS idx_starting_equipment_options_group
   ON public.starting_equipment_options(equipment_group_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_starting_equipment_options_eligibility
+  ON public.starting_equipment_options(eligibility_facet_id);
+
 ALTER TABLE public.starting_equipment_options ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_starting_equipment_option_eligibility_on_update'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_starting_equipment_option_eligibility_on_update
+    AFTER UPDATE ON public.starting_equipment_options
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[{
+      "table": "public.facets",
+      "columns": ["eligibility_facet_id"]
+    }]');
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_starting_equipment_option_eligibility'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_starting_equipment_option_eligibility
+    AFTER DELETE ON public.starting_equipment_options
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.facets",
+      "columns": ["eligibility_facet_id"]
+    }]');
+  END IF;
+END;
+$$;
 
 /* ──────────────────────────────────────────────
  * OPTION ITEMS

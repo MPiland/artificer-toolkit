@@ -1,8 +1,14 @@
 import type { ComboboxData, ComboboxItem } from '@mantine/core'
+import { isValidElement, type ReactNode } from 'react'
 import type { AppSelectData, AppSelectOption, AppSelectOptionGroup } from './Select.types'
 
 export const DEFAULT_ALL_OPTION_VALUE = 'all'
 export const DEFAULT_ALL_OPTION_LABEL = 'All'
+
+export function getClearButtonAriaLabel(label: ReactNode, fallback: string): string {
+  const labelText = getReactNodeText(label).replace(/\s+/g, ' ').trim()
+  return labelText ? `Clear ${labelText}` : fallback
+}
 
 export function toComboboxData(data: AppSelectData): ComboboxData {
   if (isGroupedData(data)) {
@@ -59,4 +65,12 @@ function normalizeOptions(options: AppSelectOption[]): ComboboxItem[] {
 
 function isGroupedData(data: AppSelectData): data is AppSelectOptionGroup[] {
   return data.some((item) => 'group' in item)
+}
+
+function getReactNodeText(node: ReactNode): string {
+  if (typeof node === 'string') return node
+  if (typeof node === 'number' || typeof node === 'bigint') return String(node)
+  if (Array.isArray(node)) return node.map(getReactNodeText).filter(Boolean).join(' ')
+  if (isValidElement<{ children?: ReactNode }>(node)) return getReactNodeText(node.props.children)
+  return ''
 }

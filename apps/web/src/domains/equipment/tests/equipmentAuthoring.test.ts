@@ -1,9 +1,4 @@
-import {
-  describe,
-  expect,
-  it,
-  vi,
-  afterEach } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { facetDtoSchema } from '@artificer-toolkit/schema/shared'
 import { modifierGrantDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
@@ -71,6 +66,20 @@ describe('equipment authoring helpers', () => {
       }
     })
     expect(normalized).not.toHaveProperty('userId')
+  })
+
+  it('normalizes a variant with its selected parent', () => {
+    const normalized = normalizeEquipmentForSubmit({
+      ...createEmptyVariantEquipment({ systemId: 'dnd-5e-srd' }),
+      parentEquipmentId: 'equipment-base-1'
+    })
+
+    expect(normalized).toMatchObject({
+      category: 'VARIANT',
+      parentEquipmentId: 'equipment-base-1',
+      properties: []
+    })
+    expect(normalized).not.toHaveProperty('weight')
   })
 
   it('uses only real system list data when creating equipment', () => {

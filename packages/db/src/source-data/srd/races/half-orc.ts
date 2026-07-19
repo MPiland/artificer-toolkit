@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -86,6 +87,7 @@ export const halfOrc: RaceAuthored = {
     {
       id: raceFeatureId(8, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Strength score increases by 2, and your Constitution score increases by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -181,6 +183,7 @@ export const halfOrc: RaceAuthored = {
     {
       id: raceFeatureId(8, 6, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Orc.',
       availableAtLevel: 1,
       order: 5,

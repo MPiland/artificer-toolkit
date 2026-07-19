@@ -41,7 +41,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
                         outcomes: [
                             {
                                 id: S.equipmentChildId(S.equipId(122), 0x212, 1),
-                                effectKind: S.EFFECT_KIND.RULE
+                                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

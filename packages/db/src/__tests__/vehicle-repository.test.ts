@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { DBLike } from '#types'
 import { createVehicleRepository } from '../domains/subjects/repositories/vehicle.js'
 
 type RowMap = Record<string, unknown[]>
@@ -14,9 +15,13 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: unknown) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op.toLowerCase() === 'in') {
+              return Array.isArray(value) && value.includes(record[column])
+            }
+
             return record[column] === value
           })
           return builder
@@ -85,6 +90,7 @@ describe('createVehicleRepository', () => {
       id: 'vehicle-1',
       label: 'Wagon',
       description: 'A sturdy wagon.',
+      status: 'DRAFT',
       details: undefined,
       userId: 'user-1',
       systemId: 'system-1',
@@ -146,6 +152,7 @@ describe('createVehicleRepository', () => {
       id: 'vehicle-3',
       label: 'Keelboat',
       description: undefined,
+      status: 'DRAFT',
       details: undefined,
       userId: 'user-1',
       systemId: 'system-1',
@@ -260,5 +267,24 @@ describe('createVehicleRepository', () => {
   it('returns null for unknown vehicle id', async () => {
     const repo = createVehicleRepository(createFakeDb({ vehicles: [] }) as never)
     await expect(repo.findById('unknown')).resolves.toBeNull()
+  })
+
+  it('rejects malformed JSON cost data instead of asserting it as authored data', async () => {
+    const repo = createVehicleRepository(createFakeDb({
+      vehicles: [{
+        id: 'vehicle-invalid-cost',
+        system_id: 'system-1',
+        user_id: 'user-1',
+        label: 'Invalid Vehicle',
+        category: 'LAND',
+        cost: { amount: 'expensive', currencyId: 'gp' }
+      }],
+      vehicle_details: [],
+      vehicle_features: []
+    }) as unknown as DBLike)
+
+    await expect(repo.findById('vehicle-invalid-cost')).rejects.toThrow(
+      'Vehicle "vehicle-invalid-cost" has invalid cost.'
+    )
   })
 })

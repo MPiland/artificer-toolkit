@@ -60,7 +60,8 @@ export type BaseEquipmentAuthored = {
   armorClass?: number
   contains?: ContainsAuthored[]
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
-  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>
+  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'CHARACTER'>>
+  requiresAttunement?: boolean
   userId: string
   systemId: string
   properties: EquipmentPropertyCode[]
@@ -80,7 +81,8 @@ export type VariantEquipmentAuthored = {
   rarityId: string
   maxBonus?: number
   features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
-  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>
+  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'CHARACTER'>>
+  requiresAttunement?: boolean
   userId: string
   systemId: string
   category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT

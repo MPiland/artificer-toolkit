@@ -1,4 +1,4 @@
-import { ABILITY_CODE, ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, GRANT_KIND, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, SPELL_ATTRIBUTE, SUBJECT, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, TRIGGER, VALUE_DOMAIN_CODE, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, GRANT_KIND, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, SPELL_ATTRIBUTE, SPELLCASTING_ABILITY_REFERENCE, SUBJECT, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, TRIGGER, VALUE_DOMAIN_CODE, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const heroism: SpellAuthored = {
@@ -103,7 +103,7 @@ export const heroism: SpellAuthored = {
                                     {
                                         id: spellChildId(SPELL_IDS.HEROISM, 0x217, 1),
                                         bonusKind: 'ABILITY_BONUS',
-                                        ability: ABILITY_CODE.SPELLCASTING,
+                                        ability: SPELLCASTING_ABILITY_REFERENCE,
                                         order: 1
                                     }
                                 ]

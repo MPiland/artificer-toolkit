@@ -7,7 +7,6 @@ export const druid: CreatureAuthored = {
   description: 'A spellcaster who draws power from the natural world and shapeshifts to defend the wild places.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const druid: CreatureAuthored = {
     INTELLIGENCE: 12,
     WISDOM: 15,
     CHARISMA: 11,
-    SPELLCASTING: 13
   },
   armorClass: 11,
   armorClassNote: 'leather armor',

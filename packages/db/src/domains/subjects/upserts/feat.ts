@@ -1,9 +1,11 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
 import { upsertCharge } from '../../shared/upserts/index.js'
 import { upsertDetail } from '../../shared/upserts/detail.js'
 import { upsertFacet } from '../../shared/facets.js'
 import {
+  upsertFeatGrant,
   upsertModifierGrant,
   upsertProficiencyGrant,
   upsertSenseGrant,
@@ -33,6 +35,12 @@ type FeatDetailRow = {
 type FeatProficiencyGrantRow = {
   feat_id: string
   proficiency_grant_id: string
+  sort_order: number
+}
+
+type FeatFeatGrantRow = {
+  feat_id: string
+  feat_grant_id: string
   sort_order: number
 }
 
@@ -85,9 +93,7 @@ export async function upsertFeat(
   }))
   const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const previousEffectRows = await trx
       .selectFrom('feat_effects')
       .select(['effect_id'])
@@ -105,14 +111,14 @@ export async function upsertFeat(
     await trx
       .insertInto('feats')
       .values(mapFeatRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        prerequisite_id: ref('excluded.prerequisite_id'),
-        charge_id: ref('excluded.charge_id')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        prerequisite_id: eb.ref('excluded.prerequisite_id'),
+        charge_id: eb.ref('excluded.charge_id')
       })))
       .execute()
 
@@ -123,6 +129,11 @@ export async function upsertFeat(
 
     await trx
       .deleteFrom('feat_features')
+      .where('feat_id', '=', json_data.id)
+      .execute()
+
+    await trx
+      .deleteFrom('feat_feat_grants')
       .where('feat_id', '=', json_data.id)
       .execute()
 
@@ -171,6 +182,12 @@ export async function upsertFeat(
       }
     }
 
+    if (json_data.grants?.feats) {
+      for (const featGrant of json_data.grants.feats) {
+        await upsertFeatGrant(trx, featGrant)
+      }
+    }
+
     if (json_data.grants?.modifiers) {
       for (const modifierGrant of json_data.grants.modifiers) {
         await upsertModifierGrant(trx, modifierGrant, json_data.systemId)
@@ -199,8 +216,8 @@ export async function upsertFeat(
       await trx
         .insertInto('feat_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['feat_id', 'effect_id']).doUpdateSet(({ ref }) => ({
-          sort_order: ref('excluded.sort_order')
+        .onConflict((oc) => oc.columns(['feat_id', 'effect_id']).doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order')
         })))
         .execute()
     }
@@ -209,6 +226,19 @@ export async function upsertFeat(
       await trx
         .insertInto('feat_details')
         .values(detailRows)
+        .execute()
+    }
+
+    const featGrantRows: FeatFeatGrantRow[] = (json_data.grants?.feats ?? []).map((grant) => ({
+      feat_id: json_data.id,
+      feat_grant_id: grant.id,
+      sort_order: grant.order
+    }))
+
+    if (featGrantRows.length > 0) {
+      await trx
+        .insertInto('feat_feat_grants')
+        .values(featGrantRows)
         .execute()
     }
 
@@ -277,11 +307,7 @@ export async function upsertFeat(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }
 
 

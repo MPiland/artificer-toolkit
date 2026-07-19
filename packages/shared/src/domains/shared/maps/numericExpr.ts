@@ -27,7 +27,7 @@ const NUMERIC_ATOM_NODE_MAP: NodeMap<NumericAtom> = numericAtom.define('numericA
 
   map
     .set('kind', selectSingle(['kind'], 'Value Source', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: NUMERIC_ATOM_OPTIONS
     }, {
       requiredIf: true
@@ -37,7 +37,7 @@ const NUMERIC_ATOM_NODE_MAP: NodeMap<NumericAtom> = numericAtom.define('numericA
       showIf: local.field(['kind']).eq(NUMERIC_EXPR_CODE.FIXED)
     }))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       requiredIf: true,
@@ -69,7 +69,7 @@ export const NUMERIC_EXPR_NODE_MAP: NodeMap<NumericExpr> = numericExpr.define('n
 
   map
     .set('kind', selectSingle(['kind'], 'Expression Type', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: NUMERIC_EXPR_OPTIONS
     }, {
       requiredIf: true
@@ -79,7 +79,7 @@ export const NUMERIC_EXPR_NODE_MAP: NodeMap<NumericExpr> = numericExpr.define('n
       showIf: local.field(['kind']).eq(NUMERIC_EXPR_CODE.FIXED)
     }))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       requiredIf: true,
@@ -102,11 +102,11 @@ export const NUMERIC_EXPR_NODE_MAP: NodeMap<NumericExpr> = numericExpr.define('n
     }, {
       showIf: local.field(['kind']).eq(NUMERIC_EXPR_CODE.CLASS_LEVEL)
     }))
-    .set('left', groupObject(['left'], 'Left', () => NUMERIC_ATOM_NODE_MAP, {
+    .set('left', groupObject(['left'], 'Left', () => NUMERIC_ATOM_NODE_MAP, { presentation: 'inline',
       requiredIf: true,
       showIf: local.field(['kind']).eq(NUMERIC_EXPR_CODE.MUL)
     }))
-    .set('right', groupObject(['right'], 'Right', () => NUMERIC_ATOM_NODE_MAP, {
+    .set('right', groupObject(['right'], 'Right', () => NUMERIC_ATOM_NODE_MAP, { presentation: 'inline',
       requiredIf: true,
       showIf: local.field(['kind']).eq(NUMERIC_EXPR_CODE.MUL)
     }))

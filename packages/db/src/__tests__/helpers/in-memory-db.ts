@@ -220,7 +220,15 @@ class InsertBuilder {
 }
 
 class InMemoryTransaction {
+  readonly isTransaction = true
+
   constructor(private readonly db: InMemoryDb) {}
+
+  transaction() {
+    return {
+      execute: async <T>(fn: (trx: InMemoryTransaction) => Promise<T>) => fn(this)
+    }
+  }
 
   startTransaction(): { execute: () => Promise<InMemoryTransaction> } {
     return {
@@ -254,7 +262,15 @@ class InMemoryTransaction {
 }
 
 export class InMemoryDb {
+  readonly isTransaction = false
   private readonly tables = new Map<string, Row[]>()
+
+  transaction() {
+    return {
+      execute: async <T>(fn: (trx: InMemoryTransaction) => Promise<T>) =>
+        fn(new InMemoryTransaction(this))
+    }
+  }
 
   startTransaction(): { execute: () => Promise<InMemoryTransaction> } {
     return {
@@ -512,7 +528,6 @@ export class InMemoryDb {
         this.deleteWhere('creature_features', 'creature_id', row.id)
         this.deleteWhere('creature_proficiency_grants', 'creature_id', row.id)
         this.deleteWhere('creature_speeds', 'creature_id', row.id)
-        this.deleteWhere('creature_actions', 'creature_id', row.id)
         this.deleteWhere('creature_damage_resistances', 'creature_id', row.id)
         this.deleteWhere('creature_damage_immunities', 'creature_id', row.id)
         this.deleteWhere('creature_damage_vulnerabilities', 'creature_id', row.id)
@@ -651,6 +666,10 @@ export class InMemoryDb {
         this.deleteWhere('proficiency_grants', 'id', row.proficiency_grant_id)
         break
 
+      case 'feat_feat_grants':
+        this.deleteWhere('feat_grants', 'id', row.feat_grant_id)
+        break
+
       case 'feat_sense_grants':
         this.deleteWhere('sense_grants', 'id', row.sense_grant_id)
         break
@@ -683,6 +702,7 @@ export class InMemoryDb {
           this.deleteWhere('facets', 'id', row.prerequisite_id)
         }
         this.deleteWhere('feat_proficiency_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_feat_grants', 'feat_id', row.id)
         this.deleteWhere('feat_details', 'feat_id', row.id)
         this.deleteWhere('feat_sense_grants', 'feat_id', row.id)
         this.deleteWhere('feat_spell_grants', 'feat_id', row.id)
@@ -756,11 +776,11 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_charge_reset_kind_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_spell_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_feat_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_class_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_heritage_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_feature_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_option_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_equipment_items', 'facet_condition_id', row.id)
-        this.deleteWhere('facet_predicate_creature_record_kind_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_creature_category_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_vehicle_category_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_creature_type_items', 'facet_condition_id', row.id)
@@ -870,6 +890,9 @@ export class InMemoryDb {
         break
 
       case 'starting_equipment_options':
+        if (row.eligibility_facet_id) {
+          this.deleteWhere('facets', 'id', row.eligibility_facet_id)
+        }
         this.deleteWhere('starting_equipment_option_items', 'equipment_option_id', row.id)
         break
 

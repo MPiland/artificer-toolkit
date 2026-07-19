@@ -72,12 +72,15 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "generate:zod": "tsx generateZod.ts",
-    "test": "vitest run src/__tests__"
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/schema/src/__tests__"
   },
   "dependencies": {
+    "@artificer-toolkit/design-system": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "ts-to-zod": "^5.1.0"
+    "ts-to-zod": "^5.1.0",
+    "typescript": "^6.0.3"
   }
 }

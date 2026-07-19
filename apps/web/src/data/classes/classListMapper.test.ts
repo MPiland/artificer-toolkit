@@ -80,6 +80,7 @@ function createClassListItem(
   return {
     id: 'class-id',
     publicId: overrides.id ?? 'class-id',
+    activeRevisionId: 'class-active-revision',
     label: 'Class',
     status: 'DRAFT',
     description: null,

@@ -44,6 +44,7 @@ function createVehicleListResponse(): VehicleListResponseDto {
       {
         id: 'vehicle-1',
         publicId: 'vehicle-1',
+        activeRevisionId: 'vehicle-1-active-revision',
         label: 'Sky Skiff',
         description: '<p>Fast transport.</p>',
         status: 'DRAFT',
@@ -61,6 +62,7 @@ function createVehicleListResponse(): VehicleListResponseDto {
       {
         id: 'vehicle-2',
         publicId: 'vehicle-2',
+        activeRevisionId: 'vehicle-2-active-revision',
         label: 'Spelljammer',
         description: null,
         status: 'ACTIVE',

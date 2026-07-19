@@ -7,7 +7,6 @@ export const goblin: CreatureAuthored = {
   description: 'A small, black-hearted humanoid that dwells in dark dungeons and foul forests.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'MONSTER',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'SMALL',
@@ -18,7 +17,6 @@ export const goblin: CreatureAuthored = {
     INTELLIGENCE: 10,
     WISDOM: 8,
     CHARISMA: 8,
-    SPELLCASTING: 0
   },
   armorClass: 15,
   armorClassNote: 'leather armor, shield',

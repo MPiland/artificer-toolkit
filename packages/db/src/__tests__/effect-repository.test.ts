@@ -145,7 +145,7 @@ describe('createEffectRepository', () => {
           pathCode: 'ON_SAVE_FAIL',
           selectionKind: 'FIXED',
           resultBlock: {
-            id: 'save-fail-1',
+            id: 'save-fail-1__result',
             resultKind: 'SINGLE',
             duration: {
               id: 'duration-1',
@@ -177,7 +177,7 @@ describe('createEffectRepository', () => {
           pathCode: 'ON_SAVE_SUCCESS',
           selectionKind: 'FIXED',
           resultBlock: {
-            id: 'save-success-1',
+            id: 'save-success-1__result',
             resultKind: 'SINGLE',
             outcomes: [
               {
@@ -752,7 +752,7 @@ describe('createEffectRepository', () => {
               id: 'entry-1',
               rollRange: [1, 3],
               resultBlock: {
-                id: 'entry-1',
+                id: 'entry-1__result',
                 resultKind: 'SINGLE',
                 duration: {
                   id: 'entry-duration-1',
@@ -775,7 +775,7 @@ describe('createEffectRepository', () => {
               id: 'entry-2',
               rollRange: [4, 6],
               resultBlock: {
-                id: 'entry-2',
+                id: 'entry-2__result',
                 resultKind: 'SINGLE',
                 outcomes: [
                   {

@@ -3,7 +3,7 @@ import { buildNodeMap } from '#utils'
 
 const detailNode = buildNodeMap<DetailAuthored>()
 
-export const DETAIL_NODE_MAP = detailNode.define('detail', ({ map, nodes }) => {
+export const DETAIL_NODE_MAP = detailNode.define('authoredDetail', ({ map, nodes }) => {
   const { text, richText, number } = nodes
 
   map

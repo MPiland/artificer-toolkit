@@ -32,6 +32,7 @@ function parseEnvLine(line: string) {
 
 export function loadDbScriptEnv() {
   const packageRoot = new URL('../../', import.meta.url)
+  const explicitEnvironment = new Set(Object.keys(process.env))
 
   for (const fileName of ENV_FILES) {
     const fileUrl = new URL(fileName, packageRoot)
@@ -44,6 +45,7 @@ export function loadDbScriptEnv() {
       const parsed = parseEnvLine(line)
 
       if (!parsed) continue
+      if (explicitEnvironment.has(parsed.key)) continue
 
       process.env[parsed.key] = parsed.value
     }

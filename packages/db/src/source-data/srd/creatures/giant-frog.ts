@@ -5,7 +5,6 @@ export const giantFrog: CreatureAuthored = {
     label: 'Giant Frog',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const giantFrog: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 10,
         CHARISMA: 3,
-        SPELLCASTING: 0
     },
     armorClass: 11,
     hitPoints: 18,
@@ -105,7 +103,7 @@ export const giantFrog: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(124, 4),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -149,7 +147,7 @@ export const giantFrog: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(124, 7),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

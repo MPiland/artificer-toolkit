@@ -1,7 +1,9 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -190,6 +192,7 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 5, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar.',
       availableAtLevel: 1,
       order: 4,
@@ -226,6 +229,7 @@ export const highElf: RaceAuthored = {
     {
       id: raceFeatureId(103, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Dexterity score increases by 2, and your Intelligence score increases by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -296,6 +300,7 @@ export const highElf: RaceAuthored = {
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: wizardCantripIds,
@@ -320,6 +325,7 @@ export const highElf: RaceAuthored = {
             level: SCALING_AMOUNT_KIND.FULL,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             languageIds: availableLanguageIds(['COMMON', 'ELVISH']),
@@ -344,6 +350,7 @@ export const woodElf: RaceAuthored = {
     {
       id: raceFeatureId(104, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Dexterity score increases by 2, and your Wisdom score increases by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -433,6 +440,7 @@ export const woodElf: RaceAuthored = {
     {
       id: raceFeatureId(104, 5, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Elvish.',
       availableAtLevel: 1,
       order: 4,
@@ -468,6 +476,7 @@ export const darkElf: RaceAuthored = {
     {
       id: raceFeatureId(105, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Dexterity score increases by 2, and your Charisma score increases by 1.',
       availableAtLevel: 1,
       order: 0,
@@ -599,6 +608,7 @@ export const darkElf: RaceAuthored = {
     {
       id: raceFeatureId(105, 6, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common, Elvish, and Undercommon.',
       availableAtLevel: 1,
       order: 5,

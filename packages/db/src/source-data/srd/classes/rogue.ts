@@ -1,8 +1,10 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  STARTING_EQUIPMENT_KIND,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -51,6 +53,7 @@ export const rogue: ClassAuthored = {
   id: CLASS_IDS.ROGUE,
   label: 'Rogue',
   category: CLASS_CATEGORY.BASE,
+  subclassSelectionLevel: 3,
   description: 'A scoundrel who uses stealth and trickery to overcome obstacles and enemies.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
@@ -97,6 +100,7 @@ export const rogue: ClassAuthored = {
         selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
         scalingKind: SCALING.NONE,
         count: 1,
+        selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
         authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
         skillIds: [
           skillId('ACROBATICS'),
@@ -129,7 +133,194 @@ export const rogue: ClassAuthored = {
 
   startingEquipment: {
     id: classRowId(R, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(R, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(R, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(R, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(R, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(26)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(R, 98, 6),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(R, 98, 7),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(28)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(R, 98, 8),
+            order: 1,
+            options: [
+              {
+                id: classRowId(R, 98, 9),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(R, 98, 10),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(13)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(R, 98, 11),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(104)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(R, 98, 12),
+                    order: 2,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(99)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(R, 98, 13),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(R, 98, 14),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(28)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(R, 98, 15),
+            order: 2,
+            options: [
+              {
+                id: classRowId(R, 98, 16),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(R, 98, 17),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(182)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(R, 98, 18),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(R, 98, 19),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(184)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(R, 98, 20),
+                order: 2,
+                items: [
+                  {
+                    id: classRowId(R, 98, 21),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(186)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(R, 98, 22),
+            order: 3,
+            options: [
+              {
+                id: classRowId(R, 98, 23),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(R, 98, 24),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(R, 98, 25),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(2)],
+                    quantity: 2
+                  },
+                  {
+                    id: classRowId(R, 98, 26),
+                    order: 2,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(85)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   proficiencies: [
@@ -180,6 +371,7 @@ export const rogue: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 4,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ACROBATICS'),
@@ -202,21 +394,24 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 1),
       label: 'Expertise',
-      description: 'At 1st level, choose two of your skill proficiencies, or one of your skill proficiencies and your proficiency with thieves\' tools. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
+      description:
+        "At 1st level, choose two of your skill proficiencies, or one of your skill proficiencies and your proficiency with thieves' tools. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.",
       availableAtLevel: 1,
       order: 0
     },
     {
       id: classRowId(R, 3, 2),
       label: 'Sneak Attack',
-      description: 'Beginning at 1st level, you know how to strike subtly and exploit a foe\'s distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack if you have advantage on the attack roll.',
+      description:
+        "Beginning at 1st level, you know how to strike subtly and exploit a foe's distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack if you have advantage on the attack roll.",
       availableAtLevel: 1,
       order: 1
     },
     {
       id: classRowId(R, 3, 3),
-      label: 'Thieves\' Cant',
-      description: 'During your rogue training you learned thieves\' cant, a secret mix of dialect, jargon, and code that allows you to hide messages in seemingly normal conversation.',
+      label: "Thieves' Cant",
+      description:
+        "During your rogue training you learned thieves' cant, a secret mix of dialect, jargon, and code that allows you to hide messages in seemingly normal conversation.",
       availableAtLevel: 1,
       order: 2,
       grants: {
@@ -238,35 +433,40 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 4),
       label: 'Cunning Action',
-      description: 'Starting at 2nd level, your quick thinking and agility allow you to move and act quickly. You can take a bonus action on each of your turns in combat. This action can be used only to take the Dash, Disengage, or Hide action.',
+      description:
+        'Starting at 2nd level, your quick thinking and agility allow you to move and act quickly. You can take a bonus action on each of your turns in combat. This action can be used only to take the Dash, Disengage, or Hide action.',
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(R, 3, 5),
       label: 'Roguish Archetype',
-      description: 'At 3rd level, you choose an archetype that you emulate in the exercise of your rogue abilities.',
+      description:
+        'At 3rd level, you choose an archetype that you emulate in the exercise of your rogue abilities.',
       availableAtLevel: 3,
       order: 4
     },
     {
       id: classRowId(R, 3, 6),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 5
     },
     {
       id: classRowId(R, 3, 7),
       label: 'Uncanny Dodge',
-      description: 'Starting at 5th level, when an attacker that you can see hits you with an attack, you can use your reaction to halve the attack\'s damage against you.',
+      description:
+        "Starting at 5th level, when an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.",
       availableAtLevel: 5,
       order: 6
     },
     {
       id: classRowId(R, 3, 8),
       label: 'Expertise',
-      description: 'At 6th level, choose two more of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
+      description:
+        'At 6th level, choose two more of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
       availableAtLevel: 6,
       order: 7,
       grants: {
@@ -278,6 +478,7 @@ export const rogue: ClassAuthored = {
             level: SCALING_AMOUNT_KIND.DOUBLE,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 2,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             skillIds: [
@@ -301,14 +502,16 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 9),
       label: 'Evasion',
-      description: 'Beginning at 7th level, you can nimbly dodge out of the way of certain area effects, such as a red dragon\'s fiery breath or an Ice Storm spell.',
+      description:
+        "Beginning at 7th level, you can nimbly dodge out of the way of certain area effects, such as a red dragon's fiery breath or an Ice Storm spell.",
       availableAtLevel: 7,
       order: 8
     },
     {
       id: classRowId(R, 3, 10),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 9
     },
@@ -322,21 +525,24 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 12),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 10,
       order: 11
     },
     {
       id: classRowId(R, 3, 13),
       label: 'Reliable Talent',
-      description: 'By 11th level, you have refined your chosen skills until they approach perfection. Whenever you make an ability check that lets you add your proficiency bonus, you can treat a d20 roll of 9 or lower as a 10.',
+      description:
+        'By 11th level, you have refined your chosen skills until they approach perfection. Whenever you make an ability check that lets you add your proficiency bonus, you can treat a d20 roll of 9 or lower as a 10.',
       availableAtLevel: 11,
       order: 12
     },
     {
       id: classRowId(R, 3, 14),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 13
     },
@@ -350,14 +556,16 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 16),
       label: 'Blindsense',
-      description: 'Starting at 14th level, if you are able to hear, you are aware of the location of any hidden or invisible creature within 10 feet of you.',
+      description:
+        'Starting at 14th level, if you are able to hear, you are aware of the location of any hidden or invisible creature within 10 feet of you.',
       availableAtLevel: 14,
       order: 15
     },
     {
       id: classRowId(R, 3, 17),
       label: 'Slippery Mind',
-      description: 'By 15th level, you have acquired greater mental strength. You gain proficiency in Wisdom saving throws.',
+      description:
+        'By 15th level, you have acquired greater mental strength. You gain proficiency in Wisdom saving throws.',
       availableAtLevel: 15,
       order: 16,
       grants: {
@@ -379,7 +587,8 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 18),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 17
     },
@@ -393,21 +602,24 @@ export const rogue: ClassAuthored = {
     {
       id: classRowId(R, 3, 20),
       label: 'Elusive',
-      description: 'Beginning at 18th level, you are so evasive that attackers rarely gain the upper hand against you. No attack roll has advantage against you while you aren\'t incapacitated.',
+      description:
+        "Beginning at 18th level, you are so evasive that attackers rarely gain the upper hand against you. No attack roll has advantage against you while you aren't incapacitated.",
       availableAtLevel: 18,
       order: 19
     },
     {
       id: classRowId(R, 3, 21),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 20
     },
     {
       id: classRowId(R, 3, 22),
       label: 'Stroke of Luck',
-      description: 'At 20th level, you have an uncanny knack for succeeding when you need to. If your attack misses a target within range, you can turn the miss into a hit. Alternatively, if you fail an ability check, you can treat the d20 roll as a 20.',
+      description:
+        'At 20th level, you have an uncanny knack for succeeding when you need to. If your attack misses a target within range, you can turn the miss into a hit. Alternatively, if you fail an ability check, you can treat the d20 roll as a 20.',
       availableAtLevel: 20,
       order: 21
     }

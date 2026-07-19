@@ -4,6 +4,7 @@ import type {
   RaceListResponseDto,
   RaceResponseDto
 } from '@artificer-toolkit/schema/api/content'
+import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 
 export const ownedBaseRaceFixture: RaceAuthoredDto = {
   id: 'dragonborn',
@@ -98,6 +99,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
     {
       id: masterRaceFixture.id,
       publicId: masterRaceFixture.id,
+      activeRevisionId: 'elf-active-revision',
       label: masterRaceFixture.label,
       description: masterRaceFixture.description,
       status: 'ACTIVE',
@@ -118,6 +120,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
     {
       id: ownedSubraceFixture.id,
       publicId: ownedSubraceFixture.id,
+      activeRevisionId: 'wood-elf-active-revision',
       label: ownedSubraceFixture.label,
       description: ownedSubraceFixture.description,
       status: 'DRAFT',
@@ -142,6 +145,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
 
 export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedBaseRaceFixture.id,
+  activeRevisionId: 'dragonborn-active-revision',
   item: ownedBaseRaceFixture,
   provenance: {
     kind: 'OWNED',
@@ -157,6 +161,7 @@ export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
 
 export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedSubraceFixture.id,
+  activeRevisionId: 'wood-elf-active-revision',
   item: ownedSubraceFixture,
   provenance: {
     kind: 'OWNED',
@@ -172,6 +177,7 @@ export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
 
 export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: masterRaceFixture.id,
+  activeRevisionId: 'elf-active-revision',
   item: masterRaceFixture,
   provenance: {
     kind: 'MASTER',
@@ -188,6 +194,7 @@ export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
 export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'race',
   clearPaths: [],
+  scopes: [],
   steps: [
     {
       id: 'basics',
@@ -239,25 +246,4 @@ export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
       ]
     }
   ]
-}
-
-function selectNode(
-  id: string,
-  path: string[],
-  label: string,
-  options: Array<{ value: string, label: string }>,
-  required: boolean,
-  type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type,
-    visible: true,
-    required,
-    clearPaths: [],
-    options
-  }
 }

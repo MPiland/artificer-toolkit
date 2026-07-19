@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Badge, Stack, Text } from '@mantine/core'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 import type {
@@ -5,7 +6,7 @@ import type {
   CharacterBuilderGrantSummaryItemDto
 } from '@artificer-toolkit/schema/api/characters'
 import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
-import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
+import { AppSelect } from '#ui/primitives/Select'
 import {
   choiceOptions,
   type CharacterFormValues
@@ -24,6 +25,7 @@ export function CharacterGrantedFeatures({
   features,
   onChange,
   readOnly,
+  renderFeatureControls,
   title = 'Features'
 }: {
   acquisitions: CharacterFormValues['intent']['featureAcquisitions']
@@ -32,6 +34,7 @@ export function CharacterGrantedFeatures({
   features: CharacterBuilderGrantSummaryItemDto[]
   onChange: (acquisitions: CharacterFormValues['intent']['featureAcquisitions']) => void
   readOnly: boolean
+  renderFeatureControls?: (feature: CharacterBuilderGrantSummaryItemDto) => ReactNode
   title?: string
 }) {
   const featureViews = toFeatureViews(features, choices)
@@ -59,6 +62,7 @@ export function CharacterGrantedFeatures({
               {feature.description?.trim()
                 ? <div className={styles.grantedFeatureDescription}>{renderSanitizedRichHtml(feature.description)}</div>
                 : null}
+              {renderFeatureControls?.(feature)}
               {featureChoices.length
                 ? (
                     <div className={styles.grantedFeatureChoices}>
@@ -94,16 +98,14 @@ function CharacterFeatureChoiceControl({
   readOnly: boolean
 }) {
   const selectedOptionIds = getSelectedFeatureOptionIds(acquisitions, choice)
-  const label = choice.requiredCount === 1
-    ? `${choice.featureLabel} choice`
-    : `${choice.featureLabel} choices`
+  const options = choiceOptions(choice.options)
 
   return choice.requiredCount === 1
     ? (
         <AppSelect
-          label={label}
+          label={`${choice.featureLabel} choice`}
           description={choice.sourceLabel}
-          data={choiceOptions(choice.options)}
+          data={options}
           value={selectedOptionIds[0] ?? null}
           required
           disabled={readOnly}
@@ -115,21 +117,45 @@ function CharacterFeatureChoiceControl({
         />
       )
     : (
-        <AppMultiSelect
-          label={label}
-          description={choice.sourceLabel}
-          data={choiceOptions(choice.options)}
-          value={selectedOptionIds}
-          required
-          disabled={readOnly}
-          clearable
-          maxValues={choice.requiredCount}
-          onChange={(optionIds) => {
-            if (readOnly) return
-            onChange(setFeatureChoiceValue(acquisitions, choice, optionIds.slice(0, choice.requiredCount)))
-          }}
-        />
+        <div className={styles.choiceSlotGrid}>
+          {Array.from({ length: choice.requiredCount }, (_, index) => {
+            const currentOptionId = selectedOptionIds[index]
+            const availableOptions = options.filter((option) => (
+              option.value === currentOptionId || !selectedOptionIds.includes(option.value)
+            ))
+
+            return (
+              <AppSelect
+                key={`${choice.featureId}:${choice.selectionKey}:${index}`}
+                label={`${choice.featureLabel} choice ${index + 1} of ${choice.requiredCount}`}
+                description={index === 0 ? choice.sourceLabel : undefined}
+                data={availableOptions}
+                value={currentOptionId ?? null}
+                required
+                disabled={readOnly}
+                clearable
+                onChange={(optionId) => {
+                  if (readOnly) return
+                  onChange(setFeatureChoiceSlotValue(acquisitions, choice, selectedOptionIds, index, optionId))
+                }}
+              />
+            )
+          })}
+        </div>
       )
+}
+
+function setFeatureChoiceSlotValue(
+  acquisitions: CharacterFormValues['intent']['featureAcquisitions'],
+  choice: CharacterBuilderFeatureChoiceViewDto,
+  selectedOptionIds: readonly string[],
+  slotIndex: number,
+  selectedOptionId: string | null
+): CharacterFormValues['intent']['featureAcquisitions'] {
+  const nextOptionIds = Array.from({ length: choice.requiredCount }, (_, index) => selectedOptionIds[index] ?? '')
+  nextOptionIds[slotIndex] = selectedOptionId ?? ''
+
+  return setFeatureChoiceValue(acquisitions, choice, nextOptionIds.filter(Boolean))
 }
 
 function toFeatureViews(

@@ -5,7 +5,6 @@ export const clayGolem: CreatureAuthored = {
     label: 'Clay Golem',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.CONSTRUCT,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const clayGolem: CreatureAuthored = {
         INTELLIGENCE: 3,
         WISDOM: 8,
         CHARISMA: 1,
-        SPELLCASTING: 0
     },
     armorClass: 14,
     armorClassNote: 'natural armor',
@@ -168,7 +166,7 @@ export const clayGolem: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(3256, 7),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

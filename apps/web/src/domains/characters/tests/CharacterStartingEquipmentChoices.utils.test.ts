@@ -1,6 +1,9 @@
 import { createStartingEquipmentDecision } from '../characterBuilder.utils'
 import {
   type ChosenStartingEquipmentItem,
+  ensureDefaultStartingEquipmentGroupOptions,
+  formatStartingEquipmentChoiceLabel,
+  formatStartingEquipmentItem,
   getStartingEquipmentItemOptions,
   getStartingEquipmentSelections,
   setStartingEquipmentGoldTotal,
@@ -32,6 +35,125 @@ describe('CharacterStartingEquipmentChoices utils', () => {
       'longsword',
       'longsword',
       'battleaxe'
+    ])
+  })
+
+  it('formats selected equipment requirements from explicit options and item facets', () => {
+    const equipmentOptions: CharacterBuilderChoiceOptionDto[] = [
+      { id: 'prayer-book', label: 'Prayer Book' },
+      { id: 'prayer-wheel', label: 'Prayer Wheel' }
+    ]
+
+    expect(formatStartingEquipmentChoiceLabel({
+      id: 'devotional-choice',
+      order: 1,
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'CHOSEN',
+      count: 1,
+      authoringModeKind: 'SELECTED',
+      equipmentIds: ['prayer-book', 'prayer-wheel']
+    }, equipmentOptions)).toBe('Choose 1 Prayer Book or Prayer Wheel')
+    expect(formatStartingEquipmentChoiceLabel({
+      id: 'martial-melee-choice',
+      order: 1,
+      startingEquipmentKind: 'EQUIPMENT',
+      category: 'WEAPON',
+      properties: ['MARTIAL', 'MELEE'],
+      selectionKind: 'CHOSEN',
+      count: 1
+    }, equipmentOptions)).toBe('Choose 1 martial melee weapon')
+    expect(formatStartingEquipmentItem({
+      id: 'included-greataxe',
+      order: 1,
+      startingEquipmentKind: 'EQUIPMENT',
+      selectionKind: 'GRANTED',
+      quantity: 1,
+      authoringModeKind: 'SELECTED',
+      equipmentIds: ['greataxe']
+    }, [{ id: 'greataxe', label: 'Greataxe' }], [])).toBe('1 Greataxe')
+  })
+
+  it('defaults single-option starting equipment groups without making the user choose the obvious option', () => {
+    const decision = createStartingEquipmentDecision('CLASS')
+    const nextDecision = ensureDefaultStartingEquipmentGroupOptions(decision, {
+      id: 'barbarian-starting-equipment',
+      sets: [
+        {
+          id: 'barbarian-set',
+          order: 1,
+          groups: [
+            {
+              id: 'barbarian-group',
+              order: 1,
+              options: [
+                {
+                  id: 'barbarian-option',
+                  order: 1,
+                  items: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(nextDecision.groups).toEqual([
+      {
+        groupId: 'barbarian-group',
+        optionId: 'barbarian-option',
+        selections: []
+      }
+    ])
+  })
+
+  it('clears item selections when eligibility changes the only available option', () => {
+    const decision = {
+      ...createStartingEquipmentDecision('CLASS'),
+      groups: [
+        {
+          groupId: 'cleric-weapon',
+          optionId: 'warhammer',
+          selections: [
+            {
+              selectionKey: 'weapon-choice',
+              equipmentId: 'warhammer',
+              quantity: 1
+            }
+          ]
+        }
+      ]
+    }
+
+    const nextDecision = ensureDefaultStartingEquipmentGroupOptions(decision, {
+      id: 'cleric-starting-equipment',
+      sets: [
+        {
+          id: 'cleric-set',
+          order: 1,
+          groups: [
+            {
+              id: 'cleric-weapon',
+              order: 1,
+              options: [
+                {
+                  id: 'mace',
+                  order: 1,
+                  items: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(nextDecision.groups).toEqual([
+      {
+        groupId: 'cleric-weapon',
+        optionId: 'mace',
+        selections: []
+      }
     ])
   })
 

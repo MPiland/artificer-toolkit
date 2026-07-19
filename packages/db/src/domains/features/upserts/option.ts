@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import {
   FEATURE_ATTRIBUTE,
   type NodeSubjectCode,
@@ -102,12 +103,12 @@ async function upsertOptionRow(
   await db
     .insertInto('options')
     .values(row)
-    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-      label: ref('excluded.label'),
-      description: ref('excluded.description'),
-      sort_order: ref('excluded.sort_order'),
-      charge_id: ref('excluded.charge_id'),
-      restriction_id: ref('excluded.restriction_id')
+    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+      label: eb.ref('excluded.label'),
+      description: eb.ref('excluded.description'),
+      sort_order: eb.ref('excluded.sort_order'),
+      charge_id: eb.ref('excluded.charge_id'),
+      restriction_id: eb.ref('excluded.restriction_id')
     })))
     .execute()
 }
@@ -171,9 +172,7 @@ export async function upsertOption<N extends NodeSubjectCode>(
   }))
   const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     const existingOption = await trx
       .selectFrom('options')
       .select(['restriction_id'])
@@ -256,8 +255,8 @@ export async function upsertOption<N extends NodeSubjectCode>(
       await trx
         .insertInto('option_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['option_id', 'effect_id']).doUpdateSet(({ ref }) => ({
-          sort_order: ref('excluded.sort_order')
+        .onConflict((oc) => oc.columns(['option_id', 'effect_id']).doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order')
         })))
         .execute()
     }
@@ -297,9 +296,5 @@ export async function upsertOption<N extends NodeSubjectCode>(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

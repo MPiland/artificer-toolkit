@@ -41,7 +41,7 @@ describe('node map sections', () => {
     })
 
     const parentMap = buildNodeMap<{ child?: { label?: string } }>().define('parent', ({ map, nodes }) => {
-      map.set('child', nodes.groupObject(['child'], 'Child', () => childMap, {
+      map.set('child', nodes.groupObject(['child'], 'Child', () => childMap, { presentation: 'inline',
         section: { id: 'details', label: 'Details', order: 10 }
       }))
     })
@@ -68,7 +68,6 @@ describe('node map sections', () => {
 
   it('models creature category-specific profiles as conditional clearable groups', () => {
     const mountNode = CREATURE_NODE_MAP.nodes.mountProfile
-    const legendaryNode = CREATURE_NODE_MAP.nodes.legendaryProfile
     const companionNode = CREATURE_NODE_MAP.nodes.companionProfile
 
     expect(mountNode.hiddenBehavior).toBe('CLEAR')
@@ -79,14 +78,6 @@ describe('node map sections', () => {
       values: { category: CREATURE_CATEGORY_CODE.MONSTER }
     })).toBe(false)
 
-    expect(legendaryNode.hiddenBehavior).toBe('CLEAR')
-    expect(evaluateConditionIf(legendaryNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
-    })).toBe(true)
-    expect(evaluateConditionIf(legendaryNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.BEAST }
-    })).toBe(false)
-
     expect(companionNode.hiddenBehavior).toBe('CLEAR')
     expect(evaluateConditionIf(companionNode.showIf, {
       values: { category: CREATURE_CATEGORY_CODE.COMPANION }
@@ -94,6 +85,15 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(companionNode.showIf, {
       values: { category: CREATURE_CATEGORY_CODE.SUMMON }
     })).toBe(true)
+  })
+
+  it('authors creature presentation sections on the canonical feature model', () => {
+    const sectionNode = FEATURE_NODE_MAP.nodes.section
+
+    expect(sectionNode.kind).toBe('INPUT')
+    expect(CREATURE_NODE_MAP.nodes.features.kind).toBe('GROUP')
+    expect('actions' in CREATURE_NODE_MAP.nodes).toBe(false)
+    expect('legendaryProfile' in CREATURE_NODE_MAP.nodes).toBe(false)
   })
 
   it('keeps creature logistics fields hidden for non-beasts without clearing preserved data', () => {
@@ -171,6 +171,12 @@ describe('node map sections', () => {
     })
     expect(nodes.find((entry) => entry.id === 'baseAttributes')?.node.path).toEqual(['attributes'])
     expect(nodes.find((entry) => entry.id === 'subclassAttributes')?.node.path).toEqual(['attributes'])
+    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
+      values: { category: 'BASE' }
+    })).toBe(true)
+    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
+      values: { category: 'SUBCLASS' }
+    })).toBe(false)
     expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.parentClassId.showIf, {
       values: { category: 'SUBCLASS' }
     })).toBe(true)
@@ -228,6 +234,68 @@ describe('node map sections', () => {
     expect(OPTION_NODE_MAP.nodes.grants).toMatchObject({
       kind: 'GROUP',
       groupKind: 'OBJECT'
+    })
+  })
+
+  it('requires parent equipment only for variants', () => {
+    const parentNode = EQUIPMENT_NODE_MAP.nodes.parentEquipmentId
+
+    expect(evaluateConditionIf(parentNode.showIf, {
+      values: { category: 'VARIANT' }
+    })).toBe(true)
+    expect(evaluateConditionIf(parentNode.showIf, {
+      values: { category: 'ADVENTURING_GEAR' }
+    })).toBe(false)
+
+    expect(parentNode.kind).toBe('INPUT')
+    if (parentNode.kind !== 'INPUT') return
+
+    const requiredIf = parentNode.requiredIf
+    expect(requiredIf).toBeDefined()
+    if (!requiredIf) return
+    expect(requiredIf).not.toBe(true)
+    if (requiredIf === true) return
+
+    expect(evaluateConditionIf(requiredIf, {
+      values: { category: 'VARIANT' }
+    })).toBe(true)
+    expect(evaluateConditionIf(requiredIf, {
+      values: { category: 'ADVENTURING_GEAR' }
+    })).toBe(false)
+  })
+
+  it('authors equipment attunement as a boolean toggle', () => {
+    expect(EQUIPMENT_NODE_MAP.nodes.requiresAttunement).toMatchObject({
+      kind: 'INPUT',
+      type: 'TOGGLE',
+      path: ['requiresAttunement']
+    })
+  })
+
+  it('limits equipment requirements to character contexts in the node map', () => {
+    const restrictionsNode = EQUIPMENT_NODE_MAP.nodes.restrictions
+    expect(restrictionsNode.kind).toBe('GROUP')
+    if (restrictionsNode.kind !== 'GROUP') return
+
+    const facetMap = typeof restrictionsNode.nodes === 'function'
+      ? restrictionsNode.nodes()
+      : restrictionsNode.nodes
+    expect(facetMap.mapId).toBe('characterFacet')
+
+    const groupsNode = facetMap.nodes.groups
+    if (groupsNode.kind !== 'GROUP') return
+    const groupMap = typeof groupsNode.nodes === 'function' ? groupsNode.nodes() : groupsNode.nodes
+    const contextsNode = groupMap.nodes.contexts
+    if (contextsNode.kind !== 'GROUP') return
+    const contextMap = typeof contextsNode.nodes === 'function'
+      ? contextsNode.nodes()
+      : contextsNode.nodes
+    const subjectNode = contextMap.nodes.subject
+    if (subjectNode.kind !== 'INPUT' || subjectNode.type !== 'SELECT_SINGLE') return
+
+    expect(subjectNode.source).toEqual({
+      kind: 'INLINE_OPTIONS',
+      options: [expect.objectContaining({ code: 'CHARACTER' })]
     })
   })
 

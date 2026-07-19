@@ -5,7 +5,6 @@ export const giantRat: CreatureAuthored = {
     label: 'Giant Rat',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.BEAST,
     creatureTypeId: S.CREATURE_TYPE.BEAST,
     size: S.SIZE_CODE.SMALL,
@@ -17,7 +16,6 @@ export const giantRat: CreatureAuthored = {
         INTELLIGENCE: 2,
         WISDOM: 10,
         CHARISMA: 4,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     hitPoints: 7,
@@ -156,7 +154,7 @@ export const giantRat: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(131, 7),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

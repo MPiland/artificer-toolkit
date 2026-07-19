@@ -72,7 +72,10 @@ export function resolveNestedNodeSections<NLocal extends object>(
       const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
       return [
         ...current,
-        ...resolveNestedNodeSections(childMap, section)
+        ...resolveNestedNodeSections(
+          childMap as unknown as NodeMap<Record<string, unknown>>,
+          section
+        )
       ]
     })
 }

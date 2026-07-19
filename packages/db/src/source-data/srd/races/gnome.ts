@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
@@ -16,14 +17,8 @@ import {
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
-import { RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_GNOMISH_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
-
-function conditionTypeId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
-  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
-  return entry.id
-}
+import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SRD_GNOMISH_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -117,6 +112,7 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 2, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Intelligence score increases by 2.',
       availableAtLevel: 1,
       order: 1,
@@ -183,6 +179,7 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 4, 1),
       label: 'Languages',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Gnomish. The Gnomish language uses the Dwarvish script and is renowned for technical treatises and catalogs of knowledge.',
       availableAtLevel: 1,
       order: 3,
@@ -219,6 +216,7 @@ export const rockGnome: RaceAuthored = {
     {
       id: raceFeatureId(109, 1, 1),
       label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'Your Constitution score increases by 1.',
       availableAtLevel: 1,
       order: 0,

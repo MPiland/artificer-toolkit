@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
 import {
   upsertDetail,
@@ -53,9 +54,7 @@ export async function upsertBackground(
   json_data: BackgroundAuthored,
   _systemId: string
 ) {
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     if (json_data.startingEquipment) {
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
@@ -63,13 +62,13 @@ export async function upsertBackground(
     await trx
       .insertInto('backgrounds')
       .values(mapBackgroundRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        starting_equipment_id: ref('excluded.starting_equipment_id')
+      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        starting_equipment_id: eb.ref('excluded.starting_equipment_id')
       })))
       .execute()
 
@@ -145,9 +144,5 @@ export async function upsertBackground(
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

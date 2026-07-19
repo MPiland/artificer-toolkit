@@ -20,7 +20,7 @@ export const currencies: CurrencyOption[] = [
     short: 'gp',
     code: CurrencyCode.GOLD,
     baseCurrencyCode: CurrencyCode.COPPER,
-    baseValue: 1000
+    baseValue: 100
   },
   {
     id: '622c63f5-041a-429a-8cc5-ac17fb13d160',
@@ -36,7 +36,7 @@ export const currencies: CurrencyOption[] = [
     short: 'ep',
     code: CurrencyCode.ELECTRUM,
     baseCurrencyCode: CurrencyCode.COPPER,
-    baseValue: 100
+    baseValue: 50
   },
   {
     id: '563e0322-3cc3-4fcc-8cfa-2253383e5daf',
@@ -52,6 +52,6 @@ export const currencies: CurrencyOption[] = [
     short: 'pp',
     code: CurrencyCode.PLATINUM,
     baseCurrencyCode: CurrencyCode.COPPER,
-    baseValue: 10000
+    baseValue: 1000
   }
 ]

@@ -1,8 +1,9 @@
 import type { DBLike } from '#types'
 import { sql } from 'kysely'
+import type { RepositoryFindAllOptions } from '../../../repositories/contracts.js'
 import { details } from './fragments/index.js'
 
-interface RaceListItem {
+export interface RaceListItem {
   id: string
   label: string
   description: string | null
@@ -18,20 +19,28 @@ interface RaceListItem {
   isMaster: boolean | null
 }
 
-interface RaceMetaObject {
+export interface RaceMetaObject {
   id: string
   raceIds: string[]
 }
 
-interface RaceMeta {
+export interface RaceMeta {
   categories: RaceMetaObject[]
   selectionModes: RaceMetaObject[]
   parentRaces: RaceMetaObject[]
   features: RaceMetaObject[]
 }
 
-export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListItem[], meta: RaceMeta }> {
-  const items = await db
+export interface RaceListQueryResult {
+  items: RaceListItem[]
+  meta: RaceMeta
+}
+
+export async function getRaceListQuery(
+  db: DBLike,
+  filter?: RepositoryFindAllOptions
+): Promise<RaceListQueryResult> {
+  let itemQuery = db
     .selectFrom('races')
     .select((eb) => [
       'id',
@@ -57,8 +66,30 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
-    .execute()
+
+  if (filter?.systemId) {
+    itemQuery = itemQuery.where('system_id', '=', filter.systemId)
+  }
+
+  if (filter?.userId) {
+    itemQuery = itemQuery.where('user_id', '=', filter.userId)
+  }
+
+  const items = await itemQuery.execute()
     .then((rows) => rows?.length ? rows : [])
+  const raceIds = items.map((item) => item.id)
+
+  if (raceIds.length === 0) {
+    return {
+      items,
+      meta: {
+        categories: [],
+        selectionModes: [],
+        parentRaces: [],
+        features: []
+      }
+    }
+  }
 
   const categories: RaceMetaObject[] = await db
     .selectFrom('races')
@@ -66,6 +97,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'category as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
     ])
+    .where('id', 'in', raceIds)
     .where('category', 'is not', null)
     .groupBy('category')
     .execute() as RaceMetaObject[]
@@ -76,6 +108,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'selection_mode as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
     ])
+    .where('id', 'in', raceIds)
     .where('selection_mode', 'is not', null)
     .groupBy('selection_mode')
     .execute() as RaceMetaObject[]
@@ -86,6 +119,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'parent_race_id as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
     ])
+    .where('id', 'in', raceIds)
     .where('parent_race_id', 'is not', null)
     .groupBy('parent_race_id')
     .execute() as RaceMetaObject[]
@@ -96,6 +130,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'feature_id as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('race_id')]).as('raceIds')
     ])
+    .where('race_id', 'in', raceIds)
     .groupBy('feature_id')
     .execute()
 

@@ -14,6 +14,7 @@ type DeleteByCharacterDb = {
 type ExistingCharacterChildIds = {
   currencyGroupIds: string[]
   featureAcquisitionIds: string[]
+  chosenGrantSelectionIds: string[]
   spellSelectionIds: string[]
 }
 
@@ -252,6 +253,94 @@ export function mapFeatureSource(
   }
 }
 
+export function mapChosenGrantSelectionSource(
+  source: NonNullable<CharacterAuthored['intent']['chosenGrantSelections']>[number]['source']
+) {
+  const emptyReferences = {
+    class_id: null,
+    subclass_id: null,
+    source_class_level: null,
+    race_id: null,
+    subrace_id: null,
+    ancestry_id: null,
+    option_id: null,
+    acquired_parent_id: null,
+    background_id: null,
+    feat_id: null,
+    feature_id: null,
+    reason: null
+  }
+
+  switch (source.kind) {
+    case 'CLASS':
+      return {
+        ...emptyReferences,
+        source_kind: 'CLASS',
+        class_id: source.classId,
+        source_class_level: source.classLevel ?? null
+      }
+    case 'SUBCLASS':
+      return {
+        ...emptyReferences,
+        source_kind: 'SUBCLASS',
+        subclass_id: source.subclassId,
+        source_class_level: source.classLevel ?? null
+      }
+    case 'RACE':
+      return {
+        ...emptyReferences,
+        source_kind: 'RACE',
+        race_id: source.raceId
+      }
+    case 'SUBRACE':
+      return {
+        ...emptyReferences,
+        source_kind: 'SUBRACE',
+        subrace_id: source.subraceId
+      }
+    case 'ANCESTRY':
+      return {
+        ...emptyReferences,
+        source_kind: 'ANCESTRY',
+        ancestry_id: source.ancestryId,
+        option_id: source.optionId
+      }
+    case 'BACKGROUND':
+      return {
+        ...emptyReferences,
+        source_kind: 'BACKGROUND',
+        background_id: source.backgroundId
+      }
+    case 'FEAT':
+      return {
+        ...emptyReferences,
+        source_kind: 'FEAT',
+        feat_id: source.featId
+      }
+    case 'FEATURE':
+      return {
+        ...emptyReferences,
+        source_kind: 'FEATURE',
+        feature_id: source.featureId
+      }
+    case 'OPTION':
+      return {
+        ...emptyReferences,
+        source_kind: 'OPTION',
+        acquired_parent_id: source.acquiredParentId,
+        option_id: source.optionId
+      }
+    case 'MANUAL':
+      return {
+        ...emptyReferences,
+        source_kind: 'MANUAL',
+        reason: source.reason ?? null
+      }
+    default:
+      return assertNever(source)
+  }
+}
+
 export function mapSpellSelectionSource(
   source: NonNullable<CharacterAuthored['intent']['spellSelections']>[number]['source']
 ) {
@@ -418,11 +507,14 @@ async function collectExistingChildIds(
   db: DBLike,
   characterId: string
 ): Promise<ExistingCharacterChildIds> {
-  const [currencyGroupRows, featureAcquisitionRows, spellSelectionRows] = await Promise.all([
+  const [currencyGroupRows, featureAcquisitionRows, chosenGrantSelectionRows, spellSelectionRows] = await Promise.all([
     db.selectFrom('character_currency_groups').select(['id'])
       .where('character_id', '=', characterId)
       .execute(),
     db.selectFrom('character_feature_acquisitions').select(['id'])
+      .where('character_id', '=', characterId)
+      .execute(),
+    db.selectFrom('character_chosen_grant_selections').select(['id'])
       .where('character_id', '=', characterId)
       .execute(),
     db.selectFrom('character_spell_selections').select(['id'])
@@ -433,6 +525,7 @@ async function collectExistingChildIds(
   return {
     currencyGroupIds: currencyGroupRows.map((row) => row.id),
     featureAcquisitionIds: featureAcquisitionRows.map((row) => row.id),
+    chosenGrantSelectionIds: chosenGrantSelectionRows.map((row) => row.id),
     spellSelectionIds: spellSelectionRows.map((row) => row.id)
   }
 }
@@ -453,6 +546,11 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
       .execute()
   }
 
+  for (const selectionId of existing.chosenGrantSelectionIds) {
+    await db.deleteFrom('character_chosen_grant_selection_targets').where('selection_id', '=', selectionId)
+      .execute()
+  }
+
   for (const spellSelectionId of existing.spellSelectionIds) {
     await db.deleteFrom('character_spell_selection_spells').where('selection_id', '=', spellSelectionId)
       .execute()
@@ -465,6 +563,10 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
   await deleteByCharacterDb.deleteFrom('character_conditions').where('character_id', '=', characterId)
     .execute()
   await deleteByCharacterDb.deleteFrom('character_exhaustion').where('character_id', '=', characterId)
+    .execute()
+  await deleteByCharacterDb.deleteFrom('character_notes').where('character_id', '=', characterId)
+    .execute()
+  await deleteByCharacterDb.deleteFrom('character_note_groups').where('character_id', '=', characterId)
     .execute()
   await db.deleteFrom('character_attuned').where('character_id', '=', characterId)
     .execute()
@@ -484,8 +586,6 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
     .execute()
   await db.deleteFrom('character_background_equipment_session').where('character_id', '=', characterId)
     .execute()
-  await db.deleteFrom('character_equipment').where('character_id', '=', characterId)
-    .execute()
   await db.deleteFrom('character_creature_equipment').where('character_id', '=', characterId)
     .execute()
   await db.deleteFrom('character_vehicle_equipment').where('character_id', '=', characterId)
@@ -494,9 +594,11 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
     .execute()
   await db.deleteFrom('character_vehicles').where('character_id', '=', characterId)
     .execute()
-  await db.deleteFrom('character_currencies').where('group_id', '=', characterId)
-    .execute()
   await db.deleteFrom('character_currency_groups').where('character_id', '=', characterId)
+    .execute()
+  await db.deleteFrom('character_equipment').where('character_id', '=', characterId)
+    .execute()
+  await db.deleteFrom('character_chosen_grant_selections').where('character_id', '=', characterId)
     .execute()
   await db.deleteFrom('character_feature_acquisitions').where('character_id', '=', characterId)
     .execute()

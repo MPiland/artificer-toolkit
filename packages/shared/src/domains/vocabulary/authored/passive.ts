@@ -1,4 +1,4 @@
-import { ABILITY_CODE } from '#core'
+import type { AbilityCode } from '#core'
 import type { Vocabulary } from './vocabulary.js'
 
 export enum PassiveCode {
@@ -9,7 +9,7 @@ export enum PassiveCode {
 }
 
 export type PassiveOption = Vocabulary<PassiveCode> & {
-  ability: keyof typeof ABILITY_CODE
+  ability: AbilityCode
 }
 
 export const passives: PassiveOption[] = [
@@ -35,6 +35,6 @@ export const passives: PassiveOption[] = [
     id: '1b1b5f1e-4428-4e7f-9df2-5b2000171d12',
     label: 'Investigation',
     code: PassiveCode.INVESTIGATION,
-    ability: 'WISDOM'
+    ability: 'INTELLIGENCE'
   }
 ]

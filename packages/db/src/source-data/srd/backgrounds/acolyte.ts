@@ -1,5 +1,6 @@
 import {
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   PROFICIENCY_KIND,
@@ -67,6 +68,7 @@ export const acolyte: BackgroundAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       languageIds: availableLanguageIds(),
       order: 1

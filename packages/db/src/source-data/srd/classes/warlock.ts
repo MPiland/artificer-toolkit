@@ -1,9 +1,12 @@
 import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -12,33 +15,29 @@ import {
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
+  STARTING_EQUIPMENT_KIND,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
-  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required for class source data.`)
+  if (!entry)
+    throw new Error(`SRD skill vocabulary entry for ${code} required for class source data.`)
   return entry.id
 }
 
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
-if (!goldCurrencyId) throw new Error('SRD GP currency vocabulary entry required for class source data.')
+if (!goldCurrencyId)
+  throw new Error('SRD GP currency vocabulary entry required for class source data.')
 
-const allCantripIds = srdSpells
-  .filter((spell) => spell.level === 0)
-  .map((spell) => spell.id)
+const allCantripIds = srdSpells.filter((spell) => spell.level === 0).map((spell) => spell.id)
 
 // ID helpers: class rows use domain c0XX where XX = class index (01–0c)
 // Format: 00000000-0000-0000-c0XX-GGNN00000000
@@ -48,6 +47,11 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 // ─── Warlock (index 11) ───────────────────────────────────────────────────────
@@ -66,12 +70,12 @@ const pactMagicCharge = {
     { id: classRowId(W, 1, 3), level: 2, amount: 2 },
     { id: classRowId(W, 1, 4), level: 3, amount: 2 },
     { id: classRowId(W, 1, 5), level: 4, amount: 2 },
-    { id: classRowId(W, 1, 6), level: 5, amount: 3 },
-    { id: classRowId(W, 1, 7), level: 6, amount: 3 },
-    { id: classRowId(W, 1, 8), level: 7, amount: 4 },
-    { id: classRowId(W, 1, 9), level: 8, amount: 4 },
-    { id: classRowId(W, 1, 10), level: 9, amount: 4 },
-    { id: classRowId(W, 1, 11), level: 10, amount: 4 },
+    { id: classRowId(W, 1, 6), level: 5, amount: 2 },
+    { id: classRowId(W, 1, 7), level: 6, amount: 2 },
+    { id: classRowId(W, 1, 8), level: 7, amount: 2 },
+    { id: classRowId(W, 1, 9), level: 8, amount: 2 },
+    { id: classRowId(W, 1, 10), level: 9, amount: 2 },
+    { id: classRowId(W, 1, 11), level: 10, amount: 2 },
     { id: classRowId(W, 1, 12), level: 11, amount: 3 },
     { id: classRowId(W, 1, 13), level: 12, amount: 3 },
     { id: classRowId(W, 1, 14), level: 13, amount: 3 },
@@ -87,33 +91,135 @@ const pactMagicCharge = {
 
 // Warlock Pact Magic spell level progression per class level
 const warlockSpellLimits = [
-  { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 1 }], learnedSpellsLimit: 2, cantripsLimit: 2 },
-  { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 2 }], learnedSpellsLimit: 3, cantripsLimit: 2 },
-  { classLevel: 3, slots: [{ spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 4, cantripsLimit: 2 },
-  { classLevel: 4, slots: [{ spellLevel: 2, slotCount: 2 }], learnedSpellsLimit: 5, cantripsLimit: 3 },
-  { classLevel: 5, slots: [{ spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 6, cantripsLimit: 3 },
-  { classLevel: 6, slots: [{ spellLevel: 3, slotCount: 3 }], learnedSpellsLimit: 7, cantripsLimit: 3 },
-  { classLevel: 7, slots: [{ spellLevel: 4, slotCount: 4 }], learnedSpellsLimit: 8, cantripsLimit: 3 },
-  { classLevel: 8, slots: [{ spellLevel: 4, slotCount: 4 }], learnedSpellsLimit: 9, cantripsLimit: 3 },
-  { classLevel: 9, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 10, cantripsLimit: 3 },
-  { classLevel: 10, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 10, cantripsLimit: 4 },
-  { classLevel: 11, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 11, cantripsLimit: 4 },
-  { classLevel: 12, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 11, cantripsLimit: 4 },
-  { classLevel: 13, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 12, cantripsLimit: 4 },
-  { classLevel: 14, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 12, cantripsLimit: 4 },
-  { classLevel: 15, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 13, cantripsLimit: 4 },
-  { classLevel: 16, slots: [{ spellLevel: 5, slotCount: 3 }], learnedSpellsLimit: 13, cantripsLimit: 4 },
-  { classLevel: 17, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 14, cantripsLimit: 4 },
-  { classLevel: 18, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 14, cantripsLimit: 4 },
-  { classLevel: 19, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 15, cantripsLimit: 4 },
-  { classLevel: 20, slots: [{ spellLevel: 5, slotCount: 4 }], learnedSpellsLimit: 15, cantripsLimit: 4 }
+  {
+    classLevel: 1,
+    slots: [{ spellLevel: 1, slotCount: 1 }],
+    learnedSpellsLimit: 2,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 2,
+    slots: [{ spellLevel: 1, slotCount: 2 }],
+    learnedSpellsLimit: 3,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 3,
+    slots: [{ spellLevel: 2, slotCount: 2 }],
+    learnedSpellsLimit: 4,
+    cantripsLimit: 2
+  },
+  {
+    classLevel: 4,
+    slots: [{ spellLevel: 2, slotCount: 2 }],
+    learnedSpellsLimit: 5,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 5,
+    slots: [{ spellLevel: 3, slotCount: 2 }],
+    learnedSpellsLimit: 6,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 6,
+    slots: [{ spellLevel: 3, slotCount: 2 }],
+    learnedSpellsLimit: 7,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 7,
+    slots: [{ spellLevel: 4, slotCount: 2 }],
+    learnedSpellsLimit: 8,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 8,
+    slots: [{ spellLevel: 4, slotCount: 2 }],
+    learnedSpellsLimit: 9,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 9,
+    slots: [{ spellLevel: 5, slotCount: 2 }],
+    learnedSpellsLimit: 10,
+    cantripsLimit: 3
+  },
+  {
+    classLevel: 10,
+    slots: [{ spellLevel: 5, slotCount: 2 }],
+    learnedSpellsLimit: 10,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 11,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 11,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 12,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 11,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 13,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 12,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 14,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 12,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 15,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 13,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 16,
+    slots: [{ spellLevel: 5, slotCount: 3 }],
+    learnedSpellsLimit: 13,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 17,
+    slots: [{ spellLevel: 5, slotCount: 4 }],
+    learnedSpellsLimit: 14,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 18,
+    slots: [{ spellLevel: 5, slotCount: 4 }],
+    learnedSpellsLimit: 14,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 19,
+    slots: [{ spellLevel: 5, slotCount: 4 }],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 4
+  },
+  {
+    classLevel: 20,
+    slots: [{ spellLevel: 5, slotCount: 4 }],
+    learnedSpellsLimit: 15,
+    cantripsLimit: 4
+  }
 ]
 
 export const warlock: ClassAuthored = {
   id: CLASS_IDS.WARLOCK,
   label: 'Warlock',
   category: CLASS_CATEGORY.BASE,
-  description: 'A wielder of magic that is derived from a bargain with an extraplanar entity. Warlocks are defined by a pact with an otherworldly being.',
+  subclassSelectionLevel: 1,
+  description:
+    'A wielder of magic that is derived from a bargain with an extraplanar entity. Warlocks are defined by a pact with an otherworldly being.',
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
@@ -167,10 +273,174 @@ export const warlock: ClassAuthored = {
     ]
   },
 
-  // ── Starting equipment (simplified — full starting equipment uses StartingEquipmentAuthored) ──
   startingEquipment: {
     id: classRowId(W, 98, 1),
-    sets: []
+    sets: [
+      {
+        id: classRowId(W, 98, 2),
+        order: 0,
+        groups: [
+          {
+            id: classRowId(W, 98, 3),
+            order: 0,
+            options: [
+              {
+                id: classRowId(W, 98, 4),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(W, 98, 5),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(11)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(W, 98, 6),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(101)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(W, 98, 7),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(W, 98, 8),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(W, 98, 9),
+            order: 1,
+            options: [
+              {
+                id: classRowId(W, 98, 10),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(W, 98, 11),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(135)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(W, 98, 12),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(W, 98, 13),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [87, 88, 89, 90, 91].map(equipmentId),
+                    count: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(W, 98, 14),
+            order: 2,
+            options: [
+              {
+                id: classRowId(W, 98, 15),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(W, 98, 16),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(188)],
+                    quantity: 1
+                  }
+                ]
+              },
+              {
+                id: classRowId(W, 98, 17),
+                order: 1,
+                items: [
+                  {
+                    id: classRowId(W, 98, 18),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(184)],
+                    quantity: 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: classRowId(W, 98, 19),
+            order: 3,
+            options: [
+              {
+                id: classRowId(W, 98, 20),
+                order: 0,
+                items: [
+                  {
+                    id: classRowId(W, 98, 21),
+                    order: 0,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(39)],
+                    quantity: 1
+                  },
+                  {
+                    id: classRowId(W, 98, 22),
+                    order: 1,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+                    properties: [EQUIPMENT_PROPERTY_CODE.SIMPLE],
+                    count: 1
+                  },
+                  {
+                    id: classRowId(W, 98, 23),
+                    order: 2,
+                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    equipmentIds: [equipmentId(2)],
+                    quantity: 2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
 
   // ── Class proficiencies ───────────────────────────────────────────────────────
@@ -222,6 +492,7 @@ export const warlock: ClassAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
       authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       skillIds: [
         skillId('ARCANA'),
@@ -245,27 +516,33 @@ export const warlock: ClassAuthored = {
     details: classSpellcastingDetails(W, [
       {
         label: 'Pact Magic',
-        description: '<p>Your arcane research and the magic bestowed on you by your patron have given you facility with spells.</p>'
+        description:
+          '<p>Your arcane research and the magic bestowed on you by your patron have given you facility with spells.</p>'
       },
       {
         label: 'Cantrips',
-        description: '<p>You know two cantrips of your choice from the warlock spell list. You learn additional warlock cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Warlock table.</p>'
+        description:
+          '<p>You know two cantrips of your choice from the warlock spell list. You learn additional warlock cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Warlock table.</p>'
       },
       {
         label: 'Spell Slots',
-        description: '<p>The Warlock table shows how many spell slots you have. The table also shows what the level of those slots is; all of your spell slots are the same level. To cast one of your warlock spells of 1st level or higher, you must expend a spell slot. You regain all expended spell slots when you finish a short or long rest.</p><p>For example, when you are 5th level, you have two 3rd-level spell slots. To cast the 1st-level spell <em>thunderwave</em>, you must spend one of those slots, and you cast it as a 3rd-level spell.</p>'
+        description:
+          '<p>The Warlock table shows how many spell slots you have. The table also shows what the level of those slots is; all of your spell slots are the same level. To cast one of your warlock spells of 1st level or higher, you must expend a spell slot. You regain all expended spell slots when you finish a short or long rest.</p><p>For example, when you are 5th level, you have two 3rd-level spell slots. To cast the 1st-level spell <em>thunderwave</em>, you must spend one of those slots, and you cast it as a 3rd-level spell.</p>'
       },
       {
         label: 'Spells Known of 1st Level and Higher',
-        description: '<p>At 1st level, you know two 1st-level spells of your choice from the warlock spell list.</p><p>The Spells Known column of the Warlock table shows when you learn more warlock spells of your choice of 1st level and higher. A spell you choose must be of a level no higher than what\'s shown in the table\'s Slot Level column for your level. When you reach 6th level, for example, you learn a new warlock spell, which can be 1st, 2nd, or 3rd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the warlock spells you know and replace it with another spell from the warlock spell list, which also must be of a level for which you have spell slots.</p>'
+        description:
+          "<p>At 1st level, you know two 1st-level spells of your choice from the warlock spell list.</p><p>The Spells Known column of the Warlock table shows when you learn more warlock spells of your choice of 1st level and higher. A spell you choose must be of a level no higher than what's shown in the table's Slot Level column for your level. When you reach 6th level, for example, you learn a new warlock spell, which can be 1st, 2nd, or 3rd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the warlock spells you know and replace it with another spell from the warlock spell list, which also must be of a level for which you have spell slots.</p>"
       },
       {
         label: 'Spellcasting Ability',
-        description: '<p>Charisma is your spellcasting ability for your warlock spells, so you use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a warlock spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+        description:
+          '<p>Charisma is your spellcasting ability for your warlock spells, so you use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a warlock spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
       },
       {
         label: 'Spellcasting Focus',
-        description: '<p>You can use an arcane focus as a spellcasting focus for your warlock spells.</p>'
+        description:
+          '<p>You can use an arcane focus as a spellcasting focus for your warlock spells.</p>'
       }
     ]),
     charges: pactMagicCharge,
@@ -278,7 +555,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 1),
       label: 'Otherworldly Patron',
-      description: 'At 1st level, you have struck a bargain with an otherworldly being of your choice. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
+      description:
+        'At 1st level, you have struck a bargain with an otherworldly being of your choice. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 1,
       order: 0
     },
@@ -286,7 +564,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 2),
       label: 'Pact Magic',
-      description: 'Your arcane research and the magic bestowed on you by your patron have given you facility with spells. You regain all expended spell slots when you finish a short or long rest.',
+      description:
+        'Your arcane research and the magic bestowed on you by your patron have given you facility with spells. You regain all expended spell slots when you finish a short or long rest.',
       availableAtLevel: 1,
       order: 1
     },
@@ -294,7 +573,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 3),
       label: 'Eldritch Invocations',
-      description: 'In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.',
+      description:
+        'In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.',
       availableAtLevel: 2,
       order: 2,
       optionChoices: [
@@ -310,7 +590,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 4),
           label: 'Agonizing Blast',
-          description: 'When you cast Eldritch Blast, add your Charisma modifier to the damage it deals on a hit.',
+          description:
+            'When you cast Eldritch Blast, add your Charisma modifier to the damage it deals on a hit.',
           // Requires Eldritch Blast cantrip (CHARACTER context, SPELL_OBTAINED predicate)
           restrictions: {
             id: classRowId(W, 4, 1),
@@ -379,7 +660,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 6),
           label: 'Armor of Shadows',
-          description: 'You can cast Mage Armor on yourself at will, without expending a spell slot or material components.',
+          description:
+            'You can cast Mage Armor on yourself at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -397,8 +679,9 @@ export const warlock: ClassAuthored = {
         },
         {
           id: classRowId(W, 3, 8),
-          label: 'Devil\'s Sight',
-          description: 'You can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.',
+          label: "Devil's Sight",
+          description:
+            'You can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.',
           order: 2
         },
         {
@@ -423,7 +706,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 11),
           label: 'Fiendish Vigor',
-          description: 'You can cast False Life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
+          description:
+            'You can cast False Life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -461,7 +745,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 15),
           label: 'Misty Visions',
-          description: 'You can cast Silent Image at will, without expending a spell slot or material components.',
+          description:
+            'You can cast Silent Image at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -480,7 +765,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 17),
           label: 'Repelling Blast',
-          description: 'When you hit a creature with Eldritch Blast, you can push the creature up to 10 feet away from you in a straight line.',
+          description:
+            'When you hit a creature with Eldritch Blast, you can push the creature up to 10 feet away from you in a straight line.',
           // Requires Eldritch Blast. Push effect is a combat action modifier not representable as a grant.
           restrictions: {
             id: classRowId(W, 4, 9),
@@ -513,7 +799,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 19),
           label: 'Thief of Five Fates',
-          description: 'You can cast Bane once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Bane once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -555,7 +842,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 3),
           label: 'Book of Ancient Secrets',
-          description: 'You can now inscribe magical rituals in your Book of Shadows. On your adventures, you can add other ritual spells to your Book of Shadows.',
+          description:
+            'You can now inscribe magical rituals in your Book of Shadows. On your adventures, you can add other ritual spells to your Book of Shadows.',
           // Requires Pact of the Tome (classRowId(W, 3, 25))
           restrictions: {
             id: classRowId(W, 6, 1),
@@ -588,7 +876,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 4),
           label: 'Chains of Carceri',
-          description: 'You can cast Hold Monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.',
+          description:
+            'You can cast Hold Monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.',
           grants: {
             spells: [
               {
@@ -621,6 +910,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 15
                       },
                       {
@@ -642,7 +932,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 6),
           label: 'Dreadful Word',
-          description: 'You can cast Confusion once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Confusion once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -675,6 +966,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 7
                       }
                     ]
@@ -729,14 +1021,16 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 10),
           label: 'Gaze of Two Minds',
-          description: 'You can use your action to touch a willing humanoid and perceive through its senses until the start of your next turn.',
+          description:
+            'You can use your action to touch a willing humanoid and perceive through its senses until the start of your next turn.',
           // No requirements. Action-based ability — description-only.
           order: 15
         },
         {
           id: classRowId(W, 5, 11),
           label: 'Lifedrinker',
-          description: 'When you hit a creature with your pact weapon, the creature takes extra necrotic damage equal to your Charisma modifier (minimum 1).',
+          description:
+            'When you hit a creature with your pact weapon, the creature takes extra necrotic damage equal to your Charisma modifier (minimum 1).',
           // Pact weapon damage is not a standard attack type we can scope as a modifier grant — description-only.
           // Requires warlock level 12 + Pact of the Blade (classRowId(W, 3, 24))
           restrictions: {
@@ -757,6 +1051,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 12
                       },
                       {
@@ -811,6 +1106,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 15
                       }
                     ]
@@ -824,7 +1120,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 14),
           label: 'Minions of Chaos',
-          description: 'You can cast Conjure Elemental once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Conjure Elemental once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -857,6 +1154,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 9
                       }
                     ]
@@ -870,7 +1168,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 16),
           label: 'Mire the Mind',
-          description: 'You can cast Slow once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Slow once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -903,6 +1202,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 5
                       }
                     ]
@@ -916,7 +1216,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 18),
           label: 'One with Shadows',
-          description: 'When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.',
+          description:
+            'When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.',
           // Action-based ability — description-only.
           // Requires warlock level 5
           restrictions: {
@@ -937,6 +1238,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 5
                       }
                     ]
@@ -950,7 +1252,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 19),
           label: 'Otherworldly Leap',
-          description: 'You can cast Jump on yourself at will, without expending a spell slot or material components.',
+          description:
+            'You can cast Jump on yourself at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -983,6 +1286,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 9
                       }
                     ]
@@ -996,7 +1300,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 21),
           label: 'Sculptor of Flesh',
-          description: 'You can cast Polymorph once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Polymorph once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1029,6 +1334,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 7
                       }
                     ]
@@ -1042,7 +1348,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 23),
           label: 'Sign of Ill Omen',
-          description: 'You can cast Bestow Curse once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          description:
+            "You can cast Bestow Curse once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1075,6 +1382,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 5
                       }
                     ]
@@ -1088,7 +1396,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 25),
           label: 'Thirsting Blade',
-          description: 'You can attack with your pact weapon twice, instead of once, when you take the Attack action on your turn.',
+          description:
+            'You can attack with your pact weapon twice, instead of once, when you take the Attack action on your turn.',
           // Extra attack not representable as a standard modifier grant — description-only.
           // Requires warlock level 5 + Pact of the Blade (classRowId(W, 3, 24))
           restrictions: {
@@ -1109,6 +1418,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 5
                       },
                       {
@@ -1163,6 +1473,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 15
                       }
                     ]
@@ -1176,7 +1487,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 28),
           label: 'Voice of the Chain Master',
-          description: 'You can communicate telepathically with your familiar and perceive through your familiar\'s senses as long as you are on the same plane of existence.',
+          description:
+            "You can communicate telepathically with your familiar and perceive through your familiar's senses as long as you are on the same plane of existence.",
           // Description-only — telepathic sense-sharing is not representable as a modifier.
           // Requires Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
@@ -1243,6 +1555,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 9
                       }
                     ]
@@ -1256,7 +1569,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 5, 31),
           label: 'Witch Sight',
-          description: 'You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.',
+          description:
+            'You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.',
           // Passive sense — description-only.
           // Requires warlock level 15
           restrictions: {
@@ -1277,6 +1591,7 @@ export const warlock: ClassAuthored = {
                         kind: 'PREDICATE' as const,
                         constraint: 'INCLUDE' as const,
                         predicateCode: 'CLASS_LEVEL' as const,
+                        classIds: [CLASS_IDS.WARLOCK],
                         min: 15
                       }
                     ]
@@ -1293,7 +1608,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 21),
       label: 'Pact Boon',
-      description: 'At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service.',
+      description:
+        'At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service.',
       availableAtLevel: 3,
       order: 3,
       optionChoices: [{ level: 3, count: 1 }],
@@ -1301,7 +1617,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 22),
           label: 'Pact of the Chain',
-          description: 'You learn the Find Familiar spell and can cast it as a ritual. The spell doesn\'t count against your number of spells known.',
+          description:
+            "You learn the Find Familiar spell and can cast it as a ritual. The spell doesn't count against your number of spells known.",
           grants: {
             spells: [
               {
@@ -1327,7 +1644,8 @@ export const warlock: ClassAuthored = {
         {
           id: classRowId(W, 3, 25),
           label: 'Pact of the Tome',
-          description: 'Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class\'s spell list.',
+          description:
+            "Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class's spell list.",
           grants: {
             spells: [
               {
@@ -1335,6 +1653,7 @@ export const warlock: ClassAuthored = {
                 grantKind: GRANT_KIND.SPELL_GRANT,
                 selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
                 count: 3,
+                selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: allCantripIds,
@@ -1351,7 +1670,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 26),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 4
     },
@@ -1369,7 +1689,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 28),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 6
     },
@@ -1385,7 +1706,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 30),
       label: 'Mystic Arcanum (6th Level)',
-      description: 'Your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.',
+      description:
+        'Your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.',
       availableAtLevel: 11,
       order: 8
     },
@@ -1414,7 +1736,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 34),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 12
     },
@@ -1429,7 +1752,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 36),
       label: 'Ability Score Improvement',
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 14
     },
@@ -1437,7 +1761,8 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 37),
       label: 'Eldritch Master',
-      description: 'At 20th level, you can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.',
+      description:
+        'At 20th level, you can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.',
       availableAtLevel: 20,
       order: 15
     }

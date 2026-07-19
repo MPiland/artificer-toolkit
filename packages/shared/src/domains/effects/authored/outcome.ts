@@ -6,7 +6,7 @@ import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { HealAuthored } from './heal.js'
 import type { ManifestAuthored } from './manifest.js'
 import type { MoveManifestAuthored } from './moveManifest.js'
-import type { RuleAuthored } from './rule.js'
+import type { ManualAdjudicationAuthored } from './manualAdjudication.js'
 import type { TeleportAuthored } from './teleport.js'
 
 export type OutcomeRowMetadataAuthored = {
@@ -24,6 +24,6 @@ export type OutcomeAuthored
     | ManifestAuthored
     | MoveManifestAuthored
     | CommandManifestAuthored
-    | RuleAuthored
+    | ManualAdjudicationAuthored
 
 export type NonManifestOutcomeAuthored = Exclude<OutcomeAuthored, ManifestAuthored>

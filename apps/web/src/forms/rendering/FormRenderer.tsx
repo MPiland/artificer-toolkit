@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useStore, type DeepKeys } from '@tanstack/react-form'
+import { useStore } from '@tanstack/react-form'
 import type {
-  NodeRuntimeNodeDto,
   NodeRuntimePathDto,
   NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
@@ -17,33 +16,40 @@ import { withForm } from '../app-form/AppForm'
 import {
   getAuthoringFieldValue,
   toAuthoringFieldName,
-  toTypedAuthoringArrayFieldName,
   prefixRuntimePaths,
   toTypedAuthoringFieldName
 } from '../utils/pathUtils'
 import {
   buildAuthoringNavigationTree,
-  getFirstArrayItemNavigationTargetId,
+  isNavigableAuthoringGroupNode,
   type AuthoringNavigationTarget
 } from '../layout/authoringNavigation'
-import {
-  createDefaultAuthoringArrayItem,
-  createDefaultAuthoringObjectItem,
-  type AuthoringGroupValues
-} from './authoringNodeDefaults'
 import {
   toEditorValues,
   hasVisibleStepChanges,
   resetVisibleStepFields,
-  isRenderableNode,
-  getEffectiveInputType,
-  getRequiredValidators
+  isRenderableNode
 } from './FormRenderer.utils'
+import { useStructuralChangeGuard, type StructuralChangeGuard } from './useStructuralChangeGuard'
+import {
+  AuthoringRendererInteractionsProvider,
+  AuthoringRendererScopeProvider,
+  type AuthoringRendererInteractions,
+  type AuthoringRendererScope,
+  type GroupEditorTransaction,
+  type GroupRemoval,
+  type RenderChildAuthoringSchema
+} from './FormRenderer.context'
+import { createResolvedInputField } from './ResolvedInputField.factory'
+import { createResolvedArrayGroup } from './ResolvedArrayGroup.factory'
+import { createResolvedObjectGroup } from './ResolvedObjectGroup.factory'
+import { createResolvedCollectionOverview } from './ResolvedCollectionOverview.factory'
+import { captureGroupEditorSnapshot } from './groupEditorTransaction'
+import { AuthoringValidationAlert } from './AuthoringValidationAlert'
+import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 import * as styles from './FormRenderer.css'
-import { ActionIcon, Alert, Button, Collapse, Group, Text } from '@mantine/core'
-import { ChevronDown, Trash2 } from 'lucide-react'
-import { speedOptions } from '@artificer-toolkit/shared/authored'
-import { EFFECT_KIND_OPTIONS, PATH_CODE_OPTIONS, TRIGGER_OPTIONS } from '@artificer-toolkit/shared/core'
+import { Button, Group, Modal, Text } from '@mantine/core'
+import { CircleHelp } from 'lucide-react'
 
 export type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
@@ -56,18 +62,15 @@ type SharedRendererProps = {
   fieldPathPrefix?: string
   mapId?: string
   model?: NodeRuntimeResolveResponseDto
+  navigationTarget?: AuthoringNavigationTarget
   parentValues?: Record<string, unknown>
   readOnly?: boolean
   renderAllSteps?: boolean
+  renderNavigationTarget?: boolean
   resolveModel?: boolean
   systemId?: string
+  structuralChangeGuard?: StructuralChangeGuard
   updateAuthoringState?: boolean
-}
-
-type RenderNodeProps<TValues extends object> = {
-  fieldName: DeepKeys<TValues>
-  node: NodeRuntimeNodeDto
-  readOnly: boolean
 }
 
 const EMPTY_VISIBLE_STEPS: VisibleAuthoringSteps = []
@@ -75,6 +78,10 @@ const EMPTY_VISIBLE_STEPS: VisibleAuthoringSteps = []
 export function FormRenderer<TValues extends object>({
   defaultValues
 }: FormRendererOptions<TValues>) {
+  const ResolvedInputField = createResolvedInputField(defaultValues)
+  const ResolvedArrayGroup = createResolvedArrayGroup(defaultValues)
+  const ResolvedObjectGroup = createResolvedObjectGroup(defaultValues)
+  const ResolvedCollectionOverview = createResolvedCollectionOverview(defaultValues)
   const Renderer = withForm({
     defaultValues,
     props: {} as SharedRendererProps,
@@ -86,28 +93,40 @@ export function FormRenderer<TValues extends object>({
       form,
       mapId,
       model,
+      navigationTarget,
       parentValues,
       readOnly,
       renderAllSteps = false,
+      renderNavigationTarget = false,
       resolveModel,
       systemId,
+      structuralChangeGuard: inheritedStructuralChangeGuard,
       updateAuthoringState = true
     }) {
       const authoring = useAuthoringForm()
-      const {
-        updateAuthoringFormActions,
-        updateAuthoringFormState
-      } = authoring
-      const [collapsedInlineRowIds, setCollapsedInlineRowIds] = useState<ReadonlySet<string>>(
+      const { updateAuthoringFormActions, updateAuthoringFormState } = authoring
+      const [expandedInlineRowIds, setExpandedInlineRowIds] = useState<ReadonlySet<string>>(
         () => new Set()
       )
+      const [groupEditor, setGroupEditor] = useState<GroupEditorTransaction>()
+      const [groupRemoval, setGroupRemoval] = useState<GroupRemoval>()
       const resolvedFieldPathPrefix = fieldPathPrefix
       const resolvedMapId = mapId ?? authoring.mapId
       const resolvedReadOnly = readOnly ?? authoring.readOnly
       const resolvedResolveModel = resolveModel ?? authoring.resolveModel
       const resolvedSystemId = systemId ?? authoring.systemId
+      const rendersNavigationTarget = updateAuthoringState || renderNavigationTarget
       const formValues = useStore(form.store, (state) => state.values)
       const rootValues = useMemo(() => toResolvedNodeValues(formValues), [formValues])
+      const localStructuralChangeGuard = useStructuralChangeGuard({
+        form,
+        rootMapId: authoring.mapId,
+        rootSystemId: authoring.systemId,
+        rootValues
+      })
+      const structuralChangeGuard = inheritedStructuralChangeGuard ?? localStructuralChangeGuard
+      const ownsStructuralChangeGuard = inheritedStructuralChangeGuard === undefined
+
       const canSubmit = useStore(form.store, (state) => state.canSubmit)
       const fieldMeta = useStore(
         form.store,
@@ -118,9 +137,7 @@ export function FormRenderer<TValues extends object>({
       const values = useMemo(() => {
         if (!resolvedFieldPathPrefix) return rootValues
 
-        return toEditorValues(
-          getAuthoringFieldValue(rootValues, resolvedFieldPathPrefix)
-        )
+        return toEditorValues(getAuthoringFieldValue(rootValues, resolvedFieldPathPrefix))
       }, [resolvedFieldPathPrefix, rootValues])
       const childAncestors = useMemo(
         () => (parentValues ? [parentValues, ...(ancestors ?? [])] : ancestors),
@@ -146,14 +163,16 @@ export function FormRenderer<TValues extends object>({
       )
       const navigationState = useMemo(
         () =>
-          updateAuthoringState && resolvedMapId && activeModel
+          rendersNavigationTarget && resolvedMapId && activeModel
             ? buildAuthoringNavigationTree({
                 ancestors,
                 fieldMeta,
+                fieldPathPrefix: resolvedFieldPathPrefix,
                 mapId: resolvedMapId,
                 model: activeModel,
                 parentValues,
                 values: rootValues,
+                validationIssues: authoring.validationIssues,
                 warnings: authoring.stepWarnings
               })
             : undefined,
@@ -161,23 +180,87 @@ export function FormRenderer<TValues extends object>({
           activeModel,
           ancestors,
           authoring.stepWarnings,
+          authoring.validationIssues,
           fieldMeta,
           parentValues,
           resolvedMapId,
           rootValues,
-          updateAuthoringState
+          rendersNavigationTarget,
+          resolvedFieldPathPrefix
         ]
       )
-      const activeTarget = updateAuthoringState
-        ? authoring.activeNavigationTarget ?? navigationState?.navigationTargets[0]
-        : undefined
+      const activeTarget =
+        navigationTarget ??
+        (updateAuthoringState
+          ? (authoring.activeNavigationTarget ?? navigationState?.navigationTargets[0])
+          : undefined)
+      useEffect(() => {
+        if (
+          !rendersNavigationTarget ||
+          activeTarget?.kind !== 'drawer-item' ||
+          !activeTarget.collectionFieldName ||
+          activeTarget.drawerRowIndex === undefined ||
+          !activeTarget.fieldPathPrefix
+        ) {
+          return
+        }
+
+        const collectionFieldName = activeTarget.collectionFieldName
+        const drawerRowIndex = activeTarget.drawerRowIndex
+        const drawerLabel = activeTarget.label
+
+        setGroupEditor((current) => {
+          if (current?.fieldName === collectionFieldName && current.rowIndex === drawerRowIndex) {
+            return current
+          }
+
+          const collection = getAuthoringFieldValue(
+            toResolvedNodeValues(form.state.values),
+            collectionFieldName
+          )
+          const snapshot = captureGroupEditorSnapshot({
+            collection: Array.isArray(collection) ? collection : [],
+            collectionFieldName,
+            fieldMeta: form.state.fieldMeta,
+            rowIndex: drawerRowIndex
+          })
+
+          return {
+            fieldName: collectionFieldName,
+            label: `Edit ${drawerLabel}`,
+            mode: 'edit',
+            opener: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+            rowIndex: drawerRowIndex,
+            ...snapshot
+          }
+        })
+      }, [activeTarget, form, rendersNavigationTarget])
+      const activeCanvasMapId =
+        activeTarget?.kind === 'step' ? activeTarget.mapId : activeTarget?.canvasMapId
+      const activeCanvasFieldPathPrefix =
+        activeTarget?.kind === 'step'
+          ? activeTarget.fieldPathPrefix
+          : activeTarget?.canvasFieldPathPrefix
+      const delegatesNavigationTarget = Boolean(
+        rendersNavigationTarget &&
+        activeTarget &&
+        activeCanvasMapId &&
+        (activeCanvasMapId !== resolvedMapId ||
+          activeCanvasFieldPathPrefix !== resolvedFieldPathPrefix)
+      )
+      const registersStagedEditorState = rendersNavigationTarget && !delegatesNavigationTarget
       const targetStepId =
         currentStepId ??
-        (activeTarget?.kind === 'step' &&
-        activeTarget.mapId === resolvedMapId &&
-        activeTarget.fieldPathPrefix === resolvedFieldPathPrefix
-          ? activeTarget.stepId
-          : undefined)
+        (activeTarget?.kind === 'step'
+          ? activeTarget.mapId === resolvedMapId &&
+            activeTarget.fieldPathPrefix === resolvedFieldPathPrefix
+            ? activeTarget.stepId
+            : undefined
+          : activeTarget &&
+              activeTarget.canvasMapId === resolvedMapId &&
+              activeTarget.canvasFieldPathPrefix === resolvedFieldPathPrefix
+            ? activeTarget.canvasStepId
+            : undefined)
       const visibleSteps = updateAuthoringState ? authoring.visibleSteps : fallbackVisibleSteps
       const currentStep = targetStepId
         ? visibleSteps.find((step) => step.id === targetStepId)
@@ -201,13 +284,7 @@ export function FormRenderer<TValues extends object>({
             values,
             warnings: authoring.stepWarnings
           }),
-        [
-          activeModel,
-          authoring.stepWarnings,
-          resolvedFieldPathPrefix,
-          fieldMeta,
-          values
-        ]
+        [activeModel, authoring.stepWarnings, resolvedFieldPathPrefix, fieldMeta, values]
       )
 
       const resetCurrentStep = useCallback(() => {
@@ -229,13 +306,6 @@ export function FormRenderer<TValues extends object>({
         },
         [form, resolvedFieldPathPrefix]
       )
-      const runtimeClearPaths = activeModel?.clearPaths ?? []
-      const runtimeClearPathKey = runtimeClearPaths.map((path) => path.join('.')).join('|')
-
-      useEffect(() => {
-        if (updateAuthoringState || !hasChanges || runtimeClearPaths.length === 0) return
-        clearPaths(runtimeClearPaths)
-      }, [clearPaths, hasChanges, runtimeClearPathKey, runtimeClearPaths, updateAuthoringState])
       const statePatch = useMemo(
         () => ({
           canFinalize:
@@ -285,6 +355,67 @@ export function FormRenderer<TValues extends object>({
         }),
         [clearPaths, resetCurrentForm, resetCurrentStep]
       )
+      const renderChild = useCallback<RenderChildAuthoringSchema>(
+        (options) => {
+          const childModel =
+            options.model ??
+            getResolvedAuthoringScope(activeModel, options.mapId, options.fieldPathPrefix)
+
+          return (
+            <Renderer
+              {...options}
+              form={form}
+              debounceMs={debounceMs}
+              model={childModel}
+              resolveModel={resolvedResolveModel && activeModel?.scopes === undefined}
+              systemId={resolvedSystemId}
+              structuralChangeGuard={structuralChangeGuard}
+              updateAuthoringState={false}
+            />
+          )
+        },
+        [
+          activeModel,
+          debounceMs,
+          form,
+          resolvedResolveModel,
+          resolvedSystemId,
+          structuralChangeGuard
+        ]
+      )
+      const rendererScope = useMemo<AuthoringRendererScope>(
+        () => ({
+          childAncestors,
+          fieldPathPrefix: resolvedFieldPathPrefix,
+          model: activeModel,
+          readOnly: Boolean(resolvedReadOnly),
+          renderAllSteps,
+          renderChild,
+          structuralChangeGuard,
+          values
+        }),
+        [
+          activeModel,
+          childAncestors,
+          renderAllSteps,
+          renderChild,
+          resolvedFieldPathPrefix,
+          resolvedReadOnly,
+          structuralChangeGuard,
+          values
+        ]
+      )
+      const rendererInteractions = useMemo<AuthoringRendererInteractions>(
+        () => ({
+          expandedInlineRowIds,
+          groupEditor,
+          groupRemoval,
+          setExpandedInlineRowIds,
+          setGroupEditor,
+          setGroupRemoval
+        }),
+        [expandedInlineRowIds, groupEditor, groupRemoval]
+      )
 
       const shouldUpdateAuthoringState =
         updateAuthoringState && Boolean(resolvedMapId && activeModel)
@@ -299,583 +430,235 @@ export function FormRenderer<TValues extends object>({
         updateAuthoringFormActions(actions)
       }, [actions, shouldUpdateAuthoringState, updateAuthoringFormActions])
 
+      useEffect(() => {
+        if (!registersStagedEditorState) return
+        updateAuthoringFormState({ stagedEditorOpen: Boolean(groupEditor) })
+      }, [groupEditor, registersStagedEditorState, updateAuthoringFormState])
+
+      useEffect(() => {
+        if (!registersStagedEditorState) return
+        return () => updateAuthoringFormState({ stagedEditorOpen: false })
+      }, [registersStagedEditorState, updateAuthoringFormState])
+
       if (!resolvedMapId || !activeModel) return null
 
-      if (
-        updateAuthoringState &&
-        activeTarget?.kind === 'step' &&
-        (activeTarget.mapId !== resolvedMapId ||
-          activeTarget.fieldPathPrefix !== resolvedFieldPathPrefix)
-      ) {
-        return (
-          <Renderer
-            form={form}
-            ancestors={activeTarget.ancestors}
-            currentStepId={activeTarget.stepId}
-            debounceMs={debounceMs}
-            fieldPathPrefix={activeTarget.fieldPathPrefix}
-            mapId={activeTarget.mapId}
-            parentValues={activeTarget.parentValues}
-            readOnly={resolvedReadOnly}
-            resolveModel={resolvedResolveModel}
-            systemId={resolvedSystemId}
-            updateAuthoringState={false}
-          />
+      const structuralChangeConfirmationModal = ownsStructuralChangeGuard ? (
+        <Modal
+          centered
+          closeOnClickOutside={false}
+          opened={Boolean(structuralChangeGuard.confirmation)}
+          onClose={structuralChangeGuard.cancel}
+          title='Clear hidden values?'
+        >
+          <Text size='sm'>
+            {`Changing ${structuralChangeGuard.confirmation?.label ?? 'this field'} will remove configured values from fields that become hidden.`}
+          </Text>
+          <Group justify='flex-end' mt='md'>
+            <Button type='button' variant='default' onClick={structuralChangeGuard.cancel}>
+              Cancel
+            </Button>
+            <Button type='button' color='red' onClick={structuralChangeGuard.confirm}>
+              Clear and continue
+            </Button>
+          </Group>
+        </Modal>
+      ) : null
+
+      if (delegatesNavigationTarget && activeTarget && activeCanvasMapId) {
+        const delegatedModel = getResolvedAuthoringScope(
+          activeModel,
+          activeCanvasMapId,
+          activeCanvasFieldPathPrefix
         )
-      }
-
-      if (updateAuthoringState && activeTarget?.kind === 'overview') {
-        return renderArrayOverview(activeTarget)
-      }
-
-      if (!currentStep) return null
-      const renderedSteps = renderAllSteps ? visibleSteps : [currentStep]
-
-      function renderNode<TValues extends object>({
-        fieldName,
-        node,
-        readOnly
-      }: RenderNodeProps<TValues>) {
-        const inputType = getEffectiveInputType(node)
-        const validators = node.required ? getRequiredValidators(inputType, node.label) : undefined
 
         return (
-          <form.AppField key={node.id} name={fieldName} validators={validators}>
-            {(appField) => {
-              switch (inputType) {
-                case 'TEXT':
-                  return (
-                    <appField.TextField
-                      label={node.label}
-                      required={node.required}
-                      readOnly={readOnly}
-                    />
-                  )
-                case 'NUMBER':
-                  return (
-                    <appField.NumberField
-                      label={node.label}
-                      required={node.required}
-                      readOnly={readOnly}
-                    />
-                  )
-                case 'RICH_TEXT':
-                  return (
-                    <div className={styles.wideField}>
-                      <appField.RichTextField
-                        label={node.label}
-                        required={node.required}
-                        readOnly={readOnly}
-                      />
-                    </div>
-                  )
-                case 'SELECT_SINGLE':
-                  return (
-                    <appField.SelectField
-                      label={node.label}
-                      data={node.options ?? []}
-                      required={node.required}
-                      readOnly={readOnly}
-                    />
-                  )
-                case 'SELECT_MULTI':
-                  return (
-                    <appField.MultiSelectField
-                      label={node.label}
-                      data={node.options ?? []}
-                      required={node.required}
-                      readOnly={readOnly}
-                    />
-                  )
-                default:
-                  return (
-                    <Alert color='yellow' className={styles.wideField}>
-                      <Text>{`Unsupported field: ${node.label}`}</Text>
-                    </Alert>
-                  )
+          <>
+            <Renderer
+              form={form}
+              ancestors={
+                activeTarget.kind === 'step' ? activeTarget.ancestors : activeTarget.canvasAncestors
               }
-            }}
-          </form.AppField>
+              currentStepId={
+                activeTarget.kind === 'step' ? activeTarget.stepId : activeTarget.canvasStepId
+              }
+              debounceMs={debounceMs}
+              fieldPathPrefix={activeCanvasFieldPathPrefix}
+              mapId={activeCanvasMapId}
+              model={delegatedModel}
+              navigationTarget={activeTarget}
+              parentValues={
+                activeTarget.kind === 'step'
+                  ? activeTarget.parentValues
+                  : activeTarget.canvasParentValues
+              }
+              readOnly={resolvedReadOnly}
+              renderNavigationTarget
+              resolveModel={resolvedResolveModel && activeModel.scopes === undefined}
+              systemId={resolvedSystemId}
+              structuralChangeGuard={structuralChangeGuard}
+              updateAuthoringState={false}
+            />
+            {structuralChangeConfirmationModal}
+          </>
         )
       }
 
-      function renderGroupNode(node: NodeRuntimeNodeDto) {
-        if (node.kind !== 'GROUP' || !node.childMapId) return null
-
-        const nodeReadOnly = Boolean(resolvedReadOnly || node.readOnly || node.disabled)
-        const fieldPrefix = toAuthoringFieldName(resolvedFieldPathPrefix, node.path)
-
-        if (node.groupKind === 'ARRAY') {
-          const fieldName = toTypedAuthoringArrayFieldName<TValues>(
-            resolvedFieldPathPrefix,
-            node.path
-          )
-
-          return (
-            <form.AppField key={node.id} name={fieldName} mode='array'>
-              {(field) => {
-                const rows = Array.isArray(field.state.value) ? field.state.value : []
-
-                return (
-                  <div className={styles.wideField}>
-                    <Group justify='space-between' align='center' mb='xs'>
-                      <Text fw={700}>{node.label}</Text>
-                      {!nodeReadOnly ? (
-                        <Button
-                          aria-label={`Add ${toSingularLabel(node.label)}`}
-                          type='button'
-                          variant='default'
-                          size='xs'
-                          onClick={() => {
-                            field.pushValue(
-                              createDefaultAuthoringArrayItem(
-                                node,
-                                rows.length
-                              ) as Parameters<typeof field.pushValue>[0]
-                            )
-                          }}
-                        >
-                          Add
-                        </Button>
-                      ) : null}
-                    </Group>
-                    {rows.length === 0 ? (
-                      <Text size='sm' c='dimmed'>{`No ${node.label.toLowerCase()} added yet.`}</Text>
-                    ) : (
-                      <div className={styles.inlineArrayList}>
-                        {rows.map((row, index) => {
-                          const rowPrefix = toAuthoringFieldName(
-                            resolvedFieldPathPrefix,
-                            [...node.path, index]
-                          )
-                          const rowId = `${rowPrefix}:${getGroupRowKey(row, index)}`
-                          const isRowExpanded = !collapsedInlineRowIds.has(rowId)
-                          const rowLabel = getGroupRowLabel(node, row, index)
-
-                          const toggleRow = () => {
-                            setCollapsedInlineRowIds((current) => {
-                              const next = new Set(current)
-                              if (next.has(rowId)) {
-                                next.delete(rowId)
-                              } else {
-                                next.add(rowId)
-                              }
-                              return next
-                            })
-                          }
-
-                          return (
-                            <div key={getGroupRowKey(row, index)} className={styles.inlineArrayItem}>
-                              <div className={styles.inlineArrayItemHeader}>
-                                <button
-                                  type='button'
-                                  className={styles.inlineArrayItemTrigger}
-                                  aria-expanded={isRowExpanded}
-                                  onClick={toggleRow}
-                                >
-                                  <ChevronDown
-                                    size={16}
-                                    aria-hidden='true'
-                                    className={
-                                      isRowExpanded
-                                        ? `${styles.inlineArrayItemChevron} ${styles.inlineArrayItemChevronOpen}`
-                                        : styles.inlineArrayItemChevron
-                                    }
-                                  />
-                                  <Text className={styles.inlineArrayItemTitle}>{rowLabel}</Text>
-                                </button>
-                                {!nodeReadOnly ? (
-                                  <ActionIcon
-                                    aria-label={`Remove ${rowLabel}`}
-                                    color='red'
-                                    variant='subtle'
-                                    onClick={() => field.removeValue(index)}
-                                  >
-                                    <Trash2 size={16} aria-hidden='true' />
-                                  </ActionIcon>
-                                ) : null}
-                              </div>
-                              <Collapse
-                                expanded={isRowExpanded}
-                                keepMounted
-                                transitionDuration={140}
-                                transitionTimingFunction='cubic-bezier(0.2, 0, 0, 1)'
-                              >
-                                <div className={styles.inlineArrayItemBody}>
-                                  <Renderer
-                                    form={form}
-                                    ancestors={[values, ...(childAncestors ?? [])]}
-                                    debounceMs={debounceMs}
-                                    fieldPathPrefix={rowPrefix}
-                                    mapId={node.childMapId}
-                                    parentValues={values}
-                                    readOnly={nodeReadOnly}
-                                    renderAllSteps
-                                    resolveModel={resolvedResolveModel}
-                                    systemId={resolvedSystemId}
-                                    updateAuthoringState={false}
-                                  />
-                                </div>
-                              </Collapse>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              }}
-            </form.AppField>
-          )
-        }
-
-        return (
-          <form.AppField key={node.id} name={toTypedAuthoringFieldName<TValues>(
-            resolvedFieldPathPrefix,
-            node.path
-          )}>
-            {(field) => {
-              const hasValue = isGroupObjectValue(field.state.value)
-              const canRemoveValue =
-                hasValue &&
-                !node.required &&
-                !(isTopLevelGroupNode(node) && !resolvedFieldPathPrefix)
-
-              return (
-                <div className={styles.wideField}>
-                  <Group justify='space-between' align='center' mb='xs'>
-                    <Text fw={700}>{node.label}</Text>
-                    {!nodeReadOnly ? (
-                      canRemoveValue ? (
-                        <ActionIcon
-                          aria-label={`Remove ${node.label}`}
-                          color='red'
-                          variant='subtle'
-                          onClick={() =>
-                            field.handleChange(
-                              undefined as Parameters<typeof field.handleChange>[0]
-                            )
-                          }
-                        >
-                          <Trash2 size={16} aria-hidden='true' />
-                        </ActionIcon>
-                      ) : !hasValue ? (
-                        <Button
-                          aria-label={`Add ${toSingularLabel(node.label)}`}
-                          type='button'
-                          variant='default'
-                          size='xs'
-                          onClick={() => {
-                            field.handleChange(
-                              createDefaultAuthoringObjectItem(
-                                node
-                              ) as Parameters<typeof field.handleChange>[0]
-                            )
-                          }}
-                        >
-                          Add
-                        </Button>
-                      ) : null
-                    ) : null}
-                  </Group>
-                  {hasValue ? (
-                    <div className={styles.nestedShell}>
-                      <Renderer
-                        form={form}
-                        ancestors={[values, ...(childAncestors ?? [])]}
-                        debounceMs={debounceMs}
-                        fieldPathPrefix={fieldPrefix}
-                        mapId={node.childMapId}
-                        parentValues={values}
-                        readOnly={nodeReadOnly}
-                        renderAllSteps
-                        resolveModel={resolvedResolveModel}
-                        systemId={resolvedSystemId}
-                        updateAuthoringState={false}
-                      />
-                    </div>
-                  ) : (
-                    <Text size='sm' c='dimmed'>{`${node.label} has not been configured yet.`}</Text>
-                  )}
-                </div>
-              )
-            }}
-          </form.AppField>
-        )
-      }
-
-      function renderArrayOverview(target: AuthoringNavigationTarget) {
-        const node = target.collectionNode
-        const collectionFieldName = target.collectionFieldName
-        if (!node || !collectionFieldName) return null
-
-        const nodeReadOnly = Boolean(resolvedReadOnly || node.readOnly || node.disabled)
-        const fieldName =
-          collectionFieldName as ReturnType<typeof toTypedAuthoringArrayFieldName<TValues>>
-
-        return (
-          <form.AppField key={target.id} name={fieldName} mode='array'>
-            {(field) => {
-              const rows = Array.isArray(field.state.value) ? field.state.value : []
-
-              return (
-                <div className={styles.sectionStack}>
-                  <section>
-                    <div className={styles.fieldGrid}>
-                      <div className={styles.wideField}>
-                        <Group justify='space-between' align='center' mb='xs'>
-                          <Text fw={700}>{node.label}</Text>
-                          {!nodeReadOnly ? (
-                            <Button
-                              aria-label={`Add ${toSingularLabel(node.label)}`}
-                              type='button'
-                              variant='default'
-                              size='xs'
-                              onClick={() => {
-                                const rowIndex = rows.length
-                                field.pushValue(
-                                  createDefaultAuthoringArrayItem(
-                                    node,
-                                    rowIndex
-                                  ) as Parameters<typeof field.pushValue>[0]
-                                )
-                                const targetId = getFirstArrayItemNavigationTargetId({
-                                  collectionFieldName,
-                                  collectionNode: node,
-                                  rowIndex
-                                })
-                                if (targetId) authoring.goToNavigationTarget(targetId)
-                              }}
-                            >
-                              Add
-                            </Button>
-                          ) : null}
-                        </Group>
-                        {rows.length === 0 ? (
-                          <Text size='sm' c='dimmed'>{`No ${node.label.toLowerCase()} added yet.`}</Text>
-                        ) : (
-                          <div className={styles.inlineArrayList}>
-                            {rows.map((row, index) => {
-                              const label = getGroupRowLabel(node, row, index)
-                              const targetId = getFirstArrayItemNavigationTargetId({
-                                collectionFieldName,
-                                collectionNode: node,
-                                rowIndex: index
-                              })
-
-                              return (
-                                <div key={getGroupRowKey(row, index)} className={styles.inlineArrayItem}>
-                                  <div className={styles.inlineArrayItemHeader}>
-                                    <button
-                                      type='button'
-                                      className={styles.inlineArrayItemTrigger}
-                                      onClick={() => {
-                                        if (targetId) authoring.goToNavigationTarget(targetId)
-                                      }}
-                                    >
-                                      <Text className={styles.inlineArrayItemTitle}>
-                                        {label}
-                                      </Text>
-                                    </button>
-                                    {!nodeReadOnly ? (
-                                      <ActionIcon
-                                        aria-label={`Remove ${label}`}
-                                        color='red'
-                                        variant='subtle'
-                                        onClick={() => field.removeValue(index)}
-                                      >
-                                        <Trash2 size={16} aria-hidden='true' />
-                                      </ActionIcon>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              )
-            }}
-          </form.AppField>
-        )
-      }
+      if (!currentStep) return structuralChangeConfirmationModal
+      const rendersCollectionCanvas =
+        (activeTarget?.kind === 'overview' || activeTarget?.kind === 'drawer-item') &&
+        activeTarget.canvasMapId === resolvedMapId &&
+        activeTarget.canvasFieldPathPrefix === resolvedFieldPathPrefix
+      const renderedSteps = renderAllSteps ? visibleSteps : [currentStep]
+      const renderedSections = renderedSteps
+        .flatMap((step) => step.sections)
+        .filter((section) => section.nodes.some(isRenderableNode))
+      const validationTargets =
+        navigationState?.navigationTargets ?? authoring.navigationTargets ?? []
+      const renderedValidationTarget = updateAuthoringState
+        ? activeTarget
+        : authoring.activeNavigationTarget?.kind === 'step' &&
+            authoring.activeNavigationTarget.mapId === resolvedMapId &&
+            authoring.activeNavigationTarget.fieldPathPrefix === resolvedFieldPathPrefix
+          ? authoring.activeNavigationTarget
+          : undefined
 
       return (
-        <div className={styles.sectionStack}>
-          {renderedSteps.flatMap((step) => step.sections)
-            .filter((section) => section.nodes.some(isRenderableNode))
-            .map((section) => {
-              const sectionCount = renderedSteps.reduce(
-                (count, step) => count + step.sections.length,
-                0
-              )
-              const showSectionHeader = sectionCount > 1
+        <AuthoringRendererScopeProvider value={rendererScope}>
+          <AuthoringRendererInteractionsProvider value={rendererInteractions}>
+            <AuthoringValidationAlert
+              target={renderedValidationTarget}
+              validationTargets={validationTargets}
+            />
+            {rendersNavigationTarget ? (
+              <div className={styles.canvasStepHeader}>
+                <span className={styles.canvasStepTitle}>{currentStep.label}</span>
+                <CircleHelp size={17} aria-label={`About ${currentStep.label}`} />
+              </div>
+            ) : null}
+            <div className={styles.sectionStack}>
+              {renderedSections.map((section) => {
+                const sectionCount = renderedSections.length
+                const showSectionHeader = sectionCount > 1
 
-              return (
-                <section
-                  key={section.id}
-                  aria-labelledby={
-                    showSectionHeader ? `authoring-section-${section.id}` : undefined
-                  }
-                >
-                  {showSectionHeader ? (
-                    <div>
-                      <h2 id={`authoring-section-${section.id}`}>{section.label}</h2>
+                return (
+                  <section
+                    key={section.id}
+                    aria-labelledby={
+                      showSectionHeader ? `authoring-section-${section.id}` : undefined
+                    }
+                  >
+                    {showSectionHeader ? (
+                      <div className={styles.sectionHeading}>
+                        <h2
+                          className={styles.sectionHeadingTitle}
+                          id={`authoring-section-${section.id}`}
+                        >
+                          {section.label}
+                        </h2>
+                        <CircleHelp size={15} aria-label={`About ${section.label}`} />
+                      </div>
+                    ) : null}
+                    <div className={styles.fieldGrid}>
+                      {section.nodes.map((node) => {
+                        if (!isRenderableNode(node)) return null
+                        if (
+                          rendersCollectionCanvas &&
+                          !(
+                            node.kind === 'GROUP' &&
+                            isNavigableAuthoringGroupNode(node, rootValues, resolvedFieldPathPrefix)
+                          )
+                        ) {
+                          return null
+                        }
+                        if (node.kind === 'GROUP') {
+                          if (
+                            rendersNavigationTarget &&
+                            isNavigableAuthoringGroupNode(node, rootValues, resolvedFieldPathPrefix)
+                          ) {
+                            if (node.groupKind === 'ARRAY') {
+                              const collectionFieldName = toAuthoringFieldName(
+                                resolvedFieldPathPrefix,
+                                node.path
+                              )
+                              const overviewTarget = navigationState?.navigationTargets.find(
+                                (target) =>
+                                  target.kind === 'overview' &&
+                                  target.collectionFieldName === collectionFieldName
+                              )
+                              if (overviewTarget) {
+                                const rows = getAuthoringFieldValue(rootValues, collectionFieldName)
+                                const isActiveCollection =
+                                  activeTarget?.collectionFieldName === collectionFieldName
+                                if (
+                                  rendersCollectionCanvas &&
+                                  !isActiveCollection &&
+                                  (!Array.isArray(rows) || rows.length === 0)
+                                ) {
+                                  return null
+                                }
+                                const drawerTarget =
+                                  activeTarget?.kind === 'drawer-item' &&
+                                  activeTarget.collectionFieldName === collectionFieldName
+                                    ? activeTarget
+                                    : undefined
+                                return (
+                                  <ResolvedCollectionOverview
+                                    key={node.id}
+                                    drawerTarget={drawerTarget}
+                                    form={form}
+                                    target={overviewTarget}
+                                    validationTargets={validationTargets}
+                                  />
+                                )
+                              }
+                            }
+                            return null
+                          }
+
+                          const hideHeading =
+                            section.label.trim().toLowerCase() === node.label.trim().toLowerCase()
+                          return node.groupKind === 'ARRAY' ? (
+                            <ResolvedArrayGroup
+                              key={node.id}
+                              form={form}
+                              hideHeading={hideHeading}
+                              node={node}
+                              validationTargets={validationTargets}
+                            />
+                          ) : (
+                            <ResolvedObjectGroup
+                              key={node.id}
+                              form={form}
+                              hideHeading={hideHeading}
+                              node={node}
+                            />
+                          )
+                        }
+
+                        return (
+                          <ResolvedInputField
+                            key={node.id}
+                            fieldName={toTypedAuthoringFieldName<TValues>(
+                              resolvedFieldPathPrefix,
+                              node.path
+                            )}
+                            form={form}
+                            node={node}
+                            readOnly={Boolean(resolvedReadOnly)}
+                          />
+                        )
+                      })}
                     </div>
-                  ) : null}
-                  <div className={styles.fieldGrid}>
-                    {section.nodes.map((node) => {
-                      if (!isRenderableNode(node)) return null
-                      if (node.kind === 'GROUP') return renderGroupNode(node)
-
-                      const fieldName = toTypedAuthoringFieldName<TValues>(
-                        resolvedFieldPathPrefix,
-                        node.path
-                      )
-                      const nodeReadOnly = Boolean(
-                        resolvedReadOnly || node.readOnly || node.disabled
-                      )
-
-                      return (
-                        renderNode({
-                          fieldName,
-                          node,
-                          readOnly: nodeReadOnly
-                        })
-                      )
-                    })}
-                  </div>
-                </section>
-              )
-            })}
-        </div>
+                  </section>
+                )
+              })}
+            </div>
+            {structuralChangeConfirmationModal}
+          </AuthoringRendererInteractionsProvider>
+        </AuthoringRendererScopeProvider>
       )
     }
   })
 
   return Renderer
-}
-
-function getGroupRowKey(row: unknown, index: number) {
-  if (isRecord(row) && typeof row.id === 'string') return row.id
-  return String(index)
-}
-
-function getRecordObjectValue(value: unknown): Record<string, unknown> | undefined {
-  return isRecord(value) ? value : undefined
-}
-
-function getGroupRowLabel(node: NodeRuntimeNodeDto, row: unknown, index: number) {
-  if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) {
-    return row.label
-  }
-
-  const authoredLabel = getAuthoredRowLabel(node, row)
-  if (authoredLabel) return authoredLabel
-
-  const speedLabel = getSpeedRowLabel(node, row)
-  if (speedLabel) return speedLabel
-
-  return `${toSingularLabel(node.label)} ${index + 1}`
-}
-
-function getAuthoredRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
-  if (!isRecord(row)) return undefined
-
-  if (node.childMapId === 'effect') {
-    return getOptionLabel(TRIGGER_OPTIONS, readString(getRecordValue(row, 'invocation.triggerCode')))
-  }
-
-  if (node.childMapId === 'effectPath' || node.childMapId === 'manifestBehaviorPath') {
-    return getOptionLabel(PATH_CODE_OPTIONS, readString(row.pathCode))
-  }
-
-  if (node.childMapId === 'outcome' || node.childMapId === 'nonManifestOutcome') {
-    return getOptionLabel(EFFECT_KIND_OPTIONS, readString(row.effectKind))
-  }
-
-  return undefined
-}
-
-function getSpeedRowLabel(node: NodeRuntimeNodeDto, row: unknown): string | undefined {
-  if (!isRecord(row) || !isSpeedGroupNode(node)) return undefined
-
-  const speedLabel = getSpeedOptionLabel(readString(row.speedId))
-  const amount = readNumber(row.amount)
-  const unit = formatEnumLabel(readString(row.unit))
-  const amountLabel = amount === undefined ? undefined : `${formatNumber(amount)} ${unit ?? 'Feet'}`
-
-  if (speedLabel && amountLabel) return `${speedLabel} - ${amountLabel}`
-  return speedLabel ?? amountLabel
-}
-
-function isSpeedGroupNode(node: NodeRuntimeNodeDto) {
-  return node.childMapId === 'speed' || toSingularLabel(node.label).toLowerCase() === 'speed'
-}
-
-function isTopLevelGroupNode(node: NodeRuntimeNodeDto) {
-  return node.path.length === 1
-}
-
-function getSpeedOptionLabel(value: string | undefined): string | undefined {
-  if (!value) return undefined
-  const normalized = value.toLowerCase()
-  return speedOptions.find((option) =>
-    [option.id, option.code, option.label].some((candidate) =>
-      candidate.toLowerCase() === normalized
-    )
-  )?.label
-}
-
-function getOptionLabel(
-  options: readonly { code: string; label: string }[],
-  value: string | undefined
-): string | undefined {
-  if (!value) return undefined
-
-  return options.find((option) => option.code === value)?.label
-}
-
-function getRecordValue(record: Record<string, unknown>, path: string): unknown {
-  return path.split('.').reduce<unknown>((value, segment) => {
-    if (!isRecord(value)) return undefined
-    return value[segment]
-  }, record)
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat('en-US').format(value)
-}
-
-function formatEnumLabel(value: string | undefined): string | undefined {
-  if (!value) return undefined
-  return value
-    .replace(/[_-]+/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
-function isGroupObjectValue(value: unknown): value is AuthoringGroupValues {
-  return isRecord(value)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function toSingularLabel(label: string) {
-  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`
-  if (label.endsWith('ses')) return label.slice(0, -2)
-  return label.endsWith('s') ? label.slice(0, -1) : label
 }

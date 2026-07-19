@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type { SavingThrowAuthored, SavingThrowDcBonusAuthored } from '@artificer-toolkit/shared'
 
 function mapBonusRow(savingThrowId: string, bonus: SavingThrowDcBonusAuthored, index: number) {
@@ -13,8 +14,6 @@ function mapBonusRow(savingThrowId: string, bonus: SavingThrowDcBonusAuthored, i
 }
 
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {
-  const trx = await db.startTransaction().execute()
-
   const savingThrow = json_data.dcMethod === 'SOURCE_SAVE_DC'
     ? {
         id: json_data.id,
@@ -29,15 +28,15 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
         base_dc: json_data.baseDc
       }
 
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('saving_throws')
       .values(savingThrow as never)
       .onConflict((oc) => oc.column('id')
-        .doUpdateSet(({ ref }) => ({
-          ability_code: ref('excluded.ability_code') as never,
-          dc_method: ref('excluded.dc_method') as never,
-          base_dc: ref('excluded.base_dc') as never
+        .doUpdateSet((eb) => ({
+          ability_code: eb.ref('excluded.ability_code') as never,
+          dc_method: eb.ref('excluded.dc_method') as never,
+          base_dc: eb.ref('excluded.base_dc') as never
         })))
       .executeTakeFirstOrThrow()
 
@@ -52,9 +51,5 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
         .execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

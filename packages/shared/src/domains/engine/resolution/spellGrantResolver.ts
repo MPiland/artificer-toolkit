@@ -1,6 +1,5 @@
 import { CLASS_CATEGORY, SCALING_SOURCE } from '#core'
 
-import type { AssembledCharacterSpellAccess } from '../../core/assemblerContract.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { CompiledClass } from '../../subjects/compilers/class.js'
@@ -10,7 +9,20 @@ import type { CompiledSpellGrant } from '../../grants/compilers/spell.js'
 
 export interface ResolvedSpellGrantState {
   spellState?: CompiledCharacterClassState[]
-  spellAccess: AssembledCharacterSpellAccess[]
+  spellAccess: EngineSpellAccess[]
+}
+
+export interface EngineSpellAccess {
+  id: string
+  spellId: string
+  source:
+    | { kind: 'CLASS', classId: string }
+    | { kind: 'SUBCLASS', subclassId: string }
+  timing: {
+    kind: 'CLASS_LEVEL'
+    classId: string
+    classLevel: number
+  }
 }
 
 type SnapshotClassEntry = CharacterBuildSnapshot['classes'][number]
@@ -25,7 +37,7 @@ export function resolveSpellGrantState(
   registry: CharacterAssemblyRegistry
 ): ResolvedSpellGrantState {
   const spellState: CompiledCharacterClassState[] = []
-  const spellAccess: AssembledCharacterSpellAccess[] = []
+  const spellAccess: EngineSpellAccess[] = []
   const seenAccessSpellIds = new Set<string>()
 
   for (const classEntry of snapshot.classes) {
@@ -57,9 +69,9 @@ function resolveClassSpellGrantState(
   classEntry: SnapshotClassEntry,
   snapshot: CharacterBuildSnapshot,
   registry: CharacterAssemblyRegistry
-): { spells: SpellBuckets; spellAccess: AssembledCharacterSpellAccess[] } {
+): { spells: SpellBuckets; spellAccess: EngineSpellAccess[] } {
   const spells: SpellBuckets = { learned: [], prepared: [] }
-  const spellAccess: AssembledCharacterSpellAccess[] = []
+  const spellAccess: EngineSpellAccess[] = []
 
   const baseClass = registry.classes[classEntry.classId]
   if (baseClass) {
@@ -95,7 +107,7 @@ function resolveSpellGrantsFromCompiledClass(
   classEntry: SnapshotClassEntry,
   snapshot: CharacterBuildSnapshot,
   spells: SpellBuckets,
-  spellAccess: AssembledCharacterSpellAccess[],
+  spellAccess: EngineSpellAccess[],
   sourceKind: 'CLASS' | 'SUBCLASS'
 ): void {
   for (const feature of compiledClass.features ?? []) {
@@ -109,7 +121,7 @@ function resolveFeatureSpellGrants(
   classEntry: SnapshotClassEntry,
   snapshot: CharacterBuildSnapshot,
   spells: SpellBuckets,
-  spellAccess: AssembledCharacterSpellAccess[],
+  spellAccess: EngineSpellAccess[],
   sourceKind: 'CLASS' | 'SUBCLASS'
 ): void {
   for (const grant of feature.spells ?? []) {
@@ -130,7 +142,7 @@ function resolveSpellGrant(
   classEntry: SnapshotClassEntry,
   snapshot: CharacterBuildSnapshot,
   spells: SpellBuckets,
-  spellAccess: AssembledCharacterSpellAccess[],
+  spellAccess: EngineSpellAccess[],
   sourceKind: 'CLASS' | 'SUBCLASS',
   sourceFeatureId: string
 ): void {

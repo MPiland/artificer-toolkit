@@ -48,7 +48,7 @@ DECLARE
   entry jsonb;
   col text;
   target_table regclass;
-  target_id uuid;
+  target_id text;
 BEGIN
   -- first argument is our JSON config
   config := TG_ARGV[0]::jsonb;
@@ -65,10 +65,10 @@ BEGIN
       SELECT
         JSONB_ARRAY_ELEMENTS_TEXT(entry -> 'columns')
         LOOP
-          target_id := (to_jsonb (OLD) ->> col)::uuid;
+          target_id := to_jsonb (OLD) ->> col;
 
           IF target_id IS NOT NULL THEN
-            EXECUTE FORMAT('delete from %s where id = $1', target_table)
+            EXECUTE FORMAT('delete from %s where id::text = $1', target_table)
             USING target_id;
           END IF;
           END LOOP;
@@ -88,8 +88,8 @@ DECLARE
   entry jsonb;
   col text;
   target_table regclass;
-  old_id uuid;
-  new_id uuid;
+  old_id text;
+  new_id text;
 BEGIN
   -- First argument is our JSON config, same shape as cleanup_owned_rows
   config := TG_ARGV[0]::jsonb;
@@ -102,13 +102,13 @@ BEGIN
     -- Loop over each column name in "columns"
     FOR col IN SELECT jsonb_array_elements_text(entry -> 'columns')
     LOOP
-      old_id := (to_jsonb(OLD) ->> col)::uuid;
-      new_id := (to_jsonb(NEW) ->> col)::uuid;
+      old_id := to_jsonb(OLD) ->> col;
+      new_id := to_jsonb(NEW) ->> col;
 
       -- If the FK changed or became NULL, delete the old owned row
       -- IS DISTINCT FROM treats NULL vs value as "different"
       IF old_id IS NOT NULL AND old_id IS DISTINCT FROM new_id THEN
-        EXECUTE format('DELETE FROM %s WHERE id = $1', target_table)
+        EXECUTE format('DELETE FROM %s WHERE id::text = $1', target_table)
         USING old_id;
       END IF;
     END LOOP;
@@ -179,9 +179,8 @@ $$;
  *
  * Defines:
  *   - profiles              (public user profile, mirrors auth.users)
- *   - admins                (admin flag table for set_admin_claims)
  *   - handle_new_user()     (trigger: auto-create profile on signup)
- *   - set_admin_claims()    (auth hook: injects admin flag into JWT)
+ *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
  *       (user_id column, is_master flag).
@@ -232,25 +231,7 @@ CREATE POLICY "Users can update own profile."
 
 
 /* ──────────────────────────────────────────────
- * ADMINS
- *
- * Stores which users have admin privileges.
- * Referenced by set_admin_claims().
  * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.admins (
-  user_id  uuid PRIMARY KEY
-    REFERENCES auth.users ON DELETE CASCADE,
-  is_admin boolean NOT NULL DEFAULT true
-);
-
-ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can view admin flags." ON public.admins;
-CREATE POLICY "Admins can view admin flags."
-  ON public.admins FOR SELECT TO authenticated
-  USING ((auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true');
-
 
 /* ──────────────────────────────────────────────
  * TRIGGER: auto-create profile on signup
@@ -289,13 +270,13 @@ $$;
 
 
 /* ──────────────────────────────────────────────
- * AUTH HOOK: inject admin flag into JWT
+ * AUTH HOOK: inject is_super_admin into JWT
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.set_admin_claims(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public, pg_catalog
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
   claims   jsonb;
@@ -303,11 +284,18 @@ DECLARE
 BEGIN
   claims := COALESCE(event -> 'claims', '{}');
 
-  SELECT EXISTS(
-    SELECT 1 FROM public.admins
-    WHERE user_id = (event ->> 'user_id')::uuid
-      AND is_admin = true
-  ) INTO is_admin;
+  SELECT COALESCE(u.is_super_admin, false)
+  INTO is_admin
+  FROM auth.users u
+  WHERE u.id = (event ->> 'user_id')::uuid;
+
+  is_admin := COALESCE(is_admin, false);
+
+  claims := jsonb_set(
+    claims,
+    '{app_metadata}',
+    COALESCE(claims -> 'app_metadata', '{}') - 'admin'
+  );
 
   IF is_admin THEN
     claims := jsonb_set(
@@ -322,6 +310,10 @@ BEGIN
   RETURN event;
 END;
 $$;
+
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+REVOKE EXECUTE ON FUNCTION public.set_admin_claims(jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
 
 
 /* ──────────────────────────────────────────────
@@ -341,7 +333,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -355,7 +347,7 @@ BEGIN
     $fmt$
       CREATE POLICY "Users can select own rows" ON public.%s
       FOR SELECT TO authenticated
-      USING (user_id = auth.uid() OR (%s));
+      USING (user_id = (SELECT auth.uid()) OR (%s));
     $fmt$,
     safe_table, admin_check
   );
@@ -366,7 +358,7 @@ BEGIN
       CREATE POLICY "Users can insert own rows" ON public.%s
       FOR INSERT TO authenticated
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -379,11 +371,11 @@ BEGIN
       CREATE POLICY "Users can update own rows" ON public.%s
       FOR UPDATE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       )
       WITH CHECK (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -396,7 +388,7 @@ BEGIN
       CREATE POLICY "Users can delete own rows" ON public.%s
       FOR DELETE TO authenticated
       USING (
-        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        (user_id = (SELECT auth.uid()) AND COALESCE(is_master, false) = false)
         OR (%s)
       );
     $fmt$,
@@ -426,7 +418,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -446,7 +438,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               %s.is_master = true
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -464,7 +456,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -481,7 +473,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       )
@@ -489,7 +481,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -506,7 +498,7 @@ BEGIN
         EXISTS (
           SELECT 1 FROM systems s
           WHERE s.id = %s.system_id
-            AND s.user_id = auth.uid()
+            AND s.user_id = (SELECT auth.uid())
             AND %s.is_master = false
         )
       );
@@ -522,7 +514,7 @@ $$;
  *
  * For lookup tables with (system_id) and no is_master column.
  * Rows are readable when their owning system is visible.
- * Writes are limited to the owner of the system or admins.
+ * Writes are limited to the owner of the system or super admins.
  *
  * Usage: SELECT public.apply_system_vocabulary_policies('skills');
  * -------------------------------------------------- */
@@ -534,7 +526,7 @@ SET search_path = public, pg_catalog
 AS $$
 DECLARE
   safe_table  text := pg_catalog.quote_ident(target_table);
-  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+  admin_check text := '((SELECT auth.jwt())::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
 BEGIN
   EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
 
@@ -553,7 +545,7 @@ BEGIN
           WHERE s.id = %s.system_id
             AND (
               s.user_id IS NULL
-              OR s.user_id = auth.uid()
+              OR s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -571,7 +563,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -589,7 +581,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -599,7 +591,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -617,7 +609,7 @@ BEGIN
           SELECT 1 FROM public.systems s
           WHERE s.id = %s.system_id
             AND (
-              s.user_id = auth.uid()
+              s.user_id = (SELECT auth.uid())
               OR %s
             )
         )
@@ -659,6 +651,8 @@ CREATE TABLE IF NOT EXISTS public.systems (
 
   label text NOT NULL,
   description text,
+  ruleset_code text NOT NULL,
+  ruleset_version text NOT NULL,
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -671,36 +665,36 @@ CREATE POLICY "Systems are readable by owner or public."
   ON public.systems FOR SELECT TO authenticated
   USING (
     user_id IS NULL
-    OR user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    OR user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can insert own systems." ON public.systems;
 CREATE POLICY "Users can insert own systems."
   ON public.systems FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can update own systems." ON public.systems;
 CREATE POLICY "Users can update own systems."
   ON public.systems FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Users can delete own systems." ON public.systems;
 CREATE POLICY "Users can delete own systems."
   ON public.systems FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE INDEX IF NOT EXISTS idx_systems_user
@@ -1221,6 +1215,263 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_terrains_system_code
 CREATE INDEX IF NOT EXISTS idx_terrains_system
   ON public.terrains(system_id);
 -- END INCLUDE: src\domains\subjects\tables\systems.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\authored_definitions.sql
+/* --------------------------------------------------
+ * AUTHORED DEFINITIONS AND REVISIONS
+ *
+ * Canonical authored-content storage. A subject id is also its stable
+ * definition id. Revisions hold complete authored snapshots; normalized
+ * domain tables are derived query projections of the active revision.
+ * -------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS public.authored_definitions (
+  subject_id uuid PRIMARY KEY,
+  subject_kind text NOT NULL,
+
+  owner_user_id uuid
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  label text NOT NULL,
+  is_master boolean NOT NULL DEFAULT false,
+  active_revision_id uuid,
+  draft_revision_id uuid,
+  next_revision_number integer NOT NULL DEFAULT 1,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT authored_definitions_kind_chk CHECK (
+    subject_kind IN (
+      'BACKGROUND',
+      'CLASS',
+      'CREATURE',
+      'EQUIPMENT',
+      'FEAT',
+      'RACE',
+      'SPELL',
+      'VEHICLE'
+    )
+  ),
+  CONSTRAINT authored_definitions_owner_chk CHECK (
+    (is_master AND owner_user_id IS NULL)
+    OR (NOT is_master AND owner_user_id IS NOT NULL)
+  ),
+  CONSTRAINT authored_definitions_revision_number_chk CHECK (next_revision_number > 0),
+  CONSTRAINT authored_definitions_subject_kind_unique UNIQUE (subject_id, subject_kind)
+);
+
+CREATE TABLE IF NOT EXISTS public.authored_definition_revisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  definition_id uuid NOT NULL
+    REFERENCES public.authored_definitions(subject_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  revision_number integer NOT NULL,
+  payload jsonb NOT NULL,
+  base_active_revision_id uuid,
+  created_by_user_id uuid
+    REFERENCES auth.users(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
+  created_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT authored_definition_revisions_number_chk CHECK (revision_number > 0),
+  CONSTRAINT authored_definition_revisions_definition_number_unique UNIQUE (
+    definition_id,
+    revision_number
+  ),
+  CONSTRAINT authored_definition_revisions_definition_id_unique UNIQUE (
+    definition_id,
+    id
+  ),
+  CONSTRAINT authored_definition_revisions_base_revision_fk FOREIGN KEY (
+    definition_id,
+    base_active_revision_id
+  ) REFERENCES public.authored_definition_revisions(definition_id, id)
+    DEFERRABLE INITIALLY DEFERRED
+);
+
+ALTER TABLE public.authored_definitions
+  ADD CONSTRAINT authored_definitions_active_revision_fk FOREIGN KEY (
+    subject_id,
+    active_revision_id
+  ) REFERENCES public.authored_definition_revisions(definition_id, id)
+    DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE public.authored_definitions
+  ADD CONSTRAINT authored_definitions_draft_revision_fk FOREIGN KEY (
+    subject_id,
+    draft_revision_id
+  ) REFERENCES public.authored_definition_revisions(definition_id, id)
+    DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE public.authored_definitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.authored_definition_revisions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Definitions are readable by owner or public" ON public.authored_definitions;
+CREATE POLICY "Definitions are readable by owner or public"
+  ON public.authored_definitions FOR SELECT TO authenticated
+  USING (
+    is_master
+    OR owner_user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+  );
+
+DROP POLICY IF EXISTS "Users can insert own definitions" ON public.authored_definitions;
+CREATE POLICY "Users can insert own definitions"
+  ON public.authored_definitions FOR INSERT TO authenticated
+  WITH CHECK (
+    (NOT is_master AND owner_user_id = (SELECT auth.uid()))
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+  );
+
+DROP POLICY IF EXISTS "Users can update own definitions" ON public.authored_definitions;
+CREATE POLICY "Users can update own definitions"
+  ON public.authored_definitions FOR UPDATE TO authenticated
+  USING (
+    owner_user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+  )
+  WITH CHECK (
+    owner_user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+  );
+
+DROP POLICY IF EXISTS "Users can delete own definitions" ON public.authored_definitions;
+CREATE POLICY "Users can delete own definitions"
+  ON public.authored_definitions FOR DELETE TO authenticated
+  USING (
+    owner_user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+  );
+
+DROP POLICY IF EXISTS "Definition revisions follow definition visibility" ON public.authored_definition_revisions;
+CREATE POLICY "Definition revisions follow definition visibility"
+  ON public.authored_definition_revisions FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.authored_definitions definition
+      WHERE definition.subject_id = definition_id
+        AND (
+          definition.is_master
+          OR definition.owner_user_id = (SELECT auth.uid())
+          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can insert revisions for own definitions" ON public.authored_definition_revisions;
+CREATE POLICY "Users can insert revisions for own definitions"
+  ON public.authored_definition_revisions FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.authored_definitions definition
+      WHERE definition.subject_id = definition_id
+        AND (
+          definition.owner_user_id = (SELECT auth.uid())
+          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete revisions for own definitions" ON public.authored_definition_revisions;
+CREATE POLICY "Users can delete revisions for own definitions"
+  ON public.authored_definition_revisions FOR DELETE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.authored_definitions definition
+      WHERE definition.subject_id = definition_id
+        AND (
+          definition.owner_user_id = (SELECT auth.uid())
+          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+        )
+    )
+  );
+
+CREATE INDEX IF NOT EXISTS idx_authored_definitions_owner
+  ON public.authored_definitions(owner_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_authored_definitions_system
+  ON public.authored_definitions(system_id);
+
+CREATE INDEX IF NOT EXISTS idx_authored_definitions_kind
+  ON public.authored_definitions(subject_kind);
+
+CREATE INDEX IF NOT EXISTS idx_authored_definition_revisions_definition
+  ON public.authored_definition_revisions(definition_id, revision_number DESC);
+-- END INCLUDE: src\domains\subjects\tables\authored_definitions.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\character_builder_drafts.sql
+/* --------------------------------------------------------------------------
+ * CHARACTER BUILDER DRAFTS
+ *
+ * JSONB sidecar for incomplete character builder work.
+ * Normalized character rows are written only when the builder commit succeeds.
+ * -------------------------------------------------------------------------- */
+CREATE TABLE IF NOT EXISTS public.character_builder_drafts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL,
+  user_id uuid NOT NULL
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  label text NOT NULL,
+  status text NOT NULL DEFAULT 'DRAFT',
+  mode text NOT NULL DEFAULT 'create',
+  payload jsonb NOT NULL,
+  base_active_updated_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT character_builder_drafts_status_chk CHECK (status = 'DRAFT'),
+  CONSTRAINT character_builder_drafts_mode_chk CHECK (mode IN ('create', 'edit')),
+  CONSTRAINT character_builder_drafts_unique_character_user UNIQUE (character_id, user_id)
+);
+
+ALTER TABLE public.character_builder_drafts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can select own character builder drafts" ON public.character_builder_drafts;
+CREATE POLICY "Users can select own character builder drafts"
+  ON public.character_builder_drafts FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert own character builder drafts" ON public.character_builder_drafts;
+CREATE POLICY "Users can insert own character builder drafts"
+  ON public.character_builder_drafts FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can update own character builder drafts" ON public.character_builder_drafts;
+CREATE POLICY "Users can update own character builder drafts"
+  ON public.character_builder_drafts FOR UPDATE TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS "Users can delete own character builder drafts" ON public.character_builder_drafts;
+CREATE POLICY "Users can delete own character builder drafts"
+  ON public.character_builder_drafts FOR DELETE TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE INDEX IF NOT EXISTS idx_character_builder_drafts_user
+  ON public.character_builder_drafts(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_builder_drafts_system
+  ON public.character_builder_drafts(system_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_builder_drafts_character
+  ON public.character_builder_drafts(character_id);
+-- END INCLUDE: src\domains\subjects\tables\character_builder_drafts.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\charges.sql
 /* ──────────────────────────────────────────────
  * CHARGES
@@ -1482,7 +1733,7 @@ ALTER TABLE public.characteristic_shape_dimensions ENABLE ROW LEVEL SECURITY;
   characteristic_id uuid PRIMARY KEY
     REFERENCES characteristics(id) ON DELETE CASCADE,
 
-  kind text NOT NULL,   -- INSTANTANEOUS | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
+  kind text NOT NULL,   -- INSTANTANEOUS | UNTIL_DISPELLED | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
   amount integer,
   scaling jsonb
 );
@@ -1678,6 +1929,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_body_selection_items_pkey PRIMARY KEY (facet_body_id, sort_order),
+
   CONSTRAINT facet_body_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -1699,9 +1952,6 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
 );
 
 ALTER TABLE public.facet_body_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_body_selection_items_body_id
-  ON public.facet_body_selection_items (facet_body_id);
 
 -- =============================================================================
 -- 5) Conditions (AND list within a body group)
@@ -1826,6 +2076,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
+  CONSTRAINT facet_exists_selection_items_pkey PRIMARY KEY (facet_condition_id, sort_order),
+
   CONSTRAINT facet_exists_selection_items_one_chk CHECK (
     (class_id IS NOT NULL)::int
     + (feature_id IS NOT NULL)::int
@@ -1847,9 +2099,6 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
 );
 
 ALTER TABLE public.facet_exists_selection_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_exists_selection_items_condition_id
-  ON public.facet_exists_selection_items (facet_condition_id);
 
 -- =============================================================================
 -- 7) Predicate payloads (normalized)
@@ -2311,6 +2560,24 @@ ALTER TABLE public.facet_predicate_heritage_items ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_heritage_items_condition
   ON public.facet_predicate_heritage_items (facet_condition_id);
 
+/* Class list payload for class-level predicates */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_class_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  class_id uuid NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, class_id)
+);
+
+ALTER TABLE public.facet_predicate_class_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_class_items_condition
+  ON public.facet_predicate_class_items (facet_condition_id);
+
 /* Feature list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_feature_items (
   facet_condition_id uuid NOT NULL
@@ -2364,24 +2631,6 @@ ALTER TABLE public.facet_predicate_equipment_items ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_equipment_items_condition
   ON public.facet_predicate_equipment_items (facet_condition_id);
-
-/* Creature record kind list payload */
-CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_record_kind_items (
-  facet_condition_id uuid NOT NULL
-    REFERENCES public.facet_conditions (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  record_kind text NOT NULL,
-  sort_order integer NOT NULL,
-
-  PRIMARY KEY (facet_condition_id, record_kind)
-);
-
-ALTER TABLE public.facet_predicate_creature_record_kind_items ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_record_kind_items_condition
-  ON public.facet_predicate_creature_record_kind_items (facet_condition_id);
 
 /* Creature category list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_category_items (
@@ -2448,30 +2697,57 @@ CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_type_items_condition
 CREATE TABLE IF NOT EXISTS public.saving_throws (
   id uuid PRIMARY KEY,
 
-  saving_throw_kind text NOT NULL,          -- SAVING_THROW_KIND (string)
-  ability_code text,                -- ABILITY_CODE (FIXED_VALUE only)
+  dc_method text NOT NULL,
+  ability_code text NOT NULL,                -- ABILITY_CODE rolled by the target
 
-  dc integer,                        -- only for FIXED_VALUE
+  base_dc integer,
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT saving_throws_kind_chk CHECK (
-    saving_throw_kind IN ('SOURCE_SAVE_DC', 'FIXED_VALUE')
+  CONSTRAINT saving_throws_dc_method_chk CHECK (
+    dc_method IN ('SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC')
   ),
   CONSTRAINT saving_throws_payload_chk CHECK (
-    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NULL AND dc IS NULL)
-    OR (saving_throw_kind = 'FIXED_VALUE' AND ability_code IS NOT NULL AND dc IS NOT NULL)
+    (dc_method = 'SOURCE_SAVE_DC' AND base_dc IS NULL)
+    OR (dc_method IN ('FIXED_DC', 'DERIVED_DC') AND base_dc IS NOT NULL)
   )
 );
 
 ALTER TABLE public.saving_throws ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_saving_throws_kind
-  ON public.saving_throws (saving_throw_kind);
+CREATE INDEX IF NOT EXISTS idx_saving_throws_dc_method
+  ON public.saving_throws (dc_method);
 
 CREATE INDEX IF NOT EXISTS idx_saving_throws_ability
   ON public.saving_throws (ability_code);
+
+CREATE TABLE IF NOT EXISTS public.saving_throw_dc_bonuses (
+  id uuid PRIMARY KEY,
+  saving_throw_id uuid NOT NULL REFERENCES public.saving_throws(id) ON DELETE CASCADE,
+  sort_order integer NOT NULL,
+
+  bonus_kind text NOT NULL,
+  ability_code text,
+  amount integer,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT saving_throw_dc_bonuses_kind_chk CHECK (
+    bonus_kind IN ('ABILITY_MODIFIER', 'PROFICIENCY_BONUS', 'STATIC_BONUS')
+  ),
+  CONSTRAINT saving_throw_dc_bonuses_payload_chk CHECK (
+    (bonus_kind = 'ABILITY_MODIFIER' AND ability_code IS NOT NULL AND amount IS NULL)
+    OR (bonus_kind = 'PROFICIENCY_BONUS' AND ability_code IS NULL AND amount IS NULL)
+    OR (bonus_kind = 'STATIC_BONUS' AND ability_code IS NULL AND amount IS NOT NULL)
+  )
+);
+
+ALTER TABLE public.saving_throw_dc_bonuses ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_saving_throw_dc_bonuses_saving_throw
+  ON public.saving_throw_dc_bonuses (saving_throw_id, sort_order);
 -- END INCLUDE: src\domains\shared\tables\saving_throws.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\starting_equipment.sql
 /* ──────────────────────────────────────────────
@@ -2557,6 +2833,10 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_options (
     REFERENCES public.starting_equipment_groups(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  eligibility_facet_id uuid
+    REFERENCES public.facets(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -2567,7 +2847,44 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_options (
 CREATE INDEX IF NOT EXISTS idx_starting_equipment_options_group
   ON public.starting_equipment_options(equipment_group_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_starting_equipment_options_eligibility
+  ON public.starting_equipment_options(eligibility_facet_id);
+
 ALTER TABLE public.starting_equipment_options ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_starting_equipment_option_eligibility_on_update'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_starting_equipment_option_eligibility_on_update
+    AFTER UPDATE ON public.starting_equipment_options
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[{
+      "table": "public.facets",
+      "columns": ["eligibility_facet_id"]
+    }]');
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_starting_equipment_option_eligibility'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_starting_equipment_option_eligibility
+    AFTER DELETE ON public.starting_equipment_options
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.facets",
+      "columns": ["eligibility_facet_id"]
+    }]');
+  END IF;
+END;
+$$;
 
 /* ──────────────────────────────────────────────
  * OPTION ITEMS
@@ -2765,6 +3082,8 @@ CREATE TABLE IF NOT EXISTS public.damages (
 
   value_kind text NOT NULL,        -- DAMAGE_VALUE_KIND: FIXED | DICE | POOL
   scaling_kind text NOT NULL,      -- SCALING_KIND: NONE | PER_LEVEL
+  amount_kind text,                -- SCALING_AMOUNT_KIND: FULL | HALF | DOUBLE
+  amount_multiplier numeric,
 
   scaling_source text,             -- SCALING_SOURCE: CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL
   class_id uuid,                   -- CLASS_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
@@ -2983,7 +3302,7 @@ $$;
  * ---------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.effect_result_blocks (
-  id uuid PRIMARY KEY,
+  id text PRIMARY KEY,
 
   result_kind text NOT NULL,
   duration_id uuid REFERENCES public.characteristics(id) DEFERRABLE INITIALLY DEFERRED,
@@ -3056,7 +3375,7 @@ CREATE TABLE IF NOT EXISTS public.effect_paths (
   max_targets_scaling jsonb,
   excluded_creature_type_ids uuid[],
 
-  result_block_id uuid
+  result_block_id text
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
@@ -3129,7 +3448,7 @@ CREATE TABLE IF NOT EXISTS public.effect_path_choice_options (
   label text,
   description text,
   sort_order integer NOT NULL,
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
@@ -3172,7 +3491,7 @@ CREATE TABLE IF NOT EXISTS public.effect_path_roll_table_rows (
   roll_min integer,
   roll_max integer,
 
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
@@ -3231,7 +3550,7 @@ ALTER TABLE public.effect_generic_outcomes ENABLE ROW LEVEL SECURITY;
  * ---------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.effect_result_block_outcomes (
-  result_block_id uuid NOT NULL
+  result_block_id text NOT NULL
     REFERENCES public.effect_result_blocks(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   outcome_id uuid NOT NULL,
@@ -3276,13 +3595,25 @@ CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
+  section_code text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   available_at_level integer,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT features_section_code_chk CHECK (
+    section_code IS NULL OR section_code IN (
+      'TRAIT',
+      'ACTION',
+      'BONUS_ACTION',
+      'REACTION',
+      'LEGENDARY_ACTION',
+      'LAIR_ACTION',
+      'REGIONAL_EFFECT',
+      'OTHER'
+    )
+  )
 );
 
 ALTER TABLE public.features ENABLE ROW LEVEL SECURITY;
@@ -3319,6 +3650,35 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["restriction_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.feature_details (
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feature_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feature_details_feature ON public.feature_details (feature_id);
+
+ALTER TABLE public.feature_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feature_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feature_details_owned
+    AFTER DELETE ON public.feature_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -3578,7 +3938,6 @@ CREATE TABLE IF NOT EXISTS public.options (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   sort_order integer NOT NULL,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -3622,6 +3981,34 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["restriction_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.option_details (
+  option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (option_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_option_details_option ON public.option_details (option_id);
+
+ALTER TABLE public.option_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_option_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_option_details_owned
+    AFTER DELETE ON public.option_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;
@@ -3893,6 +4280,7 @@ CREATE TABLE IF NOT EXISTS public.feat_grants (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   /* CHOSEN (scaling NONE) only */
   selection_count integer, -- payload.count when CHOSEN + scaling NONE
+  selection_duplicate_policy text, -- CHOSEN + NONE only
   /* PER_LEVEL scaling source (only relevant when scaling_kind = PER_LEVEL) */
   scaling_source text, -- ScalingSource (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid, -- CLASS_LEVEL
@@ -3901,7 +4289,7 @@ CREATE TABLE IF NOT EXISTS public.feat_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT feat_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT feat_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -3910,9 +4298,20 @@ CREATE TABLE IF NOT EXISTS public.feat_grants (
     scaling_kind IN ('NONE', 'PER_LEVEL')
   ),
   CONSTRAINT feat_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind <> 'CHOSEN'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind = 'CHOSEN'
+      AND selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT feat_grants_root_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4014,19 +4413,25 @@ CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_levels (
   sort_order integer NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED (per-level payload)
   selection_count integer, -- value.count when selection_kind = CHOSEN (per-level)
+  selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT feat_grant_scaling_levels_level_chk CHECK (
     level > 0
   ),
   CONSTRAINT feat_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT feat_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT feat_grant_scaling_levels_selection_count_chk CHECK (
-    selection_count IS NULL OR selection_count > 0
+    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   )
 );
 
@@ -4084,13 +4489,15 @@ CREATE TABLE IF NOT EXISTS public.modifier_grants (
   scope text NOT NULL,
   selection_kind text NOT NULL,
   count integer,
+  selection_duplicate_policy text,
   sort_order integer NOT NULL,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT modifier_grants_count_chk CHECK (
-    (selection_kind <> 'CHOSEN' AND count IS NULL)
-    OR (selection_kind = 'CHOSEN' AND count IS NOT NULL AND count > 0)
+  CONSTRAINT modifier_grants_selection_chk CHECK (
+    selection_kind = 'GRANTED'
+    AND count IS NULL
+    AND selection_duplicate_policy IS NULL
   )
 );
 
@@ -4240,7 +4647,9 @@ CREATE INDEX IF NOT EXISTS idx_modifier_grant_charge_levels_grant ON public.modi
 CREATE TABLE IF NOT EXISTS public.modifier_grant_optional_abilities (
   modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   ability_code text NOT NULL,
-  PRIMARY KEY (modifier_grant_id, ability_code)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (modifier_grant_id, ability_code),
+  UNIQUE (modifier_grant_id, sort_order)
 );
 
 ALTER TABLE public.modifier_grant_optional_abilities ENABLE ROW LEVEL SECURITY;
@@ -4269,14 +4678,20 @@ CREATE TABLE IF NOT EXISTS public.proficiency_grants (
   selection_kind text NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   count integer,
+  selection_duplicate_policy text,
   level text NOT NULL,
   rounding text,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT proficiency_grants_count_chk CHECK (
-    (selection_kind <> 'CHOSEN' AND count IS NULL)
-    OR (selection_kind = 'CHOSEN' AND count IS NOT NULL AND count > 0)
+    (selection_kind <> 'CHOSEN' AND count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_kind = 'CHOSEN'
+      AND count IS NOT NULL
+      AND count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT proficiency_grants_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4334,7 +4749,10 @@ ALTER TABLE public.proficiency_grant_skills ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.proficiency_grant_save_abilities (
   proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   ability_code text NOT NULL,
-  PRIMARY KEY (proficiency_grant_id, ability_code)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (proficiency_grant_id, ability_code),
+  CONSTRAINT proficiency_grant_save_abilities_sort_order_chk CHECK (sort_order > 0),
+  CONSTRAINT proficiency_grant_save_abilities_grant_order_uniq UNIQUE (proficiency_grant_id, sort_order)
 );
 
 ALTER TABLE public.proficiency_grant_save_abilities ENABLE ROW LEVEL SECURITY;
@@ -4410,18 +4828,20 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   scaling_kind text NOT NULL, -- NONE | PER_LEVEL
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
+  selection_duplicate_policy text, -- CHOSEN + NONE only
   scaling_source text, -- SCALING_SOURCE (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   range_id uuid,                -- authored range object ID (null when no base range)
   range_kind text,              -- SELF | TOUCH | SIGHT | UNLIMITED | DISTANCE
-  range_amount integer,         -- DISTANCE only
+  range_amount numeric,         -- DISTANCE only
   range_unit text,              -- DISTANCE only — MeasurementUnitCode
+  range_scaling jsonb,          -- DISTANCE only — ScalableValueAuthored<RangeMeasurementAuthored>
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -4430,9 +4850,20 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
     scaling_kind IN ('NONE', 'PER_LEVEL')
   ),
   CONSTRAINT sense_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind <> 'CHOSEN'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind = 'CHOSEN'
+      AND selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT sense_grants_root_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4451,11 +4882,16 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   ),
   CONSTRAINT sense_grants_root_range_kind_chk CHECK (
     range_kind IS NULL
-    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'UNLIMITED', 'DISTANCE')
+    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'SPECIAL', 'UNLIMITED', 'DISTANCE')
   ),
   CONSTRAINT sense_grants_root_range_distance_chk CHECK (
     (range_kind = 'DISTANCE' AND range_amount IS NOT NULL AND range_unit IS NOT NULL)
-    OR (range_kind IS DISTINCT FROM 'DISTANCE' AND range_amount IS NULL AND range_unit IS NULL)
+    OR (
+      range_kind IS DISTINCT FROM 'DISTANCE'
+      AND range_amount IS NULL
+      AND range_unit IS NULL
+      AND range_scaling IS NULL
+    )
   ),
   CONSTRAINT sense_grants_root_range_id_chk CHECK (
     (range_kind IS NOT NULL AND range_id IS NOT NULL)
@@ -4524,19 +4960,25 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
   sort_order integer NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN per-level
+  selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grant_scaling_levels_level_chk CHECK (
     level > 0
   ),
   CONSTRAINT sense_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT sense_grant_scaling_levels_selection_count_chk CHECK (
-    selection_count IS NULL OR selection_count > 0
+    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   )
 );
 
@@ -4586,6 +5028,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   scaling_kind text NOT NULL, -- NONE | PER_LEVEL
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
+  selection_duplicate_policy text, -- CHOSEN + NONE only
   scaling_source text, -- ScalingSource (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -4595,7 +5038,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT spell_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT spell_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -4604,9 +5047,20 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
     scaling_kind IN ('NONE', 'PER_LEVEL')
   ),
   CONSTRAINT spell_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind <> 'CHOSEN'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind = 'CHOSEN'
+      AND selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT spell_grants_root_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4687,7 +5141,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_attributes (
     )
   ),
   CONSTRAINT spell_grant_attributes_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   )
 );
 
@@ -4718,19 +5172,25 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
   sort_order integer NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer,
+  selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT spell_grant_scaling_levels_level_chk CHECK (
     level > 0
   ),
   CONSTRAINT spell_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT spell_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT spell_grant_scaling_levels_selection_count_chk CHECK (
-    selection_count IS NULL OR selection_count > 0
+    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   )
 );
 
@@ -4783,7 +5243,6 @@ CREATE TABLE IF NOT EXISTS public.backgrounds (
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_backgrounds_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
   starting_equipment_id uuid
     REFERENCES public.starting_equipment(id)
@@ -4793,7 +5252,11 @@ CREATE TABLE IF NOT EXISTS public.backgrounds (
   is_master boolean,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT backgrounds_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 ALTER TABLE public.backgrounds ENABLE ROW LEVEL SECURITY;
@@ -4898,7 +5361,10 @@ CREATE TABLE IF NOT EXISTS public.background_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5008,15 +5474,12 @@ CREATE TABLE IF NOT EXISTS public.classes (
 
   category text NOT NULL, -- ClassCategoryCode (BASE|SUBCLASS)
 
-  parent_class_id uuid
-    REFERENCES public.classes(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  parent_class_id uuid,
+  subclass_selection_level smallint,
 
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_classes_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
   starting_equipment_id uuid
     REFERENCES public.starting_equipment(id)
@@ -5031,9 +5494,21 @@ CREATE TABLE IF NOT EXISTS public.classes (
   CONSTRAINT classes_category_chk CHECK (
     category IN ('BASE', 'SUBCLASS')
   ),
+  CONSTRAINT classes_subclass_selection_level_chk CHECK (
+    (category = 'BASE' AND (subclass_selection_level IS NULL OR subclass_selection_level BETWEEN 1 AND 20))
+    OR (category = 'SUBCLASS' AND subclass_selection_level IS NULL)
+  ),
+  CONSTRAINT classes_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT classes_parent_system_fk FOREIGN KEY (parent_class_id, system_id)
+    REFERENCES public.classes(id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT classes_category_parent_chk CHECK (
     (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
     OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
+  ),
+  CONSTRAINT classes_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -5162,7 +5637,10 @@ CREATE TABLE IF NOT EXISTS public.class_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5403,6 +5881,45 @@ BEGIN
     EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[{
       "table": "public.charges",
       "columns": ["charge_id"]
+    }]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.class_spellcasting_details (
+  spellcasting_id uuid NOT NULL
+    REFERENCES public.class_spellcasting(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  detail_id uuid NOT NULL
+    REFERENCES public.details(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (spellcasting_id, detail_id)
+);
+
+ALTER TABLE public.class_spellcasting_details ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_details_sc
+  ON public.class_spellcasting_details(spellcasting_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_class_spellcasting_details_owned'
+      AND tgrelid = 'public.class_spellcasting_details'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_class_spellcasting_details_owned
+    AFTER DELETE ON public.class_spellcasting_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
     }]');
   END IF;
 END;
@@ -5656,12 +6173,10 @@ CREATE INDEX IF NOT EXISTS idx_class_specializations_class
  *   creatures → features (owned via bridge — traits)
  *   creatures → proficiency_grants (owned via bridge)
  *   creatures → speeds (owned)
- *   creatures → actions (owned via bridge)
  *   creatures → damage_resistances/immunities/vulnerabilities (owned)
  *   creatures → condition_immunities (owned)
  *   Optional profiles stored as jsonb (tightly owned, rarely queried):
- *     legendary_profile, lair_profile, mount_profile,
- *     companion_profile, npc_profile
+ *     mount_profile, companion_profile, npc_profile
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.creatures (
@@ -5679,9 +6194,7 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   quote text,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_creatures_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
-  record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
   category text NOT NULL,              -- CreatureCategory
   creature_type_id uuid
     REFERENCES public.creature_types(id)
@@ -5717,8 +6230,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   logistics_notes text[],
 
   -- Optional rule profiles (presence = module applies)
-  legendary_profile jsonb,             -- CreatureLegendaryProfile | null
-  lair_profile jsonb,                  -- CreatureLairProfile | null
   mount_profile jsonb,                 -- CreatureMountProfile | null
   companion_profile jsonb,             -- CreatureCompanionProfile | null
   npc_profile jsonb,                   -- CreatureNpcProfile | null
@@ -5731,8 +6242,8 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   CONSTRAINT creatures_category_chk CHECK (
     category IN ('NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON')
   ),
-  CONSTRAINT creatures_record_kind_chk CHECK (
-    record_kind IN ('STAT_BLOCK', 'LOGISTICS')
+  CONSTRAINT creatures_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -5842,7 +6353,10 @@ CREATE TABLE IF NOT EXISTS public.creature_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5900,42 +6414,6 @@ CREATE INDEX IF NOT EXISTS idx_creature_speeds_creature
 
 
 /* ──────────────────────────────────────────────
- * CREATURE — ACTIONS (OWNED)
- *
- * Standard actions / bonus actions / reactions are stored
- * in a single table discriminated by action_type.
- * Legendary and lair actions are stored in the jsonb profiles.
- * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.creature_actions (
-  id uuid PRIMARY KEY,
-
-  creature_id uuid NOT NULL
-    REFERENCES public.creatures(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  action_type text NOT NULL,           -- 'ACTION' | 'BONUS_ACTION' | 'REACTION'
-  sort_order integer NOT NULL,
-
-  label text NOT NULL,
-  description text NOT NULL,
-  attack_bonus integer,
-  damage text,
-  recharge text,
-
-  CONSTRAINT creature_actions_type_chk CHECK (
-    action_type IN ('ACTION', 'BONUS_ACTION', 'REACTION')
-  )
-);
-
-ALTER TABLE public.creature_actions ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_creature_actions_creature
-  ON public.creature_actions(creature_id);
-
-
-/* ──────────────────────────────────────────────
  * CREATURE — DAMAGE RESISTANCES (NORMALIZED)
  * ────────────────────────────────────────────── */
 
@@ -5950,7 +6428,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_resistances (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_resistances_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_resistances_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_resistances ENABLE ROW LEVEL SECURITY;
@@ -5974,7 +6456,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_immunities (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_immunities_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_immunities_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_immunities ENABLE ROW LEVEL SECURITY;
@@ -5998,7 +6484,11 @@ CREATE TABLE IF NOT EXISTS public.creature_damage_vulnerabilities (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (creature_id, damage_type_id)
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, damage_type_id),
+  CONSTRAINT creature_damage_vulnerabilities_creature_sort_order_key UNIQUE (creature_id, sort_order),
+  CONSTRAINT creature_damage_vulnerabilities_sort_order_chk CHECK (sort_order > 0)
 );
 
 ALTER TABLE public.creature_damage_vulnerabilities ENABLE ROW LEVEL SECURITY;
@@ -6060,10 +6550,9 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   description text,
   quote text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_equipment_status CHECK (status IN ('DRAFT', 'ACTIVE')),
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount numeric,
+  cost_amount integer,
   cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric,
   weight_unit text,
@@ -6072,10 +6561,11 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   max_stack integer,
   max_bonus integer,
   armor_class integer,
+  requires_attunement boolean NOT NULL DEFAULT false,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   -- VARIANT only: links to parent equipment definition
-  parent_equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  parent_equipment_id uuid,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -6083,6 +6573,11 @@ CREATE TABLE IF NOT EXISTS public.equipment (
     (category = 'VARIANT' AND parent_equipment_id IS NOT NULL)
     OR (category <> 'VARIANT' AND parent_equipment_id IS NULL)
   ),
+  CONSTRAINT equipment_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT equipment_parent_system_fk FOREIGN KEY (parent_equipment_id, system_id)
+    REFERENCES public.equipment (id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT equipment_weight_chk CHECK (
     (weight_amount IS NULL AND weight_unit IS NULL)
     OR (weight_amount IS NOT NULL AND weight_unit IS NOT NULL)
@@ -6098,6 +6593,9 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   CONSTRAINT equipment_cost_chk CHECK (
     (cost_amount IS NULL AND cost_currency_id IS NULL)
     OR (cost_amount IS NOT NULL AND cost_currency_id IS NOT NULL)
+  ),
+  CONSTRAINT equipment_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -6163,6 +6661,7 @@ $$;
 CREATE TABLE IF NOT EXISTS public.equipment_properties (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   property_code text NOT NULL,
+  sort_order smallint NOT NULL CONSTRAINT equipment_properties_sort_order_positive CHECK (sort_order > 0),
   PRIMARY KEY (equipment_id, property_code)
 );
 
@@ -6175,7 +6674,9 @@ CREATE TABLE IF NOT EXISTS public.equipment_contains (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   contained_equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   quantity integer NOT NULL,
-  PRIMARY KEY (equipment_id, contained_equipment_id)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (equipment_id, contained_equipment_id),
+  UNIQUE (equipment_id, sort_order)
 );
 
 ALTER TABLE public.equipment_contains ENABLE ROW LEVEL SECURITY;
@@ -6247,7 +6748,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );
@@ -6343,14 +6844,15 @@ CREATE TABLE IF NOT EXISTS public.feats (
   user_id uuid REFERENCES auth.users (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_feats_status CHECK (status IN ('DRAFT', 'ACTIVE')),
   prerequisite_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feats_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 SELECT
@@ -6398,6 +6900,34 @@ BEGIN
 END;
 $$;
 
+CREATE TABLE IF NOT EXISTS public.feat_details (
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feat_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feat_details_feat ON public.feat_details (feat_id);
+
+ALTER TABLE public.feat_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feat_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feat_details_owned
+    AFTER DELETE ON public.feat_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
+  END IF;
+END;
+$$;
+
 /* ──────────────────────────────────────────────
 * FEAT — EFFECTS (OWNED)
 * ────────────────────────────────────────────── */
@@ -6431,6 +6961,35 @@ $$;
 /* ──────────────────────────────────────────────
 * FEAT — MODIFIER GRANTS
 * ────────────────────────────────────────────── */
+/* FEAT — FEAT GRANTS (OWNED) */
+CREATE TABLE IF NOT EXISTS public.feat_feat_grants (
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feat_id, feat_grant_id)
+);
+
+ALTER TABLE public.feat_feat_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_feat_feat_grants_feat
+  ON public.feat_feat_grants (feat_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feat_feat_grants_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feat_feat_grants_owned
+    AFTER DELETE ON public.feat_feat_grants
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.feat_grants", "columns": ["feat_grant_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS public.feat_modifier_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   modifier_grant_id uuid NOT NULL,
@@ -6553,7 +7112,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, feature_id)
 );
@@ -6611,15 +7170,11 @@ CREATE TABLE IF NOT EXISTS public.races (
   quote text,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_races_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
   category text NOT NULL,              -- RaceCategoryCode
   selection_mode text,                 -- BASE only (DIRECT | REQUIRES_SUBRACE)
 
-  parent_race_id uuid                  -- SUBRACE only
-    REFERENCES public.races(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  parent_race_id uuid,                 -- SUBRACE only
 
   is_master boolean,
 
@@ -6629,12 +7184,20 @@ CREATE TABLE IF NOT EXISTS public.races (
   CONSTRAINT races_category_chk CHECK (
     category IN ('BASE', 'SUBRACE')
   ),
+  CONSTRAINT races_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT races_parent_system_fk FOREIGN KEY (parent_race_id, system_id)
+    REFERENCES public.races(id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT races_selection_mode_chk CHECK (
     selection_mode IN ('DIRECT', 'REQUIRES_SUBRACE') OR selection_mode IS NULL
   ),
   CONSTRAINT races_category_payload_chk CHECK (
     (category = 'BASE' AND parent_race_id IS NULL AND selection_mode IS NOT NULL AND size_code IS NOT NULL)
     OR (category = 'SUBRACE' AND parent_race_id IS NOT NULL AND selection_mode IS NULL AND size_code IS NULL)
+  ),
+  CONSTRAINT races_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -6702,7 +7265,10 @@ CREATE TABLE IF NOT EXISTS public.race_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6830,7 +7396,10 @@ CREATE TABLE IF NOT EXISTS public.race_ancestry_option_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6892,7 +7461,6 @@ CREATE TABLE IF NOT EXISTS public.spells (
   label text NOT NULL,
   description text NOT NULL,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_spells_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
   level integer NOT NULL,
 
@@ -6909,7 +7477,10 @@ CREATE TABLE IF NOT EXISTS public.spells (
   is_master boolean,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT spells_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 SELECT public.apply_system_derived_policies('spells');
@@ -6961,7 +7532,10 @@ CREATE TABLE IF NOT EXISTS public.spell_classes (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  class_id uuid NOT NULL,
+  class_id uuid NOT NULL
+    REFERENCES public.classes(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   PRIMARY KEY (spell_id, class_id)
 );
@@ -7049,7 +7623,6 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-  CONSTRAINT chk_vehicles_status CHECK (status IN ('DRAFT', 'ACTIVE')),
 
   category text NOT NULL,
   size_code text,
@@ -7073,6 +7646,9 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 
   CONSTRAINT vehicles_category_chk CHECK (
     category IN ('LAND', 'WATER', 'AIR', 'SPELLJAMMER')
+  ),
+  CONSTRAINT vehicles_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -7140,7 +7716,10 @@ CREATE TABLE IF NOT EXISTS public.vehicle_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -7183,9 +7762,8 @@ CREATE TABLE IF NOT EXISTS public.characters (
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
+  inspiration boolean NOT NULL DEFAULT false,
   CONSTRAINT chk_characters_status CHECK (status IN ('DRAFT', 'ACTIVE')),
-  -- Persisted CharacterBuildState snapshot (null until first command is processed)
-  build_state jsonb,
   -- Optimistic concurrency guard — incremented on every command write
   stream_version integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -7266,36 +7844,36 @@ DROP POLICY IF EXISTS "Character owners can read" ON public.characters;
 CREATE POLICY "Character owners can read"
   ON public.characters FOR SELECT TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can insert" ON public.characters;
 CREATE POLICY "Character owners can insert"
   ON public.characters FOR INSERT TO authenticated
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can update" ON public.characters;
 CREATE POLICY "Character owners can update"
   ON public.characters FOR UPDATE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   )
   WITH CHECK (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 DROP POLICY IF EXISTS "Character owners can delete" ON public.characters;
 CREATE POLICY "Character owners can delete"
   ON public.characters FOR DELETE TO authenticated
   USING (
-    user_id = auth.uid()
-    OR (auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+    user_id = (SELECT auth.uid())
+    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
   );
 
 CREATE TABLE IF NOT EXISTS public.character_advancement (
@@ -7517,13 +8095,22 @@ ALTER TABLE IF EXISTS public.character_hitpoint_intent ENABLE ROW LEVEL SECURITY
 CREATE TABLE IF NOT EXISTS public.character_hitpoint_levels (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   char_level integer NOT NULL,
+  class_id uuid NOT NULL,
+  class_level integer NOT NULL,
   value integer NOT NULL,
   overridden boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   PRIMARY KEY (character_id, char_level),
+  CONSTRAINT character_hitpoint_levels_character_class_fkey
+    FOREIGN KEY (character_id, class_id)
+    REFERENCES public.character_classes (character_id, class_id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_hitpoint_levels_class_progression_uniq
+    UNIQUE (character_id, class_id, class_level),
   CONSTRAINT character_hitpoint_levels_value_chk CHECK (
     char_level > 0
+    AND class_level > 0
     AND value >= 0
   )
 );
@@ -7656,6 +8243,88 @@ $$;
 
 ALTER TABLE IF EXISTS public.character_hit_dice_state ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.character_spell_slot_state (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  slot_key text NOT NULL,
+  used integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, slot_key),
+  CONSTRAINT character_spell_slot_state_used_chk CHECK (used >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_spell_slot_state_character_id
+  ON public.character_spell_slot_state (character_id);
+
+ALTER TABLE IF EXISTS public.character_spell_slot_state ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_conditions (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  condition_type_id uuid NOT NULL REFERENCES public.condition_types (id) ON DELETE CASCADE DEFERRABLE,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, condition_type_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_conditions_condition_type_id
+  ON public.character_conditions (condition_type_id);
+
+ALTER TABLE IF EXISTS public.character_conditions ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_exhaustion (
+  character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  level integer NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_exhaustion_level_chk CHECK (level >= 0 AND level <= 6)
+);
+
+ALTER TABLE IF EXISTS public.character_exhaustion ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_note_groups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  label text NOT NULL,
+  sort_order integer NOT NULL,
+  kind text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_note_groups_kind_chk CHECK (
+    kind IN ('SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM')
+  ),
+  CONSTRAINT character_note_groups_sort_order_chk CHECK (sort_order >= 0),
+  CONSTRAINT character_note_groups_character_id_id_key UNIQUE (character_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_note_groups_character_id
+  ON public.character_note_groups (character_id, sort_order);
+
+ALTER TABLE IF EXISTS public.character_note_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  group_id uuid NOT NULL,
+  title text NOT NULL,
+  body text,
+  pinned boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  CONSTRAINT character_notes_group_owner_fkey
+    FOREIGN KEY (character_id, group_id)
+    REFERENCES public.character_note_groups (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_notes_character_id
+  ON public.character_notes (character_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_character_notes_group_id
+  ON public.character_notes (character_id, group_id);
+
+ALTER TABLE IF EXISTS public.character_notes ENABLE ROW LEVEL SECURITY;
+
 
 DO $$
 BEGIN
@@ -7682,7 +8351,7 @@ CREATE TABLE IF NOT EXISTS public.character_class_spells (
   state spell_state NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, class_id, spell_id)
+  PRIMARY KEY (character_id, class_id, spell_id, state)
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_class_spells_class_id ON public.character_class_spells (class_id);
@@ -7713,7 +8382,7 @@ CREATE TABLE IF NOT EXISTS public.character_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE,
   quantity integer NOT NULL DEFAULT 1,
-  container_id uuid REFERENCES public.character_equipment (id) ON DELETE SET NULL DEFERRABLE,
+  container_id uuid,
   container_path text,
   custom_name text,
   notes text,
@@ -7721,7 +8390,12 @@ CREATE TABLE IF NOT EXISTS public.character_equipment (
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_equipment_quantity_chk CHECK (
     quantity > 0
-  )
+  ),
+  CONSTRAINT character_equipment_character_id_id_key UNIQUE (character_id, id),
+  CONSTRAINT character_equipment_container_owner_fkey
+    FOREIGN KEY (character_id, container_id)
+    REFERENCES public.character_equipment (character_id, id)
+    DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_equip_char_id ON public.character_equipment (character_id);
@@ -7750,10 +8424,14 @@ ALTER TABLE IF EXISTS public.character_equipment ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_equipped (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, equipment_id)
+  PRIMARY KEY (character_id, equipment_id),
+  CONSTRAINT character_equipped_equipment_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_equipped_equipment_id ON public.character_equipped (equipment_id);
@@ -7780,10 +8458,14 @@ ALTER TABLE IF EXISTS public.character_equipped ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_attuned (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, equipment_id)
+  PRIMARY KEY (character_id, equipment_id),
+  CONSTRAINT character_attuned_equipment_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_attuned_equipment_id ON public.character_attuned (equipment_id);
@@ -7820,7 +8502,8 @@ CREATE TABLE IF NOT EXISTS public.character_creatures (
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_creatures_relationship_kind_chk CHECK (
     relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED', 'SUMMONED')
-  )
+  ),
+  CONSTRAINT character_creatures_character_id_id_key UNIQUE (character_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_creatures_character_id
@@ -7839,7 +8522,8 @@ CREATE TABLE IF NOT EXISTS public.character_vehicles (
   notes text,
   is_active boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
-  updated_at timestamptz NOT NULL DEFAULT NOW()
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_vehicles_character_id_id_key UNIQUE (character_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_vehicles_character_id
@@ -7852,11 +8536,19 @@ ALTER TABLE IF EXISTS public.character_vehicles ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_creature_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  character_creature_id uuid NOT NULL REFERENCES public.character_creatures (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  character_creature_id uuid NOT NULL,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_creature_id, equipment_id)
+  PRIMARY KEY (character_creature_id, equipment_id),
+  CONSTRAINT character_creature_equipment_creature_owner_fkey
+    FOREIGN KEY (character_id, character_creature_id)
+    REFERENCES public.character_creatures (character_id, id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_creature_equipment_item_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_creature_equipment_character_id
@@ -7866,11 +8558,19 @@ ALTER TABLE IF EXISTS public.character_creature_equipment ENABLE ROW LEVEL SECUR
 
 CREATE TABLE IF NOT EXISTS public.character_vehicle_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  character_vehicle_id uuid NOT NULL REFERENCES public.character_vehicles (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  character_vehicle_id uuid NOT NULL,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_vehicle_id, equipment_id)
+  PRIMARY KEY (character_vehicle_id, equipment_id),
+  CONSTRAINT character_vehicle_equipment_vehicle_owner_fkey
+    FOREIGN KEY (character_id, character_vehicle_id)
+    REFERENCES public.character_vehicles (character_id, id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_vehicle_equipment_item_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_vehicle_equipment_character_id
@@ -7883,7 +8583,12 @@ CREATE TABLE IF NOT EXISTS public.character_currency_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  container_id uuid REFERENCES public.character_equipment (id) ON DELETE SET NULL DEFERRABLE
+  container_id uuid,
+  CONSTRAINT character_currency_groups_character_id_id_key UNIQUE (character_id, id),
+  CONSTRAINT character_currency_groups_container_owner_fkey
+    FOREIGN KEY (character_id, container_id)
+    REFERENCES public.character_equipment (character_id, id)
+    DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_cur_groups_char_id ON public.character_currency_groups (character_id);
@@ -7910,15 +8615,20 @@ $$;
 ALTER TABLE IF EXISTS public.character_currency_groups ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_currencies (
-  group_id uuid NOT NULL REFERENCES public.character_currency_groups (id) ON DELETE CASCADE DEFERRABLE,
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  group_id uuid NOT NULL,
   currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE CASCADE DEFERRABLE,
   amount integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (group_id, currency_id),
+  PRIMARY KEY (character_id, group_id, currency_id),
   CONSTRAINT character_currencies_amount_chk CHECK (
     amount >= 0
-  )
+  ),
+  CONSTRAINT character_currencies_group_owner_fkey
+    FOREIGN KEY (character_id, group_id)
+    REFERENCES public.character_currency_groups (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_currencies_currency_id
@@ -7949,7 +8659,7 @@ CREATE TABLE IF NOT EXISTS public.character_resources (
     REFERENCES public.characters (id)
     ON DELETE CASCADE,
 
-  resource_grant_id uuid NOT NULL
+  resource_grant_id text NOT NULL
     ,
   used integer NOT NULL DEFAULT 0,
 
@@ -7984,6 +8694,127 @@ BEGIN
 END IF;
 END;
 $$;
+
+CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selections (
+  id uuid PRIMARY KEY,
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  grant_id uuid NOT NULL,
+  source_kind text NOT NULL,
+  class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  source_class_level integer,
+  race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
+  subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
+  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  acquired_parent_id uuid,
+  background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
+  feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
+  reason text,
+  timing_kind text NOT NULL,
+  timing_level integer,
+  timing_class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  timing_class_level integer,
+  progression_level integer,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_chosen_grant_selection_source_kind_chk CHECK (
+    source_kind IN ('CLASS', 'SUBCLASS', 'RACE', 'SUBRACE', 'ANCESTRY', 'BACKGROUND', 'FEAT', 'FEATURE', 'OPTION', 'MANUAL')
+  ),
+  CONSTRAINT character_chosen_grant_selection_source_ref_chk CHECK (
+    (source_kind = 'CLASS' AND class_id IS NOT NULL AND subclass_id IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'SUBCLASS' AND class_id IS NULL AND subclass_id IS NOT NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'RACE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NOT NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'SUBRACE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NOT NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'ANCESTRY' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NOT NULL AND option_id IS NOT NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'BACKGROUND' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NOT NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'FEAT' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NOT NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'FEATURE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NOT NULL AND reason IS NULL)
+    OR (source_kind = 'OPTION' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NOT NULL AND acquired_parent_id IS NOT NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'MANUAL' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL)
+  ),
+  CONSTRAINT character_chosen_grant_selection_source_level_chk CHECK (
+    source_class_level IS NULL OR source_class_level > 0
+  ),
+  CONSTRAINT character_chosen_grant_selection_timing_kind_chk CHECK (
+    timing_kind IN ('IMMEDIATE', 'CHARACTER_LEVEL', 'CLASS_LEVEL')
+  ),
+  CONSTRAINT character_chosen_grant_selection_timing_ref_chk CHECK (
+    (timing_kind = 'IMMEDIATE' AND timing_level IS NULL AND timing_class_id IS NULL AND timing_class_level IS NULL)
+    OR (timing_kind = 'CHARACTER_LEVEL' AND timing_level IS NOT NULL AND timing_level > 0 AND timing_class_id IS NULL AND timing_class_level IS NULL)
+    OR (timing_kind = 'CLASS_LEVEL' AND timing_level IS NULL AND timing_class_id IS NOT NULL AND timing_class_level IS NOT NULL AND timing_class_level > 0)
+  ),
+  CONSTRAINT character_chosen_grant_selection_progression_level_chk CHECK (
+    progression_level IS NULL OR progression_level > 0
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_chosen_grant_selections_character_id
+  ON public.character_chosen_grant_selections (character_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_character_chosen_grant_selection_identity
+  ON public.character_chosen_grant_selections (
+    character_id,
+    grant_id,
+    source_kind,
+    class_id,
+    subclass_id,
+    race_id,
+    subrace_id,
+    ancestry_id,
+    option_id,
+    acquired_parent_id,
+    background_id,
+    feat_id,
+    feature_id,
+    reason,
+    progression_level
+  ) NULLS NOT DISTINCT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_character_chosen_grant_selections_updated_at'
+      AND tgrelid = 'public.character_chosen_grant_selections'::regclass) THEN
+  CREATE TRIGGER trg_character_chosen_grant_selections_updated_at
+    BEFORE UPDATE ON public.character_chosen_grant_selections
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_chosen_grant_selections ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selection_targets (
+  selection_id uuid NOT NULL REFERENCES public.character_chosen_grant_selections (id) ON DELETE CASCADE DEFERRABLE,
+  slot_index integer NOT NULL,
+  target_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (selection_id, slot_index),
+  CONSTRAINT character_chosen_grant_selection_target_slot_chk CHECK (
+    slot_index >= 0
+  )
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_character_chosen_grant_selection_targets_updated_at'
+      AND tgrelid = 'public.character_chosen_grant_selection_targets'::regclass) THEN
+  CREATE TRIGGER trg_character_chosen_grant_selection_targets_updated_at
+    BEFORE UPDATE ON public.character_chosen_grant_selection_targets
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_chosen_grant_selection_targets ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_feature_acquisitions (
   id uuid PRIMARY KEY,
@@ -8037,6 +8868,24 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.character_feature_acquisitions ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'character_chosen_grant_selections_acquired_parent_id_fkey'
+      AND conrelid = 'public.character_chosen_grant_selections'::regclass
+  ) THEN
+    ALTER TABLE public.character_chosen_grant_selections
+      ADD CONSTRAINT character_chosen_grant_selections_acquired_parent_id_fkey
+      FOREIGN KEY (acquired_parent_id)
+      REFERENCES public.character_feature_acquisitions (id)
+      ON DELETE SET NULL
+      DEFERRABLE;
+  END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.character_feature_selection_records (
   feature_acquisition_id uuid NOT NULL REFERENCES public.character_feature_acquisitions (id) ON DELETE CASCADE DEFERRABLE,
@@ -8202,7 +9051,7 @@ $$;
 ALTER TABLE IF EXISTS public.character_spell_selection_spells ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_resource_grants (
-  id uuid PRIMARY KEY,
+  id text NOT NULL,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   resource_id uuid NOT NULL REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE,
   source_kind text NOT NULL,
@@ -8217,6 +9066,7 @@ CREATE TABLE IF NOT EXISTS public.character_resource_grants (
   timing_class_level integer,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, id),
   CONSTRAINT character_resource_grants_source_kind_chk CHECK (
     source_kind IN ('CLASS', 'SUBCLASS', 'FEATURE', 'OPTION')
   ),
@@ -8273,8 +9123,8 @@ BEGIN
       AND conrelid = 'public.character_resources'::regclass) THEN
   ALTER TABLE public.character_resources
     ADD CONSTRAINT character_resources_resource_grant_id_fkey
-    FOREIGN KEY (resource_grant_id)
-    REFERENCES public.character_resource_grants (id)
+    FOREIGN KEY (character_id, resource_grant_id)
+    REFERENCES public.character_resource_grants (character_id, id)
     ON DELETE CASCADE
     DEFERRABLE;
 END IF;
@@ -8719,8 +9569,11 @@ CREATE TABLE IF NOT EXISTS public.character_events (
   schema_version int NOT NULL DEFAULT 1,
   actor_id       uuid NOT NULL,
   command_id     uuid NOT NULL,
-  occurred_at    timestamptz NOT NULL DEFAULT NOW()
+  occurred_at    timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_events_character_command_uniq UNIQUE (character_id, command_id)
 );
+
+ALTER TABLE public.character_events ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_character_events_character_id
   ON public.character_events (character_id, occurred_at);
@@ -9064,6 +9917,18 @@ BEGIN
     ALTER TABLE public.facet_predicate_feat_items
       ADD CONSTRAINT facet_predicate_feat_items_feat_id_fkey
       FOREIGN KEY (feat_id) REFERENCES public.feats(id)
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'facet_predicate_class_items_class_id_fkey') THEN
+    ALTER TABLE public.facet_predicate_class_items
+      ADD CONSTRAINT facet_predicate_class_items_class_id_fkey
+      FOREIGN KEY (class_id) REFERENCES public.classes(id)
       ON DELETE CASCADE
       DEFERRABLE INITIALLY DEFERRED;
   END IF;
@@ -9508,7 +10373,7 @@ BEGIN
     ALTER TABLE public.spell_classes
       ADD CONSTRAINT spell_classes_class_id_fkey
       FOREIGN KEY (class_id) REFERENCES public.classes(id)
-      ON DELETE RESTRICT
+      ON DELETE CASCADE
       DEFERRABLE INITIALLY DEFERRED;
   END IF;
 END;
@@ -9553,4 +10418,72 @@ $$;
 
 SELECT
   public.apply_updated_at_triggers ();
+
+-- BEGIN INCLUDE: src\domains\bootstrap\security\public_api_access.sql
+/*
+ * PUBLIC API ACCESS
+ *
+ * apps/web uses Supabase for Auth/session only. Product data is served through
+ * apps/apis and server-side packages, so browser Supabase roles should not be
+ * able to discover or call database objects directly through REST or GraphQL.
+ */
+
+REVOKE SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+  ON ALL TABLES IN SCHEMA public
+  FROM anon, authenticated;
+
+REVOKE USAGE, SELECT, UPDATE
+  ON ALL SEQUENCES IN SCHEMA public
+  FROM anon, authenticated;
+
+REVOKE EXECUTE
+  ON ALL ROUTINES IN SCHEMA public
+  FROM public, anon, authenticated;
+
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
+
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind = 'r'
+      AND c.relrowsecurity = true
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON %I.%I',
+      'No direct browser API access',
+      r.schema_name,
+      r.table_name
+    );
+
+    EXECUTE format(
+      'CREATE POLICY %I ON %I.%I AS RESTRICTIVE FOR ALL TO anon, authenticated USING (false) WITH CHECK (false)',
+      'No direct browser API access',
+      r.schema_name,
+      r.table_name
+    );
+  END LOOP;
+END;
+$$;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES
+  FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE USAGE, SELECT, UPDATE ON SEQUENCES
+  FROM anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE EXECUTE ON FUNCTIONS
+  FROM public, anon, authenticated;
+-- END INCLUDE: src\domains\bootstrap\security\public_api_access.sql
 -- END INCLUDE: src\domains\utils\create_database.sql

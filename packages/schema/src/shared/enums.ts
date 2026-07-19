@@ -6,23 +6,50 @@ export const abilityCodeSchema = z.enum([
   'DEXTERITY',
   'INTELLIGENCE',
   'STRENGTH',
-  'WISDOM',
-  'SPELLCASTING'
+  'WISDOM'
 ])
 
-export const activationCodeSchema = z.enum([
-  'ACTION',
-  'BONUS_ACTION',
-  'REACTION',
-  'FREE'
+export const abilityModifierReferenceSchema = z.union([
+  abilityCodeSchema,
+  z.literal('SPELLCASTING')
 ])
+
+export const activationCodeSchema = z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
 
 export const authoredRecordStatusSchema = z.enum(['DRAFT', 'ACTIVE'])
 
-export const invocationKindSchema = z.enum([
-  'ACTION',
-  'PASSIVE'
+export const sizeCodeSchema = z.enum([
+  'COLOSSAL',
+  'DIMUNITIVE',
+  'FINE',
+  'GARGANTUAN',
+  'GIANT',
+  'HUGE',
+  'LARGE',
+  'MEDIUM',
+  'SMALL',
+  'TINY'
 ])
+
+export const creatureCategoryCodeSchema = z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON'])
+
+export const vehicleCategoryCodeSchema = z.enum(['LAND', 'WATER', 'AIR', 'SPELLJAMMER'])
+
+export const classAttributeSchema = z.enum(['SPELLCASTER', 'RESOURCE'])
+
+export const subclassAttributeSchema = z.enum(['SPELLCASTER', 'RESOURCE', 'SPECIALIZATION'])
+
+export const spellcastingAttributeSchema = z.enum([
+  'LIMIT_KNOWN_SPELL_AMOUNT',
+  'PREPARES_SPELLS',
+  'CUSTOM_MAGIC_NAME',
+  'USES_SPELLBOOK',
+  'RITUAL_CASTER'
+])
+
+export const featureAttributeSchema = z.enum(['LIMITED_USE', 'HIDDEN_ON_SHEET'])
+
+export const invocationKindSchema = z.enum(['ACTION', 'PASSIVE'])
 
 export const triggerCodeSchema = z.enum([
   'ACTIVATED',
@@ -42,6 +69,8 @@ export const nodeSubjectCodeSchema = z.enum([
   'FEAT',
   'RACE',
   'BACKGROUND',
+  'CREATURE',
+  'VEHICLE',
   'PROFICIENCY_GRANT',
   'OPTION',
   'SUBRACE',
@@ -58,7 +87,9 @@ export const relationCodeSchema = z.enum([
   'PROFICIENCY_GRANT',
   'OPTION',
   'SUBRACE',
-  'RACE_ANCESTRY_OPTION'
+  'RACE_ANCESTRY_OPTION',
+  'CREATURE',
+  'VEHICLE'
 ])
 
 export const predicateCodeSchema = z.enum([
@@ -100,7 +131,14 @@ export const predicateCodeSchema = z.enum([
   'SAVING_THROW_ABILITY_BONUS',
   'WHILE_SOURCE_CARRIED',
   'WHILE_SOURCE_EQUIPPED',
-  'WHILE_SOURCE_ATTUNED'
+  'WHILE_SOURCE_ATTUNED',
+  'CREATURE_CATEGORY',
+  'CREATURE_TYPE',
+  'CREATURE_SIZE',
+  'CREATURE_IS_MOUNT',
+  'CREATURE_IS_COMPANION',
+  'VEHICLE_CATEGORY',
+  'VEHICLE_SIZE'
 ])
 
 export const rangeKindSchema = z.enum([
@@ -160,11 +198,7 @@ export const scalingSourceSchema = z.enum([
 ])
 export const scalingAmountKindSchema = z.enum(['FULL', 'HALF', 'DOUBLE'])
 
-export const chargeResetKindSchema = z.enum([
-  'LONG_REST',
-  'SHORT_REST',
-  'MANUAL'
-])
+export const chargeResetKindSchema = z.enum(['LONG_REST', 'SHORT_REST', 'MANUAL'])
 export const chargeLimitKindSchema = z.enum([
   'FIXED_AMOUNT',
   'CHARACTER_LEVEL',
@@ -178,15 +212,14 @@ export const chargeBonusKindSchema = z.enum([
   'ABILITY_MODIFIER',
   'SKILL_BONUS'
 ])
-export const attackDomainCodeSchema = z.enum([
-  'MELEE',
-  'RANGED',
-  'SPELL',
-  'UNARMED'
-])
+export const attackDomainCodeSchema = z.enum(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])
 
 export const savingThrowDcMethodSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC'])
-export const savingThrowDcBonusKindSchema = z.enum(['ABILITY_MODIFIER', 'PROFICIENCY_BONUS', 'STATIC_BONUS'])
+export const savingThrowDcBonusKindSchema = z.enum([
+  'ABILITY_MODIFIER',
+  'PROFICIENCY_BONUS',
+  'STATIC_BONUS'
+])
 
 export const grantKindSchema = z.enum([
   'MODIFIER_GRANT',
@@ -198,6 +231,7 @@ export const grantKindSchema = z.enum([
 
 export const authoringModeKindSchema = z.enum(['ALL', 'SELECTED'])
 export const authoringSelectionKindSchema = z.enum(['GRANTED', 'CHOSEN'])
+export const authoringSelectionDuplicatePolicySchema = z.enum(['UNIQUE', 'REPEATABLE'])
 export const authoringConstraintCodeSchema = z.enum(['INCLUDE', 'EXCLUDE'])
 
 export const proficiencyKindSchema = z.enum([
@@ -231,7 +265,7 @@ export const effectKindSchema = z.enum([
   'MANIFEST',
   'MOVE_MANIFEST',
   'COMMAND_MANIFEST',
-  'RULE'
+  'MANUAL_ADJUDICATION'
 ])
 export const pathCodeSchema = z.enum([
   'PASSIVE',
@@ -378,21 +412,8 @@ export const equipmentPropertyCodeSchema = z.enum([
   'CLOTHING'
 ])
 
-export const equipmentAttributeCodeSchema = z.enum([
-  'LIMITED_USE',
-  'STACKABLE'
-])
+export const equipmentAttributeCodeSchema = z.enum(['LIMITED_USE', 'STACKABLE'])
 
-export const spellAttributeSchema = z.enum([
-  'CONCENTRATION',
-  'RITUAL',
-  'ADDS_TO_WEAPON_ATTACK'
-])
+export const spellAttributeSchema = z.enum(['CONCENTRATION', 'RITUAL', 'ADDS_TO_WEAPON_ATTACK'])
 
-export const spellComponentSchema = z.enum([
-  'VERBAL',
-  'SOMATIC',
-  'MATERIAL'
-])
-
-
+export const spellComponentSchema = z.enum(['VERBAL', 'SOMATIC', 'MATERIAL'])

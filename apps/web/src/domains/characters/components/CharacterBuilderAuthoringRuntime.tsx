@@ -255,7 +255,6 @@ function CharacterBuilderFormRuntime({
         baseActiveUpdatedAt: session.mode === 'edit' ? session.baseActiveUpdatedAt : undefined
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
-      await router.invalidate()
       await navigate({
         params: buildCharacterRouteParams(
           response.publicId ?? response.character.id,
@@ -266,7 +265,7 @@ function CharacterBuilderFormRuntime({
     } catch {
       notifications.show({ color: 'red', message: 'Could not finalize that character yet.' })
     }
-  }, [commitMutation, draftMutation, form, navigate, router, session.baseActiveUpdatedAt, session.mode])
+  }, [commitMutation, draftMutation, form, navigate, session.baseActiveUpdatedAt, session.mode])
 
   const handleActivate = useCallback(async () => {
     if (!payload.view.review.ready) {

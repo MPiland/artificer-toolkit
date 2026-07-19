@@ -5,7 +5,6 @@ export const phaseSpider: CreatureAuthored = {
     label: 'Phase Spider',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.LARGE,
@@ -17,7 +16,6 @@ export const phaseSpider: CreatureAuthored = {
         INTELLIGENCE: 6,
         WISDOM: 10,
         CHARISMA: 6,
-        SPELLCASTING: 0
     },
     armorClass: 13,
     armorClassNote: 'natural armor',

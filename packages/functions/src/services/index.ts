@@ -1,5 +1,4 @@
 export * from './character/index.js'
 export * from './subjects/index.js'
-export * from './grants/index.js'
-export * from './features/index.js'
 export * from './nodeRuntime/index.js'
+export * from './authoredContent/index.js'

@@ -1,8 +1,10 @@
 # Forge Authoring Implementation Brief
 
+> **Document status:** Superseded transitional UI implementation brief. Retained for implementation history only. Use [the MVP acceptance ledger](docs/audits/mvp-acceptance-ledger-2026-07-13.md), [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and the pending lock candidates under `output/design/authoring-workspace/mvp/` for current direction. Authoring data and node-map boundaries remain captured in [ADR 0004](docs/adr/0004-backend-resolved-node-maps.md) and [ADR 0006](docs/adr/0006-character-builder-sheet-boundary.md).
+
 ## Impeccable Shape Gate
 
-The authoring workspace should follow the cleaned Stitch north stars: Black Forge for dark mode, White Forge for light mode, and the desktop race/spell/creature scenarios as canonical layout references. The primary user action is focused content editing with constant orientation: structure rail on the left, focused editor in the center, optional preview/inspector on the right, and persistent actions at the bottom.
+At the time of this brief, the authoring workspace followed the cleaned Stitch north stars: Black Forge for dark mode, White Forge for light mode, and the desktop race/spell/creature scenarios as layout references. Later review superseded those references; do not reproduce their default three-column or nested-editor behavior. The durable intent is focused content editing with constant orientation, a structural rail, optional non-compressing overlays, and persistent actions.
 
 The color strategy is restrained product UI with a stronger brand accent: orange owns primary action, creation momentum, draft/progress, and dice/data highlights. Teal is secondary and functional for focus rings, technical selection, and supportive navigation. Purple remains rare for arcane emphasis.
 

@@ -22,7 +22,13 @@ import {
   upsertSystem,
   upsertVehicle
 } from '../domains/index.js'
-import { createAuthoredRouteIdRepository } from '../repositories/index.js'
+import {
+  createAuthoredDefinitionRepository,
+  createAuthoredRouteIdRepository,
+  type AuthoredSubjectKind
+} from '../repositories/index.js'
+import type { Json } from '../types/index.js'
+import { withTransaction } from '../utils/index.js'
 import type {
   SeedBaselineContent,
   SeedContext,
@@ -48,6 +54,130 @@ type BaselineSubjectKind =
   | 'RACE'
   | 'SPELL'
   | 'VEHICLE'
+
+interface BaselineSubjectSet {
+  table: BaselineSubjectTable
+  subjectKind: BaselineSubjectKind
+  ids: string[]
+}
+
+interface StaleBaselineSubjectSet extends BaselineSubjectSet {
+  ids: string[]
+}
+
+async function findStaleBaselineSubjectIds(
+  context: SeedContext,
+  subject: BaselineSubjectSet
+): Promise<string[]> {
+  let query = context.db
+    .selectFrom(subject.table)
+    .select('id')
+    .where('system_id', '=', context.systemId)
+    .where('is_master', '=', true)
+
+  if (subject.ids.length > 0) {
+    query = query.where('id', 'not in', subject.ids)
+  }
+
+  return (await query.execute()).map((row) => row.id)
+}
+
+async function clearStaleBaselineReferences(
+  context: SeedContext,
+  staleByKind: ReadonlyMap<BaselineSubjectKind, readonly string[]>
+): Promise<void> {
+  // These RESTRICT-style links must not keep removed baseline roots alive.
+  // Later bundle upserts recreate valid links and surface invalid references.
+  const staleEquipmentIds = staleByKind.get('EQUIPMENT') ?? []
+  if (staleEquipmentIds.length > 0) {
+    await context.db
+      .deleteFrom('equipment_contains')
+      .where('contained_equipment_id', 'in', staleEquipmentIds)
+      .execute()
+    await context.db
+      .deleteFrom('starting_equipment_option_item_equipment')
+      .where('equipment_id', 'in', staleEquipmentIds)
+      .execute()
+    await context.db
+      .deleteFrom('proficiency_grant_equipment')
+      .where('equipment_id', 'in', staleEquipmentIds)
+      .execute()
+  }
+
+  const staleClassIds = staleByKind.get('CLASS') ?? []
+  if (staleClassIds.length > 0) {
+    await context.db
+      .deleteFrom('spell_classes')
+      .where('class_id', 'in', staleClassIds)
+      .execute()
+  }
+
+  const staleFeatIds = staleByKind.get('FEAT') ?? []
+  if (staleFeatIds.length > 0) {
+    await context.db
+      .deleteFrom('feat_grant_feats')
+      .where('feat_id', 'in', staleFeatIds)
+      .execute()
+    await context.db
+      .deleteFrom('feat_grant_scaling_level_feats')
+      .where('feat_id', 'in', staleFeatIds)
+      .execute()
+  }
+
+  const staleSpellIds = staleByKind.get('SPELL') ?? []
+  if (staleSpellIds.length > 0) {
+    await context.db
+      .deleteFrom('spell_grant_spells')
+      .where('spell_id', 'in', staleSpellIds)
+      .execute()
+    await context.db
+      .deleteFrom('spell_grant_scaling_level_spells')
+      .where('spell_id', 'in', staleSpellIds)
+      .execute()
+  }
+}
+
+async function pruneStaleBaselineSubjects(
+  context: SeedContext,
+  subjects: readonly BaselineSubjectSet[]
+): Promise<void> {
+  const staleSubjects: StaleBaselineSubjectSet[] = []
+
+  for (const subject of subjects) {
+    staleSubjects.push({
+      ...subject,
+      ids: await findStaleBaselineSubjectIds(context, subject)
+    })
+  }
+
+  await clearStaleBaselineReferences(
+    context,
+    new Map(staleSubjects.map((subject) => [subject.subjectKind, subject.ids]))
+  )
+
+  for (const subject of staleSubjects) {
+    if (subject.ids.length === 0) continue
+
+    await context.db
+      .deleteFrom(subject.table)
+      .where('system_id', '=', context.systemId)
+      .where('is_master', '=', true)
+      .where('id', 'in', subject.ids)
+      .execute()
+    await context.db
+      .deleteFrom('authored_route_ids')
+      .where('subject_kind', '=', subject.subjectKind)
+      .where('subject_id', 'in', subject.ids)
+      .execute()
+    await context.db
+      .deleteFrom('authored_definitions')
+      .where('system_id', '=', context.systemId)
+      .where('subject_kind', '=', subject.subjectKind)
+      .where('is_master', '=', true)
+      .where('subject_id', 'in', subject.ids)
+      .execute()
+  }
+}
 
 async function markBaselineSubjectsMaster(
   context: SeedContext,
@@ -80,7 +210,7 @@ async function seedBaselineSubjectRouteIds(
  * Vocabulary/system root seeding remains a separate concern until the
  * dedicated system/vocabulary wrappers are added.
  */
-export const seedBaselineContent: SeedBaselineContent = async (
+const seedBaselineContentInTransaction: SeedBaselineContent = async (
   context,
   bundle
 ) => {
@@ -91,6 +221,17 @@ export const seedBaselineContent: SeedBaselineContent = async (
   for (const system of bundle.vocabulary.systems) {
     await upsertSystem(context.db, system)
   }
+
+  await pruneStaleBaselineSubjects(context, [
+    { table: 'backgrounds', subjectKind: 'BACKGROUND', ids: bundle.subjects.backgrounds.map((record) => record.id) },
+    { table: 'classes', subjectKind: 'CLASS', ids: bundle.subjects.classes.map((record) => record.id) },
+    { table: 'creatures', subjectKind: 'CREATURE', ids: bundle.subjects.creatures.map((record) => record.id) },
+    { table: 'equipment', subjectKind: 'EQUIPMENT', ids: bundle.subjects.equipment.map((record) => record.id) },
+    { table: 'feats', subjectKind: 'FEAT', ids: bundle.subjects.feats.map((record) => record.id) },
+    { table: 'races', subjectKind: 'RACE', ids: bundle.subjects.races.map((record) => record.id) },
+    { table: 'spells', subjectKind: 'SPELL', ids: bundle.subjects.spells.map((record) => record.id) },
+    { table: 'vehicles', subjectKind: 'VEHICLE', ids: bundle.subjects.vehicles.map((record) => record.id) }
+  ])
 
   for (const detail of bundle.shared.details) {
     await upsertDetail(context.db, detail)
@@ -185,6 +326,30 @@ export const seedBaselineContent: SeedBaselineContent = async (
   await markBaselineSubjectsMaster(context, 'spells', bundle.subjects.spells.map((record) => record.id))
   await markBaselineSubjectsMaster(context, 'vehicles', bundle.subjects.vehicles.map((record) => record.id))
 
+  const masterDefinitions: Array<{
+    subjectKind: AuthoredSubjectKind
+    record: { id: string, label: string, systemId: string }
+  }> = [
+    ...bundle.subjects.backgrounds.map((record) => ({ subjectKind: 'BACKGROUND' as const, record })),
+    ...bundle.subjects.classes.map((record) => ({ subjectKind: 'CLASS' as const, record })),
+    ...bundle.subjects.creatures.map((record) => ({ subjectKind: 'CREATURE' as const, record })),
+    ...bundle.subjects.equipment.map((record) => ({ subjectKind: 'EQUIPMENT' as const, record })),
+    ...bundle.subjects.feats.map((record) => ({ subjectKind: 'FEAT' as const, record })),
+    ...bundle.subjects.races.map((record) => ({ subjectKind: 'RACE' as const, record })),
+    ...bundle.subjects.spells.map((record) => ({ subjectKind: 'SPELL' as const, record })),
+    ...bundle.subjects.vehicles.map((record) => ({ subjectKind: 'VEHICLE' as const, record }))
+  ]
+  const definitionRepository = createAuthoredDefinitionRepository(context.db)
+  for (const { subjectKind, record } of masterDefinitions) {
+    await definitionRepository.syncMaster({
+      subjectKind,
+      subjectId: record.id,
+      systemId: record.systemId,
+      label: record.label,
+      payload: JSON.parse(JSON.stringify(record)) as Json
+    })
+  }
+
   await seedBaselineSubjectRouteIds(context, [
     ...bundle.subjects.backgrounds.map((record) => ({ subjectKind: 'BACKGROUND' as const, subjectId: record.id })),
     ...bundle.subjects.classes.map((record) => ({ subjectKind: 'CLASS' as const, subjectId: record.id })),
@@ -230,3 +395,6 @@ export const seedBaselineContent: SeedBaselineContent = async (
 
   return result
 }
+
+export const seedBaselineContent: SeedBaselineContent = (context, bundle) =>
+  withTransaction(context.db, (db) => seedBaselineContentInTransaction({ ...context, db }, bundle))

@@ -5,7 +5,6 @@ export const bugbear: CreatureAuthored = {
     label: 'Bugbear',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const bugbear: CreatureAuthored = {
         INTELLIGENCE: 8,
         WISDOM: 11,
         CHARISMA: 9,
-        SPELLCASTING: 0
     },
     armorClass: 16,
     armorClassNote: 'hide armor, shield',

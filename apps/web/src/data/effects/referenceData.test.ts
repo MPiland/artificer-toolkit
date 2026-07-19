@@ -17,12 +17,26 @@ function createEffectReferenceApi(): EffectReferenceApi {
   return {
     systems: {
       list: async () => [
-        { id: 'system-a', label: 'System A', userId: 'user-1' },
-        { id: 'system-b', label: 'System B', userId: 'user-1' }
+        {
+          id: 'system-a',
+          label: 'System A',
+          rulesetCode: 'dnd5e',
+          rulesetVersion: '2014',
+          userId: 'user-1'
+        },
+        {
+          id: 'system-b',
+          label: 'System B',
+          rulesetCode: 'dnd5e',
+          rulesetVersion: '2014',
+          userId: 'user-1'
+        }
       ],
       get: async (id: string) => ({
         id,
         label: id === 'system-b' ? 'System B' : 'System A',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
         alignments: [],
         challengeRatings: [],
         conditionTypes: [{ id: `${id}-condition`, code: `${id}-condition`, label: `${id} Condition` }],
@@ -49,6 +63,7 @@ function createEffectReferenceApi(): EffectReferenceApi {
             {
               id: 'creature-a',
               publicId: 'creature-a',
+              activeRevisionId: 'creature-a-active-revision',
               label: 'Creature A',
               description: null,
               status: 'ACTIVE',
@@ -60,6 +75,7 @@ function createEffectReferenceApi(): EffectReferenceApi {
             {
               id: 'creature-b',
               publicId: 'creature-b',
+              activeRevisionId: 'creature-b-active-revision',
               label: 'Creature B',
               description: null,
               status: 'ACTIVE',

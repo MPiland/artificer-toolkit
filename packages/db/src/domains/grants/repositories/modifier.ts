@@ -15,6 +15,7 @@ import {
 import type { DBLike } from '#types'
 import { upsertModifierGrant } from '../upserts/modifier.js'
 import { hydrateFacetById } from '../../shared/facets.js'
+import { requireNoSelectionDuplicatePolicy } from './helpers.js'
 import type { ModifierGrantRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 
@@ -23,6 +24,7 @@ type ModifierGrantRow = {
   sort_order: number
   selection_kind: string
   count: number | null
+  selection_duplicate_policy: string | null
   value_domain_code: string
   modifier_kind: string
   scope: string
@@ -38,6 +40,7 @@ type ModifierGrantDomainRow = {
   speed_id: string | null
   sense_code: string | null
   spell_level: number | null
+  condition_type_id: string | null
 }
 
 type DbNumeric = number | string
@@ -83,9 +86,12 @@ type ModifierGrantChargeLevelRow = {
 type ModifierGrantOptionalAbilityRow = {
   modifier_grant_id: string
   ability_code: string
+  sort_order: number
 }
 
-function groupByModifierGrantId<T extends { modifier_grant_id: string }>(rows: readonly T[]): Map<string, T[]> {
+function groupByModifierGrantId<T extends { modifier_grant_id: string }>(
+  rows: readonly T[]
+): Map<string, T[]> {
   const grouped = new Map<string, T[]>()
 
   for (const row of rows) {
@@ -101,32 +107,15 @@ function groupByModifierGrantId<T extends { modifier_grant_id: string }>(rows: r
   return grouped
 }
 
-function requireSelectionKind(
-  grantId: string,
-  value: string
-): 'GRANTED' | 'CHOSEN' {
-  if (value !== 'GRANTED' && value !== 'CHOSEN') {
+function requireSelectionKind(grantId: string, value: string): 'GRANTED' {
+  if (value !== 'GRANTED') {
     throw new Error(`Modifier grant "${grantId}" has invalid selection_kind "${value}".`)
   }
 
   return value
 }
 
-function requireChosenCount(
-  grantId: string,
-  value: number | null
-): number {
-  if (value == null) {
-    throw new Error(`Modifier grant "${grantId}" is missing count for CHOSEN payload.`)
-  }
-
-  return value
-}
-
-function requireNoGrantedCount(
-  grantId: string,
-  value: number | null
-) {
+function requireNoGrantedCount(grantId: string, value: number | null) {
   if (value != null) {
     throw new Error(`Modifier grant "${grantId}" cannot hydrate count for GRANTED payload.`)
   }
@@ -154,10 +143,7 @@ function requireModifierKind(
   return value as ModifierGrantAuthored['modifierKind']
 }
 
-function requireScope(
-  grantId: string,
-  value: string
-): ModifierGrantAuthored['scope'] {
+function requireScope(grantId: string, value: string): ModifierGrantAuthored['scope'] {
   if (!(value in MODIFIER_SCOPE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid scope "${value}".`)
   }
@@ -188,10 +174,7 @@ function requireAttackDomainCode(
   return value as 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED'
 }
 
-function requireRangeKind(
-  grantId: string,
-  value: string
-): keyof typeof RANGE_KIND {
+function requireRangeKind(grantId: string, value: string): keyof typeof RANGE_KIND {
   if (!(value in RANGE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid range_kind "${value}".`)
   }
@@ -199,10 +182,7 @@ function requireRangeKind(
   return value as keyof typeof RANGE_KIND
 }
 
-function requireDurationKind(
-  grantId: string,
-  value: string
-): keyof typeof DURATION_KIND {
+function requireDurationKind(grantId: string, value: string): keyof typeof DURATION_KIND {
   if (!(value in DURATION_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid duration_kind "${value}".`)
   }
@@ -210,10 +190,7 @@ function requireDurationKind(
   return value as keyof typeof DURATION_KIND
 }
 
-function requireShapeKind(
-  grantId: string,
-  value: string
-): keyof typeof SHAPE_KIND {
+function requireShapeKind(grantId: string, value: string): keyof typeof SHAPE_KIND {
   if (!(value in SHAPE_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid shape_kind "${value}".`)
   }
@@ -221,10 +198,7 @@ function requireShapeKind(
   return value as keyof typeof SHAPE_KIND
 }
 
-function requireResetKind(
-  grantId: string,
-  value: string
-): keyof typeof CHARGE_RESET_KIND {
+function requireResetKind(grantId: string, value: string): keyof typeof CHARGE_RESET_KIND {
   if (!(value in CHARGE_RESET_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid reset_kind "${value}".`)
   }
@@ -232,10 +206,7 @@ function requireResetKind(
   return value as keyof typeof CHARGE_RESET_KIND
 }
 
-function requireChargeLimitKind(
-  grantId: string,
-  value: string
-): string {
+function requireChargeLimitKind(grantId: string, value: string): string {
   if (!(value in CHARGE_LIMIT_KIND)) {
     throw new Error(`Modifier grant "${grantId}" has invalid charge_limit_kind "${value}".`)
   }
@@ -243,10 +214,7 @@ function requireChargeLimitKind(
   return value
 }
 
-function requireChargeScalingKind(
-  grantId: string,
-  value: string
-): string {
+function requireChargeScalingKind(grantId: string, value: string): string {
   if (!(value in CHARGE_SCALING)) {
     throw new Error(`Modifier grant "${grantId}" has invalid charge_scaling_kind "${value}".`)
   }
@@ -257,14 +225,20 @@ function requireChargeScalingKind(
 function requireNumericValueKind(
   grantId: string,
   value: string | null
-): 'FIXED' | 'PROFICIENCY_BONUS' | 'SKILL_BONUS' | 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'SPELL_SLOT_LEVEL' {
+):
+  | 'FIXED'
+  | 'PROFICIENCY_BONUS'
+  | 'SKILL_BONUS'
+  | 'CHARACTER_LEVEL'
+  | 'CLASS_LEVEL'
+  | 'SPELL_SLOT_LEVEL' {
   if (
-    value !== 'FIXED'
-    && value !== 'PROFICIENCY_BONUS'
-    && value !== 'SKILL_BONUS'
-    && value !== 'CHARACTER_LEVEL'
-    && value !== 'CLASS_LEVEL'
-    && value !== 'SPELL_SLOT_LEVEL'
+    value !== 'FIXED' &&
+    value !== 'PROFICIENCY_BONUS' &&
+    value !== 'SKILL_BONUS' &&
+    value !== 'CHARACTER_LEVEL' &&
+    value !== 'CLASS_LEVEL' &&
+    value !== 'SPELL_SLOT_LEVEL'
   ) {
     throw new Error(`Modifier grant "${grantId}" has invalid numeric_value_kind "${value}".`)
   }
@@ -284,10 +258,7 @@ function requirePayloadRow(
   return payload
 }
 
-function requireLinkedRecord<T>(
-  value: T | null | undefined,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
     throw new Error(message)
   }
@@ -295,11 +266,7 @@ function requireLinkedRecord<T>(
   return value
 }
 
-function readNumericValue(
-  grantId: string,
-  value: DbNumeric,
-  field: string
-): number {
+function readNumericValue(grantId: string, value: DbNumeric, field: string): number {
   const numericValue = typeof value === 'number' ? value : Number(value)
 
   if (!Number.isFinite(numericValue)) {
@@ -364,7 +331,8 @@ function hydrateDomain(
       }
 
       return {
-        ability: requireAbilityCode(row.id, persisted.ability_code, 'domain ability_code')
+        ability: requireAbilityCode(row.id, persisted.ability_code, 'domain ability_code'),
+        ...(persisted.condition_type_id ? { conditionTypeId: persisted.condition_type_id } : {})
       }
     }
 
@@ -446,41 +414,65 @@ function hydratePayload(
         case 'PROFICIENCY_BONUS':
           return {
             valueKind: 'PROFICIENCY_BONUS',
-            multiplier: optionalNumericValue(row.id, payload.numeric_multiplier, 'numeric_multiplier')
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.numeric_multiplier,
+              'numeric_multiplier'
+            )
           }
 
         case 'SKILL_BONUS':
           if (!payload.numeric_skill_id) {
-            throw new Error(`Modifier grant "${row.id}" SKILL_BONUS payload is missing numeric_skill_id.`)
+            throw new Error(
+              `Modifier grant "${row.id}" SKILL_BONUS payload is missing numeric_skill_id.`
+            )
           }
 
           return {
             valueKind: 'SKILL_BONUS',
             skillId: payload.numeric_skill_id,
-            multiplier: optionalNumericValue(row.id, payload.numeric_multiplier, 'numeric_multiplier')
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.numeric_multiplier,
+              'numeric_multiplier'
+            )
           }
 
         case 'CHARACTER_LEVEL':
           return {
             valueKind: 'CHARACTER_LEVEL',
-            multiplier: optionalNumericValue(row.id, payload.numeric_multiplier, 'numeric_multiplier')
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.numeric_multiplier,
+              'numeric_multiplier'
+            )
           }
 
         case 'CLASS_LEVEL':
           if (!payload.numeric_class_id) {
-            throw new Error(`Modifier grant "${row.id}" CLASS_LEVEL payload is missing numeric_class_id.`)
+            throw new Error(
+              `Modifier grant "${row.id}" CLASS_LEVEL payload is missing numeric_class_id.`
+            )
           }
 
           return {
             valueKind: 'CLASS_LEVEL',
             classId: payload.numeric_class_id,
-            multiplier: optionalNumericValue(row.id, payload.numeric_multiplier, 'numeric_multiplier')
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.numeric_multiplier,
+              'numeric_multiplier'
+            )
           }
 
         case 'SPELL_SLOT_LEVEL':
           return {
             valueKind: 'SPELL_SLOT_LEVEL',
-            multiplier: optionalNumericValue(row.id, payload.numeric_multiplier, 'numeric_multiplier')
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.numeric_multiplier,
+              'numeric_multiplier'
+            )
           }
       }
     }
@@ -488,7 +480,9 @@ function hydratePayload(
     case 'ABILITY_MODIFIER_BONUS': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.numeric_ability_code) {
-        throw new Error(`Modifier grant "${row.id}" ABILITY_MODIFIER_BONUS payload is missing numeric_ability_code.`)
+        throw new Error(
+          `Modifier grant "${row.id}" ABILITY_MODIFIER_BONUS payload is missing numeric_ability_code.`
+        )
       }
 
       return {
@@ -516,7 +510,9 @@ function hydratePayload(
     case 'REPLACE_DAMAGE_TYPE': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.damage_type_id) {
-        throw new Error(`Modifier grant "${row.id}" REPLACE_DAMAGE_TYPE payload is missing damage_type_id.`)
+        throw new Error(
+          `Modifier grant "${row.id}" REPLACE_DAMAGE_TYPE payload is missing damage_type_id.`
+        )
       }
 
       return { damageTypeId: payload.damage_type_id }
@@ -539,7 +535,9 @@ function hydratePayload(
         case 'CONDITION':
         case 'CONDITION_IMMUNITY':
           if (!payload.condition_type_id) {
-            throw new Error(`Modifier grant "${row.id}" option payload is missing condition_type_id.`)
+            throw new Error(
+              `Modifier grant "${row.id}" option payload is missing condition_type_id.`
+            )
           }
 
           return { conditionTypeId: payload.condition_type_id }
@@ -553,7 +551,9 @@ function hydratePayload(
 
         case 'MOVEMENT_MODE':
           if (!payload.movement_mode_id) {
-            throw new Error(`Modifier grant "${row.id}" option payload is missing movement_mode_id.`)
+            throw new Error(
+              `Modifier grant "${row.id}" option payload is missing movement_mode_id.`
+            )
           }
 
           return { movementModeId: payload.movement_mode_id }
@@ -568,7 +568,9 @@ function hydratePayload(
     case 'REPLACE_RANGE_KIND': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.range_kind) {
-        throw new Error(`Modifier grant "${row.id}" REPLACE_RANGE_KIND payload is missing range_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" REPLACE_RANGE_KIND payload is missing range_kind.`
+        )
       }
 
       return { rangeKind: requireRangeKind(row.id, payload.range_kind) }
@@ -577,7 +579,9 @@ function hydratePayload(
     case 'REPLACE_DURATION_KIND': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.duration_kind) {
-        throw new Error(`Modifier grant "${row.id}" REPLACE_DURATION_KIND payload is missing duration_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" REPLACE_DURATION_KIND payload is missing duration_kind.`
+        )
       }
 
       return { durationKind: requireDurationKind(row.id, payload.duration_kind) }
@@ -586,7 +590,9 @@ function hydratePayload(
     case 'REPLACE_SHAPE_KIND': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.shape_kind) {
-        throw new Error(`Modifier grant "${row.id}" REPLACE_SHAPE_KIND payload is missing shape_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" REPLACE_SHAPE_KIND payload is missing shape_kind.`
+        )
       }
 
       return { shapeKind: requireShapeKind(row.id, payload.shape_kind) }
@@ -595,7 +601,9 @@ function hydratePayload(
     case 'REPLACE_CHARGE_RESET_KIND': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.reset_kind) {
-        throw new Error(`Modifier grant "${row.id}" REPLACE_CHARGE_RESET_KIND payload is missing reset_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" REPLACE_CHARGE_RESET_KIND payload is missing reset_kind.`
+        )
       }
 
       return { resetKind: requireResetKind(row.id, payload.reset_kind) }
@@ -611,10 +619,14 @@ function hydratePayload(
     case 'MODIFY_CHARGE_LIMIT': {
       const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
       if (!payload.charge_limit_kind) {
-        throw new Error(`Modifier grant "${row.id}" MODIFY_CHARGE_LIMIT payload is missing charge_limit_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" MODIFY_CHARGE_LIMIT payload is missing charge_limit_kind.`
+        )
       }
       if (!payload.charge_scaling_kind) {
-        throw new Error(`Modifier grant "${row.id}" MODIFY_CHARGE_LIMIT payload is missing charge_scaling_kind.`)
+        throw new Error(
+          `Modifier grant "${row.id}" MODIFY_CHARGE_LIMIT payload is missing charge_scaling_kind.`
+        )
       }
 
       const limitKind = requireChargeLimitKind(row.id, payload.charge_limit_kind)
@@ -644,35 +656,55 @@ function hydratePayload(
           return {
             limitKind: 'CHARACTER_LEVEL',
             scalingKind: 'NONE',
-            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.charge_multiplier,
+              'charge_multiplier'
+            ),
             min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
 
         case 'ABILITY_MODIFIER':
           if (!payload.numeric_ability_code) {
-            throw new Error(`Modifier grant "${row.id}" ABILITY_MODIFIER charge payload is missing numeric_ability_code.`)
+            throw new Error(
+              `Modifier grant "${row.id}" ABILITY_MODIFIER charge payload is missing numeric_ability_code.`
+            )
           }
 
           return {
             limitKind: 'ABILITY_MODIFIER',
             scalingKind: 'NONE',
-            ability: requireAbilityCode(row.id, payload.numeric_ability_code, 'numeric_ability_code'),
-            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            ability: requireAbilityCode(
+              row.id,
+              payload.numeric_ability_code,
+              'numeric_ability_code'
+            ),
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.charge_multiplier,
+              'charge_multiplier'
+            ),
             min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
 
         case 'CLASS_LEVEL':
           if (!payload.numeric_class_id) {
-            throw new Error(`Modifier grant "${row.id}" CLASS_LEVEL charge payload is missing numeric_class_id.`)
+            throw new Error(
+              `Modifier grant "${row.id}" CLASS_LEVEL charge payload is missing numeric_class_id.`
+            )
           }
 
           return {
             limitKind: 'CLASS_LEVEL',
             scalingKind: 'NONE',
             classId: payload.numeric_class_id,
-            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.charge_multiplier,
+              'charge_multiplier'
+            ),
             min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
@@ -681,7 +713,11 @@ function hydratePayload(
           return {
             limitKind: 'PARENT_CLASS_LEVEL',
             scalingKind: 'NONE',
-            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.charge_multiplier,
+              'charge_multiplier'
+            ),
             min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
@@ -690,7 +726,11 @@ function hydratePayload(
           return {
             limitKind: 'SPELL_CAST_LEVEL',
             scalingKind: 'NONE',
-            multiplier: optionalNumericValue(row.id, payload.charge_multiplier, 'charge_multiplier'),
+            multiplier: optionalNumericValue(
+              row.id,
+              payload.charge_multiplier,
+              'charge_multiplier'
+            ),
             min: optionalNumericValue(row.id, payload.charge_min, 'charge_min'),
             max: optionalNumericValue(row.id, payload.charge_max, 'charge_max')
           }
@@ -703,25 +743,27 @@ export async function hydrateModifierGrantById(
   db: DBLike,
   id: string
 ): Promise<ModifierGrantAuthored | null> {
-  const root = await db
+  const root = (await db
     .selectFrom('modifier_grants')
     .select([
       'id',
       'sort_order',
       'selection_kind',
       'count',
+      'selection_duplicate_policy',
       'value_domain_code',
       'modifier_kind',
       'scope',
       'restriction_id'
     ])
     .where('id', '=', id)
-    .executeTakeFirst() as ModifierGrantRow | undefined
+    .executeTakeFirst()) as ModifierGrantRow | undefined
 
   if (!root) return null
 
   const [domainRow, payloadRow, chargeLevels, optionalAbilities, restrictions] = await Promise.all([
-    db.selectFrom('modifier_grant_domain_params')
+    db
+      .selectFrom('modifier_grant_domain_params')
       .select([
         'modifier_grant_id',
         'value_domain_code',
@@ -730,11 +772,13 @@ export async function hydrateModifierGrantById(
         'skill_id',
         'speed_id',
         'sense_code',
-        'spell_level'
+        'spell_level',
+        'condition_type_id'
       ] as const)
       .where('modifier_grant_id', '=', id)
       .executeTakeFirst() as Promise<ModifierGrantDomainRow | undefined>,
-    db.selectFrom('modifier_grant_payloads')
+    db
+      .selectFrom('modifier_grant_payloads')
       .select([
         'modifier_grant_id',
         'modifier_kind',
@@ -766,23 +810,24 @@ export async function hydrateModifierGrantById(
       ])
       .where('modifier_grant_id', '=', id)
       .executeTakeFirst() as Promise<ModifierGrantPayloadRow | undefined>,
-    db.selectFrom('modifier_grant_charge_levels')
+    db
+      .selectFrom('modifier_grant_charge_levels')
       .select(['id', 'modifier_grant_id', 'level', 'amount', 'sort_order'])
       .where('modifier_grant_id', '=', id)
       .orderBy('sort_order')
       .execute() as Promise<ModifierGrantChargeLevelRow[]>,
-    db.selectFrom('modifier_grant_optional_abilities')
-      .select(['modifier_grant_id', 'ability_code'])
+    db
+      .selectFrom('modifier_grant_optional_abilities')
+      .select(['modifier_grant_id', 'ability_code', 'sort_order'])
       .where('modifier_grant_id', '=', id)
-      .orderBy('ability_code')
+      .orderBy('sort_order')
       .execute() as Promise<ModifierGrantOptionalAbilityRow[]>,
     root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null)
   ])
 
   const selectionKind = requireSelectionKind(root.id, root.selection_kind)
-  if (selectionKind === 'GRANTED') {
-    requireNoGrantedCount(root.id, root.count)
-  }
+  requireNoGrantedCount(root.id, root.count)
+  requireNoSelectionDuplicatePolicy(`Modifier grant "${root.id}"`, root.selection_duplicate_policy)
   const modifierKind = requireModifierKind(root.id, root.modifier_kind)
   const valueDomainCode = requireValueDomainCode(root.id, root.value_domain_code)
   const authored: ModifierGrantAuthored = {
@@ -790,16 +835,16 @@ export async function hydrateModifierGrantById(
     grantKind: 'MODIFIER_GRANT',
     order: root.sort_order,
     selectionKind,
-    count: selectionKind === 'CHOSEN'
-      ? requireChosenCount(root.id, root.count)
-      : undefined,
     valueDomainCode,
     domain: hydrateDomain(root, domainRow),
     modifierKind,
     scope: requireScope(root.id, root.scope),
     payload: hydratePayload(root, payloadRow, chargeLevels, optionalAbilities),
     restrictions: root.restriction_id
-      ? requireLinkedRecord(restrictions, `Modifier grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+      ? requireLinkedRecord(
+          restrictions,
+          `Modifier grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`
+        )
       : undefined
   } as ModifierGrantAuthored
 
@@ -817,12 +862,14 @@ async function hydrateModifierGrantsByIds(
   }
 
   const [roots, domainRows, payloadRows, chargeLevels, optionalAbilities] = await Promise.all([
-    db.selectFrom('modifier_grants')
+    db
+      .selectFrom('modifier_grants')
       .select([
         'id',
         'sort_order',
         'selection_kind',
         'count',
+        'selection_duplicate_policy',
         'value_domain_code',
         'modifier_kind',
         'scope',
@@ -830,7 +877,8 @@ async function hydrateModifierGrantsByIds(
       ])
       .where('id', 'in', distinctIds)
       .execute() as Promise<ModifierGrantRow[]>,
-    db.selectFrom('modifier_grant_domain_params')
+    db
+      .selectFrom('modifier_grant_domain_params')
       .select([
         'modifier_grant_id',
         'value_domain_code',
@@ -839,11 +887,13 @@ async function hydrateModifierGrantsByIds(
         'skill_id',
         'speed_id',
         'sense_code',
-        'spell_level'
+        'spell_level',
+        'condition_type_id'
       ] as const)
       .where('modifier_grant_id', 'in', distinctIds)
       .execute() as Promise<ModifierGrantDomainRow[]>,
-    db.selectFrom('modifier_grant_payloads')
+    db
+      .selectFrom('modifier_grant_payloads')
       .select([
         'modifier_grant_id',
         'modifier_kind',
@@ -875,15 +925,18 @@ async function hydrateModifierGrantsByIds(
       ])
       .where('modifier_grant_id', 'in', distinctIds)
       .execute() as Promise<ModifierGrantPayloadRow[]>,
-    db.selectFrom('modifier_grant_charge_levels')
+    db
+      .selectFrom('modifier_grant_charge_levels')
       .select(['id', 'modifier_grant_id', 'level', 'amount', 'sort_order'])
       .where('modifier_grant_id', 'in', distinctIds)
       .orderBy('sort_order')
       .execute() as Promise<ModifierGrantChargeLevelRow[]>,
-    db.selectFrom('modifier_grant_optional_abilities')
-      .select(['modifier_grant_id', 'ability_code'])
+    db
+      .selectFrom('modifier_grant_optional_abilities')
+      .select(['modifier_grant_id', 'ability_code', 'sort_order'])
       .where('modifier_grant_id', 'in', distinctIds)
-      .orderBy('ability_code')
+      .orderBy('modifier_grant_id')
+      .orderBy('sort_order')
       .execute() as Promise<ModifierGrantOptionalAbilityRow[]>
   ])
   const rootsById = new Map(roots.map((row) => [row.id, row]))
@@ -892,7 +945,7 @@ async function hydrateModifierGrantsByIds(
   const chargeLevelsByGrantId = groupByModifierGrantId(chargeLevels)
   const optionalAbilitiesByGrantId = groupByModifierGrantId(optionalAbilities)
   const restrictionsById = await hydrateByIds(
-    roots.flatMap((root) => root.restriction_id ? [root.restriction_id] : []),
+    roots.flatMap((root) => (root.restriction_id ? [root.restriction_id] : [])),
     (restrictionId) => hydrateFacetById(db, restrictionId)
   )
   const hydrated = new Map<string, ModifierGrantAuthored>()
@@ -903,10 +956,11 @@ async function hydrateModifierGrantsByIds(
     if (!root) continue
 
     const selectionKind = requireSelectionKind(root.id, root.selection_kind)
-
-    if (selectionKind === 'GRANTED') {
-      requireNoGrantedCount(root.id, root.count)
-    }
+    requireNoGrantedCount(root.id, root.count)
+    requireNoSelectionDuplicatePolicy(
+      `Modifier grant "${root.id}"`,
+      root.selection_duplicate_policy
+    )
 
     const modifierKind = requireModifierKind(root.id, root.modifier_kind)
     const valueDomainCode = requireValueDomainCode(root.id, root.value_domain_code)
@@ -915,16 +969,21 @@ async function hydrateModifierGrantsByIds(
       grantKind: 'MODIFIER_GRANT',
       order: root.sort_order,
       selectionKind,
-      count: selectionKind === 'CHOSEN'
-        ? requireChosenCount(root.id, root.count)
-        : undefined,
       valueDomainCode,
       domain: hydrateDomain(root, domainRowsByGrantId.get(id)),
       modifierKind,
       scope: requireScope(root.id, root.scope),
-      payload: hydratePayload(root, payloadRowsByGrantId.get(id), chargeLevelsByGrantId.get(id) ?? [], optionalAbilitiesByGrantId.get(id) ?? []),
+      payload: hydratePayload(
+        root,
+        payloadRowsByGrantId.get(id),
+        chargeLevelsByGrantId.get(id) ?? [],
+        optionalAbilitiesByGrantId.get(id) ?? []
+      ),
       restrictions: root.restriction_id
-        ? requireLinkedRecord(restrictionsById.get(root.restriction_id), `Modifier grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+        ? requireLinkedRecord(
+            restrictionsById.get(root.restriction_id),
+            `Modifier grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`
+          )
         : undefined
     } as ModifierGrantAuthored)
   }
@@ -958,9 +1017,11 @@ export function createModifierGrantRepository(
 
       return orderedHydratedRecords(
         rows.map((row) => row.id as string),
-        await hydrateByIds(rows.map((row) => row.id as string), (id) => hydrateModifierGrantById(db, id))
+        await hydrateByIds(
+          rows.map((row) => row.id as string),
+          (id) => hydrateModifierGrantById(db, id)
+        )
       )
     }
   }
 }
-

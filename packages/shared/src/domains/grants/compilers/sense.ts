@@ -87,7 +87,8 @@ export function compileSenseGrantResult(
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileSenseTarget(authored),
-            count: authored.count
+            count: authored.count,
+            selectionDuplicatePolicy: authored.selectionDuplicatePolicy
           })
         }
 
@@ -129,7 +130,8 @@ export function compileSenseGrantResult(
               level: entry.level,
               ...compileSenseTarget(entry),
               order: entry.order,
-              count: entry.count
+              count: entry.count,
+              selectionDuplicatePolicy: entry.selectionDuplicatePolicy
             }))
           })
         }

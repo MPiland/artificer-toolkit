@@ -1,6 +1,8 @@
 export { assertNever } from './assertNever.js'
 export * from './allOrSelected.js'
 export * from './compileResult.js'
+export * from './cloneAuthoredItem.js'
+export * from './authoringSchema.js'
 export { buildNodeMap, NODE_KIND, buildRegistryOptionGroups } from './nodeDefinition.js'
 export * from './nodeSections.js'
 export * from './nodeRuntime.js'

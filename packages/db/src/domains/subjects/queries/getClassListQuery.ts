@@ -1,8 +1,9 @@
 import type { DBLike } from '#types'
 import { sql } from 'kysely'
+import type { RepositoryFindAllOptions } from '../../../repositories/contracts.js'
 import { details } from './fragments/index.js'
 
-interface ClassListItem {
+export interface ClassListItem {
   id: string
   label: string
   description: string | null
@@ -10,26 +11,35 @@ interface ClassListItem {
   systemId: string
   category: string | null
   parentClassId: string | null
+  subclassSelectionLevel: number | null
   details: unknown
   userId: string
   ownerUserId: string | null
   isMaster: boolean | null
 }
 
-interface ClassMetaObject {
+export interface ClassMetaObject {
   id: string
   classIds: string[]
 }
 
-interface ClassMeta {
+export interface ClassMeta {
   categories: ClassMetaObject[]
   parentClasses: ClassMetaObject[]
   multiclass: ClassMetaObject[]
   features: ClassMetaObject[]
 }
 
-export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListItem[], meta: ClassMeta }> => {
-  const items = await db
+export interface ClassListQueryResult {
+  items: ClassListItem[]
+  meta: ClassMeta
+}
+
+export const getClassListQuery = async (
+  db: DBLike,
+  filter?: RepositoryFindAllOptions
+): Promise<ClassListQueryResult> => {
+  let itemQuery = db
     .selectFrom('classes')
     .select((eb) => [
       'id',
@@ -39,6 +49,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       'system_id as systemId',
       'category',
       'parent_class_id as parentClassId',
+      'subclass_selection_level as subclassSelectionLevel',
       'user_id as ownerUserId',
       'is_master as isMaster',
       details(eb, (eb2) => eb2
@@ -53,8 +64,30 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
-    .execute()
+
+  if (filter?.systemId) {
+    itemQuery = itemQuery.where('system_id', '=', filter.systemId)
+  }
+
+  if (filter?.userId) {
+    itemQuery = itemQuery.where('user_id', '=', filter.userId)
+  }
+
+  const items = await itemQuery.execute()
     .then((rows) => rows?.length ? rows : [])
+  const classIds = items.map((item) => item.id)
+
+  if (classIds.length === 0) {
+    return {
+      items,
+      meta: {
+        categories: [],
+        parentClasses: [],
+        multiclass: [],
+        features: []
+      }
+    }
+  }
 
   const categories: ClassMetaObject[] = await db
     .selectFrom('classes')
@@ -63,6 +96,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct()
         .as('classIds')
     ])
+    .where('id', 'in', classIds)
     .where('category', 'is not', null)
     .groupBy('category')
     .execute() as ClassMetaObject[]
@@ -74,6 +108,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct()
         .as('classIds')
     ])
+    .where('id', 'in', classIds)
     .where('parent_class_id', 'is not', null)
     .groupBy('parent_class_id')
     .execute() as ClassMetaObject[]
@@ -85,6 +120,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       eb.fn.agg<string[]>('array_agg', [eb.ref('class_id')]).distinct()
         .as('classIds')
     ])
+    .where('class_id', 'in', classIds)
     .groupBy('class_id')
     .execute() as ClassMetaObject[]
 
@@ -94,6 +130,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       'feature_id as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('class_id')]).as('classIds')
     ])
+    .where('class_id', 'in', classIds)
     .groupBy('feature_id')
     .execute() as ClassMetaObject[]
 

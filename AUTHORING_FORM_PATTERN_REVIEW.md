@@ -1,5 +1,7 @@
 # Authoring Form Pattern Review
 
+> **Document status:** Historical/working pattern review. The current authoring contract is [the node-map ADR](docs/adr/0004-backend-resolved-node-maps.md) and the current UI/product intent is [PRODUCT.md](PRODUCT.md) plus [DESIGN.md](DESIGN.md). This review provides context, not an overriding API or runtime contract.
+
 ## Purpose
 
 This note defines a holistic pattern direction for Artificer Toolkit authored forms across all content domains: races, classes, spells, feats, backgrounds, equipment, creatures, vehicles, and future authoring surfaces that reuse the same node-runtime platform.

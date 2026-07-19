@@ -150,13 +150,16 @@ describe('createProficiencyGrantRepository', () => {
       proficiencyKind: 'EQUIPMENT',
       order: 1,
       selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
       authoringModeKind: 'SELECTED',
       level: 'FULL',
       rounding: undefined,
       count: undefined,
+      selectionDuplicatePolicy: undefined,
       equipmentIds: ['equipment-1'],
       category: 'WEAPON',
-      properties: ['LIGHT']
+      properties: ['LIGHT'],
+      restrictions: undefined
     })
   })
 
@@ -170,6 +173,7 @@ describe('createProficiencyGrantRepository', () => {
           selection_kind: 'CHOSEN',
           authoring_mode_kind: 'SELECTED',
           count: 1,
+          selection_duplicate_policy: 'UNIQUE',
           level: 'HALF',
           rounding: 'UP'
         }
@@ -189,12 +193,15 @@ describe('createProficiencyGrantRepository', () => {
       proficiencyKind: 'EQUIPMENT_PROPERTY',
       order: 2,
       selectionKind: 'CHOSEN',
+      scalingKind: 'NONE',
       authoringModeKind: 'SELECTED',
       level: 'HALF',
       rounding: 'UP',
       count: 1,
+      selectionDuplicatePolicy: 'UNIQUE',
       properties: ['LIGHT', 'FINESSE'],
-      category: 'WEAPON'
+      category: 'WEAPON',
+      restrictions: undefined
     })
   })
 
@@ -208,6 +215,7 @@ describe('createProficiencyGrantRepository', () => {
           selection_kind: 'CHOSEN',
           authoring_mode_kind: 'SELECTED',
           count: null,
+          selection_duplicate_policy: 'UNIQUE',
           level: 'FULL',
           rounding: null
         }
@@ -380,13 +388,16 @@ describe('createProficiencyGrantRepository', () => {
       proficiencyKind: 'EQUIPMENT',
       order: 8,
       selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
       authoringModeKind: 'ALL',
       level: 'FULL',
       rounding: undefined,
       count: undefined,
+      selectionDuplicatePolicy: undefined,
       equipmentIds: undefined,
       category: 'WEAPON',
-      properties: ['LIGHT']
+      properties: ['LIGHT'],
+      restrictions: undefined
     })
   })
 

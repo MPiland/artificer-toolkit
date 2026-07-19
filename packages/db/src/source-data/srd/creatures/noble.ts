@@ -7,7 +7,6 @@ export const noble: CreatureAuthored = {
   description: 'A person of wealth and standing who wields political influence and expects deference.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
   category: 'NPC',
   creatureTypeId: CREATURE_TYPE.HUMANOID,
   size: 'MEDIUM',
@@ -18,7 +17,6 @@ export const noble: CreatureAuthored = {
     INTELLIGENCE: 12,
     WISDOM: 14,
     CHARISMA: 16,
-    SPELLCASTING: 0
   },
   armorClass: 15,
   armorClassNote: 'breastplate',

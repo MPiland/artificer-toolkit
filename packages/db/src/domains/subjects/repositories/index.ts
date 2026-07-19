@@ -1,6 +1,6 @@
 export * from './background.js'
 export * from './authoredRouteId.js'
-export * from './authoredSubjectDraft.js'
+export * from './authoredDefinition.js'
 export * from './character.js'
 export * from './characterBuilderDraft.js'
 export * from './characterEvent.js'

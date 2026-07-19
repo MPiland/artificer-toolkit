@@ -35,20 +35,15 @@ describe('facet-backed owners round-trip', () => {
               {
                 id: 'equipment-facet-context-1',
                 order: 1,
-                subject: 'EQUIPMENT',
-                authoringModeKind: 'ALL',
+                subject: 'CHARACTER',
                 conditions: [
                   {
                     id: 'equipment-facet-condition-1',
                     order: 1,
                     kind: 'PREDICATE',
                     constraint: 'INCLUDE',
-                    predicateCode: 'RANGE',
-                    authoringModeKind: 'SELECTED',
-                    rangeKind: ['DISTANCE'],
-                    min: 30,
-                    max: 60,
-                    unit: 'FEET'
+                    predicateCode: 'FEATURE_OBTAINED',
+                    featureIds: ['wardblade-training']
                   }
                 ]
               }
@@ -63,6 +58,7 @@ describe('facet-backed owners round-trip', () => {
       id: 'equipment-facet-owner-1',
       label: 'Wardblade',
       description: 'Protected by restrictions.',
+      status: 'DRAFT',
       attributes: undefined,
       quote: undefined,
       cost: { amount: 20, currencyId: 'gp' },
@@ -87,20 +83,15 @@ describe('facet-backed owners round-trip', () => {
               {
                 id: 'equipment-facet-context-1',
                 order: 1,
-                subject: 'EQUIPMENT',
-                authoringModeKind: 'ALL',
+                subject: 'CHARACTER',
                 conditions: [
                   {
                     id: 'equipment-facet-condition-1',
                     order: 1,
                     kind: 'PREDICATE',
                     constraint: 'INCLUDE',
-                    predicateCode: 'RANGE',
-                    authoringModeKind: 'SELECTED',
-                    rangeKind: ['DISTANCE'],
-                    min: 30,
-                    max: 60,
-                    unit: 'FEET'
+                    predicateCode: 'FEATURE_OBTAINED',
+                    featureIds: ['wardblade-training']
                   }
                 ]
               }
@@ -870,15 +861,6 @@ describe('facet-backed owners round-trip', () => {
               creatureIds: ['creature-1', 'creature-2'],
               conditions: [
                 {
-                  id: 'creature-record-kind-condition-1',
-                  order: 1,
-                  kind: 'PREDICATE',
-                  constraint: 'INCLUDE',
-                  predicateCode: 'CREATURE_RECORD_KIND',
-                  authoringModeKind: 'SELECTED',
-                  recordKinds: ['STAT_BLOCK', 'LOGISTICS']
-                },
-                {
                   id: 'creature-category-condition-1',
                   order: 2,
                   kind: 'PREDICATE',
@@ -981,11 +963,6 @@ describe('facet-backed owners round-trip', () => {
               authoringModeKind: 'SELECTED',
               creatureIds: ['creature-1', 'creature-2'],
               conditions: [
-                {
-                  predicateCode: 'CREATURE_RECORD_KIND',
-                  authoringModeKind: 'SELECTED',
-                  recordKinds: ['STAT_BLOCK', 'LOGISTICS']
-                },
                 {
                   predicateCode: 'CREATURE_CATEGORY',
                   authoringModeKind: 'SELECTED',

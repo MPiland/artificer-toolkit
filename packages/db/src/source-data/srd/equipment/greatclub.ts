@@ -10,7 +10,7 @@ export const greatclub: EquipmentAuthored = {
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED],
     modifiers: S.meleeWeaponAbilityModifiers(S.equipId(3)),
     effects: S.meleeWeaponEffects(S.equipId(3), 'BLUDGEONING', '1d8'),
-    cost: S.gp(0.2),
+    cost: S.sp(2),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,

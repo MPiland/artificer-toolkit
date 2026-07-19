@@ -34,10 +34,7 @@ CREATE TABLE IF NOT EXISTS public.races (
   category text NOT NULL,              -- RaceCategoryCode
   selection_mode text,                 -- BASE only (DIRECT | REQUIRES_SUBRACE)
 
-  parent_race_id uuid                  -- SUBRACE only
-    REFERENCES public.races(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  parent_race_id uuid,                 -- SUBRACE only
 
   is_master boolean,
 
@@ -47,6 +44,11 @@ CREATE TABLE IF NOT EXISTS public.races (
   CONSTRAINT races_category_chk CHECK (
     category IN ('BASE', 'SUBRACE')
   ),
+  CONSTRAINT races_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT races_parent_system_fk FOREIGN KEY (parent_race_id, system_id)
+    REFERENCES public.races(id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT races_selection_mode_chk CHECK (
     selection_mode IN ('DIRECT', 'REQUIRES_SUBRACE') OR selection_mode IS NULL
   ),

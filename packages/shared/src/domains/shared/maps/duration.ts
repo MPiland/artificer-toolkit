@@ -30,7 +30,7 @@ export const DURATION_NODE_MAP = duration.define('duration', ({ map, nodes, cond
 
   map
     .set('durationKind', selectSingle(['durationKind'], 'Duration Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: DURATION_OPTIONS
     }))
     .set('amount', number(['amount'], 'Amount', {
@@ -40,7 +40,7 @@ export const DURATION_NODE_MAP = duration.define('duration', ({ map, nodes, cond
         not(local.field(['durationKind']).eq('UNTIL_DISPELLED'))
       ])
     }))
-    .set('scaling', groupObject(['scaling'], 'Scaling', () => DURATION_SCALING_NODE_MAP, {
+    .set('scaling', groupObject(['scaling'], 'Scaling', () => DURATION_SCALING_NODE_MAP, { presentation: 'inline',
       order: 3,
       showIf: and([
         not(local.field(['durationKind']).eq('INSTANTANEOUS')),

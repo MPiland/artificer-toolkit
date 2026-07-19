@@ -5,12 +5,15 @@ import type {
 } from '@artificer-toolkit/schema/api/content'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
+import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 
 export const systemListFixture: SystemListResponseDto = [
   {
     id: 'dnd-5e-srd',
     label: 'Dungeons & Dragons 5e SRD',
     description: 'Default system fixture for Equipment authoring stories and tests.',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
     userId: 'master'
   }
 ]
@@ -87,6 +90,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     {
       id: masterEquipmentFixture.id,
       publicId: masterEquipmentFixture.id,
+      activeRevisionId: 'master-equipment-active-revision',
       label: masterEquipmentFixture.label,
       description: masterEquipmentFixture.description,
       status: 'ACTIVE',
@@ -107,6 +111,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     {
       id: ownedVariantEquipmentFixture.id,
       publicId: ownedVariantEquipmentFixture.id,
+      activeRevisionId: 'owned-variant-equipment-active-revision',
       label: ownedVariantEquipmentFixture.label,
       description: ownedVariantEquipmentFixture.description,
       status: 'DRAFT',
@@ -131,6 +136,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
 
 export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedEquipmentFixture.id,
+  activeRevisionId: 'owned-equipment-active-revision',
   item: ownedEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -146,6 +152,7 @@ export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = 
 
 export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedVariantEquipmentFixture.id,
+  activeRevisionId: 'owned-variant-equipment-active-revision',
   item: ownedVariantEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -161,6 +168,7 @@ export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponse
 
 export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: masterEquipmentFixture.id,
+  activeRevisionId: 'master-equipment-active-revision',
   item: masterEquipmentFixture,
   provenance: {
     kind: 'MASTER',
@@ -177,6 +185,7 @@ export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> =
 export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'equipment',
   clearPaths: [],
+  scopes: [],
   steps: [
     {
       id: 'properties',
@@ -257,25 +266,4 @@ export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
       ]
     }
   ]
-}
-
-function selectNode(
-  id: string,
-  path: string[],
-  label: string,
-  options: Array<{ value: string, label: string }>,
-  required: boolean,
-  type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
-  return {
-    id,
-    path,
-    label,
-    kind: 'INPUT',
-    type,
-    visible: true,
-    required,
-    clearPaths: [],
-    options
-  }
 }

@@ -1,8 +1,8 @@
 import type { DBLike } from '#types'
+import { withTransaction } from '../../../utils/index.js'
 import type { Json } from '../../../types/supabase.database.js'
 import {
   CREATURE_CATEGORY_CODE,
-  CREATURE_RECORD_KIND_CODE,
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
   type CreatureAuthored,
@@ -20,7 +20,6 @@ type CreatureRow = {
   quote: string | null
   description: string | null
   status: CreatureAuthored['status']
-  record_kind: string
   category: string
   creature_type_id: string | null
   size_code: string | null
@@ -35,8 +34,6 @@ type CreatureRow = {
   passive_perception: number | null
   challenge_rating_id: string | null
   xp: number | null
-  legendary_profile: Json | null
-  lair_profile: Json | null
   mount_profile: Json | null
   companion_profile: Json | null
   npc_profile: Json | null
@@ -66,21 +63,10 @@ type CreatureSpeedRow = {
   unit_code: string
 }
 
-type CreatureActionRow = {
-  id: string
-  creature_id: string
-  action_type: string
-  sort_order: number
-  label: string
-  description: string
-  attack_bonus: number | null
-  damage: string | null
-  recharge: string | null
-}
-
 type CreatureDamageRow = {
   creature_id: string
   damage_type_id: string
+  sort_order: number
 }
 
 type CreatureConditionRow = {
@@ -97,17 +83,6 @@ function requireCreatureCategory(
     throw new Error(`Creature "${creatureId}" has invalid category "${value}".`)
   }
   return value as CreatureAuthored['category']
-}
-
-function requireRecordKind(
-  creatureId: string,
-  value: string
-): NonNullable<CreatureAuthored['recordKind']> {
-  const valid = Object.values(CREATURE_RECORD_KIND_CODE) as string[]
-  if (!valid.includes(value)) {
-    throw new Error(`Creature "${creatureId}" has invalid record kind "${value}".`)
-  }
-  return value as NonNullable<CreatureAuthored['recordKind']>
 }
 
 function requireSizeCode(creatureId: string, value?: string | null): string | null {
@@ -142,7 +117,6 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
     quote: jsonData.quote ?? null,
     description: jsonData.description ?? null,
     status: normalizeSubjectStatus(jsonData.status),
-    record_kind: requireRecordKind(jsonData.id, jsonData.recordKind ?? 'STAT_BLOCK'),
     category: requireCreatureCategory(jsonData.id, jsonData.category),
     creature_type_id: jsonData.creatureTypeId ?? null,
     size_code: requireSizeCode(jsonData.id, jsonData.size ?? null),
@@ -157,12 +131,6 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
     passive_perception: jsonData.passivePerception ?? null,
     challenge_rating_id: jsonData.challengeRatingId ?? null,
     xp: jsonData.xp ?? null,
-    legendary_profile: jsonData.legendaryProfile
-      ? jsonData.legendaryProfile as unknown as Json
-      : null,
-    lair_profile: jsonData.lairProfile
-      ? jsonData.lairProfile as unknown as Json
-      : null,
     mount_profile: jsonData.mountProfile
       ? jsonData.mountProfile as unknown as Json
       : null,
@@ -193,7 +161,6 @@ function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'
     quote: row.quote,
     description: row.description,
     status: row.status,
-    record_kind: row.record_kind,
     category: row.category,
     creature_type_id: row.creature_type_id,
     size_code: row.size_code,
@@ -208,8 +175,6 @@ function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'
     passive_perception: row.passive_perception,
     challenge_rating_id: row.challenge_rating_id,
     xp: row.xp,
-    legendary_profile: row.legendary_profile,
-    lair_profile: row.lair_profile,
     mount_profile: row.mount_profile,
     companion_profile: row.companion_profile,
     npc_profile: row.npc_profile,
@@ -246,41 +211,22 @@ export async function upsertCreature(
     unit_code: speed.unit,
   }))
 
-  const buildActionRows = (
-    actions: CreatureAuthored['actions'] | undefined,
-    actionType: string
-  ): CreatureActionRow[] =>
-    (actions ?? []).map((action, index) => ({
-      id: action.id,
-      creature_id: jsonData.id,
-      action_type: actionType,
-      sort_order: index,
-      label: action.label,
-      description: action.description,
-      attack_bonus: action.attackBonus ?? null,
-      damage: action.damage ?? null,
-      recharge: action.recharge ?? null,
-    }))
-
-  const actionRows: CreatureActionRow[] = [
-    ...buildActionRows(jsonData.actions, 'ACTION'),
-    ...buildActionRows(jsonData.bonusActions, 'BONUS_ACTION'),
-    ...buildActionRows(jsonData.reactions, 'REACTION'),
-  ]
-
-  const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map((id) => ({
+  const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map((id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
+    sort_order: index + 1,
   }))
 
-  const immunityRows: CreatureDamageRow[] = (jsonData.damageImmunities ?? []).map((id) => ({
+  const immunityRows: CreatureDamageRow[] = (jsonData.damageImmunities ?? []).map((id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
+    sort_order: index + 1,
   }))
 
-  const vulnerabilityRows: CreatureDamageRow[] = (jsonData.damageVulnerabilities ?? []).map((id) => ({
+  const vulnerabilityRows: CreatureDamageRow[] = (jsonData.damageVulnerabilities ?? []).map((id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
+    sort_order: index + 1,
   }))
 
   const conditionImmunityRows: CreatureConditionRow[] = (jsonData.conditionImmunities ?? []).map((id) => ({
@@ -294,9 +240,7 @@ export async function upsertCreature(
     sort_order: feature.order,
   }))
 
-  const trx = await db.startTransaction().execute()
-
-  try {
+  return withTransaction(db, async (trx) => {
     await trx
       .insertInto('creatures')
       .values(creatureRow)
@@ -307,7 +251,6 @@ export async function upsertCreature(
     await trx.deleteFrom('creature_proficiency_grants').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_features').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_speeds').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_actions').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_damage_resistances').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_damage_immunities').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_damage_vulnerabilities').where('creature_id', '=', jsonData.id).execute()
@@ -335,9 +278,6 @@ export async function upsertCreature(
     if (speedRows.length > 0) {
       await trx.insertInto('creature_speeds').values(speedRows).execute()
     }
-    if (actionRows.length > 0) {
-      await trx.insertInto('creature_actions').values(actionRows).execute()
-    }
     if (resistanceRows.length > 0) {
       await trx.insertInto('creature_damage_resistances').values(resistanceRows).execute()
     }
@@ -351,9 +291,5 @@ export async function upsertCreature(
       await trx.insertInto('creature_condition_immunities').values(conditionImmunityRows).execute()
     }
 
-    await trx.commit().execute()
-  } catch (error) {
-    await trx.rollback().execute()
-    throw error
-  }
+  })
 }

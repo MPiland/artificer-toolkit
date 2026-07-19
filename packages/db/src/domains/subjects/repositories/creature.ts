@@ -2,12 +2,14 @@ import {
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
   type CreatureAuthored,
-  type CreatureCompanionProfile,
-  type CreatureLairProfile,
-  type CreatureLegendaryProfile,
-  type CreatureMountProfile,
-  type CreatureNpcProfile,
 } from '@artificer-toolkit/shared'
+import {
+  creatureAbilityScoresDtoSchema,
+  creatureCompanionProfileDtoSchema,
+  creatureMountProfileDtoSchema,
+  creatureNpcProfileDtoSchema
+} from '@artificer-toolkit/schema/subjects/creature'
+import { costDtoSchema } from '@artificer-toolkit/schema/subjects/shared'
 import type { DBLike } from '#types'
 import { upsertCreature } from '../upserts/creature.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
@@ -32,19 +34,31 @@ function requireSizeCode(creatureId: string, value?: string | null): CreatureAut
   return value as CreatureAuthored['size']
 }
 
-function hydrateAbilityScores(value: unknown): CreatureAuthored['abilityScores'] {
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const scores = value as Partial<Record<keyof CreatureAuthored['abilityScores'], number>>
+function parseCreatureJson<T>(
+  creatureId: string,
+  field: string,
+  value: unknown,
+  parse: (input: unknown) => T
+): T {
+  try {
+    return parse(value)
+  } catch (error) {
+    const reason = error instanceof Error ? ` ${error.message}` : ''
+    throw new Error(`Creature "${creatureId}" has invalid ${field}.${reason}`)
+  }
+}
 
-    return {
-      STRENGTH: Number(scores.STRENGTH ?? 10),
-      DEXTERITY: Number(scores.DEXTERITY ?? 10),
-      CONSTITUTION: Number(scores.CONSTITUTION ?? 10),
-      INTELLIGENCE: Number(scores.INTELLIGENCE ?? 10),
-      WISDOM: Number(scores.WISDOM ?? 10),
-      CHARISMA: Number(scores.CHARISMA ?? 10),
-      SPELLCASTING: Number(scores.SPELLCASTING ?? 0),
-    }
+function hydrateAbilityScores(
+  creatureId: string,
+  value: unknown
+): CreatureAuthored['abilityScores'] {
+  if (value != null) {
+    return parseCreatureJson(
+      creatureId,
+      'ability_scores',
+      value,
+      (input) => creatureAbilityScoresDtoSchema.parse(input)
+    )
   }
 
   return {
@@ -53,8 +67,7 @@ function hydrateAbilityScores(value: unknown): CreatureAuthored['abilityScores']
     CONSTITUTION: 10,
     INTELLIGENCE: 10,
     WISDOM: 10,
-    CHARISMA: 10,
-    SPELLCASTING: 0,
+    CHARISMA: 10
   }
 }
 
@@ -83,7 +96,6 @@ async function hydrateCreatureById(
       'quote',
       'description',
       'status',
-      'record_kind',
       'category',
       'creature_type_id',
       'size_code',
@@ -98,8 +110,6 @@ async function hydrateCreatureById(
       'passive_perception',
       'challenge_rating_id',
       'xp',
-      'legendary_profile',
-      'lair_profile',
       'mount_profile',
       'companion_profile',
       'npc_profile',
@@ -121,7 +131,6 @@ async function hydrateCreatureById(
     detailLinks,
     proficiencyLinks,
     speedRows,
-    actionRows,
     resistanceRows,
     immunityRows,
     vulnerabilityRows,
@@ -146,24 +155,20 @@ async function hydrateCreatureById(
       .select(['speed_id', 'amount', 'unit_code'])
       .where('creature_id', '=', id)
       .execute(),
-    db.selectFrom('creature_actions')
-      .select([
-        'id', 'action_type', 'sort_order', 'label', 'description', 'attack_bonus', 'damage', 'recharge'
-      ])
+    db.selectFrom('creature_damage_resistances')
+      .select(['damage_type_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('creature_damage_resistances')
-      .select(['damage_type_id'])
-      .where('creature_id', '=', id)
-      .execute(),
     db.selectFrom('creature_damage_immunities')
-      .select(['damage_type_id'])
+      .select(['damage_type_id', 'sort_order'])
       .where('creature_id', '=', id)
+      .orderBy('sort_order')
       .execute(),
     db.selectFrom('creature_damage_vulnerabilities')
-      .select(['damage_type_id'])
+      .select(['damage_type_id', 'sort_order'])
       .where('creature_id', '=', id)
+      .orderBy('sort_order')
       .execute(),
     db.selectFrom('creature_condition_immunities')
       .select(['condition_type_id'])
@@ -191,15 +196,6 @@ async function hydrateCreatureById(
     unit: requireMeasurementUnit(id, speed.speed_id, speed.unit_code)
   }))
 
-  const mapAction = (action: typeof actionRows[number]) => ({
-    id: action.id,
-    label: action.label,
-    description: action.description,
-    attackBonus: action.attack_bonus ?? undefined,
-    damage: action.damage ?? undefined,
-    recharge: action.recharge ?? undefined
-  })
-
   const base = {
     id: row.id,
     label: row.label,
@@ -211,35 +207,60 @@ async function hydrateCreatureById(
     proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
     userId: row.user_id,
     systemId: row.system_id,
-    recordKind: row.record_kind as NonNullable<CreatureAuthored['recordKind']>,
     category: row.category as CreatureAuthored['category'],
     creatureTypeId: row.creature_type_id ?? '',
     size: requireSizeCode(id, row.size_code) ?? SIZE_CODE.MEDIUM,
     alignmentId: row.alignment_id ?? undefined,
     tags: row.tags ?? undefined,
     speeds: authoredSpeeds,
-    mountProfile: row.mount_profile ? (row.mount_profile as unknown as CreatureMountProfile) : undefined,
-    companionProfile: row.companion_profile ? (row.companion_profile as unknown as CreatureCompanionProfile) : undefined,
-    abilityScores: hydrateAbilityScores(row.ability_scores),
+    mountProfile: row.mount_profile == null
+      ? undefined
+      : parseCreatureJson(
+          id,
+          'mount_profile',
+          row.mount_profile,
+          (value) => creatureMountProfileDtoSchema.parse(value)
+        ),
+    companionProfile: row.companion_profile == null
+      ? undefined
+      : parseCreatureJson(
+          id,
+          'companion_profile',
+          row.companion_profile,
+          (value) => creatureCompanionProfileDtoSchema.parse(value)
+        ),
+    abilityScores: hydrateAbilityScores(id, row.ability_scores),
     armorClass: Number(row.armor_class ?? 0),
     armorClassNote: row.armor_class_note ?? undefined,
     hitPoints: Number(row.hit_points ?? 0),
     hitDice: row.hit_dice ?? undefined,
     senses: row.senses ?? undefined,
     passivePerception: row.passive_perception ?? undefined,
-    damageVulnerabilities: vulnerabilityRows.map((entry) => entry.damage_type_id),
-    damageResistances: resistanceRows.map((entry) => entry.damage_type_id),
-    damageImmunities: immunityRows.map((entry) => entry.damage_type_id),
-    conditionImmunities: conditionImmunityRows.map((entry) => entry.condition_type_id),
+    ...(vulnerabilityRows.length > 0
+      ? { damageVulnerabilities: vulnerabilityRows.map((entry) => entry.damage_type_id) }
+      : {}),
+    ...(resistanceRows.length > 0
+      ? { damageResistances: resistanceRows.map((entry) => entry.damage_type_id) }
+      : {}),
+    ...(immunityRows.length > 0
+      ? { damageImmunities: immunityRows.map((entry) => entry.damage_type_id) }
+      : {}),
+    ...(conditionImmunityRows.length > 0
+      ? { conditionImmunities: conditionImmunityRows.map((entry) => entry.condition_type_id) }
+      : {}),
     challengeRatingId: row.challenge_rating_id ?? undefined,
     xp: row.xp ?? undefined,
-    actions: actionRows.filter((action) => action.action_type === 'ACTION').map(mapAction),
-    bonusActions: actionRows.filter((action) => action.action_type === 'BONUS_ACTION').map(mapAction),
-    reactions: actionRows.filter((action) => action.action_type === 'REACTION').map(mapAction),
-    legendaryProfile: row.legendary_profile ? (row.legendary_profile as unknown as CreatureLegendaryProfile) : undefined,
-    lairProfile: row.lair_profile ? (row.lair_profile as unknown as CreatureLairProfile) : undefined,
-    npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined,
-    cost: row.cost ? row.cost as unknown as CreatureAuthored['cost'] : undefined,
+    npcProfile: row.npc_profile == null
+      ? undefined
+      : parseCreatureJson(
+          id,
+          'npc_profile',
+          row.npc_profile,
+          (value) => creatureNpcProfileDtoSchema.parse(value)
+        ),
+    cost: row.cost == null
+      ? undefined
+      : parseCreatureJson(id, 'cost', row.cost, (value) => costDtoSchema.parse(value)),
     carryingCapacity: row.carrying_capacity_amount != null && row.carrying_capacity_unit
       ? {
           amount: Number(row.carrying_capacity_amount),

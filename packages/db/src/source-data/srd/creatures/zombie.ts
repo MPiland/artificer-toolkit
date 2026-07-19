@@ -5,7 +5,6 @@ export const zombie: CreatureAuthored = {
     label: 'Zombie',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.UNDEAD,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const zombie: CreatureAuthored = {
         INTELLIGENCE: 3,
         WISDOM: 6,
         CHARISMA: 5,
-        SPELLCASTING: 0
     },
     armorClass: 8,
     hitPoints: 22,

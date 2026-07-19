@@ -6,7 +6,6 @@ export const purpleWorm: CreatureAuthored = {
     label: 'Purple Worm',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
     size: S.SIZE_CODE.GARGANTUAN,
@@ -18,7 +17,6 @@ export const purpleWorm: CreatureAuthored = {
         INTELLIGENCE: 1,
         WISDOM: 8,
         CHARISMA: 4,
-        SPELLCASTING: 0
     },
     armorClass: 18,
     armorClassNote: 'natural armor',
@@ -276,7 +274,7 @@ export const purpleWorm: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(7604, 15),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

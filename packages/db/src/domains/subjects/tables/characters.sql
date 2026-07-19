@@ -11,9 +11,8 @@ CREATE TABLE IF NOT EXISTS public.characters (
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
+  inspiration boolean NOT NULL DEFAULT false,
   CONSTRAINT chk_characters_status CHECK (status IN ('DRAFT', 'ACTIVE')),
-  -- Persisted CharacterBuildState snapshot (null until first command is processed)
-  build_state jsonb,
   -- Optimistic concurrency guard — incremented on every command write
   stream_version integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -345,13 +344,22 @@ ALTER TABLE IF EXISTS public.character_hitpoint_intent ENABLE ROW LEVEL SECURITY
 CREATE TABLE IF NOT EXISTS public.character_hitpoint_levels (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   char_level integer NOT NULL,
+  class_id uuid NOT NULL,
+  class_level integer NOT NULL,
   value integer NOT NULL,
   overridden boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   PRIMARY KEY (character_id, char_level),
+  CONSTRAINT character_hitpoint_levels_character_class_fkey
+    FOREIGN KEY (character_id, class_id)
+    REFERENCES public.character_classes (character_id, class_id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_hitpoint_levels_class_progression_uniq
+    UNIQUE (character_id, class_id, class_level),
   CONSTRAINT character_hitpoint_levels_value_chk CHECK (
     char_level > 0
+    AND class_level > 0
     AND value >= 0
   )
 );
@@ -524,6 +532,48 @@ CREATE TABLE IF NOT EXISTS public.character_exhaustion (
 
 ALTER TABLE IF EXISTS public.character_exhaustion ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.character_note_groups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  label text NOT NULL,
+  sort_order integer NOT NULL,
+  kind text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_note_groups_kind_chk CHECK (
+    kind IN ('SESSION', 'LOOT', 'CHARACTERS', 'PLACES', 'CUSTOM')
+  ),
+  CONSTRAINT character_note_groups_sort_order_chk CHECK (sort_order >= 0),
+  CONSTRAINT character_note_groups_character_id_id_key UNIQUE (character_id, id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_note_groups_character_id
+  ON public.character_note_groups (character_id, sort_order);
+
+ALTER TABLE IF EXISTS public.character_note_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  group_id uuid NOT NULL,
+  title text NOT NULL,
+  body text,
+  pinned boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  CONSTRAINT character_notes_group_owner_fkey
+    FOREIGN KEY (character_id, group_id)
+    REFERENCES public.character_note_groups (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_notes_character_id
+  ON public.character_notes (character_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_character_notes_group_id
+  ON public.character_notes (character_id, group_id);
+
+ALTER TABLE IF EXISTS public.character_notes ENABLE ROW LEVEL SECURITY;
+
 
 DO $$
 BEGIN
@@ -550,7 +600,7 @@ CREATE TABLE IF NOT EXISTS public.character_class_spells (
   state spell_state NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, class_id, spell_id)
+  PRIMARY KEY (character_id, class_id, spell_id, state)
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_class_spells_class_id ON public.character_class_spells (class_id);
@@ -581,7 +631,7 @@ CREATE TABLE IF NOT EXISTS public.character_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE,
   quantity integer NOT NULL DEFAULT 1,
-  container_id uuid REFERENCES public.character_equipment (id) ON DELETE SET NULL DEFERRABLE,
+  container_id uuid,
   container_path text,
   custom_name text,
   notes text,
@@ -589,7 +639,12 @@ CREATE TABLE IF NOT EXISTS public.character_equipment (
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_equipment_quantity_chk CHECK (
     quantity > 0
-  )
+  ),
+  CONSTRAINT character_equipment_character_id_id_key UNIQUE (character_id, id),
+  CONSTRAINT character_equipment_container_owner_fkey
+    FOREIGN KEY (character_id, container_id)
+    REFERENCES public.character_equipment (character_id, id)
+    DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_equip_char_id ON public.character_equipment (character_id);
@@ -618,10 +673,14 @@ ALTER TABLE IF EXISTS public.character_equipment ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_equipped (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, equipment_id)
+  PRIMARY KEY (character_id, equipment_id),
+  CONSTRAINT character_equipped_equipment_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_equipped_equipment_id ON public.character_equipped (equipment_id);
@@ -648,10 +707,14 @@ ALTER TABLE IF EXISTS public.character_equipped ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_attuned (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_id, equipment_id)
+  PRIMARY KEY (character_id, equipment_id),
+  CONSTRAINT character_attuned_equipment_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_attuned_equipment_id ON public.character_attuned (equipment_id);
@@ -688,7 +751,8 @@ CREATE TABLE IF NOT EXISTS public.character_creatures (
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_creatures_relationship_kind_chk CHECK (
     relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED', 'SUMMONED')
-  )
+  ),
+  CONSTRAINT character_creatures_character_id_id_key UNIQUE (character_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_creatures_character_id
@@ -707,7 +771,8 @@ CREATE TABLE IF NOT EXISTS public.character_vehicles (
   notes text,
   is_active boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
-  updated_at timestamptz NOT NULL DEFAULT NOW()
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_vehicles_character_id_id_key UNIQUE (character_id, id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_vehicles_character_id
@@ -720,11 +785,19 @@ ALTER TABLE IF EXISTS public.character_vehicles ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_creature_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  character_creature_id uuid NOT NULL REFERENCES public.character_creatures (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  character_creature_id uuid NOT NULL,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_creature_id, equipment_id)
+  PRIMARY KEY (character_creature_id, equipment_id),
+  CONSTRAINT character_creature_equipment_creature_owner_fkey
+    FOREIGN KEY (character_id, character_creature_id)
+    REFERENCES public.character_creatures (character_id, id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_creature_equipment_item_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_creature_equipment_character_id
@@ -734,11 +807,19 @@ ALTER TABLE IF EXISTS public.character_creature_equipment ENABLE ROW LEVEL SECUR
 
 CREATE TABLE IF NOT EXISTS public.character_vehicle_equipment (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  character_vehicle_id uuid NOT NULL REFERENCES public.character_vehicles (id) ON DELETE CASCADE DEFERRABLE,
-  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  character_vehicle_id uuid NOT NULL,
+  equipment_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (character_vehicle_id, equipment_id)
+  PRIMARY KEY (character_vehicle_id, equipment_id),
+  CONSTRAINT character_vehicle_equipment_vehicle_owner_fkey
+    FOREIGN KEY (character_id, character_vehicle_id)
+    REFERENCES public.character_vehicles (character_id, id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_vehicle_equipment_item_owner_fkey
+    FOREIGN KEY (character_id, equipment_id)
+    REFERENCES public.character_equipment (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_vehicle_equipment_character_id
@@ -751,7 +832,12 @@ CREATE TABLE IF NOT EXISTS public.character_currency_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  container_id uuid REFERENCES public.character_equipment (id) ON DELETE SET NULL DEFERRABLE
+  container_id uuid,
+  CONSTRAINT character_currency_groups_character_id_id_key UNIQUE (character_id, id),
+  CONSTRAINT character_currency_groups_container_owner_fkey
+    FOREIGN KEY (character_id, container_id)
+    REFERENCES public.character_equipment (character_id, id)
+    DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_char_cur_groups_char_id ON public.character_currency_groups (character_id);
@@ -778,15 +864,20 @@ $$;
 ALTER TABLE IF EXISTS public.character_currency_groups ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_currencies (
-  group_id uuid NOT NULL REFERENCES public.character_currency_groups (id) ON DELETE CASCADE DEFERRABLE,
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  group_id uuid NOT NULL,
   currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE CASCADE DEFERRABLE,
   amount integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (group_id, currency_id),
+  PRIMARY KEY (character_id, group_id, currency_id),
   CONSTRAINT character_currencies_amount_chk CHECK (
     amount >= 0
-  )
+  ),
+  CONSTRAINT character_currencies_group_owner_fkey
+    FOREIGN KEY (character_id, group_id)
+    REFERENCES public.character_currency_groups (character_id, id)
+    ON DELETE CASCADE DEFERRABLE
 );
 
 CREATE INDEX IF NOT EXISTS idx_character_currencies_currency_id
@@ -853,6 +944,127 @@ END IF;
 END;
 $$;
 
+CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selections (
+  id uuid PRIMARY KEY,
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  grant_id uuid NOT NULL,
+  source_kind text NOT NULL,
+  class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  source_class_level integer,
+  race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
+  subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
+  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  acquired_parent_id uuid,
+  background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
+  feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
+  reason text,
+  timing_kind text NOT NULL,
+  timing_level integer,
+  timing_class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
+  timing_class_level integer,
+  progression_level integer,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_chosen_grant_selection_source_kind_chk CHECK (
+    source_kind IN ('CLASS', 'SUBCLASS', 'RACE', 'SUBRACE', 'ANCESTRY', 'BACKGROUND', 'FEAT', 'FEATURE', 'OPTION', 'MANUAL')
+  ),
+  CONSTRAINT character_chosen_grant_selection_source_ref_chk CHECK (
+    (source_kind = 'CLASS' AND class_id IS NOT NULL AND subclass_id IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'SUBCLASS' AND class_id IS NULL AND subclass_id IS NOT NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'RACE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NOT NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'SUBRACE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NOT NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'ANCESTRY' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NOT NULL AND option_id IS NOT NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'BACKGROUND' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NOT NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'FEAT' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NOT NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'FEATURE' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NOT NULL AND reason IS NULL)
+    OR (source_kind = 'OPTION' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NOT NULL AND acquired_parent_id IS NOT NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL AND reason IS NULL)
+    OR (source_kind = 'MANUAL' AND class_id IS NULL AND subclass_id IS NULL AND source_class_level IS NULL AND race_id IS NULL AND subrace_id IS NULL AND ancestry_id IS NULL AND option_id IS NULL AND acquired_parent_id IS NULL AND background_id IS NULL AND feat_id IS NULL AND feature_id IS NULL)
+  ),
+  CONSTRAINT character_chosen_grant_selection_source_level_chk CHECK (
+    source_class_level IS NULL OR source_class_level > 0
+  ),
+  CONSTRAINT character_chosen_grant_selection_timing_kind_chk CHECK (
+    timing_kind IN ('IMMEDIATE', 'CHARACTER_LEVEL', 'CLASS_LEVEL')
+  ),
+  CONSTRAINT character_chosen_grant_selection_timing_ref_chk CHECK (
+    (timing_kind = 'IMMEDIATE' AND timing_level IS NULL AND timing_class_id IS NULL AND timing_class_level IS NULL)
+    OR (timing_kind = 'CHARACTER_LEVEL' AND timing_level IS NOT NULL AND timing_level > 0 AND timing_class_id IS NULL AND timing_class_level IS NULL)
+    OR (timing_kind = 'CLASS_LEVEL' AND timing_level IS NULL AND timing_class_id IS NOT NULL AND timing_class_level IS NOT NULL AND timing_class_level > 0)
+  ),
+  CONSTRAINT character_chosen_grant_selection_progression_level_chk CHECK (
+    progression_level IS NULL OR progression_level > 0
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_chosen_grant_selections_character_id
+  ON public.character_chosen_grant_selections (character_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_character_chosen_grant_selection_identity
+  ON public.character_chosen_grant_selections (
+    character_id,
+    grant_id,
+    source_kind,
+    class_id,
+    subclass_id,
+    race_id,
+    subrace_id,
+    ancestry_id,
+    option_id,
+    acquired_parent_id,
+    background_id,
+    feat_id,
+    feature_id,
+    reason,
+    progression_level
+  ) NULLS NOT DISTINCT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_character_chosen_grant_selections_updated_at'
+      AND tgrelid = 'public.character_chosen_grant_selections'::regclass) THEN
+  CREATE TRIGGER trg_character_chosen_grant_selections_updated_at
+    BEFORE UPDATE ON public.character_chosen_grant_selections
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_chosen_grant_selections ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selection_targets (
+  selection_id uuid NOT NULL REFERENCES public.character_chosen_grant_selections (id) ON DELETE CASCADE DEFERRABLE,
+  slot_index integer NOT NULL,
+  target_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (selection_id, slot_index),
+  CONSTRAINT character_chosen_grant_selection_target_slot_chk CHECK (
+    slot_index >= 0
+  )
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_character_chosen_grant_selection_targets_updated_at'
+      AND tgrelid = 'public.character_chosen_grant_selection_targets'::regclass) THEN
+  CREATE TRIGGER trg_character_chosen_grant_selection_targets_updated_at
+    BEFORE UPDATE ON public.character_chosen_grant_selection_targets
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_chosen_grant_selection_targets ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE IF NOT EXISTS public.character_feature_acquisitions (
   id uuid PRIMARY KEY,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
@@ -905,6 +1117,24 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.character_feature_acquisitions ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'character_chosen_grant_selections_acquired_parent_id_fkey'
+      AND conrelid = 'public.character_chosen_grant_selections'::regclass
+  ) THEN
+    ALTER TABLE public.character_chosen_grant_selections
+      ADD CONSTRAINT character_chosen_grant_selections_acquired_parent_id_fkey
+      FOREIGN KEY (acquired_parent_id)
+      REFERENCES public.character_feature_acquisitions (id)
+      ON DELETE SET NULL
+      DEFERRABLE;
+  END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.character_feature_selection_records (
   feature_acquisition_id uuid NOT NULL REFERENCES public.character_feature_acquisitions (id) ON DELETE CASCADE DEFERRABLE,

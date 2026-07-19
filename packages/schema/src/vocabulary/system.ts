@@ -6,6 +6,8 @@ export const systemAuthoredDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string().nullable().optional(),
+  rulesetCode: z.string(),
+  rulesetVersion: z.string(),
   alignments: z.array(vocabularyDtoSchema),
   challengeRatings: z.array(vocabularyDtoSchema),
   conditionTypes: z.array(vocabularyDtoSchema),

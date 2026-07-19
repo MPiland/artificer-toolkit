@@ -51,8 +51,8 @@ export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
       code: 'RANGE'
     })
     .onConflict((oc) => oc.column('id')
-      .doUpdateSet(({ ref }) => ({
-        code: ref('excluded.code')
+      .doUpdateSet((eb) => ({
+        code: eb.ref('excluded.code')
       })))
     .returning('id')
     .executeTakeFirstOrThrow()
@@ -63,12 +63,12 @@ export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
     .insertInto('characteristic_ranges')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet(({ ref }) => ({
-        kind: ref('excluded.kind'),
-        min: ref('excluded.min'),
-        max: ref('excluded.max'),
-        unit_code: ref('excluded.unit_code'),
-        scaling: ref('excluded.scaling')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind'),
+        min: eb.ref('excluded.min'),
+        max: eb.ref('excluded.max'),
+        unit_code: eb.ref('excluded.unit_code'),
+        scaling: eb.ref('excluded.scaling')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -109,7 +109,7 @@ export function mapDurationToRow(
       }
 
     default:
-      throw new Error(`Invalid duration kind "${String(durationKind)}" for duration "${id}".`)
+      throw new Error('Invalid duration kind "' + String(durationKind) + '" for duration "' + id + '".')
   }
 }
 
@@ -121,8 +121,8 @@ export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
       code: 'DURATION'
     })
     .onConflict((oc) => oc.column('id')
-      .doUpdateSet(({ ref }) => ({
-        code: ref('excluded.code')
+      .doUpdateSet((eb) => ({
+        code: eb.ref('excluded.code')
       })))
     .returning('id')
     .executeTakeFirstOrThrow()
@@ -133,10 +133,10 @@ export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
     .insertInto('characteristic_durations')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet(({ ref }) => ({
-        kind: ref('excluded.kind'),
-        amount: ref('excluded.amount'),
-        scaling: ref('excluded.scaling')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind'),
+        amount: eb.ref('excluded.amount'),
+        scaling: eb.ref('excluded.scaling')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -250,8 +250,8 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
       code: 'SHAPE'
     })
     .onConflict((oc) => oc.column('id')
-      .doUpdateSet(({ ref }) => ({
-        code: ref('excluded.code')
+      .doUpdateSet((eb) => ({
+        code: eb.ref('excluded.code')
       })))
     .returning('id')
     .executeTakeFirstOrThrow()
@@ -263,8 +263,8 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
       kind: json_data.shapeKind
     })
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet(({ ref }) => ({
-        kind: ref('excluded.kind')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind')
       })))
     .execute()
 
@@ -279,10 +279,10 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
     .insertInto('characteristic_shape_dimensions')
     .values(rows)
     .onConflict((oc) => oc.columns(['characteristic_id', 'dimension'])
-      .doUpdateSet(({ ref }) => ({
-        amount: ref('excluded.amount'),
-        unit_code: ref('excluded.unit_code'),
-        scaling: ref('excluded.scaling')
+      .doUpdateSet((eb) => ({
+        amount: eb.ref('excluded.amount'),
+        unit_code: eb.ref('excluded.unit_code'),
+        scaling: eb.ref('excluded.scaling')
       })))
     .execute()
 }

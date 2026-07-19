@@ -1,6 +1,17 @@
 import { ReactNode } from 'react'
 
-export type ItemIcon = 'book' | 'bolt' | 'check' | 'flame' | 'gear' | 'spark' | 'trend'
+export type ItemIcon =
+  | 'book'
+  | 'bolt'
+  | 'check'
+  | 'cube'
+  | 'eye'
+  | 'flame'
+  | 'gear'
+  | 'sliders'
+  | 'spark'
+  | 'sword'
+  | 'trend'
 
 export type ItemStatus = 'complete' | 'dirty' | 'warning' | 'error' | 'incomplete' | 'empty'
 

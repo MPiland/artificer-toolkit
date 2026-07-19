@@ -1,11 +1,10 @@
-import { TARGET_DISPOSITION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import { type CreatureAuthored } from '@artificer-toolkit/shared';
 import * as S from './shared.js';
 export const barbedDevil: CreatureAuthored = {
     id: S.CREATURE_IDS.BARBED_DEVIL,
     label: 'Barbed Devil',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FIEND,
     size: S.SIZE_CODE.MEDIUM,
@@ -18,7 +17,6 @@ export const barbedDevil: CreatureAuthored = {
         INTELLIGENCE: 12,
         WISDOM: 14,
         CHARISMA: 14,
-        SPELLCASTING: 0
     },
     armorClass: 15,
     armorClassNote: 'natural armor',

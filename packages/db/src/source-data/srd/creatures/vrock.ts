@@ -1,5 +1,5 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import { type CreatureAuthored } from '@artificer-toolkit/shared'
+
 import * as S from './shared.js'
 
 export const vrock: CreatureAuthored = {
@@ -7,7 +7,6 @@ export const vrock: CreatureAuthored = {
   label: 'Vrock',
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
   category: S.CREATURE_CATEGORY_CODE.MONSTER,
   creatureTypeId: S.CREATURE_TYPE.FIEND,
   size: S.SIZE_CODE.LARGE,
@@ -20,7 +19,6 @@ export const vrock: CreatureAuthored = {
     INTELLIGENCE: 8,
     WISDOM: 13,
     CHARISMA: 8,
-    SPELLCASTING: 0
   },
   armorClass: 15,
   armorClassNote: 'natural armor',

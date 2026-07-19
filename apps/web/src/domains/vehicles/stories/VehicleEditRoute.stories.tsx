@@ -1,11 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, waitFor } from 'storybook/test'
 import { Route } from '#routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
 import {
   authoredRouteStoryParams,
   authoredRouteStoryRecords,
   authoredRouteStoryUser
 } from '#domains/authoredRouteStory.fixtures'
+import {
+  expectMasterLockedAuthoringRoute,
+  expectOwnedActiveAuthoringRoute,
+  expectOwnedDraftAuthoringRoute
+} from '#domains/authoredRouteStory.play'
 import {
   authoredRouteNodeRuntimeHandlers,
   createAuthoredEditRouteOverrides
@@ -36,12 +40,39 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Draft: Story = {
-  play: async ({ canvas }) => {
-    await waitFor(() => {
-      expect(canvas.getByDisplayValue(authoredRouteStoryRecords.vehicle.label)).toBeInTheDocument()
-    })
-    expect(canvas.getByTestId('authoring-form-canvas')).toBeInTheDocument()
-    expect(canvas.getByTestId('authoring-action-bar')).toBeInTheDocument()
-  }
+export const OwnedActive: Story = {
+  play: async ({ canvasElement }) =>
+    expectOwnedActiveAuthoringRoute(canvasElement, authoredRouteStoryRecords.vehicle.label)
+}
+export const OwnedDraft: Story = {
+  parameters: {
+    tanstack: {
+      router: {
+        routeOverrides: createAuthoredEditRouteOverrides(
+          'vehicle',
+          '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+          '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+          'ownedDraft'
+        )
+      }
+    }
+  },
+  play: async ({ canvasElement }) =>
+    expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.vehicle.label)
+}
+export const MasterLocked: Story = {
+  parameters: {
+    tanstack: {
+      router: {
+        routeOverrides: createAuthoredEditRouteOverrides(
+          'vehicle',
+          '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+          '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+          'masterLocked'
+        )
+      }
+    }
+  },
+  play: async ({ canvasElement }) =>
+    expectMasterLockedAuthoringRoute(canvasElement, authoredRouteStoryRecords.vehicle.label)
 }

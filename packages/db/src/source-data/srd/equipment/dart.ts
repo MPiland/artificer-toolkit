@@ -9,7 +9,7 @@ export const dart: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.RANGED, S.EQUIPMENT_PROPERTY_CODE.FINESSE, S.EQUIPMENT_PROPERTY_CODE.THROWN],
     effects: S.thrownWeaponEffects(S.equipId(12), 'PIERCING', '1d4', 20),
-    cost: S.gp(0.05),
+    cost: S.cp(5),
     weight: S.lbs(0.25),
     rarityId: S.RARITY_COMMON,
     modifiers: S.finesseWeaponWithRangedModifiers(S.equipId(12)),

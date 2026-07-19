@@ -10,6 +10,7 @@ import {
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
   authoredDraftDtoSchema,
+  authoredValidationIssueDtoSchema,
   classListResponseDtoSchema,
   classResponseDtoSchema,
   creatureListResponseDtoSchema,
@@ -18,8 +19,6 @@ import {
   equipmentResponseDtoSchema,
   featListResponseDtoSchema,
   featResponseDtoSchema,
-  featureListResponseDtoSchema,
-  featureResponseDtoSchema,
   raceListResponseDtoSchema,
   raceResponseDtoSchema,
   spellListResponseDtoSchema,
@@ -30,6 +29,7 @@ import {
   type AuthoredDraftDto,
   type AuthoredDraftSaveRequestDto,
   type AuthoredSubjectKindDto,
+  type AuthoredValidationIssueDto,
   type BackgroundListItemDto,
   type BackgroundListResponseDto,
   type BackgroundResponseDto,
@@ -45,9 +45,6 @@ import {
   type FeatListItemDto,
   type FeatListResponseDto,
   type FeatResponseDto,
-  type FeatureListItemDto,
-  type FeatureListResponseDto,
-  type FeatureResponseDto,
   type RaceListItemDto,
   type RaceListResponseDto,
   type RaceResponseDto,
@@ -104,7 +101,6 @@ import {
   type SystemResponseDto
 } from '@artificer-toolkit/schema/api/systems'
 import { applySameOriginRequestHeader } from './trpcRequestSecurity'
-import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 import type { CreatureAuthoringInputDto } from '@artificer-toolkit/schema/subjects/creature'
@@ -153,9 +149,6 @@ export type {
   FeatListResponseDto,
   FeatAuthoringInputDto,
   FeatResponseDto,
-  FeatureListItemDto,
-  FeatureListResponseDto,
-  FeatureResponseDto,
   RaceAuthoringInputDto,
   NodeRuntimeNormalizeValuesRequestDto,
   NodeRuntimeNormalizeValuesResponseDto,
@@ -193,13 +186,12 @@ interface EmptyQueryProcedure<TOutput> {
   query: () => Promise<TOutput>
 }
 
-interface MutationProcedure<TInput, TOutput> {
-  mutate: (input: TInput) => Promise<TOutput>
+interface ProcedureRequestOptions {
+  signal?: AbortSignal
 }
 
-interface FeatureUpsertInput {
-  feature: FeatureDto
-  systemId: string
+interface MutationProcedure<TInput, TOutput> {
+  mutate: (input: TInput, options?: ProcedureRequestOptions) => Promise<TOutput>
 }
 
 const okResponseSchema = z.object({
@@ -209,7 +201,8 @@ const okResponseSchema = z.object({
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
+    public readonly validationIssues: readonly AuthoredValidationIssueDto[] = []
   ) {
     super(message)
     this.name = 'ApiError'
@@ -263,7 +256,6 @@ interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredConte
   getDraft: (id: string) => Promise<AuthoredDraftDto | null>
   list: () => Promise<TList>
   saveDraft: (input: TInput) => Promise<AuthoredDraftDto>
-  upsert: (input: TInput) => Promise<TResponse>
 }
 
 interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredContentInput> {
@@ -276,7 +268,6 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
   getDraft: QueryProcedure<IdProcedureInput, AuthoredDraftDto | null>
   list: EmptyQueryProcedure<TList>
   saveDraft: MutationProcedure<TInput, AuthoredDraftDto>
-  upsert: MutationProcedure<TInput, TResponse>
 }
 
 interface TrpcClient {
@@ -300,11 +291,6 @@ interface TrpcClient {
     creatures: AuthoredDomainProcedures<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>
     equipment: AuthoredDomainProcedures<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>
     feats: AuthoredDomainProcedures<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>
-    features: {
-      get: QueryProcedure<IdProcedureInput, FeatureResponseDto>
-      list: EmptyQueryProcedure<FeatureListResponseDto>
-      upsert: MutationProcedure<FeatureUpsertInput, FeatureResponseDto>
-    }
     races: AuthoredDomainProcedures<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>
     spells: AuthoredDomainProcedures<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>
     vehicles: AuthoredDomainProcedures<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>
@@ -343,7 +329,9 @@ function createProcedureProxy(rawClient: ReturnType<typeof createTRPCUntypedClie
         return (input?: unknown) => rawClient.query(path.join('.'), input)
       }
       if (property === 'mutate') {
-        return (input?: unknown) => rawClient.mutation(path.join('.'), input)
+        return (input?: unknown, options?: ProcedureRequestOptions) => (
+          rawClient.mutation(path.join('.'), input, options)
+        )
       }
 
       return createProcedureProxy(rawClient, [...path, String(property)])
@@ -393,7 +381,20 @@ function mapTrpcError(error: unknown): never {
     const status = typeof error.data?.httpStatus === 'number'
       ? error.data.httpStatus
       : 500
-    throw new ApiError(status, error.message)
+    const rawValidationIssues =
+      error.data &&
+      typeof error.data === 'object' &&
+      'validationIssues' in error.data
+        ? error.data.validationIssues
+        : undefined
+    const validationIssues = authoredValidationIssueDtoSchema.array().safeParse(
+      rawValidationIssues
+    )
+    throw new ApiError(
+      status,
+      error.message,
+      validationIssues.success ? validationIssues.data : []
+    )
   }
 
   throw error
@@ -434,8 +435,7 @@ function buildApi(client: TrpcClient) {
       get: (input: AuthoredDetailInput) => request(`${path}.get`, responseSchema, () => transport.get(normalizeAuthoredDetailInput(input))),
       getDraft: (id: string) => request(`${path}.getDraft`, nullableDraftSchema, () => transport.getDraft(id)),
       list: () => request(`${path}.list`, listSchema, () => transport.list()),
-      saveDraft: (input: TInput) => request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input)),
-      upsert: (input: TInput) => request(`${path}.upsert`, responseSchema, () => transport.upsert(input))
+      saveDraft: (input: TInput) => request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input))
     }
   }
 
@@ -451,7 +451,7 @@ function buildApi(client: TrpcClient) {
       history: (id: string) => request('characters.history', characterHistoryResponseDtoSchema, () => client.characters.history.query({ id })),
       list: () => request('characters.list', characterListResponseDtoSchema, () => client.characters.list.query()),
       previewSave: (input: CharacterBuilderSaveRequestDto) => request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () => client.characters.previewSave.mutate(input)),
-      resolve: (input: CharacterBuilderResolveRequestDto) => request('characters.resolve', characterBuilderPayloadDtoSchema, () => client.characters.resolve.mutate(input)),
+      resolve: (input: CharacterBuilderResolveRequestDto, options?: ProcedureRequestOptions) => request('characters.resolve', characterBuilderPayloadDtoSchema, () => client.characters.resolve.mutate(input, options)),
       saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => request('characters.saveDraft', characterBuilderDraftDtoSchema, () => client.characters.saveDraft.mutate({ id, input })),
       sheet: (id: string) => request('characters.sheet', characterSheetResponseDtoSchema.nullable(), () => client.characters.sheet.query({ id })),
       upsert: (input: CharacterBuilderCommitRequestDto) => request('characters.upsert', characterBuilderPayloadDtoSchema, () => client.characters.upsert.mutate(input))
@@ -467,8 +467,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.backgrounds.get.query(input),
         getDraft: (id) => client.content.backgrounds.getDraft.query({ id }),
         list: () => client.content.backgrounds.list.query(),
-        saveDraft: (input) => client.content.backgrounds.saveDraft.mutate(input),
-        upsert: (input) => client.content.backgrounds.upsert.mutate(input)
+        saveDraft: (input) => client.content.backgrounds.saveDraft.mutate(input)
       }),
       classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('content.classes', classListResponseDtoSchema, classResponseDtoSchema, {
         activate: (input) => client.content.classes.activate.mutate(input),
@@ -479,8 +478,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.classes.get.query(input),
         getDraft: (id) => client.content.classes.getDraft.query({ id }),
         list: () => client.content.classes.list.query(),
-        saveDraft: (input) => client.content.classes.saveDraft.mutate(input),
-        upsert: (input) => client.content.classes.upsert.mutate(input)
+        saveDraft: (input) => client.content.classes.saveDraft.mutate(input)
       }),
       equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('content.equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema, {
         activate: (input) => client.content.equipment.activate.mutate(input),
@@ -491,8 +489,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.equipment.get.query(input),
         getDraft: (id) => client.content.equipment.getDraft.query({ id }),
         list: () => client.content.equipment.list.query(),
-        saveDraft: (input) => client.content.equipment.saveDraft.mutate(input),
-        upsert: (input) => client.content.equipment.upsert.mutate(input)
+        saveDraft: (input) => client.content.equipment.saveDraft.mutate(input)
       }),
       feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('content.feats', featListResponseDtoSchema, featResponseDtoSchema, {
         activate: (input) => client.content.feats.activate.mutate(input),
@@ -503,8 +500,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.feats.get.query(input),
         getDraft: (id) => client.content.feats.getDraft.query({ id }),
         list: () => client.content.feats.list.query(),
-        saveDraft: (input) => client.content.feats.saveDraft.mutate(input),
-        upsert: (input) => client.content.feats.upsert.mutate(input)
+        saveDraft: (input) => client.content.feats.saveDraft.mutate(input)
       }),
       races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('content.races', raceListResponseDtoSchema, raceResponseDtoSchema, {
         activate: (input) => client.content.races.activate.mutate(input),
@@ -515,8 +511,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.races.get.query(input),
         getDraft: (id) => client.content.races.getDraft.query({ id }),
         list: () => client.content.races.list.query(),
-        saveDraft: (input) => client.content.races.saveDraft.mutate(input),
-        upsert: (input) => client.content.races.upsert.mutate(input)
+        saveDraft: (input) => client.content.races.saveDraft.mutate(input)
       }),
       spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('content.spells', spellListResponseDtoSchema, spellResponseDtoSchema, {
         activate: (input) => client.content.spells.activate.mutate(input),
@@ -527,8 +522,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.spells.get.query(input),
         getDraft: (id) => client.content.spells.getDraft.query({ id }),
         list: () => client.content.spells.list.query(),
-        saveDraft: (input) => client.content.spells.saveDraft.mutate(input),
-        upsert: (input) => client.content.spells.upsert.mutate(input)
+        saveDraft: (input) => client.content.spells.saveDraft.mutate(input)
       }),
       creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('content.creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema, {
         activate: (input) => client.content.creatures.activate.mutate(input),
@@ -539,8 +533,7 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.creatures.get.query(input),
         getDraft: (id) => client.content.creatures.getDraft.query({ id }),
         list: () => client.content.creatures.list.query(),
-        saveDraft: (input) => client.content.creatures.saveDraft.mutate(input),
-        upsert: (input) => client.content.creatures.upsert.mutate(input)
+        saveDraft: (input) => client.content.creatures.saveDraft.mutate(input)
       }),
       vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('content.vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema, {
         activate: (input) => client.content.vehicles.activate.mutate(input),
@@ -551,14 +544,8 @@ function buildApi(client: TrpcClient) {
         get: (input) => client.content.vehicles.get.query(input),
         getDraft: (id) => client.content.vehicles.getDraft.query({ id }),
         list: () => client.content.vehicles.list.query(),
-        saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input),
-        upsert: (input) => client.content.vehicles.upsert.mutate(input)
+        saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input)
       }),
-      features: {
-        get: (id: string) => request('content.features.get', featureResponseDtoSchema, () => client.content.features.get.query({ id })),
-        list: () => request('content.features.list', featureListResponseDtoSchema, () => client.content.features.list.query()),
-        upsert: (input: FeatureUpsertInput) => request('content.features.upsert', featureResponseDtoSchema, () => client.content.features.upsert.mutate(input))
-      }
     },
 
     systems: {

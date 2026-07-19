@@ -12,14 +12,14 @@ const CHARGE_BONUS_NODE_MAP = chargeBonus.define('chargeBonus', ({ map, nodes, c
 
   map
     .set('bonusKind', selectSingle(['bonusKind'], 'Bonus Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CHARGE_BONUS_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       order: 2,
@@ -68,29 +68,29 @@ const charges = buildNodeMap<ChargeAuthored>()
 
 export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, cond }) => {
   const { selectSingle, groupArray, number } = nodes
-  const { or, and } = logic
+  const { or, and, not } = logic
   const local = cond.local()
 
   map
     .set('resetKind', selectSingle(['resetKind'], 'Reset Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CHARGE_RESET_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
     .set('limitKind', selectSingle(['limitKind'], 'Limit Kind', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: CHARGE_LIMIT_OPTIONS
     }, {
       order: 1,
       requiredIf: true
     }))
-    .set('bonuses', groupArray(['bonuses'], 'Bonuses', () => CHARGE_BONUS_NODE_MAP, {
+    .set('bonuses', groupArray(['bonuses'], 'Bonuses', () => CHARGE_BONUS_NODE_MAP, { presentation: 'inline',
       order: 2
     }))
     .set('ability', selectSingle(['ability'], 'Ability', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: ABILITY_OPTIONS
     }, {
       order: 3,
@@ -120,7 +120,7 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
       showIf: local.field(['limitKind']).eq('CLASS_LEVEL')
     }))
     .set('scalingKind', selectSingle(['scalingKind'], 'Scaling', {
-      kind: 'INLINE',
+      kind: 'INLINE_OPTIONS',
       options: SCALING_OPTIONS
     }, {
       order: 3,
@@ -135,5 +135,19 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         local.field(['scalingKind']).eq('NONE')
       ])
     }))
-    .set('levels', groupArray(['levels'], 'Levels', () => CHARGE_LEVEL_SCALING_NODE_MAP))
+    .set('min', number(['min'], 'Min. Amount', {
+      order: 5,
+      showIf: not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT))
+    }))
+    .set('max', number(['max'], 'Max. Amount', {
+      order: 6,
+      showIf: not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT))
+    }))
+    .set('levels', groupArray(['levels'], 'Levels', () => CHARGE_LEVEL_SCALING_NODE_MAP, { presentation: 'table',
+      order: 4,
+      showIf: and([
+        local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT),
+        local.field(['scalingKind']).eq('PER_LEVEL')
+      ])
+    }))
 })

@@ -22,14 +22,16 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   scaling_kind text NOT NULL, -- NONE | PER_LEVEL
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
+  selection_duplicate_policy text, -- CHOSEN + NONE only
   scaling_source text, -- SCALING_SOURCE (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   range_id uuid,                -- authored range object ID (null when no base range)
   range_kind text,              -- SELF | TOUCH | SIGHT | UNLIMITED | DISTANCE
-  range_amount integer,         -- DISTANCE only
+  range_amount numeric,         -- DISTANCE only
   range_unit text,              -- DISTANCE only — MeasurementUnitCode
+  range_scaling jsonb,          -- DISTANCE only — ScalableValueAuthored<RangeMeasurementAuthored>
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
@@ -42,9 +44,20 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
     scaling_kind IN ('NONE', 'PER_LEVEL')
   ),
   CONSTRAINT sense_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
-    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind <> 'CHOSEN'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND selection_kind = 'CHOSEN'
+      AND selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   ),
   CONSTRAINT sense_grants_root_authoring_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -63,11 +76,16 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   ),
   CONSTRAINT sense_grants_root_range_kind_chk CHECK (
     range_kind IS NULL
-    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'UNLIMITED', 'DISTANCE')
+    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'SPECIAL', 'UNLIMITED', 'DISTANCE')
   ),
   CONSTRAINT sense_grants_root_range_distance_chk CHECK (
     (range_kind = 'DISTANCE' AND range_amount IS NOT NULL AND range_unit IS NOT NULL)
-    OR (range_kind IS DISTINCT FROM 'DISTANCE' AND range_amount IS NULL AND range_unit IS NULL)
+    OR (
+      range_kind IS DISTINCT FROM 'DISTANCE'
+      AND range_amount IS NULL
+      AND range_unit IS NULL
+      AND range_scaling IS NULL
+    )
   ),
   CONSTRAINT sense_grants_root_range_id_chk CHECK (
     (range_kind IS NOT NULL AND range_id IS NOT NULL)
@@ -136,6 +154,7 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
   sort_order integer NOT NULL,
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN per-level
+  selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grant_scaling_levels_level_chk CHECK (
@@ -148,7 +167,12 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
     authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT sense_grant_scaling_levels_selection_count_chk CHECK (
-    selection_count IS NULL OR selection_count > 0
+    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    OR (
+      selection_count IS NOT NULL
+      AND selection_count > 0
+      AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
+    )
   )
 );
 

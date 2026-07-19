@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FeatAuthored, FeatureAuthored } from '#authored';
-import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, ACTIVATION_CODE, DAMAGE_VALUE_KIND, CHARGE_RESET_KIND, EFFECT_KIND, GRANT_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, PATH_ROLL_TABLE_KIND, FORCED_MOVEMENT_ACTION_ECONOMY, FORCED_MOVEMENT_DIRECTION, RANGE_KIND, NUMERIC_EXPR_CODE, SIZE_CODE, SCALING, SCALING_SOURCE, TRIGGER } from '#core';
+import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_DUPLICATE_POLICY, AUTHORING_SELECTION_KIND, ACTIVATION_CODE, DAMAGE_VALUE_KIND, CHARGE_RESET_KIND, EFFECT_KIND, GRANT_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, PATH_ROLL_TABLE_KIND, FORCED_MOVEMENT_ACTION_ECONOMY, FORCED_MOVEMENT_DIRECTION, RANGE_KIND, NUMERIC_EXPR_CODE, SIZE_CODE, SCALING, SCALING_SOURCE, TRIGGER } from '#core';
 import { compileCharge, compileDamageEffect, compileEffectResult, compileFeat, compileFeatGrant, compileFeatGrantResult, compileFeatureResult, compileScalingSource, compileSpellGrant } from '#compilers';
 describe('shared compiler scaling', () => {
     it('compiles scaling sources with their required payload', () => {
@@ -79,6 +79,7 @@ describe('shared compiler scaling', () => {
                                     level: 1,
                                     order: 1,
                                     count: 2,
+                                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                                     spellIds: ['magic-missile', 'shield']
                                 },
@@ -87,6 +88,7 @@ describe('shared compiler scaling', () => {
                                     level: 3,
                                     order: 2,
                                     count: 1,
+                                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                                     spellIds: ['misty-step']
                                 }
@@ -117,6 +119,7 @@ describe('shared compiler scaling', () => {
                     count: 2,
                     order: 1,
                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                     spellIds: ['magic-missile', 'shield']
                 },
                 {
@@ -125,6 +128,7 @@ describe('shared compiler scaling', () => {
                     count: 1,
                     order: 2,
                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                     spellIds: ['misty-step']
                 }
             ]
@@ -338,6 +342,7 @@ describe('shared compiler scaling', () => {
                         level: 1,
                         order: 1,
                         count: 1,
+                        selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                         authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                         featIds: ['archery', 'defense']
                     },
@@ -346,6 +351,7 @@ describe('shared compiler scaling', () => {
                         level: 10,
                         order: 2,
                         count: 1,
+                        selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
                         authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                         featIds: ['superior-technique']
                     }
@@ -368,7 +374,8 @@ describe('shared compiler scaling', () => {
                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                     featIds: ['archery', 'defense'],
                     order: 1,
-                    count: 1
+                    count: 1,
+                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE
                 },
                 {
                     id: 'fighting-style-10',
@@ -376,7 +383,8 @@ describe('shared compiler scaling', () => {
                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                     featIds: ['superior-technique'],
                     order: 2,
-                    count: 1
+                    count: 1,
+                    selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE
                 }
             ]
         });
@@ -588,7 +596,7 @@ describe('shared compiler scaling', () => {
                         outcomes: [
                             {
                                 id: 'shield-rule',
-                                effectKind: EFFECT_KIND.RULE
+                                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }
@@ -644,7 +652,7 @@ describe('shared compiler scaling', () => {
                 groupKind: PATH_GROUP_TYPE.SINGLE,
                 outcome: {
                     id: 'shield-rule',
-                    effectKind: EFFECT_KIND.RULE
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                 },
                 duration: undefined
             }
@@ -743,7 +751,7 @@ describe('shared compiler scaling', () => {
                         outcomes: [
                             {
                                 id: 'choice-copy-direct-entry',
-                                effectKind: EFFECT_KIND.RULE
+                                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }
@@ -767,7 +775,7 @@ describe('shared compiler scaling', () => {
                                 outcomes: [
                                     {
                                         id: 'choice-copy-roll-entry',
-                                        effectKind: EFFECT_KIND.RULE
+                                        effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -792,7 +800,7 @@ describe('shared compiler scaling', () => {
                 groupKind: PATH_GROUP_TYPE.SINGLE,
                 outcome: {
                     id: 'choice-copy-direct-entry',
-                    effectKind: EFFECT_KIND.RULE
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                 }
             },
             {
@@ -809,7 +817,7 @@ describe('shared compiler scaling', () => {
                 rollValue: 1,
                 outcome: {
                     id: 'choice-copy-roll-entry',
-                    effectKind: EFFECT_KIND.RULE
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
                 }
             }
         ]);

@@ -1,6 +1,6 @@
 import type { DamageAuthored, DamageBonusAuthored } from '#authored'
 import {
-  AbilityCode,
+  type AbilityModifierReference,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
@@ -51,7 +51,7 @@ export type CompiledDamageBonus
   }
   | {
     bonusKind: typeof DAMAGE_BONUS_KIND.ABILITY_BONUS
-    ability: AbilityCode
+    ability: AbilityModifierReference
     order: number
     min?: number
     max?: number

@@ -10,7 +10,8 @@ export const tree = style({
       gap: 2,
       minBlockSize: 0,
       overflowY: 'auto',
-      padding: foundationVars.space[2]
+      paddingBlock: foundationVars.space[2],
+      paddingInline: 0
     }
   }
 })

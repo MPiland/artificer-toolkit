@@ -1,5 +1,7 @@
 # Artificer Toolkit Rebuild Plan
 
+> **Document status:** Transitional project history and sequencing notes. The current architecture is documented in [docs/architecture](docs/architecture/overview.md) and load-bearing choices in [the ADR index](docs/adr/README.md). Verify claims against the working tree before using this plan to guide new code.
+
 ## Summary
 
 This project should be treated as a salvage-and-stabilize refactor, not a greenfield rewrite. The codebase already contains substantial domain, persistence, service, API, and frontend logic. The rebuild has reached unlaunched MVP UAT: prioritize correctness, performance, scanability, and coherent product UX over phase-plan bookkeeping.

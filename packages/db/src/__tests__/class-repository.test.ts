@@ -56,6 +56,7 @@ describe('createClassRepository', () => {
           user_id: 'user-1',
           category: 'BASE',
           parent_class_id: null,
+          subclass_selection_level: 2,
           label: 'Wizard',
           description: 'Arcane scholar.',
           starting_equipment_id: 'se-1'
@@ -264,8 +265,11 @@ describe('createClassRepository', () => {
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
           level: 'FULL',
+          scalingKind: 'NONE',
           rounding: undefined,
           count: undefined,
+          selectionDuplicatePolicy: undefined,
+          restrictions: undefined,
           skillIds: ['arcana']
         }
       ],
@@ -346,6 +350,7 @@ describe('createClassRepository', () => {
           restrictions: undefined,
           order: 1,
           availableAtLevel: 1,
+          section: undefined,
           optionChoices: undefined,
           options: undefined
         }
@@ -354,6 +359,7 @@ describe('createClassRepository', () => {
       systemId: 'system-1',
       status: 'DRAFT',
       category: 'BASE',
+      subclassSelectionLevel: 2,
       attributes: ['SPELLCASTER'],
       startingGold: {
         multiplier: 4,
@@ -418,8 +424,11 @@ describe('createClassRepository', () => {
             selectionKind: 'GRANTED',
             authoringModeKind: 'SELECTED',
             level: 'FULL',
+            scalingKind: 'NONE',
             rounding: undefined,
             count: undefined,
+            selectionDuplicatePolicy: undefined,
+            restrictions: undefined,
             languageIds: ['draconic']
           }
         ]

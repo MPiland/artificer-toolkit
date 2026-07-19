@@ -14,6 +14,7 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
+  PROFICIENCY_KIND,
   SCALING_AMOUNT_KIND,
   type ProficiencyKind
 } from '#core'
@@ -71,7 +72,10 @@ export function compileProficiencyGrantResult(
   const base = {
     id: authored.id,
     order: authored.order,
-    proficiencyKind: authored.proficiencyKind
+    proficiencyKind: authored.proficiencyKind,
+    ...(authored.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY && authored.category
+      ? { category: authored.category }
+      : {})
   }
 
   switch (authored.selectionKind) {
@@ -92,6 +96,7 @@ export function compileProficiencyGrantResult(
         selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
         ...compileProficiencyMode(authored),
         count: authored.count,
+        selectionDuplicatePolicy: authored.selectionDuplicatePolicy,
         ...compileProficiencyLevel(authored)
       })
     }

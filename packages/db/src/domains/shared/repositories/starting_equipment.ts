@@ -1,18 +1,16 @@
 import type {
+  FacetAuthored,
   StartingEquipmentAuthored,
   StartingEquipmentGroupAuthored,
   StartingEquipmentItemAuthored,
-  StartingEquipmentOptionAuthored,
-  StartingEquipmentSetAuthored
+  StartingEquipmentOptionAuthored
 } from '@artificer-toolkit/shared'
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE
-} from '@artificer-toolkit/shared'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertStartingEquipment } from '../upserts/starting_equipment.js'
 import type { StartingEquipmentRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
+import { hydrateFacetById } from '../facets.js'
 
 type StartingEquipmentItemEquipmentRow = {
   option_item_id: string
@@ -35,25 +33,23 @@ type EquipmentAuthoredItem = Extract<
   { startingEquipmentKind: 'EQUIPMENT' }
 >
 
-function requireStartingEquipmentKind(
-  item: {
-    id: string
-    starting_equipment_kind: string
-  }
-): 'EQUIPMENT' | 'CURRENCY' {
+function requireStartingEquipmentKind(item: {
+  id: string
+  starting_equipment_kind: string
+}): 'EQUIPMENT' | 'CURRENCY' {
   if (item.starting_equipment_kind !== 'EQUIPMENT' && item.starting_equipment_kind !== 'CURRENCY') {
-    throw new Error(`Starting equipment item "${item.id}" has invalid starting_equipment_kind "${item.starting_equipment_kind}".`)
+    throw new Error(
+      `Starting equipment item "${item.id}" has invalid starting_equipment_kind "${item.starting_equipment_kind}".`
+    )
   }
 
   return item.starting_equipment_kind
 }
 
-function requireSelectionKind(
-  item: {
-    id: string
-    selection_kind: string | null
-  }
-): 'CHOSEN' | 'GRANTED' {
+function requireSelectionKind(item: {
+  id: string
+  selection_kind: string | null
+}): 'CHOSEN' | 'GRANTED' {
   if (item.selection_kind !== 'CHOSEN' && item.selection_kind !== 'GRANTED') {
     throw new Error(`Starting equipment item "${item.id}" is missing selection_kind.`)
   }
@@ -61,12 +57,10 @@ function requireSelectionKind(
   return item.selection_kind
 }
 
-function requireAuthoringModeKind(
-  item: {
-    id: string
-    authoring_mode_kind: string | null
-  }
-): 'ALL' | 'SELECTED' {
+function requireAuthoringModeKind(item: {
+  id: string
+  authoring_mode_kind: string | null
+}): 'ALL' | 'SELECTED' {
   if (item.authoring_mode_kind !== 'ALL' && item.authoring_mode_kind !== 'SELECTED') {
     throw new Error(`Starting equipment item "${item.id}" is missing authoring_mode_kind.`)
   }
@@ -74,12 +68,7 @@ function requireAuthoringModeKind(
   return item.authoring_mode_kind
 }
 
-function requireCount(
-  item: {
-    id: string
-    count: number | null
-  }
-): number {
+function requireCount(item: { id: string; count: number | null }): number {
   if (item.count == null) {
     throw new Error(`Starting equipment item "${item.id}" is missing count for CHOSEN selection.`)
   }
@@ -87,38 +76,29 @@ function requireCount(
   return item.count
 }
 
-function requireNoGrantedCount(
-  item: {
-    id: string
-    count: number | null
-  }
-) {
+function requireNoGrantedCount(item: { id: string; count: number | null }) {
   if (item.count != null) {
-    throw new Error(`Starting equipment item "${item.id}" cannot hydrate count for GRANTED selection.`)
+    throw new Error(
+      `Starting equipment item "${item.id}" cannot hydrate count for GRANTED selection.`
+    )
   }
 }
 
-function requireQuantity(
-  item: {
-    id: string
-    quantity: number | null
-  }
-): number {
+function requireQuantity(item: { id: string; quantity: number | null }): number {
   if (item.quantity == null) {
-    throw new Error(`Starting equipment item "${item.id}" is missing quantity for GRANTED selection.`)
+    throw new Error(
+      `Starting equipment item "${item.id}" is missing quantity for GRANTED selection.`
+    )
   }
 
   return item.quantity
 }
 
-function requireNoChosenQuantity(
-  item: {
-    id: string
-    quantity: number | null
-  }
-) {
+function requireNoChosenQuantity(item: { id: string; quantity: number | null }) {
   if (item.quantity != null) {
-    throw new Error(`Starting equipment item "${item.id}" cannot hydrate quantity for CHOSEN selection.`)
+    throw new Error(
+      `Starting equipment item "${item.id}" cannot hydrate quantity for CHOSEN selection.`
+    )
   }
 }
 
@@ -159,7 +139,9 @@ function requirePersistedEquipmentIds(
   equipmentIds: string[] | undefined
 ): string[] {
   if (!equipmentIds || equipmentIds.length === 0) {
-    throw new Error(`Starting equipment item "${itemId}" is missing equipmentIds for SELECTED payload.`)
+    throw new Error(
+      `Starting equipment item "${itemId}" is missing equipmentIds for SELECTED payload.`
+    )
   }
 
   return equipmentIds
@@ -170,7 +152,9 @@ function requirePersistedCurrencies(
   currencies: StartingEquipmentCurrencyRow[] | undefined
 ): StartingEquipmentCurrencyRow[] {
   if (!currencies || currencies.length === 0) {
-    throw new Error(`Starting equipment item "${itemId}" is missing currencies for CURRENCY payload.`)
+    throw new Error(
+      `Starting equipment item "${itemId}" is missing currencies for CURRENCY payload.`
+    )
   }
 
   return currencies
@@ -187,10 +171,12 @@ function hydrateCurrencyItem(
     id: item.id,
     order: item.sort_order,
     startingEquipmentKind: 'CURRENCY',
-    currencies: requirePersistedCurrencies(item.id, currenciesByItemId.get(item.id)).map((currency) => ({
-      currencyId: currency.currency_id,
-      amount: currency.amount
-    }))
+    currencies: requirePersistedCurrencies(item.id, currenciesByItemId.get(item.id)).map(
+      (currency) => ({
+        currencyId: currency.currency_id,
+        amount: currency.amount
+      })
+    )
   }
 }
 
@@ -291,12 +277,18 @@ async function hydrateStartingEquipmentById(
   const options = groupIds.length
     ? await db
         .selectFrom('starting_equipment_options')
-        .select(['id', 'equipment_group_id', 'sort_order'])
+        .select(['id', 'equipment_group_id', 'eligibility_facet_id', 'sort_order'])
         .where('equipment_group_id', 'in', groupIds)
         .orderBy('sort_order')
         .execute()
     : []
   const optionIds = options.map((option) => option.id)
+  const eligibilityIds = options.flatMap((option) =>
+    option.eligibility_facet_id ? [option.eligibility_facet_id] : []
+  )
+  const eligibilitiesById = await hydrateByIds(eligibilityIds, (eligibilityId) =>
+    hydrateFacetById<'CHARACTER'>(db, eligibilityId)
+  )
 
   const items = optionIds.length
     ? await db
@@ -319,27 +311,27 @@ async function hydrateStartingEquipmentById(
   const itemIds = items.map((item) => item.id)
 
   const itemEquipment = itemIds.length
-    ? await db
+    ? ((await db
         .selectFrom('starting_equipment_option_item_equipment')
         .select(['option_item_id', 'equipment_id'])
         .where('option_item_id', 'in', itemIds)
-        .execute() as StartingEquipmentItemEquipmentRow[]
+        .execute()) as StartingEquipmentItemEquipmentRow[])
     : []
 
   const itemProperties = itemIds.length
-    ? await db
+    ? ((await db
         .selectFrom('starting_equipment_option_item_properties')
         .select(['option_item_id', 'property_code'])
         .where('option_item_id', 'in', itemIds)
-        .execute() as StartingEquipmentItemPropertyRow[]
+        .execute()) as StartingEquipmentItemPropertyRow[])
     : []
 
   const currencies = itemIds.length
-    ? await db
+    ? ((await db
         .selectFrom('starting_equipment_currencies')
         .select(['option_item_id', 'currency_id', 'amount'])
         .where('option_item_id', 'in', itemIds)
-        .execute() as StartingEquipmentCurrencyRow[]
+        .execute()) as StartingEquipmentCurrencyRow[])
     : []
 
   const itemEquipmentById = new Map<string, string[]>()
@@ -372,20 +364,21 @@ async function hydrateStartingEquipmentById(
 
   for (const item of items) {
     const startingEquipmentKind = requireStartingEquipmentKind(item)
-    const authoredItem = startingEquipmentKind === 'CURRENCY'
-      ? hydrateCurrencyItem(item, currenciesByItemId)
-      : (() => {
-          const selectionKind = requireSelectionKind(item)
-          const authoringModeKind = requireAuthoringModeKind(item)
+    const authoredItem =
+      startingEquipmentKind === 'CURRENCY'
+        ? hydrateCurrencyItem(item, currenciesByItemId)
+        : (() => {
+            const selectionKind = requireSelectionKind(item)
+            const authoringModeKind = requireAuthoringModeKind(item)
 
-          return hydrateEquipmentItem(
-            item,
-            selectionKind,
-            authoringModeKind,
-            itemPropertiesById,
-            itemEquipmentById
-          )
-        })()
+            return hydrateEquipmentItem(
+              item,
+              selectionKind,
+              authoringModeKind,
+              itemPropertiesById,
+              itemEquipmentById
+            )
+          })()
 
     itemsByOptionId.set(item.equipment_option_id, [
       ...(itemsByOptionId.get(item.equipment_option_id) ?? []),
@@ -394,11 +387,15 @@ async function hydrateStartingEquipmentById(
   }
 
   for (const option of options) {
+    const eligibility = option.eligibility_facet_id
+      ? requireLinkedEligibility(eligibilitiesById, option.id, option.eligibility_facet_id)
+      : undefined
     optionsByGroupId.set(option.equipment_group_id, [
       ...(optionsByGroupId.get(option.equipment_group_id) ?? []),
       {
         id: option.id,
         order: option.sort_order,
+        ...(eligibility ? { eligibility } : {}),
         items: itemsByOptionId.get(option.id) ?? []
       }
     ])
@@ -425,6 +422,21 @@ async function hydrateStartingEquipmentById(
   }
 }
 
+function requireLinkedEligibility(
+  eligibilitiesById: Map<string, FacetAuthored<'CHARACTER'>>,
+  optionId: string,
+  eligibilityId: string
+): FacetAuthored<'CHARACTER'> {
+  const eligibility = eligibilitiesById.get(eligibilityId)
+  if (!eligibility) {
+    throw new Error(
+      `Starting equipment option "${optionId}" is linked to missing eligibility facet "${eligibilityId}".`
+    )
+  }
+
+  return eligibility
+}
+
 export function createStartingEquipmentRepository(db: DBLike): StartingEquipmentRepository {
   return {
     async upsert(entity) {
@@ -440,15 +452,14 @@ export function createStartingEquipmentRepository(db: DBLike): StartingEquipment
     },
 
     async findAll() {
-      const rows = await db
-        .selectFrom('starting_equipment')
-        .select('id')
-        .orderBy('id')
-        .execute()
+      const rows = await db.selectFrom('starting_equipment').select('id').orderBy('id').execute()
 
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateStartingEquipmentById(db, id))
+        await hydrateByIds(
+          rows.map((row) => row.id),
+          (id) => hydrateStartingEquipmentById(db, id)
+        )
       )
     }
   }

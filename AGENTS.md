@@ -15,6 +15,16 @@ Read these before making substantial changes:
 
 If working on a specific domain, read the closest owning source, tests, and current product/design docs before editing.
 
+For architecture or cross-package work, also read [README.md](README.md), [CONTEXT.md](CONTEXT.md), and [docs/README.md](docs/README.md). Use the owning workspace README and the relevant guide under `docs/architecture/` before changing a seam. ADRs under `docs/adr/` record load-bearing decisions and should not be casually re-litigated.
+
+Documentation upkeep:
+
+- Update the relevant canonical guide when a module interface, dependency direction, persistence invariant, transport contract, node-map rule, or Builder/Sheet ownership rule changes.
+- Add or update an ADR when a change intentionally alters a load-bearing architectural decision.
+- Keep current, transitional, target, and historical behavior explicitly labeled.
+- Keep cross-module intent in docs, and reserve code comments/JSDoc for local non-obvious invariants or public interfaces that are easy to misuse.
+- Before handoff, verify links and trace the affected flow through its seam; do not leave architecture knowledge only in chat history.
+
 ## Workspace Shape
 
 - `apps/web`: TanStack Start frontend
@@ -104,6 +114,15 @@ Avoid unbounded `cat`, broad `rg`, `find`, `ls -R`, `git diff`, tests, builds, a
 
 If capped output is insufficient, narrow the command before increasing the cap.
 
+## Shell Selection
+
+Git Bash is the preferred shell for ordinary repository work on this Windows machine.
+
+- Use Git Bash for rg, git, yarn, node, focused tests, typechecks, and other commands that do not require Windows-only process control.
+- Keep command syntax, quoting, path separators, pipes, and exit-code handling native to the shell currently in use. Do not wrap Git Bash commands in cmd /c or PowerShell unless the command specifically requires it.
+- Use PowerShell or another native Windows shell for Docker Desktop control, GUI/process inspection, Windows service management, filesystem operations that need Windows semantics, or spawn-heavy commands that fail under Git Bash.
+- When a documented repo command behaves differently across shells, preserve the repo command and retry it in the shell that supports the required process behavior. Do not bypass the repo's environment configuration.
+
 ## Windows Process Execution
 
 This repo runs on Windows, and several frontend tools spawn native child processes. Storybook, Vite, esbuild, Playwright browser runs, Vitest browser mode, and similar dev-server/build commands may fail from the normal Codex sandbox with errors such as `spawn EPERM`.
@@ -111,10 +130,11 @@ This repo runs on Windows, and several frontend tools spawn native child process
 - Prefer MCP/browser inspection when a dev server is already running.
 - Codex may start Storybook when it is needed for UI verification, but first check whether the target port/server is already running. Do not start duplicate Storybook instances.
 - If Codex must start a spawn-heavy command, request escalated execution with `sandbox_permissions: "require_escalated"` instead of trying the normal sandbox first.
-- Use the repo command exactly as documented through PowerShell, for example `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006` or `yarn storybook:web`. Do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the PowerShell command path itself is proven broken.
-- Do not switch to Git Bash/MSYS to work around this. Use PowerShell/native Windows execution.
+- Use the repo command exactly as documented through Git Bash when supported, or PowerShell/native Windows when the command needs Windows process behavior. For example, prefer `yarn workspace @artificer-toolkit/web storybook --no-open --port 6006` in Git Bash; do not bypass the user's environment config with direct `node.exe`/Corepack invocations unless the documented command path itself is proven broken.
+- Do not switch shells repeatedly during one operation. Choose Git Bash by default, and switch to PowerShell/native Windows only for the documented exceptions above or when Git Bash produces a reproducible Windows process failure.
 - Avoid repeated start attempts. Start once, capture the PID/logs or the port owner, perform the check, then stop only the process Codex started.
 - Keep normal read/search/patch commands in the regular sandbox. Escalation is for native child-process toolchains, not routine file inspection.
+- If local Supabase appears offline, especially `ECONNREFUSED 127.0.0.1:54321`, verify Docker Desktop and the local Supabase containers before diagnosing app auth or sheet routes. Check Docker/Supabase status with escalated PowerShell when needed; if Docker Desktop is not running, start it so the local Supabase stack can come online.
 
 ## GitHub CLI Auth On Windows
 
@@ -259,7 +279,6 @@ Common repo commands:
 - `yarn build:schema`
 - `yarn build:db`
 - `yarn test:web`
-- `yarn test:web:browser`
 - `yarn test:web:e2e`
 - `yarn turbo:test:authoring`
 - `yarn turbo:typecheck:web`

@@ -103,3 +103,38 @@ export const AUTHORING_SELECTION_REGISTRY: Record<
 export const AUTHORING_SELECTION_OPTIONS = valuesOf(
   AUTHORING_SELECTION_REGISTRY
 )
+
+export const AUTHORING_SELECTION_DUPLICATE_POLICY = {
+  UNIQUE: 'UNIQUE',
+  REPEATABLE: 'REPEATABLE'
+} as const
+
+export type AuthoringSelectionDuplicatePolicy =
+  keyof typeof AUTHORING_SELECTION_DUPLICATE_POLICY
+
+export type AuthoringSelectionDuplicatePolicyOption =
+  CoreMeta<AuthoringSelectionDuplicatePolicy>
+
+export const AUTHORING_SELECTION_DUPLICATE_POLICY_REGISTRY: Record<
+  AuthoringSelectionDuplicatePolicy,
+  AuthoringSelectionDuplicatePolicyOption
+> = {
+  [AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE]: {
+    code: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+    label: 'Unique',
+    tooltip: 'Each selected option must be different.',
+    description: 'Each selected option can only be chosen once.'
+  },
+
+  [AUTHORING_SELECTION_DUPLICATE_POLICY.REPEATABLE]: {
+    code: AUTHORING_SELECTION_DUPLICATE_POLICY.REPEATABLE,
+    label: 'Repeatable',
+    tooltip: 'The same option may be selected more than once.',
+    description:
+      'The same option may fill more than one choice slot when the authored count allows it.'
+  }
+} as const
+
+export const AUTHORING_SELECTION_DUPLICATE_POLICY_OPTIONS = valuesOf(
+  AUTHORING_SELECTION_DUPLICATE_POLICY_REGISTRY
+)

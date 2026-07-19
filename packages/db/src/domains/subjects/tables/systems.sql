@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.systems (
 
   label text NOT NULL,
   description text,
+  ruleset_code text NOT NULL,
+  ruleset_version text NOT NULL,
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

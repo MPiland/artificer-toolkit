@@ -41,7 +41,7 @@ export const manacles: EquipmentAuthored = {
                         outcomes: [
                             {
                                 id: S.equipmentChildId(S.equipId(153), 0x212, 1),
-                                effectKind: S.EFFECT_KIND.RULE
+                                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                             }
                         ]
                     }

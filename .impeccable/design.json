@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-14T02:40:19.0496327Z",
+  "title": "Design System: Artificer Toolkit",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Forge Orange",
+        "canonical": "#ec8c06",
+        "tonalRamp": ["#7c2d12", "#9a3412", "#b84a04", "#c95704", "#ec8c06", "#f97316", "#fed7aa", "#fff7ed"]
+      },
+      "secondary-accent": {
+        "role": "secondary",
+        "displayName": "Workshop Teal",
+        "canonical": "#0891b2",
+        "tonalRamp": ["#164e63", "#155e75", "#0e7490", "#0891b2", "#0ea5c5", "#38bdd6", "#84ddec", "#d8f6fb"]
+      },
+      "surface-canvas-light": {
+        "role": "neutral",
+        "displayName": "Paper Canvas",
+        "canonical": "#f7f9fb",
+        "tonalRamp": ["#151b20", "#363b40", "#55626d", "#8a97a1", "#b5b9c6", "#d7dbe4", "#eef2f6", "#f7f9fb"]
+      },
+      "surface-panel-light": {
+        "role": "neutral",
+        "displayName": "Panel White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#20262d", "#475569", "#78858f", "#cbd5e1", "#dfe4ea", "#f1f5f9", "#fbfcfd", "#ffffff"]
+      },
+      "surface-canvas-dark": {
+        "role": "neutral",
+        "displayName": "Night Canvas",
+        "canonical": "#0a0f0e",
+        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1a2127", "#1b2120", "#262b2a", "#2a3038", "#75828c"]
+      },
+      "surface-panel-dark": {
+        "role": "neutral",
+        "displayName": "Forge Panel",
+        "canonical": "#171d1c",
+        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1b2120", "#202830", "#262b2a", "#334049", "#eef4f6"]
+      },
+      "text-strong": {
+        "role": "text",
+        "displayName": "Slate Ink",
+        "canonical": "#151b20",
+        "tonalRamp": ["#151b20", "#20262d", "#363b40", "#55626d", "#78858f", "#8a97a1", "#cbd5e1", "#eef4f6"]
+      },
+      "success": {
+        "role": "success",
+        "displayName": "Success",
+        "canonical": "#2f9b63",
+        "tonalRamp": ["#14532d", "#166534", "#237a4b", "#2f9b63", "#29a195", "#86d5a4", "#c2ecd2", "#e3f6ea"]
+      },
+      "warning": {
+        "role": "warning",
+        "displayName": "Warning",
+        "canonical": "#8a5a00",
+        "tonalRamp": ["#422006", "#5f3700", "#704700", "#8a5a00", "#b7791f", "#d9a441", "#f3d78b", "#fff4cc"]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Danger",
+        "canonical": "#c15336",
+        "tonalRamp": ["#651d14", "#84271c", "#a33b29", "#c15336", "#dc3545", "#e98a76", "#f6beb2", "#fee7e2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero-auth and marketing entry moments only." },
+      "headline": { "displayName": "Headline", "purpose": "Page-level titles and major shell headings." },
+      "title": { "displayName": "Title", "purpose": "Section titles and important grouped surfaces." },
+      "body": { "displayName": "Body", "purpose": "Primary application copy and descriptive text." },
+      "label": { "displayName": "Label", "purpose": "Fields, overlines, and compact metadata." }
+    },
+    "shadows": [
+      { "name": "card", "value": "none", "purpose": "Repeated cards and panels stay flat at rest." },
+      { "name": "card-hover", "value": "none", "purpose": "Hover state uses color and borders instead of decorative lift." },
+      { "name": "floating-control", "value": "0 6px 8px rgba(0, 0, 0, 0.22)", "purpose": "Floating authoring actions that overlay workspace content." },
+      { "name": "focus-halo", "value": "0 0 0 4px rgba(14, 165, 197, 0.24)", "purpose": "Keyboard focus and selected-input emphasis." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "120ms", "purpose": "Hover, focus, and compact state transitions." },
+      { "name": "base", "value": "180ms", "purpose": "Default interface transition timing." },
+      { "name": "slow", "value": "320ms", "purpose": "Larger stateful surface transitions." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "760px" },
+      { "name": "tablet-portrait", "value": "900px" },
+      { "name": "tablet", "value": "992px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action on a product surface.",
+      "html": "<button class=\"ds-btn-primary\">Save draft</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 20px; border:1px solid var(--at-color-button-primary-border); border-radius:var(--at-radius-md); background:var(--at-color-button-primary-background); color:var(--at-color-button-primary-text); font-family:var(--at-font-sans); font-size:0.875rem; font-weight:600; cursor:pointer; transition:background-color var(--at-motion-fast) ease, border-color var(--at-motion-fast) ease; } .ds-btn-primary:hover { background:var(--at-color-button-primary-hover); } .ds-btn-primary:active { background:var(--at-color-button-primary-active); } .ds-btn-primary:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A supporting action that stays quiet beside the primary path.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 20px; border:1px solid var(--at-color-button-secondary-border); border-radius:var(--at-radius-md); background:var(--at-color-button-secondary-background); color:var(--at-color-button-secondary-text); font-family:var(--at-font-sans); font-size:0.875rem; font-weight:600; cursor:pointer; transition:background-color var(--at-motion-fast) ease, border-color var(--at-motion-fast) ease, color var(--at-motion-fast) ease; } .ds-btn-secondary:hover { border-color:var(--at-color-border-strong); background:var(--at-color-button-secondary-hover); color:var(--at-color-text-primary); } .ds-btn-secondary:active { background:var(--at-color-button-secondary-active); } .ds-btn-secondary:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "The canonical neutral field for authored content.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Name</span><input class=\"ds-input\" placeholder=\"Enter a name\" /></label>",
+      "css": ".ds-field { display:grid; gap:8px; width:100%; } .ds-field-label { color:var(--at-color-text-primary); font-family:var(--at-font-sans); font-size:var(--at-typography-label-fontSize); font-weight:var(--at-typography-label-fontWeight); } .ds-input { min-height:40px; padding:8px 12px; border:1px solid var(--at-color-input-border-default); border-radius:var(--at-radius-md); background:var(--at-color-input-background-default); color:var(--at-color-text-primary); font-family:var(--at-font-sans); font-size:0.875rem; transition:border-color var(--at-motion-fast) ease, box-shadow var(--at-motion-fast) ease; } .ds-input::placeholder { color:var(--at-color-input-placeholder); } .ds-input:hover { background:var(--at-color-input-background-hover); } .ds-input:focus-visible { outline:none; border-color:var(--at-color-input-border-focus); box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Structure Rail Item",
+      "kind": "nav",
+      "refersTo": "nav-pill-active",
+      "description": "A current-item authoring step, distinct from app navigation.",
+      "html": "<button class=\"ds-rail-item ds-rail-item-active\"><span class=\"ds-rail-marker\"></span><span>Features</span><span class=\"ds-rail-status\">3</span></button>",
+      "css": ".ds-rail-item { display:grid; grid-template-columns:4px minmax(0,1fr) auto; align-items:center; gap:12px; width:100%; min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:var(--at-radius-md); background:transparent; color:var(--at-color-text-secondary); font-family:var(--at-font-sans); font-size:0.875rem; text-align:left; cursor:pointer; transition:background-color var(--at-motion-fast) ease, color var(--at-motion-fast) ease; } .ds-rail-item:hover { background:var(--at-color-nav-pillHover); color:var(--at-color-text-primary); } .ds-rail-item-active { background:var(--at-color-nav-pillActive); color:var(--at-color-text-accent); } .ds-rail-marker { width:4px; height:20px; border-radius:var(--at-radius-pill); background:var(--at-color-accent-solid); } .ds-rail-status { color:var(--at-color-text-muted); font-size:0.75rem; } .ds-rail-item:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Working Surface",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "A flat framed region for grouped authoring content.",
+      "html": "<section class=\"ds-surface\"><h3>Feature options</h3><p>Configure the options granted by this feature.</p></section>",
+      "css": ".ds-surface { display:grid; gap:12px; padding:24px; border:1px solid var(--at-color-card-border-default); border-radius:var(--at-radius-lg); background:var(--at-color-card-background-default); color:var(--at-color-text-primary); box-shadow:var(--at-shadow-card); font-family:var(--at-font-sans); } .ds-surface h3, .ds-surface p { margin:0; } .ds-surface h3 { font-size:var(--at-typography-heading-fontSize); line-height:var(--at-typography-heading-lineHeight); } .ds-surface p { max-width:70ch; color:var(--at-color-text-secondary); font-size:0.875rem; line-height:1.45; }"
+    },
+    {
+      "name": "Floating Authoring Action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A compact action that physically floats above the authoring canvas.",
+      "html": "<button class=\"ds-floating-action\" aria-label=\"Open structure\">+</button>",
+      "css": ".ds-floating-action { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; padding:0; border:1px solid var(--at-color-button-primary-border); border-radius:var(--at-radius-pill); background:var(--at-color-button-primary-background); color:var(--at-color-button-primary-text); box-shadow:var(--at-shadow-floatingControl); font-family:var(--at-font-sans); font-size:1.5rem; font-weight:700; cursor:pointer; transition:background-color var(--at-motion-fast) ease; } .ds-floating-action:hover { background:var(--at-color-button-primary-hover); } .ds-floating-action:active { background:var(--at-color-button-primary-active); } .ds-floating-action:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Forge Clarity, Reliable Play",
+    "overview": "Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.\n\nThe canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.\n\nThe visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.",
+    "keyCharacteristics": ["Playful, not gimmicky", "Clear, not bureaucratic", "Familiar, not generic", "Creative, not ornamental", "Dense when needed, but always navigable", "Dual-theme by design, not as an afterthought", "Modular content authoring, not admin CRUD", "Form-backed, but not form-shaped"],
+    "rules": [
+      { "name": "The Purposeful Accent Rule", "body": "Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.", "section": "colors" },
+      { "name": "The Dual-Surface Rule", "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.", "section": "colors" },
+      { "name": "The No-Monotony Rule", "body": "Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.", "section": "colors" },
+      { "name": "The Orange-Is-Action Rule", "body": "Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.", "section": "colors" },
+      { "name": "The Density Hierarchy Rule", "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.", "section": "typography" },
+      { "name": "The One-Step Rule", "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.", "section": "typography" },
+      { "name": "The Cheer Without Shouting Rule", "body": "Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.", "section": "typography" },
+      { "name": "The Flat-at-Rest Rule", "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do make authored screens feel creative and approachable, with enough structure to stay readable.",
+      "Do use orange for primary action and craft momentum, teal for focus and technical state, and selective secondary accents for domain identity or progress where helpful.",
+      "Do preserve the same information hierarchy across light and dark themes.",
+      "Do use framed surfaces only when they clarify structure or interaction.",
+      "Do make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.",
+      "Do keep long-form authoring surfaces strongly sectioned, with obvious location and next-action cues.",
+      "Do add delight through copy, icons, feedback states, and small motion moments.",
+      "Do describe the creation experience as an Authoring Workspace or modular content authoring, not as just forms in product-facing design language.",
+      "Do keep apps/web/src/forms as the implementation platform while making the user-facing experience feel like focused content configuration.",
+      "Do build reusable form/workspace components first, then migrate one domain at a time through Storybook and route-backed visual review.",
+      "Do use staged drawers for row-like add/edit operations when immediate mutation would create accidental blank rows or unclear commit behavior.",
+      "Do keep Library/Create navigation separate from the structure rail. Library/Create are app navigation; the rail is current-item authoring navigation."
+    ],
+    "donts": [
+      "Don't recreate Azure DevOps forms: avoid cluttered pages, weak hierarchy, and outdated organization patterns for dense authoring flows.",
+      "Don't recreate D&D Beyond content creation: avoid brittle creation flows, weak data structure, and poor conditional disclosure.",
+      "Don't treat responsive support as secondary: desktop and mobile both need intentional layouts rather than desktop-first leftovers.",
+      "Don't use decorative gradients, glassmorphism, or side-stripe card accents as default styling moves.",
+      "Don't turn every repeated surface into an identical card grid. Density needs hierarchy, not repetition.",
+      "Don't let the app feel like monotonous office software, an admin dashboard, or a chore list.",
+      "Don't fake fantasy flavor with parchment, distressed textures, medieval fonts, or novelty controls.",
+      "Don't build domain-specific authoring UI unless the domain requires a genuinely distinct interaction that reusable workspace components cannot support.",
+      "Don't put app-wide domain navigation inside the structure rail or put structure-step navigation inside Library/Create menus.",
+      "Don't use modals as the default answer for nested authoring. Prefer inline editing, focused workspace sections, staged drawers, or route-backed flows.",
+      "Don't let Storybook stories rely on fixture-only harnesses for migrated domains when a route-backed story can exercise the real workflow shape."
+    ]
+  }
+}

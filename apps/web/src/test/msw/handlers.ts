@@ -1,5 +1,13 @@
 import { http, HttpResponse } from 'msw'
-import type { NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { resolveInputAuthoringMeta } from '@artificer-toolkit/shared/maps'
+import type {
+  NodeRuntimeNormalizeValuesRequestDto,
+  NodeRuntimeNormalizeValuesResponseDto,
+  NodeRuntimeOptionDto,
+  NodeRuntimeResolveRequestDto,
+  NodeRuntimeResolveResponseDto,
+  NodeRuntimeSelectInputNodeDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { RaceAuthoringInputDto } from '@artificer-toolkit/schema/subjects/race'
 import {
   ownedBaseRaceFixture,
@@ -75,8 +83,18 @@ export const handlers = [
     return trpcJson({
       mapId: body.mapId,
       steps: [],
-      clearPaths: []
+      clearPaths: [],
+      scopes: []
     } satisfies NodeRuntimeResolveResponseDto)
+  }),
+  http.post('*/api/trpc/nodeRuntime.normalizeValues', async ({ request }) => {
+    const body = readBatchedInput<NodeRuntimeNormalizeValuesRequestDto>(await request.json())
+    const clearedPaths = body.mapId === 'spell' ? buildSpellRuntimeResponse(body).clearPaths : []
+
+    return trpcJson({
+      values: body.values,
+      clearedPaths
+    } satisfies NodeRuntimeNormalizeValuesResponseDto)
   })
 ]
 
@@ -120,6 +138,7 @@ function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRunt
 
   return {
     mapId: 'spell',
+    scopes: [],
     clearPaths: hasMaterial ? [] : [['materialDescription']],
     steps: [
       {
@@ -193,7 +212,9 @@ function textNode(
     type: 'TEXT',
     visible: true,
     required: false,
-    clearPaths: []
+    clearPaths: [],
+    hiddenBehavior: 'KEEP',
+    authoring: resolveInputAuthoringMeta(undefined)
   }
 }
 
@@ -210,7 +231,9 @@ function numberNode(
     type: 'NUMBER',
     visible: true,
     required: false,
-    clearPaths: []
+    clearPaths: [],
+    hiddenBehavior: 'KEEP',
+    authoring: resolveInputAuthoringMeta(undefined)
   }
 }
 
@@ -219,8 +242,8 @@ function selectNode(
   path: readonly string[],
   label: string,
   type: 'SELECT_SINGLE' | 'SELECT_MULTI',
-  options: NonNullable<NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number]['options']>
-): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
+  options: NodeRuntimeOptionDto[]
+): NodeRuntimeSelectInputNodeDto {
   return {
     id,
     path: [...path],
@@ -230,6 +253,8 @@ function selectNode(
     visible: true,
     required: false,
     clearPaths: [],
+    hiddenBehavior: 'KEEP',
+    authoring: resolveInputAuthoringMeta(undefined),
     options
   }
 }

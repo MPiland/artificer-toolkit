@@ -5,7 +5,6 @@ export const nightHag: CreatureAuthored = {
     label: 'Night Hag',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: S.CREATURE_TYPE.FIEND,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const nightHag: CreatureAuthored = {
         INTELLIGENCE: 16,
         WISDOM: 14,
         CHARISMA: 16,
-        SPELLCASTING: 0
     },
     armorClass: 17,
     armorClassNote: 'natural armor',
@@ -143,7 +141,7 @@ export const nightHag: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(4849, 7),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -187,7 +185,7 @@ export const nightHag: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(4849, 10),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }
@@ -231,7 +229,7 @@ export const nightHag: CreatureAuthored = {
                                 outcomes: [
                                     {
                                         id: S.actionId(4849, 13),
-                                        effectKind: S.EFFECT_KIND.RULE
+                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
                                     }
                                 ]
                             }

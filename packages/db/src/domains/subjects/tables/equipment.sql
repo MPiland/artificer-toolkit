@@ -38,10 +38,11 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   max_stack integer,
   max_bonus integer,
   armor_class integer,
+  requires_attunement boolean NOT NULL DEFAULT false,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   -- VARIANT only: links to parent equipment definition
-  parent_equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  parent_equipment_id uuid,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -49,6 +50,11 @@ CREATE TABLE IF NOT EXISTS public.equipment (
     (category = 'VARIANT' AND parent_equipment_id IS NOT NULL)
     OR (category <> 'VARIANT' AND parent_equipment_id IS NULL)
   ),
+  CONSTRAINT equipment_id_system_uq UNIQUE (id, system_id),
+  CONSTRAINT equipment_parent_system_fk FOREIGN KEY (parent_equipment_id, system_id)
+    REFERENCES public.equipment (id, system_id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT equipment_weight_chk CHECK (
     (weight_amount IS NULL AND weight_unit IS NULL)
     OR (weight_amount IS NOT NULL AND weight_unit IS NOT NULL)
@@ -132,6 +138,7 @@ $$;
 CREATE TABLE IF NOT EXISTS public.equipment_properties (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   property_code text NOT NULL,
+  sort_order smallint NOT NULL CONSTRAINT equipment_properties_sort_order_positive CHECK (sort_order > 0),
   PRIMARY KEY (equipment_id, property_code)
 );
 
@@ -144,7 +151,9 @@ CREATE TABLE IF NOT EXISTS public.equipment_contains (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   contained_equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   quantity integer NOT NULL,
-  PRIMARY KEY (equipment_id, contained_equipment_id)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (equipment_id, contained_equipment_id),
+  UNIQUE (equipment_id, sort_order)
 );
 
 ALTER TABLE public.equipment_contains ENABLE ROW LEVEL SECURITY;

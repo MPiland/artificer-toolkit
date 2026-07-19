@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
-import { staticGrantBaseDtoSchema } from './grant.js'
+import { staticGrantBaseDtoSchema, validateChosenGrantSelectionFields } from './grant.js'
 import {
   authoringModeKindSchema,
+  authoringSelectionDuplicatePolicySchema,
   authoringSelectionKindSchema,
   proficiencyKindSchema,
   roundingCodeSchema,
+  scalingKindSchema,
   scalingAmountKindSchema
 } from '../shared/enums.js'
 
@@ -77,7 +79,9 @@ const equipmentPropertyTargetDtoSchema = z.union([
 export const proficiencyGrantDtoSchema = staticGrantBaseDtoSchema.extend({
   grantKind: z.literal('PROFICIENCY_GRANT'),
   selectionKind: authoringSelectionKindSchema,
-  count: z.number().int().optional()
+  scalingKind: z.literal(scalingKindSchema.enum.NONE),
+  count: z.number().int().optional(),
+  selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
 }).and(z.union([
   z.object({
     proficiencyKind: z.literal(proficiencyKindSchema.enum.SKILL)
@@ -94,6 +98,6 @@ export const proficiencyGrantDtoSchema = staticGrantBaseDtoSchema.extend({
   z.object({
     proficiencyKind: z.literal(proficiencyKindSchema.enum.EQUIPMENT_PROPERTY)
   }).and(equipmentPropertyTargetDtoSchema)
-])).and(proficiencyScalingDtoSchema)
+])).and(proficiencyScalingDtoSchema).superRefine(validateChosenGrantSelectionFields)
 
 export type ProficiencyGrantDto = z.infer<typeof proficiencyGrantDtoSchema>

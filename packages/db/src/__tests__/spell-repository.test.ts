@@ -15,9 +15,13 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op === 'in' && Array.isArray(value)) {
+              return value.includes(String(record[column]))
+            }
+
             return record[column] === value
           })
           return builder
@@ -78,6 +82,7 @@ describe('createSpellRepository', () => {
       id: 'spell-1',
       label: 'Magic Missile',
       description: 'Bolts of force.',
+      status: 'DRAFT',
       attributes: ['CONCENTRATION', 'RITUAL'],
       components: ['VERBAL', 'MATERIAL'],
       castingTime: {
@@ -120,6 +125,7 @@ describe('createSpellRepository', () => {
       id: 'spell-2',
       label: 'Shout',
       description: 'A loud shout.',
+      status: 'DRAFT',
       attributes: undefined,
       components: undefined,
       castingTime: {
@@ -145,6 +151,7 @@ describe('createSpellRepository', () => {
       id: 'spell-effects-1',
       label: 'Flame Lash',
       description: 'A spell with an effect.',
+      status: 'DRAFT',
       components: ['VERBAL', 'SOMATIC'],
       castingTime: {
         unit: 'ROUND',

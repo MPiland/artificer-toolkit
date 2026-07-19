@@ -5,7 +5,6 @@ export const archmage: CreatureAuthored = {
     label: 'Archmage',
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
-    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
     category: S.CREATURE_CATEGORY_CODE.NPC,
     creatureTypeId: S.CREATURE_TYPE.HUMANOID,
     size: S.SIZE_CODE.MEDIUM,
@@ -17,7 +16,6 @@ export const archmage: CreatureAuthored = {
         INTELLIGENCE: 20,
         WISDOM: 15,
         CHARISMA: 16,
-        SPELLCASTING: 0
     },
     armorClass: 12,
     armorClassNote: '15 with mage armor',
