@@ -1,6 +1,12 @@
+export const marketingPricingEnabled = false
+
+const pricingNavigation = marketingPricingEnabled
+  ? ([{ label: 'Pricing', href: '#pricing' }] as const)
+  : []
+
 export const marketingNavigation = [
   { label: 'Features', href: '#features' },
-  // { label: 'Pricing', href: '#pricing' },
+  ...pricingNavigation,
   { label: 'Sign in', href: '/sign-in' }
 ] as const
 
@@ -21,7 +27,7 @@ export const marketingHeroHighlights = [
   },
   {
     label: 'Play',
-    copy: 'Keep lists, rules, characters, and prep ready when the session starts'
+    copy: 'Keep rules, characters, and in-session actions ready when play starts'
   }
 ] as const
 
@@ -30,29 +36,41 @@ export const marketingFeatures = [
     audience: 'For players',
     title: 'Characters stay playable, not just editable',
     copy: 'Build characters with guided structure, then switch to a dedicated sheet built for actions, spells, resources, and inventory at the table.',
-    bullets: ['Structural builder flow with review steps', 'Separate play-state sheet for real session use'],
+    bullets: [
+      'Structural builder flow with review steps',
+      'Separate play-state sheet for real session use'
+    ],
     icon: 'character'
   },
   {
     audience: 'For homebrewers',
     title: 'Homebrew creation keeps complex rules readable',
     copy: 'Author spells, equipment, races, classes, creatures, and vehicles in organized flows that surface the right structure at the right time.',
-    bullets: ['Sectioned authoring instead of endless forms', 'Shared patterns across every major content domain'],
+    bullets: [
+      'Sectioned authoring instead of endless forms',
+      'Shared patterns across every major content domain'
+    ],
     icon: 'scroll'
   },
   {
     audience: 'For reference',
     title: 'Rules and content stay close to the work',
     copy: 'Keep SRD material, owned drafts, and copied master data in one place so creators and players can move without losing context.',
-    bullets: ['Fast reference for spells, creatures, items, and rules', 'Master content can be copied into owned drafts safely'],
+    bullets: [
+      'Fast reference for spells, creatures, items, and rules',
+      'Master content can be copied into owned drafts safely'
+    ],
     icon: 'book'
   },
   {
-    audience: 'For DMs',
-    title: 'Campaign prep and table support share one workspace',
-    copy: 'Organize encounters, notes, shared content, and campaign context without splitting prep work from live play support.',
-    bullets: ['Campaign-aware prep surfaces', 'Ready for encounter, sharing, and table-facing workflows'],
-    icon: 'campaign'
+    audience: 'For creators',
+    title: 'Drafts stay separate from playable content',
+    copy: 'Save work in progress, review it in context, and activate it when it is ready without directly editing locked master records.',
+    bullets: [
+      'Clear draft and active states',
+      'Copy master content into an owned draft before editing'
+    ],
+    icon: 'status'
   }
 ] as const
 
@@ -90,16 +108,16 @@ export const pricingPlans = [
   {
     name: 'Dungeon Master',
     price: '$7.99',
-    cadence: '/month',
-    description: 'Campaign tools for the storyteller at the table.',
-    cta: 'Choose DM',
+    cadence: '/month when available',
+    description: 'Planned campaign tools for the storyteller at the table.',
+    cta: 'Start free for now',
     href: '/sign-up',
     featured: false,
     features: [
       'Everything in Player',
-      'Unlimited campaigns',
-      'Encounter builder',
-      'Share content with players'
+      'Campaign workspace - planned',
+      'Encounter builder - planned',
+      'Player sharing - planned'
     ]
   }
 ] as const

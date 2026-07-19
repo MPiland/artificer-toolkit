@@ -480,11 +480,24 @@ export const characterSheetFixture = {
       { ability: 'CHARISMA', label: 'Charisma', total: 0, proficiency: 'NONE' }
     ],
     skills: [
+      { skillId: 'acrobatics', code: 'ACROBATICS', label: 'Acrobatics', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' },
+      { skillId: 'animal-handling', code: 'ANIMAL_HANDLING', label: 'Animal Handling', ability: 'WISDOM', total: 1, proficiency: 'NONE' },
       { skillId: 'arcana', code: 'ARCANA', label: 'Arcana', ability: 'INTELLIGENCE', total: 5, proficiency: 'FULL' },
+      { skillId: 'athletics', code: 'ATHLETICS', label: 'Athletics', ability: 'STRENGTH', total: -1, proficiency: 'NONE' },
+      { skillId: 'deception', code: 'DECEPTION', label: 'Deception', ability: 'CHARISMA', total: 0, proficiency: 'NONE' },
       { skillId: 'history', code: 'HISTORY', label: 'History', ability: 'INTELLIGENCE', total: 5, proficiency: 'FULL' },
+      { skillId: 'insight', code: 'INSIGHT', label: 'Insight', ability: 'WISDOM', total: 1, proficiency: 'NONE' },
+      { skillId: 'intimidation', code: 'INTIMIDATION', label: 'Intimidation', ability: 'CHARISMA', total: 0, proficiency: 'NONE' },
       { skillId: 'investigation', code: 'INVESTIGATION', label: 'Investigation', ability: 'INTELLIGENCE', total: 3, proficiency: 'NONE' },
+      { skillId: 'medicine', code: 'MEDICINE', label: 'Medicine', ability: 'WISDOM', total: 1, proficiency: 'NONE' },
+      { skillId: 'nature', code: 'NATURE', label: 'Nature', ability: 'INTELLIGENCE', total: 3, proficiency: 'NONE' },
       { skillId: 'perception', code: 'PERCEPTION', label: 'Perception', ability: 'WISDOM', total: 3, proficiency: 'FULL' },
-      { skillId: 'stealth', code: 'STEALTH', label: 'Stealth', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' }
+      { skillId: 'performance', code: 'PERFORMANCE', label: 'Performance', ability: 'CHARISMA', total: 0, proficiency: 'NONE' },
+      { skillId: 'persuasion', code: 'PERSUASION', label: 'Persuasion', ability: 'CHARISMA', total: 0, proficiency: 'NONE' },
+      { skillId: 'religion', code: 'RELIGION', label: 'Religion', ability: 'INTELLIGENCE', total: 3, proficiency: 'NONE' },
+      { skillId: 'sleight-of-hand', code: 'SLEIGHT_OF_HAND', label: 'Sleight of Hand', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' },
+      { skillId: 'stealth', code: 'STEALTH', label: 'Stealth', ability: 'DEXTERITY', total: 2, proficiency: 'NONE' },
+      { skillId: 'survival', code: 'SURVIVAL', label: 'Survival', ability: 'WISDOM', total: 1, proficiency: 'NONE' }
     ]
   },
   actions: {

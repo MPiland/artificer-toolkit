@@ -9,8 +9,8 @@ export function MarketingFinalCta() {
           Start your first character or your first piece of homebrew.
         </h2>
         <p className={sectionCopy}>
-          Open the toolkit, create something real, and keep it ready for play as the rest of the app
-          grows around it.
+          Create structured homebrew, build a character, and take a dedicated sheet to the table
+          from one toolkit.
         </p>
         <MarketingRouteLink className={primaryLink} to='/sign-up'>
           Start creating for free

@@ -1,6 +1,6 @@
 import IBook from '#assets/icons/IBook'
+import ICategory from '#assets/icons/ICategory'
 import IChar from '#assets/icons/IChar'
-import IMortPest from '#assets/icons/IMortPest'
 import IScroll from '#assets/icons/IScroll'
 import { marketingFeatures } from '../data/marketingContent'
 import {
@@ -27,7 +27,7 @@ const featureIcons = {
   character: IChar,
   scroll: IScroll,
   book: IBook,
-  campaign: IMortPest
+  status: ICategory
 } as const
 
 export function MarketingFeatureSection() {
@@ -39,8 +39,8 @@ export function MarketingFeatureSection() {
           Built for real tabletop workflows, not generic content forms
         </h2>
         <p className={sectionCopy}>
-          Players, creators, and DMs all need different things. The product stays consistent across
-          those jobs without flattening them into one messy screen.
+          Building and playing need different surfaces. The toolkit keeps their structure consistent
+          without flattening them into one crowded screen.
         </p>
       </div>
 

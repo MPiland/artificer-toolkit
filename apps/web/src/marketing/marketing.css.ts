@@ -98,7 +98,7 @@ export const mobileSignInLink = style({
     [app]: {
       'display': 'none',
       'alignItems': 'center',
-      'minHeight': '36px',
+      'minHeight': '44px',
       'color': foundationVars.color.text.accent,
       'fontSize': '0.875rem',
       'fontWeight': 700,
@@ -133,8 +133,8 @@ export const marketingHeaderThemeToggle = style({
 })
 
 globalStyle(`${marketingHeaderThemeToggle} button`, {
-  width: '36px',
-  height: '36px',
+  width: '44px',
+  height: '44px',
   boxShadow: 'none'
 })
 
@@ -166,7 +166,7 @@ export const primaryLink = style({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: '36px',
+      minHeight: '44px',
       padding: `0 ${foundationVars.space[5]}`,
       border: `1px solid ${foundationVars.color.button.primary.border}`,
       borderRadius: foundationVars.radius.md,
@@ -191,7 +191,7 @@ export const secondaryLink = style({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: '36px',
+      minHeight: '44px',
       padding: `0 ${foundationVars.space[5]}`,
       border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.md,
@@ -263,7 +263,7 @@ export const eyebrow = style({
       border: `1px solid ${foundationVars.color.accent.border}`,
       borderRadius: foundationVars.radius.pill,
       backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.accent.solid,
+      color: foundationVars.color.text.primary,
       fontSize: '0.75rem',
       fontWeight: 600
     }
@@ -276,16 +276,18 @@ export const heroTitle = style({
       'maxWidth': '760px',
       'margin': 0,
       'color': foundationVars.color.text.primary,
-      'fontSize': '4.5rem',
+      'fontSize': 'clamp(3.25rem, 5vw, 4.125rem)',
       'fontWeight': 800,
-      'lineHeight': 1.02,
+      'letterSpacing': '-0.035em',
+      'lineHeight': 1.04,
+      'textWrap': 'balance',
       '@media': {
         'screen and (max-width: 1040px)': {
           maxWidth: '680px',
-          fontSize: '3.75rem'
+          fontSize: 'clamp(3rem, 8vw, 3.75rem)'
         },
         'screen and (max-width: 760px)': {
-          fontSize: '2.75rem'
+          fontSize: 'clamp(2.5rem, 12vw, 2.875rem)'
         }
       }
     }
@@ -299,7 +301,8 @@ export const heroCopy = style({
       margin: 0,
       color: foundationVars.color.text.secondary,
       fontSize: '1.125rem',
-      lineHeight: 1.7
+      lineHeight: 1.65,
+      textWrap: 'pretty'
     }
   }
 })
@@ -357,7 +360,7 @@ export const heroHighlightCard = style({
 export const heroHighlightLabel = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.accent.solid,
+      color: foundationVars.color.text.accent,
       fontSize: '0.6875rem',
       fontWeight: 700,
       letterSpacing: '0.08em',
@@ -379,525 +382,89 @@ export const heroHighlightCopy = style({
 export const heroMockup = style({
   '@layer': {
     [app]: {
-      'justifySelf': 'end',
-      'width': '100%',
-      'minHeight': '620px',
-      'overflow': 'hidden',
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.xxl,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'boxShadow': foundationVars.shadow.card,
-      'transform': 'rotate(0.7deg)',
+      position: 'relative',
+      justifySelf: 'end',
+      width: '100%',
+      minHeight: '562px',
+      overflow: 'hidden',
       '@media': {
         'screen and (max-width: 1040px)': {
-          width: 'min(680px, 100%)'
+          width: 'min(760px, 100%)'
+        },
+        'screen and (max-width: 760px)': {
+          minHeight: '504px'
         }
       }
     }
   }
 })
 
-export const mockupTopbar = style({
+export const mockupBuilderWindow = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'auto 1fr auto',
-      alignItems: 'center',
-      gap: foundationVars.space[4],
-      minHeight: '72px',
-      padding: `0 ${foundationVars.space[5]}`,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.subtle
-    }
-  }
-})
-
-export const mockupBody = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gridTemplateColumns: '88px minmax(0, 1fr)',
-      minHeight: '568px'
-    }
-  }
-})
-
-export const mockupRail = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      alignContent: 'start',
-      justifyItems: 'center',
-      gap: foundationVars.space[4],
-      padding: `${foundationVars.space[6]} ${foundationVars.space[3]}`,
-      borderRight: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.raised
-    }
-  }
-})
-
-export const mockupBrand = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[3],
-      color: foundationVars.color.text.primary,
-      fontSize: '0.875rem',
-      fontWeight: 700
-    }
-  }
-})
-
-export const mockupBrandIcon = style({
-  '@layer': {
-    [app]: {
-      width: '22px',
-      height: '22px',
-      color: foundationVars.color.accent.solid
-    }
-  }
-})
-
-export const mockupTopNav = style({
-  '@layer': {
-    [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'gap': foundationVars.space[3],
-      'justifySelf': 'center',
+      position: 'absolute',
+      top: foundationVars.space[4],
+      left: 0,
+      width: '94%',
+      aspectRatio: '16 / 9',
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.xl,
+      backgroundColor: foundationVars.color.surface.canvas,
+      boxShadow: foundationVars.shadow.card,
       '@media': {
-        'screen and (max-width: 640px)': {
-          display: 'none'
+        'screen and (max-width: 760px)': {
+          top: 0,
+          width: '100%'
         }
       }
     }
   }
 })
 
-export const mockupTopNavItem = style({
+export const mockupSheetWindow = style({
   '@layer': {
     [app]: {
-      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      borderRadius: foundationVars.radius.md,
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.75rem',
-      fontWeight: 600
-    }
-  }
-})
-
-export const mockupTopNavItemActive = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.text.primary
-    }
-  }
-})
-
-export const mockupTopStatus = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[2],
-      justifySelf: 'end',
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.75rem',
-      fontWeight: 600
-    }
-  }
-})
-
-export const railDot = style({
-  '@layer': {
-    [app]: {
-      width: '34px',
-      height: '34px',
-      padding: foundationVars.space[2],
-      borderRadius: foundationVars.radius.lg,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      color: foundationVars.color.text.muted,
-      backgroundColor: foundationVars.color.surface.panel
-    }
-  }
-})
-
-export const railDotActive = style({
-  '@layer': {
-    [app]: {
-      width: '42px',
-      height: '42px',
-      padding: foundationVars.space[2],
-      borderRadius: foundationVars.radius.lg,
-      backgroundColor: foundationVars.color.accent.soft,
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      color: foundationVars.color.accent.solid
-    }
-  }
-})
-
-export const mockupContent = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[5],
-      alignContent: 'start',
-      padding: `${foundationVars.space[6]} ${foundationVars.space[6]} ${foundationVars.space[8]}`,
-      textAlign: 'left'
-    }
-  }
-})
-
-export const mockupKicker = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      width: 'fit-content',
-      alignItems: 'center',
-      gap: foundationVars.space[2],
-      minHeight: '24px',
-      padding: `0 ${foundationVars.space[3]}`,
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.accent.solid,
-      fontSize: '0.6875rem',
-      fontWeight: 700,
-      textTransform: 'uppercase'
-    }
-  }
-})
-
-export const mockupHeader = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const mockupStage = style({
-  '@layer': {
-    [app]: {
-      'position': 'relative',
-      'minHeight': '420px',
-      'marginTop': foundationVars.space[3],
+      position: 'absolute',
+      right: 0,
+      bottom: foundationVars.space[4],
+      zIndex: 1,
+      width: '78%',
+      aspectRatio: '16 / 9',
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.xl,
+      backgroundColor: foundationVars.color.surface.canvas,
+      boxShadow: foundationVars.shadow.floatingControl,
       '@media': {
-        'screen and (max-width: 960px)': {
-          display: 'grid',
-          gap: foundationVars.space[4],
-          minHeight: 'auto'
+        'screen and (max-width: 760px)': {
+          right: `calc(${foundationVars.space[4]} * -1)`,
+          bottom: foundationVars.space[3],
+          width: '90%'
         }
       }
     }
   }
 })
 
-export const mockupSurface = style({
+export const mockupBuilderImage = style({
   '@layer': {
     [app]: {
-      'position': 'absolute',
-      'display': 'grid',
-      'gap': foundationVars.space[3],
-      'padding': foundationVars.space[4],
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.xl,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'boxShadow': foundationVars.shadow.card,
-      '@media': {
-        'screen and (max-width: 960px)': {
-          position: 'relative',
-          inset: 'auto'
-        }
-      }
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
     }
   }
 })
 
-export const mockupSurfaceList = style({
+export const mockupSheetImage = style({
   '@layer': {
     [app]: {
-      'top': foundationVars.space[4],
-      'left': 0,
-      'width': '36%',
-      'minHeight': '282px',
-      'zIndex': 1,
-      '@media': {
-        'screen and (max-width: 960px)': {
-          top: 'auto',
-          left: 'auto',
-          width: '100%',
-          minHeight: 'auto'
-        }
-      }
-    }
-  }
-})
-
-export const mockupSurfaceEditor = style({
-  '@layer': {
-    [app]: {
-      'top': 0,
-      'right': 0,
-      'width': '66%',
-      'minHeight': '310px',
-      'zIndex': 2,
-      '@media': {
-        'screen and (max-width: 960px)': {
-          top: 'auto',
-          right: 'auto',
-          width: '100%',
-          minHeight: 'auto'
-        }
-      }
-    }
-  }
-})
-
-export const mockupSurfaceSheet = style({
-  '@layer': {
-    [app]: {
-      'left': '16%',
-      'bottom': 0,
-      'width': '60%',
-      'minHeight': '188px',
-      'zIndex': 3,
-      '@media': {
-        'screen and (max-width: 960px)': {
-          left: 'auto',
-          bottom: 'auto',
-          width: '100%',
-          minHeight: 'auto'
-        }
-      }
-    }
-  }
-})
-
-export const mockupSurfaceTop = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3]
-    }
-  }
-})
-
-export const mockupTraffic = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const mockupTrafficDot = style({
-  '@layer': {
-    [app]: {
-      width: '8px',
-      height: '8px',
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.border.strong
-    }
-  }
-})
-
-export const mockupSurfaceLabel = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.muted,
-      fontSize: '0.6875rem',
-      fontWeight: 700,
-      textTransform: 'uppercase'
-    }
-  }
-})
-
-export const mockupListRows = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const mockupListRow = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'auto 1fr auto',
-      alignItems: 'center',
-      gap: foundationVars.space[3],
-      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.raised
-    }
-  }
-})
-
-export const mockupListRowActive = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.accent.soft,
-      border: `1px solid ${foundationVars.color.accent.border}`
-    }
-  }
-})
-
-export const mockupListTitle = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '0.8125rem',
-      fontWeight: 700
-    }
-  }
-})
-
-export const mockupListMeta = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.6875rem',
-      lineHeight: 1.45
-    }
-  }
-})
-
-export const mockupFieldGrid = style({
-  '@layer': {
-    [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(2, minmax(0, 1fr))',
-      'gap': foundationVars.space[3],
-      '@media': {
-        'screen and (max-width: 560px)': {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
-export const mockupField = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[2]
-    }
-  }
-})
-
-export const mockupFieldLabel = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.muted,
-      fontSize: '0.6875rem',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      lineHeight: 1.3
-    }
-  }
-})
-
-export const mockupFieldValue = style({
-  '@layer': {
-    [app]: {
-      minHeight: '38px',
-      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.raised,
-      color: foundationVars.color.text.primary,
-      fontSize: '0.8125rem'
-    }
-  }
-})
-
-export const mockupTextAreaValue = style([
-  mockupFieldValue,
-  {
-    '@layer': {
-      [app]: {
-        minHeight: '84px'
-      }
-    }
-  }
-])
-
-export const mockupSheetStats = style({
-  '@layer': {
-    [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(4, minmax(0, 1fr))',
-      'gap': foundationVars.space[3],
-      '@media': {
-        'screen and (max-width: 560px)': {
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
-        }
-      }
-    }
-  }
-})
-
-export const mockupStat = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[1],
-      justifyItems: 'center',
-      padding: foundationVars.space[3],
-      borderRadius: foundationVars.radius.lg,
-      backgroundColor: foundationVars.color.surface.raised
-    }
-  }
-})
-
-export const mockupStatValue = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '1.25rem',
-      fontWeight: 800,
-      lineHeight: 1
-    }
-  }
-})
-
-export const mockupStatLabel = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.6875rem',
-      fontWeight: 700,
-      textTransform: 'uppercase'
-    }
-  }
-})
-
-export const mockupPill = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      minHeight: '24px',
-      minWidth: '66px',
-      padding: `0 ${foundationVars.space[3]}`,
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.surface.panel,
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.6875rem',
-      fontWeight: 700
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
     }
   }
 })
@@ -907,8 +474,8 @@ export const section = style({
     [app]: {
       'display': 'grid',
       'justifyItems': 'center',
-      'gap': foundationVars.space[10],
-      'padding': `${foundationVars.space[14]} ${foundationVars.space[12]}`,
+      'gap': foundationVars.space[8],
+      'padding': `${foundationVars.space[13]} ${foundationVars.space[12]}`,
       'backgroundColor': foundationVars.color.surface.raised,
       'scrollMarginTop': '88px',
       '@media': {
@@ -951,7 +518,7 @@ export const sectionLabel = style({
   '@layer': {
     [app]: {
       margin: 0,
-      color: foundationVars.color.accent.solid,
+      color: foundationVars.color.text.accent,
       fontSize: '0.6875rem',
       fontWeight: 700,
       textTransform: 'uppercase'
@@ -967,6 +534,8 @@ export const sectionTitle = style({
       'fontSize': '2.5rem',
       'fontWeight': 800,
       'lineHeight': 1.2,
+      'letterSpacing': '-0.025em',
+      'textWrap': 'balance',
       '@media': {
         'screen and (max-width: 760px)': {
           fontSize: '2rem'
@@ -982,7 +551,9 @@ export const sectionCopy = style({
       margin: 0,
       color: foundationVars.color.text.secondary,
       fontSize: '1rem',
-      lineHeight: 1.6
+      lineHeight: 1.6,
+      maxWidth: '72ch',
+      textWrap: 'pretty'
     }
   }
 })
@@ -1013,15 +584,7 @@ export const featureCard = style({
       padding: foundationVars.space[6],
       border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.xl,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card,
-      transition: `transform ${foundationVars.motion.base} ease, box-shadow ${foundationVars.motion.base} ease`
-    }
-  },
-  'selectors': {
-    '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: foundationVars.shadow.cardHover
+      backgroundColor: foundationVars.color.surface.panel
     }
   }
 })
@@ -1030,7 +593,7 @@ export const featureCardWide = style({
   '@layer': {
     [app]: {
       'gridColumn': 'span 7',
-      'minHeight': '340px',
+      'minHeight': '280px',
       '@media': {
         'screen and (max-width: 900px)': {
           gridColumn: 'auto'
@@ -1044,7 +607,7 @@ export const featureCardNarrow = style({
   '@layer': {
     [app]: {
       'gridColumn': 'span 5',
-      'minHeight': '300px',
+      'minHeight': '260px',
       '@media': {
         'screen and (max-width: 900px)': {
           gridColumn: 'auto'
@@ -1082,7 +645,7 @@ export const featureIcon = style({
 export const featureAudience = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.text.muted,
+      color: foundationVars.color.text.secondary,
       fontSize: '0.75rem',
       fontWeight: 700,
       textTransform: 'uppercase'
@@ -1097,7 +660,8 @@ export const featureTitle = style({
       color: foundationVars.color.text.primary,
       fontSize: '1.375rem',
       fontWeight: 800,
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      textWrap: 'balance'
     }
   }
 })
@@ -1170,37 +734,13 @@ export const pricingGrid = style({
   }
 })
 
-export const billingToggle = style({
+export const billingSummary = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
-      gap: foundationVars.space[2],
-      padding: foundationVars.space[2],
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.surface.panel
-    }
-  }
-})
-
-export const billingActive = style({
-  '@layer': {
-    [app]: {
-      padding: `${foundationVars.space[2]} ${foundationVars.space[4]}`,
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.surface.raised,
-      color: foundationVars.color.text.primary,
-      fontSize: '0.8125rem',
-      fontWeight: 600
-    }
-  }
-})
-
-export const billingMuted = style({
-  '@layer': {
-    [app]: {
-      padding: `${foundationVars.space[2]} ${foundationVars.space[4]}`,
-      color: foundationVars.color.text.muted,
-      fontSize: '0.8125rem'
+      margin: 0,
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.875rem',
+      lineHeight: 1.5
     }
   }
 })
@@ -1214,7 +754,7 @@ export const pricingCard = style({
       minHeight: '444px',
       padding: foundationVars.space[6],
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xxl,
+      borderRadius: foundationVars.radius.xl,
       backgroundColor: foundationVars.color.surface.panel
     }
   }
@@ -1294,7 +834,7 @@ export const finalCta = style({
     [app]: {
       display: 'grid',
       justifyItems: 'center',
-      padding: `${foundationVars.space[14]} ${foundationVars.space[6]}`,
+      padding: `${foundationVars.space[13]} ${foundationVars.space[6]}`,
       textAlign: 'center',
       backgroundColor: foundationVars.color.surface.raised
     }
@@ -1310,9 +850,8 @@ export const finalCtaPanel = style({
       'width': 'min(920px, 100%)',
       'padding': `${foundationVars.space[12]} ${foundationVars.space[8]}`,
       'border': `1px solid ${foundationVars.color.accent.border}`,
-      'borderRadius': foundationVars.radius.xxl,
+      'borderRadius': foundationVars.radius.xl,
       'backgroundColor': foundationVars.color.surface.panel,
-      'boxShadow': foundationVars.shadow.card,
       '@media': {
         'screen and (max-width: 760px)': {
           padding: `${foundationVars.space[8]} ${foundationVars.space[5]}`
@@ -1326,13 +865,14 @@ export const marketingFooter = style({
   '@layer': {
     [app]: {
       'display': 'flex',
+      'alignItems': 'center',
       'justifyContent': 'flex-end',
       'minHeight': '64px',
       'padding': `0 ${foundationVars.space[12]}`,
       'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
       'backgroundColor': foundationVars.color.surface.header,
-      'color': foundationVars.color.text.muted,
-      'fontSize': '0.75rem',
+      'color': foundationVars.color.text.secondary,
+      'fontSize': '0.875rem',
       '@media': {
         'screen and (max-width: 760px)': {
           justifyContent: 'center',
@@ -1342,4 +882,8 @@ export const marketingFooter = style({
       }
     }
   }
+})
+
+globalStyle(`${marketingFooter} p`, {
+  margin: 0
 })
