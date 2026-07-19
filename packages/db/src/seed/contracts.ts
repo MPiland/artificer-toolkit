@@ -12,11 +12,7 @@ export interface SeedContext {
 
 export interface SeedResult {
   systems: number
-  sharedRecords: number
-  effects: number
-  features: number
-  grants: number
-  subjects: number
+  domainRoots: number
 }
 
 export type SeedBaselineContent = (

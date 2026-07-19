@@ -363,25 +363,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (
 
   const result: SeedResult = {
     systems: bundle.vocabulary.systems.length,
-    sharedRecords: [
-      bundle.shared.details,
-      bundle.shared.charges,
-      bundle.shared.savingThrows,
-      bundle.shared.startingEquipment
-    ].reduce((total, records) => total + records.length, 0),
-    effects: bundle.effects.effects.length,
-    features: [
-      bundle.features.features,
-      bundle.features.options
-    ].reduce((total, records) => total + records.length, 0),
-    grants: [
-      bundle.grants.feats,
-      bundle.grants.modifiers,
-      bundle.grants.proficiencies,
-      bundle.grants.senses,
-      bundle.grants.spells
-    ].reduce((total, records) => total + records.length, 0),
-    subjects: [
+    domainRoots: [
       bundle.subjects.backgrounds,
       bundle.subjects.classes,
       bundle.subjects.creatures,

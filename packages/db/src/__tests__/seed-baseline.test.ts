@@ -241,11 +241,7 @@ describe('seedBaselineContent', () => {
     ])
     expect(result).toEqual({
       systems: 1,
-      sharedRecords: 4,
-      effects: 0,
-      features: 0,
-      grants: 0,
-      subjects: 0
+      domainRoots: 0
     })
   })
 
@@ -429,5 +425,4 @@ describe('seedBaselineContent', () => {
     expect(transaction.operations[0]).toEqual({ operation: 'select', table: 'backgrounds' })
   })
 })
-
 

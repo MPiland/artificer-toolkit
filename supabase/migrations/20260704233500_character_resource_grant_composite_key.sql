@@ -2,6 +2,9 @@ ALTER TABLE IF EXISTS public.character_resources
   DROP CONSTRAINT IF EXISTS character_resources_resource_grant_id_fkey;
 
 ALTER TABLE IF EXISTS public.character_resource_grants
+  DROP CONSTRAINT IF EXISTS character_resource_grants_character_id_id_key;
+
+ALTER TABLE IF EXISTS public.character_resource_grants
   DROP CONSTRAINT IF EXISTS character_resource_grants_pkey;
 
 ALTER TABLE IF EXISTS public.character_resource_grants

@@ -7,6 +7,10 @@ ALTER TABLE IF EXISTS public.character_resource_grants
 ALTER TABLE IF EXISTS public.character_resources
   ALTER COLUMN resource_grant_id TYPE text USING resource_grant_id::text;
 
+ALTER TABLE IF EXISTS public.character_resource_grants
+  ADD CONSTRAINT character_resource_grants_character_id_id_key
+  UNIQUE (character_id, id);
+
 ALTER TABLE IF EXISTS public.character_resources
   ADD CONSTRAINT character_resources_resource_grant_id_fkey
   FOREIGN KEY (character_id, resource_grant_id)
