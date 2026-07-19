@@ -29,6 +29,9 @@ describe('authored definition revision persistence', () => {
   const optimizedRlsMigration = read(
     'supabase/migrations/20260521185305_optimize_rls_auth_initplans.sql'
   )
+  const forwardStorageMigration = read(
+    'supabase/migrations/20260719014119_create_authored_definition_storage.sql'
+  )
 
   it('uses stable definitions and immutable complete revisions as canonical storage', () => {
     for (const source of [canonical, generatedBundle, bootstrapMigration]) {
@@ -60,6 +63,24 @@ describe('authored definition revision persistence', () => {
     expect(routeIdMigration).not.toContain('authored_subject_drafts')
     expect(optimizedRlsMigration).not.toContain('authored_subject_drafts')
     expect(routeIdMigration).toContain('FROM public.authored_definitions')
+  })
+
+  it('creates canonical authored storage for databases that already applied the bootstrap', () => {
+    expect(forwardStorageMigration).toContain(
+      'CREATE TABLE IF NOT EXISTS public.authored_definitions'
+    )
+    expect(forwardStorageMigration).toContain(
+      'CREATE TABLE IF NOT EXISTS public.authored_definition_revisions'
+    )
+    expect(forwardStorageMigration).toContain(
+      "conname = 'authored_definitions_active_revision_fk'"
+    )
+    expect(forwardStorageMigration).toContain(
+      "conname = 'authored_definitions_draft_revision_fk'"
+    )
+    expect(forwardStorageMigration).toContain(
+      'ALTER TABLE public.authored_definitions ENABLE ROW LEVEL SECURITY'
+    )
   })
 })
 

@@ -37,6 +37,12 @@ describe('character play-state persistence schema', () => {
     expect(playStateMigration).toContain("conname = 'character_equipment_container_id_fkey'")
     expect(playStateMigration).toContain('CREATE TABLE IF NOT EXISTS public.character_note_groups')
     expect(playStateMigration).toContain('CREATE TABLE IF NOT EXISTS public.character_notes')
+    expect(playStateMigration).not.toContain(
+      'TRUNCATE TABLE public.character_currencies, public.character_currency_groups'
+    )
+    expect(playStateMigration).toContain('UPDATE public.character_currencies currency')
+    expect(playStateMigration).toContain('SET character_id = currency_group.character_id')
+    expect(playStateMigration).toContain('ALTER COLUMN character_id SET NOT NULL')
   })
 
   it.each([

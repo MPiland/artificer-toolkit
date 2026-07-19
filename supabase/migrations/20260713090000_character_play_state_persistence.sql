@@ -52,8 +52,6 @@ BEGIN
     WHERE conname = 'character_equipment_container_id_fkey'
       AND conrelid = 'public.character_equipment'::regclass
   ) THEN
-    TRUNCATE TABLE public.character_currencies, public.character_currency_groups;
-
 ALTER TABLE public.character_equipment
   ADD CONSTRAINT character_equipment_character_id_id_key UNIQUE (character_id, id),
   DROP CONSTRAINT character_equipment_container_id_fkey,
@@ -115,7 +113,27 @@ ALTER TABLE public.character_currency_groups
     DEFERRABLE;
 
 ALTER TABLE public.character_currencies
-  ADD COLUMN character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  ADD COLUMN character_id uuid;
+
+UPDATE public.character_currencies currency
+SET character_id = currency_group.character_id
+FROM public.character_currency_groups currency_group
+WHERE currency_group.id = currency.group_id;
+
+IF EXISTS (
+  SELECT 1
+  FROM public.character_currencies
+  WHERE character_id IS NULL
+) THEN
+  RAISE EXCEPTION 'Cannot assign character ownership to every existing currency row.';
+END IF;
+
+ALTER TABLE public.character_currencies
+  ALTER COLUMN character_id SET NOT NULL,
+  ADD CONSTRAINT character_currencies_character_id_fkey
+    FOREIGN KEY (character_id)
+    REFERENCES public.characters (id)
+    ON DELETE CASCADE DEFERRABLE,
   DROP CONSTRAINT character_currencies_group_id_fkey,
   DROP CONSTRAINT character_currencies_pkey,
   ADD CONSTRAINT character_currencies_pkey PRIMARY KEY (character_id, group_id, currency_id),
