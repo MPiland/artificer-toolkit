@@ -392,7 +392,7 @@ export const heroMockup = style({
           width: 'min(760px, 100%)'
         },
         'screen and (max-width: 760px)': {
-          minHeight: '504px'
+          display: 'none'
         }
       }
     }
