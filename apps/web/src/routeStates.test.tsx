@@ -1,8 +1,15 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { vi } from 'vitest'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from './routeStates'
+
+const sentryMocks = vi.hoisted(() => ({
+  captureClientException: vi.fn()
+}))
+
+vi.mock('#app/observability/sentry.client', () => sentryMocks)
 
 const signedInUser = {
   id: 'user-1',
@@ -23,6 +30,14 @@ describe('route states', () => {
     renderRouteError({ user: null })
 
     expect(screen.getByRole('link', { name: /go to homepage/i })).toHaveAttribute('href', '/')
+  })
+
+  it('reports handled route errors to client observability', async () => {
+    const error = new Error('The spells list failed to load.')
+
+    renderWithRouter(<RouteErrorState error={error} reset={() => undefined} />, signedInUser)
+
+    await waitFor(() => expect(sentryMocks.captureClientException).toHaveBeenCalledWith(error))
   })
 
   it('routes authenticated not-found recovery to the workspace home', () => {

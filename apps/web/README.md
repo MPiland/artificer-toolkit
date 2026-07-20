@@ -37,11 +37,14 @@ When creating the Netlify project, set the package directory to `apps/web` and l
 Set these values in the Netlify UI rather than in `netlify.toml`:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the browser and SSR Supabase client. They are publishable values, not secrets.
+- `VITE_SENTRY_DSN` for production browser and server error reporting plus the opt-in feedback form. The DSN is a public client identifier, not a secret. Both runtimes use the same Sentry project because they ship as one TanStack Start deployment.
+- `SENTRY_ORG=artificer-toolkit-rc` and `SENTRY_PROJECT=javascript-tanstackstart-react` for production source-map uploads during the build.
+- `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.
 - `DATABASE_URL` for database-backed server routes (`DATABASE_CONNECTION_STRING` is also supported). Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
 - `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
 
-Do not set `SUPABASE_SERVICE_ROLE_KEY` or any database credential in a `VITE_` variable. The service-role key must remain a Netlify Function secret and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add it and the `/auth/confirmed` and `/update-password` paths to Supabase Auth's redirect URL allow list before sending invitations or password-recovery emails.
+Do not set `SUPABASE_SERVICE_ROLE_KEY`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add it and the `/auth/confirmed` and `/update-password` paths to Supabase Auth's redirect URL allow list before sending invitations or password-recovery emails.
 
 ## Canonical references
 

@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
+import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
 const configDir = dirname(fileURLToPath(import.meta.url))
@@ -67,10 +68,23 @@ function loadServerOnlyEnv(mode: string) {
   setServerOnlyEnv('DATABASE_URL', dbEnv.DATABASE_URL, {
     overrideExisting: preferPackageDbEnv
   })
+
+  return webEnv
 }
 
 export default defineConfig(({ mode }) => {
-  loadServerOnlyEnv(mode)
+  const webEnv = loadServerOnlyEnv(mode)
+  const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? webEnv.SENTRY_AUTH_TOKEN
+  const sentryOrg = process.env.SENTRY_ORG ?? webEnv.SENTRY_ORG
+  const sentryProject = process.env.SENTRY_PROJECT ?? webEnv.SENTRY_PROJECT
+  const sentryPlugin = mode === 'production' && sentryAuthToken && sentryOrg && sentryProject
+    ? sentryTanstackStart({
+        authToken: sentryAuthToken,
+        autoInstrumentMiddleware: false,
+        org: sentryOrg,
+        project: sentryProject
+      })
+    : []
 
   return {
     resolve: {
@@ -101,7 +115,8 @@ export default defineConfig(({ mode }) => {
         }
       }),
       netlify(),
-      viteReact()
+      viteReact(),
+      ...sentryPlugin
     ]
   }
 })

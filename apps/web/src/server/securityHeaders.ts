@@ -65,10 +65,23 @@ function getDevelopmentConnectSources() {
   return [...sources]
 }
 
+function getSentryConnectSource() {
+  const dsn = process.env.VITE_SENTRY_DSN
+  if (!dsn) return []
+
+  try {
+    const url = new URL(dsn)
+    return url.protocol === 'https:' ? [url.origin] : []
+  } catch {
+    return []
+  }
+}
+
 function getConnectSrc() {
   return [
     "connect-src 'self'",
     ...SUPABASE_CONNECT_SOURCES,
+    ...getSentryConnectSource(),
     ...getDevelopmentConnectSources()
   ].join(' ')
 }
