@@ -1,4 +1,5 @@
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+import netlify from '@netlify/vite-plugin-tanstack-start'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
@@ -81,6 +82,7 @@ export default defineConfig(({ mode }) => {
           generatedRouteTree: 'routeTree.gen.ts'
         }
       }),
+      netlify(),
       viteReact()
     ]
   }

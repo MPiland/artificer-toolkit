@@ -1,0 +1,3 @@
+[build]
+  command = "yarn build:web"
+  publish = "apps/web/dist/client"

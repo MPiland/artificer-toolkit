@@ -19,6 +19,7 @@ storybook-static/
 .turbo/
 .cache/
 apps/*/.cache/
+apps/*/.netlify/
 test-results/
 playwright-report/
 .playwright-cli/

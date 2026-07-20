@@ -11,6 +11,7 @@
     "dist-ssr/**",
     "storybook-static/**",
     "apps/**/dist/**",
+    "apps/**/.netlify/**",
     "apps/**/storybook-static/**",
     "test-results/**",
     "playwright-report/**",

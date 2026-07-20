@@ -26,6 +26,21 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 
 Use the cheapest surface that covers the change: `yarn workspace @artificer-toolkit/web test:forms`, `test:authoring`, or a focused route test; use `yarn turbo:typecheck:web` for type changes. Use `yarn dev` plus browser verification for meaningful layout or interaction changes. The root `yarn dev` first rebuilds the API workspace so the web server does not load stale `apps/apis/dist` artifacts; run `yarn dev:prepare` first when starting the web workspace directly.
 
+## Netlify deployment
+
+TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which packages SSR, server routes, and server functions for Netlify. The workspace's [`netlify.toml`](netlify.toml) deliberately runs from the monorepo root so Yarn workspaces and Turbo build dependencies resolve correctly.
+
+When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
+
+Set these values in the Netlify UI rather than in `netlify.toml`:
+
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the browser and SSR Supabase client. They are publishable values, not secrets.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.
+- `DATABASE_URL` for database-backed server routes (`DATABASE_CONNECTION_STRING` is also supported). Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
+- `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
+
+Do not set `SUPABASE_SERVICE_ROLE_KEY` or any database credential in a `VITE_` variable. The service-role key must remain a Netlify Function secret and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add it and the `/auth/confirmed` and `/update-password` paths to Supabase Auth's redirect URL allow list before sending invitations or password-recovery emails.
+
 ## Canonical references
 
 - [Architecture overview](../../docs/architecture/overview.md)
