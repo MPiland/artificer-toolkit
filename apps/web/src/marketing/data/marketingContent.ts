@@ -10,6 +10,12 @@ export const marketingNavigation = [
   { label: 'Sign in', href: '/sign-in' }
 ] as const
 
+export function getMarketingNavigation(publicSignUpEnabled: boolean) {
+  return publicSignUpEnabled
+    ? marketingNavigation
+    : marketingNavigation.filter((item) => item.href !== '#pricing')
+}
+
 export type MarketingSectionHash = '#features' | '#pricing'
 
 export function isMarketingSectionEnabled(hash: MarketingSectionHash) {

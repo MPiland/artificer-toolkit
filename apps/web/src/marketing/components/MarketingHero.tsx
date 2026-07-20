@@ -17,10 +17,14 @@ import { AppMockup } from './AppMockup'
 import { MarketingHashLink, MarketingRouteLink } from './MarketingLinks'
 
 export interface MarketingHeroProps {
+  publicSignUpEnabled?: boolean
   showPricingLink?: boolean
 }
 
-export function MarketingHero({ showPricingLink = true }: MarketingHeroProps) {
+export function MarketingHero({
+  publicSignUpEnabled = false,
+  showPricingLink = true
+}: MarketingHeroProps) {
   return (
     <section className={heroSection} aria-labelledby='marketing-hero-title'>
       <div className={heroContent}>
@@ -33,9 +37,11 @@ export function MarketingHero({ showPricingLink = true }: MarketingHeroProps) {
           that content, and use the result at the table without bouncing between disconnected tools.
         </p>
         <div className={ctaRow}>
-          <MarketingRouteLink className={primaryLink} to='/sign-up'>
-            Start building for free
-          </MarketingRouteLink>
+          {publicSignUpEnabled ? (
+            <MarketingRouteLink className={primaryLink} to='/sign-up'>
+              Start building for free
+            </MarketingRouteLink>
+          ) : null}
           {showPricingLink ? (
             <MarketingHashLink className={secondaryLink} href='#pricing'>
               View pricing

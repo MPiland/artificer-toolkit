@@ -1,4 +1,5 @@
 export * from './AuthConfirmedPage'
+export * from './InviteLinkErrorPage'
 export * from './SignOutPage'
 export * from './ResetPasswordPage'
 export * from './SignInPage'

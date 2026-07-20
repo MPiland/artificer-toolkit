@@ -20,15 +20,15 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Page: Story = {
-  render: () => <MarketingPage />
+  render: () => <MarketingPage publicSignUpEnabled />
 }
 
 export const Header: Story = {
-  render: () => <MarketingHeader />
+  render: () => <MarketingHeader publicSignUpEnabled />
 }
 
 export const Hero: Story = {
-  render: () => <MarketingHero />
+  render: () => <MarketingHero publicSignUpEnabled />
 }
 
 export const Features: Story = {
@@ -36,7 +36,7 @@ export const Features: Story = {
 }
 
 export const Pricing: Story = {
-  render: () => <MarketingPricingSection />
+  render: () => <MarketingPricingSection publicSignUpEnabled />
 }
 
 export const Footer: Story = {

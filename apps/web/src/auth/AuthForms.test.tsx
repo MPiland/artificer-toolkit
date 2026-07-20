@@ -36,6 +36,18 @@ describe('AuthForms', () => {
     expect(passwordInput).toHaveAttribute('autocomplete', 'current-password')
   })
 
+  it('hides the public sign-up link by default', () => {
+    renderAuthForm(<SignInForm authClient={createAuthClient()} />)
+
+    expect(screen.queryByRole('link', { name: 'Sign up' })).not.toBeInTheDocument()
+  })
+
+  it('shows the public sign-up link when enabled', () => {
+    renderAuthForm(<SignInForm authClient={createAuthClient()} publicSignUpEnabled />)
+
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/sign-up')
+  })
+
   it('submits login through the auth client', async () => {
     const signIn = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()

@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_authed')({
 })
 
 function AuthedLayout() {
-  const { user } = Route.useRouteContext()
+  const { featureFlags, user } = Route.useRouteContext()
   const location = useLocation()
 
   return (
@@ -19,6 +19,7 @@ function AuthedLayout() {
       navigation={platformNavigation}
       currentPath={location.pathname}
       isAuthenticated={Boolean(user)}
+      publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
       userEmail={user?.email}
     >
       <Outlet />

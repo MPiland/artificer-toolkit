@@ -83,7 +83,7 @@ const cases = [
 describe('AuthoringActionControl', () => {
   it.each(cases)(
     'renders $action.presentation.default.display actions',
-    ({ action, expectedText, expectedVariant, hasIcon = true }) => {
+    ({ action, expectedText, expectedVariant, hasIcon }) => {
       const onClick = vi.fn()
 
       render(

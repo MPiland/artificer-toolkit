@@ -7,7 +7,11 @@ import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import viteReact from '@vitejs/plugin-react'
 
 const configDir = dirname(fileURLToPath(import.meta.url))
-const serverOnlyEnvKeys = ['DATABASE_CONNECTION_STRING', 'DATABASE_URL'] as const
+const serverOnlyEnvKeys = [
+  'DATABASE_CONNECTION_STRING',
+  'DATABASE_URL',
+  'PUBLIC_SIGN_UP_ENABLED'
+] as const
 type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
@@ -46,6 +50,9 @@ function loadPackageDbEnv(mode: string, options: { ignoreProcessDatabaseEnv?: bo
 }
 
 function loadServerOnlyEnv(mode: string) {
+  const webEnv = loadEnv(mode, configDir, '')
+  setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', webEnv.PUBLIC_SIGN_UP_ENABLED)
+
   const preferPackageDbEnv = mode === 'development' || mode === 'test'
   const dbEnv = loadPackageDbEnv(mode, {
     ignoreProcessDatabaseEnv: preferPackageDbEnv

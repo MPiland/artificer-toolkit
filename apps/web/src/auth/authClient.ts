@@ -1,4 +1,6 @@
 import { getSupabaseBrowserClient } from '../supabase/client'
+import { signUpFn } from '../server/auth/signUpFn'
+import type { AuthSignUpInput } from '@artificer-toolkit/schema/api/auth'
 import type { Session } from '@supabase/supabase-js'
 
 export interface AuthResult {
@@ -12,9 +14,7 @@ export interface SignInInput {
   password: string
 }
 
-export interface SignUpInput extends SignInInput {
-  name: string
-}
+export type SignUpInput = AuthSignUpInput
 
 export interface RequestPasswordResetInput {
   email: string
@@ -43,17 +43,7 @@ export const browserAuthClient: AuthClient = {
     return error ? { ok: false, message: error.message } : { ok: true, session: data.session ?? null }
   },
   async signUp(input) {
-    const { data, error } = await getSupabaseBrowserClient().auth.signUp({
-      email: input.email,
-      password: input.password,
-      options: {
-        data: {
-          display_name: input.name
-        },
-        emailRedirectTo: getAuthRedirectUrl('/auth/confirmed')
-      }
-    })
-    return error ? { ok: false, message: error.message } : { ok: true, session: data.session ?? null }
+    return signUpFn({ data: input })
   },
   async requestPasswordReset(input) {
     const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(input.email, {

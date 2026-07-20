@@ -5,7 +5,7 @@ import type { ReactElement } from 'react'
 import { vi } from 'vitest'
 import { resolver, theme } from '#css/theme'
 import { MarketingHeader } from './components'
-import { isMarketingSectionEnabled } from './data/marketingContent'
+import { getMarketingNavigation, isMarketingSectionEnabled } from './data/marketingContent'
 import { MarketingPage } from './pages'
 
 function renderMarketing(ui: ReactElement) {
@@ -18,7 +18,7 @@ function renderMarketing(ui: ReactElement) {
 
 describe('MarketingPage', () => {
   it('renders marketing sections with public navigation', () => {
-    renderMarketing(<MarketingPage />)
+    renderMarketing(<MarketingPage publicSignUpEnabled />)
 
     expect(screen.getByTestId('marketing-page')).toBeInTheDocument()
     expect(
@@ -42,7 +42,7 @@ describe('MarketingPage', () => {
   })
 
   it('renders mobile guest header actions without client state', () => {
-    renderMarketing(<MarketingHeader />)
+    renderMarketing(<MarketingHeader publicSignUpEnabled />)
 
     const signInLinks = screen.getAllByRole('link', { name: 'Sign in' })
 
@@ -51,6 +51,14 @@ describe('MarketingPage', () => {
     expect(signInLinks[1]).toHaveAttribute('href', '/sign-in')
     expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Get started free' })).toHaveLength(1)
+  })
+
+  it('removes public registration calls to action when sign-up is disabled', () => {
+    const { container } = renderMarketing(<MarketingPage />)
+
+    expect(container.querySelectorAll('a[href="/sign-up"]')).toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'Sign in' })).not.toHaveLength(0)
+    expect(getMarketingNavigation(false).some((item) => item.href === '#pricing')).toBe(false)
   })
 
   it('smoothly scrolls enabled in-page marketing anchors with header offset', () => {
@@ -68,7 +76,7 @@ describe('MarketingPage', () => {
 
     vi.stubGlobal('matchMedia', matchMedia)
 
-    renderMarketing(<MarketingPage />)
+    renderMarketing(<MarketingPage publicSignUpEnabled />)
 
     const marketingPage = screen.getByTestId('marketing-page')
     const scrollTo = vi.fn()

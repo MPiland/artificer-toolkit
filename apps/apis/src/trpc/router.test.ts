@@ -39,6 +39,14 @@ import { appRouter } from './router.js'
 import { handleTrpcFetchRequest } from './handler.js'
 
 describe('tRPC router auth', () => {
+  it('exposes only safe application feature flags without authentication', async () => {
+    const caller = appRouter.createCaller({ userId: null })
+
+    await expect(caller.application.featureFlags()).resolves.toEqual({
+      publicSignUpEnabled: expect.any(Boolean)
+    })
+  })
+
   it('requires server-side auth context for product data procedures', async () => {
     const caller = appRouter.createCaller({ userId: null })
 

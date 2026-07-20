@@ -21,6 +21,8 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 - The `packages/db/types` dependency is type-only Supabase client metadata, not a product-data read/write path.
 - Use focused exports from `packages/schema` and `packages/shared`; do not invent local DTO shapes.
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
+- Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; the sign-up server function rechecks it before calling Supabase Auth.
+- `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to password setup. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag.
 
 ## Focused validation
 

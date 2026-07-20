@@ -21,6 +21,7 @@ export interface ShellProps {
   navigation: AppShellNavGroup[]
   currentPath: string
   isAuthenticated?: boolean
+  publicSignUpEnabled?: boolean
   userEmail?: string | null
   children: ReactNode
 }
@@ -43,6 +44,7 @@ export function Shell({
   navigation,
   currentPath,
   isAuthenticated,
+  publicSignUpEnabled = false,
   userEmail,
   children
 }: ShellProps) {
@@ -94,7 +96,7 @@ export function Shell({
     <ShellHeaderSupplementContext value={headerSupplementContext}>
       <div className={styles.canvas} data-testid='app-shell'>
         <Header
-          accountControl={isSignedIn ? <UserMenu /> : <SignedOutActions />}
+          accountControl={isSignedIn ? <UserMenu /> : <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />}
           accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
           actions={headerSupplement?.actions}
           navigationActions={appNavigationActions}
@@ -273,15 +275,17 @@ function NavigationMenu({
   )
 }
 
-function SignedOutActions() {
+function SignedOutActions({ publicSignUpEnabled }: { publicSignUpEnabled: boolean }) {
   return (
     <Group gap='xs' wrap='nowrap'>
       <Button component={Link} to='/sign-in' variant='default'>
         Sign in
       </Button>
-      <Button component={Link} to='/sign-up'>
-        Create account
-      </Button>
+      {publicSignUpEnabled ? (
+        <Button component={Link} to='/sign-up'>
+          Create account
+        </Button>
+      ) : null}
     </Group>
   )
 }

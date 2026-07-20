@@ -21,7 +21,9 @@ import {
 } from '../marketing.css'
 import { MarketingRouteLink } from './MarketingLinks'
 
-export function MarketingPricingSection() {
+export function MarketingPricingSection({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
+  if (!publicSignUpEnabled) return null
+
   return (
     <section id='pricing' className={clsx(section, sectionAlt)} aria-labelledby='pricing-title'>
       <div className={sectionHeader} data-marketing-scroll-target='pricing'>

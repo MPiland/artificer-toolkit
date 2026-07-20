@@ -16,6 +16,25 @@ describe('Shell', () => {
     expect(screen.getByTestId('app-shell-main')).toContainElement(screen.getByTestId('normal-page'))
     expect(screen.queryByTestId('app-shell-content')).not.toBeInTheDocument()
   })
+
+  it('hides public registration from signed-out actions unless enabled', () => {
+    const { rerender } = renderWithAppProviders(
+      <Shell currentPath='/' isAuthenticated={false} navigation={[]}>
+        <div>Page content</div>
+      </Shell>
+    )
+
+    expect(screen.queryByRole('link', { name: 'Create account' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+
+    rerender(
+      <Shell currentPath='/' isAuthenticated={false} navigation={[]} publicSignUpEnabled>
+        <div>Page content</div>
+      </Shell>
+    )
+
+    expect(screen.getByRole('link', { name: 'Create account' })).toHaveAttribute('href', '/sign-up')
+  })
 })
 
 function renderShell(currentPath: string) {
