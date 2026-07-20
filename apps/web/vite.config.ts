@@ -81,6 +81,7 @@ export default defineConfig(({ mode }) => {
         'domhandler',
         'html-dom-parser',
         'html-react-parser',
+        'inline-style-parser',
         'react-property',
         'style-to-js',
         'style-to-object'
