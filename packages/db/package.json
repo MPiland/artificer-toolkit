@@ -33,10 +33,13 @@
     "build:create-db-bundle": "node ./scripts/build-create-database-bundle.mjs",
     "db:reset:remote": "tsx src/scripts/resetRemotePublicSchema.ts",
     "audit:srd": "tsx src/scripts/auditSrdData.ts",
+    "audit:srd:production": "node --env-file=.env.production.local --import tsx src/scripts/auditSrdData.ts",
     "test:character-sheet:integration": "tsx src/scripts/testCharacterSheetStatePatchIntegration.ts",
     "test:srd:integration": "tsx src/scripts/testSrdIntegration.ts",
     "seed:owner": "tsx src/scripts/seedOwner.ts",
     "seed:srd": "tsx src/scripts/seedSrd.ts",
+    "seed:srd:bulk:production:dry-run": "node --env-file=.env.production.local --import tsx src/scripts/seedSrdBulk.ts --dry-run",
+    "seed:srd:bulk:production": "node --env-file=.env.production.local --import tsx src/scripts/seedSrdBulk.ts --confirm-sync-srd-master-corpus",
     "gen:types": "supabase gen types --local --lang typescript --schema public,storage > src/types/supabase.database.ts && tsx src/scripts/normalizeGeneratedSupabaseTypes.ts"
   },
   "dependencies": {

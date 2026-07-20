@@ -1,23 +1,26 @@
 {
   "name": "artificer-toolkit",
-  "private": true,
   "version": "0.0.1",
-  "type": "module",
+  "private": true,
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
+  "type": "module",
   "scripts": {
     "dev:prepare": "yarn workspace @artificer-toolkit/apis build",
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
     "turbo": "turbo",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
     "audit:srd": "yarn workspace @artificer-toolkit/db audit:srd",
+    "audit:srd:production": "yarn workspace @artificer-toolkit/db audit:srd:production",
     "test:character-sheet:integration": "yarn build:shared && yarn workspace @artificer-toolkit/db test:character-sheet:integration",
     "test:character:integration": "yarn build:db && tsx packages/functions/src/scripts/testCharacterLifecycleIntegration.ts",
     "test:srd:integration": "yarn build:schema && yarn build:shared && yarn workspace @artificer-toolkit/db test:srd:integration",
     "seed:owner": "yarn workspace @artificer-toolkit/db seed:owner",
     "seed:srd": "yarn build:shared && yarn workspace @artificer-toolkit/db seed:srd",
+    "seed:srd:bulk:production:dry-run": "yarn workspace @artificer-toolkit/db seed:srd:bulk:production:dry-run",
+    "seed:srd:bulk:production": "yarn workspace @artificer-toolkit/db seed:srd:bulk:production",
     "build:schema": "turbo run build --filter=@artificer-toolkit/schema",
     "build:design-system": "turbo run build --filter=@artificer-toolkit/design-system",
     "generate:schema": "yarn workspace @artificer-toolkit/schema generate:zod",

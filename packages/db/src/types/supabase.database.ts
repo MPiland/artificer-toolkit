@@ -1,4 +1,4 @@
-﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   public: {
@@ -47,33 +47,6 @@ export type Database = {
           }
         ]
       }
-      authored_route_ids: {
-        Row: {
-          created_at: string
-          public_id: string | null
-          route_number: number
-          subject_id: string
-          subject_kind: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          public_id?: string | null
-          route_number?: number
-          subject_id: string
-          subject_kind: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          public_id?: string | null
-          route_number?: number
-          subject_id?: string
-          subject_kind?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       authored_definition_revisions: {
         Row: {
           base_active_revision_id: string | null
@@ -103,6 +76,13 @@ export type Database = {
           revision_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: 'authored_definition_revisions_base_revision_fk'
+            columns: ['definition_id', 'base_active_revision_id']
+            isOneToOne: false
+            referencedRelation: 'authored_definition_revisions'
+            referencedColumns: ['definition_id', 'id']
+          },
           {
             foreignKeyName: 'authored_definition_revisions_definition_id_fkey'
             columns: ['definition_id']
@@ -154,6 +134,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: 'authored_definitions_active_revision_fk'
+            columns: ['subject_id', 'active_revision_id']
+            isOneToOne: false
+            referencedRelation: 'authored_definition_revisions'
+            referencedColumns: ['definition_id', 'id']
+          },
+          {
+            foreignKeyName: 'authored_definitions_draft_revision_fk'
+            columns: ['subject_id', 'draft_revision_id']
+            isOneToOne: false
+            referencedRelation: 'authored_definition_revisions'
+            referencedColumns: ['definition_id', 'id']
+          },
+          {
             foreignKeyName: 'authored_definitions_system_id_fkey'
             columns: ['system_id']
             isOneToOne: false
@@ -161,6 +155,33 @@ export type Database = {
             referencedColumns: ['id']
           }
         ]
+      }
+      authored_route_ids: {
+        Row: {
+          created_at: string
+          public_id: string | null
+          route_number: number
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          public_id?: string | null
+          route_number?: number
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          public_id?: string | null
+          route_number?: number
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       background_details: {
         Row: {
@@ -774,7 +795,7 @@ export type Database = {
           {
             foreignKeyName: 'character_attuned_equipment_owner_fkey'
             columns: ['character_id', 'equipment_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'character_equipment'
             referencedColumns: ['character_id', 'id']
           }
@@ -1460,6 +1481,45 @@ export type Database = {
           }
         ]
       }
+      character_conditions: {
+        Row: {
+          character_id: string
+          condition_type_id: string
+          created_at: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          condition_type_id: string
+          created_at?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          condition_type_id?: string
+          created_at?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_conditions_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_conditions_condition_type_id_fkey'
+            columns: ['condition_type_id']
+            isOneToOne: false
+            referencedRelation: 'condition_types'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       character_creature_equipment: {
         Row: {
           character_creature_id: string
@@ -1484,18 +1544,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_creature_equipment_creature_owner_fkey'
-            columns: ['character_id', 'character_creature_id']
-            isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
-          },
-          {
             foreignKeyName: 'character_creature_equipment_character_id_fkey'
             columns: ['character_id']
             isOneToOne: false
             referencedRelation: 'characters'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_creature_equipment_creature_owner_fkey'
+            columns: ['character_id', 'character_creature_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
           },
           {
             foreignKeyName: 'character_creature_equipment_item_owner_fkey'
@@ -1584,17 +1644,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_currencies_currency_id_fkey'
-            columns: ['currency_id']
-            isOneToOne: false
-            referencedRelation: 'currencies'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'character_currencies_character_id_fkey'
             columns: ['character_id']
             isOneToOne: false
             referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_currencies_currency_id_fkey'
+            columns: ['currency_id']
+            isOneToOne: false
+            referencedRelation: 'currencies'
             referencedColumns: ['id']
           },
           {
@@ -1736,7 +1796,7 @@ export type Database = {
           {
             foreignKeyName: 'character_equipped_equipment_owner_fkey'
             columns: ['character_id', 'equipment_id']
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: 'character_equipment'
             referencedColumns: ['character_id', 'id']
           }
@@ -1778,6 +1838,38 @@ export type Database = {
             foreignKeyName: 'character_events_character_id_fkey'
             columns: ['character_id']
             isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_exhaustion: {
+        Row: {
+          character_id: string
+          created_at: string
+          level: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          level?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          level?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_exhaustion_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: true
             referencedRelation: 'characters'
             referencedColumns: ['id']
           }
@@ -2570,10 +2662,10 @@ export type Database = {
           },
           {
             foreignKeyName: 'character_resources_resource_grant_id_fkey'
-            columns: ['resource_grant_id']
-            isOneToOne: false
+            columns: ['character_id', 'resource_grant_id']
+            isOneToOne: true
             referencedRelation: 'character_resource_grants'
-            referencedColumns: ['id']
+            referencedColumns: ['character_id', 'id']
           }
         ]
       }
@@ -2724,6 +2816,38 @@ export type Database = {
           }
         ]
       }
+      character_spell_slot_state: {
+        Row: {
+          character_id: string
+          created_at: string
+          slot_key: string
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          slot_key: string
+          updated_at?: string
+          used?: number
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          slot_key?: string
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_spell_slot_state_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       character_vehicle_equipment: {
         Row: {
           character_id: string
@@ -2755,17 +2879,17 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'character_vehicle_equipment_vehicle_owner_fkey'
-            columns: ['character_id', 'character_vehicle_id']
-            isOneToOne: false
-            referencedRelation: 'character_vehicles'
-            referencedColumns: ['character_id', 'id']
-          },
-          {
             foreignKeyName: 'character_vehicle_equipment_item_owner_fkey'
             columns: ['character_id', 'equipment_id']
             isOneToOne: false
             referencedRelation: 'character_equipment'
+            referencedColumns: ['character_id', 'id']
+          },
+          {
+            foreignKeyName: 'character_vehicle_equipment_vehicle_owner_fkey'
+            columns: ['character_id', 'character_vehicle_id']
+            isOneToOne: false
+            referencedRelation: 'character_vehicles'
             referencedColumns: ['character_id', 'id']
           }
         ]
@@ -3786,9 +3910,9 @@ export type Database = {
           is_master: boolean | null
           label: string
           parent_class_id: string | null
-          subclass_selection_level: number | null
           starting_equipment_id: string | null
           status: string
+          subclass_selection_level: number | null
           system_id: string
           updated_at: string
           user_id: string | null
@@ -3801,9 +3925,9 @@ export type Database = {
           is_master?: boolean | null
           label: string
           parent_class_id?: string | null
-          subclass_selection_level?: number | null
           starting_equipment_id?: string | null
           status?: string
+          subclass_selection_level?: number | null
           system_id: string
           updated_at?: string
           user_id?: string | null
@@ -3816,20 +3940,20 @@ export type Database = {
           is_master?: boolean | null
           label?: string
           parent_class_id?: string | null
-          subclass_selection_level?: number | null
           starting_equipment_id?: string | null
           status?: string
+          subclass_selection_level?: number | null
           system_id?: string
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: 'classes_parent_class_id_fkey'
-            columns: ['parent_class_id']
+            foreignKeyName: 'classes_parent_system_fk'
+            columns: ['parent_class_id', 'system_id']
             isOneToOne: false
             referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedColumns: ['id', 'system_id']
           },
           {
             foreignKeyName: 'classes_starting_equipment_id_fkey'
@@ -4105,6 +4229,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'creatures'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'creature_features_feature_id_fkey'
+            columns: ['feature_id']
+            isOneToOne: false
+            referencedRelation: 'features'
+            referencedColumns: ['id']
           }
         ]
       }
@@ -4138,18 +4269,21 @@ export type Database = {
         Row: {
           amount: number
           creature_id: string
+          sort_order: number
           speed_id: string
           unit_code: string
         }
         Insert: {
           amount: number
           creature_id: string
+          sort_order: number
           speed_id: string
           unit_code: string
         }
         Update: {
           amount?: number
           creature_id?: string
+          sort_order?: number
           speed_id?: string
           unit_code?: string
         }
@@ -5150,11 +5284,11 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'equipment_parent_equipment_id_fkey'
-            columns: ['parent_equipment_id']
+            foreignKeyName: 'equipment_parent_system_fk'
+            columns: ['parent_equipment_id', 'system_id']
             isOneToOne: false
             referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedColumns: ['id', 'system_id']
           },
           {
             foreignKeyName: 'equipment_rarity_id_fkey'
@@ -9137,11 +9271,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'races_parent_race_id_fkey'
-            columns: ['parent_race_id']
+            foreignKeyName: 'races_parent_system_fk'
+            columns: ['parent_race_id', 'system_id']
             isOneToOne: false
             referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedColumns: ['id', 'system_id']
           },
           {
             foreignKeyName: 'races_system_id_fkey'
@@ -10340,6 +10474,13 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'vehicle_features_feature_id_fkey'
+            columns: ['feature_id']
+            isOneToOne: false
+            referencedRelation: 'features'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'vehicle_features_vehicle_id_fkey'
             columns: ['vehicle_id']

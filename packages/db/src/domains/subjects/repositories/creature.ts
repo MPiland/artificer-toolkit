@@ -154,6 +154,7 @@ async function hydrateCreatureById(
     db.selectFrom('creature_speeds')
       .select(['speed_id', 'amount', 'unit_code'])
       .where('creature_id', '=', id)
+      .orderBy('sort_order')
       .execute(),
     db.selectFrom('creature_damage_resistances')
       .select(['damage_type_id', 'sort_order'])

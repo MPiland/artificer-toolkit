@@ -2,15 +2,15 @@ import { sql } from 'kysely'
 import type { DBLike, Json } from '#types'
 import { withTransaction } from '../../../utils/index.js'
 
-export type AuthoredSubjectKind
-  = | 'BACKGROUND'
-    | 'CLASS'
-    | 'CREATURE'
-    | 'EQUIPMENT'
-    | 'FEAT'
-    | 'RACE'
-    | 'SPELL'
-    | 'VEHICLE'
+export type AuthoredSubjectKind =
+  | 'BACKGROUND'
+  | 'CLASS'
+  | 'CREATURE'
+  | 'EQUIPMENT'
+  | 'FEAT'
+  | 'RACE'
+  | 'SPELL'
+  | 'VEHICLE'
 
 export type AuthoredDraftState = 'DRAFT_ONLY' | 'ACTIVE_WITH_DRAFT'
 
@@ -222,8 +222,15 @@ async function saveDraft(
     `.execute(trx)
     const existing = definitionResult.rows[0]
 
-    if (existing && (existing.subject_kind !== input.subjectKind || existing.owner_user_id !== input.userId || existing.is_master)) {
-      throw new Error(`Authored definition "${input.subjectId}" is not writable by this owner and subject kind.`)
+    if (
+      existing &&
+      (existing.subject_kind !== input.subjectKind ||
+        existing.owner_user_id !== input.userId ||
+        existing.is_master)
+    ) {
+      throw new Error(
+        `Authored definition "${input.subjectId}" is not writable by this owner and subject kind.`
+      )
     }
     if (existing && existing.system_id !== input.systemId) {
       throw new Error(`Authored definition "${input.subjectId}" cannot change rules system.`)
@@ -253,13 +260,15 @@ async function saveDraft(
 
     const revisionNumber = existing?.next_revision_number ?? 1
     const baseActiveRevisionId = existing?.draft_revision_id
-      ? (await sql<{ base_active_revision_id: string | null }>`
+      ? ((
+          await sql<{ base_active_revision_id: string | null }>`
           select base_active_revision_id
           from authored_definition_revisions
           where definition_id = ${input.subjectId}
             and id = ${existing.draft_revision_id}
-        `.execute(trx)).rows[0]?.base_active_revision_id ?? existing.active_revision_id
-      : existing?.active_revision_id ?? null
+        `.execute(trx)
+        ).rows[0]?.base_active_revision_id ?? existing.active_revision_id)
+      : (existing?.active_revision_id ?? null)
     const revisionResult = await sql<{ id: string }>`
       insert into authored_definition_revisions (
         definition_id,
@@ -301,7 +310,9 @@ async function saveDraft(
 
     const draft = await findDraftBySubject(trx, input.subjectKind, input.subjectId, input.userId)
     if (!draft) {
-      throw new Error(`Failed to load authored definition draft "${input.subjectId}" after saving it.`)
+      throw new Error(
+        `Failed to load authored definition draft "${input.subjectId}" after saving it.`
+      )
     }
 
     return draft
@@ -316,7 +327,7 @@ async function activateDraft(
     userId: string
     revisionId: string
   }
-): Promise<{ revisionId: string, revisionNumber: number }> {
+): Promise<{ revisionId: string; revisionNumber: number }> {
   return withTransaction(db, async (trx) => {
     const result = await sql<{
       active_revision_id: string | null
@@ -407,7 +418,6 @@ async function discardDraft(
         where subject_id = ${params.subjectId}
       `.execute(trx)
     }
-
   })
 }
 
@@ -453,109 +463,170 @@ async function deleteActive(
 async function syncMaster(
   db: DBLike,
   input: SyncMasterAuthoredDefinitionInput
-): Promise<{ revisionId: string, revisionNumber: number }> {
+): Promise<{ revisionId: string; revisionNumber: number }> {
   return withTransaction(db, async (trx) => {
-    const definitionResult = await sql<AuthoredDefinitionRow>`
+    await syncMasters(trx, [input])
+
+    const result = await sql<{
+      revision_id: string
+      revision_number: number
+    }>`
       select
+        definition.active_revision_id as revision_id,
+        revision.revision_number
+      from authored_definitions definition
+      join authored_definition_revisions revision
+        on revision.definition_id = definition.subject_id
+        and revision.id = definition.active_revision_id
+      where definition.subject_id = ${input.subjectId}
+        and definition.subject_kind = ${input.subjectKind}
+    `.execute(trx)
+    const revision = result.rows[0]
+    if (!revision) {
+      throw new Error(`Failed to create master revision for "${input.subjectId}".`)
+    }
+
+    return {
+      revisionId: revision.revision_id,
+      revisionNumber: revision.revision_number
+    }
+  })
+}
+
+async function syncMasters(
+  db: DBLike,
+  inputs: readonly SyncMasterAuthoredDefinitionInput[]
+): Promise<void> {
+  if (inputs.length === 0) return
+
+  const subjectIds = new Set<string>()
+  const duplicateSubjectId = inputs.find((input) => {
+    if (subjectIds.has(input.subjectId)) return true
+    subjectIds.add(input.subjectId)
+    return false
+  })?.subjectId
+  if (duplicateSubjectId) {
+    throw new Error(`Duplicate master authored definition "${duplicateSubjectId}".`)
+  }
+
+  const serializedInputs = JSON.stringify(inputs)
+
+  await withTransaction(db, async (trx) => {
+    const conflictResult = await sql<{ subject_id: string }>`
+      with input as (
+        select *
+        from jsonb_to_recordset(${serializedInputs}::jsonb) as record(
+          "subjectId" uuid,
+          "subjectKind" text,
+          "systemId" uuid,
+          label text,
+          payload jsonb
+        )
+      )
+      select definition.subject_id
+      from authored_definitions definition
+      join input on input."subjectId" = definition.subject_id
+      where not definition.is_master
+        or definition.subject_kind <> input."subjectKind"
+      limit 1
+      for update of definition
+    `.execute(trx)
+    const conflictingSubjectId = conflictResult.rows[0]?.subject_id
+    if (conflictingSubjectId) {
+      throw new Error(
+        `Master authored definition "${conflictingSubjectId}" conflicts with owned content.`
+      )
+    }
+
+    await sql`
+      with input as (
+        select *
+        from jsonb_to_recordset(${serializedInputs}::jsonb) as record(
+          "subjectId" uuid,
+          "subjectKind" text,
+          "systemId" uuid,
+          label text,
+          payload jsonb
+        )
+      )
+      insert into authored_definitions (
         subject_id,
         subject_kind,
         owner_user_id,
         system_id,
         label,
         is_master,
-        active_revision_id,
-        draft_revision_id,
-        next_revision_number,
-        created_at,
-        updated_at
-      from authored_definitions
-      where subject_id = ${input.subjectId}
-      for update
-    `.execute(trx)
-    const existing = definitionResult.rows[0]
-    if (existing && (!existing.is_master || existing.subject_kind !== input.subjectKind)) {
-      throw new Error(`Master authored definition "${input.subjectId}" conflicts with owned content.`)
-    }
-
-    if (!existing) {
-      await sql`
-        insert into authored_definitions (
-          subject_id,
-          subject_kind,
-          owner_user_id,
-          system_id,
-          label,
-          is_master,
-          next_revision_number
-        ) values (
-          ${input.subjectId},
-          ${input.subjectKind},
-          null,
-          ${input.systemId},
-          ${input.label},
-          true,
-          2
-        )
-      `.execute(trx)
-    } else if (existing.active_revision_id) {
-      const matchResult = await sql<{
-        payload_matches: boolean
-        revision_number: number
-      }>`
-        select
-          payload = ${JSON.stringify(input.payload)}::jsonb as payload_matches,
-          revision_number
-        from authored_definition_revisions
-        where definition_id = ${input.subjectId}
-          and id = ${existing.active_revision_id}
-      `.execute(trx)
-      if (matchResult.rows[0]?.payload_matches) {
-        await sql`
-          update authored_definitions
-          set system_id = ${input.systemId}, label = ${input.label}, updated_at = now()
-          where subject_id = ${input.subjectId}
-        `.execute(trx)
-        return {
-          revisionId: existing.active_revision_id,
-          revisionNumber: matchResult.rows[0].revision_number
-        }
-      }
-    }
-
-    const revisionNumber = existing?.next_revision_number ?? 1
-    const revisionResult = await sql<{ id: string }>`
-      insert into authored_definition_revisions (
-        definition_id,
-        revision_number,
-        payload,
-        base_active_revision_id,
-        created_by_user_id
-      ) values (
-        ${input.subjectId},
-        ${revisionNumber},
-        ${JSON.stringify(input.payload)}::jsonb,
-        ${existing?.active_revision_id ?? null},
-        null
+        next_revision_number
       )
-      returning id
+      select
+        input."subjectId",
+        input."subjectKind",
+        null,
+        input."systemId",
+        input.label,
+        true,
+        1
+      from input
+      on conflict (subject_id) do nothing
     `.execute(trx)
-    const revisionId = revisionResult.rows[0]?.id
-    if (!revisionId) {
-      throw new Error(`Failed to create master revision for "${input.subjectId}".`)
-    }
 
     await sql`
-      update authored_definitions
+      with input as (
+        select *
+        from jsonb_to_recordset(${serializedInputs}::jsonb) as record(
+          "subjectId" uuid,
+          "subjectKind" text,
+          "systemId" uuid,
+          label text,
+          payload jsonb
+        )
+      ),
+      revision_candidates as (
+        select
+          definition.subject_id,
+          definition.active_revision_id,
+          definition.next_revision_number,
+          input.payload
+        from input
+        join authored_definitions definition
+          on definition.subject_id = input."subjectId"
+        left join authored_definition_revisions active_revision
+          on active_revision.definition_id = definition.subject_id
+          and active_revision.id = definition.active_revision_id
+        where active_revision.payload is distinct from input.payload
+      ),
+      inserted_revisions as (
+        insert into authored_definition_revisions (
+          definition_id,
+          revision_number,
+          payload,
+          base_active_revision_id,
+          created_by_user_id
+        )
+        select
+          candidate.subject_id,
+          candidate.next_revision_number,
+          candidate.payload,
+          candidate.active_revision_id,
+          null
+        from revision_candidates candidate
+        returning id, definition_id, revision_number
+      )
+      update authored_definitions definition
       set
-        system_id = ${input.systemId},
-        label = ${input.label},
-        active_revision_id = ${revisionId},
-        next_revision_number = ${revisionNumber + 1},
+        system_id = input."systemId",
+        label = input.label,
+        active_revision_id = coalesce(inserted_revision.id, definition.active_revision_id),
+        next_revision_number = coalesce(
+          inserted_revision.revision_number + 1,
+          definition.next_revision_number
+        ),
         updated_at = now()
-      where subject_id = ${input.subjectId}
+      from input
+      left join inserted_revisions inserted_revision
+        on inserted_revision.definition_id = input."subjectId"
+      where definition.subject_id = input."subjectId"
     `.execute(trx)
-
-    return { revisionId, revisionNumber }
   })
 }
 
@@ -607,8 +678,9 @@ export function createAuthoredDefinitionRepository(db: DBLike) {
       userId: string
       subjectKind?: AuthoredSubjectKind
     }): Promise<AuthoredDefinitionDraft[]> {
-      const result = params.subjectKind == null
-        ? await sql<AuthoredDefinitionDraftRow>`
+      const result =
+        params.subjectKind == null
+          ? await sql<AuthoredDefinitionDraftRow>`
           select
             definition.subject_id,
             definition.subject_kind,
@@ -633,7 +705,7 @@ export function createAuthoredDefinitionRepository(db: DBLike) {
           where definition.owner_user_id = ${params.userId}
           order by revision.created_at desc
         `.execute(db)
-        : await sql<AuthoredDefinitionDraftRow>`
+          : await sql<AuthoredDefinitionDraftRow>`
           select
             definition.subject_id,
             definition.subject_kind,
@@ -672,7 +744,7 @@ export function createAuthoredDefinitionRepository(db: DBLike) {
       subjectId: string
       userId: string
       revisionId: string
-    }): Promise<{ revisionId: string, revisionNumber: number }> {
+    }): Promise<{ revisionId: string; revisionNumber: number }> {
       return activateDraft(db, params)
     },
 
@@ -692,8 +764,14 @@ export function createAuthoredDefinitionRepository(db: DBLike) {
       return deleteActive(db, params)
     },
 
-    syncMaster(input: SyncMasterAuthoredDefinitionInput): Promise<{ revisionId: string, revisionNumber: number }> {
+    syncMaster(
+      input: SyncMasterAuthoredDefinitionInput
+    ): Promise<{ revisionId: string; revisionNumber: number }> {
       return syncMaster(db, input)
+    },
+
+    syncMasters(inputs: readonly SyncMasterAuthoredDefinitionInput[]): Promise<void> {
+      return syncMasters(db, inputs)
     }
   }
 }

@@ -6403,8 +6403,12 @@ CREATE TABLE IF NOT EXISTS public.creature_speeds (
 
   amount integer NOT NULL,
   unit_code text NOT NULL,
+  sort_order integer NOT NULL,
 
-  PRIMARY KEY (creature_id, speed_id)
+  PRIMARY KEY (creature_id, speed_id),
+  CONSTRAINT creature_speeds_creature_sort_order_unique
+    UNIQUE (creature_id, sort_order)
+    DEFERRABLE INITIALLY DEFERRED
 );
 
 ALTER TABLE public.creature_speeds ENABLE ROW LEVEL SECURITY;

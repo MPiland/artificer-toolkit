@@ -46,7 +46,12 @@ export function getSrdAuthoredRouteNumber(subjectId: string): number | null {
 
   const domainCode = Number.parseInt(match[1] ?? '', 16)
   const subjectIndex = Number.parseInt(match[2] ?? '', 16)
-  if (!Number.isSafeInteger(domainCode) || !Number.isSafeInteger(subjectIndex) || domainCode <= 0 || subjectIndex <= 0) {
+  if (
+    !Number.isSafeInteger(domainCode) ||
+    !Number.isSafeInteger(subjectIndex) ||
+    domainCode <= 0 ||
+    subjectIndex <= 0
+  ) {
     return null
   }
 
@@ -87,8 +92,9 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
       subjectId: string
       routeNumber?: number | null
     }): Promise<AuthoredRouteIdentity> {
-      const result = params.routeNumber == null
-        ? await sql<AuthoredRouteIdentityRow>`
+      const result =
+        params.routeNumber == null
+          ? await sql<AuthoredRouteIdentityRow>`
           with inserted as (
           insert into authored_route_ids (
             subject_kind,
@@ -122,7 +128,7 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
             and subject_id = ${params.subjectId}
             and not exists (select 1 from inserted)
         `.execute(db)
-        : await sql<AuthoredRouteIdentityRow>`
+          : await sql<AuthoredRouteIdentityRow>`
           with inserted as (
           insert into authored_route_ids (
             subject_kind,
@@ -161,7 +167,9 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
 
       const row = result.rows[0]
       if (!row) {
-        throw new Error(`Failed to ensure route identity for ${params.subjectKind} "${params.subjectId}".`)
+        throw new Error(
+          `Failed to ensure route identity for ${params.subjectKind} "${params.subjectId}".`
+        )
       }
 
       return mapRouteIdentity(row)
@@ -173,7 +181,9 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
     ): Promise<Map<string, AuthoredRouteIdentity>> {
       const ids = distinctSubjectIds(subjectIds)
       const identities = await this.findBySubjects(subjectKind, ids)
-      const identityBySubjectId = new Map(identities.map((identity) => [identity.subjectId, identity]))
+      const identityBySubjectId = new Map(
+        identities.map((identity) => [identity.subjectId, identity])
+      )
 
       for (const subjectId of ids) {
         if (identityBySubjectId.has(subjectId)) continue
@@ -303,12 +313,56 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
         subjectId: string
       }[]
     ): Promise<void> {
-      for (const subject of subjects) {
-        await this.ensure({
-          subjectKind: subject.subjectKind,
-          subjectId: subject.subjectId,
-          routeNumber: getSrdAuthoredRouteNumber(subject.subjectId)
-        })
+      const routedSubjects = subjects.map((subject) => ({
+        ...subject,
+        routeNumber: getSrdAuthoredRouteNumber(subject.subjectId)
+      }))
+      const deterministicSubjects = routedSubjects.filter((subject) => subject.routeNumber !== null)
+      const generatedSubjects = routedSubjects.filter((subject) => subject.routeNumber === null)
+
+      if (deterministicSubjects.length > 0) {
+        await sql`
+          with input as (
+            select *
+            from jsonb_to_recordset(${JSON.stringify(deterministicSubjects)}::jsonb) as record(
+              "subjectKind" text,
+              "subjectId" uuid,
+              "routeNumber" bigint
+            )
+          )
+          insert into authored_route_ids (
+            subject_kind,
+            subject_id,
+            route_number
+          )
+          select
+            input."subjectKind",
+            input."subjectId",
+            input."routeNumber"
+          from input
+          on conflict (subject_kind, subject_id) do nothing
+        `.execute(db)
+      }
+
+      if (generatedSubjects.length > 0) {
+        await sql`
+          with input as (
+            select *
+            from jsonb_to_recordset(${JSON.stringify(generatedSubjects)}::jsonb) as record(
+              "subjectKind" text,
+              "subjectId" uuid
+            )
+          )
+          insert into authored_route_ids (
+            subject_kind,
+            subject_id
+          )
+          select
+            input."subjectKind",
+            input."subjectId"
+          from input
+          on conflict (subject_kind, subject_id) do nothing
+        `.execute(db)
       }
 
       await syncRouteNumberSequence(db)
