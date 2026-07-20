@@ -1,4 +1,8 @@
 import { randomBytes } from 'node:crypto'
+import {
+  sentryGlobalFunctionMiddleware,
+  sentryGlobalRequestMiddleware
+} from '@sentry/tanstackstart-react'
 import { createMiddleware, createStart } from '@tanstack/react-start'
 import { getResponseHeaders } from '@tanstack/react-start/server'
 import { createSecurityHeaders } from '#app/server/securityHeaders'
@@ -17,5 +21,6 @@ const securityHeadersMiddleware = createMiddleware().server(({ next }) => {
 })
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeadersMiddleware]
+  functionMiddleware: [sentryGlobalFunctionMiddleware],
+  requestMiddleware: [sentryGlobalRequestMiddleware, securityHeadersMiddleware]
 }))

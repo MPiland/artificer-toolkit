@@ -42,6 +42,7 @@
     "@mantine/hooks": "9.2.2",
     "@mantine/notifications": "9.2.2",
     "@mantine/tiptap": "9.2.2",
+    "@sentry/tanstackstart-react": "10.67.0",
     "@storybook/addon-docs": "10.5.0-alpha.5",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.108.2",

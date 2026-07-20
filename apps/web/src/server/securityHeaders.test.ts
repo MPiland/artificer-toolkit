@@ -51,6 +51,44 @@ describe('security headers', () => {
     }
   })
 
+  it('allows the configured Sentry ingest origin in report-only CSP', () => {
+    const originalDsn = process.env.VITE_SENTRY_DSN
+    process.env.VITE_SENTRY_DSN = 'https://public@example.ingest.sentry.io/123'
+
+    try {
+      const reportOnlyCsp = createSecurityHeaders()['Content-Security-Policy-Report-Only']
+
+      expect(reportOnlyCsp).toContain('https://example.ingest.sentry.io')
+      expect(reportOnlyCsp).not.toContain('public@')
+    } finally {
+      if (originalDsn === undefined) {
+        delete process.env.VITE_SENTRY_DSN
+      } else {
+        process.env.VITE_SENTRY_DSN = originalDsn
+      }
+    }
+  })
+
+  it('ignores invalid or non-HTTPS Sentry DSNs', () => {
+    const originalDsn = process.env.VITE_SENTRY_DSN
+
+    try {
+      process.env.VITE_SENTRY_DSN = 'http://public@example.ingest.sentry.io/123'
+      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only'])
+        .not.toContain('example.ingest.sentry.io')
+
+      process.env.VITE_SENTRY_DSN = 'not-a-url'
+      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only'])
+        .not.toContain('not-a-url')
+    } finally {
+      if (originalDsn === undefined) {
+        delete process.env.VITE_SENTRY_DSN
+      } else {
+        process.env.VITE_SENTRY_DSN = originalDsn
+      }
+    }
+  })
+
   it('adds nonce directives and dev eval support to report-only script CSP when provided', () => {
     const response = withSecurityHeaders(new Response('ok'), { nonce: 'test-nonce' })
     const reportOnlyCsp = response.headers.get('Content-Security-Policy-Report-Only') ?? ''

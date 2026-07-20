@@ -11,6 +11,7 @@ import type { AppShellNavGroup, AppShellNavItem } from './navigation'
 import { isNavItemActive } from './navigation'
 import { Header } from './Header/Header'
 import { MobileAppFooter } from './MobileAppFooter/MobileAppFooter'
+import { SentryFeedbackMenuItem } from './SentryFeedbackMenuItem'
 import type {
   MobileAppFooterItem,
   MobileAppFooterMenuItem
@@ -177,6 +178,7 @@ function AccountMenuItems() {
       >
         Theme
       </Menu.Item>
+      <SentryFeedbackMenuItem />
       <Menu.Item
         component={Link}
         to='/logout'

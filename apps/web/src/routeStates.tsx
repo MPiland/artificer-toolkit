@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
+import { createClientOnlyFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
@@ -9,6 +10,11 @@ import { routeLoadingMessages } from './routeLoadingMessages'
 import { loadingCopy, loadingOverlay, loadingPanel, loadingSpinner } from './routeStates.css'
 
 const routeLoadingIntervalMs = 1800
+const captureRouteError = createClientOnlyFn((error: unknown) => {
+  void import('#app/observability/sentry.client').then(({ captureClientException }) => {
+    captureClientException(error)
+  })
+})
 
 export function RouteNotFound() {
   const homeRoute = useHomeRoute()
@@ -29,6 +35,10 @@ export function RouteNotFound() {
 
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
   const homeRoute = useHomeRoute()
+
+  useEffect(() => {
+    captureRouteError(error)
+  }, [error])
 
   return (
     <Stack align='center' justify='center' mih='100dvh' p='xl'>
