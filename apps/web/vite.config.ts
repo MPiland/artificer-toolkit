@@ -76,6 +76,17 @@ export default defineConfig(({ mode }) => {
     resolve: {
       tsconfigPaths: true
     },
+    ssr: {
+      noExternal: [
+        'domhandler',
+        'html-dom-parser',
+        'html-react-parser',
+        'inline-style-parser',
+        'react-property',
+        'style-to-js',
+        'style-to-object'
+      ]
+    },
     server: {
       port: 3000,
       strictPort: true,
