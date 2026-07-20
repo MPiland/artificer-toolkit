@@ -22,6 +22,8 @@ Repository contracts expose authored-shaped operations: `findById`, `findByIds`,
 
 Hydration loads the root and related rows, reorders dependent collections where necessary, and reconstructs authored intent/provenance. Keep DTO validation at the API seam; keep row mapping and authored hydration in DB.
 
+Ordered authored collections must persist their source order explicitly. For example, `creature_speeds.sort_order` preserves the authored `speeds` array; repositories must not rely on physical row order or vocabulary IDs to reconstruct it.
+
 Starting-equipment options exclusively own an optional character-eligibility facet through the unique `starting_equipment_options.eligibility_facet_id`. Upsert the facet before its option, hydrate it back into the authored option, and let the option update/delete cleanup triggers remove the prior owned facet. The facet is authored content, not a Builder-only row shape; it cannot be shared between options.
 
 ## Upsert and replacement semantics

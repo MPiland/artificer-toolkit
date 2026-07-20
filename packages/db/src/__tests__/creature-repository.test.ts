@@ -389,8 +389,20 @@ describe('createCreatureRepository', () => {
       ],
       creature_details: [],
       creature_speeds: [
-        { creature_id: 'creature-monster-1', speed_id: 'walk', amount: 40, unit_code: 'FEET' },
-        { creature_id: 'creature-monster-1', speed_id: 'fly', amount: 80, unit_code: 'FEET' },
+        {
+          creature_id: 'creature-monster-1',
+          speed_id: 'fly',
+          amount: 80,
+          unit_code: 'FEET',
+          sort_order: 2
+        },
+        {
+          creature_id: 'creature-monster-1',
+          speed_id: 'walk',
+          amount: 40,
+          unit_code: 'FEET',
+          sort_order: 1
+        }
       ],
       creature_damage_resistances: [
         { creature_id: 'creature-monster-1', damage_type_id: 'lightning', sort_order: 2 },
@@ -521,7 +533,10 @@ describe('createCreatureRepository', () => {
       section: 'TRAIT'
     })
 
-    expect(result?.speeds).toHaveLength(2)
+    expect(result?.speeds).toEqual([
+      { speedId: 'walk', amount: 40, unit: 'FEET' },
+      { speedId: 'fly', amount: 80, unit: 'FEET' }
+    ])
     expect(result?.mountProfile).toBeUndefined()
   })
 

@@ -61,6 +61,7 @@ type CreatureSpeedRow = {
   speed_id: string
   amount: number
   unit_code: string
+  sort_order: number
 }
 
 type CreatureDamageRow = {
@@ -204,11 +205,12 @@ export async function upsertCreature(
     sort_order: grant.order,
   }))
 
-  const speedRows: CreatureSpeedRow[] = (jsonData.speeds ?? []).map((speed) => ({
+  const speedRows: CreatureSpeedRow[] = (jsonData.speeds ?? []).map((speed, index) => ({
     creature_id: jsonData.id,
     speed_id: speed.speedId,
     amount: speed.amount,
     unit_code: speed.unit,
+    sort_order: index + 1,
   }))
 
   const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map((id, index) => ({

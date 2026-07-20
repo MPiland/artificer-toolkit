@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
 
 import { sql } from 'kysely'
@@ -91,7 +93,7 @@ interface RootAuditRecord {
 
 interface RootDomainCase {
   domain: string
-  table: typeof subjectTables[number]
+  table: (typeof subjectTables)[number]
   records: readonly RootAuditRecord[]
   schema: ZodType<unknown>
   findById: (id: string) => Promise<unknown>
@@ -206,10 +208,10 @@ function collectInvalidHydratedNumerics(
   }
 
   if (
-    value.effectKind === 'DAMAGE'
-    || value.bonusKind
-    || value.rangeKind === 'DISTANCE'
-    || value.durationKind
+    value.effectKind === 'DAMAGE' ||
+    value.bonusKind ||
+    value.rangeKind === 'DISTANCE' ||
+    value.durationKind
   ) {
     for (const key of ['amount', 'multiplier', 'min', 'max']) {
       collectInvalidNumber(value, key, path, invalidValues, subject)
@@ -357,9 +359,10 @@ async function auditFixedDamageHydration(db: Db) {
 
   for (const subject of await listFixedDamageSubjects(db)) {
     try {
-      const record = subject.subjectKind === 'equipment'
-        ? await equipmentRepository.findById(subject.id)
-        : await creatureRepository.findById(subject.id)
+      const record =
+        subject.subjectKind === 'equipment'
+          ? await equipmentRepository.findById(subject.id)
+          : await creatureRepository.findById(subject.id)
 
       collectInvalidHydratedNumerics(record, subject.subjectKind, invalidNumericValues, subject)
     } catch (error) {
@@ -385,12 +388,14 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
   `.execute(db)
   const ownerUserId = systemResult.rows[0]?.user_id
   if (!ownerUserId) {
-    return [{
-      domain: 'systems',
-      id: SRD_SYSTEM_ID,
-      label: 'D&D 5e 2014 SRD',
-      issue: 'missing SRD system or seed owner'
-    }]
+    return [
+      {
+        domain: 'systems',
+        id: SRD_SYSTEM_ID,
+        label: 'D&D 5e 2014 SRD',
+        issue: 'missing SRD system or seed owner'
+      }
+    ]
   }
 
   const bundle = assignBaselineContentOwner(srdBaselineContent, ownerUserId)
@@ -472,9 +477,13 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
       compile: (id) => compileVehicle(requireRootRecord(bundle.subjects.vehicles, id))
     }
   ]
-  const expectedById = new Map(cases.flatMap((domainCase) => {
-    return domainCase.records.map((record) => [record.id, { domain: domainCase.domain, record }] as const)
-  }))
+  const expectedById = new Map(
+    cases.flatMap((domainCase) => {
+      return domainCase.records.map(
+        (record) => [record.id, { domain: domainCase.domain, record }] as const
+      )
+    })
+  )
   const revisionResult = await sql<{
     subject_id: string
     subject_kind: string
@@ -522,83 +531,88 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
       })
     }
 
-    for (const record of domainCase.records) {
-      if (!projectionIds.has(record.id)) {
-        issues.push({
-          domain: domainCase.domain,
-          id: record.id,
-          label: record.label,
-          issue: 'missing master projection'
-        })
-        continue
-      }
-
-      try {
-        const hydrated = await domainCase.findById(record.id)
-        const parsed = domainCase.schema.safeParse(hydrated)
-        if (!parsed.success) {
-          issues.push({
-            domain: domainCase.domain,
-            id: record.id,
-            label: record.label,
-            issue: `hydrated projection violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
-          })
-        } else {
-          if (!isDeepStrictEqual(canonicalize(hydrated), canonicalize(record))) {
+    for (let offset = 0; offset < domainCase.records.length; offset += 5) {
+      const batch = domainCase.records.slice(offset, offset + 5)
+      await Promise.all(
+        batch.map(async (record) => {
+          if (!projectionIds.has(record.id)) {
             issues.push({
               domain: domainCase.domain,
               id: record.id,
               label: record.label,
-              issue: 'hydrated projection differs from source payload',
-              paths: listDifferencePaths(record, hydrated)
+              issue: 'missing master projection'
             })
+            return
           }
 
           try {
-            await domainCase.compile(record.id)
+            const hydrated = await domainCase.findById(record.id)
+            const parsed = domainCase.schema.safeParse(hydrated)
+            if (!parsed.success) {
+              issues.push({
+                domain: domainCase.domain,
+                id: record.id,
+                label: record.label,
+                issue: `hydrated projection violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
+              })
+            } else {
+              if (!isDeepStrictEqual(canonicalize(hydrated), canonicalize(record))) {
+                issues.push({
+                  domain: domainCase.domain,
+                  id: record.id,
+                  label: record.label,
+                  issue: 'hydrated projection differs from source payload',
+                  paths: listDifferencePaths(record, hydrated)
+                })
+              }
+
+              try {
+                await domainCase.compile(record.id)
+              } catch (error) {
+                issues.push({
+                  domain: domainCase.domain,
+                  id: record.id,
+                  label: record.label,
+                  issue: `compiler failed: ${error instanceof Error ? error.message : String(error)}`
+                })
+              }
+            }
           } catch (error) {
             issues.push({
               domain: domainCase.domain,
               id: record.id,
               label: record.label,
-              issue: `compiler failed: ${error instanceof Error ? error.message : String(error)}`
+              issue: `hydration failed: ${error instanceof Error ? error.message : String(error)}`
             })
           }
-        }
-      } catch (error) {
-        issues.push({
-          domain: domainCase.domain,
-          id: record.id,
-          label: record.label,
-          issue: `hydration failed: ${error instanceof Error ? error.message : String(error)}`
-        })
-      }
 
-      const revision = revisionById.get(record.id)
-      if (!revision) {
-        issues.push({
-          domain: domainCase.domain,
-          id: record.id,
-          label: record.label,
-          issue: 'missing active master revision'
-        })
-      } else if (!isDeepStrictEqual(canonicalize(revision.payload), canonicalize(record))) {
-        issues.push({
-          domain: domainCase.domain,
-          id: record.id,
-          label: record.label,
-          issue: 'active revision payload differs from source payload'
-        })
-      }
+          const revision = revisionById.get(record.id)
+          if (!revision) {
+            issues.push({
+              domain: domainCase.domain,
+              id: record.id,
+              label: record.label,
+              issue: 'missing active master revision'
+            })
+          } else if (!isDeepStrictEqual(canonicalize(revision.payload), canonicalize(record))) {
+            issues.push({
+              domain: domainCase.domain,
+              id: record.id,
+              label: record.label,
+              issue: 'active revision payload differs from source payload'
+            })
+          }
 
-      if (!routeIds.has(record.id)) {
-        issues.push({
-          domain: domainCase.domain,
-          id: record.id,
-          label: record.label,
-          issue: 'missing authored route identity'
+          if (!routeIds.has(record.id)) {
+            issues.push({
+              domain: domainCase.domain,
+              id: record.id,
+              label: record.label,
+              issue: 'missing authored route identity'
+            })
+          }
         })
-      }
+      )
     }
   }
 
@@ -655,8 +669,8 @@ function auditSourceSemantics(): RootCorpusIssue[] {
     }
 
     if (
-      subclasses.some((record) => record.parentClassId === baseClass.id)
-      && baseClass.subclassSelectionLevel === undefined
+      subclasses.some((record) => record.parentClassId === baseClass.id) &&
+      baseClass.subclassSelectionLevel === undefined
     ) {
       issues.push({
         domain: 'classes',
@@ -696,10 +710,12 @@ function auditSourceSemantics(): RootCorpusIssue[] {
               continue
             }
 
-            const hasCandidate = equipment.some((candidate) => (
-              (!item.category || candidate.category === item.category)
-              && (!item.properties?.length || item.properties.every((property) => candidate.properties?.includes(property)))
-            ))
+            const hasCandidate = equipment.some(
+              (candidate) =>
+                (!item.category || candidate.category === item.category) &&
+                (!item.properties?.length ||
+                  item.properties.every((property) => candidate.properties?.includes(property)))
+            )
             if (!hasCandidate) {
               issues.push({
                 domain: 'classes',
@@ -726,20 +742,24 @@ function auditSourceSemantics(): RootCorpusIssue[] {
   }
 
   const cleric = baseClasses.find((record) => record.label === 'Cleric')
-  const clericEligibilityPredicates = cleric?.startingEquipment.sets.flatMap((set) => (
-    set.groups.flatMap((group) => group.options.flatMap((option) => (
-      option.eligibility?.groups.flatMap((facetGroup) => (
-        facetGroup.contexts.flatMap((context) => (
-          (context.conditions ?? []).flatMap((condition) => (
-            condition.kind === 'PREDICATE' ? [condition.predicateCode] : []
-          ))
-        ))
-      )) ?? []
-    )))
-  )) ?? []
+  const clericEligibilityPredicates =
+    cleric?.startingEquipment.sets.flatMap((set) =>
+      set.groups.flatMap((group) =>
+        group.options.flatMap(
+          (option) =>
+            option.eligibility?.groups.flatMap((facetGroup) =>
+              facetGroup.contexts.flatMap((context) =>
+                (context.conditions ?? []).flatMap((condition) =>
+                  condition.kind === 'PREDICATE' ? [condition.predicateCode] : []
+                )
+              )
+            ) ?? []
+        )
+      )
+    ) ?? []
   if (
-    !clericEligibilityPredicates.includes('EQUIPMENT_PROFICIENCY')
-    || !clericEligibilityPredicates.includes('EQUIPMENT_PROPERTY_PROFICIENCY')
+    !clericEligibilityPredicates.includes('EQUIPMENT_PROFICIENCY') ||
+    !clericEligibilityPredicates.includes('EQUIPMENT_PROPERTY_PROFICIENCY')
   ) {
     issues.push({
       domain: 'classes',
@@ -752,41 +772,50 @@ function auditSourceSemantics(): RootCorpusIssue[] {
   return issues
 }
 
+export async function auditSrdData(db: Db) {
+  const [
+    inactiveMasterRows,
+    orphanFeatureLinks,
+    fixedDamageHydration,
+    rootCorpus,
+    sourceSemantics
+  ] = await Promise.all([
+    listInactiveMasterRows(db),
+    listOrphanFeatureLinks(db),
+    auditFixedDamageHydration(db),
+    auditRootCorpus(db),
+    Promise.resolve(auditSourceSemantics())
+  ])
+
+  return {
+    inactiveMasterRows,
+    orphanFeatureLinks,
+    fixedDamageHydration,
+    rootCorpus,
+    sourceSemantics
+  }
+}
+
+export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdData>>): boolean {
+  return (
+    summary.inactiveMasterRows.length > 0 ||
+    summary.orphanFeatureLinks.length > 0 ||
+    summary.fixedDamageHydration.hydrationFailures.length > 0 ||
+    summary.fixedDamageHydration.invalidNumericValues.length > 0 ||
+    summary.rootCorpus.length > 0 ||
+    summary.sourceSemantics.length > 0
+  )
+}
+
 async function main() {
   const db = createDb()
 
   try {
-    const [
-      inactiveMasterRows,
-      orphanFeatureLinks,
-      fixedDamageHydration,
-      rootCorpus,
-      sourceSemantics
-    ] = await Promise.all([
-      listInactiveMasterRows(db),
-      listOrphanFeatureLinks(db),
-      auditFixedDamageHydration(db),
-      auditRootCorpus(db),
-      Promise.resolve(auditSourceSemantics())
-    ])
-    const summary = {
-      inactiveMasterRows,
-      orphanFeatureLinks,
-      fixedDamageHydration,
-      rootCorpus,
-      sourceSemantics
-    }
+    const summary = await auditSrdData(db)
 
     console.info(JSON.stringify(summary, null, 2))
 
-    if (
-      inactiveMasterRows.length > 0
-      || orphanFeatureLinks.length > 0
-      || fixedDamageHydration.hydrationFailures.length > 0
-      || fixedDamageHydration.invalidNumericValues.length > 0
-      || rootCorpus.length > 0
-      || sourceSemantics.length > 0
-    ) {
+    if (hasSrdAuditIssues(summary)) {
       throw new Error('SRD data audit failed.')
     }
   } finally {
@@ -794,7 +823,9 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(error)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error: unknown) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}

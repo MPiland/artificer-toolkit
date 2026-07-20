@@ -5,10 +5,11 @@ const wrapperCalls: string[] = []
 const wrapperDatabases: unknown[] = []
 
 vi.mock('../domains/index.js', () => {
-  const track = (name: string) => vi.fn(async (db: unknown) => {
-    wrapperCalls.push(name)
-    wrapperDatabases.push(db)
-  })
+  const track = (name: string) =>
+    vi.fn(async (db: unknown) => {
+      wrapperCalls.push(name)
+      wrapperDatabases.push(db)
+    })
 
   return {
     upsertBackground: track('upsertBackground'),
@@ -38,7 +39,8 @@ vi.mock('../domains/index.js', () => {
 
 vi.mock('../repositories/index.js', () => ({
   createAuthoredDefinitionRepository: vi.fn(() => ({
-    syncMaster: vi.fn()
+    syncMaster: vi.fn(),
+    syncMasters: vi.fn()
   })),
   createAuthoredRouteIdRepository: vi.fn(() => ({
     seedSrdSubjects: vi.fn()
@@ -54,7 +56,7 @@ type WhereOperator = '=' | 'in' | 'not in'
 
 function createSeedTransactionDb(initialTables: SeedTables = {}) {
   const tables = structuredClone(initialTables)
-  const operations: Array<{ operation: string, table: string }> = []
+  const operations: Array<{ operation: string; table: string }> = []
 
   const createQuery = (operation: 'select' | 'delete' | 'update', table: string) => {
     const predicates: Array<(row: SeedRow) => boolean> = []
@@ -71,9 +73,7 @@ function createSeedTransactionDb(initialTables: SeedTables = {}) {
         predicates.push((row) => {
           if (operator === '=') return row[column] === value
           const values = value as readonly unknown[]
-          return operator === 'in'
-            ? values.includes(row[column])
-            : !values.includes(row[column])
+          return operator === 'in' ? values.includes(row[column]) : !values.includes(row[column])
         })
         return query
       },
@@ -108,30 +108,32 @@ function createSeedTransactionDb(initialTables: SeedTables = {}) {
 function createEmptyBundle(systemId = 'system-1') {
   return defineBaselineContentBundle({
     vocabulary: {
-      systems: [{
-        id: systemId,
-        label: 'System',
-        description: null,
-        rulesetCode: 'dnd5e',
-        rulesetVersion: '2014',
-        alignments: [],
-        challengeRatings: [],
-        conditionTypes: [],
-        creatureTypes: [],
-        currencies: [],
-        damageTypes: [],
-        heritages: [],
-        languages: [],
-        lifestyles: [],
-        magicSchools: [],
-        passives: [],
-        rarities: [],
-        senses: [],
-        skills: [],
-        speeds: [],
-        terrains: [],
-        userId: 'user-1'
-      }]
+      systems: [
+        {
+          id: systemId,
+          label: 'System',
+          description: null,
+          rulesetCode: 'dnd5e',
+          rulesetVersion: '2014',
+          alignments: [],
+          challengeRatings: [],
+          conditionTypes: [],
+          creatureTypes: [],
+          currencies: [],
+          damageTypes: [],
+          heritages: [],
+          languages: [],
+          lifestyles: [],
+          magicSchools: [],
+          passives: [],
+          rarities: [],
+          senses: [],
+          skills: [],
+          speeds: [],
+          terrains: [],
+          userId: 'user-1'
+        }
+      ]
     },
     shared: {
       charges: [],
@@ -198,7 +200,15 @@ describe('seedBaselineContent', () => {
         ]
       },
       shared: {
-        charges: [{ id: 'charge-1', scalingKind: 'NONE', resetKind: 'LONG_REST', limitKind: 'FIXED_AMOUNT', amount: 1 }],
+        charges: [
+          {
+            id: 'charge-1',
+            scalingKind: 'NONE',
+            resetKind: 'LONG_REST',
+            limitKind: 'FIXED_AMOUNT',
+            amount: 1
+          }
+        ],
         details: [{ id: 'detail-1', label: 'Detail', description: 'Description', order: 1 }],
         savingThrows: [{ id: 'save-1', ability: 'DEXTERITY', dcMethod: 'FIXED_DC', baseDc: 14 }],
         startingEquipment: [{ id: 'se-1', sets: [] }]
@@ -230,7 +240,10 @@ describe('seedBaselineContent', () => {
     })
 
     const { db } = createSeedTransactionDb()
-    const result = await seedBaselineContent({ db: db as unknown as DBLike, systemId: 'system-1' }, bundle)
+    const result = await seedBaselineContent(
+      { db: db as unknown as DBLike, systemId: 'system-1' },
+      bundle
+    )
 
     expect(wrapperCalls).toEqual([
       'upsertSystem',
@@ -283,8 +296,9 @@ describe('seedBaselineContent', () => {
     })
 
     const { db } = createSeedTransactionDb()
-    await expect(seedBaselineContent({ db: db as unknown as DBLike, systemId: 'missing-system' }, bundle))
-      .rejects.toThrow('Missing system seed record')
+    await expect(
+      seedBaselineContent({ db: db as unknown as DBLike, systemId: 'missing-system' }, bundle)
+    ).rejects.toThrow('Missing system seed record')
   })
 
   it('removes stale master subjects across every root domain while preserving owned, current, and other-system records', async () => {
@@ -293,7 +307,7 @@ describe('seedBaselineContent', () => {
       id: 'current-background',
       label: 'Current background',
       systemId: 'system-1'
-    } as unknown as typeof bundle.subjects.backgrounds[number])
+    } as unknown as (typeof bundle.subjects.backgrounds)[number])
 
     const staleSubjects = [
       ['backgrounds', 'BACKGROUND'],
@@ -354,20 +368,26 @@ describe('seedBaselineContent', () => {
     for (const [table] of staleSubjects) {
       expect(tables[table]).not.toContainEqual(expect.objectContaining({ id: `stale-${table}` }))
     }
-    expect(tables.backgrounds).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'current-background' }),
-      expect.objectContaining({ id: 'owned-background', is_master: false }),
-      expect.objectContaining({ id: 'other-system-background', system_id: 'system-2' })
-    ]))
-    expect(tables.authored_definitions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ subject_id: 'current-background', is_master: true }),
-      expect.objectContaining({ subject_id: 'owned-background', is_master: false })
-    ]))
+    expect(tables.backgrounds).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'current-background' }),
+        expect.objectContaining({ id: 'owned-background', is_master: false }),
+        expect.objectContaining({ id: 'other-system-background', system_id: 'system-2' })
+      ])
+    )
+    expect(tables.authored_definitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ subject_id: 'current-background', is_master: true }),
+        expect.objectContaining({ subject_id: 'owned-background', is_master: false })
+      ])
+    )
     expect(tables.authored_definitions).toHaveLength(2)
-    expect(tables.authored_route_ids).toEqual(expect.arrayContaining([
-      expect.objectContaining({ subject_id: 'current-background' }),
-      expect.objectContaining({ subject_id: 'owned-background' })
-    ]))
+    expect(tables.authored_route_ids).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ subject_id: 'current-background' }),
+        expect.objectContaining({ subject_id: 'owned-background' })
+      ])
+    )
     expect(tables.authored_route_ids).toHaveLength(2)
   })
 
@@ -378,7 +398,9 @@ describe('seedBaselineContent', () => {
       equipment: [{ id: 'stale-equipment', system_id: 'system-1', is_master: true }],
       feats: [{ id: 'stale-feat', system_id: 'system-1', is_master: true }],
       spells: [{ id: 'stale-spell', system_id: 'system-1', is_master: true }],
-      equipment_contains: [{ equipment_id: 'kept-container', contained_equipment_id: 'stale-equipment' }],
+      equipment_contains: [
+        { equipment_id: 'kept-container', contained_equipment_id: 'stale-equipment' }
+      ],
       starting_equipment_option_item_equipment: [{ equipment_id: 'stale-equipment' }],
       proficiency_grant_equipment: [{ equipment_id: 'stale-equipment' }],
       spell_classes: [{ spell_id: 'kept-spell', class_id: 'stale-class' }],
@@ -402,16 +424,22 @@ describe('seedBaselineContent', () => {
     ]) {
       expect(tables[table]).toEqual([])
     }
-    expect(operations.findIndex(({ table }) => table === 'equipment_contains'))
-      .toBeLessThan(operations.findIndex(({ operation, table }) => operation === 'delete' && table === 'equipment'))
-    expect(operations.findIndex(({ table }) => table === 'spell_classes'))
-      .toBeLessThan(operations.findIndex(({ operation, table }) => operation === 'delete' && table === 'classes'))
+    expect(operations.findIndex(({ table }) => table === 'equipment_contains')).toBeLessThan(
+      operations.findIndex(
+        ({ operation, table }) => operation === 'delete' && table === 'equipment'
+      )
+    )
+    expect(operations.findIndex(({ table }) => table === 'spell_classes')).toBeLessThan(
+      operations.findIndex(({ operation, table }) => operation === 'delete' && table === 'classes')
+    )
   })
 
   it('runs pruning and all writes through one outer transaction', async () => {
     const bundle = createEmptyBundle()
     const transaction = createSeedTransactionDb()
-    const execute = vi.fn(async (callback: (db: unknown) => Promise<unknown>) => callback(transaction.db))
+    const execute = vi.fn(async (callback: (db: unknown) => Promise<unknown>) =>
+      callback(transaction.db)
+    )
     const db = {
       isTransaction: false,
       transaction: () => ({ execute })
@@ -425,4 +453,3 @@ describe('seedBaselineContent', () => {
     expect(transaction.operations[0]).toEqual({ operation: 'select', table: 'backgrounds' })
   })
 })
-
