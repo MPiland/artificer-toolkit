@@ -8,5 +8,11 @@ export const Route = createFileRoute('/_guest/')({
       throw redirect({ to: '/home' })
     }
   },
-  component: MarketingPage
+  component: MarketingRoute
 })
+
+function MarketingRoute() {
+  const { featureFlags } = Route.useRouteContext()
+
+  return <MarketingPage publicSignUpEnabled={featureFlags?.publicSignUpEnabled} />
+}

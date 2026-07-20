@@ -29,7 +29,7 @@ sequenceDiagram
 
 ## Router shape
 
-`appRouter` groups route identity, systems, authored content, characters, and `nodeRuntime`. Authored domains use a shared `authoredDomainRouter` for list/get/draft/activate/delete/duplicate operations. `activate` is the single direct-input activation path; there is no duplicate authored-content `upsert` alias. Character procedures are explicit because Builder and Sheet have different contracts: `draft`, `getDraft`, `saveDraft`, `resolve`, `previewSave`, `upsert`, `sheet`, `history`, and `command`.
+`appRouter` groups public application configuration, route identity, systems, authored content, characters, and `nodeRuntime`. `application.featureFlags` is an unauthenticated typed response containing browser-safe, server-parsed booleans. It supports web and future native presentation decisions but is not an authorization boundary. Authored domains use a shared `authoredDomainRouter` for list/get/draft/activate/delete/duplicate operations. `activate` is the single direct-input activation path; there is no duplicate authored-content `upsert` alias. Character procedures are explicit because Builder and Sheet have different contracts: `draft`, `getDraft`, `saveDraft`, `resolve`, `previewSave`, `upsert`, `sheet`, `history`, and `command`.
 
 Every authenticated procedure uses `authenticatedProcedure`, then `withAuthenticatedDb`. The latter:
 
@@ -48,7 +48,7 @@ Authored `saveDraft`, `activateDraft`, and `activate` input failures also expose
 
 Zod errors become `UNPROCESSABLE_CONTENT`; ownership, not-found, dependency, concurrency, node-runtime input, and Sheet command failures map to `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, or `BAD_REQUEST` as appropriate. Unknown errors remain internal.
 
-The browser may know route names and DTOs, but it must not bypass the router to read/write product rows. Supabase client/server helpers in web are authentication infrastructure; product mutations belong in API procedures.
+The browser may know route names and DTOs, but it must not bypass the router to read/write product rows. Supabase client/server helpers in web are authentication infrastructure; product mutations belong in API procedures. Public sign-up is an auth exception: its same-origin web server function validates the shared auth DTO and rechecks the server-owned feature flag before calling Supabase Auth. A client-visible flag cannot authorize registration by itself.
 
 ## Authored-domain orchestration
 

@@ -112,11 +112,13 @@ import {
   routeIdentityDtoSchema,
   routeIdentityResolveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/routeIds'
+import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
 } from '@artificer-toolkit/schema/api/systems'
 import { requireUserId, withAuthenticatedDb, type TrpcContext } from './dbContext.js'
+import { getApplicationFeatureFlags } from '../applicationConfig.js'
 
 interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
   inputSchema: z.ZodType<TInput>
@@ -286,6 +288,12 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
 }
 
 export const appRouter = createTRPCRouter({
+  application: createTRPCRouter({
+    featureFlags: t.procedure
+      .output(applicationFeatureFlagsDtoSchema)
+      .query(() => getApplicationFeatureFlags())
+  }),
+
   routeIds: createTRPCRouter({
     resolve: authenticatedProcedure
       .input(routeIdentityResolveRequestDtoSchema)

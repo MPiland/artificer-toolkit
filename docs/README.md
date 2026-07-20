@@ -39,6 +39,10 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 
 - [MVP readiness audit (2026-07-10)](audits/mvp-readiness-2026-07-10.md)
 
+## Future roadmap
+
+- [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for native clients, media/files, Campaigns, Encounters, commerce, Social Hub, Marketplace, and VTT
+
 ## Decisions
 
 See [the ADR index](adr/README.md) for intentional architectural decisions and their current status.

@@ -29,6 +29,10 @@
     "./trpc-handler": {
       "types": "./dist/trpc/handler.d.ts",
       "default": "./dist/trpc/handler.js"
+    },
+    "./application-config": {
+      "types": "./dist/applicationConfig.d.ts",
+      "default": "./dist/applicationConfig.js"
     }
   }
 }

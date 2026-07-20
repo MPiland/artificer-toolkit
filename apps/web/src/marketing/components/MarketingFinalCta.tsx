@@ -1,7 +1,9 @@
 import { finalCta, finalCtaPanel, primaryLink, sectionCopy, sectionTitle } from '../marketing.css'
 import { MarketingRouteLink } from './MarketingLinks'
 
-export function MarketingFinalCta() {
+export function MarketingFinalCta({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
+  if (!publicSignUpEnabled) return null
+
   return (
     <section className={finalCta} aria-labelledby='final-cta-title'>
       <div className={finalCtaPanel}>

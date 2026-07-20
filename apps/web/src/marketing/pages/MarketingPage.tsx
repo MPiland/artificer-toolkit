@@ -9,18 +9,21 @@ import {
   MarketingPricingSection
 } from '../components'
 
-export function MarketingPage() {
+export function MarketingPage({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
   const showFeatures = isMarketingSectionEnabled('#features')
-  const showPricing = isMarketingSectionEnabled('#pricing')
+  const showPricing = publicSignUpEnabled && isMarketingSectionEnabled('#pricing')
 
   return (
     <div id='top' className={marketingRoot} data-marketing-scroll-root='true' data-testid='marketing-page'>
-      <MarketingHeader />
+      <MarketingHeader publicSignUpEnabled={publicSignUpEnabled} />
       <main>
-        <MarketingHero showPricingLink={showPricing} />
+        <MarketingHero
+          publicSignUpEnabled={publicSignUpEnabled}
+          showPricingLink={showPricing}
+        />
         {showFeatures ? <MarketingFeatureSection /> : null}
-        {showPricing ? <MarketingPricingSection /> : null}
-        <MarketingFinalCta />
+        {showPricing ? <MarketingPricingSection publicSignUpEnabled /> : null}
+        <MarketingFinalCta publicSignUpEnabled={publicSignUpEnabled} />
       </main>
       <MarketingFooter />
     </div>

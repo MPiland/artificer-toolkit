@@ -18,7 +18,15 @@ import { AuthDivider } from './AuthDivider'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import IArrowRight from '#assets/icons/IArrowRight'
 
-export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
+type SignInFormProps = AuthFormProps & {
+  publicSignUpEnabled?: boolean
+}
+
+export function SignInForm({
+  authClient = browserAuthClient,
+  onSuccess,
+  publicSignUpEnabled = false
+}: SignInFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -93,16 +101,20 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
           {feedback.message}
         </div>
       )}
-      <AuthDivider />
-      <div className={authFooterRow}>
-        <span>{`Don't have an account?`}</span>
-        <Anchor className={inlineLink} href='/sign-up'>
-          Sign up
-          <span className={inlineLinkIcon} aria-hidden='true'>
-            <IArrowRight className={inlineLinkIconGlyph} size={14} />
-          </span>
-        </Anchor>
-      </div>
+      {publicSignUpEnabled ? (
+        <>
+          <AuthDivider />
+          <div className={authFooterRow}>
+            <span>{`Don't have an account?`}</span>
+            <Anchor className={inlineLink} href='/sign-up'>
+              Sign up
+              <span className={inlineLinkIcon} aria-hidden='true'>
+                <IArrowRight className={inlineLinkIconGlyph} size={14} />
+              </span>
+            </Anchor>
+          </div>
+        </>
+      ) : null}
     </form>
   )
 }

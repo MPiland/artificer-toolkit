@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { canAuthenticatedUserVisitGuestAuthPath } from './_guest/-guestRouteGuards'
 
 describe('guest auth route guard', () => {
-  it('allows authenticated users to complete password recovery', () => {
+  it('allows authenticated users to complete password recovery and invitation password setup', () => {
     expect(canAuthenticatedUserVisitGuestAuthPath('/update-password')).toBe(true)
   })
 
