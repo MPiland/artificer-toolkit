@@ -32,10 +32,27 @@ The application flag is not the security boundary: a client can call the public 
 1. In Authentication settings, disable **Allow new users to sign up**. Keep email/password sign-in and password recovery enabled for existing users, and keep anonymous sign-ins disabled.
 2. In Authentication URL Configuration, set the production Site URL and add `https://<your-domain>/auth/confirmed` and `https://<your-domain>/update-password` to Redirect URLs.
 3. In Authentication Email Templates, set the Invite user link to `{{ .SiteURL }}/auth/confirmed?token_hash={{ .TokenHash }}&type=invite`. The app verifies that token server-side, establishes the invitation session, and redirects the invitee to password setup.
-4. Configure custom SMTP before inviting external testers; the default Supabase mail service is restricted and is not suitable for alpha delivery.
+4. Configure the branded Send Email Hook before inviting external testers. The default Supabase mail service is restricted and is not suitable for alpha delivery; this project deliberately uses the Resend API hook instead of SMTP.
 5. Invite testers from Authentication → Users → Add user → Send invitation. The application does not provide an admin invitation interface.
 
 The invitation callback and `/update-password` remain enabled when public registration is disabled. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret/service-role key in web environment variables or client-side code.
+
+## Branded authentication email delivery
+
+`packages/emails` owns the portable React Email templates and signed-hook behavior. [`netlify/functions/send-auth-email.mts`](../netlify/functions/send-auth-email.mts) is the client-independent deployment entrypoint: Supabase signs the hook payload, the Netlify Function verifies it with Standard Webhooks, renders the selected template, and sends it through Resend. It supports signup confirmation/resend, password recovery, invitations, magic links/OTP, email changes, and reauthentication codes. Project-level security notifications remain disabled until matching templates are intentionally added.
+
+The function uses Supabase's documented double-confirm email-change mapping: the current address receives `token` with `token_hash_new`, while the new address receives `token_new` with `token_hash`.
+
+### Operator setup
+
+1. Verify an Artificer Toolkit sending domain in Resend and choose an address such as `Artificer Toolkit <accounts@auth.example.com>`. Disable Resend open and click tracking for this sender; link rewriting can invalidate Supabase verification links.
+2. Add `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, and `AUTH_EMAIL_FROM` as server-only variables in the existing Netlify project. `SUPABASE_URL` is already required by the backend. Never prefix these values with `VITE_`.
+3. Deploy the Netlify project. Netlify builds and deploys the root `netlify/functions` directory alongside the web application.
+4. In Supabase Dashboard -> Authentication -> Hooks, enable **Send Email** and use `https://<your-domain>/.netlify/functions/send-auth-email` as the HTTP hook URL. Use the signing secret generated there as `SEND_EMAIL_HOOK_SECRET`. Keep the Email provider enabled. Do not also configure Resend as SMTP: once the hook is enabled, it owns delivery.
+5. In Authentication -> URL Configuration, retain the web callback URLs above. Add each future native app's exact deep or universal-link callback to Redirect URLs; no email-template or hook change is needed.
+6. Before public signup, set conservative Auth email and signup rate limits for the Resend allowance. Add CAPTCHA if bot traffic becomes a concern.
+
+For local template work, run `yarn workspace @artificer-toolkit/emails dev`. For a controlled live smoke test, first deploy Netlify and enable the hook, then trigger one signup email to a designated recipient and verify the link, redirect, and sender. Do not use production secrets in committed files.
 
 ## Canonical references
 

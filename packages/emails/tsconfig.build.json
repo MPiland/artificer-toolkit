@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "stripInternal": true
+  },
+  "include": ["src"],
+  "exclude": ["dist", "node_modules", "src/__tests__", "src/previews"]
+}
