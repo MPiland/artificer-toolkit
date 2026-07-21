@@ -55,4 +55,17 @@ describe('AuthEmail', () => {
     expect(html).not.toContain('href=')
     expect(html).toContain('123456')
   })
+
+  it('does not render the unused verification code for invitations', async () => {
+    const email = (
+      <AuthEmail
+        action='invite'
+        actionUrl='https://app.example.test/auth/confirmed?token_hash=invite-token&type=invite'
+        token='123456'
+      />
+    )
+
+    expect(await render(email)).not.toContain('123456')
+    expect(await render(email, { plainText: true })).not.toContain('Verification code')
+  })
 })

@@ -14,6 +14,7 @@ import {
 type AuthEmailData = {
   email_action_type: string
   redirect_to?: string
+  site_url?: string
   token?: string
   token_hash?: string
   token_new?: string
@@ -107,6 +108,15 @@ function getVerificationUrl({
   return url.toString()
 }
 
+function getInviteConfirmationUrl(siteUrl: string, tokenHash: string): string {
+  const url = new URL('/auth/confirmed', siteUrl)
+
+  url.searchParams.set('token_hash', tokenHash)
+  url.searchParams.set('type', 'invite')
+
+  return url.toString()
+}
+
 function buildMessages(
   payload: AuthEmailHookPayload,
   supabaseUrl: string
@@ -121,6 +131,20 @@ function buildMessages(
 
   if (action === 'reauthentication') {
     return token ? [{ to: payload.user.email, token }] : null
+  }
+
+  if (action === 'invite') {
+    const siteUrl = readString(payload.email_data.site_url)
+    const tokenHash = readString(payload.email_data.token_hash)
+
+    return siteUrl && tokenHash
+      ? [
+          {
+            actionUrl: getInviteConfirmationUrl(siteUrl, tokenHash),
+            to: payload.user.email
+          }
+        ]
+      : null
   }
 
   if (action === 'email_change') {
