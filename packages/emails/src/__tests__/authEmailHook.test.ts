@@ -58,6 +58,39 @@ describe('send auth email hook', () => {
     expect(response.status).toBe(401)
   })
 
+  it('sends invitations through the app callback that continues to password setup', async () => {
+    const sent: Array<{ html: string; text: string; to: string }> = []
+    const handler = createSendAuthEmailHandler({
+      render: async (input) => ({ html: JSON.stringify(input), text: '' }),
+      send: async (message) => {
+        sent.push(message)
+      },
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook: () => ({
+        email_data: {
+          email_action_type: 'invite',
+          redirect_to: 'https://artificertoolkit.app',
+          site_url: 'https://artificertoolkit.app',
+          token: '123456',
+          token_hash: 'invite-token-hash'
+        },
+        user: { email: 'invitee@example.com' }
+      })
+    })
+
+    const response = await handler(createRequest())
+
+    expect(response.status).toBe(200)
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.to).toBe('invitee@example.com')
+    expect(sent[0]?.html).toContain(
+      'https://artificertoolkit.app/auth/confirmed?token_hash=invite-token-hash&type=invite'
+    )
+    expect(sent[0]?.html).not.toContain('project.supabase.co/auth/v1/verify')
+    expect(sent[0]?.html).not.toContain('123456')
+    expect(sent[0]?.text).not.toContain('Verification code')
+  })
+
   it("uses Supabase's reversed token-hash mapping for double-confirm email changes", async () => {
     const sent: Array<{ html: string; to: string }> = []
     const handler = createSendAuthEmailHandler({

@@ -50,7 +50,7 @@ const contentByAction: Record<AuthEmailAction, AuthEmailContent> = {
     title: "You've been invited",
     body: 'Accept this invitation to create your Artificer Toolkit account.',
     actionLabel: 'Accept invitation',
-    includeToken: true,
+    includeToken: false,
     securityNote: 'If you were not expecting this invitation, you can safely ignore this email.'
   },
   magiclink: {

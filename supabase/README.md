@@ -31,7 +31,7 @@ The application flag is not the security boundary: a client can call the public 
 
 1. In Authentication settings, disable **Allow new users to sign up**. Keep email/password sign-in and password recovery enabled for existing users, and keep anonymous sign-ins disabled.
 2. In Authentication URL Configuration, set the production Site URL and add `https://<your-domain>/auth/confirmed` and `https://<your-domain>/update-password` to Redirect URLs.
-3. In Authentication Email Templates, set the Invite user link to `{{ .SiteURL }}/auth/confirmed?token_hash={{ .TokenHash }}&type=invite`. The app verifies that token server-side, establishes the invitation session, and redirects the invitee to password setup.
+3. The Send Email Hook builds invitation links as `<site-url>/auth/confirmed?token_hash=<token-hash>&type=invite`. The app verifies that token server-side, establishes the invitation session, and redirects the invitee to password setup. Supabase's configured email templates are bypassed while the hook is enabled.
 4. Configure the branded Send Email Hook before inviting external testers. The default Supabase mail service is restricted and is not suitable for alpha delivery; this project deliberately uses the Resend API hook instead of SMTP.
 5. Invite testers from Authentication → Users → Add user → Send invitation. The application does not provide an admin invitation interface.
 
