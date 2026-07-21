@@ -25,6 +25,7 @@ export default defineConfig({
     pool: 'threads',
     include: [
       'packages/design-system/src/__tests__/**/*.test.ts',
+      'packages/emails/src/__tests__/**/*.test.ts?(x)',
       'packages/shared/src/__tests__/**/*.test.ts',
       'packages/schema/src/__tests__/**/*.test.ts',
       'packages/db/src/__tests__/**/*.test.ts',

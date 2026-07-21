@@ -1,0 +1,39 @@
+{
+  "name": "@artificer-toolkit/emails",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./auth-hook": {
+      "types": "./dist/authEmailHook.d.ts",
+      "default": "./dist/authEmailHook.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/emails/src/__tests__",
+    "dev": "email dev --dir src/previews"
+  },
+  "dependencies": {
+    "@artificer-toolkit/design-system": "workspace:^",
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.1.0",
+    "react": "19.2.6",
+    "resend": "6.17.2",
+    "standardwebhooks": "1.0.0"
+  },
+  "devDependencies": {
+    "@react-email/ui": "6.9.0",
+    "@types/react": "19.2.14",
+    "react-dom": "19.2.6",
+    "react-email": "6.9.0",
+    "typescript": "^6.0.3"
+  }
+}

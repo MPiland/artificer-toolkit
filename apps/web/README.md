@@ -30,7 +30,7 @@ Use the cheapest surface that covers the change: `yarn workspace @artificer-tool
 
 ## Netlify deployment
 
-TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which packages SSR, server routes, and server functions for Netlify. The workspace's [`netlify.toml`](netlify.toml) deliberately runs from the monorepo root so Yarn workspaces and Turbo build dependencies resolve correctly.
+TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which packages SSR, server routes, and server functions for Netlify. The same project also deploys client-independent functions from the repository's root [`netlify/functions`](../../netlify/functions) directory. The workspace's [`netlify.toml`](netlify.toml) deliberately runs from the monorepo root so Yarn workspaces and Turbo build dependencies resolve correctly.
 
 When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
 
@@ -41,10 +41,11 @@ Set these values in the Netlify UI rather than in `netlify.toml`:
 - `SENTRY_ORG=artificer-toolkit-rc` and `SENTRY_PROJECT=javascript-tanstackstart-react` for production source-map uploads during the build.
 - `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.
+- `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, and `AUTH_EMAIL_FROM` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
 - `DATABASE_URL` for database-backed server routes (`DATABASE_CONNECTION_STRING` is also supported). Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
 - `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
 
-Do not set `SUPABASE_SERVICE_ROLE_KEY`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add it and the `/auth/confirmed` and `/update-password` paths to Supabase Auth's redirect URL allow list before sending invitations or password-recovery emails.
+Do not set `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add it and the `/auth/confirmed` and `/update-password` paths to Supabase Auth's redirect URL allow list before sending invitations or password-recovery emails.
 
 ## Canonical references
 

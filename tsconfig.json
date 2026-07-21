@@ -5,6 +5,9 @@
       "path": "./packages/design-system"
     },
     {
+      "path": "./packages/emails"
+    },
+    {
       "path": "./packages/schema"
     },
     {
