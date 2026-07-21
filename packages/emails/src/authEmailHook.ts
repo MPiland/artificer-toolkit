@@ -14,7 +14,6 @@ import {
 type AuthEmailData = {
   email_action_type: string
   redirect_to?: string
-  site_url?: string
   token?: string
   token_hash?: string
   token_new?: string
@@ -134,13 +133,13 @@ function buildMessages(
   }
 
   if (action === 'invite') {
-    const siteUrl = readString(payload.email_data.site_url)
+    const redirectTo = readString(payload.email_data.redirect_to)
     const tokenHash = readString(payload.email_data.token_hash)
 
-    return siteUrl && tokenHash
+    return redirectTo && tokenHash
       ? [
           {
-            actionUrl: getInviteConfirmationUrl(siteUrl, tokenHash),
+            actionUrl: getInviteConfirmationUrl(redirectTo, tokenHash),
             to: payload.user.email
           }
         ]

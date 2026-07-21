@@ -70,7 +70,7 @@ describe('send auth email hook', () => {
         email_data: {
           email_action_type: 'invite',
           redirect_to: 'https://artificertoolkit.app',
-          site_url: 'https://artificertoolkit.app',
+          site_url: 'https://project.supabase.co',
           token: '123456',
           token_hash: 'invite-token-hash'
         },
@@ -87,6 +87,7 @@ describe('send auth email hook', () => {
       'https://artificertoolkit.app/auth/confirmed?token_hash=invite-token-hash&type=invite'
     )
     expect(sent[0]?.html).not.toContain('project.supabase.co/auth/v1/verify')
+    expect(sent[0]?.html).not.toContain('project.supabase.co/auth/confirmed')
     expect(sent[0]?.html).not.toContain('123456')
     expect(sent[0]?.text).not.toContain('Verification code')
   })
