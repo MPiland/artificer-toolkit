@@ -5,6 +5,7 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -467,6 +468,8 @@ export const wizard: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.INTELLIGENCE,
     maxSpellLevel: 9,
     attributes: [
@@ -591,6 +594,7 @@ export const wizard: ClassAuthored = {
       label: 'Arcane Tradition',
       description:
         'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 2,
       order: 2
     },

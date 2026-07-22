@@ -9,16 +9,12 @@ import {
   ResetActionMenu,
   StepsNavigationAction
 } from '../Actions/Actions'
-import { readReactNodeText } from '../AuthoringLayout.utils'
 import { useAuthoringForm } from '../AuthoringFormContext'
 
 export function Header() {
-  const { hasChanges, activeStepLabel, authoredSession, subjectKindLabel, subjectLabel } =
-    useAuthoringForm()
+  const { hasChanges, authoredSession, subjectKindLabel, subjectLabel } = useAuthoringForm()
 
   const title = subjectLabel ?? subjectKindLabel
-  const moduleLabel = activeStepLabel ?? subjectKindLabel
-  const titleLabel = readReactNodeText(subjectLabel) ?? subjectKindLabel
   const provenanceLabel =
     authoredSession?.provenanceKind === 'MASTER'
       ? 'SRD'
@@ -33,11 +29,6 @@ export function Header() {
           <Text component='h1' className={styles.title}>
             {title}
           </Text>
-          {moduleLabel !== titleLabel ? (
-            <Text component='p' className={styles.moduleLabel}>
-              {moduleLabel}
-            </Text>
-          ) : null}
         </div>
         {provenanceLabel ? <span className={styles.provenanceBadge}>{provenanceLabel}</span> : null}
         <div className={styles.viewActions}>

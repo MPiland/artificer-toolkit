@@ -7,7 +7,7 @@ export const lute: EquipmentAuthored = {
     label: 'Lute',
     description: "A plucked string instrument with a rounded body and fretted neck.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
     cost: S.gp(35),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

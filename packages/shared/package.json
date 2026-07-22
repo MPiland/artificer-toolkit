@@ -64,6 +64,10 @@
       "types": "./dist/domains/engine/resolution/index.d.ts",
       "default": "./dist/domains/engine/resolution/index.js"
     },
+    "./character": {
+      "types": "./dist/domains/character/index.d.ts",
+      "default": "./dist/domains/character/index.js"
+    },
     "./subjects/authored": {
       "types": "./dist/domains/subjects/authored/index.d.ts",
       "default": "./dist/domains/subjects/authored/index.js"

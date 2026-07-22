@@ -66,7 +66,7 @@ export function CharacterBuilderAuthoringRuntime({
 
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
-      activateLabel: 'Finalize Character',
+      activateLabel: 'Activate',
       canSaveDraft: Boolean(session.payload),
       hasActiveDraft: session.hasActiveDraft,
       isDraft: session.isDraft,
@@ -300,7 +300,8 @@ function CharacterBuilderFormRuntime({
         selector={(state) => ({
           canSubmit: state.canSubmit,
           hasChanges: state.isDirty,
-          isSubmitting: state.isSubmitting
+          isSubmitting: state.isSubmitting,
+          subjectLabel: state.values.label
         })}
       >
         {(formState) => (
@@ -310,6 +311,7 @@ function CharacterBuilderFormRuntime({
             isSubmitting={formState.isSubmitting}
             payload={payload}
             session={session}
+            subjectLabel={formState.subjectLabel}
             updateAuthoringFormState={updateAuthoringFormState}
           />
         )}
@@ -348,6 +350,7 @@ function CharacterBuilderStateSync({
   isSubmitting,
   payload,
   session,
+  subjectLabel,
   updateAuthoringFormState
 }: {
   canSubmit: boolean
@@ -355,11 +358,12 @@ function CharacterBuilderStateSync({
   isSubmitting: boolean
   payload: ReadyCharacterBuilderAuthoringSession['payload']
   session: ReadyCharacterBuilderAuthoringSession
+  subjectLabel: string
   updateAuthoringFormState: (patch: AuthoringFormStatePatch) => void
 }) {
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
-      activateLabel: 'Finalize Character',
+      activateLabel: 'Activate',
       canFinalize: payload.view.review.ready,
       canResetForm: hasChanges,
       canSaveDraft: true,
@@ -372,14 +376,13 @@ function CharacterBuilderStateSync({
       readOnly: session.readOnly,
       saveDraftLabel: 'Save Draft',
       subjectKindLabel: session.subjectKindLabel,
-      subjectLabel: payload.character.label || session.subjectLabel,
+      subjectLabel: subjectLabel.trim() || session.subjectLabel,
       systemId: payload.character.systemId
     }),
     [
       canSubmit,
       hasChanges,
       isSubmitting,
-      payload.character.label,
       payload.character.systemId,
       payload.view.review.ready,
       session.hasActiveDraft,
@@ -387,7 +390,8 @@ function CharacterBuilderStateSync({
       session.mode,
       session.readOnly,
       session.subjectKindLabel,
-      session.subjectLabel
+      session.subjectLabel,
+      subjectLabel
     ]
   )
 

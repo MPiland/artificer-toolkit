@@ -10,6 +10,7 @@ export type Database = {
           description: string | null
           id: string
           label: string
+          sort_order: number
           short: string | null
           system_id: string
           tooltip: string | null
@@ -21,6 +22,7 @@ export type Database = {
           description?: string | null
           id: string
           label: string
+          sort_order?: number | null
           short?: string | null
           system_id: string
           tooltip?: string | null
@@ -32,6 +34,7 @@ export type Database = {
           description?: string | null
           id?: string
           label?: string
+          sort_order?: number | null
           short?: string | null
           system_id?: string
           tooltip?: string | null
@@ -3562,6 +3565,7 @@ export type Database = {
           description: string | null
           id: string
           label: string
+          sort_order: number | null
         }
         Insert: {
           available_at_level: number
@@ -3570,6 +3574,7 @@ export type Database = {
           description?: string | null
           id?: string
           label: string
+          sort_order?: number | null
         }
         Update: {
           available_at_level?: number
@@ -3578,6 +3583,7 @@ export type Database = {
           description?: string | null
           id?: string
           label?: string
+          sort_order?: number | null
         }
         Relationships: [
           {
@@ -3694,6 +3700,8 @@ export type Database = {
           id: string
           magic_name: string | null
           max_spell_level: number
+          available_at_level: number | null
+          sort_order: number | null
         }
         Insert: {
           ability_code?: string | null
@@ -3702,6 +3710,8 @@ export type Database = {
           id?: string
           magic_name?: string | null
           max_spell_level: number
+          available_at_level?: number | null
+          sort_order?: number | null
         }
         Update: {
           ability_code?: string | null
@@ -3710,6 +3720,8 @@ export type Database = {
           id?: string
           magic_name?: string | null
           max_spell_level?: number
+          available_at_level?: number | null
+          sort_order?: number | null
         }
         Relationships: [
           {

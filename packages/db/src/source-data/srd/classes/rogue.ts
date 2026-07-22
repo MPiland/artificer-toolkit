@@ -4,6 +4,7 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  FEATURE_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
   GRANT_KIND,
   PROFICIENCY_KIND,
@@ -443,6 +444,7 @@ export const rogue: ClassAuthored = {
       label: 'Roguish Archetype',
       description:
         'At 3rd level, you choose an archetype that you emulate in the exercise of your rogue abilities.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
     },

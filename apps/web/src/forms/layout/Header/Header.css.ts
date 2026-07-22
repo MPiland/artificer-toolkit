@@ -10,9 +10,9 @@ export const header = style({
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: foundationVars.space[4],
-      minBlockSize: 76,
+      minBlockSize: 64,
       maxInlineSize: '100%',
-      paddingBlock: foundationVars.space[3],
+      paddingBlock: foundationVars.space[2],
       paddingInline: foundationVars.space[4],
       borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
       backgroundColor: foundationVars.color.surface.header,
@@ -62,20 +62,6 @@ export const title = style({
       fontWeight: foundationVars.fontWeight.bold,
       letterSpacing: '0',
       lineHeight: '28px',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
-  }
-})
-
-export const moduleLabel = style({
-  '@layer': {
-    [app]: {
-      margin: 0,
-      overflow: 'hidden',
-      color: foundationVars.color.text.muted,
-      fontSize: '13px',
-      lineHeight: '18px',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
     }

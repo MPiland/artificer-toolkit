@@ -74,12 +74,8 @@ export const RACE_IDS = {
 
 export const SUBRACE_IDS = {
   HILL_DWARF: subjectId('0031', 1),
-  MOUNTAIN_DWARF: subjectId('0031', 2),
   HIGH_ELF: subjectId('0031', 3),
-  WOOD_ELF: subjectId('0031', 4),
-  DARK_ELF: subjectId('0031', 5),
   LIGHTFOOT: subjectId('0031', 6),
-  STOUT: subjectId('0031', 7),
   ROCK_GNOME: subjectId('0031', 9)
 } as const
 

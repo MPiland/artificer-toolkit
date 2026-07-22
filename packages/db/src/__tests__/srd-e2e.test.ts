@@ -250,13 +250,21 @@ describe('runEngine — Agonizing Blast scopeSpellIds', () => {
 // ─── 6. SRD source data consistency ──────────────────────────────────────────
 
 describe('SRD source data consistency', () => {
-  it('SRD race barrel has the expected 17 race and subrace entries', () => {
-    expect(srdRaces).toHaveLength(17)
+  it('SRD race barrel has the expected 13 race and subrace entries', () => {
+    expect(srdRaces).toHaveLength(13)
   })
 
   it('SRD race barrel includes tiefling and excludes forest gnome', () => {
     expect(srdRaces.some((race) => race.label === 'Tiefling')).toBe(true)
     expect(srdRaces.some((race) => race.label === 'Forest Gnome')).toBe(false)
+  })
+
+  it('excludes unsupported playable subraces', () => {
+    const labels = srdRaces.map((race) => race.label)
+
+    expect(labels).toEqual(
+      expect.not.arrayContaining(['Mountain Dwarf', 'Wood Elf', 'Dark Elf (Drow)', 'Stout'])
+    )
   })
 
   it('Warlock class has pact magic (charges defined)', () => {

@@ -7,7 +7,7 @@ export const dulcimer: EquipmentAuthored = {
     label: 'Dulcimer',
     description: "A stringed instrument played by striking the strings with small hammers.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
     cost: S.gp(25),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,

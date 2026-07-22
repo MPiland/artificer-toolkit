@@ -22,17 +22,16 @@ function getScriptSrc(nonce?: string) {
     "script-src 'self'",
     nonce ? `'nonce-${nonce}'` : null,
     isDevelopment() ? "'unsafe-eval'" : null
-  ].filter(Boolean).join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 function getStyleSrc() {
   return "style-src 'self' 'unsafe-inline'"
 }
 
-const SUPABASE_CONNECT_SOURCES = [
-  'https://*.supabase.co',
-  'wss://*.supabase.co'
-] as const
+const SUPABASE_CONNECT_SOURCES = ['https://*.supabase.co', 'wss://*.supabase.co'] as const
 
 const LOCAL_SUPABASE_CONNECT_SOURCES = [
   'http://127.0.0.1:54321',
@@ -45,7 +44,7 @@ function getDevelopmentConnectSources() {
   if (!isDevelopment()) return []
 
   const sources = new Set<string>(LOCAL_SUPABASE_CONNECT_SOURCES)
-  const supabaseUrl = process.env.VITE_SUPABASE_URL
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
   if (supabaseUrl) {
     try {

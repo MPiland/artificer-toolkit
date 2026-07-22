@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -513,6 +514,8 @@ export const sorcerer: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
@@ -602,6 +605,7 @@ export const sorcerer: ClassAuthored = {
   ],
 
   resources: {
+    order: 1,
     id: classRowId(S, 5, 1),
     label: 'Sorcery Points',
     availableAtLevel: 2,
@@ -622,6 +626,7 @@ export const sorcerer: ClassAuthored = {
       label: 'Sorcerous Origin',
       description:
         'Choose a sorcerous origin, which describes the source of your innate magical power.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 1,
       order: 1
     },

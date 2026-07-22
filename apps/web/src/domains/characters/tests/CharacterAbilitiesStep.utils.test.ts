@@ -3,14 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { toCharacterFormValues } from '../characterBuilder.utils'
 import { characterBuilderPayloadFixture } from '../character.fixtures'
 import {
-  canMoveHitpointLevel,
   isHitpointProgressionComplete,
-  moveHitpointLevel,
   syncHitpointLevels
 } from '../steps/CharacterAbilitiesStep.utils'
 
 describe('character hit point progression', () => {
-  it('preserves Fighter 1 -> Wizard 1 -> Fighter 2 acquisition order', () => {
+  it('preserves existing multiclass acquisition order when new levels are added', () => {
     const character = toCharacterFormValues(characterBuilderPayloadFixture)
     character.intent.classes = [{ classId: 'class-fighter', classLevel: 1 }]
     character.intent.hitpoints.levels = []
@@ -66,31 +64,20 @@ describe('character hit point progression', () => {
     ])
   })
 
-  it('moves Wizard 1 above Fighter 2 without detaching either hit point value', () => {
-    const rows = [
-      { level: 1, classId: 'class-fighter', classLevel: 1, value: 12 },
-      { level: 2, classId: 'class-fighter', classLevel: 2, value: 8 },
-      { level: 3, classId: 'class-wizard', classLevel: 1, value: 6 }
-    ]
+  it('derives fixed values instead of preserving submitted totals', () => {
+    const character = toCharacterFormValues(characterBuilderPayloadFixture)
+    character.intent.classes = [{ classId: 'class-fighter', classLevel: 2 }]
 
-    expect(moveHitpointLevel(rows, 2, 'up')).toEqual([
-      { level: 1, classId: 'class-fighter', classLevel: 1, value: 12 },
-      { level: 2, classId: 'class-wizard', classLevel: 1, value: 6 },
-      { level: 3, classId: 'class-fighter', classLevel: 2, value: 8 }
-    ])
-  })
+    const rows = syncHitpointLevels({
+      character,
+      classReferences: characterBuilderPayloadFixture.references.classes,
+      resolvedAbilityScores: { CONSTITUTION: 12 },
+      rows: [
+        { level: 1, classId: 'class-fighter', classLevel: 1, value: 1 },
+        { level: 2, classId: 'class-fighter', classLevel: 2, value: 1 }
+      ]
+    })
 
-  it('rejects boundary moves and moves that would reverse levels of the same class', () => {
-    const rows = [
-      { level: 1, classId: 'class-fighter', classLevel: 1, value: 12 },
-      { level: 2, classId: 'class-fighter', classLevel: 2, value: 8 },
-      { level: 3, classId: 'class-wizard', classLevel: 1, value: 6 }
-    ]
-
-    expect(canMoveHitpointLevel(rows, 0, 'up')).toBe(false)
-    expect(canMoveHitpointLevel(rows, 2, 'down')).toBe(false)
-    expect(canMoveHitpointLevel(rows, 1, 'up')).toBe(false)
-    expect(canMoveHitpointLevel(rows, 0, 'down')).toBe(false)
-    expect(moveHitpointLevel(rows, 1, 'up')).toBe(rows)
+    expect(rows.map((row) => row.value)).toEqual([11, 7])
   })
 })

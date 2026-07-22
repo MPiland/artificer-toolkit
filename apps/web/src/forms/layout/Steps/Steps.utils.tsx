@@ -136,7 +136,7 @@ export function toAuthoringRailSummaries({
   const stepCount = summary?.stepCount ?? 0
   const completeCount = summary?.completeCount ?? 0
   const issueCount =
-    (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0) + (summary?.incompleteCount ?? 0)
+    (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0)
   const statusSummary: SummaryProps = hasChanges
     ? {
         label: 'status',
@@ -277,6 +277,7 @@ function toRailStatus(
     case 'error':
       return 'error'
     case 'incomplete':
+      if (mode === 'create' && !visited) return 'empty'
       return 'incomplete'
     case 'complete':
       if (mode === 'create' && !visited) return 'empty'

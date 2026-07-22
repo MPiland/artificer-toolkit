@@ -1,84 +1,108 @@
+import { useEffect, useRef, useState } from 'react'
+import { Button } from '@mantine/core'
+import { useStore } from '@tanstack/react-form'
 import { withForm } from '#forms/app-form/AppForm'
 import type { CharacterBuilderGrantSummaryItemDto } from '@artificer-toolkit/schema/api/characters'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   clearRaceDependents,
-  clearSubraceDependents,
   choiceOptions,
   createFallbackCharacterFormValues,
+  getAllChosenGrantChoices,
   type CharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  CHARACTER_BUILDER_TIMING_MEASURE,
+  completeCharacterBuilderTiming,
+  startCharacterBuilderTiming
+} from '../characterBuilder.performance'
+import { CharacterSelectionModal } from '../components/CharacterSelectionModal'
+import { buildRaceSelectionGroups } from '../components/characterSelectionOptions'
 import { CharacterChosenGrantChoices } from './CharacterChosenGrantChoices'
 import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
+import { mergeRaceFeaturePresentation } from './raceFeaturePresentation'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 
 export const CharacterRaceStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterRace({ form, payload, readOnly }) {
+    const [raceChooserOpened, setRaceChooserOpened] = useState(false)
+    const [stagedRaceId, setStagedRaceId] = useState<string | null>(null)
+    const raceIntent = useStore(form.store, (state) => state.values.intent.race)
+    const ancestrySelections = useStore(
+      form.store,
+      (state) => state.values.intent.ancestrySelections
+    )
+    const measuredAncestryOptionRef = useRef<string | undefined>(undefined)
     const raceView = payload.view.race
+    const selectedRaceId = raceIntent.subraceId
+      ?? raceIntent.raceId
+      ?? null
+    const selectedRace = payload.references.races.find((race) => race.id === selectedRaceId)
+    const selectedRaceLabel = selectedRace?.label
+      ?? [...raceView.raceOptions, ...raceView.subraceOptions]
+        .find((option) => option.id === selectedRaceId)?.label
+    const raceSelectionGroups = buildRaceSelectionGroups(
+      payload.references.races,
+      [...raceView.raceOptions, ...raceView.subraceOptions]
+    )
     const hasAncestryFeature = raceView.ancestry
       ? raceView.features.some((feature) => isAncestryFeature(feature, raceView.ancestry?.label))
       : false
+    const featureGrantChoices = raceView.grantChoices.filter((choice) => choice.ownerFeatureId)
+    const standaloneGrantChoices = raceView.grantChoices.filter((choice) => !choice.ownerFeatureId)
+    const selectedAncestryOptionId = raceView.ancestry
+      ? getSelectedAncestryOptionId(
+          ancestrySelections,
+          raceView.ancestry.ancestryId,
+          raceIntent
+        )
+      : undefined
+    const previewFeatures = selectedRace?.ancestry?.options.find(
+      (option) => option.id === selectedAncestryOptionId
+    )?.features
+    const raceFeatures = mergeRaceFeaturePresentation(
+      selectedAncestryOptionId && selectedAncestryOptionId !== raceView.ancestry?.selectedOptionId
+        ? [
+            ...raceView.features.filter((feature) => feature.source.kind !== 'ANCESTRY'),
+            ...(previewFeatures ?? [])
+          ]
+        : raceView.features
+    )
+    const allGrantChoices = getAllChosenGrantChoices(payload.view)
+
+    useEffect(() => {
+      if (!selectedAncestryOptionId || !previewFeatures?.length) return
+      if (measuredAncestryOptionRef.current === selectedAncestryOptionId) return
+
+      measuredAncestryOptionRef.current = selectedAncestryOptionId
+      completeCharacterBuilderTiming({
+        endMark: CHARACTER_BUILDER_TIMING_MARK.ANCESTRY_PREVIEW,
+        measure: CHARACTER_BUILDER_TIMING_MEASURE.ANCESTRY_PREVIEW,
+        startMark: CHARACTER_BUILDER_TIMING_MARK.ANCESTRY_INTENT
+      })
+    }, [previewFeatures, selectedAncestryOptionId])
 
     return (
       <section className={styles.section} aria-labelledby='character-race-title'>
         <div className={styles.sectionHeader}>
-          <h3 id='character-race-title' className={styles.sectionTitle}>Race</h3>
-        </div>
-        <div className={styles.fieldGrid}>
-          <div className={styles.fieldSpan6}>
-            <form.AppField name='intent.race.raceId'>
-              {(field) => (
-                <AppSelect
-                  label='Race'
-                  data={choiceOptions(raceView.raceOptions)}
-                  value={field.state.value}
-                  required
-                  disabled={readOnly}
-                  onChange={(value) => {
-                    if (readOnly) return
-                    form.setFieldValue('intent', clearRaceDependents({
-                      ...form.state.values,
-                      intent: {
-                        ...form.state.values.intent,
-                        race: { raceId: value ?? '' }
-                      }
-                    }).intent)
-                  }}
-                />
-              )}
-            </form.AppField>
-          </div>
-          {raceView.subraceOptions.length
+          <h3 id='character-race-title' className={styles.sectionTitle}>
+            {selectedRaceLabel ?? 'No race selected'}
+          </h3>
+          {!readOnly
             ? (
-                <div className={styles.fieldSpan6}>
-                  <form.AppField name='intent.race.subraceId'>
-                    {(field) => (
-                      <AppSelect
-                        label='Subrace'
-                        data={choiceOptions(raceView.subraceOptions)}
-                        value={field.state.value}
-                        clearable
-                        disabled={readOnly}
-                        onChange={(value) => {
-                          if (readOnly) return
-                          form.setFieldValue('intent', clearSubraceDependents({
-                            ...form.state.values,
-                            intent: {
-                              ...form.state.values.intent,
-                              race: {
-                                ...form.state.values.intent.race,
-                                subraceId: value ?? undefined
-                              }
-                            }
-                          }).intent)
-                        }}
-                      />
-                    )}
-                  </form.AppField>
-                </div>
+                <Button
+                  type='button'
+                  onClick={() => {
+                    setStagedRaceId(null)
+                    setRaceChooserOpened(true)
+                  }}
+                >
+                  {selectedRaceId ? 'Change Race' : 'Choose Race'}
+                </Button>
               )
             : null}
         </div>
@@ -87,30 +111,78 @@ export const CharacterRaceStep = withForm({
           : null}
         <form.AppField name='intent.chosenGrantSelections'>
           {(field) => (
-            <CharacterChosenGrantChoices
-              choices={raceView.grantChoices}
-              selections={field.state.value}
-              readOnly={readOnly}
-              onChange={field.handleChange}
-            />
+            <>
+              <CharacterChosenGrantChoices
+                allChoices={allGrantChoices}
+                choices={standaloneGrantChoices}
+                selections={field.state.value}
+                readOnly={readOnly}
+                onChange={field.handleChange}
+              />
+              <form.AppField name='intent.featureAcquisitions'>
+                {(featureField) => (
+                  <CharacterGrantedFeatures
+                    features={raceFeatures}
+                    choices={raceView.featureChoices}
+                    acquisitions={featureField.state.value}
+                    readOnly={readOnly}
+                    showTitle={false}
+                    showSourceBadge={false}
+                    renderFeatureControls={(feature) => (
+                      <>
+                        {isAncestryFeature(feature, raceView.ancestry?.label)
+                          ? renderAncestryChoiceControl()
+                          : null}
+                        <CharacterChosenGrantChoices
+                          allChoices={allGrantChoices}
+                          choices={featureGrantChoices.filter((choice) => choice.ownerFeatureId === feature.id)}
+                          presentation='controls'
+                          selections={field.state.value}
+                          readOnly={readOnly}
+                          onChange={field.handleChange}
+                        />
+                      </>
+                    )}
+                    onChange={featureField.handleChange}
+                  />
+                )}
+              </form.AppField>
+            </>
           )}
         </form.AppField>
-        <form.AppField name='intent.featureAcquisitions'>
-          {(field) => (
-            <CharacterGrantedFeatures
-              features={raceView.features}
-              choices={raceView.featureChoices}
-              acquisitions={field.state.value}
-              readOnly={readOnly}
-              renderFeatureControls={(feature) => (
-                isAncestryFeature(feature, raceView.ancestry?.label)
-                  ? renderAncestryChoiceControl()
-                  : null
-              )}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
+        <CharacterSelectionModal
+          title='Choose a race'
+          description='Compare playable races and subraces before adding one to this character.'
+          actionLabel={selectedRaceId ? 'Change Race' : 'Choose Race'}
+          currentId={selectedRaceId}
+          groups={raceSelectionGroups}
+          opened={raceChooserOpened}
+          selectedId={stagedRaceId}
+          onSelectedIdChange={setStagedRaceId}
+          onClose={() => {
+            setStagedRaceId(null)
+            setRaceChooserOpened(false)
+          }}
+          onCommit={(nextRaceId) => {
+            const nextRace = payload.references.races.find((race) => race.id === nextRaceId)
+            if (!nextRace || readOnly) return
+            if (nextRaceId === selectedRaceId) {
+              setStagedRaceId(null)
+              setRaceChooserOpened(false)
+              return
+            }
+            const clearedCharacter = clearRaceDependents(form.state.values)
+
+            form.setFieldValue('intent', {
+              ...clearedCharacter.intent,
+              race: nextRace.category === 'SUBRACE' && nextRace.parentRaceId
+                ? { raceId: nextRace.parentRaceId, subraceId: nextRace.id }
+                : { raceId: nextRace.id }
+            })
+            setStagedRaceId(null)
+            setRaceChooserOpened(false)
+          }}
+        />
       </section>
     )
 
@@ -124,7 +196,7 @@ export const CharacterRaceStep = withForm({
             const selectedAncestryOptionId = getSelectedAncestryOptionId(
               field.state.value,
               ancestry.ancestryId,
-              form.state.values.intent.race
+              raceIntent
             )
 
             return (
@@ -136,7 +208,7 @@ export const CharacterRaceStep = withForm({
                 disabled={readOnly}
                 onChange={(value) => {
                   if (!value || readOnly) return
-                  const raceIntent = form.state.values.intent.race
+                  startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.ANCESTRY_INTENT)
                   field.handleChange([
                     {
                       id: crypto.randomUUID(),

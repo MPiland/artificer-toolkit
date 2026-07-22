@@ -4,6 +4,7 @@ import {
   ensureDefaultStartingEquipmentGroupOptions,
   formatStartingEquipmentChoiceLabel,
   formatStartingEquipmentItem,
+  formatStartingEquipmentItems,
   getStartingEquipmentItemOptions,
   getStartingEquipmentSelections,
   setStartingEquipmentGoldTotal,
@@ -70,7 +71,33 @@ describe('CharacterStartingEquipmentChoices utils', () => {
       quantity: 1,
       authoringModeKind: 'SELECTED',
       equipmentIds: ['greataxe']
-    }, [{ id: 'greataxe', label: 'Greataxe' }], [])).toBe('1 Greataxe')
+    }, [{ id: 'greataxe', label: 'Greataxe' }], [])).toBe('Greataxe')
+  })
+
+  it('formats fixed equipment as a natural-language list', () => {
+    expect(formatStartingEquipmentItems([
+      {
+        id: 'explorers-pack',
+        order: 1,
+        startingEquipmentKind: 'EQUIPMENT',
+        selectionKind: 'GRANTED',
+        quantity: 1,
+        authoringModeKind: 'SELECTED',
+        equipmentIds: ['explorers-pack']
+      },
+      {
+        id: 'javelins',
+        order: 2,
+        startingEquipmentKind: 'EQUIPMENT',
+        selectionKind: 'GRANTED',
+        quantity: 4,
+        authoringModeKind: 'SELECTED',
+        equipmentIds: ['javelin']
+      }
+    ], [
+      { id: 'explorers-pack', label: "Explorer's Pack" },
+      { id: 'javelin', label: 'Javelin' }
+    ], [])).toBe("Explorer's Pack and 4 Javelins")
   })
 
   it('defaults single-option starting equipment groups without making the user choose the obvious option', () => {

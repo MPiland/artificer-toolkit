@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -444,6 +445,8 @@ export const ranger: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 2,
+    order: 0,
     ability: ABILITY_CODE.WISDOM,
     maxSpellLevel: 5,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
@@ -686,6 +689,7 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 5),
       label: 'Ranger Archetype',
       description: 'At 3rd level, you choose an archetype that you strive to emulate.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
     },

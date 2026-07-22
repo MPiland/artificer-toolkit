@@ -15,11 +15,13 @@ import {
   createFallbackCharacterFormValues,
   createStartingEquipmentDecision,
   getAssignedAbilityCodes,
+  getAbilityDraftSlots,
   getCharacterBuilderResolutionFingerprint,
   getInactiveAbilityIntentMethodLabels,
   getReadinessMessages,
   normalizeCharacterForCommit,
   normalizeCharacterForDraft,
+  setAbilityDraftSlots,
   toCharacterFormValues,
   totalClassLevel
 } from '../characterBuilder.utils'
@@ -196,6 +198,43 @@ describe('character builder utilities', () => {
         ]
       }
     })
+  })
+
+  it('keeps six partial ability slots per method while canonical intent contains only complete pairs', () => {
+    const values = createFallbackCharacterFormValues()
+    const standardSlots = [
+      { ability: 'STRENGTH' as const, option: '15' },
+      { option: '14' },
+      {},
+      {},
+      {},
+      {}
+    ]
+    const standard = setAbilityDraftSlots(
+      undefined,
+      values.intent.abilities,
+      CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY,
+      standardSlots
+    )
+
+    expect(standard.abilities).toEqual({
+      method: CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY,
+      assignments: [{ ability: 'STRENGTH', option: '15' }]
+    })
+    expect(standard.cache.drafts?.STANDARD_ARRAY?.slots).toHaveLength(6)
+
+    const pointBuy = setAbilityDraftSlots(
+      standard.cache,
+      standard.abilities,
+      CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY,
+      [{ ability: 'DEXTERITY', option: '14' }, {}, {}, {}, {}, {}]
+    )
+
+    expect(getAbilityDraftSlots(
+      pointBuy.cache,
+      pointBuy.abilities,
+      CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
+    )).toEqual(standardSlots)
   })
 
   it('includes the active base revision when saving edit drafts', () => {

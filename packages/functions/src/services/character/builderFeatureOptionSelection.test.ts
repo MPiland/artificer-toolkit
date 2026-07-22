@@ -13,6 +13,7 @@ const repositoryState = vi.hoisted(() => ({
 vi.mock('@artificer-toolkit/db', () => ({
   createSystemRepository: () => ({ findById: async () => null }),
   createRaceRepository: () => ({
+    findResolvedAll: async () => repositoryState.races,
     findResolvedById: async (id: string) =>
       repositoryState.races.find((record) => record.id === id) ?? null
   }),

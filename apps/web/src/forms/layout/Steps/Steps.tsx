@@ -9,13 +9,10 @@ import { Footer } from './Footer/Footer'
 import { Collapse, Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
 import {
-  aggregateRailStatus,
   toAuthoringNavigationRailItems,
   toAuthoringRailItems
 } from './Steps.utils'
 import { clsx } from 'clsx'
-import { readReactNodeText } from '../AuthoringLayout.utils'
-import type { ItemProps } from './Item/Item.types'
 
 export function Steps() {
   const {
@@ -35,9 +32,7 @@ export function Steps() {
     goToStep,
     mode,
     navigationTree,
-    stepStatuses,
-    subjectKindLabel,
-    subjectLabel
+    stepStatuses
   } = useAuthoringForm()
 
   const handleStepSelect = useCallback(
@@ -90,17 +85,7 @@ export function Steps() {
           visitedStepIds
         })
 
-    const rootItem: ItemProps = {
-      children: items.map((item) => offsetRailLevel(item, 1)),
-      expanded: true,
-      icon: 'cube',
-      id: 'authoring-subject-root',
-      label: readReactNodeText(subjectLabel) ?? subjectKindLabel,
-      level: 0,
-      status: aggregateRailStatus(items.map((item) => item.status))
-    }
-
-    return [rootItem]
+    return items
   }, [
     activeSections,
     handleStepSelect,
@@ -109,8 +94,6 @@ export function Steps() {
     navigationTree,
     stepId,
     stepStatuses,
-    subjectKindLabel,
-    subjectLabel,
     visibleSteps,
     visitedStepIds
   ])
@@ -162,12 +145,4 @@ export function Steps() {
       </Rail>
     </Collapse>
   )
-}
-
-function offsetRailLevel(item: ItemProps, amount: number): ItemProps {
-  return {
-    ...item,
-    children: item.children?.map((child) => offsetRailLevel(child, amount)),
-    level: (item.level ?? 0) + amount
-  }
 }

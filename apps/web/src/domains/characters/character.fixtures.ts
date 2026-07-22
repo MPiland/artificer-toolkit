@@ -181,6 +181,42 @@ export const characterBuilderPayloadFixture = {
     recommendedSectionId: 'BASICS'
   },
   references: {
+    abilities: [
+      { id: 'STRENGTH', label: 'Strength' },
+      { id: 'DEXTERITY', label: 'Dexterity' },
+      { id: 'CONSTITUTION', label: 'Constitution' },
+      { id: 'INTELLIGENCE', label: 'Intelligence' },
+      { id: 'WISDOM', label: 'Wisdom' },
+      { id: 'CHARISMA', label: 'Charisma' }
+    ],
+    advancementMethods: [
+      { id: 'MILESTONE', label: 'Milestone' },
+      { id: 'EXPERIENCE', label: 'Experience' }
+    ],
+    abilityGenerationMethods: [
+      { id: 'STANDARD_ARRAY', label: 'Standard Array' },
+      { id: 'POINT_BUY', label: 'Point Buy' },
+      { id: 'MANUAL_ROLLED', label: 'Manual / Rolled' }
+    ],
+    hitpointCalculationMethods: [
+      { id: 'FIXED', label: 'Fixed' },
+      { id: 'MANUAL', label: 'Manual' }
+    ],
+    standardArrayScores: ['8', '10', '12', '13', '14', '15'].map((score) => ({
+      id: score,
+      label: score
+    })),
+    pointBuyScores: [
+      { id: '8', label: '8', cost: 0 },
+      { id: '9', label: '9', cost: 1 },
+      { id: '10', label: '10', cost: 2 },
+      { id: '11', label: '11', cost: 3 },
+      { id: '12', label: '12', cost: 4 },
+      { id: '13', label: '13', cost: 5 },
+      { id: '14', label: '14', cost: 7 },
+      { id: '15', label: '15', cost: 9 }
+    ],
+    pointBuyTotalPoints: 27,
     races: [
       {
         id: 'race-elf',
@@ -190,8 +226,8 @@ export const characterBuilderPayloadFixture = {
           id: 'ancestry-elf',
           label: 'Elven Lineage',
           options: [
-            { id: 'ancestry-ocean', label: 'Ocean' },
-            { id: 'ancestry-forest', label: 'Forest' }
+            { id: 'ancestry-ocean', label: 'Ocean', features: [] },
+            { id: 'ancestry-forest', label: 'Forest', features: [] }
           ]
         }
       },
@@ -203,7 +239,24 @@ export const characterBuilderPayloadFixture = {
         ancestry: {
           id: 'ancestry-elf',
           label: 'Elven Lineage',
-          options: [{ id: 'ancestry-ocean', label: 'Ocean' }]
+          options: [
+            { id: 'ancestry-ocean', label: 'Ocean', features: [] },
+            {
+              id: 'ancestry-forest',
+              label: 'Forest',
+              features: [{
+                id: 'feature-forest-adaptation',
+                label: 'Forest Adaptation',
+                description: '<p>You move confidently through wooded terrain.</p>',
+                sourceLabel: 'Forest',
+                source: {
+                  kind: 'ANCESTRY',
+                  ancestryId: 'ancestry-elf',
+                  optionId: 'ancestry-forest'
+                }
+              }]
+            }
+          ]
         }
       }
     ],
@@ -234,7 +287,16 @@ export const characterBuilderPayloadFixture = {
         specializations: [{ id: 'scribe-awakened', label: 'Awakened Quill' }]
       }
     ],
-    backgrounds: [{ id: 'background-sage', label: 'Sage' }],
+    backgrounds: [{
+      id: 'background-sage',
+      label: 'Sage',
+      description: '<p>You spent years learning the lore of the multiverse.</p>',
+      summary: 'You spent years learning the lore of the multiverse.',
+      grantFacts: [{ label: 'Skills', value: 'Arcana, History' }],
+      featureLabels: ['Researcher'],
+      hiddenGrantFactCount: 0,
+      hiddenFeatureCount: 0
+    }],
     equipment: [
       { id: 'equipment-staff', label: 'Quarterstaff' },
       { id: 'equipment-pack', label: 'Scholar Pack' }
@@ -242,6 +304,14 @@ export const characterBuilderPayloadFixture = {
     currencies: [
       { id: 'gp', label: 'Gold' },
       { id: 'sp', label: 'Silver' }
+    ],
+    alignments: [
+      { id: 'lawful-good', label: 'Lawful Good' },
+      { id: 'neutral-good', label: 'Neutral Good' }
+    ],
+    lifestyles: [
+      { id: 'modest', label: 'Modest' },
+      { id: 'comfortable', label: 'Comfortable' }
     ]
   },
   view: {
@@ -280,6 +350,15 @@ export const characterBuilderPayloadFixture = {
           classLabel: 'Wizard',
           classLevel: 1,
           grantChoices: [],
+          proficiencyGroups: [
+            {
+              category: 'SAVING_THROWS',
+              label: 'Saving Throws',
+              grantedEntries: ['Intelligence', 'Wisdom'],
+              choiceInstructions: [],
+              choiceIds: []
+            }
+          ],
           subclassOptions: [{ id: 'subclass-scribe', label: 'Order of Scribes' }],
           specializationOptions: [{ id: 'scribe-awakened', label: 'Awakened Quill' }],
           featureLabels: ['Spellcasting'],
@@ -293,20 +372,32 @@ export const characterBuilderPayloadFixture = {
             }
           ],
           featureChoices: [],
-          spellChoices: [],
-          resourceLabels: [],
-          spellcastingLabels: ['Wizard Spells']
+          spellChoices: []
         }
       ]
     },
     background: {
       grantChoices: [],
       backgroundOptions: [{ id: 'background-sage', label: 'Sage' }],
+      description: '<p>You spent years learning the lore of the multiverse.</p>',
+      detailSections: [{
+        label: 'Personality Traits',
+        details: [{
+          id: 'sage-trait-1',
+          label: 'Personality Trait 1',
+          description: '<p>I use polysyllabic words that convey the impression of great erudition.</p>'
+        }]
+      }],
       features: [
         {
           id: 'feature-researcher',
           label: 'Researcher',
           description: '<p>When you attempt to learn or recall lore, you know where to find it.</p>',
+          details: [{
+            id: 'researcher-sources',
+            label: 'Sources of information',
+            description: '<p>You know where and from whom information can be obtained.</p>'
+          }],
           sourceLabel: 'Sage',
           source: { kind: 'BACKGROUND', backgroundId: 'background-sage' }
         }

@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
   GRANT_KIND,
   type NodeSubjectCode,
+  PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE
 } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored, FeatAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -36,6 +39,7 @@ const repositoryCalls = vi.hoisted(() => ({
   featFindByIds: vi.fn(),
   featListQuery: vi.fn(),
   featureFindByIds: vi.fn(),
+  raceFindResolvedAll: vi.fn(),
   raceFindResolvedById: vi.fn(),
   raceListQuery: vi.fn(),
   spellListQuery: vi.fn(),
@@ -43,8 +47,21 @@ const repositoryCalls = vi.hoisted(() => ({
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
-  createSystemRepository: () => ({ findById: async () => null }),
-  createRaceRepository: () => ({ findResolvedById: repositoryCalls.raceFindResolvedById }),
+  createSystemRepository: () => ({
+    findById: async () => ({
+      skills: [
+        { id: 'religion', label: 'Religion' },
+        { id: 'medicine', label: 'Medicine' },
+        { id: 'animal-handling', label: 'Animal Handling' }
+      ],
+      languages: [],
+      speeds: []
+    })
+  }),
+  createRaceRepository: () => ({
+    findResolvedAll: repositoryCalls.raceFindResolvedAll,
+    findResolvedById: repositoryCalls.raceFindResolvedById
+  }),
   createClassRepository: () => ({ findByIds: repositoryCalls.classFindByIds }),
   createBackgroundRepository: () => ({ findByIds: repositoryCalls.backgroundFindByIds }),
   createEquipmentRepository: () => ({
@@ -230,6 +247,7 @@ describe('character Builder conditional spell registry loading', () => {
     repositoryCalls.raceFindResolvedById.mockImplementation(
       async (id: string) => repositoryState.races.find((record) => record.id === id) ?? null
     )
+    repositoryCalls.raceFindResolvedAll.mockImplementation(async () => repositoryState.races)
     repositoryCalls.raceListQuery.mockImplementation(async () => ({
       items: repositoryState.races.map((record) => ({
         id: record.id,
@@ -329,6 +347,106 @@ describe('character Builder conditional spell registry loading', () => {
 
     expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
     expect(resolution.catalog.spells).toEqual([])
+  })
+
+  it('hydrates unselected catalog records for chooser comparison metadata', async () => {
+    const selectedRace = createRace('human')
+    const unselectedRace = { ...createRace('tiefling'), description: 'Infernal bloodline.' }
+    const selectedClass = createFighter()
+    const unselectedClass = {
+      ...createCleric(),
+      description: 'Divine spellcaster.',
+      proficiencies: [
+        {
+          id: 'cleric-light-armor',
+          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+          proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+          level: SCALING_AMOUNT_KIND.FULL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          properties: ['LIGHT'],
+          category: 'ARMOR',
+          order: 0
+        },
+        {
+          id: 'cleric-skills',
+          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+          proficiencyKind: PROFICIENCY_KIND.SKILL,
+          level: SCALING_AMOUNT_KIND.FULL,
+          selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+          selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          skillIds: ['religion', 'medicine'],
+          count: 1,
+          order: 1
+        },
+        {
+          id: 'cleric-shields',
+          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+          proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+          level: SCALING_AMOUNT_KIND.FULL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.ALL,
+          category: 'SHIELD',
+          order: 2
+        }
+      ]
+    } satisfies Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>
+    repositoryState.races = [selectedRace, unselectedRace]
+    repositoryState.classes = [selectedClass, unselectedClass]
+    const unselectedBackground = {
+      kind: 'BACKGROUND' as const,
+      id: 'background-acolyte',
+      label: 'Acolyte',
+      description: 'You have spent your life in service.',
+      userId: 'user-1',
+      systemId: 'system-1',
+      features: [{
+        id: 'shelter-of-the-faithful',
+        label: 'Shelter of the Faithful',
+        description: 'Faithful allies provide support.',
+        order: 0
+      }]
+    }
+    repositoryCalls.backgroundListQuery.mockResolvedValue({
+      items: [{ id: unselectedBackground.id, label: unselectedBackground.label }],
+      meta: {}
+    })
+    repositoryCalls.backgroundFindByIds.mockResolvedValue(
+      new Map([[unselectedBackground.id, unselectedBackground]])
+    )
+
+    const resolution = await resolveCharacterBuilder(
+      {} as never,
+      createCharacter(selectedRace.id, selectedClass.id),
+      'create'
+    )
+
+    expect(resolution.registry.races.map((race) => race.id)).toEqual([selectedRace.id])
+    expect(resolution.catalog.races.find((race) => race.id === unselectedRace.id)).toMatchObject({
+      description: 'Infernal bloodline.',
+      sizeLabel: 'Medium',
+      speedLabels: [],
+      abilityScoreIncreaseDescriptions: []
+    })
+    expect(resolution.catalog.classes.find((record) => record.id === unselectedClass.id)).toMatchObject({
+      description: 'Divine spellcaster.',
+      hitpoint: unselectedClass.hitpoint,
+      savingThrowLabels: [],
+      proficiencyGroups: [
+        { label: 'Armor', entries: ['Light armor', 'Shields'] },
+        { label: 'Skills', entries: ['Choose 1 from Medicine, Religion'] }
+      ]
+    })
+    expect(resolution.catalog.backgrounds).toEqual([{
+      id: unselectedBackground.id,
+      label: unselectedBackground.label,
+      description: unselectedBackground.description,
+      featureLabels: ['Shelter of the Faithful']
+    }])
   })
 
   it('passes only current-level feature ids to selected-root repositories', async () => {

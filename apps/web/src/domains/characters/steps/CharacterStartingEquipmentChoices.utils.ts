@@ -193,9 +193,18 @@ export function formatStartingEquipmentOption(
   equipmentOptions: CharacterBuilderChoiceOptionDto[],
   currencyOptions: CharacterBuilderChoiceOptionDto[]
 ): string {
-  return option.items
-    .map((item) => formatStartingEquipmentItem(item, equipmentOptions, currencyOptions))
-    .join(' + ') || `Option ${option.order}`
+  return formatStartingEquipmentItems(option.items, equipmentOptions, currencyOptions)
+    || `Option ${option.order}`
+}
+
+export function formatStartingEquipmentItems(
+  items: StartingEquipmentItem[],
+  equipmentOptions: CharacterBuilderChoiceOptionDto[],
+  currencyOptions: CharacterBuilderChoiceOptionDto[]
+): string {
+  return formatNaturalList(
+    items.map((item) => formatStartingEquipmentItem(item, equipmentOptions, currencyOptions))
+  )
 }
 
 export function formatStartingEquipmentChoiceLabel(
@@ -340,7 +349,31 @@ function formatStartingEquipmentTarget(
 }
 
 function formatQuantity(quantity: number, target: string): string {
-  return quantity === 1 ? `1 ${target}` : `${quantity} x ${target}`
+  return quantity === 1 ? target : `${quantity} ${pluralizeLastWord(target)}`
+}
+
+function formatNaturalList(values: string[]): string {
+  if (values.length < 2) return values[0] ?? ''
+  if (values.length === 2) return `${values[0]} and ${values[1]}`
+
+  return `${values.slice(0, -1).join(', ')}, and ${values.at(-1)}`
+}
+
+function pluralizeLastWord(value: string): string {
+  const match = value.match(/^(.*?)([^\s]+)$/)
+  if (!match) return value
+
+  const [, prefix, word] = match
+  const lowerWord = word.toLowerCase()
+  let plural = `${word}s`
+
+  if (/(s|x|z|ch|sh)$/.test(lowerWord)) {
+    plural = `${word}es`
+  } else if (/[^aeiou]y$/.test(lowerWord)) {
+    plural = `${word.slice(0, -1)}ies`
+  }
+
+  return `${prefix}${plural}`
 }
 
 function toReadableToken(value: string): string {

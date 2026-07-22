@@ -7,7 +7,7 @@ export const viol: EquipmentAuthored = {
     label: 'Viol',
     description: "A bowed string instrument held between the legs, ancestor of the modern cello.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
     cost: S.gp(30),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

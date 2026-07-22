@@ -78,7 +78,15 @@ function createResolution(): CharacterBuilderResolution {
         { id: 'class-1', label: 'Fighter', category: 'BASE' },
         { id: 'class-2', label: 'Rogue', category: 'BASE' }
       ],
-      backgrounds: [{ id: 'background-1', label: 'Sage' }],
+      backgrounds: [{
+        id: 'background-1',
+        label: 'Sage',
+        summary: '',
+        grantFacts: [],
+        featureLabels: [],
+        hiddenGrantFactCount: 0,
+        hiddenFeatureCount: 0
+      }],
       equipment: [],
       feats: [{ id: 'feat-1', label: 'Alert' }],
       spells: [{

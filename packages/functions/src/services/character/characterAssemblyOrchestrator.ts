@@ -106,7 +106,10 @@ export async function loadCharacterAssemblyRegistry(params: {
         selectedRaceIds.map((raceId) =>
           raceRepository.findResolvedById(raceId, {
             systemId: character.systemId,
-            ...selectedFeatureOptions
+            // The builder exposes every ancestry option as an immediate, backend-supplied preview.
+            // Restricting this query to the active assembly plan leaves every other option without
+            // its feature summaries until a later resolver request completes.
+            includeFeatureEffects: false
           })
         )
       ).then((records) =>

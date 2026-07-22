@@ -14,10 +14,20 @@ import {
   characterBuilderSteps,
   createFallbackCharacterFormValues,
   getAssignedAbilityCodes,
-  getCharacterBuilderResolutionFingerprint,
+  getCharacterBuilderDeferredResolutionFingerprint,
+  getCharacterBuilderImmediateResolutionFingerprint,
+  getCharacterBuilderIssueStepId,
+  getCharacterBuilderValidationStepId,
+  toCharacterFormValues,
   type CharacterBuilderStepId,
   type CharacterFormValues
 } from '../characterBuilder.utils'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  CHARACTER_BUILDER_TIMING_MEASURE,
+  completeCharacterBuilderTiming,
+  startCharacterBuilderTiming
+} from '../characterBuilder.performance'
 import * as styles from '../characterBuilder.css'
 import { CharacterBasicsStep } from '../steps/CharacterBasicsStep'
 import { CharacterRaceStep } from '../steps/CharacterRaceStep'
@@ -39,15 +49,18 @@ export type CharacterBuilderRendererProps = {
 export const CharacterBuilderRenderer = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderRendererProps,
-  render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 450 }) {
+  render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
     const authoring = useAuthoringForm()
     const {
       updateAuthoringFormActions,
       updateAuthoringFormState
     } = authoring
     const values = useStore(form.store, (state) => state.values)
-    const resolutionFingerprint = useStore(form.store, (state) =>
-      getCharacterBuilderResolutionFingerprint(state.values)
+    const immediateResolutionFingerprint = useStore(form.store, (state) =>
+      getCharacterBuilderImmediateResolutionFingerprint(state.values)
+    )
+    const deferredResolutionFingerprint = useStore(form.store, (state) =>
+      getCharacterBuilderDeferredResolutionFingerprint(state.values)
     )
     const submitState = useStore(form.store, (state) => ({
       canSubmit: state.canSubmit,
@@ -69,22 +82,56 @@ export const CharacterBuilderRenderer = withForm({
         })),
       []
     )
+    const payloadFormValues = useMemo(() => toCharacterFormValues(payload), [payload])
+    const resolutionPending =
+      immediateResolutionFingerprint !== getCharacterBuilderImmediateResolutionFingerprint(payloadFormValues)
+      || deferredResolutionFingerprint !== getCharacterBuilderDeferredResolutionFingerprint(payloadFormValues)
+    const [isResolving, setIsResolving] = useState(false)
     const progress = useMemo(
-      () => getCharacterBuilderProgress(payload, values),
-      [payload, values]
+      () => getCharacterBuilderProgress(payload, isResolving ? payloadFormValues : values),
+      [isResolving, payload, payloadFormValues, values]
     )
     const latestValuesRef = useRef(values)
     latestValuesRef.current = values
+    const previousImmediateFingerprintRef = useRef(immediateResolutionFingerprint)
+    const resolveRequestIdRef = useRef(0)
 
     useEffect(() => {
-      if (authoring.readOnly) return
+      if (authoring.readOnly || !resolutionPending) {
+        setIsResolving(false)
+        return
+      }
 
+      const resolvesImmediately =
+        previousImmediateFingerprintRef.current !== immediateResolutionFingerprint
+      previousImmediateFingerprintRef.current = immediateResolutionFingerprint
+      const requestId = resolveRequestIdRef.current + 1
+      resolveRequestIdRef.current = requestId
+      setIsResolving(true)
+      startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.RESOLUTION_INTENT)
       const timeoutId = window.setTimeout(() => {
-        void onResolve(latestValuesRef.current)
-      }, resolveDebounceMs)
+        void Promise.resolve(onResolve(latestValuesRef.current)).finally(() => {
+          if (resolveRequestIdRef.current === requestId) setIsResolving(false)
+        })
+      }, resolvesImmediately ? 0 : resolveDebounceMs)
 
       return () => window.clearTimeout(timeoutId)
-    }, [authoring.readOnly, onResolve, resolutionFingerprint, resolveDebounceMs])
+    }, [
+      authoring.readOnly,
+      deferredResolutionFingerprint,
+      immediateResolutionFingerprint,
+      onResolve,
+      resolveDebounceMs,
+      resolutionPending
+    ])
+
+    useEffect(() => {
+      completeCharacterBuilderTiming({
+        endMark: CHARACTER_BUILDER_TIMING_MARK.RESOLUTION_RECONCILED,
+        measure: CHARACTER_BUILDER_TIMING_MEASURE.RESOLUTION,
+        startMark: CHARACTER_BUILDER_TIMING_MARK.RESOLUTION_INTENT
+      })
+    }, [payload])
 
     const goToNextStep = useCallback(() => {
       setActiveStepId(
@@ -153,7 +200,7 @@ export const CharacterBuilderRenderer = withForm({
       <div className={styles.builderRoot}>
         <div className={styles.builderHeader}>
           <div>
-            <h2 className={styles.title}>{activeStep.label}</h2>
+            <h2 id='character-builder-active-step-title' className={styles.title}>{activeStep.label}</h2>
             <Text className={styles.stepDescription}>{activeStep.description}</Text>
           </div>
         </div>
@@ -162,33 +209,39 @@ export const CharacterBuilderRenderer = withForm({
             {payload.resolution.validations.map((validation) => validation.message).join(' ')}
           </Alert>
         ) : null}
-        {activeStep.id === 'BASICS' ? (
-          <CharacterBasicsStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'RACE' ? (
-          <CharacterRaceStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'CLASSES' ? (
-          <CharacterClassesStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'BACKGROUND' ? (
-          <CharacterBackgroundStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'DETAILS' ? (
-          <CharacterDetailsStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'NOTES' ? (
-          <CharacterNotesStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'ABILITIES' ? (
-          <CharacterAbilitiesStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'EQUIPMENT' ? (
-          <CharacterEquipmentStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
-        {activeStep.id === 'REVIEW' ? (
-          <CharacterReviewStep form={form} payload={payload} readOnly={authoring.readOnly} />
-        ) : null}
+        <div
+          className={styles.resolverContent}
+          aria-busy={isResolving}
+          aria-labelledby='character-builder-active-step-title'
+        >
+          {activeStep.id === 'BASICS' ? (
+            <CharacterBasicsStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'RACE' ? (
+            <CharacterRaceStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'CLASSES' ? (
+            <CharacterClassesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'BACKGROUND' ? (
+            <CharacterBackgroundStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'DETAILS' ? (
+            <CharacterDetailsStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'NOTES' ? (
+            <CharacterNotesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'ABILITIES' ? (
+            <CharacterAbilitiesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'EQUIPMENT' ? (
+            <CharacterEquipmentStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+          {activeStep.id === 'REVIEW' ? (
+            <CharacterReviewStep form={form} payload={payload} readOnly={authoring.readOnly} />
+          ) : null}
+        </div>
       </div>
     )
   }
@@ -200,9 +253,6 @@ type CharacterBuilderProgress = {
   progressSummary: AuthoringProgressSummary
   stepStatuses: AuthoringStepStatusMap
 }
-
-type CharacterBuilderIssue = CharacterBuilderPayloadDto['resolution']['outstandingChoices'][number]
-type CharacterBuilderValidation = CharacterBuilderPayloadDto['resolution']['validations'][number]
 
 const statusRank: Record<AuthoringStepProgressStatus, number> = {
   complete: 0,
@@ -228,13 +278,13 @@ function getCharacterBuilderProgress(
   }
 
   for (const issue of payload.resolution.outstandingChoices) {
-    setStepStatus(stepStatuses, getIssueStepId(issue), 'incomplete')
+    setStepStatus(stepStatuses, getCharacterBuilderIssueStepId(issue), 'incomplete')
   }
 
   for (const validation of payload.resolution.validations) {
     setStepStatus(
       stepStatuses,
-      getValidationStepId(validation),
+      getCharacterBuilderValidationStepId(validation),
       validation.severity === 'blocking' ? 'error' : 'warning'
     )
   }
@@ -306,42 +356,4 @@ function summarizeStepStatuses(
     },
     stepStatuses
   }
-}
-
-function getIssueStepId(issue: CharacterBuilderIssue): CharacterBuilderStepId {
-  return getSourceStepId(issue.source) ?? getTextStepId(`${issue.code} ${issue.message} ${issue.sourceLabel}`)
-}
-
-function getValidationStepId(validation: CharacterBuilderValidation): CharacterBuilderStepId {
-  return getTextStepId(`${validation.code} ${validation.message}`)
-}
-
-function getSourceStepId(source: CharacterBuilderIssue['source']): CharacterBuilderStepId | undefined {
-  if (!source) return undefined
-
-  switch (source.kind) {
-    case 'RACE':
-    case 'SUBRACE':
-    case 'ANCESTRY':
-      return 'RACE'
-    case 'CLASS':
-    case 'SUBCLASS':
-      return 'CLASSES'
-    case 'BACKGROUND':
-      return 'BACKGROUND'
-    default:
-      return undefined
-  }
-}
-
-function getTextStepId(text: string): CharacterBuilderStepId {
-  const normalized = text.toLowerCase()
-  if (normalized.includes('race') || normalized.includes('subrace') || normalized.includes('ancestry')) return 'RACE'
-  if (normalized.includes('class') || normalized.includes('subclass') || normalized.includes('spell')) return 'CLASSES'
-  if (normalized.includes('background')) return 'BACKGROUND'
-  if (normalized.includes('abilit') || normalized.includes('hitpoint') || normalized.includes('hit point')) return 'ABILITIES'
-  if (normalized.includes('equipment') || normalized.includes('currency') || normalized.includes('gold')) return 'EQUIPMENT'
-  if (normalized.includes('detail') || normalized.includes('profile') || normalized.includes('appearance')) return 'DETAILS'
-  if (normalized.includes('note') || normalized.includes('backstory')) return 'NOTES'
-  return 'REVIEW'
 }

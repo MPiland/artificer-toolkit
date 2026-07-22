@@ -19,6 +19,13 @@ Builder is intentionally distinct from node-map authoring: node maps structure a
 ## Invariants
 
 - Provenance and acquisition timing are carried through grants, choices, and history; do not reduce them to bare IDs.
+- Proficiency candidate eligibility is derived from effective fixed and chosen grants across all active sources. Do not add an authored eligibility flag or silently delete a stale conflicting selection; disable it with a reason and return a blocking validation.
+- Selected-class proficiency groups are presentation projections. They combine granted catalog labels and player-facing choice instructions with top-level choice IDs, while feature-owned choices stay with their feature; they are never written into canonical character intent.
+- Multiclass requirement evaluation is a shared pure rule used by both server validation and Builder class-option eligibility. A first class is unrestricted; a multiclass proposal requires complete abilities and every proposed class to pass its own requirement groups.
+- Builder references carry canonical option labels and numeric metadata for abilities, advancement, ability generation, hit-point methods, Standard Array, and Point Buy. Web and future native clients may add contextual presentation, but must not duplicate those registries or costs.
+- Builder references and step views are presentation projections: background descriptions/details, ancestry feature previews, and feature detail rows are read from authored records without changing character intent. Redundant proficiency and spell choices remain visible with their granting source so the resolver stays authoritative.
+- Starting-equipment choice labels are server-generated from authored selection filters plus canonical equipment category/property metadata. Clients render those labels and candidate records without duplicating equipment vocabulary.
+- Selected-class grant summaries are normalized on the server by availability level, authored presentation order, and stable kind/ID. Background references are compact derived projections; clients must not re-sort or persist them.
 - Preview is separate from commit and must surface destructive removals/status downgrades before persistence.
 - Engine input is ephemeral; services assemble it from current persisted state and never persist the snapshot itself.
 - Sheet commands mutate play-state through the event/repository path and return a refreshed, engine-derived Sheet.

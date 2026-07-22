@@ -31,6 +31,8 @@ const classBaseDtoSchema = z.object({
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
   spellcasting: z.object({
     spellLimits: z.array(classSpellLimitDtoSchema),
+    availableAtLevel: z.number().int().optional(),
+    order: z.number().int().optional(),
     details: z.array(detailDtoSchema).optional(),
     magicName: z.string().optional(),
     ability: abilityCodeSchema.optional(),

@@ -134,6 +134,8 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSp
 
   map
     .set('spellLimits', groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP, { presentation: 'table' }))
+    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
+    .set('order', number(['order'], 'Presentation Order'))
     .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { presentation: 'inline' }))
     .set('magicName', text(['magicName'], 'Magic Name'))
     .set('ability', selectSingle(['ability'], 'Spellcasting Ability', {
@@ -161,6 +163,7 @@ export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource',
     .set('label', text(['label'], 'Label'))
     .set('description', richText(['description'], 'Description'))
     .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
+    .set('order', number(['order'], 'Presentation Order'))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, { presentation: 'inline' }))
 })
 

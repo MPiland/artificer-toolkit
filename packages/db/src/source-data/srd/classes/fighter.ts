@@ -10,6 +10,7 @@ import {
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -379,6 +380,7 @@ export const fighter: ClassAuthored = {
     }
   ],
   resources: {
+    order: 0,
     id: classRowId(F, 5, 1),
     label: 'Second Wind',
     availableAtLevel: 1,
@@ -562,6 +564,7 @@ export const fighter: ClassAuthored = {
       label: 'Martial Archetype',
       description:
         'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 3
     },

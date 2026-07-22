@@ -1,11 +1,16 @@
+import { useState } from 'react'
+import { Button, Text } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
-import { AppSelect } from '#ui/primitives/Select'
+import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
 import {
   clearBackgroundDependents,
-  choiceOptions,
-  createFallbackCharacterFormValues
+  createFallbackCharacterFormValues,
+  getAllChosenGrantChoices,
+  isChoiceOptionDisabled
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import { CharacterSelectionModal } from '../components/CharacterSelectionModal'
+import { buildBackgroundSelectionGroups } from '../components/characterSelectionOptions'
 import { CharacterChosenGrantChoices } from './CharacterChosenGrantChoices'
 import { CharacterGrantedFeatures } from './CharacterGrantedFeatures'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
@@ -14,57 +19,132 @@ export const CharacterBackgroundStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterBackground({ form, payload, readOnly }) {
+    const [chooserOpened, setChooserOpened] = useState(false)
+    const [stagedBackgroundId, setStagedBackgroundId] = useState<string | null>(null)
+    const backgroundView = payload.view.background
+    const selectedBackgroundId = form.state.values.intent.background.backgroundId || null
+    const selectedBackground = payload.references.backgrounds.find(
+      (background) => background.id === selectedBackgroundId
+    )
+    const selectionGroups = buildBackgroundSelectionGroups(
+      payload.references.backgrounds,
+      backgroundView.backgroundOptions
+    )
+    const featureGrantChoices = backgroundView.grantChoices.filter((choice) => choice.ownerFeatureId)
+    const standaloneGrantChoices = backgroundView.grantChoices.filter((choice) => !choice.ownerFeatureId)
+    const allGrantChoices = getAllChosenGrantChoices(payload.view)
+
     return (
       <section className={styles.section} aria-labelledby='character-background-title'>
         <div className={styles.sectionHeader}>
-          <h3 id='character-background-title' className={styles.sectionTitle}>Background</h3>
-        </div>
-        <div className={styles.fieldGrid}>
-          <div className={styles.fieldSpan6}>
-            <form.AppField name='intent.background.backgroundId'>
-              {(field) => (
-                <AppSelect
-                  label='Background'
-                  data={choiceOptions(payload.view.background.backgroundOptions)}
-                  value={field.state.value}
-                  required
-                  disabled={readOnly}
-                  onChange={(value) => {
-                    if (readOnly) return
-                    form.setFieldValue('intent', clearBackgroundDependents({
-                      ...form.state.values,
-                      intent: {
-                        ...form.state.values.intent,
-                        background: { backgroundId: value ?? '' }
-                      }
-                    }).intent)
+          <h3 id='character-background-title' className={styles.sectionTitle}>
+            {selectedBackground?.label ?? 'No background selected'}
+          </h3>
+          {!readOnly
+            ? (
+                <Button
+                  type='button'
+                  onClick={() => {
+                    setStagedBackgroundId(null)
+                    setChooserOpened(true)
                   }}
-                />
-              )}
-            </form.AppField>
-          </div>
+                >
+                  {selectedBackgroundId ? 'Change Background' : 'Choose Background'}
+                </Button>
+              )
+            : null}
         </div>
+        {backgroundView.description?.trim()
+          ? <div className={styles.backgroundDescription}>{renderSanitizedRichHtml(backgroundView.description)}</div>
+          : null}
         <form.AppField name='intent.chosenGrantSelections'>
-          {(field) => (
-            <CharacterChosenGrantChoices
-              choices={payload.view.background.grantChoices}
-              selections={field.state.value}
-              readOnly={readOnly}
-              onChange={field.handleChange}
-            />
+          {(grantField) => (
+            <>
+              <CharacterChosenGrantChoices
+                allChoices={allGrantChoices}
+                choices={standaloneGrantChoices}
+                selections={grantField.state.value}
+                readOnly={readOnly}
+                onChange={grantField.handleChange}
+              />
+              <form.AppField name='intent.featureAcquisitions'>
+                {(featureField) => (
+                  <CharacterGrantedFeatures
+                    features={backgroundView.features}
+                    choices={backgroundView.featureChoices}
+                    acquisitions={featureField.state.value}
+                    readOnly={readOnly}
+                    showSourceBadge={false}
+                    showTitle={false}
+                    renderFeatureControls={(feature) => (
+                      <CharacterChosenGrantChoices
+                        allChoices={allGrantChoices}
+                        choices={featureGrantChoices.filter((choice) => choice.ownerFeatureId === feature.id)}
+                        presentation='controls'
+                        selections={grantField.state.value}
+                        readOnly={readOnly}
+                        onChange={grantField.handleChange}
+                      />
+                    )}
+                    onChange={featureField.handleChange}
+                  />
+                )}
+              </form.AppField>
+            </>
           )}
         </form.AppField>
-        <form.AppField name='intent.featureAcquisitions'>
-          {(field) => (
-            <CharacterGrantedFeatures
-              features={payload.view.background.features}
-              choices={payload.view.background.featureChoices}
-              acquisitions={field.state.value}
-              readOnly={readOnly}
-              onChange={field.handleChange}
-            />
-          )}
-        </form.AppField>
+        {backgroundView.detailSections.length
+          ? (
+              <details className={styles.suggestedCharacteristics}>
+                <summary className={styles.suggestedCharacteristicsSummary}>
+                  Suggested Characteristics
+                </summary>
+                <div className={styles.suggestedCharacteristicsContent}>
+                  {backgroundView.detailSections.map((section) => (
+                    <section key={section.label} className={styles.suggestedCharacteristicsGroup}>
+                      <Text fw={700}>{section.label}</Text>
+                      {section.details.map((detail) => (
+                        <div key={detail.id} className={styles.suggestedCharacteristic}>
+                          <Text fw={600} size='sm'>{detail.label}</Text>
+                          <div className={styles.grantedFeatureDescription}>
+                            {renderSanitizedRichHtml(detail.description)}
+                          </div>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </details>
+            )
+          : null}
+        <CharacterSelectionModal
+          title={selectedBackgroundId ? 'Change background' : 'Choose a background'}
+          description='Compare backgrounds and their defining features before choosing.'
+          actionLabel={selectedBackgroundId ? 'Change Background' : 'Choose Background'}
+          currentId={selectedBackgroundId}
+          groups={selectionGroups}
+          opened={chooserOpened}
+          selectedId={stagedBackgroundId}
+          onSelectedIdChange={setStagedBackgroundId}
+          onClose={() => {
+            setStagedBackgroundId(null)
+            setChooserOpened(false)
+          }}
+          onCommit={(backgroundId) => {
+            if (readOnly || isChoiceOptionDisabled(backgroundView.backgroundOptions, backgroundId)) return
+            if (backgroundId !== selectedBackgroundId) {
+              form.setFieldValue('intent', clearBackgroundDependents({
+                ...form.state.values,
+                intent: {
+                  ...form.state.values.intent,
+                  background: { backgroundId }
+                }
+              }).intent)
+            }
+            setStagedBackgroundId(null)
+            setChooserOpened(false)
+          }}
+        />
       </section>
     )
   }

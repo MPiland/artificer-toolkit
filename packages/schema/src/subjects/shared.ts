@@ -52,6 +52,7 @@ export const classResourceDtoSchema = z.object({
   label: z.string(),
   description: z.string().optional(),
   availableAtLevel: z.number().int(),
+  order: z.number().int().optional(),
   charges: chargeDtoSchema
 })
 export type ClassResourceDto = z.infer<typeof classResourceDtoSchema>

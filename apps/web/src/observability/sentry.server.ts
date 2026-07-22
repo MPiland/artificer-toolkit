@@ -25,8 +25,8 @@ export function initializeServerSentry(
       userInfo: false
     },
     dsn: environment.dsn,
-    enableLogs: false,
-    enableMetrics: false,
+    enableLogs: true,
+    enableMetrics: true,
     sendDefaultPii: false
   })
 }

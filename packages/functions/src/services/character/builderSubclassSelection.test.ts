@@ -9,7 +9,10 @@ const repositoryState = vi.hoisted(() => ({
 
 vi.mock('@artificer-toolkit/db', () => ({
   createSystemRepository: () => ({ findById: async () => null }),
-  createRaceRepository: () => ({ findResolvedById: async () => null }),
+  createRaceRepository: () => ({
+    findResolvedAll: async () => [],
+    findResolvedById: async () => null
+  }),
   createClassRepository: () => ({
     findByIds: async (ids: readonly string[]) => new Map(
       repositoryState.classes

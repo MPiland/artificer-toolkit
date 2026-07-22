@@ -6,70 +6,92 @@ import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 export const CharacterDetailsStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
-  render: function RenderCharacterDetails({ form, readOnly }) {
+  render: function RenderCharacterDetails({ form, payload, readOnly }) {
     return (
-      <section className={styles.section} aria-labelledby='character-details-title'>
-        <div className={styles.sectionHeader}>
-          <h3 id='character-details-title' className={styles.sectionTitle}>Personality & appearance</h3>
-        </div>
-        <div className={styles.fieldGrid}>
-          <div className={styles.fieldSpan4}>
+      <div className={styles.section}>
+        <section className={styles.stepFieldGroup} aria-labelledby='details-identity-title'>
+          <h3 id='details-identity-title' className={styles.stepFieldGroupTitle}>Identity</h3>
+          <div className={styles.fieldGrid}>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.alignmentId'>
-              {(field) => <field.TextField label='Alignment' readOnly={readOnly} />}
+              {(field) => (
+                <field.SelectField
+                  label='Alignment'
+                  data={payload.references.alignments.map(({ id, label }) => ({ value: id, label }))}
+                  readOnly={readOnly}
+                />
+              )}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.lifestyleId'>
-              {(field) => <field.TextField label='Lifestyle' readOnly={readOnly} />}
+              {(field) => (
+                <field.SelectField
+                  label='Lifestyle'
+                  data={payload.references.lifestyles.map(({ id, label }) => ({ value: id, label }))}
+                  readOnly={readOnly}
+                />
+              )}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.faith'>
               {(field) => <field.TextField label='Faith' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.gender'>
               {(field) => <field.TextField label='Gender' readOnly={readOnly} />}
             </form.AppField>
+            </div>
           </div>
-          <div className={styles.fieldSpan4}>
+        </section>
+        <section className={styles.stepFieldGroup} aria-labelledby='details-physical-title'>
+          <h3 id='details-physical-title' className={styles.stepFieldGroupTitle}>Physical profile</h3>
+          <div className={styles.fieldGrid}>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.age'>
               {(field) => <field.TextField label='Age' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.height'>
               {(field) => <field.TextField label='Height' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.weight'>
               {(field) => <field.TextField label='Weight' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.eyes'>
-              {(field) => <field.TextField label='Eyes' readOnly={readOnly} />}
+              {(field) => <field.TextField label='Eye Color' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.hair'>
-              {(field) => <field.TextField label='Hair' readOnly={readOnly} />}
+              {(field) => <field.TextField label='Hair Color' readOnly={readOnly} />}
             </form.AppField>
-          </div>
-          <div className={styles.fieldSpan4}>
+            </div>
+            <div className={styles.fieldSpan4}>
             <form.AppField name='profile.skin'>
-              {(field) => <field.TextField label='Skin' readOnly={readOnly} />}
+              {(field) => <field.TextField label='Skin Tone' readOnly={readOnly} />}
             </form.AppField>
+            </div>
           </div>
-          <div className={styles.fieldSpan12}>
+        </section>
+        <section className={styles.stepFieldGroup} aria-labelledby='details-description-title'>
+          <h3 id='details-description-title' className={styles.stepFieldGroupTitle}>Description</h3>
+          <div className={styles.fieldGrid}>
+            <div className={styles.fieldSpan12}>
             <form.AppField name='profile.physicalCharacteristics'>
               {(field) => <field.RichTextField label='Physical Characteristics' readOnly={readOnly} />}
             </form.AppField>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     )
   }
 })

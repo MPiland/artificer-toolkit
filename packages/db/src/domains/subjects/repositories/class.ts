@@ -217,8 +217,8 @@ async function hydrateClassRows(
     db.selectFrom('class_starting_gold').select(['class_id', 'multiplier', 'currency_id', 'die_config']).where('class_id', 'in', classIds).execute(),
     db.selectFrom('class_hitpoints').select(['class_id', 'ability_code', 'die_config']).where('class_id', 'in', classIds).execute(),
     db.selectFrom('class_multiclass').select(['id', 'class_id']).where('class_id', 'in', classIds).execute(),
-    db.selectFrom('class_resources').select(['id', 'class_id', 'label', 'description', 'available_at_level', 'charge_id']).where('class_id', 'in', classIds).execute(),
-    db.selectFrom('class_spellcasting').select(['id', 'class_id', 'magic_name', 'ability_code', 'max_spell_level', 'charge_id']).where('class_id', 'in', classIds).execute()
+    db.selectFrom('class_resources').select(['id', 'class_id', 'label', 'description', 'available_at_level', 'sort_order', 'charge_id']).where('class_id', 'in', classIds).execute(),
+    db.selectFrom('class_spellcasting').select(['id', 'class_id', 'magic_name', 'ability_code', 'max_spell_level', 'available_at_level', 'sort_order', 'charge_id']).where('class_id', 'in', classIds).execute()
   ])
   const spellcastingIds = spellcastingRows.map((row) => row.id)
   const multiclassIds = multiclassRows.map((row) => row.id)
@@ -342,6 +342,7 @@ async function hydrateClassRows(
           label: resourceRow.label,
           description: resourceRow.description ?? undefined,
           availableAtLevel: resourceRow.available_at_level,
+          order: resourceRow.sort_order ?? undefined,
           charges: requireLinkedRecord(
             chargesById.get(requireLinkedRecord(
               resourceRow.charge_id,
@@ -385,6 +386,8 @@ async function hydrateClassRows(
               ? requireAbilityCode(id, spellcastingRow.ability_code, 'Class spellcasting') as NonNullable<ClassAuthored['spellcasting']>['ability']
               : undefined,
             maxSpellLevel: spellcastingRow.max_spell_level,
+            availableAtLevel: spellcastingRow.available_at_level ?? undefined,
+            order: spellcastingRow.sort_order ?? undefined,
             attributes: attributeRows.length > 0
               ? attributeRows.map((attribute) => requireSpellcastingAttribute(spellcastingId, attribute.attribute_code))
               : undefined,
