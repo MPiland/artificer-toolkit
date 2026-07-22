@@ -99,7 +99,10 @@ export default defineConfig(({ mode }) => {
         'react-property',
         'style-to-js',
         'style-to-object'
-      ]
+      ],
+      optimizeDeps: {
+        include: ['html-react-parser']
+      }
     },
     server: {
       port: 3000,

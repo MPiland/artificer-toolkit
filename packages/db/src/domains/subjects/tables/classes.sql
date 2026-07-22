@@ -337,6 +337,7 @@ CREATE TABLE IF NOT EXISTS public.class_resources (
   label text NOT NULL,
   description text,
   available_at_level integer NOT NULL,
+  sort_order integer,
 
   charge_id uuid NOT NULL
     REFERENCES public.charges(id)
@@ -404,6 +405,8 @@ CREATE TABLE IF NOT EXISTS public.class_spellcasting (
   magic_name text,
   ability_code text,         -- AbilityCode
   max_spell_level integer NOT NULL,
+  available_at_level integer,
+  sort_order integer,
 
   charge_id uuid NOT NULL
     REFERENCES public.charges(id)

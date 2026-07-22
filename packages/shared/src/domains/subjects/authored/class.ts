@@ -22,6 +22,7 @@ export interface ClassResourceAuthored {
   label: string
   description?: string
   availableAtLevel: number
+  order?: number
   charges: ChargeAuthored
 }
 
@@ -61,6 +62,8 @@ export interface ClassSpellLimitsAuthored {
 
 export interface ClassSpellcastingAuthored {
   spellLimits: ClassSpellLimitsAuthored[]
+  availableAtLevel?: number
+  order?: number
   details?: DetailAuthored[]
   magicName?: string
   ability?: AbilityCode

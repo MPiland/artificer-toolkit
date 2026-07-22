@@ -7,7 +7,7 @@ export const panFlute: EquipmentAuthored = {
     label: 'Pan Flute',
     description: "A series of graduated pipes bound together, played by blowing across the open tops.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
     cost: S.gp(12),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

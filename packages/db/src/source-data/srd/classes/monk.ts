@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -242,6 +243,7 @@ export const monk: ClassAuthored = {
   ],
 
   resources: {
+    order: 0,
     id: classRowId(M, 5, 1),
     label: 'Ki',
     availableAtLevel: 2,
@@ -285,6 +287,7 @@ export const monk: ClassAuthored = {
       id: classRowId(M, 3, 5),
       label: 'Monastic Tradition',
       description: 'When you reach 3rd level, you commit yourself to a monastic tradition.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
     },

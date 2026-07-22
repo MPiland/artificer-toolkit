@@ -8,7 +8,10 @@ import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   createCharacterEligibilityContext,
   evaluateCharacterFacet,
+  GRANT_KIND,
   HITPOINT_CALCULATION_METHOD_CODE,
+  POINT_BUY_SCORE_REGISTRY,
+  POINT_BUY_TOTAL_POINTS,
   RACE_CATEGORY_CODE,
   resolveRulesSystem,
   resolveSpellGrantState,
@@ -19,6 +22,7 @@ import {
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
+import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
   CharacterStartingEquipmentSource,
   getCharacterChosenGrantSelectionIdentityKey,
@@ -125,6 +129,9 @@ export interface CharacterBuilderGrantSummaryItem {
   id: string
   label: string
   description?: string
+  details?: Array<{ id: string; label: string; description: string }>
+  sortOrder?: number
+  availableAtLevel?: number
   attributes?: string[]
   sourceLabel: string
   source: CharacterProvenance
@@ -148,6 +155,8 @@ export interface CharacterBuilderValidation {
   code: string
   message: string
   severity: 'blocking' | 'warning'
+  sourceLabel?: string
+  source?: CharacterProvenance
 }
 
 export interface CharacterBuilderReadiness {
@@ -319,9 +328,7 @@ function getClassSpellChoiceRequirements(
         const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
 
         requirements.push({
-          label:
-            selection.baseClass.spellcasting.magicName ??
-            `${selection.baseClass.label} Spellcasting`,
+          label: selection.baseClass.spellcasting.magicName ?? 'Spellcasting',
           sourceLabel: selection.baseClass.label,
           source: {
             kind: 'CLASS',
@@ -349,8 +356,7 @@ function getClassSpellChoiceRequirements(
         const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
 
         requirements.push({
-          label:
-            selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
+          label: selection.subclass.spellcasting.magicName ?? 'Spellcasting',
           sourceLabel: selection.subclass.label,
           source: {
             kind: 'SUBCLASS',
@@ -465,6 +471,50 @@ function deriveAbilityScores(
   }
 }
 
+function appendAbilityIntentValidationIssues(
+  character: CharacterAuthored,
+  validations: CharacterBuilderValidation[]
+): void {
+  const abilities = character.intent.abilities
+  const assignments = abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+    ? abilities.state.assignments
+    : abilities.assignments
+  const assignedAbilities = assignments.map((assignment) => assignment.ability)
+
+  if (assignments.length > abilityOrder.length || new Set(assignedAbilities).size !== assignedAbilities.length) {
+    validations.push({
+      code: 'MALFORMED_ABILITY_ASSIGNMENTS',
+      severity: 'blocking',
+      message: 'Each ability can be assigned only once.'
+    })
+  }
+
+  if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY) {
+    const options = abilities.assignments.map((assignment) => assignment.option)
+    if (new Set(options).size !== options.length) {
+      validations.push({
+        code: 'STANDARD_ARRAY_SCORE_REUSE',
+        severity: 'blocking',
+        message: 'Each Standard Array score can be used only once.'
+      })
+    }
+  }
+
+  if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
+    const spent = abilities.assignments.reduce(
+      (total, assignment) => total + POINT_BUY_SCORE_REGISTRY[assignment.option].cost,
+      0
+    )
+    if (spent > POINT_BUY_TOTAL_POINTS) {
+      validations.push({
+        code: 'POINT_BUY_OVERSPEND',
+        severity: 'blocking',
+        message: `Point Buy assignments exceed the ${POINT_BUY_TOTAL_POINTS}-point maximum.`
+      })
+    }
+  }
+}
+
 export function getAvailableSubclassesForClass(params: {
   classId: string
   classLevel: number
@@ -522,8 +572,12 @@ function loadClassSelection(
   ]
 
   const spellcasting = [
-    ...(baseClass?.spellcasting ? [baseClass.spellcasting] : []),
-    ...(subclass?.spellcasting ? [subclass.spellcasting] : [])
+    ...(baseClass?.spellcasting && (baseClass.spellcasting.availableAtLevel ?? 1) <= row.classLevel
+      ? [baseClass.spellcasting]
+      : []),
+    ...(subclass?.spellcasting && (subclass.spellcasting.availableAtLevel ?? 1) <= row.classLevel
+      ? [subclass.spellcasting]
+      : [])
   ]
 
   return {
@@ -547,13 +601,7 @@ function validateMulticlass(
     const baseClass = selection.baseClass
     if (!baseClass) continue
 
-    const passes = baseClass.multiclass.requirementGroups.groups.some((group) =>
-      group.requirements.every(
-        (requirement) => (abilityScores[requirement.ability] ?? 0) >= requirement.min
-      )
-    )
-
-    if (!passes) {
+    if (!evaluateMulticlassRequirements(baseClass.multiclass.requirementGroups, abilityScores).passes) {
       validations.push({
         code: 'MULTICLASS_PREREQUISITE_UNMET',
         severity: 'blocking',
@@ -788,6 +836,115 @@ function isSameRequiredResourceGrantSource(
 type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
 type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number]
 
+function normalizeCharacterHitpointLevels(
+  character: CharacterAuthored,
+  authoredClasses: CharacterBuilderRegistry['classes'],
+  existingCharacter: CharacterAuthored | null
+): CharacterHitpointLevelEntry[] {
+  const submittedLevels = character.intent.hitpoints.levels
+  const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
+  const levelsByClass = new Map(submittedLevels.map((level) => [
+    `${level.classId}:${level.classLevel}`,
+    level
+  ]))
+  const existingLevelsByClass = new Map(persistedLevels.map((level) => [
+    `${level.classId}:${level.classLevel}`,
+    level
+  ]))
+  const abilityScores = deriveAbilityScores(character.intent.abilities)
+  const persistedKeys = new Set(existingLevelsByClass.keys())
+  const preferredLevels = existingCharacter
+    ? [
+        ...[...persistedLevels].sort((left, right) => left.level - right.level),
+        ...[...submittedLevels]
+          .sort((left, right) => left.level - right.level)
+          .filter((level) => !persistedKeys.has(`${level.classId}:${level.classLevel}`))
+      ]
+    : [...submittedLevels].sort((left, right) => left.level - right.level)
+  const orderedLevels = reconcileCharacterHitpointProgression(
+    character.intent.classes,
+    preferredLevels.map((level, index) => ({ ...level, level: index + 1 }))
+  )
+  const primaryClassId = character.intent.classes[0]?.classId
+  if (primaryClassId) {
+    const primaryIndex = orderedLevels.findIndex(
+      (level) => level.classId === primaryClassId && level.classLevel === 1
+    )
+    if (primaryIndex > 0) {
+      const [primaryLevel] = orderedLevels.splice(primaryIndex, 1)
+      if (primaryLevel) orderedLevels.unshift(primaryLevel)
+    } else if (primaryIndex === -1) {
+      const primaryKey = `${primaryClassId}:1`
+      orderedLevels.unshift({
+        level: 1,
+        classId: primaryClassId,
+        classLevel: 1,
+        value: levelsByClass.get(primaryKey)?.value ?? existingLevelsByClass.get(primaryKey)?.value ?? 1
+      })
+    }
+  }
+  const orderedKeys = new Set(orderedLevels.map((level) => `${level.classId}:${level.classLevel}`))
+
+  for (const classSelection of character.intent.classes) {
+    for (let classLevel = 1; classLevel <= classSelection.classLevel; classLevel += 1) {
+      const key = `${classSelection.classId}:${classLevel}`
+      if (orderedKeys.has(key)) continue
+      orderedLevels.push({
+        level: orderedLevels.length + 1,
+        classId: classSelection.classId,
+        classLevel,
+        value: levelsByClass.get(key)?.value ?? existingLevelsByClass.get(key)?.value ?? 1
+      })
+      orderedKeys.add(key)
+    }
+  }
+
+  return orderedLevels.map((orderedLevel, index) => {
+    const level = index + 1
+    const authoredClass = authoredClasses.find((record): record is ParentClassAuthored => (
+      record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
+    ))
+    const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
+    if (!authoredClass || die === null) return { ...orderedLevel, level }
+
+    const hitpointAbility = authoredClass.hitpoint?.ability
+    const score = hitpointAbility ? abilityScores[hitpointAbility] : undefined
+    const modifier = typeof score === 'number' ? Math.floor((score - 10) / 2) : 0
+    const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
+    const submitted = levelsByClass.get(key)
+    const persisted = existingLevelsByClass.get(key)
+    const fixedDieValue = level === 1 ? die : Math.floor(die / 2) + 1
+
+    if (character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED || level === 1) {
+      return {
+        level,
+        classId: orderedLevel.classId,
+        classLevel: orderedLevel.classLevel,
+        value: Math.max(fixedDieValue + modifier, 1)
+      }
+    }
+
+    const roll = submitted?.rolls?.[0]
+    const persistedLegacyOverride = existingCharacter?.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.MANUAL
+      && persisted !== undefined
+      && !persisted.rolls?.length
+      && persisted.overridden !== false
+
+    return {
+      level,
+      classId: orderedLevel.classId,
+      classLevel: orderedLevel.classLevel,
+      value: roll
+        ? Math.max(roll.value + modifier, 1)
+        : persistedLegacyOverride
+          ? Math.max(submitted?.value ?? persisted.value, 1)
+          : Math.max(modifier + 1, 1),
+      ...(roll ? { rolls: submitted?.rolls, overridden: false } : {}),
+      ...(!roll && persistedLegacyOverride ? { overridden: true } : { overridden: false })
+    }
+  })
+}
+
 export function reconcileCharacterHitpointProgression(
   classes: CharacterAuthored['intent']['classes'],
   levels: CharacterHitpointLevelEntry[]
@@ -820,6 +977,50 @@ function parseClassHitDie(dieConfig: string | undefined): number | null {
 
   const die = Number(match[1])
   return Number.isSafeInteger(die) ? die : null
+}
+
+function appendManualHitpointValidationIssues(
+  character: CharacterAuthored,
+  authoredClasses: CharacterBuilderRegistry['classes'],
+  validations: CharacterBuilderValidation[]
+): void {
+  if (character.intent.hitpoints.method !== HITPOINT_CALCULATION_METHOD_CODE.MANUAL) return
+
+  for (const level of character.intent.hitpoints.levels) {
+    if (level.level === 1) continue
+
+    const authoredClass = authoredClasses.find((record): record is ParentClassAuthored => (
+      record.category === CLASS_CATEGORY.BASE && record.id === level.classId
+    ))
+    const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
+    const rolls = level.rolls ?? []
+    if (rolls.length === 0 && level.overridden === true) continue
+
+    if (rolls.length === 0) {
+      validations.push({
+        code: 'MISSING_MANUAL_HITPOINT_ROLL',
+        severity: 'blocking',
+        message: `Character level ${level.level} requires a hit-die roll.`
+      })
+      continue
+    }
+
+    const roll = rolls[0]
+    if (
+      rolls.length !== 1
+      || die === null
+      || !roll
+      || roll.die !== die
+      || roll.value < 1
+      || roll.value > die
+    ) {
+      validations.push({
+        code: 'INVALID_MANUAL_HITPOINT_ROLL',
+        severity: 'blocking',
+        message: `Character level ${level.level} has an invalid hit-die roll.`
+      })
+    }
+  }
 }
 
 export function reconcileCharacterHitDice(
@@ -1437,7 +1638,13 @@ function collectGrantedFeaturesForCharacter(
   }
 
   if (selectedRace && selectedRace.id !== baseRace?.id && selectedRace.features?.length) {
+    const inheritedFeatureIds = new Set(
+      selectedRace.category === RACE_CATEGORY_CODE.SUBRACE
+        ? (selectedRace.subrace.inherited.features ?? []).map((feature) => feature.id)
+        : []
+    )
     for (const feature of selectedRace.features) {
+      if (inheritedFeatureIds.has(feature.id)) continue
       grantedFeatures.push({
         feature,
         source: { kind: 'SUBRACE', subraceId: selectedRace.id },
@@ -1589,6 +1796,7 @@ function getCharacterChosenGrantOwners(
     if (granted.feature.grants) {
       owners.push({
         label: granted.feature.label,
+        ownerFeatureId: granted.feature.id,
         sourceLabel: granted.sourceLabel,
         source: granted.source,
         timing,
@@ -1609,6 +1817,7 @@ function getCharacterChosenGrantOwners(
       if (!acquisition || !selectedOptionIds.has(option.id) || !option.grants) continue
       owners.push({
         label: option.label,
+        ownerFeatureId: granted.feature.id,
         sourceLabel: granted.sourceLabel,
         source: {
           kind: 'OPTION',
@@ -1887,6 +2096,21 @@ function appendChosenGrantChoiceIssues(
   for (const choice of choices) {
     const selectedIds = choice.selectedTargetIds
     const allowedIds = new Set(choice.options.map((option) => option.id))
+    const selectedDisabledOption = choice.options.find(
+      (option) => selectedIds.includes(option.id) && option.disabledReason
+    )
+    const disabledReason = selectedDisabledOption?.disabledReason
+    if (disabledReason) {
+      validations.push({
+        code: disabledReason.startsWith('Requires full proficiency')
+          ? 'EXPERTISE_REQUIRES_PROFICIENCY'
+          : 'REDUNDANT_PROFICIENCY_SELECTION',
+        severity: 'blocking',
+        message: `${choice.label}: ${disabledReason}`,
+        sourceLabel: choice.sourceLabel,
+        source: choice.source
+      })
+    }
     const invalidTarget = selectedIds.some((targetId) => !allowedIds.has(targetId))
     const hasDuplicate = new Set(selectedIds).size !== selectedIds.length
     const isUniqueDuplicate = choice.duplicatePolicy === 'UNIQUE' && hasDuplicate
@@ -1897,7 +2121,9 @@ function appendChosenGrantChoiceIssues(
       validations.push({
         code: 'CHOSEN_GRANT_OPTIONS_UNAVAILABLE',
         severity: 'blocking',
-        message: `${choice.label} does not expose selectable targets.`
+        message: `${choice.label} does not expose selectable targets.`,
+        sourceLabel: choice.sourceLabel,
+        source: choice.source
       })
       continue
     }
@@ -1914,7 +2140,9 @@ function appendChosenGrantChoiceIssues(
           ? `${choice.label} includes a selection that is no longer available.`
           : isUniqueDuplicate
             ? `${choice.label} requires different selections in each slot.`
-            : `${choice.label} has too many selections.`
+            : `${choice.label} has too many selections.`,
+        sourceLabel: choice.sourceLabel,
+        source: choice.source
       })
       continue
     }
@@ -1939,7 +2167,51 @@ function appendChosenGrantChoiceIssues(
     validations.push({
       code: 'STALE_CHOSEN_GRANT_SELECTION',
       severity: 'blocking',
-      message: `Grant selection "${selection.grantId}" no longer matches the current build.`
+      message: `Grant selection "${selection.grantId}" no longer matches the current build.`,
+      source: selection.source
+    })
+  }
+}
+
+function appendDuplicateSpellSelectionIssues(
+  character: CharacterAuthored,
+  choices: CharacterBuilderChosenGrantChoice[],
+  catalog: CharacterBuilderCatalog,
+  validations: CharacterBuilderValidation[]
+): void {
+  const sourcesBySpellId = new Map<string, CharacterProvenance[]>()
+  const addSelections = (spellIds: readonly string[], source: CharacterProvenance): void => {
+    for (const spellId of spellIds) {
+      const sources = sourcesBySpellId.get(spellId) ?? []
+      sources.push(source)
+      sourcesBySpellId.set(spellId, sources)
+    }
+  }
+
+  for (const choice of choices) {
+    if (choice.grantKind === GRANT_KIND.SPELL_GRANT) {
+      addSelections(choice.selectedTargetIds, choice.source)
+    }
+  }
+  for (const selection of character.intent.spellSelections ?? []) {
+    addSelections(selection.spells, selection.source)
+  }
+
+  for (const [spellId, sources] of sourcesBySpellId) {
+    const hasDifferentSources = sources.some((source, index) =>
+      sources.slice(index + 1).some((otherSource) =>
+        !isSameCharacterProvenanceIdentity(source, otherSource)
+      )
+    )
+    if (!hasDifferentSources) continue
+
+    const spellLabel = catalog.spells.find((spell) => spell.id === spellId)?.label
+    validations.push({
+      code: 'DUPLICATE_SPELL_SELECTION',
+      severity: 'blocking',
+      message: spellLabel
+        ? `Spell selection "${spellLabel}" is selected by multiple sources.`
+        : `Spell selection "${spellId}" is selected by multiple sources.`
     })
   }
 }
@@ -1953,9 +2225,10 @@ export async function reconcileCharacterBuilderCharacter(
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
   const nextCharacter = clearObsoleteStartingEquipmentSelections(character, existingCharacter)
-  nextCharacter.intent.hitpoints.levels = reconcileCharacterHitpointProgression(
-    nextCharacter.intent.classes,
-    nextCharacter.intent.hitpoints.levels
+  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
+    nextCharacter,
+    registry.classes,
+    existingCharacter
   )
   nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
     nextCharacter.intent.classes,
@@ -2165,6 +2438,8 @@ export async function resolveCharacterBuilder(
       id: record.feature.id,
       label: record.feature.label,
       description: record.feature.description,
+      sortOrder: record.feature.order,
+      availableAtLevel: record.feature.availableAtLevel,
       attributes: record.feature.attributes,
       sourceLabel: record.sourceLabel,
       source: record.source
@@ -2179,6 +2454,8 @@ export async function resolveCharacterBuilder(
           id: selection.baseClass.resources.id,
           label: selection.baseClass.resources.label,
           description: selection.baseClass.resources.description,
+          sortOrder: selection.baseClass.resources.order,
+          availableAtLevel: selection.baseClass.resources.availableAtLevel,
           sourceLabel: selection.baseClass.label,
           source: {
             kind: 'CLASS',
@@ -2195,6 +2472,8 @@ export async function resolveCharacterBuilder(
           id: selection.subclass.resources.id,
           label: selection.subclass.resources.label,
           description: selection.subclass.resources.description,
+          sortOrder: selection.subclass.resources.order,
+          availableAtLevel: selection.subclass.resources.availableAtLevel,
           sourceLabel: selection.subclass.label,
           source: {
             kind: 'SUBCLASS',
@@ -2207,12 +2486,19 @@ export async function resolveCharacterBuilder(
     }),
     spellcasting: classSelections.flatMap((selection) => {
       const items: CharacterBuilderGrantSummaryItem[] = []
-      if (selection.baseClass?.spellcasting) {
+      if (
+        selection.baseClass?.spellcasting &&
+        (selection.baseClass.spellcasting.availableAtLevel ?? 1) <= selection.row.classLevel
+      ) {
         items.push({
           id: `${selection.baseClass.id}:spellcasting`,
-          label:
-            selection.baseClass.spellcasting.magicName ??
-            `${selection.baseClass.label} Spellcasting`,
+          label: selection.baseClass.spellcasting.magicName ?? 'Spellcasting',
+          details: selection.baseClass.spellcasting.details
+            ?.slice()
+            .sort((left, right) => left.order - right.order)
+            .map((detail) => ({ id: detail.id, label: detail.label, description: detail.description })),
+          sortOrder: selection.baseClass.spellcasting.order,
+          availableAtLevel: selection.baseClass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.baseClass.label,
           source: {
             kind: 'CLASS',
@@ -2221,11 +2507,19 @@ export async function resolveCharacterBuilder(
           }
         })
       }
-      if (selection.subclass?.spellcasting) {
+      if (
+        selection.subclass?.spellcasting &&
+        (selection.subclass.spellcasting.availableAtLevel ?? 1) <= selection.row.classLevel
+      ) {
         items.push({
           id: `${selection.subclass.id}:spellcasting`,
-          label:
-            selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
+          label: selection.subclass.spellcasting.magicName ?? 'Spellcasting',
+          details: selection.subclass.spellcasting.details
+            ?.slice()
+            .sort((left, right) => left.order - right.order)
+            .map((detail) => ({ id: detail.id, label: detail.label, description: detail.description })),
+          sortOrder: selection.subclass.spellcasting.order,
+          availableAtLevel: selection.subclass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.subclass.label,
           source: {
             kind: 'SUBCLASS',
@@ -2280,6 +2574,9 @@ export async function resolveCharacterBuilder(
   }
 
   const validations: CharacterBuilderValidation[] = []
+
+  appendAbilityIntentValidationIssues(character, validations)
+  appendManualHitpointValidationIssues(character, registry.classes, validations)
 
   if (
     !isCharacterHitpointProgressionValid(
@@ -2369,6 +2666,7 @@ export async function resolveCharacterBuilder(
 
   const outstandingChoices: CharacterBuilderIssue[] = []
   appendChosenGrantChoiceIssues(character, chosenGrantChoices, outstandingChoices, validations)
+  appendDuplicateSpellSelectionIssues(character, chosenGrantChoices, catalog, validations)
 
   if (selectedRace?.ancestry && !selectedAncestryOption) {
     outstandingChoices.push({

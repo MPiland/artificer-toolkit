@@ -284,7 +284,7 @@ export const hillDwarf: RaceAuthored = {
       id: raceFeatureId(101, 1, 1),
       label: 'Ability Score Increase',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Wisdom score increases by 1, and your Constitution score increases by 2.',
+      description: 'Your Wisdom score increases by 1.',
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -300,17 +300,6 @@ export const hillDwarf: RaceAuthored = {
             payload: { valueKind: 'FIXED' as const, amount: 1 },
             order: 0
           },
-          {
-            id: raceFeatureId(101, 1, 3),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.CONSTITUTION },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 1
-          }
         ]
       }
     },
@@ -331,76 +320,6 @@ export const hillDwarf: RaceAuthored = {
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { valueKind: 'CHARACTER_LEVEL' as const, multiplier: 1 },
-            order: 0
-          }
-        ]
-      }
-    }
-  ]
-}
-
-// ─── Mountain Dwarf (subraceIndex = 102) ─────────────────────────────────────
-
-export const mountainDwarf: RaceAuthored = {
-  id: SUBRACE_IDS.MOUNTAIN_DWARF,
-  label: 'Mountain Dwarf',
-  category: RACE_CATEGORY_CODE.SUBRACE,
-  parentRaceId: RACE_IDS.DWARF,
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: raceFeatureId(102, 1, 1),
-      label: 'Ability Score Increase',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Strength score increases by 2, and your Constitution score increases by 2.',
-      availableAtLevel: 1,
-      order: 0,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(102, 1, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.STRENGTH },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 0
-          },
-          {
-            id: raceFeatureId(102, 1, 3),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.CONSTITUTION },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 1
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(102, 2, 1),
-      label: 'Dwarven Armor Training',
-      description: 'You have proficiency with light and medium armor.',
-      availableAtLevel: 1,
-      order: 1,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(102, 2, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            properties: ['LIGHT', 'MEDIUM'],
-            category: 'ARMOR',
             order: 0
           }
         ]

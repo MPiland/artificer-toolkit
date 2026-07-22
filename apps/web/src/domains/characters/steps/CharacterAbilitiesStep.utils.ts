@@ -11,7 +11,6 @@ import {
 type AbilityAssignment = CharacterAbilityFormAssignments[number]
 type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
 type CharacterClassReference = CharacterBuilderReferencesDto['classes'][number]
-type HitpointMoveDirection = 'up' | 'down'
 
 export function createDefaultAbilityAssignments(): AbilityAssignment[] {
   return abilityCodes.map((ability, index) => {
@@ -27,66 +26,129 @@ export function createDefaultAbilityAssignments(): AbilityAssignment[] {
 export function syncHitpointLevels({
   character,
   classReferences,
-  requiredLevels,
   resolvedAbilityScores,
   rows
 }: {
   character: CharacterFormValues
   classReferences: CharacterBuilderReferencesDto['classes']
-  requiredLevels: number
+  requiredLevels?: number
   resolvedAbilityScores: Record<string, number>
   rows: HitpointLevel[]
 }): HitpointLevel[] {
   const classReferencesById = new Map(classReferences.map((classReference) => [classReference.id, classReference]))
-  const classLevelsById = new Map(character.intent.classes.map((row) => [
-    row.classId,
-    Math.max(Math.trunc(row.classLevel), 0)
-  ]))
-  const acceptedClassLevels = new Map<string, number>()
-  const progression: HitpointLevel[] = []
+  const orderedRows = getOrderedHitpointRows(character.intent.classes, rows)
 
-  for (const row of [...rows].sort((left, right) => left.level - right.level)) {
-    const selectedClassLevel = classLevelsById.get(row.classId)
-    const nextClassLevel = (acceptedClassLevels.get(row.classId) ?? 0) + 1
-    if (selectedClassLevel === undefined || row.classLevel !== nextClassLevel || row.classLevel > selectedClassLevel) {
-      continue
+  return orderedRows.map((orderedRow, index) => {
+    const characterLevel = index + 1
+    const classReference = classReferencesById.get(orderedRow.classId)
+    const dieSides = getHitpointDieSides(classReference)
+    if (!dieSides) {
+      return {
+        level: characterLevel,
+        classId: orderedRow.classId,
+        classLevel: orderedRow.classLevel,
+        value: orderedRow.value,
+        ...(orderedRow.rolls ? { rolls: orderedRow.rolls } : {}),
+        ...(orderedRow.overridden !== undefined ? { overridden: orderedRow.overridden } : {})
+      }
     }
-
-    acceptedClassLevels.set(row.classId, row.classLevel)
-    progression.push({ ...row, level: progression.length + 1 })
-  }
-
-  while (progression.length < requiredLevels) {
-    const classRow = character.intent.classes.find((row) => (
-      (acceptedClassLevels.get(row.classId) ?? 0) < Math.max(Math.trunc(row.classLevel), 0)
-    ))
-    if (!classRow) break
-
-    const classLevel = (acceptedClassLevels.get(classRow.classId) ?? 0) + 1
-    const characterLevel = progression.length + 1
-    const classReference = classReferencesById.get(classRow.classId)
-    const dieSides = parseHitDieSides(classReference)
-    if (!dieSides) break
 
     const hitpointAbility = classReference?.hitpoint?.ability
     const abilityModifier = hitpointAbility
-      ? getAbilityModifier({
+      ? getHitpointAbilityModifier({
           ability: hitpointAbility,
           character,
           resolvedAbilityScores
         })
       : 0
 
-    acceptedClassLevels.set(classRow.classId, classLevel)
-    progression.push({
+    if (character.intent.hitpoints.method === 'FIXED' || characterLevel === 1) {
+      return {
+        level: characterLevel,
+        classId: orderedRow.classId,
+        classLevel: orderedRow.classLevel,
+        value: getDefaultHitpointValue({ abilityModifier, characterLevel, dieSides })
+      }
+    }
+
+    const roll = orderedRow.rolls?.[0]?.value
+    const hasRoll = typeof roll === 'number' && Number.isInteger(roll)
+    const legacyOverride = !hasRoll && orderedRow.existing && orderedRow.overridden !== false
+    return {
       level: characterLevel,
-      classId: classRow.classId,
-      classLevel,
-      value: getDefaultHitpointValue({ abilityModifier, characterLevel, dieSides })
-    })
+      classId: orderedRow.classId,
+      classLevel: orderedRow.classLevel,
+      value: hasRoll
+        ? Math.max(roll + abilityModifier, 1)
+        : legacyOverride
+          ? orderedRow.value
+          : Math.max(abilityModifier + 1, 1),
+      ...(hasRoll ? { rolls: orderedRow.rolls } : {}),
+      ...(legacyOverride ? { overridden: true } : { overridden: false })
+    }
+  })
+}
+
+function getOrderedHitpointRows(
+  classes: CharacterFormValues['intent']['classes'],
+  rows: HitpointLevel[]
+): Array<HitpointLevel & { existing: boolean }> {
+  const selectedLevelsByClass = new Map(
+    classes.map((entry) => [entry.classId, Math.max(Math.trunc(entry.classLevel), 0)])
+  )
+  const acceptedLevelsByClass = new Map<string, number>()
+  const orderedRows: Array<HitpointLevel & { existing: boolean }> = []
+
+  for (const row of [...rows].sort((left, right) => left.level - right.level)) {
+    const selectedClassLevel = selectedLevelsByClass.get(row.classId)
+    const nextClassLevel = (acceptedLevelsByClass.get(row.classId) ?? 0) + 1
+    if (
+      selectedClassLevel === undefined
+      || row.classLevel !== nextClassLevel
+      || row.classLevel > selectedClassLevel
+    ) continue
+
+    acceptedLevelsByClass.set(row.classId, row.classLevel)
+    orderedRows.push({ ...row, level: orderedRows.length + 1, existing: true })
   }
 
-  return progression
+  const primaryClassId = classes[0]?.classId
+  if (primaryClassId) {
+    const primaryIndex = orderedRows.findIndex(
+      (row) => row.classId === primaryClassId && row.classLevel === 1
+    )
+    if (primaryIndex > 0) {
+      const [primaryRow] = orderedRows.splice(primaryIndex, 1)
+      if (primaryRow) orderedRows.unshift(primaryRow)
+    } else if (primaryIndex === -1 && (selectedLevelsByClass.get(primaryClassId) ?? 0) >= 1) {
+      orderedRows.unshift({
+        level: 1,
+        classId: primaryClassId,
+        classLevel: 1,
+        value: 1,
+        overridden: false,
+        existing: false
+      })
+      acceptedLevelsByClass.set(primaryClassId, 1)
+    }
+  }
+
+  for (const classRow of classes) {
+    const selectedClassLevel = selectedLevelsByClass.get(classRow.classId) ?? 0
+    const acceptedClassLevel = acceptedLevelsByClass.get(classRow.classId) ?? 0
+    for (let classLevel = acceptedClassLevel + 1; classLevel <= selectedClassLevel; classLevel += 1) {
+      orderedRows.push({
+        level: orderedRows.length + 1,
+        classId: classRow.classId,
+        classLevel,
+        value: 1,
+        overridden: false,
+        existing: false
+      })
+    }
+  }
+
+  return orderedRows
 }
 
 export function isHitpointProgressionComplete(
@@ -114,50 +176,6 @@ export function isHitpointProgressionComplete(
     })
 }
 
-export function canMoveHitpointLevel(
-  rows: HitpointLevel[],
-  index: number,
-  direction: HitpointMoveDirection
-): boolean {
-  const targetIndex = direction === 'up' ? index - 1 : index + 1
-  const row = rows[index]
-  const targetRow = rows[targetIndex]
-
-  return row !== undefined
-    && targetRow !== undefined
-    && row.classId !== targetRow.classId
-}
-
-export function moveHitpointLevel(
-  rows: HitpointLevel[],
-  index: number,
-  direction: HitpointMoveDirection
-): HitpointLevel[] {
-  if (!canMoveHitpointLevel(rows, index, direction)) return rows
-
-  const targetIndex = direction === 'up' ? index - 1 : index + 1
-  const row = rows[index]
-  const targetRow = rows[targetIndex]
-  if (!row || !targetRow) return rows
-
-  const reorderedRows = [...rows]
-  reorderedRows[index] = targetRow
-  reorderedRows[targetIndex] = row
-
-  const classLevelsById = new Map<string, number>()
-
-  return reorderedRows.map((reorderedRow, characterLevelIndex) => {
-    const classLevel = (classLevelsById.get(reorderedRow.classId) ?? 0) + 1
-    classLevelsById.set(reorderedRow.classId, classLevel)
-
-    return {
-      ...reorderedRow,
-      level: characterLevelIndex + 1,
-      classLevel
-    }
-  })
-}
-
 function getDefaultHitpointValue({
   abilityModifier,
   characterLevel,
@@ -174,7 +192,7 @@ function getDefaultHitpointValue({
   return Math.max(dieValue + abilityModifier, 1)
 }
 
-function getAbilityModifier({
+export function getHitpointAbilityModifier({
   ability,
   character,
   resolvedAbilityScores
@@ -206,7 +224,7 @@ function getIntentAbilityScore(
   return Number.isFinite(score) ? score : undefined
 }
 
-function parseHitDieSides(classReference: CharacterClassReference | undefined): number | null {
+export function getHitpointDieSides(classReference: CharacterClassReference | undefined): number | null {
   const match = /d(?<sides>\d+)/iu.exec(classReference?.hitpoint?.dieConfig ?? '')
   const sides = match?.groups?.sides ? Number(match.groups.sides) : Number.NaN
 

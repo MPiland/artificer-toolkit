@@ -1,1 +1,0 @@
-export { stout as stoutHalfling } from './halfling.js'

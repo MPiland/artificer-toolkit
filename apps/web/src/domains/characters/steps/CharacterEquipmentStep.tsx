@@ -1,4 +1,5 @@
-import { Alert, Button, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core'
+import { ActionIcon, Button, Group, NumberInput, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { IconTrash } from '@tabler/icons-react'
 import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import {
@@ -23,17 +24,7 @@ export const CharacterEquipmentStep = withForm({
     const backgroundStartingEquipment = payload.view.equipment.backgroundStartingEquipment
 
     return (
-      <section className={styles.section} aria-labelledby='character-equipment-title'>
-        <div className={styles.sectionHeader}>
-          <h3 id='character-equipment-title' className={styles.sectionTitle}>Equipment & currency</h3>
-        </div>
-        {payload.view.equipment.classStartingEquipmentRequired || payload.view.equipment.backgroundStartingEquipmentRequired
-          ? (
-              <Alert color='yellow'>
-                Starting equipment choices are still required from the selected class or background.
-              </Alert>
-            )
-          : null}
+      <div className={styles.section}>
         {classStartingEquipment
           ? (
               <form.AppField name='intent.startingEquipment.class'>
@@ -72,12 +63,13 @@ export const CharacterEquipmentStep = withForm({
 
             return (
               <Stack gap='md' className={styles.inlinePanel}>
-                <Group justify='space-between'>
+                <Group className={styles.manualPanelHeader}>
                   <Text fw={700}>Manual inventory</Text>
                   {!readOnly
                     ? (
                         <Button
                           type='button'
+                          size='compact-sm'
                           variant='default'
                           onClick={() => field.pushValue(createInventoryItem())}
                         >
@@ -89,7 +81,7 @@ export const CharacterEquipmentStep = withForm({
                 {rows.length === 0
                   ? <Text className={styles.mutedText}>No manual inventory has been added.</Text>
                   : rows.map((row, index) => (
-                      <Group key={row.id} align='flex-end'>
+                      <div key={row.id} className={styles.manualInventoryRow}>
                         <AppSelect
                           label='Equipment'
                           data={equipmentOptions}
@@ -128,12 +120,20 @@ export const CharacterEquipmentStep = withForm({
                         />
                         {!readOnly
                           ? (
-                              <Button type='button' variant='subtle' color='red' onClick={() => field.removeValue(index)}>
-                                Remove
-                              </Button>
+                              <Tooltip label='Remove item'>
+                                <ActionIcon
+                                  aria-label={`Remove inventory item ${index + 1}`}
+                                  type='button'
+                                  variant='subtle'
+                                  color='red'
+                                  onClick={() => field.removeValue(index)}
+                                >
+                                  <IconTrash aria-hidden size={17} />
+                                </ActionIcon>
+                              </Tooltip>
                             )
                           : null}
-                      </Group>
+                      </div>
                     ))}
               </Stack>
             )
@@ -145,12 +145,13 @@ export const CharacterEquipmentStep = withForm({
 
             return (
               <Stack gap='md' className={styles.inlinePanel}>
-                <Group justify='space-between'>
+                <Group className={styles.manualPanelHeader}>
                   <Text fw={700}>Manual currency</Text>
                   {!readOnly
                     ? (
                         <Button
                           type='button'
+                          size='compact-sm'
                           variant='default'
                           onClick={() => field.pushValue(createCurrencyGroup())}
                         >
@@ -162,7 +163,7 @@ export const CharacterEquipmentStep = withForm({
                 {rows.length === 0
                   ? <Text className={styles.mutedText}>No manual currency has been added.</Text>
                   : rows.map((row, index) => (
-                      <Group key={row.id} align='flex-end'>
+                      <div key={row.id} className={styles.manualCurrencyRow}>
                         <AppSelect
                           label='Currency'
                           data={currencyOptions}
@@ -189,18 +190,26 @@ export const CharacterEquipmentStep = withForm({
                         />
                         {!readOnly
                           ? (
-                              <Button type='button' variant='subtle' color='red' onClick={() => field.removeValue(index)}>
-                                Remove
-                              </Button>
+                              <Tooltip label='Remove currency'>
+                                <ActionIcon
+                                  aria-label={`Remove currency group ${index + 1}`}
+                                  type='button'
+                                  variant='subtle'
+                                  color='red'
+                                  onClick={() => field.removeValue(index)}
+                                >
+                                  <IconTrash aria-hidden size={17} />
+                                </ActionIcon>
+                              </Tooltip>
                             )
                           : null}
-                      </Group>
+                      </div>
                     ))}
               </Stack>
             )
           }}
         </form.AppField>
-      </section>
+      </div>
     )
   }
 })

@@ -103,6 +103,7 @@ type ClassResourceRow = {
   label: string
   description: string | null
   available_at_level: number
+  sort_order: number | null
   charge_id: string
 }
 
@@ -112,6 +113,8 @@ type ClassSpellcastingRow = {
   magic_name: string | null
   ability_code: string | null
   max_spell_level: number
+  available_at_level: number | null
+  sort_order: number | null
   charge_id: string
 }
 
@@ -355,6 +358,7 @@ export async function upsertClass(
         label: json_data.resources.label,
         description: json_data.resources.description ?? null,
         available_at_level: json_data.resources.availableAtLevel,
+        sort_order: json_data.resources.order ?? null,
         charge_id: json_data.resources.charges.id
       }
     : null
@@ -369,6 +373,8 @@ export async function upsertClass(
           ? requireAbilityCode(json_data.id, json_data.spellcasting.ability, 'Class spellcasting')
           : null,
         max_spell_level: json_data.spellcasting.maxSpellLevel,
+        available_at_level: json_data.spellcasting.availableAtLevel ?? null,
+        sort_order: json_data.spellcasting.order ?? null,
         charge_id: json_data.spellcasting.charges.id
       }
     : null

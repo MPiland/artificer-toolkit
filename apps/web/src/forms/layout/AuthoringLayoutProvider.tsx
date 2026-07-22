@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useDisclosure } from '@mantine/hooks'
 import { useAuthoringForm } from './AuthoringFormContext'
@@ -19,6 +19,8 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     activeStep,
     activeStepId,
     activeStepLabel,
+    authoredSession,
+    characterSession,
     visibleSteps,
     mode,
     isDraft
@@ -38,6 +40,8 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const stepId = activeNavigationTarget?.id ?? activeStepId
   const [previewContent, setPreviewContent] = useState<AuthoringPreviewContent>()
   const [visitedStepIds, setVisitedStepIds] = useState<ReadonlySet<string>>(() => new Set())
+  const subjectIdentity = authoredSession?.key ?? characterSession?.formKey
+  const subjectIdentityRef = useRef(subjectIdentity)
   const activeSections = useMemo(
     () =>
       activeStep?.sections.filter((section) => section.nodes.some((node) => node.visible)) ?? [],
@@ -61,6 +65,17 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
 
     openPreview()
   }, [closePreview, isMobile, isTablet, openPreview])
+
+  useEffect(() => {
+    const subjectChanged = subjectIdentityRef.current !== subjectIdentity
+    subjectIdentityRef.current = subjectIdentity
+
+    setVisitedStepIds((current) => {
+      const next = subjectChanged ? new Set<string>() : new Set(current)
+      if (stepId) next.add(stepId)
+      return next
+    })
+  }, [stepId, subjectIdentity])
 
   const value = useMemo<AuthoringLayoutContextValue>(
     () => ({

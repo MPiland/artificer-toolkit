@@ -110,11 +110,34 @@ export const elf: RaceAuthored = {
   systemId: SRD_SYSTEM_ID,
   features: [
     {
+      id: raceFeatureId(2, 0, 5),
+      label: 'Ability Score Increase',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: 'Your Dexterity score increases by 2.',
+      availableAtLevel: 1,
+      order: 0,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(2, 0, 6),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
+            domain: { ability: ABILITY_CODE.DEXTERITY },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED' as const, amount: 2 },
+            order: 0
+          }
+        ]
+      }
+    },
+    {
       id: raceFeatureId(2, 1, 1),
       label: 'Darkvision',
       description: 'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
-      order: 0,
+      order: 1,
       grants: {
         senses: [
           {
@@ -140,7 +163,7 @@ export const elf: RaceAuthored = {
       label: 'Keen Senses',
       description: 'You have proficiency in the Perception skill.',
       availableAtLevel: 1,
-      order: 1,
+      order: 2,
       grants: {
         proficiencies: [
           {
@@ -162,7 +185,7 @@ export const elf: RaceAuthored = {
       label: 'Fey Ancestry',
       description: 'You have advantage on saving throws against being charmed, and magic can\'t put you to sleep.',
       availableAtLevel: 1,
-      order: 2,
+      order: 3,
       grants: {
         modifiers: [
           {
@@ -187,7 +210,7 @@ export const elf: RaceAuthored = {
       label: 'Trance',
       description: 'Elves don\'t need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.',
       availableAtLevel: 1,
-      order: 3
+      order: 4
     },
     {
       id: raceFeatureId(2, 5, 1),
@@ -195,7 +218,7 @@ export const elf: RaceAuthored = {
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description: 'You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar.',
       availableAtLevel: 1,
-      order: 4,
+      order: 5,
       grants: {
         proficiencies: [
           {
@@ -230,22 +253,11 @@ export const highElf: RaceAuthored = {
       id: raceFeatureId(103, 1, 1),
       label: 'Ability Score Increase',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Dexterity score increases by 2, and your Intelligence score increases by 1.',
+      description: 'Your Intelligence score increases by 1.',
       availableAtLevel: 1,
       order: 0,
       grants: {
         modifiers: [
-          {
-            id: raceFeatureId(103, 1, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.DEXTERITY },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 0
-          },
           {
             id: raceFeatureId(103, 1, 3),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -255,7 +267,7 @@ export const highElf: RaceAuthored = {
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { valueKind: 'FIXED' as const, amount: 1 },
-            order: 1
+            order: 0
           }
         ]
       }
@@ -336,299 +348,3 @@ export const highElf: RaceAuthored = {
     }
   ]
 }
-
-// ─── Wood Elf (subraceIndex = 104) ────────────────────────────────────────────
-
-export const woodElf: RaceAuthored = {
-  id: SUBRACE_IDS.WOOD_ELF,
-  label: 'Wood Elf',
-  category: RACE_CATEGORY_CODE.SUBRACE,
-  parentRaceId: RACE_IDS.ELF,
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: raceFeatureId(104, 1, 1),
-      label: 'Ability Score Increase',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Dexterity score increases by 2, and your Wisdom score increases by 1.',
-      availableAtLevel: 1,
-      order: 0,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(104, 1, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.DEXTERITY },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 0
-          },
-          {
-            id: raceFeatureId(104, 1, 3),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.WISDOM },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 1 },
-            order: 1
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(104, 2, 1),
-      label: 'Elf Weapon Training',
-      description: 'You have proficiency with the longsword, shortsword, shortbow, and longbow.',
-      availableAtLevel: 1,
-      order: 1,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(104, 2, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            equipmentIds: [
-              equipId(22), // longsword
-              equipId(28), // shortsword
-              equipId(13), // shortbow
-              equipId(36)  // longbow
-            ],
-            order: 0
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(104, 3, 1),
-      label: 'Fleet of Foot',
-      description: 'Your base walking speed increases to 35 feet.',
-      availableAtLevel: 1,
-      order: 2,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(104, 3, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
-            domain: { speedId: walkSpeedId },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 5 },
-            order: 0
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(104, 4, 1),
-      label: 'Mask of the Wild',
-      description: 'You can attempt to hide even when you are only lightly obscured by foliage, heavy rain, falling snow, mist, and other natural phenomena.',
-      availableAtLevel: 1,
-      order: 3
-    },
-    {
-      id: raceFeatureId(104, 5, 1),
-      label: 'Languages',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common and Elvish.',
-      availableAtLevel: 1,
-      order: 4,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(104, 5, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            languageIds: [languageId('COMMON'), languageId('ELVISH')],
-            order: 0
-          }
-        ]
-      }
-    }
-  ]
-}
-
-// ─── Dark Elf / Drow (subraceIndex = 105) ─────────────────────────────────────
-
-export const darkElf: RaceAuthored = {
-  id: SUBRACE_IDS.DARK_ELF,
-  label: 'Dark Elf (Drow)',
-  category: RACE_CATEGORY_CODE.SUBRACE,
-  parentRaceId: RACE_IDS.ELF,
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: raceFeatureId(105, 1, 1),
-      label: 'Ability Score Increase',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Dexterity score increases by 2, and your Charisma score increases by 1.',
-      availableAtLevel: 1,
-      order: 0,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(105, 1, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.DEXTERITY },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 2 },
-            order: 0
-          },
-          {
-            id: raceFeatureId(105, 1, 3),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-            domain: { ability: ABILITY_CODE.CHARISMA },
-            modifierKind: MODIFIER_KIND.BONUS,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'FIXED' as const, amount: 1 },
-            order: 1
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(105, 2, 1),
-      label: 'Superior Darkvision',
-      description: 'Your darkvision has a radius of 120 feet.',
-      availableAtLevel: 1,
-      order: 1,
-      grants: {
-        senses: [
-          {
-            id: raceFeatureId(105, 2, 2),
-            grantKind: GRANT_KIND.SENSE_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            senseIds: [SRD_DARKVISION_SENSE_ID],
-            range: {
-              id: raceFeatureId(105, 2, 3),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            order: 0
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(105, 3, 1),
-      label: 'Sunlight Sensitivity',
-      description: 'You have disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight when you, the target of your attack, or whatever you are trying to perceive is in direct sunlight.',
-      availableAtLevel: 1,
-      order: 2
-    },
-    {
-      id: raceFeatureId(105, 4, 1),
-      label: 'Drow Magic',
-      description: 'You know the Dancing Lights cantrip. When you reach 3rd level, you can cast the Faerie Fire spell once per day. When you reach 5th level, you can also cast the Darkness spell once per day. Charisma is your spellcasting ability for these spells.',
-      availableAtLevel: 1,
-      order: 3,
-      grants: {
-        spells: [
-          {
-            id: raceFeatureId(105, 4, 2),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [SPELL_IDS.DANCING_LIGHTS],
-            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
-            order: 0
-          },
-          {
-            id: raceFeatureId(105, 4, 3),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [SPELL_IDS.FAERIE_FIRE],
-            order: 1
-          },
-          {
-            id: raceFeatureId(105, 4, 4),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [SPELL_IDS.DARKNESS],
-            order: 2
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(105, 5, 1),
-      label: 'Drow Weapon Training',
-      description: 'You have proficiency with rapiers, shortswords, and hand crossbows.',
-      availableAtLevel: 1,
-      order: 4,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(105, 5, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            equipmentIds: [
-              equipId(26), // rapier
-              equipId(28), // shortsword
-              equipId(34)  // hand crossbow
-            ],
-            order: 0
-          }
-        ]
-      }
-    },
-    {
-      id: raceFeatureId(105, 6, 1),
-      label: 'Languages',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common, Elvish, and Undercommon.',
-      availableAtLevel: 1,
-      order: 5,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(105, 6, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            languageIds: [languageId('COMMON'), languageId('ELVISH'), languageId('UNDERCOMMON')],
-            order: 0
-          }
-        ]
-      }
-    }
-  ]
-}
-
-

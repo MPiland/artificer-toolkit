@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest'
+import {
+  DummyDriver,
+  Kysely,
+  PostgresAdapter,
+  PostgresIntrospector,
+  PostgresQueryCompiler
+} from 'kysely'
 
-import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
+import type { Database } from '@artificer-toolkit/db'
+import {
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_DUPLICATE_POLICY,
+  AUTHORING_SELECTION_KIND,
+  AUTHORED_RECORD_STATUS,
+  GRANT_KIND,
+  SCALING
+} from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
   type CharacterAuthored
@@ -14,8 +29,10 @@ import {
   isCharacterHitpointProgressionValid,
   isCharacterBuilderProvenanceStillValid,
   isStartingEquipmentDecisionComplete,
+  reconcileCharacterBuilderCharacter,
   reconcileCharacterHitDice,
   reconcileCharacterHitpointProgression,
+  resolveCharacterBuilder,
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderIssue,
   type CharacterBuilderContext,
@@ -23,6 +40,15 @@ import {
   type CharacterSpellChoiceRequirement
 } from './builderService.js'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
+
+const unusedDb = new Kysely<Database>({
+  dialect: {
+    createAdapter: () => new PostgresAdapter(),
+    createDriver: () => new DummyDriver(),
+    createIntrospector: (db) => new PostgresIntrospector(db),
+    createQueryCompiler: () => new PostgresQueryCompiler()
+  }
+})
 
 function createCharacter(overrides?: Partial<CharacterAuthored>): CharacterAuthored {
   return {
@@ -90,6 +116,23 @@ function createCatalog(): CharacterBuilderCatalog {
 
 function createContext(): CharacterBuilderContext {
   return { catalog: createCatalog(), registry: createRegistry() }
+}
+
+function createHitpointClass(
+  id: string,
+  dieConfig: string
+): CharacterBuilderRegistry['classes'][number] {
+  return {
+    id,
+    label: id,
+    category: 'BASE',
+    userId: 'user-1',
+    systemId: 'dnd5e2014',
+    startingGold: { multiplier: 5, currencyId: 'gp', dieConfig: '5d4' },
+    startingEquipment: { id: `${id}-equipment`, sets: [] },
+    hitpoint: { ability: 'CONSTITUTION', dieConfig },
+    multiclass: { id: `${id}-multiclass`, requirementGroups: { groups: [] } }
+  } as CharacterBuilderRegistry['classes'][number]
 }
 
 function createChoiceStartingEquipment(count = 1): StartingEquipmentAuthored {
@@ -218,6 +261,235 @@ describe('character hit dice', () => {
         [{ die: 8, total: 3, used: 2 }]
       )
     ).toEqual([])
+  })
+})
+
+describe('character builder ability and hit point rules', () => {
+  it('reports malformed assignments, Standard Array reuse, and Point Buy overspend', async () => {
+    const malformed = createCharacter()
+    malformed.intent.abilities = {
+      method: 'STANDARD_ARRAY',
+      assignments: [
+        { ability: 'STRENGTH', option: '8' },
+        { ability: 'STRENGTH', option: '8' }
+      ]
+    }
+
+    const malformedResolution = await resolveCharacterBuilder(
+      unusedDb,
+      malformed,
+      'create',
+      createContext()
+    )
+    expect(malformedResolution.validations.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(['MALFORMED_ABILITY_ASSIGNMENTS', 'STANDARD_ARRAY_SCORE_REUSE'])
+    )
+
+    const overspent = createCharacter()
+    overspent.intent.abilities = {
+      method: 'POINT_BUY',
+      assignments: [
+        { ability: 'STRENGTH', option: '15' },
+        { ability: 'DEXTERITY', option: '15' },
+        { ability: 'CONSTITUTION', option: '15' },
+        { ability: 'INTELLIGENCE', option: '15' }
+      ]
+    }
+
+    const overspentResolution = await resolveCharacterBuilder(
+      unusedDb,
+      overspent,
+      'create',
+      createContext()
+    )
+    expect(overspentResolution.validations.map((issue) => issue.code)).toContain(
+      'POINT_BUY_OVERSPEND'
+    )
+  })
+
+  it('reports missing and invalid manual hit-die rolls', async () => {
+    const context = createContext()
+    context.registry.classes = [createHitpointClass('fighter', 'd8')]
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'fighter', classLevel: 3 }]
+    character.intent.hitpoints = {
+      method: 'MANUAL',
+      levels: [
+        { level: 1, classId: 'fighter', classLevel: 1, value: 8 },
+        { level: 2, classId: 'fighter', classLevel: 2, value: 1 },
+        {
+          level: 3,
+          classId: 'fighter',
+          classLevel: 3,
+          value: 9,
+          rolls: [{ die: 8, value: 9 }]
+        }
+      ]
+    }
+
+    const resolution = await resolveCharacterBuilder(unusedDb, character, 'create', context)
+    expect(resolution.validations.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining(['MISSING_MANUAL_HITPOINT_ROLL', 'INVALID_MANUAL_HITPOINT_ROLL'])
+    )
+  })
+
+  it('normalizes fixed hit points while preserving valid acquisition order, modifiers, and a floor', async () => {
+    const context = createContext()
+    context.registry.classes = [
+      createHitpointClass('d6-class', 'd6'),
+      createHitpointClass('d8-class', 'd8'),
+      createHitpointClass('d10-class', 'd10'),
+      createHitpointClass('d12-class', 'd12')
+    ]
+    const character = createCharacter()
+    character.intent.classes = [
+      { classId: 'd6-class', classLevel: 1 },
+      { classId: 'd8-class', classLevel: 1 },
+      { classId: 'd10-class', classLevel: 1 },
+      { classId: 'd12-class', classLevel: 1 }
+    ]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'CONSTITUTION', score: 14 }] }
+    }
+    character.intent.hitpoints = {
+      method: 'FIXED',
+      levels: [
+        { level: 99, classId: 'd12-class', classLevel: 1, value: 99 },
+        { level: 98, classId: 'd6-class', classLevel: 1, value: 99 }
+      ]
+    }
+
+    const reconciled = await reconcileCharacterBuilderCharacter(unusedDb, character, null, context)
+    expect(reconciled.intent.hitpoints.levels).toEqual([
+      { level: 1, classId: 'd6-class', classLevel: 1, value: 8 },
+      { level: 2, classId: 'd12-class', classLevel: 1, value: 9 },
+      { level: 3, classId: 'd8-class', classLevel: 1, value: 7 },
+      { level: 4, classId: 'd10-class', classLevel: 1, value: 8 }
+    ])
+
+    const lowConstitution = structuredClone(character)
+    lowConstitution.intent.classes = [{ classId: 'd6-class', classLevel: 2 }]
+    lowConstitution.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'CONSTITUTION', score: 1 }] }
+    }
+
+    const clamped = await reconcileCharacterBuilderCharacter(
+      unusedDb,
+      lowConstitution,
+      null,
+      context
+    )
+    expect(clamped.intent.hitpoints.levels.map((entry) => entry.value)).toEqual([1, 1])
+  })
+
+  it('preserves valid manual rolls and legacy overrides while calculating gained HP', async () => {
+    const context = createContext()
+    context.registry.classes = [createHitpointClass('fighter', 'd10')]
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'fighter', classLevel: 2 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'CONSTITUTION', score: 14 }] }
+    }
+    character.intent.hitpoints = {
+      method: 'MANUAL',
+      levels: [
+        { level: 1, classId: 'fighter', classLevel: 1, value: 1 },
+        {
+          level: 2,
+          classId: 'fighter',
+          classLevel: 2,
+          value: 1,
+          rolls: [{ die: 10, value: 7 }]
+        }
+      ]
+    }
+
+    const reconciled = await reconcileCharacterBuilderCharacter(unusedDb, character, null, context)
+    expect(reconciled.intent.hitpoints.levels).toEqual([
+      { level: 1, classId: 'fighter', classLevel: 1, value: 12 },
+      {
+        level: 2,
+        classId: 'fighter',
+        classLevel: 2,
+        value: 9,
+        rolls: [{ die: 10, value: 7 }],
+        overridden: false
+      }
+    ])
+
+    const legacy = structuredClone(character)
+    legacy.intent.hitpoints.levels[1] = {
+      level: 2,
+      classId: 'fighter',
+      classLevel: 2,
+      value: 4
+    }
+    const existing = structuredClone(legacy)
+
+    const preservedLegacy = await reconcileCharacterBuilderCharacter(
+      unusedDb,
+      legacy,
+      existing,
+      context
+    )
+    expect(preservedLegacy.intent.hitpoints.levels[1]).toEqual({
+      level: 2,
+      classId: 'fighter',
+      classLevel: 2,
+      value: 4,
+      overridden: true
+    })
+  })
+
+  it('preserves an active interleaved progression when a class gains another level', async () => {
+    const context = createContext()
+    context.registry.classes = [
+      createHitpointClass('fighter', 'd10'),
+      createHitpointClass('wizard', 'd6')
+    ]
+    const existing = createCharacter()
+    existing.intent.classes = [
+      { classId: 'fighter', classLevel: 1 },
+      { classId: 'wizard', classLevel: 1 }
+    ]
+    existing.intent.hitpoints = {
+      method: 'MANUAL',
+      levels: [
+        { level: 1, classId: 'fighter', classLevel: 1, value: 10 },
+        {
+          level: 2,
+          classId: 'wizard',
+          classLevel: 1,
+          value: 4,
+          rolls: [{ die: 6, value: 4 }],
+          overridden: false
+        }
+      ]
+    }
+    const submitted = structuredClone(existing)
+    submitted.intent.classes[0] = { classId: 'fighter', classLevel: 2 }
+    submitted.intent.hitpoints.levels = [
+      existing.intent.hitpoints.levels[0]!,
+      { level: 2, classId: 'fighter', classLevel: 2, value: 6, rolls: [{ die: 10, value: 6 }] },
+      { ...existing.intent.hitpoints.levels[1]!, level: 3 }
+    ]
+
+    const reconciled = await reconcileCharacterBuilderCharacter(
+      unusedDb,
+      submitted,
+      existing,
+      context
+    )
+
+    expect(reconciled.intent.hitpoints.levels.map(({ level, classId, classLevel }) => ({ level, classId, classLevel }))).toEqual([
+      { level: 1, classId: 'fighter', classLevel: 1 },
+      { level: 2, classId: 'wizard', classLevel: 1 },
+      { level: 3, classId: 'fighter', classLevel: 2 }
+    ])
+    expect(reconciled.intent.hitpoints.levels[1]?.rolls).toEqual([{ die: 6, value: 4 }])
   })
 })
 
@@ -484,6 +756,120 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
 })
 
 describe('character builder source-local choice validation', () => {
+  it('blocks duplicate spell selections across distinct sources and labels the spell', async () => {
+    const context = createContext()
+    context.registry.races = [
+      {
+        ...context.registry.races[0]!,
+        features: [
+          {
+            id: 'race-spell-feature',
+            label: 'Innate Magic',
+            description: '',
+            availableAtLevel: 1,
+            order: 0,
+            grants: {
+              spells: [
+                {
+                  id: 'race-spell-grant',
+                  grantKind: GRANT_KIND.SPELL_GRANT,
+                  selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                  selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+                  scalingKind: SCALING.NONE,
+                  authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                  count: 1,
+                  order: 0
+                }
+              ]
+            }
+          }
+        ]
+      } as CharacterBuilderRegistry['races'][number]
+    ]
+    const character = createCharacter()
+    character.intent.race = { raceId: 'dragonborn' }
+    character.intent.chosenGrantSelections = [
+      {
+        id: 'race-spell-selection',
+        grantId: 'race-spell-grant',
+        source: { kind: 'RACE', raceId: 'dragonborn' },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: ['magic-missile']
+      }
+    ]
+    character.intent.spellSelections = [
+      {
+        id: 'background-spell-selection',
+        source: { kind: 'FEATURE', featureId: 'background-spell-feature' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['magic-missile']
+      }
+    ]
+
+    const resolution = await resolveCharacterBuilder(unusedDb, character, 'create', context)
+
+    expect(resolution.validations).toContainEqual({
+      code: 'DUPLICATE_SPELL_SELECTION',
+      severity: 'blocking',
+      message: 'Spell selection "Magic Missile" is selected by multiple sources.'
+    })
+    expect(resolution.readiness.ready).toBe(false)
+  })
+
+  it('does not report a duplicate spell selection when the source is the same', async () => {
+    const context = createContext()
+    context.registry.races = [
+      {
+        ...context.registry.races[0]!,
+        features: [
+          {
+            id: 'race-spell-feature',
+            label: 'Innate Magic',
+            description: '',
+            availableAtLevel: 1,
+            order: 0,
+            grants: {
+              spells: [
+                {
+                  id: 'race-spell-grant',
+                  grantKind: GRANT_KIND.SPELL_GRANT,
+                  selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                  selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+                  scalingKind: SCALING.NONE,
+                  authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                  count: 1,
+                  order: 0
+                }
+              ]
+            }
+          }
+        ]
+      } as CharacterBuilderRegistry['races'][number]
+    ]
+    const character = createCharacter()
+    character.intent.race = { raceId: 'dragonborn' }
+    character.intent.spellSelections = [
+      {
+        id: 'race-spell-selection',
+        source: { kind: 'FEATURE', featureId: 'race-spell-feature' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['magic-missile']
+      },
+      {
+        id: 'race-spell-selection-copy',
+        source: { kind: 'FEATURE', featureId: 'race-spell-feature' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['magic-missile']
+      }
+    ]
+
+    const resolution = await resolveCharacterBuilder(unusedDb, character, 'create', context)
+
+    expect(resolution.validations.some((issue) => issue.code === 'DUPLICATE_SPELL_SELECTION')).toBe(
+      false
+    )
+  })
+
   it('rejects class spell selections outside the allowed class and spell level', () => {
     const catalog = createCatalog()
     catalog.spells = [

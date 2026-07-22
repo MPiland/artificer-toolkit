@@ -23,8 +23,8 @@ describe('initializeServerSentry', () => {
       },
       dsn: 'https://public@example.ingest.sentry.io/1',
       enableLogs: false,
-      enableMetrics: false,
-      sendDefaultPii: false
+      enableMetrics: true,
+      sendDefaultPii: true
     })
   })
 

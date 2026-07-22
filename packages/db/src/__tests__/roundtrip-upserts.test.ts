@@ -2714,6 +2714,8 @@ describe('round-trip upsert correctness', () => {
                 magicName: 'Arcana',
                 ability: 'WISDOM',
                 maxSpellLevel: 9,
+                availableAtLevel: 1,
+                order: 0,
                 attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
                 details: [
                     {
@@ -2744,6 +2746,7 @@ describe('round-trip upsert correctness', () => {
                 label: 'Arcane Ward',
                 description: 'Protective reserve.',
                 availableAtLevel: 2,
+                order: 1,
                 charges: {
                     id: 'class-resource-charge-2',
                     resetKind: 'LONG_REST',
@@ -2881,6 +2884,8 @@ describe('round-trip upsert correctness', () => {
                 magicName: 'Arcana',
                 ability: 'WISDOM',
                 maxSpellLevel: 9,
+                availableAtLevel: 1,
+                order: 0,
                 attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
                 details: [
                     {
@@ -2913,6 +2918,7 @@ describe('round-trip upsert correctness', () => {
                 label: 'Arcane Ward',
                 description: 'Protective reserve.',
                 availableAtLevel: 2,
+                order: 1,
                 charges: {
                     id: 'class-resource-charge-2',
                     resetKind: 'LONG_REST',
@@ -3058,6 +3064,7 @@ describe('round-trip upsert correctness', () => {
                 label: 'Arcane Ward',
                 description: 'Protective reserve.',
                 available_at_level: 2,
+                sort_order: 1,
                 charge_id: 'class-resource-charge-2'
             }
         ]);
@@ -3068,6 +3075,8 @@ describe('round-trip upsert correctness', () => {
                 magic_name: 'Arcana',
                 ability_code: 'WISDOM',
                 max_spell_level: 9,
+                available_at_level: 1,
+                sort_order: 0,
                 charge_id: 'class-spellcharge-2'
             })
         ]);
@@ -3086,6 +3095,4 @@ describe('round-trip upsert correctness', () => {
         ]);
     });
 });
-
-
 

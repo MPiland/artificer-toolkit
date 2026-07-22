@@ -6,6 +6,7 @@ import {
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   PATH_CODES_BY_TRIGGER,
   PROFICIENCY_KIND,
   SCALING_AMOUNT_KIND
@@ -1013,6 +1014,23 @@ describe('SRD source data', () => {
     expect(actualLevels).toEqual(expectedLevels)
   })
 
+  it('marks exactly one subclass-selection feature for every base class', () => {
+    const baseClasses = srdBaselineContent.subjects.classes.filter(
+      (classRecord) => classRecord.category === CLASS_CATEGORY.BASE
+    )
+
+    for (const classRecord of baseClasses) {
+      const selectionFeatures = (classRecord.features ?? []).filter((feature) =>
+        feature.attributes?.includes(FEATURE_ATTRIBUTE.SUBCLASS_SELECTION)
+      )
+
+      expect(selectionFeatures, classRecord.label).toHaveLength(1)
+      expect(selectionFeatures[0]?.availableAtLevel, classRecord.label).toBe(
+        classRecord.subclassSelectionLevel
+      )
+    }
+  })
+
   it('does not put choice counts on granted authoring selections', () => {
     const invalidValues: string[] = []
 
@@ -1489,6 +1507,20 @@ describe('SRD source data', () => {
     )
 
     expect(invalidValues).toEqual([])
+  })
+
+  it('keeps shared race ability score increases on the base race', () => {
+    const racesByLabel = new Map(srdBaselineContent.subjects.races.map((race) => [race.label, race]))
+    const abilityScoreIncreaseDescriptions = (label: string) =>
+      racesByLabel
+        .get(label)
+        ?.features?.filter((feature) => feature.label === 'Ability Score Increase')
+        .map((feature) => feature.description)
+
+    expect(abilityScoreIncreaseDescriptions('Elf')).toEqual(['Your Dexterity score increases by 2.'])
+    expect(abilityScoreIncreaseDescriptions('High Elf')).toEqual(['Your Intelligence score increases by 1.'])
+    expect(abilityScoreIncreaseDescriptions('Dwarf')).toEqual(['Your Constitution score increases by 2.'])
+    expect(abilityScoreIncreaseDescriptions('Hill Dwarf')).toEqual(['Your Wisdom score increases by 1.'])
   })
 
   it('uses duration kinds supported by normalized duration persistence', () => {

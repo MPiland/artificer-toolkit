@@ -32,7 +32,8 @@ export const FEATURE_CATEGORY_REGISTRY: Record<
 
 export const FEATURE_ATTRIBUTE = {
   LIMITED_USE: 'LIMITED_USE',
-  HIDDEN_ON_SHEET: 'HIDDEN_ON_SHEET'
+  HIDDEN_ON_SHEET: 'HIDDEN_ON_SHEET',
+  SUBCLASS_SELECTION: 'SUBCLASS_SELECTION'
 } as const
 
 export type FeatureAttribute = keyof typeof FEATURE_ATTRIBUTE
@@ -55,6 +56,13 @@ export const FEATURE_ATTRIBUTE_REGISTRY: Record<
     label: 'Hide On Sheet',
     description: 'A feature that is hidden on the character sheet.',
     tooltip: 'Feature that is hidden on the character sheet.'
+  },
+
+  SUBCLASS_SELECTION: {
+    code: FEATURE_ATTRIBUTE.SUBCLASS_SELECTION,
+    label: 'Subclass Selection',
+    description: 'A feature that owns the subclass selection for its class.',
+    tooltip: 'Feature that owns subclass selection.'
   }
 } as const
 

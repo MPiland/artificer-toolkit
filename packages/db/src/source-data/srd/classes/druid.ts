@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -463,6 +464,8 @@ export const druid: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.WISDOM,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
@@ -623,6 +626,7 @@ export const druid: ClassAuthored = {
       id: classRowId(D, 3, 4),
       label: 'Druid Circle',
       description: 'At 2nd level, you choose to identify with a circle of druids.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 2,
       order: 3
     },

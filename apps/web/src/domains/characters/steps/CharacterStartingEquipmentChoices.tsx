@@ -13,13 +13,11 @@ import {
   type StartingEquipmentOption,
   type StartingGold,
   ensureDefaultStartingEquipmentGroupOptions,
-  formatStartingEquipmentChoiceLabel,
-  formatStartingEquipmentItem,
+  formatStartingEquipmentItems,
   formatStartingGoldOption,
   formatStartingEquipmentOption,
   getStartingEquipmentItemOptions,
   getStartingEquipmentSelections,
-  hasStartingEquipmentChoices,
   isChosenStartingEquipmentItem,
   isStartingEquipmentDecision,
   setStartingEquipmentGoldTotal,
@@ -56,6 +54,7 @@ export function CharacterStartingEquipmentChoices({
   const equipmentDecision = selectedMode === STARTING_EQUIPMENT_MODE.EQUIPMENT
     ? ensureDefaultStartingEquipmentGroupOptions(currentDecision, view.startingEquipment)
     : currentDecision
+  const equipmentGroups = view.startingEquipment.sets.flatMap((set) => set.groups)
 
   useEffect(() => {
     if (readOnly || selectedMode !== STARTING_EQUIPMENT_MODE.EQUIPMENT || equipmentDecision === currentDecision) {
@@ -66,32 +65,33 @@ export function CharacterStartingEquipmentChoices({
   }, [currentDecision, equipmentDecision, onChange, readOnly, selectedMode])
 
   return (
-    <Stack gap='md' className={`${styles.inlinePanel} ${styles.startingEquipmentPanel}`}>
-      <div>
-        <Text fw={700}>{`${view.sourceLabel} starting equipment`}</Text>
-        <Text className={styles.mutedText} size='sm'>Pick only the choices this source asks for. Fixed items are included automatically.</Text>
+    <Stack gap='sm' className={`${styles.inlinePanel} ${styles.startingEquipmentPanel}`}>
+      <div className={styles.startingEquipmentHeader}>
+        <Text fw={700}>{view.sourceLabel}</Text>
+        {view.startingGold
+          ? (
+            <div className={styles.startingEquipmentMode}>
+              <AppSelect
+                label='Starting option'
+                data={[
+                  { value: STARTING_EQUIPMENT_MODE.EQUIPMENT, label: 'Take starting equipment' },
+                  {
+                    value: STARTING_EQUIPMENT_MODE.GOLD,
+                    label: `Take starting gold (${formatStartingGoldOption(view.startingGold, currencyOptions)})`
+                  }
+                ]}
+                value={selectedMode}
+                disabled={readOnly}
+                onChange={(mode) => {
+                  if (!mode || readOnly) return
+                  const nextMode = mode === STARTING_EQUIPMENT_MODE.GOLD ? STARTING_EQUIPMENT_MODE.GOLD : STARTING_EQUIPMENT_MODE.EQUIPMENT
+                  onChange(setStartingEquipmentMode(currentDecision, view.source, nextMode, view.startingGold))
+                }}
+              />
+            </div>
+            )
+          : null}
       </div>
-      {view.startingGold
-        ? (
-            <AppSelect
-              label={`${view.sourceLabel} starting option`}
-              data={[
-                { value: STARTING_EQUIPMENT_MODE.EQUIPMENT, label: 'Take starting equipment' },
-                {
-                  value: STARTING_EQUIPMENT_MODE.GOLD,
-                  label: `Take starting gold (${formatStartingGoldOption(view.startingGold, currencyOptions)})`
-                }
-              ]}
-              value={selectedMode}
-              disabled={readOnly}
-              onChange={(mode) => {
-                if (!mode || readOnly) return
-                const nextMode = mode === STARTING_EQUIPMENT_MODE.GOLD ? STARTING_EQUIPMENT_MODE.GOLD : STARTING_EQUIPMENT_MODE.EQUIPMENT
-                onChange(setStartingEquipmentMode(currentDecision, view.source, nextMode, view.startingGold))
-              }}
-            />
-          )
-        : null}
       {selectedMode === STARTING_EQUIPMENT_MODE.GOLD && view.startingGold
         ? (
             <StartingEquipmentGoldField
@@ -103,59 +103,79 @@ export function CharacterStartingEquipmentChoices({
               onChange={onChange}
             />
           )
-        : view.startingEquipment.sets.flatMap((set) => set.groups).map((group, index) => {
-            const groupSelection = equipmentDecision.groups?.find((selection) => selection.groupId === group.id)
-            const selectedOption = group.options.length === 1
-              ? group.options[0]
-              : group.options.find((option) => option.id === groupSelection?.optionId)
+        : (
+            <div className={styles.startingEquipmentGroups}>
+              {equipmentGroups.map((group, index) => {
+                const groupSelection = equipmentDecision.groups?.find((selection) => selection.groupId === group.id)
+                const selectedOption = group.options.length === 1
+                  ? group.options[0]
+                  : group.options.find((option) => option.id === groupSelection?.optionId)
+                const includedItems = selectedOption?.items.filter((item) => !isChosenStartingEquipmentItem(item)) ?? []
+                const chosenItems = selectedOption?.items.filter(isChosenStartingEquipmentItem) ?? []
 
-            return (
-              <div key={group.id} className={styles.startingEquipmentGroup}>
-                <div className={styles.startingEquipmentGroupHeader}>
-                  <div>
-                    <Text fw={700}>{`Choice ${index + 1}`}</Text>
-                    <Text className={styles.mutedText} size='sm'>
-                      {group.options.length === 1 ? 'Included with this source.' : 'Choose one equipment option.'}
-                    </Text>
-                  </div>
-                  {selectedOption && hasStartingEquipmentChoices(selectedOption)
-                    ? <Text className={styles.mutedText} size='sm'>Requires selection</Text>
-                    : null}
-                </div>
-                {group.options.length > 1
-                  ? (
-                      <AppSelect
-                        label='Option'
-                        data={group.options.map((option) => ({
-                          value: option.id,
-                          label: formatStartingEquipmentOption(option, equipmentOptions, currencyOptions)
-                        }))}
-                        value={groupSelection?.optionId}
-                        required
-                        disabled={readOnly}
-                        onChange={(optionId) => {
-                          if (!optionId || readOnly) return
-                          onChange(setStartingEquipmentGroupOption(equipmentDecision, group.id, optionId))
-                        }}
-                      />
-                    )
-                  : null}
-                {selectedOption
-                  ? (
-                      <StartingEquipmentOptionDetails
-                        currencyOptions={currencyOptions}
-                        decision={equipmentDecision}
-                        equipmentOptions={equipmentOptions}
-                        group={group}
-                        option={selectedOption}
-                        readOnly={readOnly}
-                        onChange={onChange}
-                      />
-                    )
-                  : <Text className={styles.mutedText}>Select an option to see included items.</Text>}
-              </div>
-            )
-          })}
+                return (
+                  <section
+                    key={group.id}
+                    className={styles.startingEquipmentGroup}
+                    aria-label={equipmentGroups.length > 1 ? `Group ${index + 1}` : 'Starting equipment group'}
+                  >
+                    {equipmentGroups.length > 1
+                      ? (
+                          <div className={styles.startingEquipmentGroupHeader}>
+                            <Text fw={700}>{`Group ${index + 1}`}</Text>
+                          </div>
+                        )
+                      : null}
+                    <div className={styles.startingEquipmentControlRow}>
+                      {group.options.length > 1
+                        ? (
+                            <AppSelect
+                              label='Choose one'
+                              data={group.options.map((option) => ({
+                                value: option.id,
+                                label: formatStartingEquipmentOption(option, equipmentOptions, currencyOptions)
+                              }))}
+                              value={groupSelection?.optionId}
+                              required
+                              disabled={readOnly}
+                              onChange={(optionId) => {
+                                if (!optionId || readOnly) return
+                                onChange(setStartingEquipmentGroupOption(equipmentDecision, group.id, optionId))
+                              }}
+                            />
+                          )
+                        : null}
+                      {chosenItems.length
+                        ? (
+                            <div className={styles.startingEquipmentChoiceList}>
+                              {chosenItems.map((item) => (
+                                <StartingEquipmentChosenItemField
+                                  key={item.id}
+                                  decision={equipmentDecision}
+                                  equipmentOptions={equipmentOptions}
+                                  group={group}
+                                  item={item}
+                                  label={view.choiceLabels[item.id]}
+                                  readOnly={readOnly}
+                                  onChange={onChange}
+                                />
+                              ))}
+                            </div>
+                          )
+                        : null}
+                    </div>
+                    {includedItems.length
+                      ? (
+                          <div className={styles.startingEquipmentIncludedList}>
+                            <Text>{formatStartingEquipmentItems(includedItems, equipmentOptions, currencyOptions)}</Text>
+                          </div>
+                        )
+                      : null}
+                  </section>
+                )
+              })}
+            </div>
+          )}
     </Stack>
   )
 }
@@ -196,66 +216,12 @@ function StartingEquipmentGoldField({
   )
 }
 
-function StartingEquipmentOptionDetails({
-  currencyOptions,
-  decision,
-  equipmentOptions,
-  group,
-  onChange,
-  option,
-  readOnly
-}: {
-  currencyOptions: CharacterBuilderChoiceOptionDto[]
-  decision: CharacterStartingEquipmentDecision
-  equipmentOptions: CharacterBuilderChoiceOptionDto[]
-  group: StartingEquipmentGroup
-  option: StartingEquipmentOption
-  onChange: (decision: CharacterStartingEquipmentDecision) => void
-  readOnly: boolean
-}) {
-  const includedItems = option.items.filter((item) => !isChosenStartingEquipmentItem(item))
-  const chosenItems = option.items.filter(isChosenStartingEquipmentItem)
-
-  return (
-    <div className={styles.startingEquipmentOptionDetails}>
-      {includedItems.length
-        ? (
-            <div className={styles.startingEquipmentIncludedList}>
-              <Text className={styles.mutedText} size='sm'>Included</Text>
-              {includedItems.map((item) => (
-                <div key={item.id} className={styles.startingEquipmentItemRow}>
-                  <Text>{formatStartingEquipmentItem(item, equipmentOptions, currencyOptions)}</Text>
-                </div>
-              ))}
-            </div>
-          )
-        : null}
-      {chosenItems.length
-        ? (
-            <div className={styles.startingEquipmentChoiceList}>
-              {chosenItems.map((item) => (
-                <StartingEquipmentChosenItemField
-                  key={item.id}
-                  decision={decision}
-                  equipmentOptions={equipmentOptions}
-                  group={group}
-                  item={item}
-                  readOnly={readOnly}
-                  onChange={onChange}
-                />
-              ))}
-            </div>
-          )
-        : null}
-    </div>
-  )
-}
-
 function StartingEquipmentChosenItemField({
   decision,
   equipmentOptions,
   group,
   item,
+  label,
   onChange,
   readOnly
 }: {
@@ -263,13 +229,12 @@ function StartingEquipmentChosenItemField({
   equipmentOptions: CharacterBuilderChoiceOptionDto[]
   group: StartingEquipmentGroup
   item: ChosenStartingEquipmentItem
+  label: string
   onChange: (decision: CharacterStartingEquipmentDecision) => void
   readOnly: boolean
 }) {
   const selectedEquipmentIds = getStartingEquipmentSelections(decision, group.id, item.id)
   const options = getStartingEquipmentItemOptions(item, equipmentOptions)
-  const label = formatStartingEquipmentChoiceLabel(item, equipmentOptions)
-
   return item.count === 1
     ? (
         <AppSelect

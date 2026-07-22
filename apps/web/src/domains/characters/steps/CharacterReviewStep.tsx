@@ -1,53 +1,138 @@
-import { Alert, Badge, Group, List, Stack, Text } from '@mantine/core'
+import { Button, Text } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
-import { createFallbackCharacterFormValues } from '../characterBuilder.utils'
+import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import {
+  characterBuilderSteps,
+  createFallbackCharacterFormValues,
+  getCharacterBuilderIssueStepId,
+  getCharacterBuilderValidationStepId,
+  type CharacterBuilderStepId
+} from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
+
+type ReviewMessage = {
+  message: string
+  severity: 'blocking' | 'warning'
+}
 
 export const CharacterReviewStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterReview({ payload }) {
-    const messages = [
-      ...payload.view.review.blockers,
-      ...payload.view.review.warnings
-    ]
+    const authoring = useAuthoringForm()
     const summary = payload.resolution.summary
+    const groupedMessages = buildReviewGroups(payload)
 
     return (
-      <section className={styles.section} aria-labelledby='character-review-title'>
-        <div className={styles.sectionHeader}>
-          <h3 id='character-review-title' className={styles.sectionTitle}>Review</h3>
-        </div>
-        <Group>
-          <Badge color={payload.view.review.ready ? 'green' : 'yellow'}>
-            {payload.view.review.ready ? 'Ready to finalize' : 'Needs attention'}
-          </Badge>
-          <Badge variant='light'>{`Level ${summary.totalLevel}`}</Badge>
-          {summary.selectedRace ? <Badge variant='light'>{summary.selectedRace.subraceLabel ?? summary.selectedRace.raceLabel}</Badge> : null}
-          {summary.selectedBackground ? <Badge variant='light'>{summary.selectedBackground.label}</Badge> : null}
-        </Group>
-        <Stack gap='md' className={styles.inlinePanel}>
-          <Text fw={700}>Build summary</Text>
-          <Text className={styles.mutedText}>
-            {summary.classes.length
+      <div className={styles.section}>
+        <header className={styles.reviewReadinessHeader}>
+          <div>
+            <h3 className={styles.reviewReadinessTitle}>
+              {payload.view.review.ready ? 'Ready to activate' : 'Needs attention'}
+            </h3>
+            <Text className={styles.mutedText}>
+              {payload.view.review.ready
+                ? 'Your character is ready to play.'
+                : 'Resolve the items below before activating this character.'}
+            </Text>
+          </div>
+          <Text fw={750}>{`Level ${summary.totalLevel}`}</Text>
+        </header>
+        <dl className={styles.reviewSummary}>
+          <ReviewFact
+            label='Race'
+            value={summary.selectedRace?.subraceLabel ?? summary.selectedRace?.raceLabel ?? 'Not selected'}
+          />
+          <ReviewFact label='Background' value={summary.selectedBackground?.label ?? 'Not selected'} />
+          <ReviewFact
+            label='Classes'
+            value={summary.classes.length
               ? summary.classes.map((classRecord) => `${classRecord.classLabel} ${classRecord.classLevel}`).join(', ')
-              : 'No classes selected.'}
-          </Text>
-          <Text className={styles.mutedText}>{`${Object.keys(summary.abilities).length} of 6 ability scores assigned.`}</Text>
-        </Stack>
-        {messages.length
+              : 'Not selected'}
+          />
+          <ReviewFact label='Abilities' value={`${Object.keys(summary.abilities).length} of 6 assigned`} />
+        </dl>
+        {groupedMessages.length
           ? (
-              <Alert color='yellow' title='Before finalizing'>
-                <List spacing='xs'>
-                  {messages.map((message) => <List.Item key={message}>{message}</List.Item>)}
-                </List>
-              </Alert>
+              <div className={styles.reviewBlockers}>
+                {groupedMessages.map(([stepId, messages]) => (
+                  <section key={stepId} className={styles.reviewBlockerGroup}>
+                    <div className={styles.reviewBlockerHeader}>
+                      <Text fw={700}>{getStepLabel(stepId)}</Text>
+                      <Button
+                        type='button'
+                        size='compact-sm'
+                        variant='subtle'
+                        onClick={() => authoring.goToStep(stepId)}
+                      >
+                        Review step
+                      </Button>
+                    </div>
+                    <ul className={styles.reviewMessageList}>
+                      {messages.map((entry) => (
+                        <li
+                          key={`${entry.severity}:${entry.message}`}
+                          className={entry.severity === 'warning'
+                            ? styles.reviewMessageWarning
+                            : styles.reviewMessageBlocking}
+                        >
+                          {entry.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
             )
-          : (
-              <Alert color='green'>Everything required is complete. Finalize to write the normalized character record.</Alert>
-            )}
-      </section>
+          : null}
+      </div>
     )
   }
 })
+
+function ReviewFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.reviewFact}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  )
+}
+
+function buildReviewGroups(
+  payload: CharacterBuilderStepProps['payload']
+): Array<[CharacterBuilderStepId, ReviewMessage[]]> {
+  const groups = new Map<CharacterBuilderStepId, ReviewMessage[]>()
+  const seen = new Set<string>()
+  const add = (stepId: CharacterBuilderStepId, entry: ReviewMessage) => {
+    if (seen.has(entry.message)) return
+    seen.add(entry.message)
+    groups.set(stepId, [...(groups.get(stepId) ?? []), entry])
+  }
+
+  for (const issue of payload.resolution.outstandingChoices) {
+    add(getCharacterBuilderIssueStepId(issue), { message: issue.message, severity: 'blocking' })
+  }
+  for (const validation of payload.resolution.validations) {
+    add(getCharacterBuilderValidationStepId(validation), {
+      message: validation.message,
+      severity: validation.severity === 'warning' ? 'warning' : 'blocking'
+    })
+  }
+  for (const message of payload.view.review.blockers) {
+    add('REVIEW', { message, severity: 'blocking' })
+  }
+  for (const message of payload.view.review.warnings) {
+    add('REVIEW', { message, severity: 'warning' })
+  }
+
+  return characterBuilderSteps.flatMap((step) => {
+    const messages = groups.get(step.id)
+    return messages?.length ? [[step.id, messages]] : []
+  })
+}
+
+function getStepLabel(stepId: CharacterBuilderStepId): string {
+  return characterBuilderSteps.find((step) => step.id === stepId)?.label ?? 'Review'
+}

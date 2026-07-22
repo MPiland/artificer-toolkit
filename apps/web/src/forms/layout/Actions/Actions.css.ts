@@ -14,8 +14,8 @@ export const tooltipTarget = style({
 export const headerIconButton = style({
   '@layer': {
     [app]: {
-      inlineSize: 44,
-      blockSize: 44,
+      inlineSize: 36,
+      blockSize: 36,
       flexShrink: 0,
       border: '1px solid transparent',
       borderRadius: foundationVars.radius.sm,
@@ -81,9 +81,10 @@ export const headerIconButton = style({
 export const lifecycleButton = style({
   '@layer': {
     [app]: {
-      inlineSize: 124,
-      minInlineSize: 124,
-      minBlockSize: 44,
+      inlineSize: 'auto',
+      minInlineSize: 96,
+      minBlockSize: 36,
+      paddingInline: foundationVars.space[3],
       flexShrink: 0,
       borderRadius: foundationVars.radius.sm,
       fontWeight: foundationVars.fontWeight.semibold,

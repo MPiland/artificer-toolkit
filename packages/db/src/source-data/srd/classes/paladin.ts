@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -429,6 +430,8 @@ export const paladin: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 2,
+    order: 0,
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 5,
     attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
@@ -659,6 +662,7 @@ export const paladin: ClassAuthored = {
       label: 'Sacred Oath',
       description:
         'When you reach 3rd level, you swear the oath that binds you as a paladin forever.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 6
     },

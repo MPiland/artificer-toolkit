@@ -1,4 +1,8 @@
 import {
+  createClassRepository,
+  createBackgroundRepository,
+  createRaceRepository,
+  createSystemRepository,
   getBackgroundListQuery,
   getClassListQuery,
   getEquipmentListQuery,
@@ -8,11 +12,16 @@ import {
   type DBLike
 } from '@artificer-toolkit/db'
 import {
+  ABILITY_OPTIONS,
   CASTING_TIME_UNIT_CODE,
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  EQUIPMENT_PROPERTY_REGISTRY,
+  MEASUREMENT_UNIT_REGISTRY,
+  PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
+  SIZE_OPTIONS,
   SPELL_ATTRIBUTE,
   SPELL_COMPONENT,
   type EquipmentCategoryCode,
@@ -20,6 +29,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type {
   ClassAuthored,
+  BackgroundAuthored,
   SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
@@ -29,6 +39,11 @@ export type CharacterBuilderRaceCatalogRecord = {
   label: string
   category: ResolvedRace['category']
   parentRaceId?: string
+  description?: string
+  selectionMode?: 'DIRECT' | 'REQUIRES_SUBRACE'
+  sizeLabel?: string
+  speedLabels?: string[]
+  abilityScoreIncreaseDescriptions?: string[]
 }
 
 export type CharacterBuilderClassCatalogRecord = {
@@ -37,11 +52,25 @@ export type CharacterBuilderClassCatalogRecord = {
   category: ClassAuthored['category']
   parentClassId?: string
   subclassSelectionLevel?: number
+  description?: string
+  hitpoint?: Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>['hitpoint']
+  requirementGroups?: Extract<
+    ClassAuthored,
+    { category: typeof CLASS_CATEGORY.BASE }
+  >['multiclass']['requirementGroups']
+  savingThrowLabels?: string[]
+  proficiencyGroups?: Array<{ label: string; entries: string[]; grantedEntries: string[] }>
 }
 
 export type CharacterBuilderBackgroundCatalogRecord = {
   id: string
   label: string
+  description?: string
+  summary: string
+  grantFacts: Array<{ label: string; value: string }>
+  featureLabels: string[]
+  hiddenGrantFactCount: number
+  hiddenFeatureCount: number
 }
 
 export type CharacterBuilderEquipmentCatalogRecord = {
@@ -207,24 +236,84 @@ export async function loadCharacterBuilderCatalog(
         : Promise.resolve([])
     ])
 
+  const [resolvedRaces, classesById, backgroundsById, system] = await Promise.all([
+    createRaceRepository(db).findResolvedAll({ systemId }),
+    createClassRepository(db).findByIds(classResult.items.map((record) => record.id), { systemId }),
+    createBackgroundRepository(db).findByIds(
+      backgroundResult.items.map((record) => record.id),
+      { systemId }
+    ),
+    createSystemRepository(db).findById(systemId)
+  ])
+  const racesById = new Map(resolvedRaces.map((race) => [race.id, race]))
+  const equipmentById = new Map(equipmentResult.items.map((item) => [item.id, item]))
+
   return {
-    races: raceResult.items.map((record) => ({
-      id: record.id,
-      label: record.label,
-      category: requireRaceCategory(record.id, record.category),
-      parentRaceId: record.parentRaceId ?? undefined
-    })),
-    classes: classResult.items.map((record) => ({
-      id: record.id,
-      label: record.label,
-      category: requireClassCategory(record.id, record.category),
-      parentClassId: record.parentClassId ?? undefined,
-      subclassSelectionLevel: record.subclassSelectionLevel ?? undefined
-    })),
-    backgrounds: backgroundResult.items.map((record) => ({
-      id: record.id,
-      label: record.label
-    })),
+    races: raceResult.items.map((record) => {
+      const race = racesById.get(record.id)
+      return {
+        id: record.id,
+        label: record.label,
+        category: requireRaceCategory(record.id, record.category),
+        parentRaceId: record.parentRaceId ?? undefined,
+        description: race?.description,
+        selectionMode: race?.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
+        sizeLabel: race ? SIZE_OPTIONS.find((size) => size.code === race.size)?.label : undefined,
+        speedLabels: (race?.speeds ?? []).map((speed) => {
+          const speedLabel = system?.speeds.find((candidate) => candidate.id === speed.speedId)?.label
+          return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
+        }),
+        abilityScoreIncreaseDescriptions: (race?.features ?? [])
+          .filter((feature) => feature.label === 'Ability Score Increase')
+          .map((feature) => feature.description)
+      }
+    }),
+    classes: classResult.items.map((record) => {
+      const classRecord = classesById.get(record.id)
+      const proficiencies =
+        classRecord && 'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
+      return {
+        id: record.id,
+        label: record.label,
+        category: requireClassCategory(record.id, record.category),
+        parentClassId: record.parentClassId ?? undefined,
+        subclassSelectionLevel: record.subclassSelectionLevel ?? undefined,
+        description: classRecord?.description,
+        hitpoint: classRecord && 'hitpoint' in classRecord ? classRecord.hitpoint : undefined,
+        requirementGroups:
+          classRecord && classRecord.category === CLASS_CATEGORY.BASE
+            ? classRecord.multiclass.requirementGroups
+            : undefined,
+        savingThrowLabels: proficiencies
+          .flatMap((proficiency) =>
+            proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY && 'abilities' in proficiency
+              ? proficiency.abilities ?? []
+              : []
+          )
+          .map((ability) => ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability),
+        proficiencyGroups: getClassProficiencyGroups(
+          proficiencies,
+          system?.skills ?? [],
+          system?.languages ?? [],
+          equipmentById
+        )
+      }
+    }),
+    backgrounds: backgroundResult.items.map((record) => {
+      const background = backgroundsById.get(record.id)
+      const grantFacts = getBackgroundGrantFacts(background, system?.skills ?? [], system?.languages ?? [], equipmentById)
+      const featureLabels = (background?.features ?? []).map((feature) => feature.label)
+      return {
+        id: record.id,
+        label: record.label,
+        description: background?.description,
+        summary: toPlainText(background?.description ?? ''),
+        grantFacts: grantFacts.slice(0, 4),
+        featureLabels: featureLabels.slice(0, 2),
+        hiddenGrantFactCount: Math.max(0, grantFacts.length - 4),
+        hiddenFeatureCount: Math.max(0, featureLabels.length - 2)
+      }
+    }),
     equipment: equipmentResult.items.map((record) => ({
       id: record.id,
       label: record.label,
@@ -241,4 +330,151 @@ export async function loadCharacterBuilderCatalog(
     })),
     spells
   }
+}
+
+type ClassProficiency = NonNullable<
+  Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>['proficiencies']
+>[number]
+type BackgroundProficiency = NonNullable<BackgroundAuthored['proficiencies']>[number]
+
+function getClassProficiencyGroups(
+  proficiencies: Array<ClassProficiency | BackgroundProficiency>,
+  skills: Array<{ id: string; label: string }>,
+  languages: Array<{ id: string; label: string }>,
+  equipmentById: Map<string, { category: string | null; label: string }>
+): Array<{ label: string; entries: string[]; grantedEntries: string[] }> {
+  const entriesByGroup = new Map<string, string[]>([
+    ['Armor', []],
+    ['Weapons', []],
+    ['Tools', []],
+    ['Skills', []],
+    ['Languages', []],
+    ['Other', []]
+  ])
+  const grantedEntriesByGroup = new Map(
+    [...entriesByGroup.keys()].map((group) => [group, [] as string[]])
+  )
+  const append = (group: string, entries: string[], granted = true) => {
+    entriesByGroup.get(group)?.push(...entries)
+    if (granted) grantedEntriesByGroup.get(group)?.push(...entries)
+  }
+
+  for (const proficiency of proficiencies) {
+    if (proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY) continue
+
+    if (proficiency.proficiencyKind === PROFICIENCY_KIND.SKILL) {
+      const skillIds = 'skillIds' in proficiency
+        ? proficiency.skillIds ?? []
+        : skills.map((skill) => skill.id)
+      append(
+        'Skills',
+        formatChosenProficiency(proficiency, skillIds, skills),
+        proficiency.selectionKind !== 'CHOSEN'
+      )
+      continue
+    }
+    if (proficiency.proficiencyKind === PROFICIENCY_KIND.LANGUAGE) {
+      const languageIds = 'languageIds' in proficiency
+        ? proficiency.languageIds ?? []
+        : languages.map((language) => language.id)
+      append(
+        'Languages',
+        formatChosenProficiency(proficiency, languageIds, languages),
+        proficiency.selectionKind !== 'CHOSEN'
+      )
+      continue
+    }
+    if (proficiency.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY && 'properties' in proficiency) {
+      const group = proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
+        ? 'Armor'
+        : proficiency.category === 'WEAPON' ? 'Weapons' : proficiency.category === 'TOOL' ? 'Tools' : 'Other'
+      append(group, proficiency.properties.map((property) => {
+        const propertyLabel = property in EQUIPMENT_PROPERTY_REGISTRY
+          ? EQUIPMENT_PROPERTY_REGISTRY[property as EquipmentPropertyCode].label
+          : formatCatalogLabel(property)
+        if (group === 'Armor') return `${propertyLabel} armor`
+        if (group === 'Weapons') return `${propertyLabel} weapons`
+        if (group === 'Tools') return `${propertyLabel} tools`
+        return propertyLabel
+      }), proficiency.selectionKind !== 'CHOSEN')
+      continue
+    }
+    if (proficiency.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT) {
+      if (!('equipmentIds' in proficiency) || !proficiency.equipmentIds?.length) {
+        const group = proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
+          ? 'Armor'
+          : proficiency.category === 'WEAPON' ? 'Weapons' : proficiency.category === 'TOOL' ? 'Tools' : 'Other'
+        const entry = proficiency.category === 'SHIELD'
+          ? 'Shields'
+          : proficiency.category === 'ARMOR' ? 'Armor'
+            : proficiency.category === 'WEAPON' ? 'Weapons'
+              : proficiency.category === 'TOOL' ? 'Tools' : 'Equipment'
+        append(group, [entry], proficiency.selectionKind !== 'CHOSEN')
+        continue
+      }
+      const grouped = new Map<string, string[]>()
+      for (const equipmentId of proficiency.equipmentIds ?? []) {
+        const equipment = equipmentById.get(equipmentId)
+        const group = equipment?.category === 'SHIELD' || equipment?.category === 'ARMOR'
+          ? 'Armor'
+          : equipment?.category === 'WEAPON' ? 'Weapons' : equipment?.category === 'TOOL' ? 'Tools' : 'Other'
+        const entries = grouped.get(group) ?? []
+        entries.push(equipment?.label ?? equipmentId)
+        grouped.set(group, entries)
+      }
+      for (const [group, entries] of grouped) {
+        append(group, entries, proficiency.selectionKind !== 'CHOSEN')
+      }
+      continue
+    }
+    append(
+      'Other',
+      [formatCatalogLabel(proficiency.proficiencyKind)],
+      proficiency.selectionKind !== 'CHOSEN'
+    )
+  }
+
+  return [...entriesByGroup]
+    .filter(([, entries]) => entries.length > 0)
+    .map(([label, entries]) => ({
+      label,
+      entries,
+      grantedEntries: grantedEntriesByGroup.get(label) ?? []
+    }))
+}
+
+function getBackgroundGrantFacts(
+  background: BackgroundAuthored | undefined,
+  skills: Array<{ id: string; label: string }>,
+  languages: Array<{ id: string; label: string }>,
+  equipmentById: Map<string, { category: string | null; label: string }>
+): Array<{ label: string; value: string }> {
+  return getClassProficiencyGroups(background?.proficiencies ?? [], skills, languages, equipmentById)
+    .filter((group) => group.entries.length > 0)
+    .map((group) => ({ label: group.label, value: group.entries.join(', ') }))
+}
+
+function toPlainText(value: string): string {
+  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function formatChosenProficiency(
+  proficiency: ClassProficiency,
+  ids: string[],
+  vocabulary: Array<{ id: string; label: string }>
+): string[] {
+  const labels = ids
+    .map((id) => vocabulary.find((entry) => entry.id === id)?.label ?? id)
+    .sort((left, right) => left.localeCompare(right, 'en'))
+  if (proficiency.selectionKind !== 'CHOSEN') return labels
+  const count = 'count' in proficiency ? proficiency.count : 0
+  const hasEveryVocabularyEntry = vocabulary.length > 0 && vocabulary.every((entry) => ids.includes(entry.id))
+  return [hasEveryVocabularyEntry ? `Choose any ${count}` : `Choose ${count} from ${labels.join(', ')}`]
+}
+
+function formatCatalogLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }

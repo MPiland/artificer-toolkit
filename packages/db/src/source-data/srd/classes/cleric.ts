@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
   SCALING,
@@ -652,6 +653,8 @@ export const cleric: ClassAuthored = {
   },
 
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.WISDOM,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
@@ -789,6 +792,7 @@ export const cleric: ClassAuthored = {
       label: 'Divine Domain',
       description:
         'Choose one domain related to your deity. Your choice grants you domain spells and other features when you choose it at 1st level.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 1,
       order: 1
     },

@@ -7,7 +7,7 @@ export const bagpipes: EquipmentAuthored = {
     label: 'Bagpipes',
     description: "A wind instrument with a bag reservoir and multiple pipes, producing a loud, droning sound.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
     cost: S.gp(30),
     weight: S.lbs(6),
     rarityId: S.RARITY_COMMON,

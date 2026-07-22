@@ -1,24 +1,38 @@
 import { useMemo, type CSSProperties } from 'react'
 import { useAuthoringForm } from '../../AuthoringFormContext'
+import { useAuthoringLayout } from '../../AuthoringLayoutContext'
 import { Rail } from '#ui'
 import { StatusSummary } from '../StatusSummary/StatusSummary'
 import { toAuthoringRailSummaries } from '../Steps.utils'
 import * as styles from './Footer.css'
 
 export function Footer() {
-  const { mode, hasChanges, progressSummary } = useAuthoringForm()
+  const { mode, hasChanges, progressSummary, stepStatuses } = useAuthoringForm()
+  const { visibleSteps, visitedStepIds } = useAuthoringLayout()
+  const visibleStepCount = visibleSteps.length
+  const completedSteps = visibleStepCount > 0
+    ? visibleSteps.filter(
+        (step) => stepStatuses?.[step.id] === 'complete' && visitedStepIds.has(step.id)
+      ).length
+    : (progressSummary?.completeCount ?? 0)
+  const summary = {
+    completeCount: completedSteps,
+    errorCount: progressSummary?.errorCount ?? 0,
+    incompleteCount: progressSummary?.incompleteCount ?? 0,
+    stepCount: visibleStepCount || progressSummary?.stepCount || 0,
+    warningCount: progressSummary?.warningCount ?? 0
+  }
 
   const summaries = useMemo(
     () =>
       toAuthoringRailSummaries({
         hasChanges,
         mode,
-        summary: progressSummary
+        summary
       }),
-    [hasChanges, mode, progressSummary]
+    [hasChanges, mode, summary]
   )
-  const totalSteps = progressSummary?.stepCount ?? 0
-  const completedSteps = progressSummary?.completeCount ?? 0
+  const totalSteps = summary?.stepCount ?? 0
   const completionPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0
 
   return summaries?.length ? (

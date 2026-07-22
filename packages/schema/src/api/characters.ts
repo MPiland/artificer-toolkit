@@ -20,6 +20,7 @@ import {
   capacityDtoSchema,
   castingTimeDtoSchema,
   classHitpointDtoSchema,
+  classMulticlassRequirementGroupsDtoSchema,
   classStartingGoldDtoSchema,
   costDtoSchema,
   rangeDtoSchema,
@@ -37,8 +38,46 @@ const characterBuilderAbilityMethodDtoSchema = z.enum([
   CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
 ])
 
+const characterBuilderAbilityDraftDtoSchema = z.discriminatedUnion('method', [
+  z.strictObject({
+    method: z.literal(CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY),
+    slots: z.array(z.strictObject({
+      ability: abilityCodeSchema.optional(),
+      option: z.enum(['8', '10', '12', '13', '14', '15']).optional()
+    })).length(6)
+  }),
+  z.strictObject({
+    method: z.literal(CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY),
+    slots: z.array(z.strictObject({
+      ability: abilityCodeSchema.optional(),
+      option: z.enum(['8', '9', '10', '11', '12', '13', '14', '15']).optional()
+    })).length(6)
+  }),
+  z.strictObject({
+    method: z.literal(CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED),
+    slots: z.array(z.strictObject({
+      ability: abilityCodeSchema.optional(),
+      score: z.number().int().optional()
+    })).length(6)
+  })
+])
+
 export const characterBuilderAbilitiesIntentCacheDtoSchema = z.strictObject({
   activeMethod: characterBuilderAbilityMethodDtoSchema,
+  drafts: z
+    .partialRecord(characterBuilderAbilityMethodDtoSchema, characterBuilderAbilityDraftDtoSchema)
+    .optional()
+    .superRefine((drafts, context) => {
+      for (const [method, draft] of Object.entries(drafts ?? {})) {
+        if (draft !== undefined && draft.method !== method) {
+          context.addIssue({
+            code: 'custom',
+            path: [method, 'method'],
+            message: `Cached ability draft ${method} contains ${draft.method} slots.`
+          })
+        }
+      }
+    }),
   methods: z
     .partialRecord(characterBuilderAbilityMethodDtoSchema, characterBuilderAbilitiesFormDtoSchema)
     .superRefine((methods, context) => {
@@ -130,6 +169,13 @@ export const characterBuilderGrantSummaryItemDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+  availableAtLevel: z.number().int().positive().optional(),
+  details: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string()
+  })).optional(),
   attributes: z.array(z.string()).optional(),
   sourceLabel: z.string(),
   source: characterProvenanceDtoSchema
@@ -152,7 +198,9 @@ export const characterBuilderIssueDtoSchema = z.object({
 export const characterBuilderValidationDtoSchema = z.object({
   code: z.string(),
   message: z.string(),
-  severity: z.enum(['blocking', 'warning'])
+  severity: z.enum(['blocking', 'warning']),
+  sourceLabel: z.string().optional(),
+  source: characterProvenanceDtoSchema.optional()
 })
 
 export const characterBuilderReadinessDtoSchema = z.object({
@@ -191,30 +239,66 @@ export const characterBuilderReferenceOptionDtoSchema = z.object({
 export const characterBuilderRaceReferenceDtoSchema =
   characterBuilderReferenceOptionDtoSchema.extend({
     category: z.string().optional(),
+    description: z.string().optional(),
     parentRaceId: z.string().optional(),
+    selectionMode: z.enum(['DIRECT', 'REQUIRES_SUBRACE']).optional(),
+    sizeLabel: z.string().optional(),
+    speedLabels: z.array(z.string()).optional(),
+    abilityScoreIncreaseDescriptions: z.array(z.string()).optional(),
     ancestry: z
       .object({
         id: z.string(),
         label: z.string(),
-        options: z.array(characterBuilderReferenceOptionDtoSchema)
+        options: z.array(characterBuilderReferenceOptionDtoSchema.extend({
+          description: z.string().optional(),
+          features: z.array(characterBuilderGrantSummaryItemDtoSchema)
+        }))
       })
       .optional()
+  })
+
+export const characterBuilderBackgroundReferenceDtoSchema =
+  characterBuilderReferenceOptionDtoSchema.extend({
+    description: z.string().optional(),
+    summary: z.string(),
+    grantFacts: z.array(z.object({ label: z.string(), value: z.string() })),
+    featureLabels: z.array(z.string()),
+    hiddenGrantFactCount: z.number().int().nonnegative(),
+    hiddenFeatureCount: z.number().int().nonnegative()
   })
 
 export const characterBuilderClassReferenceDtoSchema =
   characterBuilderReferenceOptionDtoSchema.extend({
     category: z.string().optional(),
+    description: z.string().optional(),
     hitpoint: classHitpointDtoSchema.optional(),
+    requirementGroups: classMulticlassRequirementGroupsDtoSchema.optional(),
     parentClassId: z.string().optional(),
+    savingThrowLabels: z.array(z.string()).optional(),
+    proficiencyGroups: z.array(z.object({
+      label: z.string(),
+      entries: z.array(z.string())
+    })).optional(),
     specializations: z.array(characterBuilderReferenceOptionDtoSchema).optional()
   })
 
 export const characterBuilderReferencesDtoSchema = z.object({
+  abilities: z.array(characterBuilderReferenceOptionDtoSchema),
+  advancementMethods: z.array(characterBuilderReferenceOptionDtoSchema),
+  abilityGenerationMethods: z.array(characterBuilderReferenceOptionDtoSchema),
+  hitpointCalculationMethods: z.array(characterBuilderReferenceOptionDtoSchema),
+  standardArrayScores: z.array(characterBuilderReferenceOptionDtoSchema),
+  pointBuyScores: z.array(characterBuilderReferenceOptionDtoSchema.extend({
+    cost: z.number().int().nonnegative()
+  })),
+  pointBuyTotalPoints: z.number().int().positive(),
   races: z.array(characterBuilderRaceReferenceDtoSchema),
   classes: z.array(characterBuilderClassReferenceDtoSchema),
-  backgrounds: z.array(characterBuilderReferenceOptionDtoSchema),
+  backgrounds: z.array(characterBuilderBackgroundReferenceDtoSchema),
   equipment: z.array(characterBuilderReferenceOptionDtoSchema),
-  currencies: z.array(characterBuilderReferenceOptionDtoSchema)
+  currencies: z.array(characterBuilderReferenceOptionDtoSchema),
+  alignments: z.array(characterBuilderReferenceOptionDtoSchema),
+  lifestyles: z.array(characterBuilderReferenceOptionDtoSchema)
 })
 
 export const characterBuilderChoiceOptionDtoSchema =
@@ -223,6 +307,14 @@ export const characterBuilderChoiceOptionDtoSchema =
     disabled: z.boolean().optional(),
     disabledReason: z.string().optional(),
     properties: z.array(z.string()).optional()
+  })
+
+export const characterBuilderSpellOptionDtoSchema =
+  characterBuilderChoiceOptionDtoSchema.extend({
+    level: z.number().int().nonnegative(),
+    schoolLabel: z.string().optional(),
+    ritual: z.boolean().optional(),
+    concentration: z.boolean().optional()
   })
 
 export const characterBuilderFeatureChoiceViewDtoSchema = z.object({
@@ -242,6 +334,10 @@ export const characterBuilderChosenGrantChoiceViewDtoSchema: z.ZodType<Character
     grantId: z.string(),
     grantKind: z.enum(['PROFICIENCY_GRANT', 'SPELL_GRANT', 'FEAT_GRANT', 'SENSE_GRANT']),
     label: z.string(),
+    ownerFeatureId: z.string().optional(),
+    proficiencyKind: z.string().optional(),
+    proficiencyLevel: z.enum(['HALF', 'FULL', 'DOUBLE']).optional(),
+    displayCategory: z.string().optional(),
     sourceLabel: z.string(),
     source: characterProvenanceDtoSchema,
     timing: characterAcquisitionTimingDtoSchema,
@@ -259,10 +355,11 @@ export const characterBuilderSpellChoiceViewDtoSchema = z.object({
   source: characterProvenanceDtoSchema,
   cantripLimit: z.number().int(),
   learnedSpellLimit: z.number().int(),
+  spellCollectionLabel: z.string(),
   selectedCantripIds: z.array(z.string()),
   selectedSpellIds: z.array(z.string()),
-  cantripOptions: z.array(characterBuilderChoiceOptionDtoSchema),
-  spellOptions: z.array(characterBuilderChoiceOptionDtoSchema)
+  cantripOptions: z.array(characterBuilderSpellOptionDtoSchema),
+  spellOptions: z.array(characterBuilderSpellOptionDtoSchema)
 })
 
 export const characterBuilderRaceViewDtoSchema = z.object({
@@ -288,13 +385,19 @@ export const characterBuilderClassViewItemDtoSchema = z.object({
   classOptions: z.array(characterBuilderChoiceOptionDtoSchema).optional(),
   subclassOptions: z.array(characterBuilderChoiceOptionDtoSchema),
   specializationOptions: z.array(characterBuilderChoiceOptionDtoSchema),
+  subclassSelectionFeatureId: z.string().optional(),
+  proficiencyGroups: z.array(z.object({
+    category: z.string(),
+    label: z.string(),
+    grantedEntries: z.array(z.string()),
+    choiceInstructions: z.array(z.object({ label: z.string(), required: z.boolean() })),
+    choiceIds: z.array(z.string())
+  })),
   grantChoices: z.array(characterBuilderChosenGrantChoiceViewDtoSchema),
   featureLabels: z.array(z.string()),
   features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   featureChoices: z.array(characterBuilderFeatureChoiceViewDtoSchema),
-  spellChoices: z.array(characterBuilderSpellChoiceViewDtoSchema),
-  resourceLabels: z.array(z.string()),
-  spellcastingLabels: z.array(z.string())
+  spellChoices: z.array(characterBuilderSpellChoiceViewDtoSchema)
 })
 
 export const characterBuilderClassViewDtoSchema = z.object({
@@ -305,6 +408,15 @@ export const characterBuilderClassViewDtoSchema = z.object({
 export const characterBuilderBackgroundViewDtoSchema = z.object({
   grantChoices: z.array(characterBuilderChosenGrantChoiceViewDtoSchema),
   backgroundOptions: z.array(characterBuilderChoiceOptionDtoSchema),
+  description: z.string().optional(),
+  detailSections: z.array(z.object({
+    label: z.string(),
+    details: z.array(z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string()
+    }))
+  })),
   features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   featureChoices: z.array(characterBuilderFeatureChoiceViewDtoSchema)
 })
@@ -313,7 +425,8 @@ export const characterBuilderStartingEquipmentViewDtoSchema = z.object({
   source: z.enum(['CLASS', 'BACKGROUND']),
   sourceLabel: z.string(),
   startingGold: classStartingGoldDtoSchema.nullable().optional(),
-  startingEquipment: startingEquipmentDtoSchema
+  startingEquipment: startingEquipmentDtoSchema,
+  choiceLabels: z.record(z.string(), z.string())
 })
 
 export const characterBuilderEquipmentViewDtoSchema = z.object({
@@ -950,6 +1063,9 @@ export type CharacterBuilderReferenceOptionDto = z.infer<
 export type CharacterBuilderRaceReferenceDto = z.infer<
   typeof characterBuilderRaceReferenceDtoSchema
 >
+export type CharacterBuilderBackgroundReferenceDto = z.infer<
+  typeof characterBuilderBackgroundReferenceDtoSchema
+>
 export type CharacterBuilderClassReferenceDto = z.infer<
   typeof characterBuilderClassReferenceDtoSchema
 >
@@ -959,6 +1075,10 @@ export type CharacterBuilderChosenGrantChoiceViewDto = {
   grantId: string
   grantKind: 'PROFICIENCY_GRANT' | 'SPELL_GRANT' | 'FEAT_GRANT' | 'SENSE_GRANT'
   label: string
+  ownerFeatureId?: string
+  proficiencyKind?: string
+  proficiencyLevel?: 'HALF' | 'FULL' | 'DOUBLE'
+  displayCategory?: string
   sourceLabel: string
   source: z.infer<typeof characterProvenanceDtoSchema>
   timing: z.infer<typeof characterAcquisitionTimingDtoSchema>
@@ -969,6 +1089,7 @@ export type CharacterBuilderChosenGrantChoiceViewDto = {
   options: CharacterBuilderChoiceOptionDto[]
 }
 export type CharacterBuilderChoiceOptionDto = z.infer<typeof characterBuilderChoiceOptionDtoSchema>
+export type CharacterBuilderSpellOptionDto = z.infer<typeof characterBuilderSpellOptionDtoSchema>
 export type CharacterBuilderGrantSummaryItemDto = z.infer<
   typeof characterBuilderGrantSummaryItemDtoSchema
 >

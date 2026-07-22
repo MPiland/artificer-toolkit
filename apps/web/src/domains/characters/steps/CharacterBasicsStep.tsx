@@ -1,7 +1,7 @@
 import { withForm } from '#forms/app-form/AppForm'
 import {
-  advancementMethodOptions,
-  createFallbackCharacterFormValues
+  createFallbackCharacterFormValues,
+  selectOptions
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
@@ -9,12 +9,9 @@ import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 export const CharacterBasicsStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
-  render: function RenderCharacterBasics({ form, readOnly }) {
+  render: function RenderCharacterBasics({ form, payload, readOnly }) {
     return (
-      <section className={styles.section} aria-labelledby='character-basics-title'>
-        <div className={styles.sectionHeader}>
-          <h3 id='character-basics-title' className={styles.sectionTitle}>Character basics</h3>
-        </div>
+      <div className={styles.section}>
         <div className={styles.fieldGrid}>
           <div className={styles.fieldSpan6}>
             <form.AppField name='label'>
@@ -33,7 +30,7 @@ export const CharacterBasicsStep = withForm({
               {(field) => (
                 <field.SelectField
                   label='Advancement'
-                  data={advancementMethodOptions}
+                  data={selectOptions(payload.references.advancementMethods)}
                   required
                   readOnly={readOnly}
                 />
@@ -52,7 +49,7 @@ export const CharacterBasicsStep = withForm({
             </form.AppField>
           </div>
         </div>
-      </section>
+      </div>
     )
   }
 })

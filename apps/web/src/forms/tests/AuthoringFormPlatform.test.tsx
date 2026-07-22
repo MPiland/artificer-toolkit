@@ -640,7 +640,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    expect(screen.getByText('Overview')).toBeInTheDocument()
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /features/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^add feature$/i })).toBeInTheDocument()
     expect(screen.getByText('No features added yet.')).toBeInTheDocument()
@@ -1093,7 +1093,7 @@ describe('authoring navigation tree', () => {
 })
 
 describe('authoring rail summaries', () => {
-  it('keeps completed step count visually separate from issue count', () => {
+  it('keeps incomplete step count separate from issues', () => {
     const summaries = toAuthoringRailSummaries({
       hasChanges: false,
       mode: 'create',
@@ -1114,10 +1114,10 @@ describe('authoring rail summaries', () => {
         value: '1/2'
       }),
       expect.objectContaining({
-        label: 'issue',
-        markerLabel: 'Issues found',
-        status: 'warning',
-        value: '1'
+        label: 'issues',
+        markerLabel: 'No issues',
+        status: 'complete',
+        value: '0'
       }),
       expect.objectContaining({
         label: 'status',
@@ -1148,7 +1148,7 @@ describe('authoring rail summaries', () => {
     ])
   })
 
-  it('counts completed create steps even before they are visited', () => {
+  it('formats the supplied completion count', () => {
     const summaries = toAuthoringRailSummaries({
       hasChanges: false,
       mode: 'create',

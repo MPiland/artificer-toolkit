@@ -6,7 +6,7 @@ import type {
   CharacterBuilderGrantSummaryItemDto
 } from '@artificer-toolkit/schema/api/characters'
 import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
-import { AppSelect } from '#ui/primitives/Select'
+import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import {
   choiceOptions,
   type CharacterFormValues
@@ -20,47 +20,73 @@ type FeatureChoiceSource = CharacterBuilderFeatureChoiceViewDto['source']
 
 export function CharacterGrantedFeatures({
   acquisitions,
+  children,
   choices,
   empty,
   features,
   onChange,
+  presentation = 'cards',
   readOnly,
   renderFeatureControls,
+  showTitle = true,
+  showSourceBadge = true,
   title = 'Features'
 }: {
   acquisitions: CharacterFormValues['intent']['featureAcquisitions']
+  children?: ReactNode
   choices: CharacterBuilderFeatureChoiceViewDto[]
   empty?: string
   features: CharacterBuilderGrantSummaryItemDto[]
   onChange: (acquisitions: CharacterFormValues['intent']['featureAcquisitions']) => void
+  presentation?: 'cards' | 'rows'
   readOnly: boolean
   renderFeatureControls?: (feature: CharacterBuilderGrantSummaryItemDto) => ReactNode
+  showTitle?: boolean
+  showSourceBadge?: boolean
   title?: string
 }) {
   const featureViews = toFeatureViews(features, choices)
 
-  if (featureViews.length === 0) {
+  if (featureViews.length === 0 && children == null) {
     return empty ? <Text className={styles.mutedText}>{empty}</Text> : null
   }
 
   return (
     <section className={styles.grantedFeatureSection} aria-label={title}>
-      <Text fw={700}>{title}</Text>
-      <Stack gap='sm'>
+      {showTitle ? <Text fw={700}>{title}</Text> : null}
+      <Stack gap={presentation === 'rows' ? 0 : 'md'}>
         {featureViews.map((feature) => {
           const featureChoices = choices.filter((choice) => isChoiceForFeature(choice, feature))
 
           return (
-            <article key={`${feature.id}-${feature.sourceLabel}-${feature.source.kind}`} className={styles.grantedFeatureItem}>
+            <article
+              key={`${feature.id}-${feature.sourceLabel}-${feature.source.kind}`}
+              className={presentation === 'rows' ? styles.grantedFeatureRow : styles.grantedFeatureItem}
+            >
               <div className={styles.grantedFeatureHeader}>
-                <div>
-                  <Text fw={700}>{feature.label}</Text>
-                  <Text className={styles.mutedText} size='sm'>{feature.sourceLabel}</Text>
-                </div>
-                <Badge variant='light'>{formatSourceKind(feature.source.kind)}</Badge>
+                <Text fw={700}>{feature.label}</Text>
+                {showSourceBadge
+                  ? <Badge variant='light'>{formatSourceKind(feature.source.kind)}</Badge>
+                  : null}
               </div>
               {feature.description?.trim()
                 ? <div className={styles.grantedFeatureDescription}>{renderSanitizedRichHtml(feature.description)}</div>
+                : null}
+              {feature.details?.length
+                ? (
+                    <div className={styles.grantedFeatureDetails}>
+                      {feature.details.map((detail) => (
+                        <section key={detail.id} className={styles.grantedFeatureDetail}>
+                          {isRedundantDetailLabel(detail.label, feature.label)
+                            ? null
+                            : <Text fw={650} size='sm'>{detail.label}</Text>}
+                          <div className={styles.grantedFeatureDescription}>
+                            {renderSanitizedRichHtml(detail.description)}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  )
                 : null}
               {renderFeatureControls?.(feature)}
               {featureChoices.length
@@ -81,6 +107,7 @@ export function CharacterGrantedFeatures({
             </article>
           )
         })}
+        {children}
       </Stack>
     </section>
   )
@@ -103,8 +130,7 @@ function CharacterFeatureChoiceControl({
   return choice.requiredCount === 1
     ? (
         <AppSelect
-          label={`${choice.featureLabel} choice`}
-          description={choice.sourceLabel}
+          label='Choose 1'
           data={options}
           value={selectedOptionIds[0] ?? null}
           required
@@ -117,45 +143,24 @@ function CharacterFeatureChoiceControl({
         />
       )
     : (
-        <div className={styles.choiceSlotGrid}>
-          {Array.from({ length: choice.requiredCount }, (_, index) => {
-            const currentOptionId = selectedOptionIds[index]
-            const availableOptions = options.filter((option) => (
-              option.value === currentOptionId || !selectedOptionIds.includes(option.value)
+        <AppMultiSelect
+          label={`Choose ${choice.requiredCount}`}
+          data={options}
+          value={selectedOptionIds}
+          required
+          disabled={readOnly}
+          clearable
+          maxValues={choice.requiredCount}
+          onChange={(optionIds) => {
+            if (readOnly) return
+            onChange(setFeatureChoiceValue(
+              acquisitions,
+              choice,
+              optionIds.slice(0, choice.requiredCount)
             ))
-
-            return (
-              <AppSelect
-                key={`${choice.featureId}:${choice.selectionKey}:${index}`}
-                label={`${choice.featureLabel} choice ${index + 1} of ${choice.requiredCount}`}
-                description={index === 0 ? choice.sourceLabel : undefined}
-                data={availableOptions}
-                value={currentOptionId ?? null}
-                required
-                disabled={readOnly}
-                clearable
-                onChange={(optionId) => {
-                  if (readOnly) return
-                  onChange(setFeatureChoiceSlotValue(acquisitions, choice, selectedOptionIds, index, optionId))
-                }}
-              />
-            )
-          })}
-        </div>
+          }}
+        />
       )
-}
-
-function setFeatureChoiceSlotValue(
-  acquisitions: CharacterFormValues['intent']['featureAcquisitions'],
-  choice: CharacterBuilderFeatureChoiceViewDto,
-  selectedOptionIds: readonly string[],
-  slotIndex: number,
-  selectedOptionId: string | null
-): CharacterFormValues['intent']['featureAcquisitions'] {
-  const nextOptionIds = Array.from({ length: choice.requiredCount }, (_, index) => selectedOptionIds[index] ?? '')
-  nextOptionIds[slotIndex] = selectedOptionId ?? ''
-
-  return setFeatureChoiceValue(acquisitions, choice, nextOptionIds.filter(Boolean))
 }
 
 function toFeatureViews(
@@ -262,4 +267,10 @@ function formatSourceKind(kind: CharacterBuilderGrantSummaryItemDto['source']['k
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter: string) => letter.toUpperCase())
+}
+
+function isRedundantDetailLabel(detailLabel: string, featureLabel: string): boolean {
+  const normalizedDetailLabel = detailLabel.trim().toLocaleLowerCase()
+  return normalizedDetailLabel === 'detail'
+    || normalizedDetailLabel === featureLabel.trim().toLocaleLowerCase()
 }

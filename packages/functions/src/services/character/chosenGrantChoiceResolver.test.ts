@@ -27,6 +27,7 @@ import type { CharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js
 
 import {
   resolveCharacterChosenGrantChoices,
+  type CharacterChosenGrantChoiceRegistry,
   type CharacterChosenGrantOwner
 } from './chosenGrantChoiceResolver.js'
 
@@ -198,6 +199,84 @@ describe('resolveCharacterChosenGrantChoices', () => {
     expect(choices[0]?.options).toEqual([{ id: 'longsword', label: 'Longsword' }])
   })
 
+  it('disables a chosen full proficiency already granted at full rank', () => {
+    const fixedGrant = {
+      id: 'fixed-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED, scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], level: SCALING_AMOUNT_KIND.FULL, order: 0
+    } satisfies ProficiencyGrantAuthored<'FEATURE'>
+    const chosenGrant = {
+      id: 'chosen-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
+      level: SCALING_AMOUNT_KIND.FULL, order: 1
+    } satisfies ProficiencyGrantAuthored<'FEATURE'>
+
+    const choices = resolveCharacterChosenGrantChoices(makeCharacter(), {
+      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
+    }, [makeOwner({ proficiencies: [fixedGrant, chosenGrant] })])
+
+    expect(choices[0]?.options).toEqual([{
+      id: 'arcana', label: 'Arcana', disabled: true, disabledReason: 'Granted by Test feature'
+    }])
+  })
+
+  it('requires full proficiency before a chosen expertise selection', () => {
+    const grant = {
+      id: 'expertise-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
+      level: SCALING_AMOUNT_KIND.DOUBLE, order: 0
+    } satisfies ProficiencyGrantAuthored<'FEATURE'>
+
+    const choices = resolveCharacterChosenGrantChoices(makeCharacter(), {
+      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
+    }, [makeOwner({ proficiencies: [grant] })])
+
+    expect(choices[0]?.options[0]?.disabledReason).toBe('Requires full proficiency first.')
+  })
+
+  it('keeps a chosen full proficiency eligible when it supplies an expertise prerequisite', () => {
+    const fullGrant = {
+      id: 'chosen-full', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
+      level: SCALING_AMOUNT_KIND.FULL, order: 0
+    } satisfies ProficiencyGrantAuthored<'FEATURE'>
+    const expertiseGrant = {
+      ...fullGrant,
+      id: 'chosen-expertise',
+      level: SCALING_AMOUNT_KIND.DOUBLE,
+      order: 1
+    } satisfies ProficiencyGrantAuthored<'FEATURE'>
+    const character = makeCharacter()
+    character.intent.chosenGrantSelections = [
+      {
+        id: 'selection-full',
+        grantId: fullGrant.id,
+        source: { kind: 'FEATURE', featureId: 'feature-1' },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: ['arcana']
+      },
+      {
+        id: 'selection-expertise',
+        grantId: expertiseGrant.id,
+        source: { kind: 'FEATURE', featureId: 'feature-1' },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: ['arcana']
+      }
+    ]
+
+    const choices = resolveCharacterChosenGrantChoices(character, {
+      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
+    }, [makeOwner({ proficiencies: [fullGrant, expertiseGrant] })])
+
+    expect(choices).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: expect.stringContaining(fullGrant.id), options: [{ id: 'arcana', label: 'Arcana' }] }),
+      expect.objectContaining({ id: expect.stringContaining(expertiseGrant.id), options: [{ id: 'arcana', label: 'Arcana' }] })
+    ]))
+  })
+
   it('keeps a reused grant identity and selection scoped to its owner', () => {
     const grant = {
       id: 'shared-weapon-choice',
@@ -231,6 +310,7 @@ describe('resolveCharacterChosenGrantChoices', () => {
     ]
     const ownerA = {
       ...makeOwner({ proficiencies: [grant] }),
+      ownerFeatureId: 'feature-a',
       source: { kind: 'FEATURE', featureId: 'feature-a' } as const
     }
     const ownerB = {
@@ -258,5 +338,6 @@ describe('resolveCharacterChosenGrantChoices', () => {
       ['longsword'],
       ['club']
     ])
+    expect(choices.map((choice) => choice.ownerFeatureId)).toEqual(['feature-a', undefined])
   })
 })

@@ -21,6 +21,11 @@ export function SentryFeedbackMenuItem() {
       const removeDialog = () => dialog?.removeFromDom()
 
       dialog = await feedback.createForm({
+        tags: {
+          viewport_width: String(window.innerWidth),
+          viewport_height: String(window.innerHeight),
+          device_pixel_ratio: String(window.devicePixelRatio)
+        },
         onFormClose: removeDialog,
         onFormSubmitted: removeDialog
       })

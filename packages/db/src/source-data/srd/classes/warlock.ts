@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -509,6 +510,8 @@ export const warlock: ClassAuthored = {
 
   // ── Spellcasting ─────────────────────────────────────────────────────────────
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 5,
     magicName: 'Pact Magic',
@@ -557,6 +560,7 @@ export const warlock: ClassAuthored = {
       label: 'Otherworldly Patron',
       description:
         'At 1st level, you have struck a bargain with an otherworldly being of your choice. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 1,
       order: 0
     },

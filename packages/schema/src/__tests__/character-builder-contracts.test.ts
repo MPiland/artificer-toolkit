@@ -5,7 +5,9 @@ import {
   characterBuilderFormDtoSchema,
   characterBuilderIntentCacheDtoSchema,
   characterBuilderCommitRequestDtoSchema,
-  characterBuilderSaveRequestDtoSchema
+  characterBuilderReferencesDtoSchema,
+  characterBuilderSaveRequestDtoSchema,
+  characterBuilderSpellChoiceViewDtoSchema
 } from '../api/characters.js'
 
 const baseRequest = {
@@ -126,6 +128,85 @@ describe('character builder contracts', () => {
         }
       }).success
     ).toBe(false)
+  })
+
+  it('accepts multiclass reference groups and spell option metadata', () => {
+    expect(characterBuilderReferencesDtoSchema.parse({
+      abilities: [{ id: 'STRENGTH', label: 'Strength' }],
+      advancementMethods: [{ id: 'MILESTONE', label: 'Milestone' }],
+      abilityGenerationMethods: [{ id: 'STANDARD_ARRAY', label: 'Standard Array' }],
+      hitpointCalculationMethods: [{ id: 'FIXED', label: 'Fixed' }],
+      standardArrayScores: [{ id: '8', label: '8' }],
+      pointBuyScores: [{ id: '8', label: '8', cost: 0 }],
+      pointBuyTotalPoints: 27,
+      races: [{
+        id: 'race-dragonborn',
+        label: 'Dragonborn',
+        ancestry: {
+          id: 'draconic-ancestry',
+          label: 'Draconic Ancestry',
+          options: [{
+            id: 'red',
+            label: 'Red',
+            features: [{
+              id: 'fire-breath',
+              label: 'Fire Breath',
+              details: [{ id: 'damage', label: 'Damage', description: 'Fire damage.' }],
+              sourceLabel: 'Red',
+              source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' }
+            }]
+          }]
+        }
+      }],
+      classes: [{
+        id: 'class-fighter',
+        label: 'Fighter',
+        requirementGroups: {
+          groups: [{
+            id: 'strength-or-dexterity',
+            requirements: [{ id: 'strength-13', ability: 'STRENGTH', min: 13 }]
+          }]
+        }
+      }],
+      backgrounds: [{
+        id: 'background-acolyte',
+        label: 'Acolyte',
+        description: 'A life of service.',
+        summary: 'A life of service.',
+        grantFacts: [],
+        featureLabels: ['Shelter of the Faithful'],
+        hiddenGrantFactCount: 0,
+        hiddenFeatureCount: 0
+      }],
+      equipment: [],
+      currencies: [],
+      alignments: [{ id: 'neutral', label: 'Neutral' }],
+      lifestyles: [{ id: 'modest', label: 'Modest' }]
+    }).backgrounds[0]).toMatchObject({
+      description: 'A life of service.',
+      featureLabels: ['Shelter of the Faithful']
+    })
+
+    expect(characterBuilderSpellChoiceViewDtoSchema.parse({
+      id: 'wizard-spellcasting',
+      label: 'Wizard Spellcasting',
+      sourceLabel: 'Wizard',
+      source: { kind: 'CLASS', classId: 'class-wizard' },
+      cantripLimit: 0,
+      learnedSpellLimit: 1,
+      spellCollectionLabel: 'Spellbook',
+      selectedCantripIds: [],
+      selectedSpellIds: [],
+      cantripOptions: [],
+      spellOptions: [{
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        level: 1,
+        schoolLabel: 'Evocation',
+        ritual: false,
+        concentration: false
+      }]
+    }).spellOptions[0]?.schoolLabel).toBe('Evocation')
   })
 
   it('rejects duplicate chosen grant selections for the same owning source', () => {

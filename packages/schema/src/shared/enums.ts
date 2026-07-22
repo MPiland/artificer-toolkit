@@ -47,7 +47,11 @@ export const spellcastingAttributeSchema = z.enum([
   'RITUAL_CASTER'
 ])
 
-export const featureAttributeSchema = z.enum(['LIMITED_USE', 'HIDDEN_ON_SHEET'])
+export const featureAttributeSchema = z.enum([
+  'LIMITED_USE',
+  'HIDDEN_ON_SHEET',
+  'SUBCLASS_SELECTION'
+])
 
 export const invocationKindSchema = z.enum(['ACTION', 'PASSIVE'])
 

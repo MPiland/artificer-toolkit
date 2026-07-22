@@ -57,15 +57,6 @@ const ASI_ABILITIES = [
   { ability: ABILITY_CODE.CHARISMA, label: 'Charisma' }
 ] as const
 
-const BARBARIAN_SKILL_CHOICES = [
-  { code: 'ANIMAL_HANDLING', label: 'Animal Handling' },
-  { code: 'ATHLETICS', label: 'Athletics' },
-  { code: 'INTIMIDATION', label: 'Intimidation' },
-  { code: 'NATURE', label: 'Nature' },
-  { code: 'PERCEPTION', label: 'Perception' },
-  { code: 'SURVIVAL', label: 'Survival' }
-] as const
-
 const GREATAXE_ID = equipmentId(18)
 const HANDAXE_ID = equipmentId(4)
 const JAVELIN_ID = equipmentId(5)
@@ -126,30 +117,6 @@ function createAbilityScoreImprovementOptions(group: number) {
   }
 
   return options
-}
-
-function createBarbarianSkillProficiencyOptions(group: number) {
-  return BARBARIAN_SKILL_CHOICES.map((record, index) => ({
-    id: classRowId(B, group, index + 1),
-    label: record.label,
-    description: `Gain proficiency in ${record.label}.`,
-    grants: {
-      proficiencies: [
-        {
-          id: classRowId(B, group, 64 + index),
-          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-          proficiencyKind: PROFICIENCY_KIND.SKILL,
-          level: SCALING_AMOUNT_KIND.FULL,
-          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-          scalingKind: SCALING.NONE,
-          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-          skillIds: [skillId(record.code)],
-          order: 0
-        }
-      ]
-    },
-    order: index
-  }))
 }
 
 // Rage resource charge — resets on long rest
@@ -444,6 +411,7 @@ export const barbarian: ClassAuthored = {
   ],
 
   resources: {
+    order: 0,
     id: classRowId(B, 5, 1),
     label: 'Rage',
     availableAtLevel: 1,
@@ -451,16 +419,6 @@ export const barbarian: ClassAuthored = {
   },
 
   features: [
-    {
-      id: classRowId(B, 3, 0),
-      label: 'Skill Proficiencies',
-      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Choose two skills from Animal Handling, Athletics, Intimidation, Nature, Perception, and Survival.',
-      availableAtLevel: 1,
-      order: -1,
-      optionChoices: [{ level: 1, count: 2 }],
-      options: createBarbarianSkillProficiencyOptions(6)
-    },
     {
       id: classRowId(B, 3, 1),
       label: 'Rage',
@@ -508,6 +466,7 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 6),
       label: 'Primal Path',
       description: 'At 3rd level, you choose a path that shapes the nature of your rage.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
     },

@@ -8,6 +8,7 @@ import {
   CLASS_CATEGORY,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
+  FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -487,24 +488,9 @@ export const bard: ClassAuthored = {
                     id: classRowId(BD, 98, 17),
                     order: 0,
                     startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
-                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                    equipmentIds: [equipmentId(73)],
-                    quantity: 1
-                  }
-                ]
-              },
-              {
-                id: classRowId(BD, 98, 18),
-                order: 1,
-                items: [
-                  {
-                    id: classRowId(BD, 98, 19),
-                    order: 0,
-                    startingEquipmentKind: STARTING_EQUIPMENT_KIND.EQUIPMENT,
                     selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                    equipmentIds: [68, 69, 70, 71, 72, 74, 75, 76, 77].map(equipmentId),
+                    authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                    properties: [EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
                     count: 1
                   }
                 ]
@@ -552,10 +538,13 @@ export const bard: ClassAuthored = {
     description:
       '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>',
     availableAtLevel: 1,
+    order: 1,
     charges: bardicInspirationCharge
   },
 
   spellcasting: {
+    availableAtLevel: 1,
+    order: 0,
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
@@ -696,6 +685,7 @@ export const bard: ClassAuthored = {
       label: 'Bard College',
       description:
         'At 3rd level, you delve into the advanced techniques of a bard college of your choice.',
+      attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
     },
