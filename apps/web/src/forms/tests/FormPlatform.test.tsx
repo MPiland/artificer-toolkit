@@ -1273,13 +1273,13 @@ describe('authoring form platform', () => {
     await user.click(resetActionsButton)
     expect(resetStepButton).toBeEnabled()
 
-    await user.click(screen.getByRole('button', { name: /^next$/i }))
+    await user.click(screen.getByRole('link', { name: /^next$/i }))
 
     expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
     await user.click(resetActionsButton)
     expect(await screen.findByLabelText(/reset step/i)).toBeDisabled()
 
-    await user.click(screen.getByRole('button', { name: /^back$/i }))
+    await user.click(screen.getByRole('link', { name: /^back$/i }))
     await user.click(resetActionsButton)
     const enabledResetStepButton = await screen.findByLabelText(/reset step/i)
     expect(enabledResetStepButton).toBeEnabled()
@@ -1311,11 +1311,11 @@ describe('authoring form platform', () => {
     expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
     expect(saveDraftButton).toBeDisabled()
 
-    await user.click(screen.getByRole('button', { name: /details/i }))
+    await user.click(screen.getByRole('link', { name: /details/i }))
 
     expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^back$/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^back$/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
     expect(saveDraftButton).toBeDisabled()
   })

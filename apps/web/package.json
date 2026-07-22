@@ -9,6 +9,7 @@
     "watch-routes": "tsr watch",
     "build": "vite build",
     "preview": "vite preview",
+    "preview:local": "vite build --mode development && vite preview --mode development --host localhost --port 3001",
     "typecheck": "yarn generate-routes && yarn typecheck:app",
     "typecheck:app": "node --max-old-space-size=8192 ../../node_modules/typescript/bin/tsc -p tsconfig.typecheck.app.json --pretty false",
     "typecheck:stories": "node --max-old-space-size=8192 ../../node_modules/typescript/bin/tsc -p tsconfig.typecheck.stories.json --pretty false",

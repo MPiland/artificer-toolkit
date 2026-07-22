@@ -11,6 +11,7 @@ import { AppProviders } from '#app/providers/AppProviders'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
 import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import type { AppRouterContext } from '#app/routerContext'
+import { isAuthoringStepNavigationState } from '#forms/layout/authoringSearch'
 
 const RouterDevtools = import.meta.env.DEV
   ? lazy(() =>
@@ -29,6 +30,7 @@ const QueryDevtools = import.meta.env.DEV
   : null
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
+  shouldReload: ({ location }) => !isAuthoringStepNavigationState(location.state),
   beforeLoad: async () => {
     return loadCurrentSessionFn()
   },

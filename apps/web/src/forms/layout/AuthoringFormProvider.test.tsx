@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -7,6 +7,8 @@ import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/ap
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAuthoringForm } from './AuthoringFormContext'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
+import { characterBuilderPayloadFixture } from '#domains/characters/character.fixtures'
+import type { AuthoringNavigationTarget } from './authoringNavigation'
 
 describe('AuthoringFormProvider domain registration', () => {
   it('registers authored form domain metadata from registerDomain', async () => {
@@ -84,16 +86,104 @@ describe('AuthoringFormProvider domain registration', () => {
 })
 
 describe('AuthoringFormProvider unsaved navigation', () => {
-  it('keeps a dirty authored form open when the user stays', async () => {
+  it('cancels a clean Character Builder session immediately', async () => {
     const user = userEvent.setup()
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <AuthoringFormProvider
-          data={{ systems: [{ id: 'system-1' }] }}
-          domain='race'
+          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+          kind='character-builder'
           mode='create'
         >
+          <CancelProbe hasChanges={false} />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByTestId('cancel-href').textContent).toBe('/characters')
+    await user.click(screen.getByRole('button', { name: 'Cancel form' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-pathname').textContent).toBe('/characters')
+    })
+    expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+  })
+
+  it('confirms a dirty authored-form cancellation without prompting twice', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+          <CancelProbe hasChanges />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-changes').textContent).toBe('true')
+    })
+    expect(screen.getByTestId('cancel-href').textContent).toBe('/races')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel form' }))
+    expect(await screen.findByRole('dialog', { name: 'Leave without saving?' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Stay' }))
+    expect(screen.getByTestId('history-pathname').textContent).toBe('/backgrounds')
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'Leave without saving?' })
+      ).not.toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Cancel form' }))
+    await user.click(await screen.findByRole('button', { name: 'Leave without saving' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-pathname').textContent).toBe('/races')
+    })
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: 'Leave without saving?' })
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('confirms a dirty Character Builder cancellation', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider
+          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+          kind='character-builder'
+          mode='create'
+        >
+          <CancelProbe hasChanges />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-changes').textContent).toBe('true')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Cancel form' }))
+    expect(await screen.findByRole('dialog', { name: 'Leave without saving?' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Leave without saving' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-pathname').textContent).toBe('/characters')
+    })
+  })
+
+  it('keeps a dirty authored form open when the user stays', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds'>
+        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -105,15 +195,15 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     await user.click(screen.getByRole('button', { name: 'Navigate away' }))
 
-    expect(
-      await screen.findByRole('dialog', { name: 'Leave without saving?' })
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Leave without saving?' })).toBeInTheDocument()
     expect(screen.getByTestId('pathname').textContent).toBe('/backgrounds')
 
     await user.click(screen.getByRole('button', { name: 'Stay' }))
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('dialog', { name: 'Leave without saving?' })
+      ).not.toBeInTheDocument()
     })
     expect(screen.getByTestId('pathname').textContent).toBe('/backgrounds')
   })
@@ -123,11 +213,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider
-          data={{ systems: [{ id: 'system-1' }] }}
-          domain='race'
-          mode='create'
-        >
+        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -171,6 +257,83 @@ describe('AuthoringFormProvider unsaved navigation', () => {
       expect(screen.getByTestId('pathname').textContent).toBe('/spells')
     })
     expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+  })
+})
+
+describe('AuthoringFormProvider URL navigation', () => {
+  it('uses the requested Character Builder step on the first render and follows history', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds?source=owned&step=RACE'>
+        <AuthoringFormProvider
+          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+          kind='character-builder'
+          mode='create'
+        >
+          <CharacterUrlNavigationProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByTestId('active-step-id').textContent).toBe('RACE')
+    expect(screen.getByTestId('active-step-visited').textContent).toBe('true')
+    await waitFor(() => {
+      expect(screen.getByTestId('history-state').textContent).toContain(
+        '"__authoringStepNavigation":true'
+      )
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Go to classes' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-step-id').textContent).toBe('CLASSES')
+      expect(screen.getByTestId('search').textContent).toContain('"source":"owned"')
+      expect(screen.getByTestId('search').textContent).toContain('"step":"CLASSES"')
+      expect(screen.getByTestId('history-state').textContent).toContain(
+        '"__authoringStepNavigation":true'
+      )
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-step-id').textContent).toBe('RACE')
+      expect(screen.getByTestId('active-step-visited').textContent).toBe('true')
+    })
+  })
+
+  it('co-commits an authored target with visited status without blocking step-only navigation', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider initialPath='/backgrounds?source=owned&step=step%3Arace%3Aroot%3Abasics'>
+        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+          <AuthoredUrlNavigationProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-target-id').textContent).toBe('step:race:root:basics')
+      expect(screen.getByTestId('active-target-visited').textContent).toBe('true')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Go to details' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-target-id').textContent).toBe('step:race:root:details')
+      expect(screen.getByTestId('active-target-visited').textContent).toBe('true')
+      expect(screen.getByTestId('search').textContent).toContain('"source":"owned"')
+    })
+    expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove details target' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-target-id').textContent).toBe('step:race:root:basics')
+      expect(screen.getByTestId('search').textContent).toContain('"step":"step:race:root:basics"')
+    })
   })
 })
 
@@ -370,4 +533,112 @@ function UnsavedNavigationProbe() {
       </button>
     </>
   )
+}
+
+function CancelProbe({ hasChanges }: { hasChanges: boolean }) {
+  const authoring = useAuthoringForm()
+  const router = useRouter()
+  const { updateAuthoringFormState } = authoring
+
+  useEffect(() => {
+    updateAuthoringFormState({ hasChanges })
+  }, [hasChanges, updateAuthoringFormState])
+
+  return (
+    <>
+      <div data-testid='cancel-href'>{authoring.cancelHref}</div>
+      <div data-testid='has-changes'>{String(authoring.hasChanges)}</div>
+      <div data-testid='history-pathname'>{router.history.location.pathname}</div>
+      <button type='button' onClick={() => void authoring.cancel()}>
+        Cancel form
+      </button>
+    </>
+  )
+}
+
+function CharacterUrlNavigationProbe() {
+  const authoring = useAuthoringForm()
+  const router = useRouter()
+  const search = useRouterState({ select: (state) => state.location.search })
+  const historyState = useRouterState({ select: (state) => state.location.state })
+
+  return (
+    <>
+      <div data-testid='active-step-id'>{authoring.activeStepId}</div>
+      <div data-testid='active-step-visited'>
+        {String(
+          Boolean(authoring.activeStepId && authoring.visitedStepIds.has(authoring.activeStepId))
+        )}
+      </div>
+      <div data-testid='search'>{JSON.stringify(search)}</div>
+      <div data-testid='history-state'>{JSON.stringify(historyState)}</div>
+      <button type='button' onClick={() => authoring.goToStep('CLASSES')}>
+        Go to classes
+      </button>
+      <button
+        type='button'
+        onClick={async () => {
+          router.history.back()
+          await router.load()
+        }}
+      >
+        Go back
+      </button>
+    </>
+  )
+}
+
+const authoredNavigationTargets = [
+  createAuthoringTarget('basics'),
+  createAuthoringTarget('details')
+]
+
+function AuthoredUrlNavigationProbe() {
+  const authoring = useAuthoringForm()
+  const search = useRouterState({ select: (state) => state.location.search })
+  const [includeDetails, setIncludeDetails] = useState(true)
+
+  useEffect(() => {
+    authoring.updateAuthoringFormState({
+      hasChanges: true,
+      navigationTargets: includeDetails
+        ? authoredNavigationTargets
+        : authoredNavigationTargets.slice(0, 1)
+    })
+  }, [authoring.updateAuthoringFormState, includeDetails])
+
+  return (
+    <>
+      <div data-testid='active-target-id'>{authoring.activeNavigationTargetId}</div>
+      <div data-testid='active-target-visited'>
+        {String(
+          Boolean(
+            authoring.activeNavigationTargetId &&
+            authoring.visitedStepIds.has(authoring.activeNavigationTargetId)
+          )
+        )}
+      </div>
+      <div data-testid='search'>{JSON.stringify(search)}</div>
+      <button
+        type='button'
+        onClick={() => authoring.goToNavigationTarget('step:race:root:details')}
+      >
+        Go to details
+      </button>
+      <button type='button' onClick={() => setIncludeDetails(false)}>
+        Remove details target
+      </button>
+    </>
+  )
+}
+
+function createAuthoringTarget(stepId: string): AuthoringNavigationTarget {
+  return {
+    id: `step:race:root:${stepId}`,
+    kind: 'step',
+    label: stepId,
+    mapId: 'race',
+    ownedFieldPaths: [],
+    stepId
+  }
 }

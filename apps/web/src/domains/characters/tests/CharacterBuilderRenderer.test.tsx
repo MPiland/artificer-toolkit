@@ -8,10 +8,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import { useAppForm } from '#forms/app-form/AppForm'
 import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
-import {
-  useAuthoringForm,
-  type AuthoringFormStatePatch
-} from '#forms/layout/AuthoringFormContext'
+import { useAuthoringForm, type AuthoringFormStatePatch } from '#forms/layout/AuthoringFormContext'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   characterBuilderDraftPayloadFixture,
@@ -22,6 +19,11 @@ import {
   toCharacterFormValues,
   type CharacterFormValues
 } from '../characterBuilder.utils'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  CHARACTER_BUILDER_TIMING_MEASURE
+} from '../characterBuilder.performance'
+import { getCharacterBuilderAuthoringState } from '../characterBuilderAuthoringState'
 import { CharacterBuilderRenderer } from '../components/CharacterBuilderRenderer'
 
 beforeAll(() => {
@@ -37,7 +39,7 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('heading', { level: 2, name: /basics/i })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /character name/i })).toHaveValue('Astra Vale')
 
-    await user.click(screen.getByRole('button', { name: /next/i }))
+    await user.click(screen.getByRole('link', { name: /next/i }))
 
     expect(screen.getByRole('heading', { level: 2, name: /race/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /change race/i })).toBeInTheDocument()
@@ -45,7 +47,121 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.queryByText(/resolver reports/i)).not.toBeInTheDocument()
   })
 
-  it('publishes builder navigation through the production character authoring registration', async () => {
+  it('uses textareas for profile reference fields and activates the Notes editor on demand', async () => {
+    const user = userEvent.setup()
+    const payload = {
+      ...characterBuilderPayloadFixture,
+      character: {
+        ...characterBuilderPayloadFixture.character,
+        profile: {
+          ...characterBuilderPayloadFixture.character.profile,
+          notes: '<p>Confirm the harbor master knows about the crate.</p>'
+        }
+      }
+    }
+
+    renderCharacterBuilderHarness({ payload })
+
+    for (let index = 0; index < 7; index += 1) {
+      await user.click(screen.getByRole('link', { name: /next/i }))
+    }
+
+    expect(screen.getByRole('heading', { level: 2, name: /^notes$/i })).toBeInTheDocument()
+
+    for (const label of [
+      'Personality Traits',
+      'Ideals',
+      'Bonds',
+      'Flaws',
+      'Organizations',
+      'Allies',
+      'Enemies',
+      'Backstory'
+    ]) {
+      expect(screen.getByLabelText(label).tagName).toBe('TEXTAREA')
+    }
+
+    const notesShell = screen.getByRole('button', { name: 'Edit Notes' })
+    expect(notesShell).toHaveTextContent(/confirm the harbor master/i)
+    expect(
+      screen
+        .queryAllByLabelText('Notes')
+        .find((element) => element.getAttribute('contenteditable') === 'true')
+    ).toBeUndefined()
+
+    fireEvent.click(notesShell)
+
+    await waitFor(() => {
+      const richTextNotes = screen
+        .getAllByLabelText('Notes')
+        .find((element) => element.getAttribute('contenteditable') === 'true')
+
+      expect(richTextNotes).toHaveAttribute('contenteditable', 'true')
+      expect(richTextNotes).toHaveTextContent(/confirm the harbor master/i)
+    })
+  })
+
+  it('activates Notes from keyboard focus and transfers focus to the rich editor', async () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'NOTES'
+        }
+      }
+    })
+
+    const notesShell = screen.getByRole('button', { name: 'Edit Notes' })
+    fireEvent.focus(notesShell)
+
+    await waitFor(() => {
+      const richTextNotes = screen
+        .getAllByLabelText('Notes')
+        .find((element) => element.getAttribute('contenteditable') === 'true')
+      expect(richTextNotes).toHaveFocus()
+    })
+  })
+
+  it('records a panel-commit measure after step navigation', async () => {
+    const user = userEvent.setup()
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.BUILDER_SHELL_READY)
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.HYDRATION_COMPLETED)
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.FIRST_ACTIVE_PANEL_COMMITTED)
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT)
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.STEP_PANEL_COMMITTED)
+    performance.clearMeasures(CHARACTER_BUILDER_TIMING_MEASURE.STEP_NAVIGATION)
+
+    renderCharacterBuilderHarness({ payload: characterBuilderPayloadFixture })
+
+    await waitFor(() => {
+      expect(
+        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_SHELL_READY, 'mark')
+      ).toHaveLength(1)
+      expect(
+        performance.getEntriesByName(
+          CHARACTER_BUILDER_TIMING_MARK.FIRST_ACTIVE_PANEL_COMMITTED,
+          'mark'
+        )
+      ).toHaveLength(1)
+    })
+
+    await user.click(screen.getByRole('link', { name: /next/i }))
+
+    await waitFor(() => {
+      expect(
+        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MEASURE.STEP_NAVIGATION, 'measure')
+      ).toHaveLength(1)
+    })
+    expect(
+      performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.STEP_PANEL_COMMITTED, 'mark')
+    ).toHaveLength(1)
+  })
+
+  it('keeps an immediate Race rail selection after renderer progress publication', async () => {
+    const user = userEvent.setup()
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
+
     renderWithAppProviders(
       <AuthoringLayout
         data={{ payload: characterBuilderPayloadFixture, systems: [] }}
@@ -55,8 +171,23 @@ describe('CharacterBuilderRenderer', () => {
     )
 
     const navigation = await screen.findByRole('navigation', { name: 'Authoring steps' })
-    expect(within(navigation).getByText('Basics', { exact: true }).closest('button')).toBeVisible()
-    expect(within(navigation).getByText('Review', { exact: true }).closest('button')).toBeVisible()
+    expect(within(navigation).getByText('Basics', { exact: true }).closest('a')).toBeVisible()
+    expect(within(navigation).getByText('Review', { exact: true }).closest('a')).toBeVisible()
+
+    const raceLink = within(navigation).getByText('Race', { exact: true }).closest('a')
+    expect(raceLink).not.toBeNull()
+    await user.click(raceLink!)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Race' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Change Race' })).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(
+        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
+      ).toHaveLength(1)
+    })
   })
 
   it('uses draft readiness from the backend view to keep activation unavailable', async () => {
@@ -65,9 +196,9 @@ describe('CharacterBuilderRenderer', () => {
     renderCharacterBuilderHarness({ payload: characterBuilderDraftPayloadFixture })
 
     for (let index = 0; index < 8; index += 1) {
-      const nextButton = screen.queryByRole('button', { name: /next/i })
-      if (!nextButton) break
-      await user.click(nextButton)
+      const nextLink = screen.queryByRole('link', { name: /next/i })
+      if (!nextLink) break
+      await user.click(nextLink)
     }
 
     expect(screen.getByText(/needs attention/i)).toBeInTheDocument()
@@ -79,9 +210,13 @@ describe('CharacterBuilderRenderer', () => {
     renderCharacterBuilderHarness({ payload: characterBuilderDraftPayloadFixture })
 
     await waitFor(() => {
-      expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"RACE":"incomplete"')
+      expect(screen.getByLabelText('builder step statuses')).toHaveTextContent(
+        '"RACE":"incomplete"'
+      )
     })
-    expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"BASICS":"incomplete"')
+    expect(screen.getByLabelText('builder step statuses')).toHaveTextContent(
+      '"BASICS":"incomplete"'
+    )
   })
 
   it('assigns class starting-equipment issues to Equipment instead of Classes', async () => {
@@ -110,9 +245,13 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"CLASSES":"complete"')
+      expect(screen.getByLabelText('builder step statuses')).toHaveTextContent(
+        '"CLASSES":"complete"'
+      )
     })
-    expect(screen.getByLabelText('builder step statuses')).toHaveTextContent('"EQUIPMENT":"incomplete"')
+    expect(screen.getByLabelText('builder step statuses')).toHaveTextContent(
+      '"EQUIPMENT":"incomplete"'
+    )
   })
 
   it('routes service validation codes to their owning builder steps', async () => {
@@ -259,12 +398,14 @@ describe('CharacterBuilderRenderer', () => {
           ...characterBuilderPayloadFixture.character,
           intent: {
             ...characterBuilderPayloadFixture.character.intent,
-            classes: [{
-              classId: 'class-wizard',
-              classLevel: 1,
-              subclassId: 'subclass-scribe',
-              specializationId: 'scribe-awakened'
-            }]
+            classes: [
+              {
+                classId: 'class-wizard',
+                classLevel: 1,
+                subclassId: 'subclass-scribe',
+                specializationId: 'scribe-awakened'
+              }
+            ]
           }
         },
         resolution: {
@@ -421,7 +562,9 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByText(/^wizard$/i)).toBeInTheDocument()
     expect(screen.queryByText(/^group 1$/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: /group 1/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: /choose 1 quarterstaff or scholar pack/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('combobox', { name: /choose 1 quarterstaff or scholar pack/i })
+    ).toBeInTheDocument()
   })
 
   it('resolves after selecting a starting equipment group option', async () => {
@@ -453,42 +596,50 @@ describe('CharacterBuilderRenderer', () => {
               choiceLabels: {},
               startingEquipment: {
                 id: 'wizard-starting-equipment',
-                sets: [{
-                  id: 'wizard-set',
-                  order: 1,
-                  groups: [{
-                    id: 'wizard-group',
+                sets: [
+                  {
+                    id: 'wizard-set',
                     order: 1,
-                    options: [
+                    groups: [
                       {
-                        id: 'staff-option',
+                        id: 'wizard-group',
                         order: 1,
-                        items: [{
-                          id: 'staff-item',
-                          order: 1,
-                          startingEquipmentKind: 'EQUIPMENT',
-                          selectionKind: 'GRANTED',
-                          quantity: 1,
-                          authoringModeKind: 'SELECTED',
-                          equipmentIds: ['equipment-staff']
-                        }]
-                      },
-                      {
-                        id: 'pack-option',
-                        order: 2,
-                        items: [{
-                          id: 'pack-item',
-                          order: 1,
-                          startingEquipmentKind: 'EQUIPMENT',
-                          selectionKind: 'GRANTED',
-                          quantity: 1,
-                          authoringModeKind: 'SELECTED',
-                          equipmentIds: ['equipment-pack']
-                        }]
+                        options: [
+                          {
+                            id: 'staff-option',
+                            order: 1,
+                            items: [
+                              {
+                                id: 'staff-item',
+                                order: 1,
+                                startingEquipmentKind: 'EQUIPMENT',
+                                selectionKind: 'GRANTED',
+                                quantity: 1,
+                                authoringModeKind: 'SELECTED',
+                                equipmentIds: ['equipment-staff']
+                              }
+                            ]
+                          },
+                          {
+                            id: 'pack-option',
+                            order: 2,
+                            items: [
+                              {
+                                id: 'pack-item',
+                                order: 1,
+                                startingEquipmentKind: 'EQUIPMENT',
+                                selectionKind: 'GRANTED',
+                                quantity: 1,
+                                authoringModeKind: 'SELECTED',
+                                equipmentIds: ['equipment-pack']
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
-                  }]
-                }]
+                  }
+                ]
               }
             }
           }
@@ -501,8 +652,13 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     await user.click(screen.getByRole('combobox', { name: /choose one/i }))
-    const quarterstaffOptions = await screen.findAllByRole('option', { hidden: true, name: 'Quarterstaff' })
-    fireEvent.click(quarterstaffOptions.find((option) => option.getAttribute('value') === 'staff-option')!)
+    const quarterstaffOptions = await screen.findAllByRole('option', {
+      hidden: true,
+      name: 'Quarterstaff'
+    })
+    fireEvent.click(
+      quarterstaffOptions.find((option) => option.getAttribute('value') === 'staff-option')!
+    )
 
     await waitFor(() => {
       expect(resolvedValues.at(-1)?.intent.startingEquipment?.class?.groups).toEqual([
@@ -719,17 +875,20 @@ describe('CharacterBuilderRenderer', () => {
                 {
                   id: 'ancestry-red',
                   label: 'Red (Fire)',
-                  features: [{
-                    id: 'feature-breath-weapon',
-                    label: 'Breath Weapon',
-                    description: '<p>You can exhale destructive energy tied to your ancestry.</p>',
-                    sourceLabel: 'Red (Fire)',
-                    source: {
-                      kind: 'ANCESTRY',
-                      ancestryId: 'ancestry-draconic',
-                      optionId: 'ancestry-red'
+                  features: [
+                    {
+                      id: 'feature-breath-weapon',
+                      label: 'Breath Weapon',
+                      description:
+                        '<p>You can exhale destructive energy tied to your ancestry.</p>',
+                      sourceLabel: 'Red (Fire)',
+                      source: {
+                        kind: 'ANCESTRY',
+                        ancestryId: 'ancestry-draconic',
+                        optionId: 'ancestry-red'
+                      }
                     }
-                  }]
+                  ]
                 }
               ]
             }
@@ -760,13 +919,15 @@ describe('CharacterBuilderRenderer', () => {
             label: 'Draconic Ancestry',
             options: [{ id: 'ancestry-red', label: 'Red (Fire)' }]
           },
-          features: [{
-            id: 'feature-draconic-ancestry',
-            label: 'Draconic Ancestry',
-            description: '<p>Choose one type of dragon.</p>',
-            sourceLabel: 'Dragonborn',
-            source: { kind: 'RACE', raceId: 'race-dragonborn' }
-          }],
+          features: [
+            {
+              id: 'feature-draconic-ancestry',
+              label: 'Draconic Ancestry',
+              description: '<p>Choose one type of dragon.</p>',
+              sourceLabel: 'Dragonborn',
+              source: { kind: 'RACE', raceId: 'race-dragonborn' }
+            }
+          ],
           featureChoices: []
         }
       }
@@ -783,7 +944,9 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getByText('Breath Weapon')).toBeInTheDocument()
     expect(screen.getByText(/destructive energy tied to your ancestry/i)).toBeInTheDocument()
-    const resolverContent = document.querySelector('[aria-labelledby="character-builder-active-step-title"]')
+    const resolverContent = document.querySelector(
+      '[aria-labelledby="character-builder-active-step-title"]'
+    )
     await waitFor(() => expect(resolverContent).toHaveAttribute('aria-busy', 'true'))
 
     await act(async () => pendingResolution.resolve())
@@ -846,14 +1009,22 @@ describe('CharacterBuilderRenderer', () => {
                 label: 'Breath Weapon',
                 description: '<p>You can exhale destructive energy tied to your ancestry.</p>',
                 sourceLabel: 'Red (Fire)',
-                source: { kind: 'ANCESTRY', ancestryId: 'ancestry-draconic', optionId: 'ancestry-red' }
+                source: {
+                  kind: 'ANCESTRY',
+                  ancestryId: 'ancestry-draconic',
+                  optionId: 'ancestry-red'
+                }
               },
               {
                 id: 'feature-damage-resistance',
                 label: 'Damage Resistance',
                 description: '<p>You have resistance to fire damage.</p>',
                 sourceLabel: 'Red (Fire)',
-                source: { kind: 'ANCESTRY', ancestryId: 'ancestry-draconic', optionId: 'ancestry-red' }
+                source: {
+                  kind: 'ANCESTRY',
+                  ancestryId: 'ancestry-draconic',
+                  optionId: 'ancestry-red'
+                }
               }
             ],
             featureChoices: []
@@ -1197,47 +1368,56 @@ describe('CharacterBuilderRenderer', () => {
           classes: {
             ...characterBuilderPayloadFixture.view.classes,
             selectedClasses: selectedClass
-              ? [{
-                  ...selectedClass,
-                  proficiencyGroups: [{
-                    category: 'SKILLS',
-                    label: 'Skills',
-                    grantedEntries: [],
-                    choiceInstructions: [{
-                      label: 'Choose 2 from Arcana, History, and Insight.',
-                      required: true
-                    }],
-                    choiceIds: ['choice-skills']
-                  }],
-                  grantChoices: [{
-                    id: 'choice-skills',
-                    grantId: 'grant-skills',
-                    grantKind: 'PROFICIENCY_GRANT',
-                    proficiencyKind: 'SKILL',
-                    proficiencyLevel: 'FULL',
-                    displayCategory: 'SKILLS',
-                    label: 'Skill Proficiencies',
-                    sourceLabel: 'Wizard',
-                    source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
-                    timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
-                    requiredCount: 2,
-                    duplicatePolicy: 'UNIQUE',
-                    selectedTargetIds: [],
-                    options: [
-                      { id: 'skill-arcana', label: 'Arcana' },
-                      { id: 'skill-history', label: 'History' },
-                      { id: 'skill-insight', label: 'Insight' }
+              ? [
+                  {
+                    ...selectedClass,
+                    proficiencyGroups: [
+                      {
+                        category: 'SKILLS',
+                        label: 'Skills',
+                        grantedEntries: [],
+                        choiceInstructions: [
+                          {
+                            label: 'Choose 2 from Arcana, History, and Insight.',
+                            required: true
+                          }
+                        ],
+                        choiceIds: ['choice-skills']
+                      }
+                    ],
+                    grantChoices: [
+                      {
+                        id: 'choice-skills',
+                        grantId: 'grant-skills',
+                        grantKind: 'PROFICIENCY_GRANT',
+                        proficiencyKind: 'SKILL',
+                        proficiencyLevel: 'FULL',
+                        displayCategory: 'SKILLS',
+                        label: 'Skill Proficiencies',
+                        sourceLabel: 'Wizard',
+                        source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                        timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
+                        requiredCount: 2,
+                        duplicatePolicy: 'UNIQUE',
+                        selectedTargetIds: [],
+                        options: [
+                          { id: 'skill-arcana', label: 'Arcana' },
+                          { id: 'skill-history', label: 'History' },
+                          { id: 'skill-insight', label: 'Insight' }
+                        ]
+                      }
                     ]
-                  }]
-                }]
+                  }
+                ]
               : []
           }
         }
       }
     })
 
-    expect(screen.getByText('Choose 2 from Arcana, History, and Insight.', { exact: false }))
-      .toBeInTheDocument()
+    expect(
+      screen.getByText('Choose 2 from Arcana, History, and Insight.', { exact: false })
+    ).toBeInTheDocument()
     expect(screen.getByText('Required', { exact: false })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Choose 2' })).toBeInTheDocument()
     expect(screen.queryByText('Choose 2', { selector: 'label' })).not.toBeInTheDocument()
@@ -1257,11 +1437,13 @@ describe('CharacterBuilderRenderer', () => {
       showAbilityMethodTestToggle: true
     })
 
-    await user.click(screen.getByRole('button', { name: /abilities & hp/i }))
+    await user.click(screen.getByRole('link', { name: /abilities & hp/i }))
 
     expect(screen.getAllByRole('combobox', { name: /^score/i })).toHaveLength(6)
     expect(screen.getAllByRole('combobox', { name: /ability/i })).toHaveLength(7)
-    expect(screen.queryByRole('button', { name: /fill six abilities|remove/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /fill six abilities|remove/i })
+    ).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /set manual ability method/i }))
 
@@ -1318,7 +1500,9 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     expect(screen.queryByText(/fixed hp is calculated automatically/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /add missing levels|move up|move down/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /add missing levels|move up|move down/i })
+    ).not.toBeInTheDocument()
     expect(await screen.findByText(/maximum hp 7/i)).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /fixed hp/i })).not.toBeInTheDocument()
   })
@@ -1381,7 +1565,9 @@ describe('CharacterBuilderRenderer', () => {
       }
     })
 
-    expect(screen.queryByText(/enter the hit-die roll.*ability modifiers are applied automatically/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/enter the hit-die roll.*ability modifiers are applied automatically/i)
+    ).not.toBeInTheDocument()
     expect(screen.getByText(/maximum hp 7/i)).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /d6 roll/i })).not.toBeInTheDocument()
   })
@@ -1411,7 +1597,9 @@ describe('CharacterBuilderRenderer', () => {
 
     const scoreFields = screen.getAllByRole('combobox', { name: /^score for assignment/i })
     await user.click(scoreFields[1])
-    expect((await screen.findAllByRole('option', { hidden: true, name: '12 (-4)' })).length).toBeGreaterThan(0)
+    expect(
+      (await screen.findAllByRole('option', { hidden: true, name: '12 (-4)' })).length
+    ).toBeGreaterThan(0)
     await user.keyboard('{Escape}')
     await user.click(scoreFields[0])
     expect(await screen.findByRole('option', { hidden: true, name: '12 (-2)' })).toBeInTheDocument()
@@ -1424,6 +1612,25 @@ describe('CharacterBuilderRenderer', () => {
     })
 
     expect(screen.getByRole('textbox', { name: /character name/i })).toHaveAttribute('readonly')
+  })
+
+  it('keeps Notes read-only behavior unchanged', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'NOTES'
+        }
+      },
+      readOnly: true
+    })
+
+    expect(screen.queryByRole('button', { name: 'Edit Notes' })).not.toBeInTheDocument()
+    const richTextNotes = screen
+      .getAllByLabelText('Notes')
+      .find((element) => element.getAttribute('contenteditable') === 'false')
+    expect(richTextNotes).toHaveAttribute('contenteditable', 'false')
   })
 
   it('renders one concise review surface without duplicating the global activate action', () => {
@@ -1492,17 +1699,23 @@ function CharacterBuilderTestHarness({
   showAbilityMethodTestToggle: boolean
   showProseEditTestToggle: boolean
 }) {
-  const {
-    updateAuthoringFormActions,
-    updateAuthoringFormState
-  } = useAuthoringForm()
+  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
   const form = useAppForm({
     defaultValues: toCharacterFormValues(payload),
     onSubmit: async () => undefined
   })
+  const initialAuthoringState = useMemo(
+    () =>
+      getCharacterBuilderAuthoringState({
+        payload,
+        values: toCharacterFormValues(payload)
+      }),
+    [payload]
+  )
 
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
+      ...initialAuthoringState,
       activateLabel: 'Activate',
       authoringKind: 'character-builder',
       canSaveDraft: !readOnly,
@@ -1513,7 +1726,7 @@ function CharacterBuilderTestHarness({
       subjectLabel: payload.character.label || 'Untitled Character',
       systemId: payload.character.systemId
     }),
-    [payload.character.label, payload.character.systemId, readOnly]
+    [initialAuthoringState, payload.character.label, payload.character.systemId, readOnly]
   )
   const actions = useMemo(
     () => ({

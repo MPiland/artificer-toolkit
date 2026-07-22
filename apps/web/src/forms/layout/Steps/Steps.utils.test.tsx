@@ -36,6 +36,7 @@ describe('toAuthoringNavigationRailItems', () => {
     })
 
     expect(item?.status).toBe('error')
+    expect(item?.navigationHref).toBe('/?step=modifiers')
     item?.onSelect?.()
     expect(onTargetSelect).toHaveBeenCalledWith('modifiers', true)
   })
@@ -76,8 +77,12 @@ describe('toAuthoringRailItems', () => {
       stepStatuses: { details: 'complete' as const }
     }
 
-    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set() })[0]?.status).toBe('empty')
-    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set(['details']) })[0]?.status).toBe('complete')
+    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set() })[0]?.status).toBe(
+      'empty'
+    )
+    expect(
+      toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set(['details']) })[0]?.status
+    ).toBe('complete')
   })
 
   it('keeps unvisited incomplete create steps neutral until visited', () => {
@@ -90,14 +95,19 @@ describe('toAuthoringRailItems', () => {
       stepStatuses: { details: 'incomplete' as const }
     }
 
-    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set() })[0]?.status).toBe('empty')
-    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set(['details']) })[0]?.status).toBe('incomplete')
+    expect(toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set() })[0]?.status).toBe(
+      'empty'
+    )
+    expect(
+      toAuthoringRailItems({ ...baseInput, visitedStepIds: new Set(['details']) })[0]?.status
+    ).toBe('incomplete')
   })
 
   it('shows later warnings even after a visited step was complete', () => {
     const [item] = toAuthoringRailItems({
       activeSections: [],
       activeStepId: 'details',
+      currentHref: '/characters/new?source=owned',
       mode: 'create',
       onStepSelect: vi.fn(),
       steps: [{ id: 'details', label: 'Details' }],
@@ -106,6 +116,7 @@ describe('toAuthoringRailItems', () => {
     })
 
     expect(item?.status).toBe('warning')
+    expect(item?.navigationHref).toBe('/characters/new?source=owned&step=details')
   })
 })
 
@@ -123,11 +134,13 @@ describe('toAuthoringRailSummaries', () => {
       }
     })
 
-    expect(summaries[1]).toEqual(expect.objectContaining({
-      markerLabel: 'No issues',
-      status: 'complete',
-      value: '0'
-    }))
+    expect(summaries[1]).toEqual(
+      expect.objectContaining({
+        markerLabel: 'No issues',
+        status: 'complete',
+        value: '0'
+      })
+    )
   })
 })
 

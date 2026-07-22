@@ -1,7 +1,9 @@
 import { Outlet, createFileRoute, redirect, useLocation } from '@tanstack/react-router'
 import { Shell, platformNavigation } from '#app/shell'
+import { authoringSearchSchema } from '#app/forms/layout/authoringSearch'
 
 export const Route = createFileRoute('/_authed')({
+  validateSearch: authoringSearchSchema,
   beforeLoad: ({ context }) => {
     if (!context.user) {
       throw redirect({ to: '/sign-in' })

@@ -8,62 +8,37 @@ import { Content } from './Content/Content'
 import { Footer } from './Footer/Footer'
 import { Collapse, Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
-import {
-  toAuthoringNavigationRailItems,
-  toAuthoringRailItems
-} from './Steps.utils'
+import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.utils'
 import { clsx } from 'clsx'
+import { useLocation } from '@tanstack/react-router'
 
 export function Steps() {
-  const {
-    visitedStepIds,
-    setVisitedStepIds,
-    stepsNavigationOpen,
-    toggleStepsNavigation,
-    activeSections,
-    stepId,
-    visibleSteps
-  } = useAuthoringLayout()
+  const { stepsNavigationOpen, toggleStepsNavigation, activeSections, stepId, visibleSteps } =
+    useAuthoringLayout()
   const { isMobile, isTabletPortrait } = useBreakpoints()
+  const currentHref = useLocation({ select: (location) => location.href })
   const usesOverlayNavigation = isMobile || isTabletPortrait
 
-  const {
-    goToNavigationTarget,
-    goToStep,
-    mode,
-    navigationTree,
-    stepStatuses
-  } = useAuthoringForm()
+  const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses, visitedStepIds } =
+    useAuthoringForm()
 
   const handleStepSelect = useCallback(
     (stepId: string) => {
-      setVisitedStepIds((current) => {
-        if (current.has(stepId)) return current
-        const next = new Set(current)
-        next.add(stepId)
-        return next
-      })
       goToStep(stepId)
       if (usesOverlayNavigation) {
         toggleStepsNavigation()
       }
     },
-    [goToStep, setVisitedStepIds, toggleStepsNavigation, usesOverlayNavigation]
+    [goToStep, toggleStepsNavigation, usesOverlayNavigation]
   )
   const handleTargetSelect = useCallback(
     (targetId: string, hasChildren: boolean) => {
-      setVisitedStepIds((current) => {
-        if (current.has(targetId)) return current
-        const next = new Set(current)
-        next.add(targetId)
-        return next
-      })
       goToNavigationTarget(targetId)
       if (usesOverlayNavigation && !hasChildren) {
         toggleStepsNavigation()
       }
     },
-    [goToNavigationTarget, setVisitedStepIds, toggleStepsNavigation, usesOverlayNavigation]
+    [goToNavigationTarget, toggleStepsNavigation, usesOverlayNavigation]
   )
 
   const railItems = useMemo(() => {
@@ -71,6 +46,7 @@ export function Steps() {
       ? toAuthoringNavigationRailItems({
           activeTargetId: stepId,
           mode,
+          currentHref,
           navigationTree,
           onTargetSelect: handleTargetSelect,
           visitedStepIds
@@ -79,6 +55,7 @@ export function Steps() {
           activeSections,
           activeStepId: stepId,
           mode,
+          currentHref,
           onStepSelect: handleStepSelect,
           steps: visibleSteps,
           stepStatuses,
@@ -90,6 +67,7 @@ export function Steps() {
     activeSections,
     handleStepSelect,
     handleTargetSelect,
+    currentHref,
     mode,
     navigationTree,
     stepId,

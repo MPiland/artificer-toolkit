@@ -20,7 +20,10 @@ interface TestRouterProviderProps {
   defaultColorScheme?: MantineColorScheme
 }
 
-function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof createTestRootRoute>) {
+function createStaticRoute(
+  path: string,
+  getParentRoute: () => ReturnType<typeof createTestRootRoute>
+) {
   return createRoute({
     getParentRoute,
     path,
@@ -46,6 +49,8 @@ function createTestRouter(initialPath: string, user: User | null) {
     createStaticRoute('/update-password', getParentRoute),
     createStaticRoute('/auth/confirmed', getParentRoute),
     createStaticRoute('/home', getParentRoute),
+    createStaticRoute('/characters', getParentRoute),
+    createStaticRoute('/races', getParentRoute),
     createStaticRoute('/spells', getParentRoute),
     createStaticRoute('/backgrounds', getParentRoute)
   ])
@@ -73,10 +78,7 @@ export function TestRouterProvider({
 
   return (
     <RouterContextProvider router={router}>
-      <AppProviders
-        queryClient={queryClient}
-        defaultColorScheme={defaultColorScheme}
-      >
+      <AppProviders queryClient={queryClient} defaultColorScheme={defaultColorScheme}>
         {children}
       </AppProviders>
     </RouterContextProvider>

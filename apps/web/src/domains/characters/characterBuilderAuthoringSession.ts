@@ -8,6 +8,10 @@ import {
   toCharacterFormValues,
   type CharacterFormValues
 } from './characterBuilder.utils'
+import {
+  getCharacterBuilderAuthoringState,
+  type CharacterBuilderAuthoringState
+} from './characterBuilderAuthoringState'
 
 export type CharacterBuilderAuthoringSession = {
   baseActiveUpdatedAt: string | null
@@ -17,6 +21,7 @@ export type CharacterBuilderAuthoringSession = {
   formKey: string
   hasActiveDraft: boolean
   hasInvalidDraft: boolean
+  initialAuthoringState?: CharacterBuilderAuthoringState
   initialValues?: CharacterFormValues
   invalidDraftOnly: boolean
   isDraft: boolean
@@ -46,6 +51,7 @@ export function createCharacterBuilderAuthoringSession({
 function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringSession {
   const loaderData = data as CharacterCreateAuthoringData
   const payload = loaderData.payload
+  const initialValues = payload ? toCharacterFormValues(payload) : undefined
   const subjectLabel = payload?.character.label || 'Untitled Character'
 
   return {
@@ -55,7 +61,10 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
     formKey: payload ? `character:create:${payload.character.id}` : 'character:create:system-required',
     hasActiveDraft: false,
     hasInvalidDraft: false,
-    initialValues: payload ? toCharacterFormValues(payload) : undefined,
+    initialAuthoringState: payload && initialValues
+      ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
+      : undefined,
+    initialValues,
     invalidDraftOnly: false,
     isDraft: true,
     kind: 'character-builder',
@@ -80,6 +89,7 @@ function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSes
     : (loaderData.response?.baseActiveUpdatedAt ?? null)
   const subjectLabel =
     payload?.character.label || loaderData.breadcrumbLabel || 'Untitled Character'
+  const initialValues = payload ? toCharacterFormValues(payload) : undefined
 
   return {
     baseActiveUpdatedAt,
@@ -89,7 +99,10 @@ function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSes
     formKey: `character:${loaderData.characterId}:${loaderData.draft?.updatedAt ?? payload?.character.id ?? 'missing'}`,
     hasActiveDraft: Boolean(loaderData.response && loaderData.draftPayload),
     hasInvalidDraft: Boolean(loaderData.draft && !loaderData.draftPayload),
-    initialValues: payload ? toCharacterFormValues(payload) : undefined,
+    initialAuthoringState: payload && initialValues
+      ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
+      : undefined,
+    initialValues,
     invalidDraftOnly,
     isDraft: Boolean(loaderData.draftPayload),
     kind: 'character-builder',

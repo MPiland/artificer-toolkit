@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Circle, GitBranch } from 'lucide-react'
 import type { AuthoringStepProgressStatus } from '../../validation/authoringProgress'
 import type { SummaryProps } from './StatusSummary/StatusSummary.types'
 import type { AuthoringNavigationNode } from '../authoringNavigation'
+import { getAuthoringStepHref } from '../authoringSearch'
 
 export function statusLabel(status: ItemStatus) {
   switch (status) {
@@ -65,6 +66,7 @@ export function toAuthoringRailItems({
   activeStepId,
   mode,
   onStepSelect,
+  currentHref = '/',
   steps,
   stepStatuses,
   visitedStepIds
@@ -73,6 +75,7 @@ export function toAuthoringRailItems({
   activeStepId?: string
   mode: string
   onStepSelect: (stepId: string) => void
+  currentHref?: string
   steps: readonly RailStep[]
   stepStatuses?: Partial<Record<string, AuthoringStepProgressStatus>>
   visitedStepIds: ReadonlySet<string>
@@ -94,6 +97,8 @@ export function toAuthoringRailItems({
       isActive,
       label: step.label,
       level: 0,
+      navigationTargetId: step.id,
+      navigationHref: getAuthoringStepHref(currentHref, step.id),
       onSelect: children?.length ? undefined : () => onStepSelect(step.id),
       status
     }
@@ -105,12 +110,14 @@ export function toAuthoringNavigationRailItems({
   mode,
   navigationTree,
   onTargetSelect,
+  currentHref = '/',
   visitedStepIds
 }: {
   activeTargetId?: string
   mode: string
   navigationTree: readonly AuthoringNavigationNode[]
   onTargetSelect: (targetId: string, hasChildren: boolean) => void
+  currentHref?: string
   visitedStepIds: ReadonlySet<string>
 }): readonly ItemProps[] {
   return navigationTree.map((node) =>
@@ -119,6 +126,7 @@ export function toAuthoringNavigationRailItems({
       mode,
       node,
       onTargetSelect,
+      currentHref,
       visitedStepIds
     })
   )
@@ -135,8 +143,7 @@ export function toAuthoringRailSummaries({
 }): readonly SummaryProps[] {
   const stepCount = summary?.stepCount ?? 0
   const completeCount = summary?.completeCount ?? 0
-  const issueCount =
-    (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0)
+  const issueCount = (summary?.warningCount ?? 0) + (summary?.errorCount ?? 0)
   const statusSummary: SummaryProps = hasChanges
     ? {
         label: 'status',
@@ -201,12 +208,14 @@ function toNavigationRailItem({
   mode,
   node,
   onTargetSelect,
+  currentHref,
   visitedStepIds
 }: {
   activeTargetId?: string
   mode: string
   node: AuthoringNavigationNode
   onTargetSelect: (targetId: string, hasChildren: boolean) => void
+  currentHref: string
   visitedStepIds: ReadonlySet<string>
 }): ItemProps {
   const children = node.children?.map((child) =>
@@ -215,6 +224,7 @@ function toNavigationRailItem({
       mode,
       node: child,
       onTargetSelect,
+      currentHref,
       visitedStepIds
     })
   )
@@ -239,6 +249,8 @@ function toNavigationRailItem({
     isActive,
     label: node.label,
     level: node.level,
+    navigationTargetId: node.target?.id,
+    navigationHref: node.target ? getAuthoringStepHref(currentHref, node.target.id) : undefined,
     onSelect: node.target
       ? () => onTargetSelect(node.target?.id ?? '', Boolean(children?.length))
       : undefined,

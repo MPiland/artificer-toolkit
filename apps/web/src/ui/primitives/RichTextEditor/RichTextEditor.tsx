@@ -26,6 +26,7 @@ export interface RichTextEditorProps {
   name: string
   readOnly?: boolean
   className?: string
+  autoFocus?: boolean
 }
 
 const RichTextEditor = ({
@@ -38,7 +39,8 @@ const RichTextEditor = ({
   onBlur,
   name,
   readOnly,
-  className
+  className,
+  autoFocus
 }: RichTextEditorProps) => {
   const labelId = useId()
   const errorId = useId()
@@ -111,6 +113,13 @@ const RichTextEditor = ({
       editor.commands.setContent(value, { emitUpdate: false })
     }
   }, [editor, value])
+
+  useEffect(() => {
+    if (!autoFocus || !editor) return
+
+    const frameId = window.requestAnimationFrame(() => editor.commands.focus('end'))
+    return () => window.cancelAnimationFrame(frameId)
+  }, [autoFocus, editor])
 
   return (
     <>
