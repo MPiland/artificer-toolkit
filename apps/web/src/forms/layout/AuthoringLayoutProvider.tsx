@@ -9,6 +9,10 @@ import {
   type AuthoringPreviewContent
 } from './AuthoringLayoutContext'
 import { getAuthoringStatus, readReactNodeText } from './AuthoringLayout.utils'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  markCharacterBuilderTiming
+} from '#domains/characters/characterBuilder.performance'
 
 export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const {
@@ -19,7 +23,6 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     activeStep,
     activeStepId,
     activeStepLabel,
-    authoredSession,
     characterSession,
     visibleSteps,
     mode,
@@ -39,9 +42,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const status = getAuthoringStatus(mode, isDraft || hasActiveDraft)
   const stepId = activeNavigationTarget?.id ?? activeStepId
   const [previewContent, setPreviewContent] = useState<AuthoringPreviewContent>()
-  const [visitedStepIds, setVisitedStepIds] = useState<ReadonlySet<string>>(() => new Set())
-  const subjectIdentity = authoredSession?.key ?? characterSession?.formKey
-  const subjectIdentityRef = useRef(subjectIdentity)
+  const markedCharacterRailSubjectRef = useRef<string | undefined>(undefined)
   const activeSections = useMemo(
     () =>
       activeStep?.sections.filter((section) => section.nodes.some((node) => node.visible)) ?? [],
@@ -67,15 +68,13 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   }, [closePreview, isMobile, isTablet, openPreview])
 
   useEffect(() => {
-    const subjectChanged = subjectIdentityRef.current !== subjectIdentity
-    subjectIdentityRef.current = subjectIdentity
+    if (!characterSession || visibleSteps.length === 0) return
+    if (markedCharacterRailSubjectRef.current === characterSession.formKey) return
 
-    setVisitedStepIds((current) => {
-      const next = subjectChanged ? new Set<string>() : new Set(current)
-      if (stepId) next.add(stepId)
-      return next
-    })
-  }, [stepId, subjectIdentity])
+    markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.HYDRATION_COMPLETED)
+    markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
+    markedCharacterRailSubjectRef.current = characterSession.formKey
+  }, [characterSession, visibleSteps.length])
 
   const value = useMemo<AuthoringLayoutContextValue>(
     () => ({
@@ -90,8 +89,6 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
       title,
       label,
       status,
-      visitedStepIds,
-      setVisitedStepIds,
       activeSections,
       visibleSteps,
       activeStep,
@@ -110,8 +107,6 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
       title,
       label,
       status,
-      visitedStepIds,
-      setVisitedStepIds,
       activeSections,
       activeStep,
       activeNavigationTarget,

@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
 import type {
   NodeRuntimePathDto,
-  NodeRuntimeResolveResponseDto,
+  NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { AuthoredValidationIssueDto } from '@artificer-toolkit/schema/api/content'
 import type {
@@ -17,11 +17,11 @@ import type {
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
-import type { VisibleAuthoringStep, VisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import type {
-  AuthoringNavigationNode,
-  AuthoringNavigationTarget
-} from './authoringNavigation'
+  VisibleAuthoringStep,
+  VisibleAuthoringSteps
+} from '../hooks/useAuthoringResolvedModel'
+import type { AuthoringNavigationNode, AuthoringNavigationTarget } from './authoringNavigation'
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
@@ -101,6 +101,7 @@ export type AuthoringFormStatePatch = {
   systemId?: string
   visibleSteps?: VisibleAuthoringSteps
   validationIssues?: readonly AuthoredValidationIssueDto[]
+  visitedStepIds?: ReadonlySet<string>
   isSubmitting?: boolean
   isDeleting?: boolean
   stagedEditorOpen?: boolean
@@ -110,13 +111,13 @@ export type AuthoringFormSessionState = Pick<
   AuthoringFormStatePatch,
   | 'activeSectionId'
   | 'activeNavigationTargetId'
-      | 'activeStepId'
-      | 'activeStepLabel'
-      | 'authoredSession'
-      | 'authoringKind'
-      | 'characterData'
-      | 'characterSession'
-      | 'domain'
+  | 'activeStepId'
+  | 'activeStepLabel'
+  | 'authoredSession'
+  | 'authoringKind'
+  | 'characterData'
+  | 'characterSession'
+  | 'domain'
   | 'domainData'
   | 'fallbackLabel'
   | 'fieldPathPrefix'
@@ -129,8 +130,8 @@ export type AuthoringFormSessionState = Pick<
   | 'resolvedModel'
   | 'progressSummary'
   | 'subjectLabel'
-      | 'systemId'
-      | 'visibleSteps'
+  | 'systemId'
+  | 'visibleSteps'
 > &
   Required<
     Pick<
@@ -163,6 +164,7 @@ export type AuthoringFormSessionState = Pick<
       | 'stepWarnings'
       | 'subjectKindLabel'
       | 'validationIssues'
+      | 'visitedStepIds'
       | 'isSubmitting'
       | 'isDeleting'
       | 'stagedEditorOpen'
@@ -175,6 +177,7 @@ export type AuthoringFormContextValue = AuthoringFormSessionState & {
   activeNavigationTarget: AuthoringNavigationTarget | undefined
   activeStep: VisibleAuthoringStep | undefined
   cancel: AuthoringFormAction
+  cancelHref?: string
   clearValidationIssues: (fieldName: string) => void
   clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction

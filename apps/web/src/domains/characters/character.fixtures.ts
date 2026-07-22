@@ -222,6 +222,7 @@ export const characterBuilderPayloadFixture = {
         id: 'race-elf',
         label: 'Elf',
         category: 'BASE',
+        selectionMode: 'REQUIRES_SUBRACE',
         ancestry: {
           id: 'ancestry-elf',
           label: 'Elven Lineage',

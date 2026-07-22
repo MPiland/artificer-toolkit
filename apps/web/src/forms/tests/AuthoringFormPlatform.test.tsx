@@ -565,7 +565,7 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
   })
 
-  it('disables Back on the first step without presenting a duplicate Cancel action', () => {
+  it('keeps Cancel out of the floating step-navigation action bar', () => {
     const onCancel = vi.fn()
 
     render(
@@ -575,7 +575,11 @@ describe('authoring form platform', () => {
     )
 
     expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
-    expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('authoring-action-bar')).queryByRole('link', {
+        name: /^cancel$/i
+      })
+    ).not.toBeInTheDocument()
     expect(onCancel).not.toHaveBeenCalled()
   })
 
@@ -589,10 +593,10 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    await user.click(screen.getByRole('button', { name: /^next$/i }))
+    await user.click(screen.getByRole('link', { name: /^next$/i }))
     expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /^back$/i }))
+    await user.click(screen.getByRole('link', { name: /^back$/i }))
 
     expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
     expect(onCancel).not.toHaveBeenCalled()
@@ -609,10 +613,10 @@ describe('authoring form platform', () => {
 
     await user.type(screen.getByRole('textbox', { name: /name/i }), 'Fire Lace')
 
-    const nextButton = screen.getByRole('button', { name: /^next$/i })
-    expect(nextButton).toBeEnabled()
+    const nextLink = screen.getByRole('link', { name: /^next$/i })
+    expect(nextLink).toHaveAttribute('href')
 
-    await user.click(nextButton)
+    await user.click(nextLink)
 
     expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^next$/i })).toBeDisabled()
@@ -838,7 +842,7 @@ describe('authoring form platform', () => {
     )
 
     const navigation = screen.getByRole('navigation', { name: /^authoring steps$/i })
-    await user.click(within(navigation).getByRole('button', { name: /^damage/i }))
+    await user.click(within(navigation).getByRole('link', { name: /^damage/i }))
 
     const railDrawer = screen.getByRole('dialog', { name: /edit damage/i })
     expect(railDrawer).toBeInTheDocument()

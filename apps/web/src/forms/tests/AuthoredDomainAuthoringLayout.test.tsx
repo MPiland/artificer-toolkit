@@ -12,6 +12,7 @@ import {
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { server } from '#test/msw/server'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
+import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
@@ -36,7 +37,15 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
-    expect(screen.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^cancel$/i })).toHaveAttribute(
+      'href',
+      authoredFormActionFactories[domain].listPath
+    )
+    expect(
+      within(screen.getByTestId('authoring-action-bar')).queryByRole('link', {
+        name: /^cancel$/i
+      })
+    ).not.toBeInTheDocument()
   })
 
   it('shows Back after advancing from the first create step', async () => {
@@ -46,9 +55,9 @@ describe('non-character authored domain layout coverage', () => {
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
 
     await user.type(await screen.findByRole('textbox', { name: /name/i }), 'Test Race')
-    await user.click(screen.getByRole('button', { name: /^next$/i }))
+    await user.click(screen.getByRole('link', { name: /^next$/i }))
 
-    expect(screen.getByRole('button', { name: /^back$/i })).toBeEnabled()
+    expect(screen.getByRole('link', { name: /^back$/i })).toHaveAttribute('href')
   })
 
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {
@@ -63,45 +72,41 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
   })
 
-  it(
-    'guards populated Spell material values before deselecting Material',
-    async () => {
-      const user = userEvent.setup()
-      useStaticNodeRuntimeResolver()
+  it('guards populated Spell material values before deselecting Material', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
 
-      render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
+    render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
-      await user.click(await screen.findByRole('button', { name: /^casting/i }))
-      const components = await screen.findByRole('combobox', { name: /components/i })
-      expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
+    await user.click(await screen.findByRole('link', { name: /^casting/i }))
+    const components = await screen.findByRole('combobox', { name: /components/i })
+    expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
 
-      await user.click(components)
-      await user.keyboard('{Backspace}')
-      const confirmation = await screen.findByRole('dialog', { name: /clear hidden values/i })
-      expect(screen.getByText('Material Description')).toBeInTheDocument()
+    await user.click(components)
+    await user.keyboard('{Backspace}')
+    const confirmation = await screen.findByRole('dialog', { name: /clear hidden values/i })
+    expect(screen.getByText('Material Description')).toBeInTheDocument()
 
-      await user.click(within(confirmation).getByRole('button', { name: /^cancel$/i }))
-      await waitFor(() => {
-        expect(screen.queryByRole('dialog', { name: /clear hidden values/i })).not.toBeInTheDocument()
-      })
-      expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
+    await user.click(within(confirmation).getByRole('button', { name: /^cancel$/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /clear hidden values/i })).not.toBeInTheDocument()
+    })
+    expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
 
-      await user.click(components)
-      await user.keyboard('{Backspace}')
-      await user.click(
-        within(await screen.findByRole('dialog', { name: /clear hidden values/i })).getByRole(
-          'button',
-          { name: /clear and continue/i }
-        )
+    await user.click(components)
+    await user.keyboard('{Backspace}')
+    await user.click(
+      within(await screen.findByRole('dialog', { name: /clear hidden values/i })).getByRole(
+        'button',
+        { name: /clear and continue/i }
       )
+    )
 
-      await waitFor(() => {
-        expect(screen.queryByRole('button', { name: /remove material/i })).not.toBeInTheDocument()
-        expect(screen.queryByText('Material Description')).not.toBeInTheDocument()
-      })
-    },
-    15_000
-  )
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /remove material/i })).not.toBeInTheDocument()
+      expect(screen.queryByText('Material Description')).not.toBeInTheDocument()
+    })
+  }, 15_000)
 
   it('clears an empty Spell material branch without prompting', async () => {
     const user = userEvent.setup()
@@ -125,7 +130,7 @@ describe('non-character authored domain layout coverage', () => {
       </TestRouterProvider>
     )
 
-    await user.click(await screen.findByRole('button', { name: /^casting/i }))
+    await user.click(await screen.findByRole('link', { name: /^casting/i }))
     const components = await screen.findByRole('combobox', { name: /components/i })
     expect(await screen.findByText('Material Description')).toBeInTheDocument()
 
@@ -141,13 +146,11 @@ describe('non-character authored domain layout coverage', () => {
   it('preserves the Spell branch when normalization fails', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
-    server.use(
-      http.post('*/api/trpc/nodeRuntime.normalizeValues*', () => HttpResponse.error())
-    )
+    server.use(http.post('*/api/trpc/nodeRuntime.normalizeValues*', () => HttpResponse.error()))
 
     render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
 
-    await user.click(await screen.findByRole('button', { name: /^casting/i }))
+    await user.click(await screen.findByRole('link', { name: /^casting/i }))
     const components = await screen.findByRole('combobox', { name: /components/i })
     await user.click(components)
     await user.keyboard('{Backspace}')

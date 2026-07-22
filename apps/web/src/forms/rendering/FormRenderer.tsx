@@ -192,7 +192,11 @@ export function FormRenderer<TValues extends object>({
       const activeTarget =
         navigationTarget ??
         (updateAuthoringState
-          ? (authoring.activeNavigationTarget ?? navigationState?.navigationTargets[0])
+          ? (navigationState?.navigationTargets.find(
+              (target) => target.id === authoring.activeNavigationTargetId
+            ) ??
+            (navigationState ? undefined : authoring.activeNavigationTarget) ??
+            navigationState?.navigationTargets[0])
           : undefined)
       useEffect(() => {
         if (

@@ -1,4 +1,5 @@
 import { Button, Text } from '@mantine/core'
+import { useLocation } from '@tanstack/react-router'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
 import {
@@ -10,6 +11,7 @@ import {
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
+import { getAuthoringStepHref } from '#forms/layout/authoringSearch'
 
 type ReviewMessage = {
   message: string
@@ -21,6 +23,7 @@ export const CharacterReviewStep = withForm({
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterReview({ payload }) {
     const authoring = useAuthoringForm()
+    const currentHref = useLocation({ select: (location) => location.href })
     const summary = payload.resolution.summary
     const groupedMessages = buildReviewGroups(payload)
 
@@ -42,50 +45,69 @@ export const CharacterReviewStep = withForm({
         <dl className={styles.reviewSummary}>
           <ReviewFact
             label='Race'
-            value={summary.selectedRace?.subraceLabel ?? summary.selectedRace?.raceLabel ?? 'Not selected'}
+            value={
+              summary.selectedRace?.subraceLabel ??
+              summary.selectedRace?.raceLabel ??
+              'Not selected'
+            }
           />
-          <ReviewFact label='Background' value={summary.selectedBackground?.label ?? 'Not selected'} />
+          <ReviewFact
+            label='Background'
+            value={summary.selectedBackground?.label ?? 'Not selected'}
+          />
           <ReviewFact
             label='Classes'
-            value={summary.classes.length
-              ? summary.classes.map((classRecord) => `${classRecord.classLabel} ${classRecord.classLevel}`).join(', ')
-              : 'Not selected'}
+            value={
+              summary.classes.length
+                ? summary.classes
+                    .map((classRecord) => `${classRecord.classLabel} ${classRecord.classLevel}`)
+                    .join(', ')
+                : 'Not selected'
+            }
           />
-          <ReviewFact label='Abilities' value={`${Object.keys(summary.abilities).length} of 6 assigned`} />
+          <ReviewFact
+            label='Abilities'
+            value={`${Object.keys(summary.abilities).length} of 6 assigned`}
+          />
         </dl>
-        {groupedMessages.length
-          ? (
-              <div className={styles.reviewBlockers}>
-                {groupedMessages.map(([stepId, messages]) => (
-                  <section key={stepId} className={styles.reviewBlockerGroup}>
-                    <div className={styles.reviewBlockerHeader}>
-                      <Text fw={700}>{getStepLabel(stepId)}</Text>
-                      <Button
-                        type='button'
-                        size='compact-sm'
-                        variant='subtle'
-                        onClick={() => authoring.goToStep(stepId)}
-                      >
-                        Review step
-                      </Button>
-                    </div>
-                    <ul className={styles.reviewMessageList}>
-                      {messages.map((entry) => (
-                        <li
-                          key={`${entry.severity}:${entry.message}`}
-                          className={entry.severity === 'warning'
-                            ? styles.reviewMessageWarning
-                            : styles.reviewMessageBlocking}
-                        >
-                          {entry.message}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ))}
-              </div>
-            )
-          : null}
+        {groupedMessages.length ? (
+          <div className={styles.reviewBlockers}>
+            {groupedMessages.map(([stepId, messages]) => (
+              <section key={stepId} className={styles.reviewBlockerGroup}>
+                <div className={styles.reviewBlockerHeader}>
+                  <Text fw={700}>{getStepLabel(stepId)}</Text>
+                  <Button
+                    component='a'
+                    href={getAuthoringStepHref(currentHref, stepId)}
+                    size='compact-sm'
+                    variant='subtle'
+                    onClick={(event) => {
+                      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+                      event.preventDefault()
+                      authoring.goToStep(stepId)
+                    }}
+                  >
+                    Review step
+                  </Button>
+                </div>
+                <ul className={styles.reviewMessageList}>
+                  {messages.map((entry) => (
+                    <li
+                      key={`${entry.severity}:${entry.message}`}
+                      className={
+                        entry.severity === 'warning'
+                          ? styles.reviewMessageWarning
+                          : styles.reviewMessageBlocking
+                      }
+                    >
+                      {entry.message}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        ) : null}
       </div>
     )
   }

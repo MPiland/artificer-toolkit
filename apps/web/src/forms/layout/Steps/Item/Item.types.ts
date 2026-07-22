@@ -26,6 +26,8 @@ export type ItemProps = {
   isActive?: boolean
   label: string
   level?: number
+  navigationTargetId?: string
+  navigationHref?: string
   onSelect?: () => void
   status?: ItemStatus
   tone?: ItemTone

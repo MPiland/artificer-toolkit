@@ -1,6 +1,6 @@
 import { Group, NumberInput, Stack, Switch, TagsInput, TextInput, Textarea } from '@mantine/core'
 import type { ReactNode } from 'react'
-import RichTextEditor from '#ui/primitives/RichTextEditor'
+import RichTextEditor, { DeferredRichTextEditor } from '#ui/primitives/RichTextEditor'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import { useFieldContext } from '../app-form/AppForm.context'
@@ -31,6 +31,7 @@ type AppStructuralFieldProps<TValue> = {
 
 type AppFieldRichTextProps = AppFieldProps & {
   className?: string
+  deferActivation?: boolean
 }
 
 const fieldClassNames = {
@@ -287,12 +288,14 @@ export function RichTextField({
   placeholder,
   required,
   readOnly,
-  className
+  className,
+  deferActivation
 }: AppFieldRichTextProps) {
   const field = useFieldContext<string>()
+  const Editor = deferActivation ? DeferredRichTextEditor : RichTextEditor
 
   return (
-    <RichTextEditor
+    <Editor
       label={label}
       error={error ?? getFieldError(field)}
       name={field.name}

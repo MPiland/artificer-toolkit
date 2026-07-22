@@ -5,21 +5,62 @@ import { app } from '../../../../css/layers.css.ts'
 export const footer = style({
   '@layer': {
     [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      alignItems: 'stretch',
+      justifyContent: 'stretch',
+      gap: 0,
+      flexShrink: 0,
       minBlockSize: 72,
-      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`,
+      padding: 0,
       borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
       backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
 
-export const footerContent = style({
+export const cancelRow = style({
+  '@layer': {
+    [app]: {
+      boxSizing: 'border-box',
+      inlineSize: '100%',
+      minInlineSize: 0,
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`
+    }
+  }
+})
+
+export const cancelAction = style({
+  '@layer': {
+    [app]: {
+      minBlockSize: 36,
+      justifyContent: 'flex-start',
+      color: foundationVars.color.text.secondary,
+      fontWeight: foundationVars.fontWeight.semibold,
+      ':hover': {
+        backgroundColor: foundationVars.color.status.dangerSoft,
+        color: foundationVars.color.text.primary
+      },
+      ':focus-visible': {
+        outline: 'none',
+        boxShadow: foundationVars.shadow.focus
+      },
+      ':disabled': {
+        color: foundationVars.color.text.muted
+      }
+    }
+  }
+})
+
+export const statusContent = style({
   '@layer': {
     [app]: {
       display: 'grid',
       gap: foundationVars.space[3],
+      boxSizing: 'border-box',
       inlineSize: '100%',
-      minInlineSize: 0
+      minInlineSize: 0,
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`
     }
   }
 })

@@ -1,6 +1,8 @@
 import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characters'
 import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
 import { createCharacterBuilderAuthoringSession } from '../characterBuilderAuthoringSession'
+import { getCharacterBuilderProgressState } from '../characterBuilderAuthoringState'
+import { toCharacterFormValues } from '../characterBuilder.utils'
 import {
   characterBuilderDraftPayloadFixture,
   characterBuilderPayloadFixture,
@@ -26,6 +28,17 @@ const draftFixture = {
 } satisfies CharacterBuilderDraftDto
 
 describe('createCharacterBuilderAuthoringSession', () => {
+  it('keeps renderer progress updates separate from provider-owned navigation', () => {
+    const progress = getCharacterBuilderProgressState(
+      characterBuilderPayloadFixture,
+      toCharacterFormValues(characterBuilderPayloadFixture)
+    )
+
+    expect(progress).not.toHaveProperty('activeStepId')
+    expect(progress).not.toHaveProperty('activeStepLabel')
+    expect(progress).not.toHaveProperty('visibleSteps')
+  })
+
   it('creates a ready create session from resolved character payload data', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {
@@ -40,6 +53,11 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.systemRequired).toBe(false)
     expect(session.initialValues?.id).toBe(characterFixture.id)
     expect(session.subjectLabel).toBe(characterFixture.label)
+    expect(session.initialAuthoringState?.activeStepId).toBe(
+      characterBuilderPayloadFixture.resolution.recommendedSectionId
+    )
+    expect(session.initialAuthoringState?.visibleSteps).toHaveLength(9)
+    expect(session.initialAuthoringState?.progressSummary.stepCount).toBe(9)
   })
 
   it('creates a system-required create session when no payload is available', () => {
@@ -75,6 +93,10 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.baseActiveUpdatedAt).toBe(draftFixture.baseActiveUpdatedAt)
     expect(session.payload).toBe(characterBuilderDraftPayloadFixture)
     expect(session.initialValues?.builderIntent?.abilities).toBeDefined()
+    expect(session.initialAuthoringState?.activeStepId).toBe(
+      characterBuilderDraftPayloadFixture.resolution.recommendedSectionId
+    )
+    expect(session.initialAuthoringState?.visibleSteps).toHaveLength(9)
   })
 
   it('marks invalid draft-only edit sessions without creating form values', () => {

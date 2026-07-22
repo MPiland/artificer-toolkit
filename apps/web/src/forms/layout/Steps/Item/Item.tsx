@@ -56,7 +56,7 @@ export function Item({ item }: { item: ItemProps }) {
   const [expanded, { open, toggle }] = useDisclosure(item.expanded ?? true)
   const children = item.children ?? []
   const hasChildren = children.length > 0
-  const canSelect = Boolean(item.onSelect || hasChildren)
+  const canSelect = Boolean(item.navigationTargetId || item.onSelect || hasChildren)
   const childGroupId = `authoring-rail-children-${item.id}`
 
   const handleSelect = () => {
@@ -68,31 +68,66 @@ export function Item({ item }: { item: ItemProps }) {
     if (item.expanded) open()
   }, [item.expanded, open])
 
+  const rowContent = (
+    <>
+      <span className={styles.expander} aria-hidden='true'>
+        {hasChildren ? expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} /> : null}
+      </span>
+      <span className={styles.itemIcon} aria-hidden='true'>
+        <Icon icon={item.icon} />
+      </span>
+      <span className={styles.itemText}>
+        <span className={styles.itemLabel}>{item.label}</span>
+      </span>
+      <StatusMarker status={item.status ?? 'empty'} />
+    </>
+  )
+  const rowClassName = clsx(
+    styles.itemRow,
+    { ['active']: item.isActive },
+    item.tone === 'muted' && styles.itemRowMuted
+  )
+  const rowStyle = { '--authoring-rail-level': item.level ?? 0 } as CSSProperties
+
   return (
     <Rail.Item>
-      <UnstyledButton
-        className={clsx(
-          styles.itemRow,
-          { ['active']: item.isActive },
-          item.tone === 'muted' && styles.itemRowMuted
-        )}
-        style={{ '--authoring-rail-level': item.level ?? 0 } as CSSProperties}
-        aria-current={item.isActive ? 'step' : undefined}
-        aria-controls={hasChildren ? childGroupId : undefined}
-        aria-expanded={hasChildren ? expanded : undefined}
-        onClick={canSelect ? handleSelect : undefined}
-      >
-        <span className={styles.expander} aria-hidden='true'>
-          {hasChildren ? expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} /> : null}
-        </span>
-        <span className={styles.itemIcon} aria-hidden='true'>
-          <Icon icon={item.icon} />
-        </span>
-        <span className={styles.itemText}>
-          <span className={styles.itemLabel}>{item.label}</span>
-        </span>
-        <StatusMarker status={item.status ?? 'empty'} />
-      </UnstyledButton>
+      {item.navigationTargetId && item.navigationHref ? (
+        <UnstyledButton
+          component='a'
+          href={item.navigationHref}
+          className={rowClassName}
+          style={rowStyle}
+          aria-current={item.isActive ? 'step' : undefined}
+          aria-controls={hasChildren ? childGroupId : undefined}
+          aria-expanded={hasChildren ? expanded : undefined}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.shiftKey ||
+              event.altKey
+            ) {
+              return
+            }
+            event.preventDefault()
+            handleSelect()
+          }}
+        >
+          {rowContent}
+        </UnstyledButton>
+      ) : (
+        <UnstyledButton
+          className={rowClassName}
+          style={rowStyle}
+          aria-current={item.isActive ? 'step' : undefined}
+          aria-controls={hasChildren ? childGroupId : undefined}
+          aria-expanded={hasChildren ? expanded : undefined}
+          onClick={canSelect ? handleSelect : undefined}
+        >
+          {rowContent}
+        </UnstyledButton>
+      )}
       {hasChildren ? (
         <div id={childGroupId}>
           <Collapse

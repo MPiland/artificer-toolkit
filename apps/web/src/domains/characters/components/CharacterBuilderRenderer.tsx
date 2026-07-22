@@ -4,28 +4,22 @@ import { useStore } from '@tanstack/react-form'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
-import type { VisibleAuthoringSteps } from '#forms/hooks/useAuthoringResolvedModel'
-import type {
-  AuthoringProgressSummary,
-  AuthoringStepProgressStatus,
-  AuthoringStepStatusMap
-} from '#forms/validation/authoringProgress'
 import {
-  characterBuilderSteps,
   createFallbackCharacterFormValues,
-  getAssignedAbilityCodes,
   getCharacterBuilderDeferredResolutionFingerprint,
   getCharacterBuilderImmediateResolutionFingerprint,
-  getCharacterBuilderIssueStepId,
-  getCharacterBuilderValidationStepId,
   toCharacterFormValues,
-  type CharacterBuilderStepId,
   type CharacterFormValues
 } from '../characterBuilder.utils'
+import {
+  getCharacterBuilderProgressState,
+  getCharacterBuilderStep
+} from '../characterBuilderAuthoringState'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   CHARACTER_BUILDER_TIMING_MEASURE,
   completeCharacterBuilderTiming,
+  markCharacterBuilderTiming,
   startCharacterBuilderTiming
 } from '../characterBuilder.performance'
 import * as styles from '../characterBuilder.css'
@@ -36,7 +30,6 @@ import { CharacterBackgroundStep } from '../steps/CharacterBackgroundStep'
 import { CharacterDetailsStep } from '../steps/CharacterDetailsStep'
 import { CharacterNotesStep } from '../steps/CharacterNotesStep'
 import { CharacterAbilitiesStep } from '../steps/CharacterAbilitiesStep'
-import { isHitpointProgressionComplete } from '../steps/CharacterAbilitiesStep.utils'
 import { CharacterEquipmentStep } from '../steps/CharacterEquipmentStep'
 import { CharacterReviewStep } from '../steps/CharacterReviewStep'
 
@@ -51,10 +44,7 @@ export const CharacterBuilderRenderer = withForm({
   props: {} as CharacterBuilderRendererProps,
   render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
     const authoring = useAuthoringForm()
-    const {
-      updateAuthoringFormActions,
-      updateAuthoringFormState
-    } = authoring
+    const { updateAuthoringFormState } = authoring
     const values = useStore(form.store, (state) => state.values)
     const immediateResolutionFingerprint = useStore(form.store, (state) =>
       getCharacterBuilderImmediateResolutionFingerprint(state.values)
@@ -66,35 +56,34 @@ export const CharacterBuilderRenderer = withForm({
       canSubmit: state.canSubmit,
       isSubmitting: state.isSubmitting
     }))
-    const [activeStepId, setActiveStepId] = useState<CharacterBuilderStepId>(
-      payload.resolution.recommendedSectionId
-    )
-    const activeStep =
-      characterBuilderSteps.find((step) => step.id === activeStepId) ?? characterBuilderSteps[0]
-    const activeIndex = characterBuilderSteps.findIndex((step) => step.id === activeStep.id)
-    const isLastStep = activeIndex === characterBuilderSteps.length - 1
-    const visibleSteps = useMemo<VisibleAuthoringSteps>(
-      () =>
-        characterBuilderSteps.map((step, index) => ({
-          ...step,
-          order: index + 1,
-          sections: []
-        })),
-      []
+    const activeStep = getCharacterBuilderStep(
+      authoring.activeStepId ?? payload.resolution.recommendedSectionId
     )
     const payloadFormValues = useMemo(() => toCharacterFormValues(payload), [payload])
     const resolutionPending =
       immediateResolutionFingerprint !== getCharacterBuilderImmediateResolutionFingerprint(payloadFormValues)
       || deferredResolutionFingerprint !== getCharacterBuilderDeferredResolutionFingerprint(payloadFormValues)
     const [isResolving, setIsResolving] = useState(false)
-    const progress = useMemo(
-      () => getCharacterBuilderProgress(payload, isResolving ? payloadFormValues : values),
+    const progressState = useMemo(
+      () => getCharacterBuilderProgressState(
+        payload,
+        isResolving ? payloadFormValues : values
+      ),
       [isResolving, payload, payloadFormValues, values]
     )
     const latestValuesRef = useRef(values)
     latestValuesRef.current = values
     const previousImmediateFingerprintRef = useRef(immediateResolutionFingerprint)
     const resolveRequestIdRef = useRef(0)
+    const hasMarkedBuilderShellReadyRef = useRef(false)
+    const hasCommittedInitialPanelRef = useRef(false)
+
+    const markBuilderShellReady = useCallback((node: HTMLDivElement | null) => {
+      if (!node || hasMarkedBuilderShellReadyRef.current) return
+
+      markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.BUILDER_SHELL_READY)
+      hasMarkedBuilderShellReadyRef.current = true
+    }, [])
 
     useEffect(() => {
       if (authoring.readOnly || !resolutionPending) {
@@ -133,71 +122,41 @@ export const CharacterBuilderRenderer = withForm({
       })
     }, [payload])
 
-    const goToNextStep = useCallback(() => {
-      setActiveStepId(
-        characterBuilderSteps[Math.min(activeIndex + 1, characterBuilderSteps.length - 1)].id
-      )
-    }, [activeIndex])
-
-    const goToPreviousStep = useCallback(() => {
-      setActiveStepId(characterBuilderSteps[Math.max(activeIndex - 1, 0)].id)
-    }, [activeIndex])
-    const goToStep = useCallback((stepId: string) => {
-      if (characterBuilderSteps.some((step) => step.id === stepId)) {
-        setActiveStepId(stepId as CharacterBuilderStepId)
+    useEffect(() => {
+      if (!hasCommittedInitialPanelRef.current) {
+        markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.FIRST_ACTIVE_PANEL_COMMITTED)
+        hasCommittedInitialPanelRef.current = true
+        return
       }
-    }, [])
+
+      completeCharacterBuilderTiming({
+        endMark: CHARACTER_BUILDER_TIMING_MARK.STEP_PANEL_COMMITTED,
+        measure: CHARACTER_BUILDER_TIMING_MEASURE.STEP_NAVIGATION,
+        startMark: CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT
+      })
+    }, [activeStep.id])
 
     const statePatch = useMemo(
       () => ({
-        activeStepId: activeStep.id,
-        activeStepLabel: activeStep.label,
+        ...progressState,
         canFinalize: submitState.canSubmit && payload.view.review.ready,
         canSubmit: submitState.canSubmit && payload.view.review.ready,
-        firstBlockingStatus: progress.firstBlockingStatus,
-        firstBlockingStepId: progress.firstBlockingStepId,
-        isFirstStep: activeIndex === 0,
-        isLastStep,
-        isSubmitting: submitState.isSubmitting,
-        progressSummary: progress.progressSummary,
-        stepStatuses: progress.stepStatuses,
-        visibleSteps
+        isSubmitting: submitState.isSubmitting
       }),
       [
-        activeIndex,
-        activeStep.id,
-        activeStep.label,
-        isLastStep,
+        progressState,
         payload.view.review.ready,
-        progress.firstBlockingStatus,
-        progress.firstBlockingStepId,
-        progress.progressSummary,
-        progress.stepStatuses,
         submitState.canSubmit,
-        submitState.isSubmitting,
-        visibleSteps
+        submitState.isSubmitting
       ]
-    )
-
-    const actions = useMemo(
-      () => ({
-        onNextStep: goToNextStep,
-        onPreviousStep: goToPreviousStep,
-        onStepChange: goToStep
-      }),
-      [goToNextStep, goToPreviousStep, goToStep]
     )
 
     useEffect(() => {
       updateAuthoringFormState(statePatch)
     }, [statePatch, updateAuthoringFormState])
 
-    useEffect(() => {
-      updateAuthoringFormActions(actions)
-    }, [actions, updateAuthoringFormActions])
-
     return (
-      <div className={styles.builderRoot}>
+      <div ref={markBuilderShellReady} className={styles.builderRoot}>
         <div className={styles.builderHeader}>
           <div>
             <h2 id='character-builder-active-step-title' className={styles.title}>{activeStep.label}</h2>
@@ -246,114 +205,3 @@ export const CharacterBuilderRenderer = withForm({
     )
   }
 })
-
-type CharacterBuilderProgress = {
-  firstBlockingStatus?: Exclude<AuthoringStepProgressStatus, 'complete'>
-  firstBlockingStepId?: CharacterBuilderStepId
-  progressSummary: AuthoringProgressSummary
-  stepStatuses: AuthoringStepStatusMap
-}
-
-const statusRank: Record<AuthoringStepProgressStatus, number> = {
-  complete: 0,
-  warning: 1,
-  incomplete: 2,
-  error: 3
-}
-
-function getCharacterBuilderProgress(
-  payload: CharacterBuilderPayloadDto,
-  values: CharacterFormValues
-): CharacterBuilderProgress {
-  const stepStatuses: Record<CharacterBuilderStepId, AuthoringStepProgressStatus> = {
-    BASICS: isBasicsComplete(values) ? 'complete' : 'incomplete',
-    RACE: values.intent.race?.raceId ? 'complete' : 'incomplete',
-    CLASSES: values.intent.classes.length > 0 ? 'complete' : 'incomplete',
-    BACKGROUND: values.intent.background?.backgroundId ? 'complete' : 'incomplete',
-    ABILITIES: areAbilitiesAndHitpointsComplete(payload, values) ? 'complete' : 'incomplete',
-    EQUIPMENT: areStartingEquipmentChoicesComplete(payload) ? 'complete' : 'incomplete',
-    DETAILS: 'complete',
-    NOTES: 'complete',
-    REVIEW: payload.view.review.ready ? 'complete' : 'incomplete'
-  }
-
-  for (const issue of payload.resolution.outstandingChoices) {
-    setStepStatus(stepStatuses, getCharacterBuilderIssueStepId(issue), 'incomplete')
-  }
-
-  for (const validation of payload.resolution.validations) {
-    setStepStatus(
-      stepStatuses,
-      getCharacterBuilderValidationStepId(validation),
-      validation.severity === 'blocking' ? 'error' : 'warning'
-    )
-  }
-
-  return summarizeStepStatuses(stepStatuses)
-}
-
-function isBasicsComplete(values: CharacterFormValues): boolean {
-  return Boolean(values.label.trim() && values.intent.advancement?.method)
-}
-
-function areAbilitiesAndHitpointsComplete(
-  payload: CharacterBuilderPayloadDto,
-  values: CharacterFormValues
-): boolean {
-  const assignedAbilities = new Set(getAssignedAbilityCodes(values.intent.abilities))
-  const hitpointLevels = values.intent.hitpoints.levels ?? []
-
-  return assignedAbilities.size === 6
-    && isHitpointProgressionComplete(values.intent.classes, hitpointLevels)
-}
-
-function areStartingEquipmentChoicesComplete(payload: CharacterBuilderPayloadDto): boolean {
-  return !payload.view.equipment.classStartingEquipmentRequired
-    && !payload.view.equipment.backgroundStartingEquipmentRequired
-}
-
-function setStepStatus(
-  stepStatuses: Record<CharacterBuilderStepId, AuthoringStepProgressStatus>,
-  stepId: CharacterBuilderStepId,
-  status: AuthoringStepProgressStatus
-) {
-  if (statusRank[status] > statusRank[stepStatuses[stepId]]) {
-    stepStatuses[stepId] = status
-  }
-}
-
-function summarizeStepStatuses(
-  stepStatuses: Record<CharacterBuilderStepId, AuthoringStepProgressStatus>
-): CharacterBuilderProgress {
-  let completeCount = 0
-  let errorCount = 0
-  let incompleteCount = 0
-  let warningCount = 0
-  let firstBlockingStepId: CharacterBuilderStepId | undefined
-  let firstBlockingStatus: Exclude<AuthoringStepProgressStatus, 'complete'> | undefined
-
-  for (const step of characterBuilderSteps) {
-    const status = stepStatuses[step.id]
-    if (status === 'complete') completeCount += 1
-    if (status === 'error') errorCount += 1
-    if (status === 'incomplete') incompleteCount += 1
-    if (status === 'warning') warningCount += 1
-    if (status !== 'complete' && !firstBlockingStepId) {
-      firstBlockingStepId = step.id
-      firstBlockingStatus = status
-    }
-  }
-
-  return {
-    firstBlockingStatus,
-    firstBlockingStepId,
-    progressSummary: {
-      completeCount,
-      errorCount,
-      incompleteCount,
-      stepCount: characterBuilderSteps.length,
-      warningCount
-    },
-    stepStatuses
-  }
-}

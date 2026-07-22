@@ -3,9 +3,9 @@ import * as styles from './ActionBar.css'
 import { ActionIcon, Tooltip } from '@mantine/core'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import type { MouseEvent } from 'react'
-import { useCallback } from 'react'
+import { useLocation } from '@tanstack/react-router'
 import { useAuthoringForm } from '../../AuthoringFormContext'
-import { useAuthoringLayout } from '../../AuthoringLayoutContext'
+import { getAuthoringStepHref } from '../../authoringSearch'
 
 type ActionBarProps = {
   className?: string
@@ -14,29 +14,42 @@ type ActionBarProps = {
 }
 
 export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: ActionBarProps) {
-  const { goToNextStep, goToPreviousStep, isFirstStep, isLastStep, stagedEditorOpen } =
-    useAuthoringForm()
-  const { setVisitedStepIds, stepId } = useAuthoringLayout()
-  const handlePrevious = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation()
-      void goToPreviousStep()
-    },
-    [goToPreviousStep]
-  )
-  const handleNext = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation()
-      setVisitedStepIds((current) => {
-        if (!stepId || current.has(stepId)) return current
-        const next = new Set(current)
-        next.add(stepId)
-        return next
-      })
-      void goToNextStep()
-    },
-    [goToNextStep, setVisitedStepIds, stepId]
-  )
+  const {
+    activeNavigationTarget,
+    activeStep,
+    authoringKind,
+    goToNextStep,
+    goToPreviousStep,
+    isFirstStep,
+    isLastStep,
+    navigationTargets,
+    visibleSteps,
+    stagedEditorOpen
+  } = useAuthoringForm()
+  const currentHref = useLocation({ select: (location) => location.href })
+  const destinations =
+    authoringKind === 'character-builder' ? visibleSteps : (navigationTargets ?? [])
+  const activeId =
+    authoringKind === 'character-builder' ? activeStep?.id : activeNavigationTarget?.id
+  const activeIndex = destinations.findIndex((entry) => entry.id === activeId)
+  const previousStepId = activeIndex > 0 ? destinations[activeIndex - 1]?.id : undefined
+  const nextStepId = activeIndex >= 0 ? destinations[activeIndex + 1]?.id : undefined
+  const previousHref = previousStepId
+    ? getAuthoringStepHref(currentHref, previousStepId)
+    : undefined
+  const nextHref = nextStepId ? getAuthoringStepHref(currentHref, nextStepId) : undefined
+  const handlePrevious = (event: MouseEvent<HTMLElement>) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    event.stopPropagation()
+    void goToPreviousStep()
+  }
+  const handleNext = (event: MouseEvent<HTMLElement>) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    event.stopPropagation()
+    void goToNextStep()
+  }
   return (
     <footer
       className={clsx(
@@ -50,30 +63,54 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
       <div className={styles.inner}>
         <div className={styles.start}>
           <Tooltip label='Back'>
-            <ActionIcon
-              aria-label='Back'
-              className={styles.secondaryButton}
-              disabled={isFirstStep || stagedEditorOpen}
-              onClick={handlePrevious}
-              type='button'
-              variant='transparent'
-            >
-              <ArrowLeft aria-hidden='true' className={styles.icon} />
-            </ActionIcon>
+            {previousHref && !isFirstStep && !stagedEditorOpen ? (
+              <ActionIcon
+                component='a'
+                href={previousHref}
+                aria-label='Back'
+                className={styles.secondaryButton}
+                onClick={handlePrevious}
+                variant='transparent'
+              >
+                <ArrowLeft aria-hidden='true' className={styles.icon} />
+              </ActionIcon>
+            ) : (
+              <ActionIcon
+                aria-label='Back'
+                className={styles.secondaryButton}
+                disabled
+                type='button'
+                variant='transparent'
+              >
+                <ArrowLeft aria-hidden='true' className={styles.icon} />
+              </ActionIcon>
+            )}
           </Tooltip>
         </div>
         <div className={styles.end}>
           <Tooltip label='Next'>
-            <ActionIcon
-              aria-label='Next'
-              className={styles.primaryButton}
-              disabled={isLastStep || stagedEditorOpen}
-              onClick={handleNext}
-              type='button'
-              variant='transparent'
-            >
-              <ArrowRight aria-hidden='true' className={styles.icon} />
-            </ActionIcon>
+            {nextHref && !isLastStep && !stagedEditorOpen ? (
+              <ActionIcon
+                component='a'
+                href={nextHref}
+                aria-label='Next'
+                className={styles.primaryButton}
+                onClick={handleNext}
+                variant='transparent'
+              >
+                <ArrowRight aria-hidden='true' className={styles.icon} />
+              </ActionIcon>
+            ) : (
+              <ActionIcon
+                aria-label='Next'
+                className={styles.primaryButton}
+                disabled
+                type='button'
+                variant='transparent'
+              >
+                <ArrowRight aria-hidden='true' className={styles.icon} />
+              </ActionIcon>
+            )}
           </Tooltip>
         </div>
       </div>

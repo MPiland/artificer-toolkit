@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useBlocker, useNavigate, useRouter } from '@tanstack/react-router'
-import type {
-  NodeRuntimePathDto
-} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { useBlocker, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
+import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { ApiError } from '#lib/api'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import {
@@ -36,14 +34,21 @@ import type {
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
-import {
-  areAuthoringFieldPathsRelated,
-  toAuthoringFieldName
-} from '../utils/pathUtils'
+import { areAuthoringFieldPathsRelated, toAuthoringFieldName } from '../utils/pathUtils'
 import { findAuthoringValidationTarget } from './authoringNavigation'
 import { createCharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  startCharacterBuilderTiming
+} from '#domains/characters/characterBuilder.performance'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
+import {
+  isAuthoringStepNavigationState,
+  isAuthoringStepOnlyNavigation,
+  markAuthoringStepNavigationState,
+  readAuthoringStep
+} from './authoringSearch'
 
 const EMPTY_STEP_DIRTY = {}
 const EMPTY_STEP_STATUSES = {}
@@ -75,24 +80,47 @@ export function AuthoringFormProvider({
   kind,
   mode
 }: AuthoringFormProviderProps) {
+  const requestedStepId = useRouterState({
+    select: (state) => readAuthoringStep(state.location.search)
+  })
+  const isCurrentNavigationEntryMarked = useRouterState({
+    select: (state) => isAuthoringStepNavigationState(state.location.state)
+  })
   const [session, setSession] = useState<AuthoringFormSessionState>(() =>
-    createInitialSession({ data, domain, kind, mode })
+    createInitialSession({ data, domain, kind, mode, requestedStepId })
   )
+  const [cancelConfirmationOpened, setCancelConfirmationOpened] = useState(false)
+  const sessionRef = useRef(session)
+  sessionRef.current = session
   const actionsRef = useRef<AuthoringFormActionHandlers>({})
   const intentionalNavigationRef = useRef(false)
+  const pendingStepIdRef = useRef<string | undefined>(undefined)
+  const requestedStepIdRef = useRef(requestedStepId)
   const authoredSession = session.authoredSession
+  const cancelHref =
+    session.authoringKind === 'character-builder'
+      ? '/characters'
+      : authoredSession?.actionFactory.listPath
   const navigate = useNavigate()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const hasUnsavedAuthoredChanges =
-    session.authoringKind === 'authored-form' && session.hasChanges
+  const hasUnsavedAuthoredChanges = session.authoringKind === 'authored-form' && session.hasChanges
   const shouldBlockNavigation = useCallback(
-    () => hasUnsavedAuthoredChanges && !intentionalNavigationRef.current,
+    ({
+      current,
+      next
+    }: {
+      current: { pathname: string; search: unknown }
+      next: { pathname: string; search: unknown }
+    }) =>
+      hasUnsavedAuthoredChanges &&
+      !intentionalNavigationRef.current &&
+      !isAuthoringStepOnlyNavigation(current, next),
     [hasUnsavedAuthoredChanges]
   )
   const navigationBlocker = useBlocker({
     disabled: !hasUnsavedAuthoredChanges,
-    enableBeforeUnload: shouldBlockNavigation,
+    enableBeforeUnload: () => hasUnsavedAuthoredChanges,
     shouldBlockFn: shouldBlockNavigation,
     withResolver: true
   })
@@ -100,37 +128,68 @@ export function AuthoringFormProvider({
     async (options) => {
       intentionalNavigationRef.current = true
       try {
-        await navigate(options)
+        await navigate({ ...options, ignoreBlocker: true })
       } finally {
         intentionalNavigationRef.current = false
       }
     },
     [navigate]
   )
-  const operations = authoredSession?.operations ?? EMPTY_OPERATION_CONFIG
-  const recordValidationIssues = useCallback((error: unknown) => {
-    if (!(error instanceof ApiError) || error.validationIssues.length === 0) return
+  const navigateToAuthoringStep = useCallback(
+    (stepId: string, replace = false) => {
+      pendingStepIdRef.current = stepId
+      requestedStepIdRef.current = stepId
+      void navigate({
+        to: '.',
+        search: (current: Record<string, unknown>) => ({ ...current, step: stepId }),
+        state: markAuthoringStepNavigationState,
+        replace,
+        resetScroll: false
+      })
+    },
+    [navigate]
+  )
 
-    setSession((current) => {
+  useEffect(() => {
+    if (isCurrentNavigationEntryMarked) return
+
+    void navigate({
+      to: '.',
+      search: true,
+      state: markAuthoringStepNavigationState,
+      replace: true,
+      resetScroll: false
+    })
+  }, [isCurrentNavigationEntryMarked, navigate])
+  const operations = authoredSession?.operations ?? EMPTY_OPERATION_CONFIG
+  const recordValidationIssues = useCallback(
+    (error: unknown) => {
+      if (!(error instanceof ApiError) || error.validationIssues.length === 0) return
+
+      const current = sessionRef.current
       const target = error.validationIssues
         .map((issue) => findAuthoringValidationTarget(issue.path, current.navigationTargets ?? []))
         .find((candidate) => candidate !== undefined)
-      const fallbackStepId = current.activeStepId || current.navigationTargets?.find((entry) => entry.stepId)?.stepId
+      const fallbackStepId =
+        current.activeStepId || current.navigationTargets?.find((entry) => entry.stepId)?.stepId
 
-      return {
-        ...current,
+      setSession((latest) => ({
+        ...latest,
         ...(target
           ? {
               activeNavigationTargetId: target.id,
               activeStepId: target.stepId ?? target.canvasStepId ?? fallbackStepId,
               activeStepLabel: target.canvasLabel ?? target.label,
-              fieldPathPrefix: target.fieldPathPrefix
+              fieldPathPrefix: target.fieldPathPrefix,
+              visitedStepIds: addVisitedStep(latest.visitedStepIds, target.id)
             }
           : {}),
         validationIssues: error.validationIssues
-      }
-    })
-  }, [])
+      }))
+      if (target) navigateToAuthoringStep(target.id)
+    },
+    [navigateToAuthoringStep]
+  )
   const resolvedModel = session.resolvedModel
   const modelVisibleSteps = useMemo(() => getVisibleAuthoringSteps(resolvedModel), [resolvedModel])
   const visibleSteps = session.visibleSteps ?? modelVisibleSteps
@@ -139,8 +198,9 @@ export function AuthoringFormProvider({
     navigationTargets.find((target) => target.id === session.activeNavigationTargetId) ??
     navigationTargets[0]
   const activeStep =
-    visibleSteps.find((step) => step.id === (activeNavigationTarget?.stepId ?? session.activeStepId)) ??
-    visibleSteps[0]
+    visibleSteps.find(
+      (step) => step.id === (activeNavigationTarget?.stepId ?? session.activeStepId)
+    ) ?? visibleSteps[0]
   const activeStepIndex = activeStep
     ? visibleSteps.findIndex((step) => step.id === activeStep.id)
     : -1
@@ -170,8 +230,7 @@ export function AuthoringFormProvider({
     }
   })
   const duplicateMutation = useMutation({
-    mutationFn: (subjectId: string) =>
-      operations.duplicate?.(subjectId) ?? Promise.resolve(null),
+    mutationFn: (subjectId: string) => operations.duplicate?.(subjectId) ?? Promise.resolve(null),
     onSuccess: async (_response: DuplicateAuthoringResponse | null | undefined) => {
       await operations.onDuplicateSuccess?.(queryClient)
     }
@@ -203,10 +262,10 @@ export function AuthoringFormProvider({
   }, [activateMutation, authoredSession, navigateWithoutBlock, router])
   const cancelAction = useMemo(
     () =>
-      authoredSession
-        ? createCancelAction({ listPath: authoredSession.actionFactory.listPath, navigate })
+      cancelHref
+        ? createCancelAction({ listPath: cancelHref, navigate: navigateWithoutBlock })
         : undefined,
-    [authoredSession, navigate]
+    [cancelHref, navigateWithoutBlock]
   )
   const copyAction = useMemo(() => {
     if (!authoredSession?.subjectId) return undefined
@@ -227,9 +286,7 @@ export function AuthoringFormProvider({
     return createDeleteRequestAction({
       draft: Boolean(authoredSession.draft),
       label:
-        typeof authoredSession.subjectLabel === 'string'
-          ? authoredSession.subjectLabel
-          : undefined,
+        typeof authoredSession.subjectLabel === 'string' ? authoredSession.subjectLabel : undefined,
       requestDelete,
       subjectId: authoredSession.subjectId,
       subjectKindLabel: authoredSession.subjectKindLabel
@@ -270,16 +327,20 @@ export function AuthoringFormProvider({
       router
     })
   }, [authoredSession, navigateWithoutBlock, router, saveDraftMutation])
-  const registerDomain = useCallback((registration: AuthoredFormDomain | AuthoringDomainRegistration) => {
-    setSession((current) => {
-      const next =
-        typeof registration === 'string'
-          ? applyDomainRegistration(current, { domain: registration })
-          : applyDomainRegistration(current, registration)
+  const registerDomain = useCallback(
+    (registration: AuthoredFormDomain | AuthoringDomainRegistration) => {
+      setSession((current) => {
+        const registered =
+          typeof registration === 'string'
+            ? applyDomainRegistration(current, { domain: registration })
+            : applyDomainRegistration(current, registration)
+        const next = resolveRequestedNavigation(registered, requestedStepIdRef.current)
 
-      return isSameSession(current, next) ? current : next
-    })
-  }, [])
+        return isSameSession(current, next) ? current : next
+      })
+    },
+    []
+  )
   useEffect(() => {
     if (kind === 'character-builder') {
       const nextMode: AuthoringFormStatePatch['mode'] = mode === 'edit' ? 'edit' : 'create'
@@ -298,11 +359,14 @@ export function AuthoringFormProvider({
           return current
         }
 
-        const next = applyCharacterBuilderRegistration(current, {
-          data,
-          mode: nextMode,
-          characterSession: nextCharacterSession
-        })
+        const next = resolveRequestedNavigation(
+          applyCharacterBuilderRegistration(current, {
+            data,
+            mode: nextMode,
+            characterSession: nextCharacterSession
+          }),
+          requestedStepIdRef.current
+        )
 
         return isSameSession(current, next) ? current : next
       })
@@ -312,11 +376,14 @@ export function AuthoringFormProvider({
     if (!domain) return
 
     setSession((current) => {
-      const next = applyDomainRegistration(current, {
-        data,
-        domain,
-        mode
-      })
+      const next = resolveRequestedNavigation(
+        applyDomainRegistration(current, {
+          data,
+          domain,
+          mode
+        }),
+        requestedStepIdRef.current
+      )
 
       return isSameSession(current, next) ? current : next
     })
@@ -328,28 +395,31 @@ export function AuthoringFormProvider({
     setSession((current) => {
       if (!current.domain) return current
 
-      const next = {
-        ...current,
-        ...getDomainRegistration(current.domain, current.mode, current.domainData)
-      }
+      const next = resolveRequestedNavigation(
+        {
+          ...current,
+          ...getDomainRegistration(current.domain, current.mode, current.domainData)
+        },
+        requestedStepIdRef.current
+      )
 
       return isSameSession(current, next) ? current : next
     })
   }, [session.domain, session.domainData, session.mode])
 
-  const updateAuthoringFormState = useCallback(
-    (patch: AuthoringFormStatePatch) => {
-      setSession((current) => {
-        const next = {
+  const updateAuthoringFormState = useCallback((patch: AuthoringFormStatePatch) => {
+    setSession((current) => {
+      const next = resolveRequestedNavigation(
+        {
           ...current,
           ...patch
-        }
+        },
+        requestedStepIdRef.current
+      )
 
-        return isSameSession(current, next) ? current : next
-      })
-    },
-    []
-  )
+      return isSameSession(current, next) ? current : next
+    })
+  }, [])
 
   const updateAuthoringFormActions = useCallback((actions: AuthoringFormActionHandlers) => {
     actionsRef.current = {
@@ -374,19 +444,33 @@ export function AuthoringFormProvider({
   const activate = useCallback(() => {
     void actionsRef.current.onActivate?.()
   }, [])
-  const cancel = useCallback(() => {
-    void (cancelAction ?? actionsRef.current.onCancel)?.()
+  const performCancel = useCallback(async () => {
+    setCancelConfirmationOpened(false)
+    intentionalNavigationRef.current = true
+    try {
+      await (cancelAction ?? actionsRef.current.onCancel)?.()
+    } finally {
+      intentionalNavigationRef.current = false
+    }
   }, [cancelAction])
+  const cancel = useCallback(() => {
+    const current = sessionRef.current
+    if (current.stagedEditorOpen) return
+    if (current.hasChanges) {
+      setCancelConfirmationOpened(true)
+      return
+    }
+
+    void performCancel()
+  }, [performCancel])
   const clearRegisteredPaths = useCallback((paths: readonly NodeRuntimePathDto[]) => {
     actionsRef.current.onClearPaths?.(paths)
   }, [])
   const clearValidationIssues = useCallback((fieldName: string) => {
     setSession((current) => {
       const validationIssues = current.validationIssues.filter(
-        (issue) => !areAuthoringFieldPathsRelated(
-          toAuthoringFieldName(undefined, issue.path),
-          fieldName
-        )
+        (issue) =>
+          !areAuthoringFieldPathsRelated(toAuthoringFieldName(undefined, issue.path), fieldName)
       )
       if (validationIssues.length === current.validationIssues.length) return current
 
@@ -414,7 +498,8 @@ export function AuthoringFormProvider({
         const next = {
           ...current,
           activeStepId: step.id,
-          activeStepLabel: step.label
+          activeStepLabel: step.label,
+          visitedStepIds: addVisitedStep(current.visitedStepIds, step.id)
         }
 
         return isSameSession(current, next) ? current : next
@@ -435,7 +520,8 @@ export function AuthoringFormProvider({
           activeNavigationTargetId: target.id,
           activeStepId: target.stepId,
           activeStepLabel: target.canvasLabel ?? target.label,
-          fieldPathPrefix: target.fieldPathPrefix
+          fieldPathPrefix: target.fieldPathPrefix,
+          visitedStepIds: addVisitedStep(current.visitedStepIds, target.id)
         }
 
         return isSameSession(current, next) ? current : next
@@ -447,7 +533,12 @@ export function AuthoringFormProvider({
   )
   const goToNextStep = useCallback(() => {
     if (session.authoringKind === 'character-builder') {
-      void actionsRef.current.onNextStep?.()
+      const nextStep = visibleSteps[Math.min(activeStepIndex + 1, visibleSteps.length - 1)]
+      if (!nextStep || nextStep.id === activeStep?.id) return
+
+      startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT)
+      setActiveProviderStep(nextStep.id)
+      navigateToAuthoringStep(nextStep.id)
       return
     }
 
@@ -456,6 +547,7 @@ export function AuthoringFormProvider({
         navigationTargets[Math.min(activeNavigationTargetIndex + 1, navigationTargets.length - 1)]
       if (nextTarget) {
         setActiveNavigationTarget(nextTarget.id)
+        navigateToAuthoringStep(nextTarget.id)
         return
       }
     }
@@ -464,6 +556,7 @@ export function AuthoringFormProvider({
       const nextStep = visibleSteps[Math.min(activeStepIndex + 1, visibleSteps.length - 1)]
       if (nextStep) {
         setActiveProviderStep(nextStep.id)
+        navigateToAuthoringStep(nextStep.id)
         return
       }
     }
@@ -473,22 +566,29 @@ export function AuthoringFormProvider({
     activeNavigationTargetIndex,
     activeStepIndex,
     navigationTargets,
+    navigateToAuthoringStep,
     setActiveNavigationTarget,
     setActiveProviderStep,
     session.authoringKind,
+    activeStep?.id,
     visibleSteps
   ])
   const goToPreviousStep = useCallback(() => {
     if (session.authoringKind === 'character-builder') {
-      void actionsRef.current.onPreviousStep?.()
+      const previousStep = visibleSteps[Math.max(activeStepIndex - 1, 0)]
+      if (!previousStep || previousStep.id === activeStep?.id) return
+
+      startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT)
+      setActiveProviderStep(previousStep.id)
+      navigateToAuthoringStep(previousStep.id)
       return
     }
 
     if (navigationTargets.length > 0 && activeNavigationTargetIndex >= 0) {
-      const previousTarget =
-        navigationTargets[Math.max(activeNavigationTargetIndex - 1, 0)]
+      const previousTarget = navigationTargets[Math.max(activeNavigationTargetIndex - 1, 0)]
       if (previousTarget) {
         setActiveNavigationTarget(previousTarget.id)
+        navigateToAuthoringStep(previousTarget.id)
         return
       }
     }
@@ -497,6 +597,7 @@ export function AuthoringFormProvider({
       const previousStep = visibleSteps[Math.max(activeStepIndex - 1, 0)]
       if (previousStep) {
         setActiveProviderStep(previousStep.id)
+        navigateToAuthoringStep(previousStep.id)
         return
       }
     }
@@ -506,9 +607,11 @@ export function AuthoringFormProvider({
     activeNavigationTargetIndex,
     activeStepIndex,
     navigationTargets,
+    navigateToAuthoringStep,
     setActiveNavigationTarget,
     setActiveProviderStep,
     session.authoringKind,
+    activeStep?.id,
     visibleSteps
   ])
   const resetStep = useCallback(() => {
@@ -517,34 +620,139 @@ export function AuthoringFormProvider({
   const resetForm = useCallback(() => {
     void actionsRef.current.onResetForm?.()
   }, [])
-  const goToNavigationTarget = useCallback((targetId: string) => {
-    if (setActiveNavigationTarget(targetId)) return
-
-    setSession((current) => {
-      const next = {
-        ...current,
-        activeNavigationTargetId: targetId
+  const goToNavigationTarget = useCallback(
+    (targetId: string) => {
+      if (setActiveNavigationTarget(targetId)) {
+        navigateToAuthoringStep(targetId)
+        return
       }
 
-      return isSameSession(current, next) ? current : next
-    })
-    actionsRef.current.onStepChange?.(targetId)
-  }, [setActiveNavigationTarget])
-  const goToStep = useCallback((stepId: string) => {
-    if (session.authoringKind === 'character-builder') {
+      setSession((current) => {
+        const next = {
+          ...current,
+          activeNavigationTargetId: targetId,
+          visitedStepIds: addVisitedStep(current.visitedStepIds, targetId)
+        }
+
+        return isSameSession(current, next) ? current : next
+      })
+      navigateToAuthoringStep(targetId)
+      actionsRef.current.onStepChange?.(targetId)
+    },
+    [navigateToAuthoringStep, setActiveNavigationTarget]
+  )
+  const goToStep = useCallback(
+    (stepId: string) => {
+      if (session.authoringKind === 'character-builder') {
+        if (!visibleSteps.some((step) => step.id === stepId)) return
+
+        startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT)
+        setActiveProviderStep(stepId)
+        navigateToAuthoringStep(stepId)
+        return
+      }
+
+      const target = navigationTargets.find(
+        (navigationTarget) => navigationTarget.id === stepId || navigationTarget.stepId === stepId
+      )
+      if (target && setActiveNavigationTarget(target.id)) {
+        navigateToAuthoringStep(target.id)
+        return
+      }
+      if (setActiveProviderStep(stepId)) {
+        navigateToAuthoringStep(stepId)
+        return
+      }
+
+      navigateToAuthoringStep(stepId)
       actionsRef.current.onStepChange?.(stepId)
+    },
+    [
+      navigateToAuthoringStep,
+      navigationTargets,
+      session.authoringKind,
+      setActiveNavigationTarget,
+      setActiveProviderStep,
+      visibleSteps
+    ]
+  )
+  const commitRequestedNavigation = useCallback(
+    (stepId: string | undefined) => {
+      requestedStepIdRef.current = stepId
+
+      if (session.authoringKind === 'character-builder') {
+        const fallbackStepId =
+          session.characterSession?.initialAuthoringState?.activeStepId ?? session.activeStepId
+        const targetStep =
+          visibleSteps.find((step) => step.id === stepId) ??
+          visibleSteps.find((step) => step.id === fallbackStepId) ??
+          visibleSteps[0]
+        if (targetStep) setActiveProviderStep(targetStep.id)
+        return
+      }
+
+      if (navigationTargets.length === 0) return
+      const target = navigationTargets.find((entry) => entry.id === stepId) ?? navigationTargets[0]
+      if (target) setActiveNavigationTarget(target.id)
+    },
+    [
+      navigationTargets,
+      session.authoringKind,
+      session.characterSession,
+      setActiveNavigationTarget,
+      setActiveProviderStep,
+      visibleSteps
+    ]
+  )
+
+  useEffect(
+    () =>
+      router.subscribe('onBeforeNavigate', (event) => {
+        if (event.pathChanged) return
+        if (pendingStepIdRef.current) return
+        commitRequestedNavigation(readAuthoringStep(event.toLocation.search))
+      }),
+    [commitRequestedNavigation, router]
+  )
+
+  useEffect(() => {
+    const pendingStepId = pendingStepIdRef.current
+    if (pendingStepId && pendingStepId !== requestedStepId) return
+    if (pendingStepId === requestedStepId) {
+      const targetIsPublished =
+        session.authoringKind === 'character-builder'
+          ? visibleSteps.some((step) => step.id === pendingStepId)
+          : navigationTargets.some((target) => target.id === pendingStepId)
+      if (!targetIsPublished) return
+      pendingStepIdRef.current = undefined
       return
     }
+    commitRequestedNavigation(requestedStepId)
+  }, [commitRequestedNavigation, requestedStepId])
 
-    const target = navigationTargets.find(
-      (navigationTarget) =>
-        navigationTarget.id === stepId || navigationTarget.stepId === stepId
-    )
-    if (target && setActiveNavigationTarget(target.id)) return
-    if (setActiveProviderStep(stepId)) return
+  useEffect(() => {
+    if (!requestedStepId) return
+    if (pendingStepIdRef.current === requestedStepId) return
 
-    actionsRef.current.onStepChange?.(stepId)
-  }, [navigationTargets, session.authoringKind, setActiveNavigationTarget, setActiveProviderStep])
+    const isValid =
+      session.authoringKind === 'character-builder'
+        ? visibleSteps.some((step) => step.id === requestedStepId)
+        : navigationTargets.length === 0 ||
+          navigationTargets.some((target) => target.id === requestedStepId)
+    if (isValid) return
+
+    const fallbackStepId =
+      session.authoringKind === 'character-builder' ? activeStep?.id : activeNavigationTarget?.id
+    if (fallbackStepId) navigateToAuthoringStep(fallbackStepId, true)
+  }, [
+    activeNavigationTarget?.id,
+    activeStep?.id,
+    navigateToAuthoringStep,
+    navigationTargets,
+    requestedStepId,
+    session.authoringKind,
+    visibleSteps
+  ])
   const saveDraft = useCallback(() => {
     void actionsRef.current.onSaveDraft?.()
   }, [])
@@ -554,23 +762,20 @@ export function AuthoringFormProvider({
       ...(activeNavigationTarget
         ? {
             activeNavigationTargetId: activeNavigationTarget.id,
-            activeStepId:
-              activeNavigationTarget.stepId ?? activeNavigationTarget.canvasStepId,
-            activeStepLabel:
-              activeNavigationTarget.canvasLabel ?? activeNavigationTarget.label,
+            activeStepId: activeNavigationTarget.stepId ?? activeNavigationTarget.canvasStepId,
+            activeStepLabel: activeNavigationTarget.canvasLabel ?? activeNavigationTarget.label,
             fieldPathPrefix: activeNavigationTarget.fieldPathPrefix,
             isFirstStep: activeNavigationTargetIndex <= 0,
-            isLastStep:
-              activeNavigationTargetIndex === Math.max(navigationTargets.length - 1, 0)
+            isLastStep: activeNavigationTargetIndex === Math.max(navigationTargets.length - 1, 0)
           }
         : activeStep
-        ? {
-            activeStepId: activeStep.id,
-            activeStepLabel: activeStep.label,
-            isFirstStep: activeStepIndex <= 0,
-            isLastStep: activeStepIndex === Math.max(visibleSteps.length - 1, 0)
-          }
-        : {}),
+          ? {
+              activeStepId: activeStep.id,
+              activeStepLabel: activeStep.label,
+              isFirstStep: activeStepIndex <= 0,
+              isLastStep: activeStepIndex === Math.max(visibleSteps.length - 1, 0)
+            }
+          : {}),
       isDeleting: session.isDeleting || isDeleting,
       isSubmitting:
         session.isSubmitting ||
@@ -601,6 +806,7 @@ export function AuthoringFormProvider({
       activeNavigationTarget,
       activeStep,
       cancel,
+      cancelHref,
       clearValidationIssues,
       clearPaths: clearRegisteredPaths,
       copy,
@@ -626,6 +832,7 @@ export function AuthoringFormProvider({
       activeNavigationTarget,
       activeStep,
       cancel,
+      cancelHref,
       clearValidationIssues,
       clearRegisteredPaths,
       copy,
@@ -656,9 +863,10 @@ export function AuthoringFormProvider({
         centered
         closeOnClickOutside={false}
         onClose={() => {
+          setCancelConfirmationOpened(false)
           if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
         }}
-        opened={navigationBlocker.status === 'blocked'}
+        opened={cancelConfirmationOpened || navigationBlocker.status === 'blocked'}
         title='Leave without saving?'
       >
         <Stack gap='md'>
@@ -670,6 +878,7 @@ export function AuthoringFormProvider({
               type='button'
               variant='default'
               onClick={() => {
+                setCancelConfirmationOpened(false)
                 if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
               }}
             >
@@ -679,6 +888,10 @@ export function AuthoringFormProvider({
               color='red'
               type='button'
               onClick={() => {
+                if (cancelConfirmationOpened) {
+                  void performCancel()
+                  return
+                }
                 if (navigationBlocker.status === 'blocked') navigationBlocker.proceed()
               }}
             >
@@ -746,7 +959,8 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     left.subjectLabel === right.subjectLabel &&
     left.systemId === right.systemId &&
     left.validationIssues === right.validationIssues &&
-    left.visibleSteps === right.visibleSteps
+    left.visibleSteps === right.visibleSteps &&
+    isSameSet(left.visitedStepIds, right.visitedStepIds)
   )
 }
 
@@ -756,8 +970,7 @@ function getDomainRegistration(
   data: unknown
 ): AuthoringFormStatePatch {
   const factory = authoredFormFactories[domain]
-  const authoredSession =
-    data === undefined ? undefined : factory.createSession?.({ data, mode })
+  const authoredSession = data === undefined ? undefined : factory.createSession?.({ data, mode })
 
   return {
     activeSectionId: undefined,
@@ -805,13 +1018,18 @@ function applyDomainRegistration(
   registration: AuthoringDomainRegistration
 ): AuthoringFormSessionState {
   const nextMode = registration.mode ?? current.mode
+  const domainRegistration = getDomainRegistration(registration.domain, nextMode, registration.data)
+  const subjectChanged =
+    current.authoredSession?.key !== domainRegistration.authoredSession?.key ||
+    current.domain !== registration.domain
 
   return {
     ...current,
     domain: registration.domain,
     domainData: registration.data,
     mode: nextMode,
-    ...getDomainRegistration(registration.domain, nextMode, registration.data)
+    ...domainRegistration,
+    visitedStepIds: subjectChanged ? new Set() : current.visitedStepIds
   }
 }
 
@@ -828,12 +1046,14 @@ function getCharacterBuilderRegistration(
           data,
           mode
         }))
+  const initialAuthoringState = nextCharacterSession?.initialAuthoringState
+  const initialStepId = initialAuthoringState?.activeStepId
 
   return {
     activeSectionId: undefined,
     activeNavigationTargetId: undefined,
-    activeStepId: undefined,
-    activeStepLabel: undefined,
+    activeStepId: initialAuthoringState?.activeStepId,
+    activeStepLabel: initialAuthoringState?.activeStepLabel,
     activateLabel: 'Finalize Character',
     authoredSession: undefined,
     authoringKind: 'character-builder',
@@ -843,9 +1063,7 @@ function getCharacterBuilderRegistration(
     canResetForm: false,
     canResetStep: false,
     canSaveDraft: Boolean(
-      nextCharacterSession &&
-        !nextCharacterSession.systemRequired &&
-        !nextCharacterSession.notFound
+      nextCharacterSession && !nextCharacterSession.systemRequired && !nextCharacterSession.notFound
     ),
     canSubmit: false,
     characterData: data,
@@ -854,32 +1072,33 @@ function getCharacterBuilderRegistration(
     domainData: undefined,
     fallbackLabel: 'Untitled Character',
     fieldPathPrefix: undefined,
-    firstBlockingStatus: undefined,
-    firstBlockingStepId: undefined,
+    firstBlockingStatus: initialAuthoringState?.firstBlockingStatus,
+    firstBlockingStepId: initialAuthoringState?.firstBlockingStepId,
     hasChanges: false,
     hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
     hasStepChanges: false,
     isDraft: nextCharacterSession?.isDraft ?? false,
-    isFirstStep: true,
-    isLastStep: true,
+    isFirstStep: initialAuthoringState?.isFirstStep ?? true,
+    isLastStep: initialAuthoringState?.isLastStep ?? true,
     mapId: undefined,
     mode,
     navigationTargets: undefined,
     navigationTree: undefined,
-    progressSummary: undefined,
+    progressSummary: initialAuthoringState?.progressSummary,
     providedModel: undefined,
     readOnly: nextCharacterSession?.readOnly ?? false,
     resolveModel: false,
     resolvedModel: undefined,
     saveDraftLabel: 'Save Draft',
     stepDirty: EMPTY_STEP_DIRTY,
-    stepStatuses: EMPTY_STEP_STATUSES,
+    stepStatuses: initialAuthoringState?.stepStatuses ?? EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Character',
     subjectLabel: nextCharacterSession?.subjectLabel,
     systemId: nextCharacterSession?.systemId,
     validationIssues: [],
-    visibleSteps: undefined
+    visibleSteps: initialAuthoringState?.visibleSteps,
+    visitedStepIds: initialStepId ? new Set([initialStepId]) : new Set()
   }
 }
 
@@ -927,21 +1146,28 @@ function createInitialSession(registration: {
   domain?: AuthoredFormDomain
   kind?: 'authored-form' | 'character-builder'
   mode?: AuthoringFormSessionState['mode']
+  requestedStepId?: string
 }): AuthoringFormSessionState {
   const session = createDefaultSession()
   if (registration.kind === 'character-builder') {
-    return applyCharacterBuilderRegistration(session, {
-      data: registration.data,
-      mode: registration.mode === 'edit' ? 'edit' : 'create'
-    })
+    return resolveRequestedNavigation(
+      applyCharacterBuilderRegistration(session, {
+        data: registration.data,
+        mode: registration.mode === 'edit' ? 'edit' : 'create'
+      }),
+      registration.requestedStepId
+    )
   }
   if (!registration.domain) return session
 
-  return applyDomainRegistration(session, {
-    data: registration.data,
-    domain: registration.domain,
-    mode: registration.mode
-  })
+  return resolveRequestedNavigation(
+    applyDomainRegistration(session, {
+      data: registration.data,
+      domain: registration.domain,
+      mode: registration.mode
+    }),
+    registration.requestedStepId
+  )
 }
 
 function createDefaultSession(): AuthoringFormSessionState {
@@ -977,8 +1203,60 @@ function createDefaultSession(): AuthoringFormSessionState {
     stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Item',
-    validationIssues: []
+    validationIssues: [],
+    visitedStepIds: new Set()
   }
+}
+
+function resolveRequestedNavigation(
+  session: AuthoringFormSessionState,
+  requestedStepId: string | undefined
+): AuthoringFormSessionState {
+  if (session.authoringKind === 'character-builder') {
+    const fallbackStepId =
+      session.activeStepId ?? session.characterSession?.initialAuthoringState?.activeStepId
+    const activeStep =
+      session.visibleSteps?.find((step) => step.id === requestedStepId) ??
+      session.visibleSteps?.find((step) => step.id === fallbackStepId) ??
+      session.visibleSteps?.[0]
+    if (!activeStep) return session
+
+    return {
+      ...session,
+      activeStepId: activeStep.id,
+      activeStepLabel: activeStep.label,
+      visitedStepIds: addVisitedStep(session.visitedStepIds, activeStep.id)
+    }
+  }
+
+  const targets = session.navigationTargets ?? []
+  if (targets.length === 0) {
+    return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
+  }
+
+  const target = targets.find((entry) => entry.id === requestedStepId) ?? targets[0]
+  if (!target) return session
+
+  return {
+    ...session,
+    activeNavigationTargetId: target.id,
+    activeStepId: target.stepId ?? target.canvasStepId,
+    activeStepLabel: target.canvasLabel ?? target.label,
+    fieldPathPrefix: target.fieldPathPrefix,
+    visitedStepIds: addVisitedStep(session.visitedStepIds, target.id)
+  }
+}
+
+function addVisitedStep(current: ReadonlySet<string>, stepId: string): ReadonlySet<string> {
+  if (current.has(stepId)) return current
+  const next = new Set(current)
+  next.add(stepId)
+  return next
+}
+
+function isSameSet(left: ReadonlySet<string>, right: ReadonlySet<string>) {
+  if (left === right) return true
+  return left.size === right.size && [...left].every((value) => right.has(value))
 }
 
 function isSameRecord<TValue>(

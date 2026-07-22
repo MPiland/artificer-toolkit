@@ -80,6 +80,78 @@ export const editorContent = style({
   }
 })
 
+export const deferredEditorShell = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'stretch',
+      background: foundationVars.color.input.background.default,
+      border: `1px solid ${foundationVars.color.input.border.default}`,
+      borderRadius: foundationVars.radius.md,
+      color: foundationVars.color.text.primary,
+      cursor: 'text',
+      display: 'flex',
+      flexDirection: 'column',
+      inlineSize: '100%',
+      minHeight: '10rem',
+      overflow: 'hidden',
+      padding: 0,
+      textAlign: 'start',
+      transition: `border-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease, background ${foundationVars.motion.fast} ease`,
+      selectors: {
+        '&:hover': {
+          background: foundationVars.color.input.background.hover,
+          borderColor: foundationVars.color.border.strong
+        },
+        '&:focus-visible': {
+          borderColor: foundationVars.color.input.border.focus,
+          boxShadow: foundationVars.shadow.focus,
+          outline: 'none'
+        }
+      }
+    }
+  }
+})
+
+export const deferredEditorToolbar = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'flex',
+      gap: foundationVars.space[2],
+      minHeight: '2.75rem',
+      padding: foundationVars.space[2]
+    }
+  }
+})
+
+export const deferredEditorControl = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.sm,
+      color: foundationVars.color.text.secondary,
+      display: 'inline-flex',
+      height: '28px',
+      justifyContent: 'center',
+      width: '28px'
+    }
+  }
+})
+
+export const deferredEditorContent = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      flex: 1,
+      fontSize: foundationVars.typography.body.fontSize,
+      lineHeight: foundationVars.typography.body.lineHeight,
+      padding: foundationVars.space[3]
+    }
+  }
+})
+
 globalStyle(`${editorContent} .ProseMirror`, {
   '@layer': {
     [app]: {

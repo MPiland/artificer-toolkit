@@ -1,6 +1,9 @@
 import { createContext, useContext } from 'react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
-import type { VisibleAuthoringStep, VisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
+import type {
+  VisibleAuthoringStep,
+  VisibleAuthoringSteps
+} from '../hooks/useAuthoringResolvedModel'
 import type { AuthoringNavigationTarget } from './authoringNavigation'
 
 export type AuthoringPreviewContent = ReactNode | undefined
@@ -17,8 +20,6 @@ export type AuthoringLayoutToggles = {
 export type AuthoringLayoutState = {
   previewContent: AuthoringPreviewContent
   setPreviewContent: Dispatch<SetStateAction<AuthoringPreviewContent>>
-  visitedStepIds: ReadonlySet<string>
-  setVisitedStepIds: Dispatch<SetStateAction<ReadonlySet<string>>>
 }
 
 export type AuthoringLayoutConstants = {
