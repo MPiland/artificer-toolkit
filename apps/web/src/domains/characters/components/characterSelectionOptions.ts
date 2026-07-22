@@ -23,7 +23,7 @@ export function buildRaceSelectionGroups(
 
   for (const baseRace of baseRaces) {
     const subraces = references.filter((race) => race.parentRaceId === baseRace.id)
-    const requiresSubrace = baseRace.selectionMode === 'REQUIRES_SUBRACE' || subraces.length > 0
+    const requiresSubrace = baseRace.selectionMode === 'REQUIRES_SUBRACE'
 
     if (requiresSubrace) {
       groupedOptions.push({

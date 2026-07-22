@@ -83,6 +83,35 @@ describe('character selection options', () => {
     expect(groups[0]?.options.some((option) => option.id === 'race-elf')).toBe(false)
   })
 
+  it('keeps a direct base race selectable when it has optional subraces', () => {
+    const groups = buildRaceSelectionGroups([
+      {
+        id: 'race-human',
+        label: 'Human',
+        category: 'BASE',
+        selectionMode: 'DIRECT',
+        speedLabels: [],
+        abilityScoreIncreaseDescriptions: []
+      },
+      {
+        id: 'race-variant-human',
+        label: 'Variant Human',
+        category: 'SUBRACE',
+        parentRaceId: 'race-human',
+        speedLabels: [],
+        abilityScoreIncreaseDescriptions: []
+      }
+    ], [])
+
+    expect(groups).toEqual([
+      expect.objectContaining({
+        id: 'direct-races',
+        label: 'Races',
+        options: [expect.objectContaining({ id: 'race-human', label: 'Human' })]
+      })
+    ])
+  })
+
   it('sorts class cards and preserves disabled reasons', () => {
     const groups = buildClassSelectionGroups([
       {
