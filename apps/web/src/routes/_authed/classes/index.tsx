@@ -20,7 +20,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 
-const classDetailMeta = ['classes']
+const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'skills']
 
 export const Route = createFileRoute('/_authed/classes/')({
   loader: async ({ context }): Promise<void> => {
@@ -87,7 +87,6 @@ function ClassesRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getClass({
             id: item.id,
-            includeDraft: true,
             meta: classDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))

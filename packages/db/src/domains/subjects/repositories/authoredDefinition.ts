@@ -44,6 +44,24 @@ export interface AuthoredDefinitionDraft {
   updatedAt: string
 }
 
+export interface AuthoredDefinitionSelectedRevision {
+  subjectKind: AuthoredSubjectKind
+  subjectId: string
+  ownerUserId: string | null
+  systemId: string
+  label: string
+  isMaster: boolean
+  publicId: string
+  activeRevisionId: string | null
+  draftRevisionId: string | null
+  revisionId: string
+  revisionNumber: number
+  payload: Json
+  baseActiveRevisionId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface SaveAuthoredDefinitionDraftInput {
   subjectKind: AuthoredSubjectKind
   subjectId: string
@@ -81,6 +99,10 @@ interface AuthoredDefinitionDraftRow extends AuthoredDefinitionRow {
   payload: Json
   base_active_revision_id: string | null
   revision_created_at: Date | string
+}
+
+interface AuthoredDefinitionSelectedRevisionRow extends AuthoredDefinitionDraftRow {
+  public_id: string
 }
 
 export class AuthoredDefinitionRevisionConflictError extends Error {
@@ -130,6 +152,86 @@ function mapDraft(row: AuthoredDefinitionDraftRow): AuthoredDefinitionDraft {
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.revision_created_at)
   }
+}
+
+function mapSelectedRevision(
+  row: AuthoredDefinitionSelectedRevisionRow
+): AuthoredDefinitionSelectedRevision {
+  return {
+    subjectKind: row.subject_kind,
+    subjectId: row.subject_id,
+    ownerUserId: row.owner_user_id,
+    systemId: row.system_id,
+    label: row.label,
+    isMaster: row.is_master,
+    publicId: row.public_id,
+    activeRevisionId: row.active_revision_id,
+    draftRevisionId: row.draft_revision_id,
+    revisionId: row.revision_id,
+    revisionNumber: row.revision_number,
+    payload: row.payload,
+    baseActiveRevisionId: row.base_active_revision_id,
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.revision_created_at)
+  }
+}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+async function findSelectedRevision(
+  db: DBLike,
+  params: {
+    subjectKind: AuthoredSubjectKind
+    routeId: string
+    userId: string
+    view: 'active' | 'draft'
+  }
+): Promise<AuthoredDefinitionSelectedRevision | null> {
+  const routePredicate = uuidPattern.test(params.routeId)
+    ? sql`route.subject_id = ${params.routeId.toLowerCase()}::uuid`
+    : sql`route.public_id = ${params.routeId.toLowerCase()}`
+  const ownerPredicate = params.view === 'draft'
+    ? sql`and definition.owner_user_id = ${params.userId}`
+    : sql``
+
+  const result = await sql<AuthoredDefinitionSelectedRevisionRow>`
+    select
+      definition.subject_id,
+      definition.subject_kind,
+      definition.owner_user_id,
+      definition.system_id,
+      definition.label,
+      definition.is_master,
+      definition.active_revision_id,
+      definition.draft_revision_id,
+      definition.next_revision_number,
+      definition.created_at::text as created_at,
+      definition.updated_at::text as updated_at,
+      route.public_id,
+      revision.id as revision_id,
+      revision.revision_number,
+      revision.payload,
+      revision.base_active_revision_id,
+      revision.created_at::text as revision_created_at
+    from authored_route_ids route
+    join authored_definitions definition
+      on definition.subject_kind = route.subject_kind
+      and definition.subject_id = route.subject_id
+    join authored_definition_revisions revision
+      on revision.definition_id = definition.subject_id
+      and revision.id = case
+        when ${params.view} = 'draft' then definition.draft_revision_id
+        else definition.active_revision_id
+      end
+    where route.subject_kind = ${params.subjectKind}
+      and ${routePredicate}
+      and public.can_access_authored_route_id(route.subject_kind, route.subject_id)
+      ${ownerPredicate}
+    limit 1
+  `.execute(db)
+
+  const row = result.rows[0]
+  return row ? mapSelectedRevision(row) : null
 }
 
 async function findDefinitionBySubject(
@@ -632,6 +734,15 @@ async function syncMasters(
 
 export function createAuthoredDefinitionRepository(db: DBLike) {
   return {
+    findSelectedRevision(params: {
+      subjectKind: AuthoredSubjectKind
+      routeId: string
+      userId: string
+      view: 'active' | 'draft'
+    }): Promise<AuthoredDefinitionSelectedRevision | null> {
+      return findSelectedRevision(db, params)
+    },
+
     findBySubject(params: {
       subjectKind: AuthoredSubjectKind
       subjectId: string

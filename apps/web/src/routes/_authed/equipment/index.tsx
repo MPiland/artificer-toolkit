@@ -87,7 +87,6 @@ function EquipmentRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getEquipment({
             id: item.id,
-            includeDraft: true,
             meta: equipmentDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))

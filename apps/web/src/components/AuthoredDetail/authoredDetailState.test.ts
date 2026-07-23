@@ -11,6 +11,7 @@ const itemSchema = z.object({
 const response = {
   publicId: '1',
   activeRevisionId: 'active-revision-id',
+  hasDraft: false,
   item: {
     id: 'active-id',
     label: 'Active Record',
@@ -83,6 +84,20 @@ describe('resolveAuthoredDetailState', () => {
     expect(state.draftItem?.label).toBe('Draft Record')
     expect(state.canViewActive).toBe(true)
     expect(state.hasActiveContent).toBe(true)
+  })
+
+  it('keeps the active view draft affordance without receiving the draft payload', () => {
+    const state = resolveAuthoredDetailState({
+      draft: null,
+      response: { ...response, hasDraft: true },
+      schema: itemSchema,
+      viewActive: true
+    })
+
+    expect(state.mode).toBe('active')
+    expect(state.item?.label).toBe('Active Record')
+    expect(state.canViewActive).toBe(true)
+    expect(state.draft).toBeNull()
   })
 
   it('does not treat a draft-only detail response as active content', () => {

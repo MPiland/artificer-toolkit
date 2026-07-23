@@ -45,7 +45,7 @@ export interface AuthoringPipelineResult<TRecord extends AuthoredRecord> {
   authored: TRecord
 }
 
-function getPermissions(ownership: AuthoredOwnership, userId: string) {
+export function getAuthoredPermissions(ownership: AuthoredOwnership, userId: string) {
   const ownsRecord = !ownership.isMaster && ownership.ownerUserId === userId
 
   return {
@@ -56,7 +56,7 @@ function getPermissions(ownership: AuthoredOwnership, userId: string) {
   }
 }
 
-function getProvenance(ownership: AuthoredOwnership) {
+export function getAuthoredProvenance(ownership: AuthoredOwnership) {
   return {
     kind: ownership.isMaster ? 'MASTER' as const : 'OWNED' as const,
     ownerUserId: ownership.isMaster ? null : ownership.ownerUserId
@@ -86,8 +86,8 @@ export function normalizeAuthoredListResponse<
 
       return {
         ...item,
-        provenance: getProvenance(ownership),
-        permissions: getPermissions(ownership, userId)
+        provenance: getAuthoredProvenance(ownership),
+        permissions: getAuthoredPermissions(ownership, userId)
       }
     })
   }
@@ -266,8 +266,9 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
     item,
     publicId: routeIdentity.publicId,
     activeRevisionId: definition.activeRevisionId,
-    provenance: getProvenance(ownership),
-    permissions: getPermissions(ownership, userId)
+    hasDraft: definition.draftRevisionId !== null,
+    provenance: getAuthoredProvenance(ownership),
+    permissions: getAuthoredPermissions(ownership, userId)
   }
 }
 

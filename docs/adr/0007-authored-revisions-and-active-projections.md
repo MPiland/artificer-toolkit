@@ -2,7 +2,7 @@
 
 - **Status:** decision
 - **Date:** 2026-07-13
-- **Scope:** authored root identity, drafts, activation, persistence, and SRD master synchronization
+- **Scope:** authored root identity, drafts, detail reads, activation, persistence, and SRD master synchronization
 - **Update when:** revision payloads, activation semantics, root taxonomy, projection writes, or master seeding changes
 - **Verification:** `packages/db/src/domains/subjects/tables/authored_definitions.sql`; `packages/db/src/domains/subjects/repositories/authoredDefinition.ts`; `packages/functions/src/services/authoredContent`; root aggregate upserts and round-trip tests
 
@@ -20,6 +20,8 @@ Copying master or owned content creates a new, independent owned definition and 
 
 Normalized domain tables are active query projections. Activation validates and normalizes the draft payload, replaces the owning aggregate projection, and promotes that exact revision within one transaction. Seeded SRD roots use the same authored shapes and synchronize master revisions with their projections. A system baseline bundle is authoritative for that system's master roots: synchronization removes master projections, revisions, and route identities omitted from the bundle while preserving owned content and masters from other systems.
 
+Readable authored detail selects and validates the requested immutable active or draft revision directly. The selected-revision read also returns route identity, definition ownership, active revision identity, and whether a draft exists. Normalized projections remain authoritative for lists, relational queries, and engine workflows; detail reads do not rebuild the aggregate from every child projection table.
+
 ## Consequences
 
-Draft recovery and history are exact, repositories remain efficient, and child ownership stays comprehensible. A projection is conceptually rebuildable from the active payload, but typed active-revision reads and a rebuild use case remain target work; current recovery is an operator/manual database procedure. Application code must not update active projections without the corresponding activation/master-sync operation.
+Draft recovery and history are exact, repositories remain efficient, and child ownership stays comprehensible. A projection is conceptually rebuildable from the active payload, but a typed rebuild use case remains target work; current recovery is an operator/manual database procedure. Application code must not update active projections without the corresponding activation/master-sync operation.

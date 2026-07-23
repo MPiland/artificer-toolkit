@@ -37,7 +37,6 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
       getSpell(
         {
           id: spellId,
-          includeDraft: true,
           meta: spellDetailMeta,
           view
         },

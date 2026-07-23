@@ -33,7 +33,6 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       getVehicle(
         {
           id: vehicleId,
-          includeDraft: true,
           meta: vehicleDetailMeta,
           view
         },

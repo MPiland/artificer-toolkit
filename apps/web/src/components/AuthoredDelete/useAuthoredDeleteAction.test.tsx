@@ -7,7 +7,7 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { useAuthoredDeleteAction } from './useAuthoredDeleteAction'
 
 const detailRoot = ['content', 'races', 'detail', 'race-1'] as const
-const detailKey = ['content', 'races', 'detail', 'race-1', { includeDraft: true, view: 'draft' }] as const
+const detailKey = ['content', 'races', 'detail', 'race-1', 'draft', ''] as const
 const domainKey = ['content', 'races'] as const
 const draftKey = ['content', 'races', 'draft', 'race-1'] as const
 

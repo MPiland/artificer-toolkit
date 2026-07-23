@@ -2269,6 +2269,7 @@ describe('schema package parsing', () => {
     const spell = spellResponseDtoSchema.parse({
       publicId: 'magic-missile',
       activeRevisionId: 'magic-missile-revision-1',
+      hasDraft: false,
       item: {
         kind: 'SPELL',
         id: 'magic-missile',
@@ -2299,6 +2300,7 @@ describe('schema package parsing', () => {
     const draftOnlySpell = spellResponseDtoSchema.parse({
       publicId: 'draft-spell',
       activeRevisionId: null,
+      hasDraft: true,
       item: null,
       draft: {
         subjectKind: 'SPELL',
