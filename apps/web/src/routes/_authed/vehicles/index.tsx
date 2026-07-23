@@ -20,6 +20,8 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 
+const vehicleDetailMeta = ['currencies']
+
 export const Route = createFileRoute('/_authed/vehicles/')({
   loader: async ({ context }): Promise<void> => {
     await context.queryClient.ensureQueryData(getVehicleList(createServerApi()))
@@ -85,7 +87,7 @@ function VehiclesRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getVehicle({
             id: item.id,
-            includeDraft: true,
+            meta: vehicleDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))
         }}

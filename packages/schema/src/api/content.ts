@@ -74,8 +74,7 @@ export const authoredValidationIssueDtoSchema = z.object({
 export const authoredDetailRequestDtoSchema = z.object({
   id: z.string().min(1),
   view: authoredDetailViewDtoSchema.optional(),
-  meta: z.array(z.string().min(1)).optional(),
-  includeDraft: z.boolean().optional()
+  meta: z.array(z.string().min(1)).optional()
 })
 
 export const authoredDraftSaveRequestDtoSchema = z.object({
@@ -159,6 +158,7 @@ const detailReferenceOptionDtoSchema = z.object({
 
 const detailResponseExtrasDtoSchema = <TSchema extends z.ZodTypeAny>(metaSchema: TSchema) => z.object({
   activeRevisionId: z.string().nullable(),
+  hasDraft: z.boolean(),
   draft: authoredDraftDtoSchema.nullable().optional(),
   meta: metaSchema.optional(),
   validationIssues: z.array(authoredValidationIssueDtoSchema).optional()
@@ -171,6 +171,7 @@ type AuthoredDetailResponseDtoSchema<
   item: z.ZodNullable<TItemSchema>
   publicId: z.ZodString
   activeRevisionId: z.ZodNullable<z.ZodString>
+  hasDraft: z.ZodBoolean
   provenance: typeof authoredContentProvenanceDtoSchema
   permissions: typeof authoredContentPermissionsDtoSchema
   draft: z.ZodOptional<z.ZodNullable<typeof authoredDraftDtoSchema>>
@@ -180,8 +181,19 @@ type AuthoredDetailResponseDtoSchema<
 
 export const emptyDetailMetaDtoSchema = z.object({})
 
+export const backgroundDetailMetaDtoSchema = z.object({
+  currencies: z.array(detailReferenceOptionDtoSchema).optional(),
+  equipment: z.array(detailReferenceOptionDtoSchema).optional(),
+  languages: z.array(detailReferenceOptionDtoSchema).optional(),
+  skills: z.array(detailReferenceOptionDtoSchema).optional()
+})
+
 export const classDetailMetaDtoSchema = z.object({
-  classes: z.array(detailReferenceOptionDtoSchema).optional()
+  classes: z.array(detailReferenceOptionDtoSchema).optional(),
+  currencies: z.array(detailReferenceOptionDtoSchema).optional(),
+  equipment: z.array(detailReferenceOptionDtoSchema).optional(),
+  languages: z.array(detailReferenceOptionDtoSchema).optional(),
+  skills: z.array(detailReferenceOptionDtoSchema).optional()
 })
 
 export const equipmentDetailMetaDtoSchema = z.object({
@@ -214,7 +226,7 @@ export const vehicleDetailMetaDtoSchema = z.object({
   currencies: z.array(detailReferenceOptionDtoSchema).optional()
 })
 
-export const backgroundResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof backgroundAuthoredDtoSchema, typeof emptyDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(backgroundAuthoredDtoSchema, detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema))
+export const backgroundResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof backgroundAuthoredDtoSchema, typeof backgroundDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(backgroundAuthoredDtoSchema, detailResponseExtrasDtoSchema(backgroundDetailMetaDtoSchema))
 export const classResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof classAuthoredDtoSchema, typeof classDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(classAuthoredDtoSchema, detailResponseExtrasDtoSchema(classDetailMetaDtoSchema))
 export const equipmentResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof equipmentAuthoredDtoSchema, typeof equipmentDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(equipmentAuthoredDtoSchema, detailResponseExtrasDtoSchema(equipmentDetailMetaDtoSchema))
 export const featResponseDtoSchema: AuthoredDetailResponseDtoSchema<typeof featAuthoredDtoSchema, typeof emptyDetailMetaDtoSchema> = authoredResourceResponseDtoSchema(featAuthoredDtoSchema, detailResponseExtrasDtoSchema(emptyDetailMetaDtoSchema))
@@ -256,6 +268,7 @@ export function toAuthoredValidationIssues(
   }))
 }
 
+export type BackgroundDetailMetaDto = z.infer<typeof backgroundDetailMetaDtoSchema>
 export type ClassDetailMetaDto = z.infer<typeof classDetailMetaDtoSchema>
 export type EquipmentDetailMetaDto = z.infer<typeof equipmentDetailMetaDtoSchema>
 export type RaceDetailMetaDto = z.infer<typeof raceDetailMetaDtoSchema>

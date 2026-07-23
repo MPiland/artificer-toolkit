@@ -10,6 +10,8 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { getBackground, getBackgroundList } from '#app/data/backgrounds/queries'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
+
+const backgroundDetailMeta = ['currencies', 'equipment', 'languages', 'skills']
 import {
   backgroundListAttributeColumns,
   backgroundListSortOptions,
@@ -80,7 +82,7 @@ function BackgroundsRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getBackground({
             id: item.id,
-            includeDraft: true,
+            meta: backgroundDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))
         }}

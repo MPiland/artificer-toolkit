@@ -48,7 +48,6 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
       getCreature(
         {
           id: creatureId,
-          includeDraft: true,
           meta: creatureDetailMeta,
           view
         },

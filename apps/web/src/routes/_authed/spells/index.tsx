@@ -89,7 +89,6 @@ function SpellsRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getSpell({
             id: item.id,
-            includeDraft: true,
             meta: spellDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))

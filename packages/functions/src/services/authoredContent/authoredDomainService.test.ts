@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import type { AuthoredDefinitionDraft, DBLike } from '@artificer-toolkit/db'
+import type {
+  AuthoredDefinitionDraft,
+  AuthoredDefinitionSelectedRevision,
+  DBLike
+} from '@artificer-toolkit/db'
 import type { NodeRuntimeNormalizeValuesResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 import type { AuthoredRecord } from './authoredContentService.js'
@@ -22,6 +26,7 @@ const domainMocks = vi.hoisted(() => ({
     discardDraft: vi.fn(),
     findBySubject: vi.fn(),
     findDraftBySubject: vi.fn(),
+    findSelectedRevision: vi.fn(),
     saveDraft: vi.fn()
   },
   findById: vi.fn(),
@@ -77,10 +82,6 @@ function createConfig(): AuthoredDomainRuntimeConfig {
     createService: () => ({
       execute: async (input) => ({ authored: input })
     }),
-    findById: async (_db, id) => {
-      const result = await domainMocks.findById(id)
-      return result as AuthoredRecord | null
-    },
     listQuery: async () => ({ items: [], meta: {} }),
     mapId: 'spell',
     schema: authoredRecordSchema,
@@ -183,6 +184,29 @@ function createDefinition(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function createSelectedRevision(
+  overrides: Partial<AuthoredDefinitionSelectedRevision> = {}
+): AuthoredDefinitionSelectedRevision {
+  return {
+    subjectKind: 'SPELL',
+    subjectId: 'spell-1',
+    ownerUserId: 'user-1',
+    systemId: 'system-1',
+    label: 'Broken Draft Spell',
+    isMaster: false,
+    publicId: 'spell-public',
+    activeRevisionId: null,
+    draftRevisionId: 'spell-revision-1',
+    revisionId: 'spell-revision-1',
+    revisionNumber: 1,
+    payload: { id: 'spell-1', label: 'Broken Draft Spell' },
+    baseActiveRevisionId: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides
+  }
+}
+
 describe('getAuthoredDomain', () => {
   beforeEach(() => {
     domainMocks.draftRepository.activateDraft.mockReset()
@@ -190,6 +214,7 @@ describe('getAuthoredDomain', () => {
     domainMocks.draftRepository.discardDraft.mockReset()
     domainMocks.draftRepository.findBySubject.mockReset()
     domainMocks.draftRepository.findDraftBySubject.mockReset()
+    domainMocks.draftRepository.findSelectedRevision.mockReset()
     domainMocks.draftRepository.saveDraft.mockReset()
     domainMocks.findById.mockReset()
     domainMocks.routeIdRepository.canAccessSubjectForUser.mockReset()
@@ -212,9 +237,43 @@ describe('getAuthoredDomain', () => {
     })
   })
 
+  it('reads active detail from the selected canonical revision without hydrating projections or drafts', async () => {
+    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(createSelectedRevision({
+      label: 'Harm',
+      activeRevisionId: 'spell-revision-1',
+      draftRevisionId: 'spell-revision-2',
+      payload: {
+        id: 'spell-1',
+        label: 'Harm',
+        requiredText: 'Valid',
+        systemId: 'system-1',
+        userId: 'user-1'
+      }
+    }))
+
+    const response = await getAuthoredDomain(db, createConfig(), {
+      id: 'spell-public'
+    }, 'user-1')
+
+    expect(response).toMatchObject({
+      activeRevisionId: 'spell-revision-1',
+      hasDraft: true,
+      item: { label: 'Harm' },
+      publicId: 'spell-public'
+    })
+    expect(domainMocks.draftRepository.findSelectedRevision).toHaveBeenCalledWith({
+      routeId: 'spell-public',
+      subjectKind: 'SPELL',
+      userId: 'user-1',
+      view: 'active'
+    })
+    expect(domainMocks.draftRepository.findDraftBySubject).not.toHaveBeenCalled()
+  })
+
   it('returns invalid draft context when draft view has no active item', async () => {
-    domainMocks.draftRepository.findDraftBySubject.mockResolvedValue(createDraft())
-    domainMocks.findById.mockResolvedValue(null)
+    domainMocks.draftRepository.findSelectedRevision
+      .mockResolvedValueOnce(createSelectedRevision())
+      .mockResolvedValueOnce(null)
 
     const response = await getAuthoredDomain(db, createConfig(), {
       id: 'spell-public',
@@ -248,26 +307,24 @@ describe('getAuthoredDomain', () => {
         canDelete: true
       }
     })
-    expect(domainMocks.findById).toHaveBeenCalledWith('spell-1')
+    expect(domainMocks.draftRepository.findDraftBySubject).not.toHaveBeenCalled()
   })
 
   it('preserves invalid draft issues when falling back to an active item', async () => {
     const { db: fakeDb } = createFakeDb({
       spells: [{ id: 'spell-1', is_master: false, user_id: 'user-1' }]
     })
-    domainMocks.draftRepository.findDraftBySubject.mockResolvedValue(createDraft({
-      draftState: 'ACTIVE_WITH_DRAFT',
-      activeRevisionId: 'spell-revision-1',
-      baseActiveRevisionId: 'spell-revision-1'
-    }))
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition())
-    domainMocks.findById.mockResolvedValue({
-      id: 'spell-1',
-      label: 'Active Spell',
-      requiredText: 'Valid',
-      systemId: 'system-1',
-      userId: 'user-1'
-    })
+    domainMocks.draftRepository.findSelectedRevision
+      .mockResolvedValueOnce(createSelectedRevision({
+        activeRevisionId: 'spell-revision-1',
+        baseActiveRevisionId: 'spell-revision-1'
+      }))
+      .mockResolvedValueOnce(createSelectedRevision({
+        label: 'Active Spell',
+        activeRevisionId: 'spell-revision-1',
+        revisionId: 'spell-revision-1',
+        payload: { requiredText: 'Valid' }
+      }))
 
     const response = await getAuthoredDomain(fakeDb, createConfig(), {
       id: 'spell-public',
@@ -297,13 +354,12 @@ describe('getAuthoredDomain', () => {
       label: input.label,
       payload: input.payload
     }))
-    domainMocks.findById.mockResolvedValue({
-      id: 'spell-1',
+    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(createSelectedRevision({
       label: 'Original Spell',
-      requiredText: 'Required text',
-      systemId: 'system-1',
-      userId: 'user-1'
-    })
+      activeRevisionId: 'spell-revision-1',
+      draftRevisionId: null,
+      payload: { requiredText: 'Required text' }
+    }))
 
     const duplicate = await duplicateAuthoredDomain(
       db,

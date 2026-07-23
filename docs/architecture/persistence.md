@@ -18,7 +18,7 @@ Do not call repository writes outside the context selected by the API/service la
 
 ## Repository boundary
 
-Repository contracts expose authored-shaped operations: `findById`, `findByIds`, `findAll`, and `upsert`. Equipment and race repositories additionally expose resolved reads. A repository may issue many SQL statements, but callers receive one domain aggregate and never raw Kysely builders.
+Repository contracts expose authored-shaped operations: `findById`, `findByIds`, `findAll`, and `upsert`. Equipment and race repositories additionally expose resolved reads. The authored-definition repository also exposes an access-controlled selected-revision read that resolves UUID or public route identity, definition ownership, the requested active/draft payload, and draft presence in one query. A repository may issue many SQL statements, but callers receive one domain aggregate and never raw Kysely builders.
 
 Hydration loads the root and related rows, reorders dependent collections where necessary, and reconstructs authored intent/provenance. Keep DTO validation at the API seam; keep row mapping and authored hydration in DB.
 
@@ -43,7 +43,7 @@ Character hit-point history is normalized in `character_hitpoint_levels`. Its `(
 
 Chosen grant selections are unique by character, grant, provenance identity, and optional progression level. Acquisition timing and source class level remain metadata and do not create a second answer to the same grant choice. Schema and application preflight checks provide repairable errors, while the `NULLS NOT DISTINCT` database index prevents ambiguous first-record-wins state from being persisted.
 
-For authored roots, the immutable full-payload revision is canonical and normalized domain rows are the active query projection. Activation replaces the projection and promotes the exact draft revision inside one transaction. Seed/source data follows the same typed authored/upsert path and synchronizes master definitions/revisions with their projections. Baseline synchronization is authoritative only for master roots in the target system: stale masters and their route identities are pruned transactionally, while owned records and other systems are untouched.
+For authored roots, the immutable full-payload revision is canonical and normalized domain rows are the active query projection. Readable detail validates the selected canonical revision directly; lists, engine workflows, relational filters, and other projection-oriented reads continue to use normalized rows. Activation replaces the projection and promotes the exact draft revision inside one transaction. Seed/source data follows the same typed authored/upsert path and synchronizes master definitions/revisions with their projections. Baseline synchronization is authoritative only for master roots in the target system: stale masters and their route identities are pruned transactionally, while owned records and other systems are untouched.
 
 ## Concurrency and ownership
 
@@ -53,6 +53,6 @@ Copying an authored root regenerates the root ID and every nested owned entity i
 
 ## Projection recovery (target/manual)
 
-An active projection is conceptually disposable, but the current repository does not expose a typed active/arbitrary-revision payload read or projection-rebuild use case. Until that seam exists, recovery is an operator/manual database procedure: identify and validate the active revision payload, then run the owning aggregate upsert in a controlled transaction. Do not repair nested projection rows piecemeal.
+An active projection is conceptually disposable. The repository exposes a typed selected active/draft revision read for product detail, but no projection-rebuild use case. Recovery therefore remains an operator/manual database procedure: read and validate the active revision payload, then run the owning aggregate upsert in a controlled transaction. Do not repair nested projection rows piecemeal.
 
-The target is a typed revision read/rebuild service with focused cross-domain tests. SQL remains the schema source of truth; generated types must be refreshed after migrations.
+The remaining target is a typed projection-rebuild service with focused cross-domain tests. SQL remains the schema source of truth; generated types must be refreshed after migrations.

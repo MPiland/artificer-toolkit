@@ -11,6 +11,7 @@ export type AuthoredDetailViewMode = 'active' | 'draft' | 'invalid-draft-only' |
 
 export interface AuthoredDetailResponse<TItem> {
   item: TItem | null
+  hasDraft: boolean
   permissions: AuthoredContentPermissionsDto
   provenance: AuthoredContentProvenanceDto
 }
@@ -55,7 +56,10 @@ export function resolveAuthoredDetailState<TItem>({
   const parsedDraft = parseAuthoredDraftPayload(draft ?? null, schema)
   const draftItem = parsedDraft.item ?? null
   const draftHasActiveContent = parsedDraft.draft?.draftState === 'ACTIVE_WITH_DRAFT'
-  const canViewActive = Boolean(parsedDraft.draft && draftHasActiveContent)
+  const canViewActive = Boolean(
+    (parsedDraft.draft && draftHasActiveContent) ||
+    (viewActive && response?.hasDraft)
+  )
   const hasActiveContent = Boolean(activeItem) && (
     viewActive === true ||
     !parsedDraft.draft ||
