@@ -41,7 +41,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 
 ## Future roadmap
 
-- [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for native clients, media/files, Campaigns, Encounters, commerce, Social Hub, Marketplace, and VTT
+- [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for Character Sheet play depth and overrides, media/files, native clients, Campaigns, Encounters, commerce, Social Hub, Marketplace, and VTT
 
 ## Decisions
 

@@ -1,6 +1,6 @@
-# Phase 9 — Store release and continuous validation
+# Phase 11 — Store release and continuous validation
 
-> **Status:** planned; validation work begins in Phase 0 and is hardened here
+> **Status:** planned; validation work begins in Phase 00 and is hardened here
 > **Depends on:** the native features selected for the first public release
 > **Unlocks:** controlled App Store and Play Store release
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0010](../adr/0010-platform-neutral-design-system.md)
@@ -11,7 +11,7 @@ Turn the tested native client into a repeatable, observable, privacy-complete st
 
 ## Current starting point
 
-- Phase 0 creates the Expo workspace and initial EAS profiles.
+- Phase 02 creates the Expo workspace and initial EAS profiles.
 - Each prior phase is responsible for its own unit, contract, integration, authorization, and client tests.
 - Store accounts, final identifiers, signing ownership, privacy declarations, crash reporting, Maestro journeys, production EAS workflows, staged rollout, and rollback policy do not currently exist.
 

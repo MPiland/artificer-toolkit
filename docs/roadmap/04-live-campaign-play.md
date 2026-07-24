@@ -1,7 +1,7 @@
-# Phase 2 — Live Campaign play and native play alpha
+# Phase 04 — Live Campaign play and native play alpha
 
 > **Status:** planned
-> **Depends on:** [Phase 0A](00a-media-and-file-pipeline.md) and [Phase 1](01-campaign-core.md)
+> **Depends on:** [Phase 01](01-media-and-file-pipeline.md) and [Phase 03](03-campaign-core.md)
 > **Unlocks:** full Campaign beta, richer Encounters, and native TestFlight/Play distribution
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0009](../adr/0009-vtt-encounter-event-boundary.md)
 
@@ -16,7 +16,7 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 - Equipment definitions are revisioned content, while character inventory rows are runtime instances.
 - Character events provide a useful idempotent command/event pattern but are not a universal event store.
 - No application chat, dice service, Realtime channel model, shared notes, Campaign clock, native cache, or push registry exists.
-- Phase 0A is expected to provide ready-asset identity, upload safety, and authorized delivery; this phase owns how Campaign collaboration references and presents those assets.
+- Phase 01 is expected to provide ready-asset identity, upload safety, and authorized delivery; this phase owns how Campaign collaboration references and presents those assets.
 
 ## Requirements
 
@@ -42,7 +42,7 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 
 ### Campaign files and handouts
 
-- Authorized Campaign members may upload and download size-limited supporting files through the Phase 0A asset pipeline.
+- Authorized Campaign members may upload and download size-limited supporting files through the Phase 01 asset pipeline.
 - Campaign attachments inherit Campaign access and use explicit upload/delete capabilities. Removing a member revokes future API and Storage access.
 - A Campaign attachment records uploader, asset, Campaign, display filename, description, timestamps, and optional session/note association selected by the phase subplan.
 - `CAMPAIGN_HANDOUT_MAP` is a normal viewable/downloadable Campaign asset. It does not gain VTT grid, fog, token, scene, or large-map behavior.
@@ -76,7 +76,7 @@ Realtime messages are hints containing scope, event identity, and cursor. Client
 
 1. **Define shared live-play authorization.** Extend Campaign capabilities for inventories, transfers, vehicle custody, sessions, notes/files, clock, roll visibility, channel subscription, and moderation.
 2. **Extract the inventory aggregate.** Design migration/backfill, compatibility projection, versioning, repository locks, and transfer command/event contracts.
-3. **Add vehicles, sessions, notes/files, and clock.** Keep each Campaign-owned, attach only ready Phase 0A assets, and model clock segments instead of a continuously running server process.
+3. **Add vehicles, sessions, notes/files, and clock.** Keep each Campaign-owned, attach only ready Phase 01 assets, and model clock segments instead of a continuously running server process.
 4. **Add dice and roll history.** Restrict expression grammar, limits, visibility, RNG injection, retention, and exact result persistence.
 5. **Add chat and safety boundaries.** Define channel kinds, membership snapshots, message lifecycle, reporting, blocking interaction, retention, RLS, and private notification rules.
 6. **Add Realtime reconciliation.** Authorize private channels, emit after commit, track cursors, and handle reconnect, duplicate, delayed, and out-of-order delivery.

@@ -1,7 +1,7 @@
-# Phase 5 — Free Social Hub
+# Phase 07 — Free Social Hub
 
 > **Status:** planned
-> **Depends on:** [Phase 1](01-campaign-core.md), [Phase 3](03-encounters.md), and account capabilities from [Phase 4](04-entitlements-and-subscriptions.md)
+> **Depends on:** [Phase 03](03-campaign-core.md), [Phase 05](05-encounters.md), and account capabilities from [Phase 06](06-entitlements-and-subscriptions.md)
 > **Unlocks:** public table discovery and the paid-table extension
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -19,7 +19,7 @@ Launch a moderated, adults-only table-finding service for free Campaigns and one
 ## Requirements
 
 - Listings include owner/GM, system/ruleset, Campaign or one-shot type, tone, adult age band, timezone, schedule summary, seat capacity/availability, language if approved, free/paid state, and nullable price metadata.
-- Phase 5 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 7 migration; paid activation remains server-disabled.
+- Phase 07 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 09 migration; paid activation remains server-disabled.
 - Search supports indexed filters and deterministic pagination using PostgreSQL.
 - Applications have explicit lifecycle: submitted, withdrawn, accepted, declined, expired, or blocked.
 - Acceptance consumes capacity safely and creates or prepares the appropriate Campaign membership/invitation or standalone Encounter invitation.
@@ -65,7 +65,7 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 - Repeated acceptance creates one effective membership/invitation.
 - Blocking closes every documented interaction and notification path.
 - Report review and moderator action are audited.
-- Paid listings cannot be published until Phase 7 enables them.
+- Paid listings cannot be published until Phase 09 enables them.
 - Web and native application status agree.
 
 ## Out of scope

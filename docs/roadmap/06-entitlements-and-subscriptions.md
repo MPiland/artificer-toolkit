@@ -1,7 +1,7 @@
-# Phase 4 — Entitlements and subscriptions
+# Phase 06 — Entitlements and subscriptions
 
 > **Status:** planned
-> **Depends on:** [Phase 0](00-cross-platform-foundation.md)
+> **Depends on:** [Phase 02](02-cross-platform-foundation.md)
 > **Unlocks:** enforced paid tiers, professional fee waivers, and commerce fulfillment
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0002](../adr/0002-kysely-writes-authored-hydration.md)
 
