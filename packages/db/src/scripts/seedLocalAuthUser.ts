@@ -1,22 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import { pathToFileURL } from 'node:url'
 
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 function requireLocalAuthEnv() {
   const email = process.env.LOCAL_AUTH_EMAIL
   const password = process.env.LOCAL_AUTH_PASSWORD
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const secretKey = process.env.SUPABASE_SECRET_KEY
   const url = process.env.SUPABASE_URL
 
   if (!url) {
     throw new Error('SUPABASE_URL is required to create or update a local auth user.')
   }
 
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required to create or update a local auth user.')
+  if (!secretKey) {
+    throw new Error('SUPABASE_SECRET_KEY is required to create or update a local auth user.')
   }
 
   if (!email) {
@@ -34,14 +30,14 @@ function requireLocalAuthEnv() {
   return {
     email,
     password,
-    serviceRoleKey,
+    secretKey,
     url
   }
 }
 
 async function main() {
-  const { email, password, serviceRoleKey, url } = requireLocalAuthEnv()
-  const supabase = createClient(url, serviceRoleKey, {
+  const { email, password, secretKey, url } = requireLocalAuthEnv()
+  const supabase = createClient(url, secretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false

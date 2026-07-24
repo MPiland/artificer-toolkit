@@ -72,5 +72,5 @@ Campaign sharing is future work. Day-one data isolation means unrelated users ca
 - Enable HTTPS everywhere and add HSTS after domain ownership is settled.
 - Add production rate limits and abuse logging at the hosting edge or server adapter.
 - Add CSP report collection before moving script/style directives from report-only to enforce.
-- Confirm Supabase RLS policies cover every user-owned table and that service-role keys never reach web bundles.
+- Confirm Supabase RLS policies cover every user-owned table and that secret keys never reach web bundles.
 - Add campaign ACL migrations and cross-member/non-member tests before shared campaigns ship.

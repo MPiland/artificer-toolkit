@@ -30,10 +30,6 @@ import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner, type BaselineContentBundle } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import type { Database, Json } from '../types/index.js'
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 type Db = ReturnType<typeof createDb>
 type SrdTransaction = Transaction<Database>
 type SrdClassRecord = BaselineContentBundle['subjects']['classes'][number]
@@ -296,7 +292,7 @@ async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
     throw new Error(
       configuredUserId
         ? `SEED_OWNER_USER_ID "${configuredUserId}" does not exist in the local database.`
-        : 'The local database has no auth user. Run `yarn seed:owner` before the SRD integration gate.'
+        : 'The local database has no auth user. Run `yarn seed:srd:local` before the SRD integration gate.'
     )
   }
 

@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import pg from 'pg'
-import { pathToFileURL } from 'node:url'
-
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
 
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
 const USERS_PER_PAGE = 1000
@@ -15,28 +10,40 @@ type SeedOwnerUser = {
   email?: string
 }
 
-function requireSupabaseAdminEnv() {
-  const url = process.env.SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+export interface SeedOwnerEnvironment {
+  connectionString: string
+  email: string
+  password?: string
+  supabaseSecretKey: string
+  supabaseUrl: string
+}
 
-  if (!url) {
-    throw new Error('SUPABASE_URL is required to create or reuse the seed owner user.')
-  }
+function requireEnvironmentVariable(name: string) {
+  const value = process.env[name]
 
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required to create or reuse the seed owner user.')
-  }
+  if (!value) throw new Error(`${name} is required to create or reuse the seed owner user.`)
+
+  return value
+}
+
+export function readSeedOwnerEnvironment(
+  production = false,
+  connectionStringOverride?: string
+): SeedOwnerEnvironment {
+  const prefix = production ? 'PROD_' : ''
+  const read = (name: string) => requireEnvironmentVariable(`${prefix}${name}`)
 
   return {
-    serviceRoleKey,
-    url
+    connectionString: connectionStringOverride ?? read('DATABASE_CONNECTION_STRING'),
+    email: process.env[`${prefix}SEED_OWNER_EMAIL`] ?? DEFAULT_SEED_OWNER_EMAIL,
+    password: process.env[`${prefix}SEED_OWNER_PASSWORD`],
+    supabaseSecretKey: read('SUPABASE_SECRET_KEY'),
+    supabaseUrl: read('SUPABASE_URL')
   }
 }
 
-function createSupabaseAdminClient() {
-  const { serviceRoleKey, url } = requireSupabaseAdminEnv()
-
-  return createClient(url, serviceRoleKey, {
+function createSupabaseAdminClient(environment: SeedOwnerEnvironment) {
+  return createClient(environment.supabaseUrl, environment.supabaseSecretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -44,25 +51,16 @@ function createSupabaseAdminClient() {
   })
 }
 
-function requireDatabaseConnectionString() {
-  const connectionString = process.env.DATABASE_URL ?? process.env.DATABASE_CONNECTION_STRING
-
-  if (!connectionString) {
-    throw new Error('DATABASE_URL or DATABASE_CONNECTION_STRING is required to promote the seed owner user.')
-  }
-
-  return connectionString
-}
-
 function createSeedOwnerPassword() {
   return crypto.randomUUID() + crypto.randomUUID()
 }
 
 async function updateSeedOwnerPassword(
+  environment: SeedOwnerEnvironment,
   user: SeedOwnerUser,
   password: string
 ) {
-  const supabase = createSupabaseAdminClient()
+  const supabase = createSupabaseAdminClient(environment)
   const { data, error } = await supabase.auth.admin.updateUserById(user.id, {
     email_confirm: true,
     password
@@ -74,9 +72,10 @@ async function updateSeedOwnerPassword(
 }
 
 async function findUser(
+  environment: SeedOwnerEnvironment,
   predicate: (user: SeedOwnerUser) => boolean
 ) {
-  const supabase = createSupabaseAdminClient()
+  const supabase = createSupabaseAdminClient(environment)
   let page = 1
 
   while (true) {
@@ -101,12 +100,12 @@ async function findUser(
   return null
 }
 
-export async function findSeedOwnerUserById(userId: string) {
-  return findUser((user) => user.id === userId)
+export async function findSeedOwnerUserById(environment: SeedOwnerEnvironment, userId: string) {
+  return findUser(environment, (user) => user.id === userId)
 }
 
-async function promoteSeedOwnerToSuperAdmin(user: SeedOwnerUser) {
-  const client = new Client({ connectionString: requireDatabaseConnectionString() })
+async function promoteSeedOwnerToSuperAdmin(environment: SeedOwnerEnvironment, user: SeedOwnerUser) {
+  const client = new Client({ connectionString: environment.connectionString })
 
   await client.connect()
 
@@ -126,25 +125,26 @@ async function promoteSeedOwnerToSuperAdmin(user: SeedOwnerUser) {
   return user
 }
 
-export async function ensureSeedOwnerUser() {
-  const email = process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL
-  const password = process.env.SEED_OWNER_PASSWORD
-  const normalizedEmail = email.toLowerCase()
-  const existingUser = await findUser((user) => user.email?.toLowerCase() === normalizedEmail)
+export async function ensureSeedOwnerUser(environment: SeedOwnerEnvironment) {
+  const normalizedEmail = environment.email.toLowerCase()
+  const existingUser = await findUser(
+    environment,
+    (user) => user.email?.toLowerCase() === normalizedEmail
+  )
 
   if (existingUser) {
-    const user = password
-      ? updateSeedOwnerPassword(existingUser, password)
+    const user = environment.password
+      ? updateSeedOwnerPassword(environment, existingUser, environment.password)
       : existingUser
 
-    return promoteSeedOwnerToSuperAdmin(await user)
+    return promoteSeedOwnerToSuperAdmin(environment, await user)
   }
 
-  const supabase = createSupabaseAdminClient()
+  const supabase = createSupabaseAdminClient(environment)
   const { data, error } = await supabase.auth.admin.createUser({
-    email,
+    email: environment.email,
     email_confirm: true,
-    password: password ?? createSeedOwnerPassword(),
+    password: environment.password ?? createSeedOwnerPassword(),
     user_metadata: {
       purpose: 'Artificer Toolkit master seed data owner'
     }
@@ -152,26 +152,8 @@ export async function ensureSeedOwnerUser() {
 
   if (error) throw error
   if (!data.user) {
-    throw new Error(`Supabase did not return a user after creating seed owner "${email}".`)
+    throw new Error(`Supabase did not return a user after creating seed owner "${environment.email}".`)
   }
 
-  return promoteSeedOwnerToSuperAdmin(data.user)
-}
-
-async function main() {
-  const user = await ensureSeedOwnerUser()
-  console.info(`Seed owner user id: ${user.id}`)
-}
-
-function isDirectScript() {
-  return process.argv[1]
-    ? import.meta.url === pathToFileURL(process.argv[1]).href
-    : false
-}
-
-if (isDirectScript()) {
-  main().catch((error: unknown) => {
-    console.error(error)
-    process.exitCode = 1
-  })
+  return promoteSeedOwnerToSuperAdmin(environment, data.user)
 }

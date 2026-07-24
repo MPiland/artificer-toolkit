@@ -37,10 +37,6 @@ import {
 } from '../repositories/index.js'
 import { assignBaselineContentOwner } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 type Db = ReturnType<typeof createDb>
 
 interface InactiveMasterRow {
@@ -808,7 +804,16 @@ export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdDat
 }
 
 async function main() {
-  const db = createDb()
+  const production = process.argv.includes('--production')
+  const connectionString = process.env[
+    production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING'
+  ]
+  if (!connectionString) {
+    throw new Error(
+      `${production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING'} is required for the SRD data audit.`
+    )
+  }
+  const db = createDb({ connectionString })
 
   try {
     const summary = await auditSrdData(db)
