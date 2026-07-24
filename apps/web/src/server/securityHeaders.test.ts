@@ -89,12 +89,32 @@ describe('security headers', () => {
     }
   })
 
-  it('adds nonce directives and dev eval support to report-only script CSP when provided', () => {
-    const response = withSecurityHeaders(new Response('ok'), { nonce: 'test-nonce' })
-    const reportOnlyCsp = response.headers.get('Content-Security-Policy-Report-Only') ?? ''
+  it('allows eval only in development report-only script CSP', () => {
+    const originalNodeEnv = process.env.NODE_ENV
 
-    expect(reportOnlyCsp).toContain("script-src 'self' 'nonce-test-nonce' 'unsafe-eval'")
-    expect(reportOnlyCsp).toContain("style-src 'self' 'unsafe-inline'")
+    try {
+      process.env.NODE_ENV = 'development'
+      const developmentCsp = createSecurityHeaders({ nonce: 'test-nonce' })[
+        'Content-Security-Policy-Report-Only'
+      ]
+
+      expect(developmentCsp).toContain("script-src 'self' 'nonce-test-nonce' 'unsafe-eval'")
+
+      process.env.NODE_ENV = 'production'
+      const productionCsp = createSecurityHeaders({ nonce: 'test-nonce' })[
+        'Content-Security-Policy-Report-Only'
+      ]
+
+      expect(productionCsp).toContain("script-src 'self' 'nonce-test-nonce'")
+      expect(productionCsp).not.toContain("'unsafe-eval'")
+      expect(productionCsp).toContain("style-src 'self' 'unsafe-inline'")
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env.NODE_ENV
+      } else {
+        process.env.NODE_ENV = originalNodeEnv
+      }
+    }
   })
 
   it('preserves middleware-set security headers when requested', () => {
