@@ -90,6 +90,26 @@ describe('static security posture', () => {
     expect(offenders).toEqual([])
   })
 
+  it('loads the CSP-safe Zod bootstrap before application head content', () => {
+    const bootstrap = read(
+      path.join(repoRoot, 'apps', 'web', 'public', 'zod-csp-bootstrap.js')
+    )
+      .replace(/\r\n/g, '\n')
+      .trim()
+    const rootDocument = read(path.join(repoRoot, 'apps', 'web', 'src', 'routes', '__root.tsx'))
+    const scriptReference = "<script src='/zod-csp-bootstrap.js' />"
+
+    expect(bootstrap).toBe(
+      'globalThis.__zod_globalConfig ??= {}\n' +
+        'globalThis.__zod_globalConfig.jitless = true'
+    )
+    expect(bootstrap).not.toMatch(/\beval\s*\(|\bFunction\s*\(|https?:\/\//)
+    expect(rootDocument).toContain(scriptReference)
+    expect(rootDocument.indexOf(scriptReference)).toBeLessThan(
+      rootDocument.indexOf('<HeadContent />')
+    )
+  })
+
   it('routes authored rich HTML through the sanitizer helper', () => {
     const offenders = webFiles
       .filter((filePath) => read(filePath).includes('html-react-parser'))

@@ -63,6 +63,7 @@ function RootDocument() {
   return (
     <html lang='en' suppressHydrationWarning>
       <head>
+        <script src='/zod-csp-bootstrap.js' />
         <ColorSchemeScript
           defaultColorScheme='auto'
           {...(nonce ? { nonce, suppressHydrationWarning: true } : {})}
