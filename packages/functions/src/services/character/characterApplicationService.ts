@@ -44,6 +44,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored, StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
+import { startingEquipmentDtoSchema } from '@artificer-toolkit/schema/shared/startingEquipment'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import {
   characterBuilderDraftPayloadDtoSchema,
@@ -82,6 +83,10 @@ type CharacterBuilderPreview = ReturnType<typeof createCharacterBuilderChangePre
 type CharacterFeatureAcquisition = CharacterAuthored['intent']['featureAcquisitions'][number]
 
 type StartingEquipmentItem = StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
+
+function toStartingEquipmentDto(startingEquipment: StartingEquipmentAuthored) {
+  return startingEquipmentDtoSchema.parse(startingEquipment)
+}
 
 function buildStartingEquipmentChoiceLabels(
   startingEquipment: StartingEquipmentAuthored,
@@ -969,7 +974,7 @@ export function buildCharacterBuilderView(
             source: 'CLASS',
             sourceLabel: primaryBaseClass.label,
             startingGold: primaryBaseClass.startingGold,
-            startingEquipment: primaryBaseClass.startingEquipment,
+            startingEquipment: toStartingEquipmentDto(primaryBaseClass.startingEquipment),
             choiceLabels: buildStartingEquipmentChoiceLabels(primaryBaseClass.startingEquipment, equipmentOptions)
           }
         : null,
@@ -977,7 +982,7 @@ export function buildCharacterBuilderView(
         ? {
             source: 'BACKGROUND',
             sourceLabel: selectedBackground.label,
-            startingEquipment: selectedBackground.startingEquipment,
+            startingEquipment: toStartingEquipmentDto(selectedBackground.startingEquipment),
             choiceLabels: buildStartingEquipmentChoiceLabels(selectedBackground.startingEquipment, equipmentOptions)
           }
         : null,
