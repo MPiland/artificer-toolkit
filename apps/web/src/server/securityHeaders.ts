@@ -14,7 +14,6 @@ interface WithSecurityHeadersOptions extends SecurityHeaderOptions {
 }
 
 function isDevelopment() {
-  console.log('NODE_ENV:', process.env.NODE_ENV)
   return process.env.NODE_ENV !== 'production'
 }
 
