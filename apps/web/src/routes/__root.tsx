@@ -45,6 +45,7 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
       }
     ],
     links: [
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'stylesheet', href: layers },
       { rel: 'stylesheet', href: mantineLayers },
       { rel: 'stylesheet', href: mantineNotificationStyles },
