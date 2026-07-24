@@ -49,13 +49,10 @@ type CharacterSheetCommandPayload = CharacterSheetCommandInputDto extends infer 
   : never
 
 function requireLocalDatabaseUrl(): string {
-  const connectionString =
-    process.env.CHARACTER_LIFECYCLE_INTEGRATION_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    process.env.DATABASE_CONNECTION_STRING
+  const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL or DATABASE_CONNECTION_STRING is required for the Character lifecycle integration proof.'
+      'DATABASE_CONNECTION_STRING is required for the Character lifecycle integration proof.'
     )
   }
 

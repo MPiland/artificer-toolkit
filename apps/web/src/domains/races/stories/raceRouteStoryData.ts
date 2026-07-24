@@ -241,6 +241,7 @@ export const raceStoryDraft = {
 export const activeRaceResponse = {
   publicId: DRAGONBORN_PUBLIC_ID,
   activeRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
+  hasDraft: true,
   item: seedDerivedDragonbornRace,
   draft: raceStoryDraft,
   meta: raceStoryReferences,

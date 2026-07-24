@@ -18,13 +18,10 @@ type CharacterTransaction = Transaction<Database>
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
 function requireLocalDatabaseUrl(): string {
-  const connectionString =
-    process.env.CHARACTER_SHEET_INTEGRATION_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    process.env.DATABASE_CONNECTION_STRING
+  const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL or DATABASE_CONNECTION_STRING is required for the Character Sheet integration proof.'
+      'DATABASE_CONNECTION_STRING is required for the Character Sheet integration proof.'
     )
   }
 

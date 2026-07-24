@@ -5,7 +5,6 @@
       "env": ["PUBLIC_SIGN_UP_ENABLED"],
       "passThroughEnv": [
         "DATABASE_CONNECTION_STRING",
-        "DATABASE_URL",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",

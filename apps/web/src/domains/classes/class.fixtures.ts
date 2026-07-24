@@ -12,6 +12,7 @@ import {
 export const ownedClassResponseFixture = {
   publicId: 'class-owned',
   activeRevisionId: 'class-owned-active-revision',
+  hasDraft: false,
   item: {
     id: 'class-owned',
     label: 'Fighter',
@@ -60,6 +61,7 @@ export const ownedClassResponseFixture = {
 export const masterSubclassResponseFixture = {
   publicId: 'class-master-subclass',
   activeRevisionId: 'class-master-subclass-active-revision',
+  hasDraft: false,
   item: {
     id: 'class-master-subclass',
     label: 'Champion',

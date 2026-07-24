@@ -38,7 +38,7 @@ function appendResponseCookies(response: Response, cookies: ResponseCookie[]): R
 }
 
 function getDatabaseConnectionString(): string | undefined {
-  return process.env.DATABASE_CONNECTION_STRING ?? process.env.DATABASE_URL
+  return process.env.DATABASE_CONNECTION_STRING
 }
 
 function isTrueClaim(value: unknown): boolean {

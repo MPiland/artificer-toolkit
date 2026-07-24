@@ -146,6 +146,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
 export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedBaseRaceFixture.id,
   activeRevisionId: 'dragonborn-active-revision',
+  hasDraft: false,
   item: ownedBaseRaceFixture,
   provenance: {
     kind: 'OWNED',
@@ -162,6 +163,7 @@ export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
 export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedSubraceFixture.id,
   activeRevisionId: 'wood-elf-active-revision',
+  hasDraft: false,
   item: ownedSubraceFixture,
   provenance: {
     kind: 'OWNED',
@@ -178,6 +180,7 @@ export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
 export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: masterRaceFixture.id,
   activeRevisionId: 'elf-active-revision',
+  hasDraft: false,
   item: masterRaceFixture,
   provenance: {
     kind: 'MASTER',

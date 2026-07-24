@@ -148,6 +148,7 @@ export const summonFixture: CreatureAuthoredDto = {
 export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: ownedMonsterFixture.id,
   activeRevisionId: 'owned-owlbear-active-revision',
+  hasDraft: false,
   item: ownedMonsterFixture,
   provenance: {
     kind: 'OWNED',
@@ -164,6 +165,7 @@ export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
 export const masterCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: 'master-owlbear',
   activeRevisionId: 'master-owlbear-active-revision',
+  hasDraft: false,
   item: {
     ...ownedMonsterFixture,
     id: 'master-owlbear',

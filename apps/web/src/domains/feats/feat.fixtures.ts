@@ -93,6 +93,7 @@ export const featListResponseFixture: FeatListResponseDto = {
 export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
   publicId: ownedFeatFixture.id,
   activeRevisionId: 'battlefield-reader-active-revision',
+  hasDraft: false,
   item: ownedFeatFixture,
   provenance: {
     kind: 'OWNED',
@@ -109,6 +110,7 @@ export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
 export const masterFeatResponseFixture: NonNullable<FeatResponseDto> = {
   publicId: masterFeatFixture.id,
   activeRevisionId: 'grappler-active-revision',
+  hasDraft: false,
   item: masterFeatFixture,
   provenance: {
     kind: 'MASTER',

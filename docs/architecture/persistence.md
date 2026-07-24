@@ -12,7 +12,7 @@ SQL migrations define the relational schema and RLS policies. `packages/db` uses
 
 ## Connection and RLS
 
-`createDb` builds a Postgres Kysely instance from `DATABASE_URL`/`DATABASE_CONNECTION_STRING` and a bounded `pg` pool. `withUserContext(db, userId, fn)` starts a transaction, sets `request.jwt.claim.sub` with `set_config(..., true)`, and invokes `fn` with the transaction handle. This is how API calls execute under the caller’s Supabase RLS identity.
+`createDb` builds a Postgres Kysely instance from `DATABASE_CONNECTION_STRING` and a bounded `pg` pool. `withUserContext(db, userId, fn)` starts a transaction, sets `request.jwt.claim.sub` with `set_config(..., true)`, and invokes `fn` with the transaction handle. This is how API calls execute under the caller’s Supabase RLS identity.
 
 Do not call repository writes outside the context selected by the API/service layer. A transaction can be passed as `DBLike` (`Kysely<Database> | Transaction<Database>`). Transactional repository operations reuse an incoming transaction and open one only for a top-level Kysely instance.
 

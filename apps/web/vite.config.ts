@@ -7,11 +7,7 @@ import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
-const serverOnlyEnvKeys = [
-  'DATABASE_CONNECTION_STRING',
-  'DATABASE_URL',
-  'PUBLIC_SIGN_UP_ENABLED'
-] as const
+const serverOnlyEnvKeys = ['DATABASE_CONNECTION_STRING', 'PUBLIC_SIGN_UP_ENABLED'] as const
 type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
@@ -27,11 +23,7 @@ function setServerOnlyEnv(
 function loadServerOnlyEnv(mode: string) {
   const rootEnv = loadEnv(mode, repoRoot, '')
   setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', rootEnv.PUBLIC_SIGN_UP_ENABLED)
-  setServerOnlyEnv(
-    'DATABASE_CONNECTION_STRING',
-    rootEnv.DATABASE_CONNECTION_STRING ?? rootEnv.DATABASE_URL
-  )
-  setServerOnlyEnv('DATABASE_URL', rootEnv.DATABASE_URL)
+  setServerOnlyEnv('DATABASE_CONNECTION_STRING', rootEnv.DATABASE_CONNECTION_STRING)
 
   return rootEnv
 }
@@ -41,14 +33,15 @@ export default defineConfig(({ mode }) => {
   const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? webEnv.SENTRY_AUTH_TOKEN
   const sentryOrg = process.env.SENTRY_ORG ?? webEnv.SENTRY_ORG
   const sentryProject = process.env.SENTRY_PROJECT ?? webEnv.SENTRY_PROJECT
-  const sentryPlugin = mode === 'production' && sentryAuthToken && sentryOrg && sentryProject
-    ? sentryTanstackStart({
-        authToken: sentryAuthToken,
-        autoInstrumentMiddleware: false,
-        org: sentryOrg,
-        project: sentryProject
-      })
-    : []
+  const sentryPlugin =
+    mode === 'production' && sentryAuthToken && sentryOrg && sentryProject
+      ? sentryTanstackStart({
+          authToken: sentryAuthToken,
+          autoInstrumentMiddleware: false,
+          org: sentryOrg,
+          project: sentryProject
+        })
+      : []
 
   return {
     envDir: repoRoot,

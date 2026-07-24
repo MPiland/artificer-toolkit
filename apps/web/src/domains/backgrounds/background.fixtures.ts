@@ -121,6 +121,7 @@ export const backgroundListResponseFixture: BackgroundListResponseDto = {
 export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
   publicId: ownedBackgroundFixture.id,
   activeRevisionId: 'urban-investigator-active-revision',
+  hasDraft: false,
   item: ownedBackgroundFixture,
   provenance: {
     kind: 'OWNED',
@@ -137,6 +138,7 @@ export const ownedBackgroundResponseFixture: NonNullable<BackgroundResponseDto> 
 export const masterBackgroundResponseFixture: NonNullable<BackgroundResponseDto> = {
   publicId: masterBackgroundFixture.id,
   activeRevisionId: 'acolyte-active-revision',
+  hasDraft: false,
   item: masterBackgroundFixture,
   provenance: {
     kind: 'MASTER',

@@ -137,6 +137,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
 export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedEquipmentFixture.id,
   activeRevisionId: 'owned-equipment-active-revision',
+  hasDraft: false,
   item: ownedEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -153,6 +154,7 @@ export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = 
 export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedVariantEquipmentFixture.id,
   activeRevisionId: 'owned-variant-equipment-active-revision',
+  hasDraft: false,
   item: ownedVariantEquipmentFixture,
   provenance: {
     kind: 'OWNED',
@@ -169,6 +171,7 @@ export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponse
 export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: masterEquipmentFixture.id,
   activeRevisionId: 'master-equipment-active-revision',
+  hasDraft: false,
   item: masterEquipmentFixture,
   provenance: {
     kind: 'MASTER',

@@ -16,15 +16,15 @@ function requireEnv(name: string): string {
   return value
 }
 
-function describeDatabase(databaseUrl: string): string {
-  const parsed = new URL(databaseUrl)
+function describeDatabase(connectionString: string): string {
+  const parsed = new URL(connectionString)
   const username = parsed.username ? `${parsed.username}@` : ''
 
   return `${parsed.protocol}//${username}${parsed.host}${parsed.pathname}`
 }
 
 async function main() {
-  const databaseUrl = requireEnv('DATABASE_URL')
+  const connectionString = requireEnv('DATABASE_CONNECTION_STRING')
   const confirmation = requireEnv('CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET')
 
   if (confirmation !== CONFIRMATION_VALUE) {
@@ -63,9 +63,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 COMMIT;
 `
 
-  const client = new Client({ connectionString: databaseUrl })
+  const client = new Client({ connectionString })
 
-  console.log(`Resetting public schema on ${describeDatabase(databaseUrl)}.`)
+  console.log(`Resetting public schema on ${describeDatabase(connectionString)}.`)
 
   await client.connect()
 

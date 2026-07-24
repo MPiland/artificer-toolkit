@@ -12,6 +12,7 @@ import {
 export const ownedVehicleResponseFixture = {
   publicId: 'vehicle-owned',
   activeRevisionId: 'vehicle-owned-active-revision',
+  hasDraft: false,
   item: {
     id: 'vehicle-owned',
     label: 'Sky Skiff',
@@ -66,6 +67,7 @@ export const ownedVehicleResponseFixture = {
 export const masterVehicleResponseFixture = {
   publicId: 'vehicle-master',
   activeRevisionId: 'vehicle-master-active-revision',
+  hasDraft: false,
   item: {
     id: 'vehicle-master',
     label: 'Galley',
