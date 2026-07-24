@@ -923,14 +923,7 @@ async function applyCorpusSync(
 }
 
 async function main() {
-<<<<<<< HEAD
-  const targetDatabaseUrl = process.env.PROD_DATABASE_CONNECTION_STRING
-  if (!targetDatabaseUrl) {
-    throw new Error('PROD_DATABASE_CONNECTION_STRING is required for the bulk SRD seed target.')
-  }
-=======
   const localOnly = process.argv.includes(LOCAL_FLAG)
->>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
   const dryRun = process.argv.includes(DRY_RUN_FLAG)
 
   if (localOnly) {
@@ -957,19 +950,10 @@ async function main() {
     throw new Error(`A local bulk target requires the explicit ${ALLOW_LOCAL_TARGET_FLAG} flag.`)
   }
 
-<<<<<<< HEAD
-  const sourceDatabaseUrl = process.env.DATABASE_CONNECTION_STRING
-  if (!sourceDatabaseUrl) {
-    throw new Error('DATABASE_CONNECTION_STRING is required for the bulk SRD seed source.')
-  }
-  if (!isLocalDatabaseUrl(sourceDatabaseUrl)) {
-    throw new Error('DATABASE_CONNECTION_STRING must point to a local database.')
-=======
   const sourceDatabaseUrl = readProductionSourceDatabaseUrl()
 
   if (!dryRun) {
     await seedLocalSrdCorpus(sourceDatabaseUrl)
->>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
   }
 
   console.info('Auditing the local SRD materialization...')

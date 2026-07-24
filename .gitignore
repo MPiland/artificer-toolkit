@@ -16,6 +16,7 @@ storybook-static/
 
 # Local tool state and generated test artifacts
 .codex/
+.yarn/install-state.gz
 .turbo/
 .cache/
 apps/*/.cache/

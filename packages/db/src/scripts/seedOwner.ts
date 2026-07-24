@@ -1,9 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import pg from 'pg'
-<<<<<<< HEAD
-import { pathToFileURL } from 'node:url'
-=======
->>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
 
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
 const USERS_PER_PAGE = 1000
@@ -55,19 +51,6 @@ function createSupabaseAdminClient(environment: SeedOwnerEnvironment) {
   })
 }
 
-<<<<<<< HEAD
-function requireDatabaseConnectionString() {
-  const connectionString = process.env.DATABASE_CONNECTION_STRING
-
-  if (!connectionString) {
-    throw new Error('DATABASE_CONNECTION_STRING is required to promote the seed owner user.')
-  }
-
-  return connectionString
-}
-
-=======
->>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
 function createSeedOwnerPassword() {
   return crypto.randomUUID() + crypto.randomUUID()
 }

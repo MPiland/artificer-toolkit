@@ -271,8 +271,11 @@ Common repo commands:
 
 - `yarn dev`
 - `yarn db:reset:remote` (destructive; requires `DATABASE_CONNECTION_STRING` and `CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema`)
-- `yarn seed:owner`
-- `yarn seed:srd`
+- `yarn audit:srd`
+- `yarn audit:srd:production`
+- `yarn seed:srd:local`
+- `yarn seed:srd:production:dry-run`
+- `yarn seed:srd:production`
 - `yarn build:web`
 - `yarn build:apis`
 - `yarn build:shared`

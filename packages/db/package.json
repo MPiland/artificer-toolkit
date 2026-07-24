@@ -36,10 +36,9 @@
     "audit:srd:production": "tsx src/scripts/auditSrdData.ts --production",
     "test:character-sheet:integration": "tsx src/scripts/testCharacterSheetStatePatchIntegration.ts",
     "test:srd:integration": "tsx src/scripts/testSrdIntegration.ts",
-    "seed:owner": "tsx src/scripts/seedOwner.ts",
-    "seed:srd": "tsx src/scripts/seedSrd.ts",
-    "seed:srd:bulk:production:dry-run": "tsx src/scripts/seedSrdBulk.ts --dry-run",
-    "seed:srd:bulk:production": "tsx src/scripts/seedSrdBulk.ts --confirm-sync-srd-master-corpus",
+    "seed:srd:local": "tsx src/scripts/seedSrdBulk.ts --local",
+    "seed:srd:production:dry-run": "tsx src/scripts/seedSrdBulk.ts --dry-run",
+    "seed:srd:production": "tsx src/scripts/seedSrdBulk.ts --confirm-sync-srd-master-corpus",
     "gen:types": "supabase gen types --local --lang typescript --schema public,storage > src/types/supabase.database.ts && tsx src/scripts/normalizeGeneratedSupabaseTypes.ts"
   },
   "dependencies": {
