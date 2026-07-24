@@ -1,13 +1,12 @@
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import netlify from '@netlify/vite-plugin-tanstack-start'
-import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
-const configDir = dirname(fileURLToPath(import.meta.url))
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 const serverOnlyEnvKeys = [
   'DATABASE_CONNECTION_STRING',
   'DATABASE_URL',
@@ -25,51 +24,16 @@ function setServerOnlyEnv(
   }
 }
 
-function loadPackageDbEnv(mode: string, options: { ignoreProcessDatabaseEnv?: boolean } = {}) {
-  if (!options.ignoreProcessDatabaseEnv) {
-    return loadEnv(mode, resolve(configDir, '../../packages/db'), '')
-  }
-
-  const previousValues = new Map<ServerOnlyEnvKey, string | undefined>()
-  for (const key of serverOnlyEnvKeys) {
-    previousValues.set(key, process.env[key])
-    delete process.env[key]
-  }
-
-  try {
-    return loadEnv(mode, resolve(configDir, '../../packages/db'), '')
-  } finally {
-    for (const key of serverOnlyEnvKeys) {
-      const value = previousValues.get(key)
-      if (value === undefined) {
-        delete process.env[key]
-      } else {
-        process.env[key] = value
-      }
-    }
-  }
-}
-
 function loadServerOnlyEnv(mode: string) {
-  const webEnv = loadEnv(mode, configDir, '')
-  setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', webEnv.PUBLIC_SIGN_UP_ENABLED)
+  const rootEnv = loadEnv(mode, repoRoot, '')
+  setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', rootEnv.PUBLIC_SIGN_UP_ENABLED)
+  setServerOnlyEnv(
+    'DATABASE_CONNECTION_STRING',
+    rootEnv.DATABASE_CONNECTION_STRING ?? rootEnv.DATABASE_URL
+  )
+  setServerOnlyEnv('DATABASE_URL', rootEnv.DATABASE_URL)
 
-  const preferPackageDbEnv = mode === 'development' || mode === 'test'
-  const dbEnv = loadPackageDbEnv(mode, {
-    ignoreProcessDatabaseEnv: preferPackageDbEnv
-  })
-  const databaseConnectionString = preferPackageDbEnv
-    ? (dbEnv.DATABASE_URL ?? dbEnv.DATABASE_CONNECTION_STRING)
-    : (dbEnv.DATABASE_CONNECTION_STRING ?? dbEnv.DATABASE_URL)
-
-  setServerOnlyEnv('DATABASE_CONNECTION_STRING', databaseConnectionString, {
-    overrideExisting: preferPackageDbEnv
-  })
-  setServerOnlyEnv('DATABASE_URL', dbEnv.DATABASE_URL, {
-    overrideExisting: preferPackageDbEnv
-  })
-
-  return webEnv
+  return rootEnv
 }
 
 export default defineConfig(({ mode }) => {
@@ -87,6 +51,7 @@ export default defineConfig(({ mode }) => {
     : []
 
   return {
+    envDir: repoRoot,
     resolve: {
       tsconfigPaths: true
     },

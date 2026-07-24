@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
 
 import {
   createBackgroundRepository,
@@ -40,7 +39,6 @@ import {
   upsertCharacterBuilderForUser
 } from '../services/character/characterApplicationService.js'
 
-const ENV_FILES = ['.env', '.env.local', '.env.development', '.env.development.local'] as const
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
 type CharacterStartingEquipmentView = NonNullable<CharacterBuilderStartingEquipmentViewDto>
@@ -49,34 +47,6 @@ type CharacterSheetCommandPayload = CharacterSheetCommandInputDto extends infer 
     ? Omit<Command, 'commandId' | 'expectedVersion'>
     : never
   : never
-
-function loadDbEnvironment(): void {
-  const packageRoot = new URL('../../../db/', import.meta.url)
-  const explicitEnvironment = new Set(Object.keys(process.env))
-
-  for (const fileName of ENV_FILES) {
-    const fileUrl = new URL(fileName, packageRoot)
-    if (!existsSync(fileUrl)) continue
-
-    for (const line of readFileSync(fileUrl, 'utf8').split(/\r?\n/)) {
-      const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line.trim())
-      if (!match || line.trimStart().startsWith('#')) continue
-
-      const key = match[1]
-      if (!key || explicitEnvironment.has(key)) continue
-
-      let value = match[2]?.trim() ?? ''
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1)
-      }
-
-      process.env[key] = value
-    }
-  }
-}
 
 function requireLocalDatabaseUrl(): string {
   const connectionString =
@@ -138,7 +108,7 @@ async function findFixtureCatalog(db: DBLike): Promise<CharacterLifecycleFixture
   assert.equal(
     matchingSystems.length,
     1,
-    'Expected exactly one seeded D&D 5e 2014 system. Run `yarn seed:srd` first.'
+    'Expected exactly one seeded D&D 5e 2014 system. Run `yarn seed:srd:local` first.'
   )
   const system = matchingSystems[0]
   assert.ok(system, 'The seeded D&D 5e 2014 system is missing.')
@@ -1600,7 +1570,6 @@ async function provePreparedCasterCommands(
 }
 
 async function main(): Promise<void> {
-  loadDbEnvironment()
   const connectionString = requireLocalDatabaseUrl()
   const db = createDb({ connectionString })
   const characterIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()]

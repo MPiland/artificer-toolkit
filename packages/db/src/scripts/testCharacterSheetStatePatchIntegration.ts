@@ -12,10 +12,6 @@ import {
 } from '../domains/subjects/repositories/character.js'
 import { createCharacterEventRepository } from '../domains/subjects/repositories/characterEvent.js'
 import type { Database } from '../types/index.js'
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 type Db = ReturnType<typeof createDb>
 type CharacterTransaction = Transaction<Database>
 
@@ -80,10 +76,10 @@ async function findFixtureIdentity(db: CharacterTransaction): Promise<FixtureIde
   const userId = userResult.rows[0]?.id
 
   if (!systemId) {
-    throw new Error('The local database has no D&D 5e 2014 system. Run `yarn seed:srd` first.')
+    throw new Error('The local database has no D&D 5e 2014 system. Run `yarn seed:srd:local` first.')
   }
   if (!userId) {
-    throw new Error('The local database has no auth user. Run `yarn seed:owner` first.')
+    throw new Error('The local database has no auth user. Run `yarn seed:srd:local` first.')
   }
 
   const [backgroundResult, classResult, raceResult, spellResult] = await Promise.all([
@@ -124,7 +120,7 @@ async function findFixtureIdentity(db: CharacterTransaction): Promise<FixtureIde
   const spellId = spellResult.rows[0]?.id
 
   if (!backgroundId || !classId || !raceId || !spellId) {
-    throw new Error('The local D&D 5e 2014 corpus is incomplete. Run `yarn seed:srd` first.')
+    throw new Error('The local D&D 5e 2014 corpus is incomplete. Run `yarn seed:srd:local` first.')
   }
 
   return { backgroundId, classId, raceId, spellId, systemId, userId }

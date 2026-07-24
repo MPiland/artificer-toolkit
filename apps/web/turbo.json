@@ -1,0 +1,25 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["PUBLIC_SIGN_UP_ENABLED"],
+      "passThroughEnv": [
+        "DATABASE_CONNECTION_STRING",
+        "DATABASE_URL",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SUPABASE_SECRET_KEY",
+        "SUPABASE_URL"
+      ]
+    },
+    "dev": {
+      "passThroughEnv": [
+        "DATABASE_CONNECTION_STRING",
+        "DATABASE_URL",
+        "SUPABASE_SECRET_KEY",
+        "SUPABASE_URL"
+      ]
+    }
+  }
+}
