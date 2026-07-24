@@ -30,7 +30,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/db/src/__tests__",
-    "build:create-db-bundle": "node ./scripts/build-create-database-bundle.mjs",
+    "generate:bootstrap-bundle": "node ./scripts/build-create-database-bundle.mjs",
     "db:reset:remote": "tsx src/scripts/resetRemotePublicSchema.ts",
     "audit:srd": "tsx src/scripts/auditSrdData.ts",
     "audit:srd:production": "tsx src/scripts/auditSrdData.ts --production",

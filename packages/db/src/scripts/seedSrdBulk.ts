@@ -4,11 +4,21 @@ import { pathToFileURL } from 'node:url'
 import { Pool, type PoolClient } from 'pg'
 
 import { createDb } from '../client.js'
+import { seedBaselineContent } from '../seed/baseline.js'
+import type { BaselineContentBundle } from '../source-data/content.js'
+import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import { auditSrdData, hasSrdAuditIssues } from './auditSrdData.js'
+import {
+  ensureSeedOwnerUser,
+  findSeedOwnerUserById,
+  readSeedOwnerEnvironment,
+  type SeedOwnerEnvironment
+} from './seedOwner.js'
 
 const CONFIRM_FLAG = '--confirm-sync-srd-master-corpus'
 const ALLOW_LOCAL_TARGET_FLAG = '--allow-local-target'
 const DRY_RUN_FLAG = '--dry-run'
+const LOCAL_FLAG = '--local'
 const INSERT_BATCH_SIZE = 500
 const AUTHORED_TABLES = new Set(['authored_definitions', 'authored_definition_revisions'])
 const ROOT_TABLES = [
@@ -78,6 +88,100 @@ function tableRef(tableName: string): string {
 function isLocalDatabaseUrl(connectionString: string): boolean {
   const host = new URL(connectionString).hostname.toLowerCase()
   return host === '127.0.0.1' || host === 'localhost' || host === '::1'
+}
+
+function requireEnvironmentVariable(name: string): string {
+  const value = process.env[name]
+
+  if (!value) throw new Error(`${name} is required.`)
+
+  return value
+}
+
+function readLocalSourceDatabaseUrl(): string {
+  const connectionString = requireEnvironmentVariable('DATABASE_CONNECTION_STRING')
+
+  if (!isLocalDatabaseUrl(connectionString)) {
+    throw new Error('DATABASE_CONNECTION_STRING must point to a local database.')
+  }
+
+  return connectionString
+}
+
+function readProductionSourceDatabaseUrl(): string {
+  const connectionString = requireEnvironmentVariable('PROD_LOCAL_CONNECTION_STRING')
+
+  if (!isLocalDatabaseUrl(connectionString)) {
+    throw new Error('PROD_LOCAL_CONNECTION_STRING must point to a local database.')
+  }
+
+  return connectionString
+}
+
+function readSeedOwnerUserId(): string | undefined {
+  return process.env.SEED_OWNER_USER_ID
+}
+
+async function getSeedOwnerUserId(environment: SeedOwnerEnvironment): Promise<string> {
+  const configuredUserId = readSeedOwnerUserId()
+
+  if (configuredUserId) {
+    const configuredUser = await findSeedOwnerUserById(environment, configuredUserId)
+
+    if (configuredUser) {
+      return configuredUser.id
+    }
+  }
+
+  const seedOwner = await ensureSeedOwnerUser(environment)
+  return seedOwner.id
+}
+
+function withSeedOwner(bundle: BaselineContentBundle, userId: string): BaselineContentBundle {
+  return {
+    ...bundle,
+    vocabulary: {
+      systems: bundle.vocabulary.systems.map((system) => ({
+        ...system,
+        userId
+      }))
+    },
+    subjects: {
+      backgrounds: bundle.subjects.backgrounds.map((record) => ({ ...record, userId })),
+      classes: bundle.subjects.classes.map((record) => ({ ...record, userId })),
+      creatures: bundle.subjects.creatures.map((record) => ({ ...record, userId })),
+      equipment: bundle.subjects.equipment.map((record) => ({ ...record, userId })),
+      feats: bundle.subjects.feats.map((record) => ({ ...record, userId })),
+      races: bundle.subjects.races.map((record) => ({ ...record, userId })),
+      spells: bundle.subjects.spells.map((record) => ({ ...record, userId })),
+      vehicles: bundle.subjects.vehicles.map((record) => ({ ...record, userId }))
+    }
+  }
+}
+
+async function seedLocalSrdCorpus(connectionString: string): Promise<void> {
+  const environment = readSeedOwnerEnvironment(false, connectionString)
+  const db = createDb({ connectionString })
+
+  try {
+    const seedOwnerUserId = await getSeedOwnerUserId(environment)
+    const bundle = withSeedOwner(srdBaselineContent, seedOwnerUserId)
+
+    console.info('Seeding normalized local SRD content and authored metadata...')
+    const result = await seedBaselineContent(
+      {
+        db,
+        systemId: SRD_SYSTEM_ID
+      },
+      bundle
+    )
+
+    console.info('Seeded local SRD baseline content.')
+    console.info(`Seed owner user id: ${seedOwnerUserId}`)
+    console.info(JSON.stringify(result, null, 2))
+  } finally {
+    await db.destroy()
+  }
 }
 
 function remapOwner<T extends Record<string, unknown>>(
@@ -819,11 +923,29 @@ async function applyCorpusSync(
 }
 
 async function main() {
+<<<<<<< HEAD
   const targetDatabaseUrl = process.env.PROD_DATABASE_CONNECTION_STRING
   if (!targetDatabaseUrl) {
     throw new Error('PROD_DATABASE_CONNECTION_STRING is required for the bulk SRD seed target.')
   }
+=======
+  const localOnly = process.argv.includes(LOCAL_FLAG)
+>>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
   const dryRun = process.argv.includes(DRY_RUN_FLAG)
+
+  if (localOnly) {
+    if (dryRun) {
+      throw new Error(`${LOCAL_FLAG} and ${DRY_RUN_FLAG} cannot be used together.`)
+    }
+
+    await seedLocalSrdCorpus(readLocalSourceDatabaseUrl())
+    return
+  }
+
+  const targetDatabaseUrl = process.env.PROD_DATABASE_CONNECTION_STRING
+  if (!targetDatabaseUrl) {
+    throw new Error('PROD_DATABASE_CONNECTION_STRING is required for the bulk SRD seed target.')
+  }
   if (!dryRun && !process.argv.includes(CONFIRM_FLAG)) {
     throw new Error(`Bulk SRD synchronization requires the explicit ${CONFIRM_FLAG} flag.`)
   }
@@ -835,12 +957,19 @@ async function main() {
     throw new Error(`A local bulk target requires the explicit ${ALLOW_LOCAL_TARGET_FLAG} flag.`)
   }
 
+<<<<<<< HEAD
   const sourceDatabaseUrl = process.env.DATABASE_CONNECTION_STRING
   if (!sourceDatabaseUrl) {
     throw new Error('DATABASE_CONNECTION_STRING is required for the bulk SRD seed source.')
   }
   if (!isLocalDatabaseUrl(sourceDatabaseUrl)) {
     throw new Error('DATABASE_CONNECTION_STRING must point to a local database.')
+=======
+  const sourceDatabaseUrl = readProductionSourceDatabaseUrl()
+
+  if (!dryRun) {
+    await seedLocalSrdCorpus(sourceDatabaseUrl)
+>>>>>>> 145167b43ff2014fec345650b5a7332f14afe85e
   }
 
   console.info('Auditing the local SRD materialization...')
@@ -936,34 +1065,26 @@ async function main() {
         `${authoredDefinitions.length} authored projections.`
     )
 
-    console.info(
-      dryRun
-        ? 'Validating the complete target synchronization in a rollback transaction...'
-        : 'Synchronizing the target master corpus in one transaction...'
-    )
+    if (dryRun) {
+      console.info(
+        `Bulk SRD dry run complete: ${totalRows} relational rows and ` +
+          `${authoredDefinitions.length} authored projections are ready to synchronize; no database was modified.`
+      )
+      return
+    }
+
+    console.info('Synchronizing the target master corpus in one transaction...')
     await target.query('begin')
     try {
       await target.query('set constraints all deferred')
       await applyCorpusSync(target, snapshots, authoredDefinitions, replaceExistingTables)
       const sequenceStates = await readSequenceStates(target, sequenceColumns, includedTables)
 
-      if (dryRun) {
-        await target.query('rollback')
-      } else {
-        await synchronizeSequences(target, sequenceStates)
-        await target.query('commit')
-      }
+      await synchronizeSequences(target, sequenceStates)
+      await target.query('commit')
     } catch (error) {
       await target.query('rollback')
       throw error
-    }
-
-    if (dryRun) {
-      console.info(
-        'Bulk SRD dry run complete: every write, parity check, and deferred constraint passed; ' +
-          'the target database was rolled back.'
-      )
-      return
     }
 
     console.info(

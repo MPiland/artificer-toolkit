@@ -7,10 +7,7 @@ import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
-const serverOnlyEnvKeys = [
-  'DATABASE_CONNECTION_STRING',
-  'PUBLIC_SIGN_UP_ENABLED'
-] as const
+const serverOnlyEnvKeys = ['DATABASE_CONNECTION_STRING', 'PUBLIC_SIGN_UP_ENABLED'] as const
 type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
@@ -36,14 +33,15 @@ export default defineConfig(({ mode }) => {
   const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? webEnv.SENTRY_AUTH_TOKEN
   const sentryOrg = process.env.SENTRY_ORG ?? webEnv.SENTRY_ORG
   const sentryProject = process.env.SENTRY_PROJECT ?? webEnv.SENTRY_PROJECT
-  const sentryPlugin = mode === 'production' && sentryAuthToken && sentryOrg && sentryProject
-    ? sentryTanstackStart({
-        authToken: sentryAuthToken,
-        autoInstrumentMiddleware: false,
-        org: sentryOrg,
-        project: sentryProject
-      })
-    : []
+  const sentryPlugin =
+    mode === 'production' && sentryAuthToken && sentryOrg && sentryProject
+      ? sentryTanstackStart({
+          authToken: sentryAuthToken,
+          autoInstrumentMiddleware: false,
+          org: sentryOrg,
+          project: sentryProject
+        })
+      : []
 
   return {
     envDir: repoRoot,

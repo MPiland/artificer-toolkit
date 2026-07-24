@@ -25,7 +25,7 @@ Inspect the relevant migration and run the narrow DB/repository test first. For 
 
 ## Closed-alpha authentication
 
-`PUBLIC_SIGN_UP_ENABLED` controls application presentation and the application-initiated sign-up action. It defaults to disabled unless its server-only environment value is exactly `true`. Change the value in `apps/web/.env.local` for local work or in the hosted application environment for deployment, then restart or redeploy the application.
+`PUBLIC_SIGN_UP_ENABLED` controls application presentation and the application-initiated sign-up action. It defaults to disabled unless its server-only environment value is exactly `true`. Change the value in the root `.env.local` for local work or in the hosted application environment for deployment, then restart or redeploy the application.
 
 The application flag is not the security boundary: a client can call the public Supabase Auth API directly when Supabase permits sign-ups. During closed alpha and beta, configure the hosted Supabase project as follows:
 
@@ -35,7 +35,7 @@ The application flag is not the security boundary: a client can call the public 
 4. Configure the branded Send Email Hook before inviting external testers. The default Supabase mail service is restricted and is not suitable for alpha delivery; this project deliberately uses the Resend API hook instead of SMTP.
 5. Invite testers from Authentication → Users → Add user → Send invitation. The application does not provide an admin invitation interface.
 
-The invitation callback and `/update-password` remain enabled when public registration is disabled. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret/service-role key in web environment variables or client-side code.
+The invitation callback and `/update-password` remain enabled when public registration is disabled. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret key in web environment variables or client-side code.
 
 ## Branded authentication email delivery
 

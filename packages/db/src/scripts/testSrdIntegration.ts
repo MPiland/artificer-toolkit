@@ -289,7 +289,7 @@ async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
     throw new Error(
       configuredUserId
         ? `SEED_OWNER_USER_ID "${configuredUserId}" does not exist in the local database.`
-        : 'The local database has no auth user. Run `yarn seed:owner` before the SRD integration gate.'
+        : 'The local database has no auth user. Run `yarn seed:srd:local` before the SRD integration gate.'
     )
   }
 

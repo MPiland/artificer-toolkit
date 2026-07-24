@@ -25,6 +25,8 @@ playwright-report/
 .playwright-cli/
 .pnpm-store/
 output/playwright/
+tmp/
+apps/web/.tanstack/tmp/
 
 # Editor directories and files
 .vscode/*

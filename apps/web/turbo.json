@@ -15,6 +15,7 @@
     "dev": {
       "passThroughEnv": [
         "DATABASE_CONNECTION_STRING",
+        "DATABASE_URL",
         "SUPABASE_SECRET_KEY",
         "SUPABASE_URL"
       ]

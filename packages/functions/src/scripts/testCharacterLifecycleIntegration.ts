@@ -105,7 +105,7 @@ async function findFixtureCatalog(db: DBLike): Promise<CharacterLifecycleFixture
   assert.equal(
     matchingSystems.length,
     1,
-    'Expected exactly one seeded D&D 5e 2014 system. Run `yarn seed:srd` first.'
+    'Expected exactly one seeded D&D 5e 2014 system. Run `yarn seed:srd:local` first.'
   )
   const system = matchingSystems[0]
   assert.ok(system, 'The seeded D&D 5e 2014 system is missing.')
