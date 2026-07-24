@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { pathToFileURL } from 'node:url'
 
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 function requireLocalAuthEnv() {
   const email = process.env.LOCAL_AUTH_EMAIL
   const password = process.env.LOCAL_AUTH_PASSWORD

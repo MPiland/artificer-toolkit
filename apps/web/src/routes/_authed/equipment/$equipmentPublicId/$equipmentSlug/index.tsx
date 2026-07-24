@@ -34,7 +34,6 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       getEquipment(
         {
           id: equipmentId,
-          includeDraft: true,
           meta: equipmentDetailMeta,
           view
         },

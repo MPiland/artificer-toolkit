@@ -86,7 +86,6 @@ function CreaturesRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getCreature({
             id: item.id,
-            includeDraft: true,
             meta: creatureDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))

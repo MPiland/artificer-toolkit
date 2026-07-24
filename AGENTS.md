@@ -270,7 +270,7 @@ Deleted legacy pockets such as old global `src/hooks`, `src/store`, `components/
 Common repo commands:
 
 - `yarn dev`
-- `yarn db:reset:remote` (destructive; requires `DATABASE_URL` and `CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema`)
+- `yarn db:reset:remote` (destructive; requires `DATABASE_CONNECTION_STRING` and `CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema`)
 - `yarn seed:owner`
 - `yarn seed:srd`
 - `yarn build:web`

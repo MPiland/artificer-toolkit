@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { getAuthoredContentReferenceData } from '#app/data/contentReferences'
 import { getClass } from '#app/data/classes/queries'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { createServerApi } from '#app/lib/api'
@@ -15,7 +14,7 @@ import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
 import type { ClassDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
 
-const classDetailMeta = ['classes']
+const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'skills']
 
 export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug/')({
   validateSearch: validateAuthoredDetailSearch,
@@ -35,7 +34,6 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
       getClass(
         {
           id: classId,
-          includeDraft: true,
           meta: classDetailMeta,
           view
         },
@@ -46,11 +44,13 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
     const references: Pick<
       AuthoredContentReferenceData,
       'classes' | 'currencies' | 'equipment' | 'languages' | 'skills'
-    > = response?.item
-      ? await context.queryClient.ensureQueryData(
-          getAuthoredContentReferenceData(response.item.systemId, client)
-        )
-      : { classes: [], currencies: [], equipment: [], languages: [], skills: [] }
+    > = {
+      classes: response?.meta?.classes ?? [],
+      currencies: response?.meta?.currencies ?? [],
+      equipment: response?.meta?.equipment ?? [],
+      languages: response?.meta?.languages ?? [],
+      skills: response?.meta?.skills ?? []
+    }
     const routeSubject = getAuthoredRouteSubject(classId, response, draft)
     if (
       routeSubject &&

@@ -34,7 +34,6 @@ export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug/')(
       getFeat(
         {
           id: featId,
-          includeDraft: true,
           view
         },
         client

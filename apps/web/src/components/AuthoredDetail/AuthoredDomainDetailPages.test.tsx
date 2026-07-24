@@ -30,6 +30,7 @@ import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',
   activeRevisionId: 'spell-active-revision',
+  hasDraft: false,
   item: {
     kind: 'SPELL',
     id: 'spell-sea-step',
@@ -168,6 +169,7 @@ const detailReferences = {
 const dragonbornResponse: NonNullable<RaceResponseDto> = {
   publicId: 'dragonborn',
   activeRevisionId: 'dragonborn-active-revision',
+  hasDraft: false,
   item: {
     id: 'dragonborn',
     label: 'Dragonborn',
@@ -212,6 +214,7 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
 const brassDragonResponse: NonNullable<CreatureResponseDto> = {
   publicId: 'adult-brass-dragon',
   activeRevisionId: 'adult-brass-dragon-active-revision',
+  hasDraft: false,
   item: {
     id: 'adult-brass-dragon',
     label: 'Adult Brass Dragon',
@@ -341,6 +344,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
 const grapplerResponse: NonNullable<FeatResponseDto> = {
   publicId: 'grappler',
   activeRevisionId: 'grappler-active-revision',
+  hasDraft: false,
   item: {
     id: 'grappler',
     label: 'Grappler',

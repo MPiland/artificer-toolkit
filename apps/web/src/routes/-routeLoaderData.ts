@@ -36,7 +36,7 @@ export interface BackgroundDetailLoaderData {
   backgroundId: string
   breadcrumbLabel: string | undefined
   draft: AuthoredDraftDto | null
-  references: AuthoredContentReferenceData
+  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
   response: BackgroundResponseDto | null
   view: AuthoredRouteView
 }

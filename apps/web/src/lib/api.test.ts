@@ -32,6 +32,7 @@ const spellItem = {
 const spellDetail = {
   publicId: '2',
   activeRevisionId: 'revision-2',
+  hasDraft: false,
   draft: null,
   item: {
     kind: 'SPELL',

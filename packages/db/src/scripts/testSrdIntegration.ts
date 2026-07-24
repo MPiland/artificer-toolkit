@@ -30,10 +30,6 @@ import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner, type BaselineContentBundle } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import type { Database, Json } from '../types/index.js'
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 type Db = ReturnType<typeof createDb>
 type SrdTransaction = Transaction<Database>
 type SrdClassRecord = BaselineContentBundle['subjects']['classes'][number]
@@ -97,13 +93,10 @@ interface OwnedCloneAudit {
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
 function requireLocalDatabaseUrl(): string {
-  const connectionString =
-    process.env.SRD_INTEGRATION_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    process.env.DATABASE_CONNECTION_STRING
+  const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL or DATABASE_CONNECTION_STRING is required for the SRD integration gate.'
+      'DATABASE_CONNECTION_STRING is required for the SRD integration gate.'
     )
   }
 

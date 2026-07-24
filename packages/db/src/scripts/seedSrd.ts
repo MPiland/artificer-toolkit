@@ -2,14 +2,11 @@ import { createDb } from '../client.js'
 import { seedBaselineContent } from '../seed/baseline.js'
 import type { BaselineContentBundle } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
-import { loadDbScriptEnv } from './loadScriptEnv.js'
 import { ensureSeedOwnerUser, findSeedOwnerUserById } from './seedOwner.js'
 
-loadDbScriptEnv()
-
-function requireDatabaseUrl() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required to seed SRD content.')
+function requireDatabaseConnectionString() {
+  if (!process.env.DATABASE_CONNECTION_STRING) {
+    throw new Error('DATABASE_CONNECTION_STRING is required to seed SRD content.')
   }
 }
 
@@ -58,9 +55,9 @@ function withSeedOwner(bundle: BaselineContentBundle, userId: string): BaselineC
 }
 
 async function main() {
-  requireDatabaseUrl()
+  requireDatabaseConnectionString()
 
-  const db = createDb()
+  const db = createDb({ connectionString: process.env.DATABASE_CONNECTION_STRING })
 
   try {
     const seedOwnerUserId = await getSeedOwnerUserId()

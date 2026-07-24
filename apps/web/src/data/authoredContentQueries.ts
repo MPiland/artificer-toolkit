@@ -40,7 +40,6 @@ export function createAuthoredContentQueries<TList, TResponse>(
 
     return queryOptions({
       queryKey: keys.detail(request.id, {
-        includeDraft: request.includeDraft,
         meta: request.meta,
         view: request.view
       }),

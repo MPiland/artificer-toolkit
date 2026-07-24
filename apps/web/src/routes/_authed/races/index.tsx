@@ -86,7 +86,6 @@ function RacesRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getRace({
             id: item.id,
-            includeDraft: true,
             meta: raceDetailMeta,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))

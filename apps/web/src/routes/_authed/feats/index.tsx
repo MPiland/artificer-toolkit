@@ -80,7 +80,6 @@ function FeatsRoute() {
         onViewIntent={(item) => {
           void queryClient.prefetchQuery(getFeat({
             id: item.id,
-            includeDraft: true,
             view: item.contentState === 'draft' ? 'draft' : 'active'
           }))
         }}

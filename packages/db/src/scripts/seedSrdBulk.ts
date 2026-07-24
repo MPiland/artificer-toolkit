@@ -6,7 +6,6 @@ import { Pool, type PoolClient } from 'pg'
 import { createDb } from '../client.js'
 import { auditSrdData, hasSrdAuditIssues } from './auditSrdData.js'
 
-const LOCAL_DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const CONFIRM_FLAG = '--confirm-sync-srd-master-corpus'
 const ALLOW_LOCAL_TARGET_FLAG = '--allow-local-target'
 const DRY_RUN_FLAG = '--dry-run'
@@ -820,8 +819,10 @@ async function applyCorpusSync(
 }
 
 async function main() {
-  const targetDatabaseUrl = process.env.DATABASE_URL
-  if (!targetDatabaseUrl) throw new Error('DATABASE_URL is required for the bulk SRD seed target.')
+  const targetDatabaseUrl = process.env.PROD_DATABASE_CONNECTION_STRING
+  if (!targetDatabaseUrl) {
+    throw new Error('PROD_DATABASE_CONNECTION_STRING is required for the bulk SRD seed target.')
+  }
   const dryRun = process.argv.includes(DRY_RUN_FLAG)
   if (!dryRun && !process.argv.includes(CONFIRM_FLAG)) {
     throw new Error(`Bulk SRD synchronization requires the explicit ${CONFIRM_FLAG} flag.`)
@@ -834,9 +835,12 @@ async function main() {
     throw new Error(`A local bulk target requires the explicit ${ALLOW_LOCAL_TARGET_FLAG} flag.`)
   }
 
-  const sourceDatabaseUrl = process.env.SRD_BULK_SOURCE_DATABASE_URL ?? LOCAL_DATABASE_URL
+  const sourceDatabaseUrl = process.env.DATABASE_CONNECTION_STRING
+  if (!sourceDatabaseUrl) {
+    throw new Error('DATABASE_CONNECTION_STRING is required for the bulk SRD seed source.')
+  }
   if (!isLocalDatabaseUrl(sourceDatabaseUrl)) {
-    throw new Error('SRD_BULK_SOURCE_DATABASE_URL must point to a local database.')
+    throw new Error('DATABASE_CONNECTION_STRING must point to a local database.')
   }
 
   console.info('Auditing the local SRD materialization...')

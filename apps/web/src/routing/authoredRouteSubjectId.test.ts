@@ -48,12 +48,9 @@ describe('resolveAuthoredRouteSubjectId', () => {
     expect(resolve).not.toHaveBeenCalled()
   })
 
-  it('keeps detail query entries separated by view, draft inclusion, and meta keys', () => {
+  it('keeps detail query entries separated by view and meta keys', () => {
     expect(queryKeys.content.classes.detail('class-druid')).not.toEqual(
       queryKeys.content.classes.detail('class-druid', { view: 'draft' })
-    )
-    expect(queryKeys.content.classes.detail('class-druid')).not.toEqual(
-      queryKeys.content.classes.detail('class-druid', { includeDraft: true })
     )
     expect(queryKeys.content.classes.detail('class-druid', { meta: ['a', 'b'] })).toEqual(
       queryKeys.content.classes.detail('class-druid', { meta: ['b', 'a'] })

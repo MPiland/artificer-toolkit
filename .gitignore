@@ -39,8 +39,6 @@ output/playwright/
 
 # misc
 .env*
-!.env.example
-!**/.env.example
 
 !jest.config.js
 *.d.ts

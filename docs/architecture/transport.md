@@ -52,7 +52,7 @@ The browser may know route names and DTOs, but it must not bypass the router to 
 
 ## Authored-domain orchestration
 
-The eight authored-domain procedures share functions-owned list/detail/draft/activate/duplicate use cases. The tRPC router supplies authentication, schemas, and the domain configuration only. Nested features, options, grants, and effects are saved through their owning root payload; they do not have competing product endpoints.
+The eight authored-domain procedures share functions-owned list/detail/draft/activate/duplicate use cases. The tRPC router supplies authentication, schemas, and the domain configuration only. Readable detail uses one access-controlled selected-revision lookup for the requested active or draft view, validates that canonical payload with the domain schema, and resolves only requested display labels within the same API request. Active detail responses expose `hasDraft` without loading the draft payload; the full draft is returned only for an explicit draft view or its invalid-draft recovery response. Nested features, options, grants, and effects are saved through their owning root payload; they do not have competing product endpoints.
 
 Duplicating authored content is a deep fork of that owned aggregate. The root and every nested entity identity are regenerated, references to identities owned by the copied graph are remapped to the corresponding replacements, and references to external canonical records remain unchanged. A copied draft must therefore have no mutable object or owned UUID identity in common with its source, and later revisions to either aggregate cannot affect the other.
 

@@ -751,6 +751,7 @@ function createResponse<TRecord extends AuthoredRouteStoryRecord>(
   return {
     publicId: record.label.toLowerCase().replaceAll(' ', '-'),
     activeRevisionId: `${record.id}-active-revision`,
+    hasDraft: false,
     item: record,
     provenance: {
       kind: isMaster ? ('MASTER' as const) : ('OWNED' as const),
@@ -775,13 +776,16 @@ export function createEditLoaderData<TDomain extends AuthoredFormDomain>(
       : authoredRouteStoryResponses[domain]
   ) as AuthoredRouteStoryResponseMap[TDomain]
   const draft = state === 'ownedDraft' ? authoredRouteStoryDrafts[domain] : null
-  const item = response.item
+  const responseWithDraftState = state === 'ownedDraft'
+    ? { ...response, hasDraft: true }
+    : response
+  const item = responseWithDraftState.item
   if (!item) throw new Error(`Missing ${domain} story record.`)
 
   return createAuthoredFormRouteLoaderData({
     breadcrumbLabel: item.label,
     draft,
-    response,
+    response: responseWithDraftState,
     subjectId: item.id,
     system: authoredRouteStorySystem
   })

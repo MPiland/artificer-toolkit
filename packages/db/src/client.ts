@@ -14,12 +14,10 @@ function readPoolMax(): number {
 }
 
 function resolveConnectionString(options: CreateDbOptions): string {
-  const connectionString = options.connectionString
-    ?? process.env.DATABASE_URL
-    ?? process.env.DATABASE_CONNECTION_STRING
+  const connectionString = options.connectionString ?? process.env.DATABASE_CONNECTION_STRING
 
   if (!connectionString) {
-    throw new Error('DATABASE_URL or DATABASE_CONNECTION_STRING is required.')
+    throw new Error('DATABASE_CONNECTION_STRING is required.')
   }
 
   return connectionString

@@ -1,5 +1,4 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getAuthoredContentReferenceData } from '#app/data/contentReferences'
 import { getBackground } from '#app/data/backgrounds/queries'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { createServerApi } from '#app/lib/api'
@@ -16,6 +15,8 @@ import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { BackgroundDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { BackgroundDetailPage } from '#domains/backgrounds/pages/BackgroundDetailPage'
+
+const backgroundDetailMeta = ['currencies', 'equipment', 'languages', 'skills']
 
 export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/')({
   validateSearch: validateAuthoredDetailSearch,
@@ -40,16 +41,19 @@ export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$
       getBackground(
         {
           id: backgroundId,
-          includeDraft: true,
+          meta: backgroundDetailMeta,
           view
         },
         client
       )
     )
     const draft = response?.draft ?? null
-    const references = await context.queryClient.ensureQueryData(
-      getAuthoredContentReferenceData(response?.item?.systemId ?? draft?.systemId, client)
-    )
+    const references = {
+      currencies: response?.meta?.currencies ?? [],
+      equipment: response?.meta?.equipment ?? [],
+      languages: response?.meta?.languages ?? [],
+      skills: response?.meta?.skills ?? []
+    }
     const routeSubject = getAuthoredRouteSubject(backgroundId, response, draft)
 
     if (

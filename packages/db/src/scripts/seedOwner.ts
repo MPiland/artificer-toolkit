@@ -2,10 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import pg from 'pg'
 import { pathToFileURL } from 'node:url'
 
-import { loadDbScriptEnv } from './loadScriptEnv.js'
-
-loadDbScriptEnv()
-
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
 const USERS_PER_PAGE = 1000
 const { Client } = pg
@@ -45,10 +41,10 @@ function createSupabaseAdminClient() {
 }
 
 function requireDatabaseConnectionString() {
-  const connectionString = process.env.DATABASE_URL ?? process.env.DATABASE_CONNECTION_STRING
+  const connectionString = process.env.DATABASE_CONNECTION_STRING
 
   if (!connectionString) {
-    throw new Error('DATABASE_URL or DATABASE_CONNECTION_STRING is required to promote the seed owner user.')
+    throw new Error('DATABASE_CONNECTION_STRING is required to promote the seed owner user.')
   }
 
   return connectionString

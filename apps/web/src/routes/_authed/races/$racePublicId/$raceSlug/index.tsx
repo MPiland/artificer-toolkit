@@ -34,7 +34,6 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug/')(
       getRace(
         {
           id: raceId,
-          includeDraft: true,
           meta: raceDetailMeta,
           view
         },

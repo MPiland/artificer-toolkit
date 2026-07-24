@@ -14,7 +14,6 @@
 type AuthoredDetailQueryOptions = {
   view?: 'active' | 'draft'
   meta?: readonly string[]
-  includeDraft?: boolean
 }
 
 function authoredDetailSubjectKey(domain: string, id: string) {
@@ -29,7 +28,6 @@ function authoredDetailSubjectKey(domain: string, id: string) {
 function authoredDetailVariantKey(options: AuthoredDetailQueryOptions = {}) {
   return [
     options.view ?? 'active',
-    options.includeDraft === true ? 'with-draft' : 'item-only',
     [...(options.meta ?? [])].sort().join(',')
   ] as const
 }

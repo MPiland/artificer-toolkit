@@ -1,16 +1,8 @@
 import type { z } from 'zod'
-import type { DBLike, Json } from '@artificer-toolkit/db'
+import type { AuthoredDefinitionSelectedRevision, DBLike, Json } from '@artificer-toolkit/db'
 import {
   createAuthoredDefinitionRepository,
-  createBackgroundRepository,
   createAuthoredRouteIdRepository,
-  createClassRepository,
-  createCreatureRepository,
-  createEquipmentRepository,
-  createFeatRepository,
-  createRaceRepository,
-  createSpellRepository,
-  createVehicleRepository,
   getBackgroundListQuery,
   getClassListQuery,
   getCreatureListQuery,
@@ -54,9 +46,9 @@ import {
   deleteActiveAuthoredSubject,
   discardAuthoredDraft,
   getAuthoredDraft,
+  getAuthoredPermissions,
+  getAuthoredProvenance,
   normalizeActivatedAuthoringInput,
-  normalizeAuthoredDetailResponse,
-  normalizeAuthoredDraftPayload,
   normalizeAuthoredListResponseWithDrafts,
   normalizeAuthoringResult,
   normalizeStoredDraftPayloadForActivation,
@@ -112,7 +104,6 @@ type DetailMetaResolver = (
 
 export interface AuthoredDomainRuntimeConfig {
   createService: (db: DBLike) => AuthoringService
-  findById: (db: DBLike, id: string) => Promise<AuthoredRecord | null>
   listQuery: (db: DBLike) => Promise<{
     items: Array<AuthoredListRow & {
       id: string
@@ -194,38 +185,44 @@ export async function getAuthoredDomain(
   input: AuthoredDetailRequestDto,
   userId: string
 ) {
-  const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, input.id)
-  if (!subjectId) return null
-
-  let draftDetail: Awaited<ReturnType<typeof getAuthoredDomainDraftDetail>> = null
+  const repository = createAuthoredDefinitionRepository(db)
+  let draftDetail: Awaited<ReturnType<typeof buildSelectedRevisionDetail>> | null = null
   if (input.view === 'draft') {
-    draftDetail = await getAuthoredDomainDraftDetail(db, config, subjectId, userId, input.meta)
+    const selectedDraft = await repository.findSelectedRevision({
+      routeId: input.id,
+      subjectKind: config.subjectKind,
+      userId,
+      view: 'draft'
+    })
+    draftDetail = selectedDraft
+      ? await buildSelectedRevisionDetail(db, config, selectedDraft, userId, 'draft', input.meta)
+      : null
     if (draftDetail?.item) return draftDetail
   }
 
-  const response = await normalizeAuthoredDetailResponse(
+  const selectedActive = await repository.findSelectedRevision({
+    routeId: input.id,
+    subjectKind: config.subjectKind,
+    userId,
+    view: 'active'
+  })
+  if (!selectedActive) return draftDetail
+  const response = await buildSelectedRevisionDetail(
     db,
-    config.table,
-    await config.findById(db, subjectId),
-    userId
+    config,
+    selectedActive,
+    userId,
+    'active',
+    input.meta
   )
   if (!response) return draftDetail
 
-  const draftPromise = draftDetail
-    ? Promise.resolve(draftDetail.draft)
-    : input.includeDraft
-      ? getAuthoredDraft(db, config.subjectKind, subjectId, userId)
-      : Promise.resolve(undefined)
-  const [draft, meta] = await Promise.all([
-    draftPromise,
-    resolveDetailMeta(db, config, response.item, input.meta)
-  ])
-
   return {
     ...response,
-    ...(draft !== undefined ? { draft } : {}),
-    ...(draftDetail?.validationIssues ? { validationIssues: draftDetail.validationIssues } : {}),
-    ...(meta ? { meta } : {})
+    ...(draftDetail?.draft ? { draft: draftDetail.draft } : {}),
+    ...(draftDetail && 'validationIssues' in draftDetail
+      ? { validationIssues: draftDetail.validationIssues }
+      : {})
   }
 }
 
@@ -239,39 +236,59 @@ export async function getAuthoredDomainDraft(
   return subjectId ? getAuthoredDraft(db, config.subjectKind, subjectId, userId) : null
 }
 
-async function getAuthoredDomainDraftDetail(
+async function buildSelectedRevisionDetail(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
-  subjectId: string,
+  selected: AuthoredDefinitionSelectedRevision,
   userId: string,
+  view: 'active' | 'draft',
   metaKeys: string[] | undefined
 ) {
-  const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
-  if (!draft) return null
-
-  const parsedItem = config.schema.safeParse(normalizeAuthoredDraftPayload(draft.payload, {
-    subjectId: draft.subjectId,
-    label: draft.label,
-    systemId: draft.systemId,
-    userId: draft.userId
-  }))
+  const itemUserId = selected.ownerUserId ?? 'master'
+  const parsedItem = config.schema.safeParse({
+    ...(selected.payload as Record<string, unknown>),
+    id: selected.subjectId,
+    label: selected.label,
+    status: view === 'draft' ? 'DRAFT' : 'ACTIVE',
+    systemId: selected.systemId,
+    userId: itemUserId
+  })
+  const ownership = {
+    isMaster: selected.isMaster,
+    ownerUserId: selected.ownerUserId
+  }
+  const permissions = view === 'draft'
+    ? { canView: true, canEdit: true, canCopy: false, canDelete: true }
+    : getAuthoredPermissions(ownership, userId)
+  const draft = view === 'draft'
+    ? {
+        subjectKind: selected.subjectKind,
+        subjectId: selected.subjectId,
+        publicId: selected.publicId,
+        userId: itemUserId,
+        systemId: selected.systemId,
+        label: selected.label,
+        status: 'DRAFT' as const,
+        payload: selected.payload,
+        draftState: selected.activeRevisionId ? 'ACTIVE_WITH_DRAFT' as const : 'DRAFT_ONLY' as const,
+        revisionId: selected.revisionId,
+        revisionNumber: selected.revisionNumber,
+        activeRevisionId: selected.activeRevisionId,
+        baseActiveRevisionId: selected.baseActiveRevisionId,
+        createdAt: selected.createdAt,
+        updatedAt: selected.updatedAt
+      }
+    : undefined
   if (!parsedItem.success) {
     return {
-      draft,
-      activeRevisionId: draft.activeRevisionId,
+      ...(draft ? { draft } : {}),
+      activeRevisionId: selected.activeRevisionId,
+      hasDraft: selected.draftRevisionId !== null,
       item: null,
       validationIssues: toAuthoredValidationIssues(parsedItem.error.issues),
-      publicId: draft.publicId,
-      provenance: {
-        kind: 'OWNED' as const,
-        ownerUserId: draft.userId
-      },
-      permissions: {
-        canView: true,
-        canEdit: true,
-        canCopy: false,
-        canDelete: true
-      }
+      publicId: selected.publicId,
+      provenance: getAuthoredProvenance(ownership),
+      permissions
     }
   }
 
@@ -279,20 +296,13 @@ async function getAuthoredDomainDraftDetail(
   const meta = await resolveDetailMeta(db, config, item, metaKeys)
 
   return {
-    draft,
-    activeRevisionId: draft.activeRevisionId,
+    ...(draft ? { draft } : {}),
+    activeRevisionId: selected.activeRevisionId,
+    hasDraft: selected.draftRevisionId !== null,
     item,
-    publicId: draft.publicId,
-    provenance: {
-      kind: 'OWNED' as const,
-      ownerUserId: draft.userId
-    },
-    permissions: {
-      canView: true,
-      canEdit: true,
-      canCopy: false,
-      canDelete: true
-    },
+    publicId: selected.publicId,
+    provenance: getAuthoredProvenance(ownership),
+    permissions,
     ...(meta ? { meta } : {})
   }
 }
@@ -523,6 +533,31 @@ function uniqueStrings(values: Array<string | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value)))]
 }
 
+function collectReferenceIds(value: unknown, singularKey: string, pluralKey: string): string[] {
+  const ids = new Set<string>()
+
+  function visit(current: unknown): void {
+    if (Array.isArray(current)) {
+      current.forEach(visit)
+      return
+    }
+    if (!isRecord(current)) return
+
+    for (const [key, nested] of Object.entries(current)) {
+      if (key === singularKey) {
+        const id = readString(nested)
+        if (id) ids.add(id)
+      } else if (key === pluralKey) {
+        readStringArray(nested).forEach((id) => ids.add(id))
+      }
+      visit(nested)
+    }
+  }
+
+  visit(value)
+  return [...ids]
+}
+
 async function selectClassOptions(db: DBLike, ids: string[]) {
   if (!ids.length) return []
   return db.selectFrom('classes')
@@ -552,7 +587,7 @@ async function selectRaceOptions(db: DBLike, ids: string[]) {
 
 async function selectVocabularyOptions(
   db: DBLike,
-  table: 'challenge_ratings' | 'condition_types' | 'creature_types' | 'currencies' | 'damage_types' | 'heritages' | 'magic_schools' | 'rarities' | 'speeds',
+  table: 'challenge_ratings' | 'condition_types' | 'creature_types' | 'currencies' | 'damage_types' | 'heritages' | 'languages' | 'magic_schools' | 'rarities' | 'skills' | 'speeds',
   systemId: string,
   ids?: string[]
 ) {
@@ -594,19 +629,23 @@ async function spellDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<strin
   }
 
   if (hasMetaKey(keys, 'magicSchools')) {
-    queries.push(selectVocabularyOptions(db, 'magic_schools', item.systemId).then((options) => {
+    queries.push(selectVocabularyOptions(db, 'magic_schools', item.systemId, collectReferenceIds(record, 'magicSchoolId', 'magicSchoolIds')).then((options) => {
       meta.magicSchools = options
     }))
   }
 
   if (hasMetaKey(keys, 'damageTypes')) {
-    queries.push(selectVocabularyOptions(db, 'damage_types', item.systemId).then((options) => {
+    queries.push(selectVocabularyOptions(db, 'damage_types', item.systemId, collectReferenceIds(record, 'damageTypeId', 'damageTypeIds')).then((options) => {
       meta.damageTypes = options
     }))
   }
 
   if (hasMetaKey(keys, 'conditionTypes')) {
-    queries.push(selectVocabularyOptions(db, 'condition_types', item.systemId).then((options) => {
+    const conditionIds = uniqueStrings([
+      ...collectReferenceIds(record, 'conditionTypeId', 'conditionTypeIds'),
+      ...collectReferenceIds(record, 'conditionId', 'conditionIds')
+    ])
+    queries.push(selectVocabularyOptions(db, 'condition_types', item.systemId, conditionIds).then((options) => {
       meta.conditionTypes = options
     }))
   }
@@ -615,11 +654,65 @@ async function spellDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<strin
   return meta
 }
 
+async function backgroundDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>): Promise<DetailMeta> {
+  return authoredReaderReferenceMeta(db, item, keys)
+}
+
 async function classDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>): Promise<DetailMeta> {
+  const record = item as AuthoredRecord & Record<string, unknown>
   const meta: DetailMeta = {}
-  if (!hasMetaKey(keys, 'classes')) return meta
-  const parentClassId = readString((item as AuthoredRecord & Record<string, unknown>).parentClassId)
-  meta.classes = await selectClassOptions(db, parentClassId ? [parentClassId] : [])
+  const queries: Array<Promise<void>> = []
+
+  if (hasMetaKey(keys, 'classes')) {
+    const parentClassId = readString(record.parentClassId)
+    queries.push(selectClassOptions(db, parentClassId ? [parentClassId] : []).then((options) => {
+      meta.classes = options
+    }))
+  }
+
+  queries.push(authoredReaderReferenceMeta(db, item, keys).then((references) => {
+    Object.assign(meta, references)
+  }))
+  await Promise.all(queries)
+  return meta
+}
+
+async function authoredReaderReferenceMeta(
+  db: DBLike,
+  item: AuthoredRecord,
+  keys: Set<string>
+): Promise<DetailMeta> {
+  const record = item as AuthoredRecord & Record<string, unknown>
+  const meta: DetailMeta = {}
+  const queries: Array<Promise<void>> = []
+  const referenceQueries = [
+    ['currencies', 'currencies', 'currencyId', 'currencyIds'],
+    ['languages', 'languages', 'languageId', 'languageIds'],
+    ['skills', 'skills', 'skillId', 'skillIds']
+  ] as const
+
+  for (const [metaKey, table, singularKey, pluralKey] of referenceQueries) {
+    if (!hasMetaKey(keys, metaKey)) continue
+    queries.push(selectVocabularyOptions(
+      db,
+      table,
+      item.systemId,
+      collectReferenceIds(record, singularKey, pluralKey)
+    ).then((options) => {
+      meta[metaKey] = options
+    }))
+  }
+
+  if (hasMetaKey(keys, 'equipment')) {
+    queries.push(selectEquipmentOptions(
+      db,
+      collectReferenceIds(record, 'equipmentId', 'equipmentIds')
+    ).then((options) => {
+      meta.equipment = options
+    }))
+  }
+
+  await Promise.all(queries)
   return meta
 }
 
@@ -736,16 +829,15 @@ type AuthoredDomainConfigKey =
 export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthoredDomainConfig> = {
   backgrounds: {
     createService: createBackgroundSubjectAuthoringService,
-    findById: (db, id) => createBackgroundRepository(db).findById(id),
     listQuery: getBackgroundListQuery,
     mapId: 'background',
+    meta: backgroundDetailMeta,
     schema: backgroundAuthoredDtoSchema,
     subjectKind: 'BACKGROUND',
     table: 'backgrounds'
   } satisfies DirectAuthoredDomainConfig,
   classes: {
     createService: createClassSubjectAuthoringService,
-    findById: (db, id) => createClassRepository(db).findById(id),
     listQuery: getClassListQuery,
     mapId: 'class',
     meta: classDetailMeta,
@@ -755,7 +847,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   creatures: {
     createService: createCreatureSubjectAuthoringService,
-    findById: (db, id) => createCreatureRepository(db).findById(id),
     listQuery: getCreatureListQuery,
     mapId: 'creature',
     meta: creatureDetailMeta,
@@ -765,7 +856,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   equipment: {
     createService: createEquipmentSubjectAuthoringService,
-    findById: (db, id) => createEquipmentRepository(db).findById(id),
     listQuery: getEquipmentListQuery,
     mapId: 'equipment',
     meta: equipmentDetailMeta,
@@ -775,7 +865,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   feats: {
     createService: createFeatSubjectAuthoringService,
-    findById: (db, id) => createFeatRepository(db).findById(id),
     listQuery: getFeatListQuery,
     mapId: 'feat',
     schema: featAuthoredDtoSchema,
@@ -784,7 +873,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   races: {
     createService: createRaceSubjectAuthoringService,
-    findById: (db, id) => createRaceRepository(db).findById(id),
     listQuery: getRaceListQuery,
     mapId: 'race',
     meta: raceDetailMeta,
@@ -794,7 +882,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   spells: {
     createService: createSpellSubjectAuthoringService,
-    findById: (db, id) => createSpellRepository(db).findById(id),
     listQuery: getSpellListQuery,
     mapId: 'spell',
     meta: spellDetailMeta,
@@ -804,7 +891,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   vehicles: {
     createService: createVehicleSubjectAuthoringService,
-    findById: (db, id) => createVehicleRepository(db).findById(id),
     listQuery: getVehicleListQuery,
     mapId: 'vehicle',
     meta: vehicleDetailMeta,
