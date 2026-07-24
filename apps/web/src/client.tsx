@@ -1,5 +1,4 @@
 import './instrument.client'
-import './lib/zodConfig'
 import { StartClient } from '@tanstack/react-start/client'
 import { StrictMode, startTransition } from 'react'
 import { hydrateRoot } from 'react-dom/client'
