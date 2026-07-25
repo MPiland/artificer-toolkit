@@ -1,6 +1,9 @@
 import type { CompiledClass } from '../subjects/compilers/class.js'
 import type { CompiledBackground } from '../subjects/compilers/background.js'
-import type { CompiledEquipment, CompiledEquipmentVariant } from '../subjects/compilers/equipment.js'
+import type {
+  CompiledEquipment,
+  CompiledEquipmentVariant
+} from '../subjects/compilers/equipment.js'
 import type { CompiledFeat } from '../subjects/compilers/feat.js'
 import type { CompiledRace } from '../subjects/compilers/race.js'
 import type { CompiledSpell } from '../subjects/compilers/spell.js'
@@ -12,8 +15,15 @@ export interface CharacterAssemblyRegistrySystemSkill {
   label: string
 }
 
+export interface CharacterAssemblyRegistrySystemSpeed {
+  id: string
+  code?: string
+  label: string
+}
+
 export interface CharacterAssemblyRegistrySystem {
   skills?: ReadonlyArray<CharacterAssemblyRegistrySystemSkill>
+  speeds?: ReadonlyArray<CharacterAssemblyRegistrySystemSpeed>
 }
 
 export type CharacterAssemblyRegistryFeature = Pick<

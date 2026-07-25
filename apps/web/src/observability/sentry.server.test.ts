@@ -13,7 +13,7 @@ describe('initializeServerSentry', () => {
     vi.mocked(Sentry.isInitialized).mockReset().mockReturnValue(false)
   })
 
-  it('initializes error reporting without default PII in production', () => {
+  it('initializes error reporting and telemetry without default PII in production', () => {
     initializeServerSentry({ dsn: 'https://public@example.ingest.sentry.io/1', isProduction: true })
 
     expect(Sentry.init).toHaveBeenCalledWith({
@@ -22,9 +22,9 @@ describe('initializeServerSentry', () => {
         userInfo: false
       },
       dsn: 'https://public@example.ingest.sentry.io/1',
-      enableLogs: false,
+      enableLogs: true,
       enableMetrics: true,
-      sendDefaultPii: true
+      sendDefaultPii: false
     })
   })
 

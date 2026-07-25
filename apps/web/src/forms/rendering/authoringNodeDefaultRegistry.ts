@@ -24,6 +24,7 @@ export type AuthoringDefaultKind =
   | 'cost'
   | 'creatureAction'
   | 'creatureCompanionProfile'
+  | 'creatureHitDice'
   | 'creatureLairProfile'
   | 'creatureLegendaryProfile'
   | 'creatureMountProfile'
@@ -123,6 +124,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   cost: ['cost', 'creatureCost'],
   creatureAction: ['creatureAction'],
   creatureCompanionProfile: ['creatureCompanionProfile'],
+  creatureHitDice: ['creatureHitDice'],
   creatureLairProfile: ['creatureLairProfile'],
   creatureLegendaryProfile: ['creatureLegendaryProfile'],
   creatureMountProfile: ['creatureMountProfile'],
@@ -149,10 +151,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   measurement: ['measurement', 'shapeMeasurement'],
-  measurementScalingBreakpoint: [
-    'rangeScalingBreakpoint',
-    'shapeMeasurementScalingBreakpoint'
-  ],
+  measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],
   modifierGrant: ['modifierGrant'],
   modifierGrantDomain: ['modifierGrantDomain'],

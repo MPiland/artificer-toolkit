@@ -152,6 +152,12 @@ export function createDefaultAuthoringNodeValue(
         initiativeMode: 'USES_PC_INITIATIVE',
         notes: ''
       }
+    case 'creatureHitDice':
+      return {
+        count: 1,
+        die: 8,
+        modifier: 0
+      }
     case 'creatureLairProfile':
       return {
         lairActions: [],

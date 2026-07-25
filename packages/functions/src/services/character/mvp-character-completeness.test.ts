@@ -78,26 +78,30 @@ function createResolution(): CharacterBuilderResolution {
         { id: 'class-1', label: 'Fighter', category: 'BASE' },
         { id: 'class-2', label: 'Rogue', category: 'BASE' }
       ],
-      backgrounds: [{
-        id: 'background-1',
-        label: 'Sage',
-        summary: '',
-        grantFacts: [],
-        featureLabels: [],
-        hiddenGrantFactCount: 0,
-        hiddenFeatureCount: 0
-      }],
+      backgrounds: [
+        {
+          id: 'background-1',
+          label: 'Sage',
+          summary: '',
+          grantFacts: [],
+          featureLabels: [],
+          hiddenGrantFactCount: 0,
+          hiddenFeatureCount: 0
+        }
+      ],
       equipment: [],
       feats: [{ id: 'feat-1', label: 'Alert' }],
-      spells: [{
-        id: 'spell-1',
-        label: 'Magic Missile',
-        description: '',
-        castingTime: { unit: 'ROUND', amount: 1 },
-        level: 1,
-        classIds: ['class-1'],
-        magicSchoolId: 'EVOCATION'
-      }]
+      spells: [
+        {
+          id: 'spell-1',
+          label: 'Magic Missile',
+          description: '',
+          castingTime: { unit: 'ROUND', amount: 1 },
+          level: 1,
+          classIds: ['class-1'],
+          magicSchoolId: 'EVOCATION'
+        }
+      ]
     },
     registry: {
       system: {
@@ -123,26 +127,30 @@ function createResolution(): CharacterBuilderResolution {
         terrains: [],
         userId: 'user-1'
       },
-      races: [{
-        id: 'race-1',
-        label: 'Human',
-        category: 'BASE',
-        selectionMode: 'DIRECT',
-        size: 'MEDIUM',
-        speeds: [{ speedId: 'WALKING', amount: 30, unit: 'FEET' }],
-        userId: 'user-1',
-        systemId: 'system-1'
-      }],
+      races: [
+        {
+          id: 'race-1',
+          label: 'Human',
+          category: 'BASE',
+          selectionMode: 'DIRECT',
+          size: 'MEDIUM',
+          speeds: [{ speedId: 'WALKING', amount: 30, unit: 'FEET' }],
+          userId: 'user-1',
+          systemId: 'system-1'
+        }
+      ],
       classes: [],
       backgrounds: [],
       equipment: [],
-      feats: [{
-        id: 'feat-1',
-        label: 'Alert',
-        description: '',
-        userId: 'user-1',
-        systemId: 'system-1'
-      }],
+      feats: [
+        {
+          id: 'feat-1',
+          label: 'Alert',
+          description: '',
+          userId: 'user-1',
+          systemId: 'system-1'
+        }
+      ],
       features: []
     },
     summary: {
@@ -201,21 +209,45 @@ describe('MVP character Builder-to-engine completeness', () => {
           abilityModifiers: { DEXTERITY: 2 },
           savingThrows: {},
           skillBonuses: {},
+          skillGoverningAbilities: {},
+          passiveChecks: {},
+          movementSpeeds: [],
           initiative: 2,
           armorClass: 12,
           maxHitPoints: 23
         },
+        calculations: {
+          proficiencyBonus: { base: 2, contributions: [], effective: 2 },
+          abilityScores: {},
+          abilityModifiers: {},
+          savingThrowProficiencyLevels: {},
+          savingThrows: {},
+          skillGoverningAbilities: {},
+          skillProficiencyLevels: {},
+          skillBonuses: {},
+          passiveChecks: {},
+          movementSpeeds: {},
+          senseRanges: {},
+          initiative: { base: 2, contributions: [], effective: 2 },
+          armorClass: { base: 12, contributions: [], effective: 12 },
+          maxHitPoints: { base: 23, contributions: [], effective: 23 }
+        },
         spellSlots: { maxByLevel: {}, fusionStrategy: 'NONE' },
         resources: [],
+        spellMechanics: [],
+        itemMechanics: [],
+        companions: [],
         activeItemContributions: []
       }
     })
 
-    await expect(buildCharacterSheetResponse({
-      db: db as unknown as import('@artificer-toolkit/db').DBLike,
-      character: createCharacter(),
-      resolution: createResolution(),
-      streamVersion: 1
-    })).resolves.toBeDefined()
+    await expect(
+      buildCharacterSheetResponse({
+        db: db as unknown as import('@artificer-toolkit/db').DBLike,
+        character: createCharacter(),
+        resolution: createResolution(),
+        streamVersion: 1
+      })
+    ).resolves.toBeDefined()
   })
 })

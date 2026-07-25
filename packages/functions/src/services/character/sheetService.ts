@@ -26,7 +26,11 @@ import {
   type EngineSpellSlots,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
-import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import {
+  toCharacterMechanicalAdjustment,
+  type CharacterMovementDisplayPreference,
+  type CharacterSheetAdjustment
+} from '@artificer-toolkit/shared/character'
 import { createHash } from 'node:crypto'
 
 import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
@@ -207,13 +211,6 @@ const STANDARD_PASSIVE_SKILLS = [
   { code: 'PASSIVE_INSIGHT', label: 'Passive Insight', skillCode: 'INSIGHT' }
 ] as const
 
-const PROFICIENCY_RANK: Record<'NONE' | 'HALF' | 'FULL' | 'DOUBLE', number> = {
-  NONE: 0,
-  HALF: 1,
-  FULL: 2,
-  DOUBLE: 3
-}
-
 function toSkillCanonicalCode(value: string | undefined): string {
   if (!value) return ''
   return value.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
@@ -236,18 +233,6 @@ function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefin
 
   const upper = ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
   return upper && isAbilityCode(upper) ? upper : undefined
-}
-
-function resolveBestProficiency(
-  direct: EngineProficiency['scaling'] | undefined,
-  wildcard: EngineProficiency['scaling'] | undefined
-): 'NONE' | EngineProficiency['scaling'] {
-  const best = direct ?? wildcard
-  if (!wildcard || direct === 'DOUBLE') return best ?? 'NONE'
-
-  if (!direct) return wildcard
-  if (!best) return 'NONE'
-  return PROFICIENCY_RANK[direct] >= PROFICIENCY_RANK[wildcard] ? direct : wildcard
 }
 
 function createSkillReference(
@@ -318,52 +303,6 @@ function createSkillReference(
   return { canonicalBySubject, metadataByCanonical }
 }
 
-function resolveSkillCanonicalId(
-  rawSubjectId: string,
-  canonicalBySubject: Map<string, string>
-): string | undefined {
-  if (canonicalBySubject.has(rawSubjectId)) return canonicalBySubject.get(rawSubjectId)
-  const lower = rawSubjectId.toLowerCase()
-  if (canonicalBySubject.has(lower)) return canonicalBySubject.get(lower)
-  const normalized = toSkillCanonicalCode(rawSubjectId)
-  if (canonicalBySubject.has(normalized)) return canonicalBySubject.get(normalized)
-  if (canonicalBySubject.has(normalized.toUpperCase()))
-    return canonicalBySubject.get(normalized.toUpperCase())
-  return undefined
-}
-
-function buildProficiencyLookup(
-  kind: string,
-  proficiencies: EngineProficiency[],
-  canonicalize: (subjectId: string) => string | undefined
-): {
-  all: EngineProficiency['scaling'] | undefined
-  specific: ReadonlyMap<string, EngineProficiency['scaling']>
-} {
-  const specific = new Map<string, EngineProficiency['scaling']>()
-  let all: EngineProficiency['scaling'] | undefined
-
-  for (const prof of proficiencies) {
-    if (prof.kind !== kind) continue
-
-    const canonical = canonicalize(prof.subjectId)
-    if (prof.subjectId === '*') {
-      if (prof.scaling && (!all || PROFICIENCY_RANK[prof.scaling] > PROFICIENCY_RANK[all])) {
-        all = prof.scaling
-      }
-      continue
-    }
-
-    if (!canonical) continue
-    const existing = specific.get(canonical)
-    if (!existing || PROFICIENCY_RANK[prof.scaling] > PROFICIENCY_RANK[existing]) {
-      specific.set(canonical, prof.scaling)
-    }
-  }
-
-  return { all, specific: specific as ReadonlyMap<string, EngineProficiency['scaling']> }
-}
-
 const ENGINE_ABILITY_ALIASES: Readonly<Record<string, string>> = {
   STRENGTH: 'STR',
   DEXTERITY: 'DEX',
@@ -391,20 +330,19 @@ function resolvePassiveSkillCode(passive: { code?: string; label: string }): str
 
 function buildPassiveOverviewFacts(params: {
   passives?: ReadonlyArray<{ code?: string; label: string }>
-  skills: readonly OverviewSkillRow[]
+  passiveChecks: Readonly<Record<string, number>>
 }): Array<{ label: string; value: string }> {
-  const skillTotalsByCode = new Map(params.skills.map((skill) => [skill.code, skill.total]))
   const passiveDefinitions = params.passives?.length ? params.passives : STANDARD_PASSIVE_SKILLS
   const seenSkillCodes = new Set<string>()
 
   return passiveDefinitions.flatMap((passive) => {
     const skillCode = resolvePassiveSkillCode(passive)
     if (!skillCode || seenSkillCodes.has(skillCode)) return []
-    const total = skillTotalsByCode.get(skillCode)
+    const total = params.passiveChecks[skillCode.toLowerCase()]
     if (total === undefined) return []
 
     seenSkillCodes.add(skillCode)
-    return [{ label: passive.label, value: String(10 + total) }]
+    return [{ label: passive.label, value: String(total) }]
   })
 }
 
@@ -546,7 +484,9 @@ function createEngineHitpointEntries(
 
 function createCharacterEngineInput(
   character: CharacterAuthored,
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  adjustments: readonly CharacterSheetAdjustment[] = [],
+  movementDisplayPreference: CharacterMovementDisplayPreference = { mode: 'AUTO' }
 ): {
   registry: ReturnType<typeof createCharacterAssemblyRegistry>
   snapshot: CharacterBuildSnapshot
@@ -599,7 +539,9 @@ function createCharacterEngineInput(
       abilities,
       hitpoints: createEngineHitpointEntries(character),
       features: createCharacterEngineFeatures(character, resolution),
-      equipmentItems
+      equipmentItems,
+      adjustments: adjustments.map(toCharacterMechanicalAdjustment),
+      movementDisplayPreference
     }
   }
 }
@@ -1295,18 +1237,24 @@ export async function buildCharacterSheetResponse(params: {
   streamVersion: number
   hasBuilderDraft?: boolean
   adjustments?: readonly CharacterSheetAdjustment[]
+  movementDisplayPreference?: CharacterMovementDisplayPreference
 }): Promise<CharacterSheetResponseDto> {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
-  const engineInput = createCharacterEngineInput(character, resolution)
+  const engineInput = createCharacterEngineInput(
+    character,
+    resolution,
+    adjustments,
+    params.movementDisplayPreference
+  )
   const rulesSystem = resolveRulesSystem({
     code: resolution.registry.system?.rulesetCode ?? '',
     version: resolution.registry.system?.rulesetVersion ?? ''
   })
   const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, rulesSystem)
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
-  const maxHitPoints = getMaxHitPoints(character, adjustments)
+  const maxHitPoints = engineOutput.derivedStats.maxHitPoints
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
@@ -1326,16 +1274,6 @@ export async function buildCharacterSheetResponse(params: {
     })) ?? []
   const currencyLabels = new Map(currencyOptions.map((currency) => [currency.id, currency.label]))
   const skillReference = createSkillReference(resolution.registry.system?.skills)
-  const saveProficiencyLookup = buildProficiencyLookup(
-    'SAVE_ABILITY',
-    engineOutput.proficiencies,
-    resolveAbilityCode
-  )
-  const skillProficiencyLookup = buildProficiencyLookup(
-    'SKILL',
-    engineOutput.proficiencies,
-    (subjectId) => resolveSkillCanonicalId(subjectId, skillReference.canonicalBySubject)
-  )
   const spellSlotsUsed = new Map(
     (character.state.spellSlots ?? []).map((slot) => [slot.slotKey, slot.used])
   )
@@ -1393,16 +1331,13 @@ export async function buildCharacterSheetResponse(params: {
         label: metadata?.label ?? toSkillFallbackLabel(skill),
         ability: metadata?.ability ?? resolveAbilityCode(SKILL_ABILITY_MAP[skill] ?? 'DEXTERITY'),
         total,
-        proficiency: resolveBestProficiency(
-          skillProficiencyLookup.specific.get(skill),
-          skillProficiencyLookup.all
-        )
+        proficiency: engineOutput.calculations.skillProficiencyLevels[skill]?.effective ?? 'NONE'
       }
     })
     .filter((row): row is OverviewSkillRow => row.ability !== undefined)
   const passiveFacts = buildPassiveOverviewFacts({
     passives: resolution.registry.system?.passives,
-    skills: overviewSkills
+    passiveChecks: engineOutput.derivedStats.passiveChecks
   })
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
   const selectedFeatureOptionIds = getSelectedFeatureOptionIds(character)
@@ -1459,9 +1394,9 @@ export async function buildCharacterSheetResponse(params: {
           ? 'Equipment'
           : ownerKind === 'FEAT'
             ? 'Feat'
-          : sourceFeatureId
-            ? featureSourceLabels.get(sourceFeatureId)?.join(', ')
-            : undefined
+            : sourceFeatureId
+              ? featureSourceLabels.get(sourceFeatureId)?.join(', ')
+              : undefined
       for (const mechanic of mechanics) {
         actionItems.push({
           id: `${ownerKind}:${ownerId}:${mechanic.effectId}`,
@@ -1534,21 +1469,26 @@ export async function buildCharacterSheetResponse(params: {
       totalLevel
     },
     overview: {
-      abilities: Object.entries(resolution.summary.abilities).map(([ability, score]) => ({
-        ability: ability as keyof typeof resolution.summary.abilities,
-        score,
-        modifier: abilityModifier(score)
-      })),
+      abilities: Object.keys(resolution.summary.abilities).map((ability) => {
+        const abilityCode = ability as keyof typeof resolution.summary.abilities
+        return {
+          ability: abilityCode,
+          score: getAbilityDerivedTotal(engineOutput.derivedStats.abilityScores, abilityCode),
+          modifier: getAbilityDerivedTotal(engineOutput.derivedStats.abilityModifiers, abilityCode)
+        }
+      }),
       savingThrows: Object.keys(ABILITIES)
         .filter((ability): ability is keyof typeof ABILITIES => isAbilityCode(ability))
         .map((ability) => ({
           ability,
           label: ABILITIES[ability].label,
           total: getAbilityDerivedTotal(engineOutput.derivedStats.savingThrows, ability),
-          proficiency: resolveBestProficiency(
-            saveProficiencyLookup.specific.get(ability),
-            saveProficiencyLookup.all
-          )
+          proficiency:
+            engineOutput.calculations.savingThrowProficiencyLevels[ability]?.effective ??
+            engineOutput.calculations.savingThrowProficiencyLevels[
+              ENGINE_ABILITY_ALIASES[ability] ?? ''
+            ]?.effective ??
+            'NONE'
         })),
       skills: overviewSkills,
       facts: [
@@ -2763,11 +2703,9 @@ export async function executeCharacterSheetCommand(params: {
   userId: string
 }): Promise<CharacterSheetCommandResponseDto> {
   const repository = createCharacterRepository(params.db)
-  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
-  const [row, character, adjustments] = await Promise.all([
+  const [row, character] = await Promise.all([
     repository.findById(params.characterId),
-    repository.findAuthoredById(params.characterId),
-    adjustmentRepository.listByCharacter(params.characterId)
+    repository.findAuthoredById(params.characterId)
   ])
   if (!character || !row) {
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
@@ -2784,6 +2722,11 @@ export async function executeCharacterSheetCommand(params: {
     throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
   }
 
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
+  const [adjustments, movementDisplayPreference] = await Promise.all([
+    adjustmentRepository.listByCharacter(params.characterId),
+    adjustmentRepository.getMovementPreference(params.characterId)
+  ])
   const eventRepository = createCharacterEventRepository(params.db)
   const commandFingerprint = fingerprintCharacterSheetCommand(params.command)
   const priorEvent = await eventRepository.findByCommandId(
@@ -2815,7 +2758,8 @@ export async function executeCharacterSheetCommand(params: {
         character,
         resolution,
         streamVersion: row.stream_version,
-        adjustments
+        adjustments,
+        movementDisplayPreference
       }),
       historyEntry: {
         eventId: priorEvent.eventId,
@@ -2850,7 +2794,8 @@ export async function executeCharacterSheetCommand(params: {
     character,
     resolution,
     streamVersion: row.stream_version,
-    adjustments
+    adjustments,
+    movementDisplayPreference
   })
   const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet, {
     adjustments
@@ -2910,7 +2855,8 @@ export async function executeCharacterSheetCommand(params: {
     character: nextCharacter,
     resolution,
     streamVersion: nextStreamVersion,
-    adjustments: persistedAdjustments
+    adjustments: persistedAdjustments,
+    movementDisplayPreference
   })
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,

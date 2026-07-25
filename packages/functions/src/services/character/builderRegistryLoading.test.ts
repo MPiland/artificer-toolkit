@@ -214,9 +214,9 @@ describe('character Builder conditional spell registry loading', () => {
         id: record.id,
         label: record.label,
         category: record.category,
-        parentClassId: 'parentClassId' in record ? record.parentClassId ?? null : null,
+        parentClassId: 'parentClassId' in record ? (record.parentClassId ?? null) : null,
         subclassSelectionLevel:
-          'subclassSelectionLevel' in record ? record.subclassSelectionLevel ?? null : null
+          'subclassSelectionLevel' in record ? (record.subclassSelectionLevel ?? null) : null
       })),
       meta: {}
     }))
@@ -320,12 +320,7 @@ describe('character Builder conditional spell registry loading', () => {
       null,
       context
     )
-    const resolution = await resolveCharacterBuilder(
-      {} as never,
-      reconciled,
-      'create',
-      context
-    )
+    const resolution = await resolveCharacterBuilder({} as never, reconciled, 'create', context)
 
     expect(resolution.catalog.spells).toEqual([spell])
     expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
@@ -404,12 +399,14 @@ describe('character Builder conditional spell registry loading', () => {
       description: 'You have spent your life in service.',
       userId: 'user-1',
       systemId: 'system-1',
-      features: [{
-        id: 'shelter-of-the-faithful',
-        label: 'Shelter of the Faithful',
-        description: 'Faithful allies provide support.',
-        order: 0
-      }]
+      features: [
+        {
+          id: 'shelter-of-the-faithful',
+          label: 'Shelter of the Faithful',
+          description: 'Faithful allies provide support.',
+          order: 0
+        }
+      ]
     }
     repositoryCalls.backgroundListQuery.mockResolvedValue({
       items: [{ id: unselectedBackground.id, label: unselectedBackground.label }],
@@ -432,7 +429,9 @@ describe('character Builder conditional spell registry loading', () => {
       speedLabels: [],
       abilityScoreIncreaseDescriptions: []
     })
-    expect(resolution.catalog.classes.find((record) => record.id === unselectedClass.id)).toMatchObject({
+    expect(
+      resolution.catalog.classes.find((record) => record.id === unselectedClass.id)
+    ).toMatchObject({
       description: 'Divine spellcaster.',
       hitpoint: unselectedClass.hitpoint,
       savingThrowLabels: [],
@@ -441,12 +440,14 @@ describe('character Builder conditional spell registry loading', () => {
         { label: 'Skills', entries: ['Choose 1 from Medicine, Religion'] }
       ]
     })
-    expect(resolution.catalog.backgrounds).toEqual([{
-      id: unselectedBackground.id,
-      label: unselectedBackground.label,
-      description: unselectedBackground.description,
-      featureLabels: ['Shelter of the Faithful']
-    }])
+    expect(resolution.catalog.backgrounds).toEqual([
+      expect.objectContaining({
+        id: unselectedBackground.id,
+        label: unselectedBackground.label,
+        description: unselectedBackground.description,
+        featureLabels: ['Shelter of the Faithful']
+      })
+    ])
   })
 
   it('passes only current-level feature ids to selected-root repositories', async () => {
@@ -474,20 +475,13 @@ describe('character Builder conditional spell registry loading', () => {
       featureOptionChoices: []
     })
 
-    await resolveCharacterBuilder(
-      {} as never,
-      createCharacter('human', 'fighter'),
-      'create'
-    )
+    await resolveCharacterBuilder({} as never, createCharacter('human', 'fighter'), 'create')
 
-    expect(repositoryCalls.classFindByIds).toHaveBeenCalledWith(
-      ['fighter'],
-      {
-        systemId: 'system-1',
-        allowedFeatureIds: new Set(['feature-level-1']),
-        includeFeatureEffects: false
-      }
-    )
+    expect(repositoryCalls.classFindByIds).toHaveBeenCalledWith(['fighter'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['feature-level-1']),
+      includeFeatureEffects: false
+    })
   })
 
   it('reconciles a Human Fighter without loading the full spell registry', async () => {
@@ -577,10 +571,9 @@ describe('character Builder conditional spell registry loading', () => {
 
     await resolveCharacterBuilder({} as never, character, 'create')
 
-    expect(repositoryCalls.featureFindByIds).toHaveBeenCalledWith(
-      ['arcane-initiate'],
-      { includeEffects: false }
-    )
+    expect(repositoryCalls.featureFindByIds).toHaveBeenCalledWith(['arcane-initiate'], {
+      includeEffects: false
+    })
     expect(repositoryCalls.spellListQuery).toHaveBeenCalledOnce()
   })
 

@@ -124,18 +124,18 @@ function buildStartingEquipmentChoiceLabels(
         ? item.equipmentIds
             .map((equipmentId) => equipmentLabels.get(equipmentId) ?? equipmentId)
             .join(' or ')
-      : [
-          properties
+        : [
+            properties
               .map(
                 (property) =>
                   EQUIPMENT_PROPERTY_REGISTRY[property]?.label.toLocaleLowerCase() ??
                   property.toLocaleLowerCase().replaceAll('_', ' ')
               )
-            .join(' '),
-          item.category
+              .join(' '),
+            item.category
               ? (EQUIPMENT_CATEGORY_REGISTRY[item.category]?.label.toLocaleLowerCase() ??
                 item.category.toLocaleLowerCase().replaceAll('_', ' '))
-            : 'equipment'
+              : 'equipment'
           ]
             .filter(Boolean)
             .join(' ')
@@ -259,7 +259,7 @@ function getSelectedClassProficiencyGroups(
     group?.grantedEntries.push(...proficiencyGroup.grantedEntries)
     group?.choiceInstructions.push(
       ...proficiencyGroup.entries
-      .filter((entry) => !proficiencyGroup.grantedEntries.includes(entry))
+        .filter((entry) => !proficiencyGroup.grantedEntries.includes(entry))
         .map((label) => ({ label, required: true }))
     )
   }
@@ -409,10 +409,10 @@ function getClassDisabledReason(
   })
   const unmetClass = proposedClasses.find(
     (candidate) =>
-    !evaluateMulticlassRequirements(
-      candidate.multiclass.requirementGroups,
-      resolution.summary.abilities
-    ).passes
+      !evaluateMulticlassRequirements(
+        candidate.multiclass.requirementGroups,
+        resolution.summary.abilities
+      ).passes
   )
 
   if (!unmetClass) {
@@ -516,8 +516,8 @@ function getSourceLabel(
     case 'ANCESTRY':
       return (
         resolution.registry.races
-        .flatMap((race) => race.ancestry?.options ?? [])
-        .find((option) => option.id === source.optionId)?.label ?? 'another source'
+          .flatMap((race) => race.ancestry?.options ?? [])
+          .find((option) => option.id === source.optionId)?.label ?? 'another source'
       )
     case 'BACKGROUND':
       return (
@@ -588,13 +588,13 @@ function toFeatureGrantSummary(
     ...grant,
     details:
       feature?.details
-      ?.slice()
-      .sort((left, right) => left.order - right.order)
-      .map((detail) => ({
-        id: detail.id,
-        label: detail.label,
-        description: detail.description
-      })) ?? grant.details
+        ?.slice()
+        .sort((left, right) => left.order - right.order)
+        .map((detail) => ({
+          id: detail.id,
+          label: detail.label,
+          description: detail.description
+        })) ?? grant.details
   }
 }
 
@@ -622,39 +622,39 @@ function getGrantedClassContentViews(params: {
     ['SPELLCASTING', params.resolution.grants.spellcasting]
   ] as const)
     for (const item of items) {
-    if (!params.includeSource(item.source)) continue
-    const matchingFeatureKey = featureKeysByIdentity.get(
-      `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
-    )
-    if (matchingFeatureKey) {
-      const feature = uniqueItems.get(matchingFeatureKey)
-      if (feature) {
-        uniqueItems.set(matchingFeatureKey, {
-          ...feature,
-          item: {
-            ...feature.item,
-            description: feature.item.description ?? item.description,
-            details: feature.item.details ?? item.details,
-            sortOrder: feature.item.sortOrder ?? item.sortOrder,
-            availableAtLevel: feature.item.availableAtLevel ?? item.availableAtLevel
-          }
-        })
+      if (!params.includeSource(item.source)) continue
+      const matchingFeatureKey = featureKeysByIdentity.get(
+        `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
+      )
+      if (matchingFeatureKey) {
+        const feature = uniqueItems.get(matchingFeatureKey)
+        if (feature) {
+          uniqueItems.set(matchingFeatureKey, {
+            ...feature,
+            item: {
+              ...feature.item,
+              description: feature.item.description ?? item.description,
+              details: feature.item.details ?? item.details,
+              sortOrder: feature.item.sortOrder ?? item.sortOrder,
+              availableAtLevel: feature.item.availableAtLevel ?? item.availableAtLevel
+            }
+          })
+        }
+        continue
       }
-      continue
+      uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, {
+        item: toFeatureGrantSummary(params.resolution, item),
+        kind
+      })
     }
-    uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, {
-      item: toFeatureGrantSummary(params.resolution, item),
-      kind
-    })
-  }
 
   return [...uniqueItems.values()]
     .sort(
       (left, right) =>
-      (left.item.availableAtLevel ?? 0) - (right.item.availableAtLevel ?? 0) ||
-      (left.item.sortOrder ?? 0) - (right.item.sortOrder ?? 0) ||
-      left.kind.localeCompare(right.kind) ||
-      left.item.id.localeCompare(right.item.id)
+        (left.item.availableAtLevel ?? 0) - (right.item.availableAtLevel ?? 0) ||
+        (left.item.sortOrder ?? 0) - (right.item.sortOrder ?? 0) ||
+        left.kind.localeCompare(right.kind) ||
+        left.item.id.localeCompare(right.item.id)
     )
     .map((entry) => entry.item)
 }
@@ -785,10 +785,10 @@ function getSpellChoiceViews(params: {
       id: spell.id,
       label: spell.label,
       disabledReason: selectedSpellIds.includes(spell.id)
-          ? undefined
-          : spellSourceLabelsSelectedElsewhere.has(spell.id)
-            ? `Granted by ${spellSourceLabelsSelectedElsewhere.get(spell.id)}`
-            : undefined
+        ? undefined
+        : spellSourceLabelsSelectedElsewhere.has(spell.id)
+          ? `Granted by ${spellSourceLabelsSelectedElsewhere.get(spell.id)}`
+          : undefined
     }),
     level: spell.level,
     schoolLabel: params.resolution.registry.system?.magicSchools.find(
@@ -1706,6 +1706,12 @@ export async function getCharacterSheetForUser(
     subjectId: character.id
   })
 
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
+  const [adjustments, movementDisplayPreference] = await Promise.all([
+    adjustmentRepository.listByCharacter(character.id),
+    adjustmentRepository.getMovementPreference(character.id)
+  ])
+
   return {
     ...(await buildCharacterSheetResponse({
       db,
@@ -1713,7 +1719,8 @@ export async function getCharacterSheetForUser(
       resolution: await resolveCharacterBuilder(db, character, 'edit'),
       streamVersion: row?.stream_version ?? 0,
       hasBuilderDraft: Boolean(draft),
-      adjustments: await createCharacterSheetAdjustmentRepository(db).listByCharacter(character.id)
+      adjustments,
+      movementDisplayPreference
     })),
     publicId: routeIdentity.publicId
   }

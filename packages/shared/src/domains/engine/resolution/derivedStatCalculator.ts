@@ -20,31 +20,32 @@ const ABILITY_CANONICAL_BY_ALIAS = (() => {
 
 function toSkillCanonicalId(value: string | undefined): string {
   if (!value) return ''
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/_/g, '-')
-    .replace(/\s+/g, '-')
+  return value.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
 }
 
-function resolveAbilityAlias(subjectId: string): string | undefined {
-  return ABILITY_CANONICAL_BY_ALIAS.get(subjectId)
-    ?? ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
+export function resolveAbilityAlias(subjectId: string): string | undefined {
+  return (
+    ABILITY_CANONICAL_BY_ALIAS.get(subjectId) ??
+    ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
+  )
 }
 
-function resolveSkillAlias(subjectId: string, skillAliases: Map<string, string>): string {
+export function resolveSkillAlias(subjectId: string, skillAliases: Map<string, string>): string {
   if (skillAliases.has(subjectId)) return skillAliases.get(subjectId) ?? subjectId
   const lower = subjectId.toLowerCase()
   if (skillAliases.has(lower)) return skillAliases.get(lower) ?? subjectId
 
   const normalized = toSkillCanonicalId(subjectId)
   if (skillAliases.has(normalized)) return skillAliases.get(normalized) ?? subjectId
-  if (skillAliases.has(normalized.toUpperCase())) return skillAliases.get(normalized.toUpperCase()) ?? subjectId
+  if (skillAliases.has(normalized.toUpperCase()))
+    return skillAliases.get(normalized.toUpperCase()) ?? subjectId
 
   return subjectId
 }
 
-function buildSkillSubjectAliasMap(registry: CharacterAssemblyRegistry): Map<string, string> {
+export function buildSkillSubjectAliasMap(
+  registry: CharacterAssemblyRegistry
+): Map<string, string> {
   const aliases = new Map<string, string>()
 
   for (const canonical of Object.keys(SKILL_ABILITY_MAP)) {
@@ -54,11 +55,12 @@ function buildSkillSubjectAliasMap(registry: CharacterAssemblyRegistry): Map<str
 
   for (const skill of registry.system?.skills ?? []) {
     const canonicalByCode = toSkillCanonicalId(skill.code)
-    const canonical = SKILL_ABILITY_MAP[canonicalByCode] !== undefined
-      ? canonicalByCode
-      : SKILL_ABILITY_MAP[toSkillCanonicalId(skill.id)] !== undefined
-        ? toSkillCanonicalId(skill.id)
-        : undefined
+    const canonical =
+      SKILL_ABILITY_MAP[canonicalByCode] !== undefined
+        ? canonicalByCode
+        : SKILL_ABILITY_MAP[toSkillCanonicalId(skill.id)] !== undefined
+          ? toSkillCanonicalId(skill.id)
+          : undefined
 
     if (!canonical) continue
 
@@ -146,9 +148,10 @@ export function calculateDerivedStats(
   const savingThrows: Record<string, number> = {}
   for (const ability of Object.keys(abilityModifiers)) {
     const canonicalAbility = resolveAbilityAlias(ability) ?? ability
-    const modifierAbility = resolveAbilityRecordKey(abilityModifiers, ability)
-      ?? resolveAbilityRecordKey(abilityModifiers, canonicalAbility)
-      ?? ability
+    const modifierAbility =
+      resolveAbilityRecordKey(abilityModifiers, ability) ??
+      resolveAbilityRecordKey(abilityModifiers, canonicalAbility) ??
+      ability
     const mod = abilityModifiers[modifierAbility] ?? 0
     const mult = profMultiplier('SAVE_ABILITY', canonicalAbility)
     savingThrows[ability] = mod + Math.floor(proficiencyBonus * mult)
@@ -157,10 +160,29 @@ export function calculateDerivedStats(
   // Step 6: Skill bonuses - canonical D&D 5e 2014 skill -> governing ability mapping
   const skillBonuses: Record<string, number> = {}
   for (const [skillId, governingAbility] of Object.entries(SKILL_ABILITY_MAP)) {
-    const mod = abilityModifiers[resolveAbilityRecordKey(abilityModifiers, governingAbility) ?? governingAbility] ?? 0
+    const mod =
+      abilityModifiers[
+        resolveAbilityRecordKey(abilityModifiers, governingAbility) ?? governingAbility
+      ] ?? 0
     const mult = profMultiplier('SKILL', skillId)
     skillBonuses[skillId] = mod + Math.floor(proficiencyBonus * mult)
   }
+  const skillGoverningAbilities = { ...SKILL_ABILITY_MAP }
+  const passiveChecks = Object.fromEntries(
+    Object.entries(skillBonuses).map(([skillId, bonus]) => [skillId, rules.passiveScore(bonus)])
+  )
+  const selectedRaceId = snapshot.subraceId ?? snapshot.raceId
+  const movementSpeeds = selectedRaceId
+    ? (registry.races[selectedRaceId]?.speeds ?? []).map((speed) => ({ ...speed }))
+    : []
+  const speedCodes = new Map((registry.system?.speeds ?? []).map((speed) => [speed.id, speed.code]))
+  const primaryMovementSpeedId = rules.selectPrimaryMovementSpeedId(
+    movementSpeeds.map((speed) => ({
+      speedId: speed.speedId,
+      code: speedCodes.get(speed.speedId)
+    })),
+    snapshot.movementDisplayPreference ?? { mode: 'AUTO' }
+  )
 
   // Step 7: Max HP — sum of per-level values stored on the snapshot
   const maxHitPoints = snapshot.hitpoints.reduce((sum, entry) => sum + entry.value, 0)
@@ -180,7 +202,9 @@ export function calculateDerivedStats(
 
   // Step 9: Initiative — DEX modifier + INITIATIVE domain modifiers
   const initiativeBonus = resolvedModifiers['INITIATIVE:BONUS'] ?? 0
-  const initiative = (abilityModifiers[resolveAbilityRecordKey(abilityModifiers, 'DEX') ?? 'DEX'] ?? 0) + initiativeBonus
+  const initiative =
+    (abilityModifiers[resolveAbilityRecordKey(abilityModifiers, 'DEX') ?? 'DEX'] ?? 0) +
+    initiativeBonus
 
   // Steps 10-11: Spell stats — present only if a spellcasting class is in the registry
   let spellSaveDC: number | undefined
@@ -188,7 +212,10 @@ export function calculateDerivedStats(
 
   const spellcastingAbility = resolveSpellcastingAbility(snapshot, registry)
   if (spellcastingAbility) {
-    const spellMod = abilityModifiers[resolveAbilityRecordKey(abilityModifiers, spellcastingAbility) ?? spellcastingAbility] ?? 0
+    const spellMod =
+      abilityModifiers[
+        resolveAbilityRecordKey(abilityModifiers, spellcastingAbility) ?? spellcastingAbility
+      ] ?? 0
     spellSaveDC = 8 + proficiencyBonus + spellMod
     spellAttackBonus = proficiencyBonus + spellMod
   }
@@ -199,6 +226,10 @@ export function calculateDerivedStats(
     abilityModifiers,
     savingThrows,
     skillBonuses,
+    skillGoverningAbilities,
+    passiveChecks,
+    movementSpeeds,
+    ...(primaryMovementSpeedId ? { primaryMovementSpeedId } : {}),
     initiative,
     armorClass,
     maxHitPoints,
@@ -250,7 +281,7 @@ function resolveArmorClass(
   }
 
   // Fall back to unarmored: 10 + DEX
-  const armorBase = baseAC ?? (10 + dex)
+  const armorBase = baseAC ?? 10 + dex
 
   // Add shield and any bonus modifiers
   const acBonus = Object.entries(resolvedModifiers)

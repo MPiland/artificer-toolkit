@@ -21,6 +21,45 @@ export interface CharacterDiceRollResult {
   total: number
 }
 
+export interface CharacterDiceRandomSource {
+  /**
+   * Returns a uniformly distributed integer in [0, maxExclusive).
+   *
+   * Production callers must supply a cryptographically secure implementation.
+   * Tests may inject a deterministic source.
+   */
+  nextInt(maxExclusive: number): number
+}
+
+export function rollCharacterDice(
+  spec: CharacterDiceRollSpec,
+  random: CharacterDiceRandomSource
+): CharacterDiceRollResult {
+  if (!Number.isInteger(spec.count) || spec.count < 0) {
+    throw new RangeError('Dice count must be a non-negative integer.')
+  }
+  if (!Number.isInteger(spec.die) || spec.die < 1) {
+    throw new RangeError('Die size must be a positive integer.')
+  }
+  if (!Number.isInteger(spec.modifier)) {
+    throw new RangeError('Dice modifier must be an integer.')
+  }
+
+  const rolls = Array.from({ length: spec.count }, () => {
+    const value = random.nextInt(spec.die)
+    if (!Number.isInteger(value) || value < 0 || value >= spec.die) {
+      throw new RangeError('Dice random source returned an out-of-range value.')
+    }
+    return value + 1
+  })
+
+  return {
+    spec: { ...spec },
+    rolls,
+    total: rolls.reduce((sum, value) => sum + value, spec.modifier)
+  }
+}
+
 export type CharacterResourceRecoveryAmount =
   | { kind: 'ALL' }
   | { kind: 'FIXED'; amount: number }
@@ -32,6 +71,7 @@ export interface CharacterResourceRecovery {
 }
 
 export const CHARACTER_DEFINITION_SOURCE_KIND = {
+  ANCESTRY: 'ANCESTRY',
   BACKGROUND: 'BACKGROUND',
   CLASS: 'CLASS',
   FEAT: 'FEAT',
@@ -39,6 +79,7 @@ export const CHARACTER_DEFINITION_SOURCE_KIND = {
   ITEM: 'ITEM',
   OPTION: 'OPTION',
   RACE: 'RACE',
+  SUBRACE: 'SUBRACE',
   SUBCLASS: 'SUBCLASS'
 } as const
 
@@ -61,6 +102,12 @@ export interface CharacterSpellSourceRef {
   spellId: string
   sourceKind: CharacterDefinitionSourceKind
   sourceInstanceId: string
+}
+
+export function createCharacterSpellSourceKey(source: CharacterSpellSourceRef): string {
+  return [source.sourceKind, source.sourceInstanceId, source.spellId]
+    .map(encodeURIComponent)
+    .join(':')
 }
 
 export type CharacterResourceOwnerRef =

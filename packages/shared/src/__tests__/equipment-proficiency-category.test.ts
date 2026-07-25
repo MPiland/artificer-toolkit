@@ -10,17 +10,19 @@ import {
 
 describe('equipment-property proficiency categories', () => {
   it('retains category scope when compiling ALL-mode grants', () => {
-    expect(compileProficiencyGrant({
-      id: 'all-heavy-armor',
-      order: 1,
-      grantKind: 'PROFICIENCY_GRANT',
-      proficiencyKind: 'EQUIPMENT_PROPERTY',
-      selectionKind: 'GRANTED',
-      scalingKind: 'NONE',
-      authoringModeKind: 'ALL',
-      category: 'ARMOR',
-      level: 'FULL'
-    })).toMatchObject({
+    expect(
+      compileProficiencyGrant({
+        id: 'all-heavy-armor',
+        order: 1,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'EQUIPMENT_PROPERTY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'ALL',
+        category: 'ARMOR',
+        level: 'FULL'
+      })
+    ).toMatchObject({
       authoringModeKind: 'ALL',
       category: 'ARMOR'
     })
@@ -35,11 +37,13 @@ describe('equipment-property proficiency categories', () => {
       abilities: {},
       hitpoints: [],
       equipmentItems: [],
-      features: [{
-        featureId: 'heavy-armor-training',
-        source: { kind: 'FEAT', featId: 'feat-1' },
-        timing: { kind: 'CHARACTER_LEVEL', level: 1 }
-      }]
+      features: [
+        {
+          featureId: 'heavy-armor-training',
+          source: { kind: 'FEAT', featId: 'feat-1' },
+          timing: { kind: 'CHARACTER_LEVEL', level: 1 }
+        }
+      ]
     }
     const registry: CharacterAssemblyRegistry = {
       classes: {},
@@ -49,27 +53,31 @@ describe('equipment-property proficiency categories', () => {
       spells: {},
       features: {
         'heavy-armor-training': {
-          proficiencies: [{
-            id: 'heavy-armor-proficiency',
-            order: 1,
-            grantKind: 'PROFICIENCY_GRANT',
-            proficiencyKind: 'EQUIPMENT_PROPERTY',
-            selectionKind: 'GRANTED',
-            authoringModeKind: 'SELECTED',
-            properties: ['HEAVY'],
-            category: 'ARMOR',
-            level: 'FULL'
-          }]
+          proficiencies: [
+            {
+              id: 'heavy-armor-proficiency',
+              order: 1,
+              grantKind: 'PROFICIENCY_GRANT',
+              proficiencyKind: 'EQUIPMENT_PROPERTY',
+              selectionKind: 'GRANTED',
+              authoringModeKind: 'SELECTED',
+              properties: ['HEAVY'],
+              category: 'ARMOR',
+              level: 'FULL'
+            }
+          ]
         }
       }
     }
 
-    expect(runEngine(snapshot, registry, dnd5e2014RulesSystem).proficiencies).toContainEqual({
-      kind: 'EQUIPMENT_PROPERTY',
-      subjectId: 'HEAVY',
-      category: 'ARMOR',
-      scaling: 'FULL'
-    })
+    expect(runEngine(snapshot, registry, dnd5e2014RulesSystem).proficiencies).toContainEqual(
+      expect.objectContaining({
+        kind: 'EQUIPMENT_PROPERTY',
+        subjectId: 'HEAVY',
+        category: 'ARMOR',
+        scaling: 'FULL'
+      })
+    )
   })
 
   it('uses multiclass proficiencies instead of full class proficiencies for secondary classes', () => {
@@ -158,23 +166,29 @@ describe('equipment-property proficiency categories', () => {
 
     const proficiencies = runEngine(snapshot, registry, dnd5e2014RulesSystem).proficiencies
 
-    expect(proficiencies).toContainEqual({
-      kind: 'SAVE_ABILITY',
-      subjectId: 'STRENGTH',
-      scaling: 'FULL'
-    })
-    expect(proficiencies).toContainEqual({
-      kind: 'EQUIPMENT_PROPERTY',
-      subjectId: 'LIGHT',
-      category: 'ARMOR',
-      scaling: 'FULL'
-    })
-    expect(proficiencies).not.toContainEqual({
-      kind: 'EQUIPMENT_PROPERTY',
-      subjectId: 'HEAVY',
-      category: 'ARMOR',
-      scaling: 'FULL'
-    })
+    expect(proficiencies).toContainEqual(
+      expect.objectContaining({
+        kind: 'SAVE_ABILITY',
+        subjectId: 'STRENGTH',
+        scaling: 'FULL'
+      })
+    )
+    expect(proficiencies).toContainEqual(
+      expect.objectContaining({
+        kind: 'EQUIPMENT_PROPERTY',
+        subjectId: 'LIGHT',
+        category: 'ARMOR',
+        scaling: 'FULL'
+      })
+    )
+    expect(proficiencies).not.toContainEqual(
+      expect.objectContaining({
+        kind: 'EQUIPMENT_PROPERTY',
+        subjectId: 'HEAVY',
+        category: 'ARMOR',
+        scaling: 'FULL'
+      })
+    )
   })
 
   it('keeps selections for a reused chosen grant scoped to their owning source', () => {
@@ -241,8 +255,16 @@ describe('equipment-property proficiency categories', () => {
 
     expect(runEngine(snapshot, registry, dnd5e2014RulesSystem).proficiencies).toEqual(
       expect.arrayContaining([
-        { kind: 'SKILL', subjectId: 'athletics', scaling: 'FULL' },
-        { kind: 'SKILL', subjectId: 'arcana', scaling: 'FULL' }
+        expect.objectContaining({
+          kind: 'SKILL',
+          subjectId: 'athletics',
+          scaling: 'FULL'
+        }),
+        expect.objectContaining({
+          kind: 'SKILL',
+          subjectId: 'arcana',
+          scaling: 'FULL'
+        })
       ])
     )
   })

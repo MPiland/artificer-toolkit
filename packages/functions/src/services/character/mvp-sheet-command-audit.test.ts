@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
+  getMovementPreference: vi.fn(),
+  listAdjustments: vi.fn(),
   patchSheetState: vi.fn(),
   resolveCharacterBuilder: vi.fn()
 }))
@@ -32,6 +34,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
+    }),
+    createCharacterSheetAdjustmentRepository: () => ({
+      getMovementPreference: mocks.getMovementPreference,
+      listByCharacter: mocks.listAdjustments
     })
   }
 })
@@ -140,6 +146,10 @@ describe('MVP character Sheet command audit', () => {
     mocks.findByCommandId.mockReset()
     mocks.findById.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.getMovementPreference.mockReset()
+    mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
+    mocks.listAdjustments.mockReset()
+    mocks.listAdjustments.mockResolvedValue([])
     mocks.resolveCharacterBuilder.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findByCommandId.mockResolvedValue(null)

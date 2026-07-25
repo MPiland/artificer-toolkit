@@ -7,6 +7,7 @@ export type CharacterCalculationContributionState =
   (typeof CHARACTER_CALCULATION_CONTRIBUTION_STATE)[keyof typeof CHARACTER_CALCULATION_CONTRIBUTION_STATE]
 
 export const CHARACTER_AUTHORED_SOURCE_KIND = {
+  ANCESTRY: 'ANCESTRY',
   BACKGROUND: 'BACKGROUND',
   CLASS: 'CLASS',
   FEAT: 'FEAT',
@@ -14,6 +15,7 @@ export const CHARACTER_AUTHORED_SOURCE_KIND = {
   OPTION: 'OPTION',
   RACE: 'RACE',
   SPELL: 'SPELL',
+  SUBRACE: 'SUBRACE',
   SUBCLASS: 'SUBCLASS'
 } as const
 
@@ -51,6 +53,27 @@ export type CharacterMechanicSourceRef =
       kind: 'MANUAL_ADJUSTMENT'
       adjustmentId: string
     }
+
+export function createCharacterMechanicSourceKey(source: CharacterMechanicSourceRef): string {
+  switch (source.kind) {
+    case 'AUTHORED':
+      return [source.kind, source.sourceKind, source.definitionId, source.sourceInstanceId]
+        .map(encodeURIComponent)
+        .join(':')
+    case 'EQUIPMENT_INSTANCE':
+      return [source.kind, source.equipmentId, source.itemInstanceId]
+        .map(encodeURIComponent)
+        .join(':')
+    case 'COMPANION_INSTANCE':
+      return [source.kind, source.creatureId, source.companionInstanceId]
+        .map(encodeURIComponent)
+        .join(':')
+    case 'SYSTEM':
+      return [source.kind, source.systemId].map(encodeURIComponent).join(':')
+    case 'MANUAL_ADJUSTMENT':
+      return [source.kind, source.adjustmentId].map(encodeURIComponent).join(':')
+  }
+}
 
 export interface CharacterCalculationContribution<T> {
   id: string

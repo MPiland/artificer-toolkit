@@ -14,6 +14,14 @@ import {
   type CharacterSheetProjectedMechanic
 } from './sheetMechanicsProjector.js'
 
+function numericCalculation(value: number) {
+  return {
+    base: value,
+    contributions: [],
+    effective: value
+  }
+}
+
 const engine: EngineCharacterOutput = {
   characterId: 'character-1',
   systemId: 'system-1',
@@ -40,14 +48,38 @@ const engine: EngineCharacterOutput = {
     },
     savingThrows: {},
     skillBonuses: {},
+    skillGoverningAbilities: {},
+    passiveChecks: {},
+    movementSpeeds: [],
     initiative: 3,
     armorClass: 15,
     maxHitPoints: 38,
     spellSaveDC: 15,
     spellAttackBonus: 7
   },
+  calculations: {
+    proficiencyBonus: numericCalculation(3),
+    abilityScores: {},
+    abilityModifiers: {},
+    savingThrowProficiencyLevels: {},
+    savingThrows: {},
+    skillGoverningAbilities: {},
+    skillProficiencyLevels: {},
+    skillBonuses: {},
+    passiveChecks: {},
+    movementSpeeds: {},
+    senseRanges: {},
+    initiative: numericCalculation(3),
+    armorClass: numericCalculation(15),
+    maxHitPoints: numericCalculation(38),
+    spellSaveDC: numericCalculation(15),
+    spellAttackBonus: numericCalculation(7)
+  },
   spellSlots: { maxByLevel: {}, fusionStrategy: 'SINGLE_CLASS' },
   resources: [],
+  spellMechanics: [],
+  itemMechanics: [],
+  companions: [],
   activeItemContributions: []
 }
 

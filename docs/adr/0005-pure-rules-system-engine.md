@@ -22,7 +22,7 @@ The engine consumes an assembled snapshot/registry rather than authored or datab
 
 Phase 00 adds a closed mechanical-adjustment input to snapshot assembly. Adjustment labels, source categories, notes, permissions, actors, timestamps, and panel semantics remain application/Sheet metadata and do not enter the engine. Rules-system policy owns adjustment ordering: authored/equipment/feature contributions first, additive manual contributions through normal stacking, and an absolute target override last. Adjusted upstream values feed downstream calculations unless a downstream target has its own absolute override.
 
-The same pure calculation must return both the effective value and its source-aware breakdown, including suppressed contributions retained for inspection. Effective totals and breakdowns are outputs and are never persisted as a parallel truth. This extension is approved architecture; engine implementation and precedence coverage are tracked in Phase 00 Branch 02.
+The same pure calculation returns both the effective value and its source-aware breakdown, including suppressed contributions retained for inspection. Effective totals and breakdowns are outputs and are never persisted as a parallel truth. Repeated spell sources, owned item instances, and companion instances retain independent calculation identities. Dice-based recovery accepts an injected random source so production can use a CSPRNG and tests can remain deterministic.
 
 ## Consequences
 

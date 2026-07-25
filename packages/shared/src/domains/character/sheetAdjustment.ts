@@ -206,6 +206,181 @@ export type CharacterSheetAdjustmentValue =
 export type CharacterSheetAdjustment = CharacterSheetAdjustmentMetadata &
   CharacterSheetAdjustmentValue
 
+/**
+ * Mechanical adjustment input accepted by the pure engine.
+ *
+ * Sheet labels, notes, actors, ownership, and timestamps are deliberately
+ * absent. Application services must use `toCharacterMechanicalAdjustment`
+ * rather than passing persisted adjustment records into a snapshot.
+ */
+type WithMechanicalAdjustmentId<T> = T extends CharacterSheetAdjustmentValue
+  ? T & { id: string }
+  : never
+
+export type CharacterMechanicalAdjustment =
+  WithMechanicalAdjustmentId<CharacterSheetAdjustmentValue>
+
+export function toCharacterMechanicalAdjustment(
+  adjustment: CharacterSheetAdjustment
+): CharacterMechanicalAdjustment {
+  switch (adjustment.family) {
+    case 'ABILITY':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        ability: adjustment.ability,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'SAVING_THROW':
+      if (adjustment.field === 'PROFICIENCY_OVERRIDE') {
+        return {
+          id: adjustment.id,
+          family: adjustment.family,
+          ability: adjustment.ability,
+          field: adjustment.field,
+          value: adjustment.value
+        }
+      }
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        ability: adjustment.ability,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'SKILL':
+      switch (adjustment.field) {
+        case 'GOVERNING_ABILITY_OVERRIDE':
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            skillId: adjustment.skillId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+        case 'PROFICIENCY_OVERRIDE':
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            skillId: adjustment.skillId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+        default:
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            skillId: adjustment.skillId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+      }
+    case 'PASSIVE':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        skillId: adjustment.skillId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'SENSE':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        senseId: adjustment.senseId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'MOVEMENT':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        speedId: adjustment.speedId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'HIT_POINTS':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'SPELL':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        source: { ...adjustment.source },
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'ITEM':
+      if (adjustment.value === true) {
+        return {
+          id: adjustment.id,
+          family: adjustment.family,
+          itemInstanceId: adjustment.itemInstanceId,
+          field: adjustment.field,
+          value: adjustment.value
+        }
+      }
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        itemInstanceId: adjustment.itemInstanceId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'COMPANION':
+      switch (adjustment.field) {
+        case 'ALIGNMENT_OVERRIDE':
+        case 'CREATURE_TYPE_OVERRIDE':
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            companionInstanceId: adjustment.companionInstanceId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+        case 'SIZE_OVERRIDE':
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            companionInstanceId: adjustment.companionInstanceId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+        default:
+          return {
+            id: adjustment.id,
+            family: adjustment.family,
+            companionInstanceId: adjustment.companionInstanceId,
+            field: adjustment.field,
+            value: adjustment.value
+          }
+      }
+    case 'DEFENSE':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        defenseKind: adjustment.defenseKind,
+        damageTypeId: adjustment.damageTypeId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+    case 'PROFICIENCY':
+      return {
+        id: adjustment.id,
+        family: adjustment.family,
+        proficiencyKind: adjustment.proficiencyKind,
+        targetId: adjustment.targetId,
+        field: adjustment.field,
+        value: adjustment.value
+      }
+  }
+}
+
 export type CharacterSheetAdjustmentWrite = CharacterSheetAdjustmentValue & {
   id: string
   characterId: string

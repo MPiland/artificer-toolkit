@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
+  getMovementPreference: vi.fn(),
   listAdjustments: vi.fn(),
   patchSheetState: vi.fn(),
   removeAdjustment: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       patchSheetState: mocks.patchSheetState
     }),
     createCharacterSheetAdjustmentRepository: () => ({
+      getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments,
       remove: mocks.removeAdjustment,
       upsert: mocks.upsertAdjustment
@@ -156,6 +158,8 @@ describe('executeCharacterSheetCommand', () => {
     mocks.findById.mockReset()
     mocks.findByCommandId.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.getMovementPreference.mockReset()
+    mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
     mocks.listAdjustments.mockResolvedValue([])
     mocks.removeAdjustment.mockReset()
@@ -193,24 +197,24 @@ describe('executeCharacterSheetCommand', () => {
       'character-1',
       [
         {
-      kind: 'HITPOINTS',
-      value: expect.objectContaining({ current: 7 })
+          kind: 'HITPOINTS',
+          value: expect.objectContaining({ current: 7 })
         }
       ],
       expect.objectContaining({
-      expectedStreamVersion: 1,
-      afterPersist: expect.any(Function)
+        expectedStreamVersion: 1,
+        afterPersist: expect.any(Function)
       })
     )
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-      type: 'CHARACTER_SHEET_COMMAND_APPLIED',
-      characterId: 'character-1',
-      actorId: 'user-1',
-      commandId: '00000000-0000-4000-8000-000000000001',
-      commandType: 'ADJUST_HIT_POINTS',
-      commandFingerprint: expect.any(String),
-      summary: '3 damage applied'
+        type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+        characterId: 'character-1',
+        actorId: 'user-1',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        commandType: 'ADJUST_HIT_POINTS',
+        commandFingerprint: expect.any(String),
+        summary: '3 damage applied'
       })
     )
     expect(response.streamVersion).toBe(2)
@@ -227,16 +231,16 @@ describe('executeCharacterSheetCommand', () => {
 
     await expect(
       executeCharacterSheetCommand({
-      db: db as unknown as DBLike,
-      characterId: 'character-1',
-      userId: 'user-1',
-      command: {
-        type: 'ADJUST_HIT_POINTS',
-        mode: 'DAMAGE',
-        amount: 1,
-        expectedVersion: 1,
-        commandId: '00000000-0000-4000-8000-000000000002'
-      }
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 1,
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000002'
+        }
       })
     ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
@@ -295,16 +299,16 @@ describe('executeCharacterSheetCommand', () => {
 
     await expect(
       executeCharacterSheetCommand({
-      db: db as unknown as DBLike,
-      characterId: 'character-1',
-      userId: 'user-1',
-      command: {
-        type: 'ADJUST_HIT_POINTS',
-        mode: 'DAMAGE',
-        amount: 4,
-        expectedVersion: 1,
-        commandId
-      }
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 4,
+          expectedVersion: 1,
+          commandId
+        }
       })
     ).rejects.toThrow('already used with different input')
     expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
@@ -319,16 +323,16 @@ describe('executeCharacterSheetCommand', () => {
 
     await expect(
       executeCharacterSheetCommand({
-      db: db as unknown as DBLike,
-      characterId: 'character-1',
-      userId: 'user-1',
-      command: {
-        type: 'ADJUST_HIT_POINTS',
-        mode: 'DAMAGE',
-        amount: 1,
-        expectedVersion: 1,
-        commandId: '00000000-0000-4000-8000-000000000003'
-      }
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 1,
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000003'
+        }
       })
     ).rejects.toMatchObject({ name: 'ConcurrencyError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
@@ -340,16 +344,16 @@ describe('executeCharacterSheetCommand', () => {
 
     await expect(
       executeCharacterSheetCommand({
-      db: db as unknown as DBLike,
-      characterId: 'character-1',
-      userId: 'user-1',
-      command: {
-        type: 'ADJUST_HIT_POINTS',
-        mode: 'DAMAGE',
-        amount: 1,
-        expectedVersion: 1,
-        commandId: '00000000-0000-4000-8000-000000000004'
-      }
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 1,
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000004'
+        }
       })
     ).rejects.toMatchObject({ name: 'CharacterSheetCommandError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()

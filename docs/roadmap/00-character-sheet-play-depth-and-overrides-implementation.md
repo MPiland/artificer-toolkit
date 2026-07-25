@@ -18,15 +18,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status    | Base SHA   | Delivery SHA | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | --------- | ---------- | ------------ | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `HANDOFF_READY` | `35f22cf6` | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `PLANNED` | pending    | pending      | N/A         | pending        | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED` | pending    | pending      | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `ACTIVE`     | `7454f314adcf` | pending        | N/A         | running        | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -71,7 +71,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | Generated DB types/bootstrap                 | green                                                                                               |
 | Structured SRD conversion                    | green — 311 structured records, zero legacy strings, and local seed completed                       |
 | Focused shared/schema/DB/Sheet tests         | green — 6 files and 112 tests                                                                       |
-| Character Sheet transaction/repository proof | green — round-trip, clear, movement, backfill, atomicity, rollback, and stale-version checks         |
+| Character Sheet transaction/repository proof | green — round-trip, clear, movement, backfill, atomicity, rollback, and stale-version checks        |
 | RLS policy proof                             | green — all 13 owner-scoped Sheet tables verified                                                   |
 | Affected typecheck                           | green — 8 tasks                                                                                     |
 | Focused type-aware lint                      | green — every changed TypeScript file, including all converted creature records                     |
@@ -81,7 +81,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 **Delivery SHA:** `75c44e1ed343`
 
 All non-timeout technical gates are green. The full working tree was backed up before formatter recovery; formatter-only churn was removed while preserving the 311 hit-die conversions and the 38 intentional tracked foundation files.
@@ -99,6 +99,69 @@ Branch 02 must consume the closed taxonomy and identity format here; it may not 
 **Entry:** Branch 01 is `INTEGRATED`; all adjustment fields and identity rules round-trip.
 
 **Exit:** Every family has precedence/clearing tests; upstream propagation, suppressed contributions, movement `AUTO`, per-source spell/item isolation, companion context, and deterministic injected RNG are green. Handoff records resolver interfaces, precedence matrix, breakdown shape, and fixtures.
+
+### Entry verification
+
+- Branch 01 was integrated at `7454f314adcf`; its adjustment taxonomy, source identities, persistence contracts, and handoff were reverified before engine changes.
+- The engine receives only the mechanical projection of each adjustment. Sheet labels, notes, actors, timestamps, authorization, and presentation remain outside the snapshot.
+- The checked-in deployed bootstrap migration was brought back into parity with the canonical generated bootstrap after the Branch 01 adjustment tables were found missing from that artifact.
+
+### Delivered scope
+
+- Pure numeric and selection resolvers now produce effective values and calculation breakdowns from the same calculation.
+- Authored, equipment, and feature contributions retain stable source provenance through grant application and modifier resolution.
+- Manual additions participate in normal rules calculation; absolute target overrides apply last and retain suppressed contributions for inspection.
+- Adjusted abilities and proficiency levels propagate into saving throws, skills, passive checks, spell attacks/DCs, HP maximums, and resource maximums unless the downstream target has its own absolute override.
+- Passive checks and movement selection are rules-system policies. D&D 5e 2014 `AUTO` selects walking when available and otherwise the first backend-ordered available movement.
+- Spell mechanics resolve by persisted spell-source identity; item mechanics resolve by owned-item instance; companion calculations use an isolated companion context.
+- Dice-based recovery uses an injected random source and returns canonical die results from a pure resolver.
+- Sheet services hydrate adjustments and movement preferences, delegate totals to the engine, and return engine-authored breakdowns instead of repeating proficiency or passive arithmetic.
+
+### Deferred scope
+
+- Panel-facing DTO variants and commands: Branches 03–06.
+- Item authored-attack projection, resource recovery commands, and Sheet-authorized spell management: Branch 04.
+- Companion lifecycle and persistence orchestration: Branch 05.
+- Rest preview/apply orchestration and transactional recovery: Branch 06.
+
+### Decisions and invariants
+
+- The pure precedence order is authored/equipment/feature contributions, manual additions, then one absolute target override.
+- A hard target override suppresses target contributions for display but does not delete them or their stored manual additions.
+- Governing ability and proficiency adjustments resolve before their dependent total.
+- Every calculation contribution carries a typed source identity and applied or suppressed state.
+- Spell definition IDs, item definition IDs, and creature definition IDs are not sufficient runtime identities for repeated owned sources.
+- HP maximum starts from the authored engine maximum; an adjusted Constitution contributes its level-scaled delta before an HP maximum adjustment or override.
+- Randomness is an injected boundary. Engine tests never depend on ambient `Math.random`.
+- No derived total is written to Sheet persistence.
+
+### Acceptance and validation
+
+| Gate                                | Result                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Adjustment precedence/clearing      | green — focused engine suite, 10 tests                                                                        |
+| Shared package test/build           | green — 23 files, 164 tests; build green                                                                      |
+| Functions orchestration tests       | green — 4 focused files, 21 tests                                                                             |
+| Web regression tests                | green — 103 files, 613 tests                                                                                  |
+| Bootstrap artifact parity           | green — 6 tests                                                                                               |
+| Affected typecheck                  | green — 8 tasks                                                                                               |
+| Affected tests                      | green — 8 tasks across web, functions, DB, shared, schema, and dependent packages                             |
+| Type-aware lint                     | green — shared package and every changed functions/web file                                                   |
+| Untouched lint baseline             | existing blockers remain in two functions files and four web files outside this branch; no changed file fails |
+| Engine metadata-boundary inspection | green — no Sheet label, note, actor, or timestamp enters engine code                                          |
+| `git diff --check`                  | green                                                                                                         |
+
+### Handoff
+
+**Status:** active
+
+**Delivery SHA:** pending
+
+- Resolver entry points: `resolveNumericCalculation`, `resolveSelectionCalculation`, `calculateAdjustedDerivedStats`, `resolveSheetSubjectMechanics`, and the existing engine kernel.
+- Breakdown shape: typed calculation identity, effective value, ordered contributions, applied/suppressed state, and typed mechanical source reference.
+- Provenance rule: authored acquisitions and grants use source kind plus stable persisted source record; owned items and companions use instance UUIDs.
+- Deterministic RNG fixture: a sequence-backed `CharacterDiceRandomSource` verifies canonical rolls and results without ambient randomness.
+- Panel-facing gap: Branch 03 must project these engine outputs into explicit panel DTO variants and must not recalculate totals in functions, APIs, or web.
 
 ## Branch 03 — Inspector shell and core-stat panels
 

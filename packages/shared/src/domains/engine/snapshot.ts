@@ -1,4 +1,13 @@
-import type { CompiledEquipment, CompiledEquipmentVariant } from '../subjects/compilers/equipment.js'
+import type {
+  CompiledEquipment,
+  CompiledEquipmentVariant
+} from '../subjects/compilers/equipment.js'
+import type {
+  CharacterMechanicalAdjustment,
+  CharacterMovementDisplayPreference
+} from '../character/sheetAdjustment.js'
+import type { CharacterSpellSourceRef } from '../character/sheetResource.js'
+import type { SizeCode } from '../core/size.js'
 import type {
   CharacterAcquisitionTiming,
   CharacterChosenGrantSelectionRecord,
@@ -6,9 +15,7 @@ import type {
   CharacterProvenance
 } from '../subjects/authored/character/intent.js'
 
-export type ContentRevisionBinding =
-  | { kind: 'ACTIVE' }
-  | { kind: 'REVISION', revisionId: string }
+export type ContentRevisionBinding = { kind: 'ACTIVE' } | { kind: 'REVISION'; revisionId: string }
 
 /** Stable definition identity plus the revision-binding policy used for resolution. */
 export interface ContentRef {
@@ -22,13 +29,13 @@ export interface ContentRef {
  * A character may have at most one item in ARMOR, one in SHIELD, one in MAIN_HAND,
  * one in OFF_HAND, two in RING (position 1 and 2), and any number in GENERIC.
  */
-export type EquippedState
-  = | { slot: 'ARMOR' }
-    | { slot: 'SHIELD' }
-    | { slot: 'MAIN_HAND' }
-    | { slot: 'OFF_HAND' }
-    | { slot: 'RING', position: 1 | 2 }
-    | { slot: 'GENERIC' }
+export type EquippedState =
+  | { slot: 'ARMOR' }
+  | { slot: 'SHIELD' }
+  | { slot: 'MAIN_HAND' }
+  | { slot: 'OFF_HAND' }
+  | { slot: 'RING'; position: 1 | 2 }
+  | { slot: 'GENERIC' }
 
 /**
  * An owned copy of a piece of equipment in the character's inventory.
@@ -42,6 +49,17 @@ export interface OwnedEquipmentInstance {
   quantity: number
   /** Present only when the item is equipped to a slot */
   equippedState?: EquippedState
+}
+
+export interface CharacterCompanionCalculationInput {
+  companionInstanceId: string
+  creatureId: string
+  abilityScores: Record<string, number>
+  armorClass: number
+  maxHitPoints: number
+  size?: SizeCode
+  alignmentId?: string
+  creatureTypeId?: string
 }
 
 /**
@@ -96,4 +114,10 @@ export interface CharacterBuildSnapshot {
     attuned: boolean
     compiledItem: CompiledEquipment | CompiledEquipmentVariant
   }>
+
+  /** Sheet-owned mechanical intent only; persisted labels and notes never enter the engine. */
+  adjustments?: CharacterMechanicalAdjustment[]
+  movementDisplayPreference?: CharacterMovementDisplayPreference
+  spellSources?: CharacterSpellSourceRef[]
+  companions?: CharacterCompanionCalculationInput[]
 }
