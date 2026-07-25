@@ -19,7 +19,11 @@ export const flyingSnake: CreatureAuthored = {
     },
     armorClass: 14,
     hitPoints: 5,
-    hitDice: '2d4',
+    hitDice: {
+      count: 2,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.fly(60), ...S.swim(30)],
     senses: ['blindsight 10 ft.'],
     passivePerception: 11,

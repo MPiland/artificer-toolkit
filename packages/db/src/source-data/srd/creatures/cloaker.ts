@@ -21,7 +21,11 @@ export const cloaker: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 78,
-    hitDice: '12d10+12',
+    hitDice: {
+      count: 12,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(10), ...S.fly(40)],
     proficiencies: [
         S.grantedSkillProficiency(9141, 1, 'STEALTH')

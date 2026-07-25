@@ -20,7 +20,11 @@ export const clayGolem: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 133,
-    hitDice: '14d10+56',
+    hitDice: {
+      count: 14,
+      die: 10,
+      modifier: 56,
+    },
     speeds: [...S.walk(20)],
     damageImmunities: [
         'acid',

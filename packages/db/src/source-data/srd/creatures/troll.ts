@@ -20,7 +20,11 @@ export const troll: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 84,
-    hitDice: '8d10+40',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 40,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(274, 1, 'PERCEPTION'),

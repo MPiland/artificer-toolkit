@@ -19,7 +19,11 @@ export const bloodHawk: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 7,
-    hitDice: '2d6',
+    hitDice: {
+      count: 2,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(10), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(49, 1, 'PERCEPTION')

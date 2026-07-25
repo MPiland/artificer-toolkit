@@ -20,7 +20,11 @@ export const plesiosaurus: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 68,
-    hitDice: '8d10+24',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 24,
+    },
     speeds: [...S.walk(20), ...S.swim(40)],
     proficiencies: [
         S.grantedSkillProficiency(221, 1, 'PERCEPTION', 'STEALTH')

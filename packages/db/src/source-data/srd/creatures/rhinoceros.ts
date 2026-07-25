@@ -20,7 +20,11 @@ export const rhinoceros: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 45,
-    hitDice: '6d10+12',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 11,
     challengeRatingId: S.CR.CR_2,

@@ -21,7 +21,11 @@ export const magmin: CreatureAuthored = {
   armorClass: 14,
   armorClassNote: 'natural armor',
   hitPoints: 9,
-  hitDice: '2d6+2',
+  hitDice: {
+    count: 2,
+    die: 6,
+    modifier: 2,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [S.grantedLanguageProficiency(3713, 1, 'IGNAN')],
   damageResistances: ['bludgeoning', 'piercing', 'slashing'],

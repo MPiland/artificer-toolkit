@@ -20,7 +20,11 @@ export const tribalWarrior: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'hide armor',
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(30)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_1_8,

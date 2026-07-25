@@ -20,7 +20,11 @@ export const oni: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'chain mail',
     hitPoints: 110,
-    hitDice: '13d10+39',
+    hitDice: {
+      count: 13,
+      die: 10,
+      modifier: 39,
+    },
     speeds: [...S.walk(30), ...S.fly(30)],
     proficiencies: [
         S.grantedSkillProficiency(3186, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION'),

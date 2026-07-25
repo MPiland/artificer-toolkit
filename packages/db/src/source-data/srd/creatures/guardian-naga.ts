@@ -20,7 +20,11 @@ export const guardianNaga: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 127,
-    hitDice: '15d10+45',
+    hitDice: {
+      count: 15,
+      die: 10,
+      modifier: 45,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSaveProficiency(156, 1, 'DEXTERITY', 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

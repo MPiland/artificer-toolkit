@@ -19,7 +19,11 @@ export const xorn: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 73,
-    hitDice: '7d8+42',
+    hitDice: {
+      count: 7,
+      die: 8,
+      modifier: 42,
+    },
     speeds: [...S.walk(20), ...S.burrow(20)],
     proficiencies: [
         S.grantedSkillProficiency(300, 1, 'PERCEPTION', 'STEALTH'),

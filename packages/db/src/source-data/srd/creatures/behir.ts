@@ -22,7 +22,11 @@ export const behir: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 168,
-  hitDice: '16d12+64',
+  hitDice: {
+    count: 16,
+    die: 12,
+    modifier: 64,
+  },
   speeds: [...S.walk(50), ...S.climb(40)],
   proficiencies: [
     S.grantedSkillProficiency(43, 1, 'PERCEPTION', 'STEALTH'),

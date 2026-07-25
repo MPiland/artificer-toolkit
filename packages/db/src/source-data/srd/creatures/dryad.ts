@@ -20,7 +20,11 @@ export const dryad: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: '16 with barkskin',
     hitPoints: 22,
-    hitDice: '5d8',
+    hitDice: {
+      count: 5,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(90, 1, 'PERCEPTION', 'STEALTH'),

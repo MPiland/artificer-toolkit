@@ -20,7 +20,11 @@ export const giantSeaHorse: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 16,
-    hitDice: '3d10',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 0,
+    },
     speeds: [...S.walk(0), ...S.swim(40)],
     passivePerception: 11,
     challengeRatingId: S.CR.CR_1_2,

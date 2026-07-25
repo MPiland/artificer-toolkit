@@ -20,7 +20,11 @@ export const wyvern: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 110,
-    hitDice: '13d10+39',
+    hitDice: {
+      count: 13,
+      die: 10,
+      modifier: 39,
+    },
     speeds: [...S.walk(20), ...S.fly(80)],
     proficiencies: [
         S.grantedSkillProficiency(299, 1, 'PERCEPTION')

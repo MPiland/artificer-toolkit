@@ -21,7 +21,11 @@ export const ankheg: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 39,
-    hitDice: '6d10+6',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 6,
+    },
     speeds: [...S.walk(30), ...S.burrow(10)],
     senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],
     passivePerception: 11,

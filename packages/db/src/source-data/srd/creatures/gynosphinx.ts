@@ -21,7 +21,11 @@ export const gynosphinx: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 136,
-  hitDice: '16d10+48',
+  hitDice: {
+    count: 16,
+    die: 10,
+    modifier: 48,
+  },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
     S.grantedSkillProficiency(3029, 1, 'ARCANA', 'HISTORY', 'PERCEPTION', 'RELIGION'),

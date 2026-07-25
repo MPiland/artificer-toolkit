@@ -22,7 +22,11 @@ export const tyrannosaurusRex: CreatureAuthored = {
   armorClass: 13,
   armorClassNote: 'natural armor',
   hitPoints: 136,
-  hitDice: '13d12+52',
+  hitDice: {
+    count: 13,
+    die: 12,
+    modifier: 52,
+  },
   speeds: [...S.walk(50)],
   proficiencies: [
     S.grantedSkillProficiency(275, 1, 'PERCEPTION')

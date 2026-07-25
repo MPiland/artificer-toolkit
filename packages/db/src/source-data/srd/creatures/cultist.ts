@@ -20,7 +20,11 @@ export const cultist: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'leather armor',
     hitPoints: 9,
-    hitDice: '2d8',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(75, 1, 'DECEPTION', 'RELIGION')

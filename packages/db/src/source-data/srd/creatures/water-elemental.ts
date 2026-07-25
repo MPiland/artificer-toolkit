@@ -20,7 +20,11 @@ export const waterElemental: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 114,
-    hitDice: '12d10+48',
+    hitDice: {
+      count: 12,
+      die: 10,
+      modifier: 48,
+    },
     speeds: [...S.walk(30), ...S.swim(90)],
     damageImmunities: ['poison'],
     conditionImmunities: ['exhaustion', 'grappled', 'paralyzed', 'petrified', 'poisoned', 'prone', 'restrained', 'unconscious'],

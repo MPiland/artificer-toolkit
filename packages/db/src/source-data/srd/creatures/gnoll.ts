@@ -22,7 +22,11 @@ export const gnoll: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'hide armor, shield',
   hitPoints: 22,
-  hitDice: '5d8',
+  hitDice: {
+    count: 5,
+    die: 8,
+    modifier: 0,
+  },
   speeds: [...S.walk(30)],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,

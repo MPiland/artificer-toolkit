@@ -20,7 +20,11 @@ export const treant: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'natural armor',
     hitPoints: 138,
-    hitDice: '12d12+60',
+    hitDice: {
+      count: 12,
+      die: 12,
+      modifier: 60,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(6752, 1, 'PERCEPTION')

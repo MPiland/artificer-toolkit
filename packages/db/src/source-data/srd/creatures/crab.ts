@@ -20,7 +20,11 @@ export const crab: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(20), ...S.swim(20)],
     proficiencies: [
         S.grantedSkillProficiency(72, 1, 'STEALTH')

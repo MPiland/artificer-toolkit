@@ -21,7 +21,11 @@ export const sahuagin: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 22,
-    hitDice: '4d8+4',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(30), ...S.swim(40)],
     proficiencies: [
         S.grantedSkillProficiency(243, 1, 'PERCEPTION'),

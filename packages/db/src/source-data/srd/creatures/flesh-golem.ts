@@ -18,7 +18,11 @@ export const fleshGolem: CreatureAuthored = {
     },
     armorClass: 9,
     hitPoints: 93,
-    hitDice: '11d8+44',
+    hitDice: {
+      count: 11,
+      die: 8,
+      modifier: 44,
+    },
     speeds: [...S.walk(30)],
     damageImmunities: ["lightning, poison; bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"],
     conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'petrified', 'poisoned'],

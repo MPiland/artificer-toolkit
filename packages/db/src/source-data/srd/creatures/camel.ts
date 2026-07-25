@@ -19,7 +19,11 @@ export const camel: CreatureAuthored = {
     },
     armorClass: 9,
     hitPoints: 15,
-    hitDice: '2d10+4',
+    hitDice: {
+      count: 2,
+      die: 10,
+      modifier: 4,
+    },
     speeds: [...S.walk(50)],
     passivePerception: 9,
     challengeRatingId: S.CR.CR_1_8,

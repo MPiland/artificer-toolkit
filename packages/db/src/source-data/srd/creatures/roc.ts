@@ -21,7 +21,11 @@ export const roc: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 248,
-    hitDice: '16d20+80',
+    hitDice: {
+      count: 16,
+      die: 20,
+      modifier: 80,
+    },
     speeds: [...S.walk(20), ...S.fly(120)],
     proficiencies: [
         S.grantedSaveProficiency(238, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

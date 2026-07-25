@@ -20,7 +20,11 @@ export const iceDevil: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 180,
-    hitDice: '19d10+76',
+    hitDice: {
+      count: 19,
+      die: 10,
+      modifier: 76,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSaveProficiency(8846, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

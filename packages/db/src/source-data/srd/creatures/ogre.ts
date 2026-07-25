@@ -20,7 +20,11 @@ export const ogre: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'hide armor',
     hitPoints: 59,
-    hitDice: '7d10+21',
+    hitDice: {
+      count: 7,
+      die: 10,
+      modifier: 21,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedLanguageProficiency(209, 1, 'COMMON', 'GIANT')

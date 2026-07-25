@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
+import { detailDtoSchema, diceExpressionDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { costDtoSchema } from './shared.js'
@@ -66,7 +66,7 @@ const creatureAuthoredDtoSchemaBase = z.object({
   armorClass: z.number().int().nonnegative(),
   armorClassNote: z.string().optional(),
   hitPoints: z.number().int().nonnegative(),
-  hitDice: z.string().optional(),
+  hitDice: diceExpressionDtoSchema.optional(),
   speeds: z.array(speedDtoSchema),
   senses: z.array(z.string()).optional(),
   passivePerception: z.number().optional(),

@@ -20,7 +20,11 @@ export const youngBlueDragon: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 152,
-    hitDice: '16d10+64',
+    hitDice: {
+      count: 16,
+      die: 10,
+      modifier: 64,
+    },
     speeds: [...S.walk(40), ...S.burrow(20), ...S.fly(80)],
     proficiencies: [
         S.grantedSaveProficiency(302, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

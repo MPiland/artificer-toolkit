@@ -19,7 +19,11 @@ export const sprite: CreatureAuthored = {
     },
     armorClass: 15,
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(10), ...S.fly(40)],
     proficiencies: [
         S.grantedSkillProficiency(9803, 1, 'PERCEPTION', 'STEALTH')

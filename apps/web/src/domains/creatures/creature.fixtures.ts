@@ -25,11 +25,11 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
     CONSTITUTION: 17,
     INTELLIGENCE: 3,
     WISDOM: 12,
-    CHARISMA: 7,
+    CHARISMA: 7
   },
   armorClass: 13,
   hitPoints: 68,
-  hitDice: '7d10 + 21',
+  hitDice: { count: 7, die: 10, modifier: 21 },
   speeds: [{ speedId: 'walk', amount: 40, unit: 'FEET' }],
   senses: ['darkvision 60 ft.'],
   passivePerception: 13,
@@ -63,7 +63,7 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
       order: 3
     }
   ],
-  proficiencies: [],
+  proficiencies: []
 }
 
 export const beastMountFixture: CreatureAuthoredDto = {
@@ -298,22 +298,40 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Basics',
           order: 10,
           nodes: [
-            selectNode('category', ['category'], 'Category', [
+            selectNode(
+              'category',
+              ['category'],
+              'Category',
+              [
               { value: 'MONSTER', label: 'Monster' },
               { value: 'BEAST', label: 'Beast' },
               { value: 'NPC', label: 'NPC' },
               { value: 'COMPANION', label: 'Companion' },
               { value: 'SUMMON', label: 'Summon' }
-            ], true),
-            selectNode('creatureTypeId', ['creatureTypeId'], 'Creature Type', [
+              ],
+              true
+            ),
+            selectNode(
+              'creatureTypeId',
+              ['creatureTypeId'],
+              'Creature Type',
+              [
               { value: 'beast', label: 'Beast' },
               { value: 'humanoid', label: 'Humanoid' },
               { value: 'monstrosity', label: 'Monstrosity' }
-            ], true),
-            selectNode('alignmentId', ['alignmentId'], 'Alignment', [
+              ],
+              true
+            ),
+            selectNode(
+              'alignmentId',
+              ['alignmentId'],
+              'Alignment',
+              [
               { value: 'unaligned', label: 'Unaligned' },
               { value: 'neutral', label: 'Neutral' }
-            ], false)
+              ],
+              false
+            )
           ]
         }
       ]
@@ -328,11 +346,17 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Stats',
           order: 20,
           nodes: [
-            selectNode('speedId', ['speeds', 'speedId'], 'Speed', [
+            selectNode(
+              'speedId',
+              ['speeds', 'speedId'],
+              'Speed',
+              [
               { value: 'walk', label: 'Walk' },
               { value: 'swim', label: 'Swim' },
               { value: 'fly', label: 'Fly' }
-            ], false)
+              ],
+              false
+            )
           ]
         }
       ]
@@ -347,23 +371,56 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Defenses',
           order: 30,
           nodes: [
-            selectNode('challengeRatingId', ['challengeRatingId'], 'Challenge Rating', [
+            selectNode(
+              'challengeRatingId',
+              ['challengeRatingId'],
+              'Challenge Rating',
+              [
               { value: 'cr-1-4', label: '1/4' },
               { value: 'cr-3', label: '3' }
-            ], false),
-            selectNode('damageVulnerabilities', ['damageVulnerabilities'], 'Damage Vulnerabilities', [
+              ],
+              false
+            ),
+            selectNode(
+              'damageVulnerabilities',
+              ['damageVulnerabilities'],
+              'Damage Vulnerabilities',
+              [
               { value: 'fire', label: 'Fire' },
               { value: 'cold', label: 'Cold' }
-            ], false, 'SELECT_MULTI'),
-            selectNode('damageResistances', ['damageResistances'], 'Damage Resistances', [
+              ],
+              false,
+              'SELECT_MULTI'
+            ),
+            selectNode(
+              'damageResistances',
+              ['damageResistances'],
+              'Damage Resistances',
+              [
               { value: 'fire', label: 'Fire' },
               { value: 'cold', label: 'Cold' }
-            ], false, 'SELECT_MULTI'),
-            selectNode('damageImmunities', ['damageImmunities'], 'Damage Immunities', [{ value: 'poison', label: 'Poison' }], false, 'SELECT_MULTI'),
-            selectNode('conditionImmunities', ['conditionImmunities'], 'Condition Immunities', [
+              ],
+              false,
+              'SELECT_MULTI'
+            ),
+            selectNode(
+              'damageImmunities',
+              ['damageImmunities'],
+              'Damage Immunities',
+              [{ value: 'poison', label: 'Poison' }],
+              false,
+              'SELECT_MULTI'
+            ),
+            selectNode(
+              'conditionImmunities',
+              ['conditionImmunities'],
+              'Condition Immunities',
+              [
               { value: 'charmed', label: 'Charmed' },
               { value: 'poisoned', label: 'Poisoned' }
-            ], false)
+              ],
+              false
+            )
           ]
         }
       ]
@@ -378,10 +435,16 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Profiles',
           order: 60,
           nodes: [
-            selectNode('currencyId', ['cost', 'currencyId'], 'Currency', [
+            selectNode(
+              'currencyId',
+              ['cost', 'currencyId'],
+              'Currency',
+              [
               { value: 'gold', label: 'Gold' },
               { value: 'silver', label: 'Silver' }
-            ], false)
+              ],
+              false
+            )
           ]
         }
       ]

@@ -19,7 +19,11 @@ export const saberToothedTiger: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 52,
-    hitDice: '7d10+14',
+    hitDice: {
+      count: 7,
+      die: 10,
+      modifier: 14,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(242, 1, 'PERCEPTION', 'STEALTH')

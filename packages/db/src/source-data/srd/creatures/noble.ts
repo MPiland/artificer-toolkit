@@ -21,7 +21,11 @@ export const noble: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'breastplate',
   hitPoints: 9,
-  hitDice: '2d8',
+  hitDice: {
+    count: 2,
+    die: 8,
+    modifier: 0,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_8,
   xp: 25

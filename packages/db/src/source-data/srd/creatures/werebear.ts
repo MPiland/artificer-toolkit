@@ -20,7 +20,11 @@ export const werebear: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 135,
-    hitDice: '18d8+54',
+    hitDice: {
+      count: 18,
+      die: 8,
+      modifier: 54,
+    },
     speeds: [...S.walk(30)],
     damageImmunities: ['bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'],
     proficiencies: [

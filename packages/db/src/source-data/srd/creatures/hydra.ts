@@ -21,7 +21,11 @@ export const hydra: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 172,
-  hitDice: '15d12+75',
+  hitDice: {
+    count: 15,
+    die: 12,
+    modifier: 75,
+  },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [
     S.grantedSkillProficiency(169, 1, 'PERCEPTION')

@@ -19,7 +19,11 @@ export const raven: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(10), ...S.fly(50)],
     proficiencies: [
         S.grantedSkillProficiency(232, 1, 'PERCEPTION')

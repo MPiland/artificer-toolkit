@@ -38,6 +38,10 @@ Current structural selections use stable authored-definition IDs and resolve aga
 
 The output includes derived ability scores/modifiers, saving throws, skills, initiative, armor class, max hit points, proficiencies, senses, spell state/slots, resources, and item provenance. Re-running identical inputs must produce identical output.
 
+## Phase 00 adjustment extension (approved target)
+
+Branch 01 defines the closed adjustment and breakdown primitives plus persistence but does not yet alter `runEngine`. Branch 02 will add mechanical adjustment values to snapshot assembly, preserve contribution identity through accumulation, apply additive values through normal rules policy, apply absolute target overrides last, and return effective values plus breakdowns from the same pure calculation. Source labels/categories/notes, actors, permissions, and presentation remain outside engine input.
+
 ## Rules-system and encounter boundaries
 
 Application orchestration resolves the system's `rulesetCode` and `rulesetVersion` through the fail-closed rules registry before calling the engine. An unsupported identity is an error, never a fallback to D&D.

@@ -19,7 +19,11 @@ export const poisonousSnake: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     senses: ['blindsight 10 ft.'],
     passivePerception: 10,

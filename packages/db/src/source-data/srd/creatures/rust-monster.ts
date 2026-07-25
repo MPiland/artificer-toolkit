@@ -20,7 +20,11 @@ export const rustMonster: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 27,
-    hitDice: '5d8+5',
+    hitDice: {
+      count: 5,
+      die: 8,
+      modifier: 5,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_1_2,

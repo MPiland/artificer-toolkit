@@ -21,7 +21,11 @@ export const hezrou: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'natural armor',
     hitPoints: 136,
-    hitDice: '13d10+65',
+    hitDice: {
+      count: 13,
+      die: 10,
+      modifier: 65,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(162, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM'),

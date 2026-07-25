@@ -21,7 +21,11 @@ export const youngCopperDragon: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 119,
-  hitDice: '14d10+42',
+  hitDice: {
+    count: 14,
+    die: 10,
+    modifier: 42,
+  },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
   proficiencies: [
     S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'PERCEPTION', 'STEALTH')

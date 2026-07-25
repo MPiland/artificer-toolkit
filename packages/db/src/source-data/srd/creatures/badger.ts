@@ -19,7 +19,11 @@ export const badger: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 3,
-    hitDice: '1d4+1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 1,
+    },
     speeds: [...S.walk(20), ...S.burrow(5)],
     senses: ['darkvision 30 ft.'],
     passivePerception: 11,

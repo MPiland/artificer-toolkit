@@ -20,7 +20,11 @@ export const vampireSpawn: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 82,
-    hitDice: '11d8+33',
+    hitDice: {
+      count: 11,
+      die: 8,
+      modifier: 33,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(1668, 1, 'PERCEPTION', 'STEALTH')

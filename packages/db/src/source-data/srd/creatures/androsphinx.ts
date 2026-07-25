@@ -21,7 +21,11 @@ export const androsphinx: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 199,
-  hitDice: '19d10+95',
+  hitDice: {
+    count: 19,
+    die: 10,
+    modifier: 95,
+  },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
     S.grantedSaveProficiency(24, 1, 'DEXTERITY', 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

@@ -21,7 +21,11 @@ export const willOWisp: CreatureAuthored = {
     },
     armorClass: 19,
     hitPoints: 22,
-    hitDice: '9d4',
+    hitDice: {
+      count: 9,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(0), ...S.fly(50)],
     damageResistances: ['acid, cold, fire, necrotic, thunder; bludgeoning, piercing, and slashing from nonmagical attacks'],
     damageImmunities: ['lightning', 'poison'],

@@ -20,7 +20,11 @@ export const ape: CreatureAuthored = {
   },
   armorClass: 12,
   hitPoints: 19,
-  hitDice: '3d8+6',
+  hitDice: {
+    count: 3,
+    die: 8,
+    modifier: 6,
+  },
   speeds: [...S.walk(30), ...S.climb(30)],
   proficiencies: [
     S.grantedSkillProficiency(27, 1, 'ATHLETICS', 'PERCEPTION')

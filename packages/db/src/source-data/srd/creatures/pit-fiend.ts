@@ -22,7 +22,11 @@ export const pitFiend: CreatureAuthored = {
   armorClass: 19,
   armorClassNote: 'natural armor',
   hitPoints: 300,
-  hitDice: '24d10+168',
+  hitDice: {
+    count: 24,
+    die: 10,
+    modifier: 168,
+  },
   speeds: [...S.walk(30), ...S.fly(60)],
   proficiencies: [
     S.grantedSaveProficiency(8042, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM'),

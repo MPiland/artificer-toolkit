@@ -19,7 +19,11 @@ export const werewolf: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 58,
-    hitDice: '9d8+18',
+    hitDice: {
+      count: 9,
+      die: 8,
+      modifier: 18,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(291, 1, 'PERCEPTION', 'STEALTH')

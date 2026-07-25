@@ -20,7 +20,11 @@ export const medusa: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 127,
-    hitDice: '17d8+51',
+    hitDice: {
+      count: 17,
+      die: 8,
+      modifier: 51,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(194, 1, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'STEALTH'),

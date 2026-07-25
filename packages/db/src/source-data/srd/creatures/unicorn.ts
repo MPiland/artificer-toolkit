@@ -19,7 +19,11 @@ export const unicorn: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 67,
-    hitDice: '9d10+18',
+    hitDice: {
+      count: 9,
+      die: 10,
+      modifier: 18,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedLanguageProficiency(276, 1, 'CELESTIAL', 'ELVISH', 'SYLVAN')

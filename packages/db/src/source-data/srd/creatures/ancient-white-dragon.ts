@@ -21,7 +21,11 @@ export const ancientWhiteDragon: CreatureAuthored = {
   armorClass: 20,
   armorClassNote: 'natural armor',
   hitPoints: 333,
-  hitDice: '18d20+144',
+  hitDice: {
+    count: 18,
+    die: 20,
+    modifier: 144,
+  },
   speeds: [
     ...S.walk(40), ...S.burrow(40), ...S.fly(80), ...S.swim(40)
   ],

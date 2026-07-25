@@ -21,7 +21,11 @@ export const druid: CreatureAuthored = {
   armorClass: 11,
   armorClassNote: 'leather armor',
   hitPoints: 27,
-  hitDice: '5d8+5',
+  hitDice: {
+    count: 5,
+    die: 8,
+    modifier: 5,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_2,
   xp: 450

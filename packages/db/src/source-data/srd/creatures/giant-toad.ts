@@ -20,7 +20,11 @@ export const giantToad: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 39,
-    hitDice: '6d10+6',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 6,
+    },
     speeds: [...S.walk(20), ...S.swim(40)],
     senses: ['darkvision 30 ft.'],
     passivePerception: 10,

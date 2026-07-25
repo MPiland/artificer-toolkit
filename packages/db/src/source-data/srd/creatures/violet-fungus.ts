@@ -20,7 +20,11 @@ export const violetFungus: CreatureAuthored = {
   },
   armorClass: 5,
   hitPoints: 18,
-  hitDice: '4d8',
+  hitDice: {
+    count: 4,
+    die: 8,
+    modifier: 0,
+  },
   speeds: [...S.walk(5)],
   conditionImmunities: ['blinded', 'deafened', 'frightened'],
   senses: ['blindsight 30 ft. (blind beyond this radius)'],

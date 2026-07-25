@@ -19,7 +19,11 @@ export const commoner: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 4,
-    hitDice: '1d8',
+    hitDice: {
+      count: 1,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_0,

@@ -22,7 +22,11 @@ export const marilith: CreatureAuthored = {
   armorClass: 18,
   armorClassNote: 'natural armor',
   hitPoints: 189,
-  hitDice: '18d10+90',
+  hitDice: {
+    count: 18,
+    die: 10,
+    modifier: 90,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSaveProficiency(3284, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

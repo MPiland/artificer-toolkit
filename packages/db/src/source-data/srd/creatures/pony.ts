@@ -19,7 +19,11 @@ export const pony: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_1_8,

@@ -21,7 +21,11 @@ export const youngSilverDragon: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 168,
-    hitDice: '16d10+80',
+    hitDice: {
+      count: 16,
+      die: 10,
+      modifier: 80,
+    },
     speeds: [...S.walk(40), ...S.fly(80)],
     proficiencies: [
         S.grantedSaveProficiency(309, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

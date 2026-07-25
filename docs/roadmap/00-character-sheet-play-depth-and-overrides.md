@@ -1,6 +1,6 @@
 # Phase 00 — Character Sheet play depth and overrides
 
-> **Status:** planned
+> **Status:** active — tracked in the [Phase 00 implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md)
 > **Depends on:** current authenticated Character Builder, Sheet, engine, and web baseline
 > **Unlocks:** transparent Character inspection, complete web play controls, portable Sheet panels, native Sheet parity, and future Campaign GM inspection
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 portable semantics](../adr/0010-platform-neutral-design-system.md)
@@ -19,13 +19,13 @@ The reference captures are a capability baseline only. Artificer Toolkit keeps t
 - Character owners are the only adjustment, customization, and preference editors in this phase.
 - Future authorized Campaign GMs may inspect effective values, adjustment indicators, source notes, and calculation breakdowns. Campaign authority does not grant adjustment-edit permission unless a later phase explicitly adds it.
 - The web client ships the first panel adapter. Phase 02 consumes the same contracts through a native adapter.
-- Backend contracts own semantic panel facts, family-specific content ordering, editability, valid options, commands, validation, and concurrency metadata. Clients own overlay geometry, focus management, component choice, responsive composition, and pending or staged interaction state.
+- Backend contracts own semantic panel facts, family-specific content ordering, editability, valid options, commands, validation, and concurrency metadata. Clients own overlay geometry, focus management, component choice, responsive composition, and transient pending/error state.
 - Movement display supports `AUTO` or an explicit available movement type. `AUTO` selects walking when available and otherwise uses the first backend-ordered available movement.
-- Multi-field customization is staged and saved explicitly. Atomic usage controls such as spending one charge may submit immediately.
+- There is no Sheet Save action. Text and numeric fields commit on blur or Enter; selects, toggles, clears, additions, removals, HP/resource use, and condition changes commit immediately. Rest selections remain a preview until the player takes the rest.
 
 ## Current starting point
 
-- The Sheet already has typed DTOs and versioned, retry-idempotent commands for inspiration, HP, temporary HP, max-HP override, conditions, exhaustion, resources, spell slots, spell casting, prepared spells, runtime inventory, currency, notes, and rest.
+- The Sheet already has typed DTOs and versioned, retry-idempotent commands for inspiration, HP, temporary HP, conditions, exhaustion, resources, spell slots, spell casting, prepared spells, runtime inventory, currency, notes, and rest. The provisional max-HP field is being migrated into typed adjustment storage in the first implementation tranche.
 - HP damage/healing, conditions, exhaustion, spell preparation, resources, inventory placement, equipment, attunement, and notes persist through Sheet-owned state patches.
 - Abilities, saving throws, skills, passive checks, senses, defenses, proficiencies, spells, features, item details, and resource usage are projected into the current Sheet response with uneven detail.
 - Current hit-die use consumes a die but does not roll or apply healing. Rest does not expose a backend preview of recoveries, hit-die results, or rest-cleared adjustments.
@@ -104,12 +104,12 @@ Each panel kind provides:
 - typed editable payloads and valid options for that family;
 - allowed commands, target identities, and owner authorization;
 - read-only, editable, invalid, unavailable, expected-version, and conflict-recovery semantics;
-- whether a command is an atomic action or an explicit saved batch;
+- whether a command commits immediately or represents a rest preview/apply boundary;
 - closed action, text, surface, density, and emphasis semantics from the platform-neutral design system when shared product intent requires them.
 
 The contract never includes raw CSS, Mantine or React Native props, component names, device names, arbitrary style IDs, token paths, executable callbacks, or client route logic.
 
-The backend does not model `pending`, `dirty`, `staged`, or `inFlight` UI state. Clients own those states and map atomic versus explicit-save commands into platform-appropriate interactions.
+The backend does not model `pending` or `inFlight` UI state. Clients own that transient state while treating every accepted Sheet command response as authoritative.
 
 The backend declares what the character may inspect or change. Web and future native adapters decide whether the active panel is a wide side inspector, regular drawer, compact bottom sheet, or compact full-screen flow.
 
@@ -118,8 +118,7 @@ The backend declares what the character may inspect or change. Web and future na
 - Ability panels show base, modifiers, set values, stacking contributions, effective score/modifier, authored description, and supported adjustment controls.
 - Saving-throw panels show governing ability, proficiency, bonuses, override, source notes, and rule description.
 - Skill panels show governing ability, proficiency/expertise state, bonuses, override, source notes, rule description, and a roll action when available.
-- All Skills lists canonical and per-character custom skills with search/filter support and opens the same individual skill panel.
-- Custom skills are character-local typed records with label, governing ability, proficiency scaling, bonuses, notes, and deterministic totals. They do not become global system vocabulary.
+- All Skills lists canonical skills with search/filter support and opens the same individual skill panel. Its ID-based contracts leave room for a separately reviewed custom-skill tranche without treating labels as target identity.
 - Passive and Senses panels show passive Perception, Investigation, and Insight when defined by the ruleset plus all resolved special senses, ranges, notes, and supported adjustments.
 - Movement panels show every resolved movement mode, its source/breakdown, supported adjustments, and the validated `AUTO` or explicit primary-display preference.
 - Defenses panels show resistance, immunity, and vulnerability grouped by type, including source/provenance and supported additions or suppression.
@@ -130,7 +129,7 @@ The backend declares what the character may inspect or change. Web and future na
 - HP management supports current, temporary, healing, damage, additive max-HP adjustment, absolute max-HP override, clear/reset behavior, and an effective-max breakdown.
 - Damage continues to consume temporary HP first and every HP command clamps against the same authoritative effective maximum shown in the panel.
 - Conditions and exhaustion retain backend-owned definitions, descriptions, active state, source notes, and ruleset-specific limits.
-- Short- and long-rest panels load a backend preview of recoverable resources, spell slots, hit dice, exhaustion effects, and adjustments eligible to clear on that rest.
+- Short- and long-rest panels load a backend preview of recoverable resources, spell slots, hit dice, exhaustion effects, and eligible companion recovery. Manual adjustments never clear during a rest.
 - Hit-die recovery rolls and healing occur through a typed, versioned Sheet command and return the applied roll/result for history and UI feedback.
 - Rest completion is atomic for the selected recovery choices. Duplicate or conflicting submissions cannot spend a hit die or restore a resource twice.
 
@@ -155,8 +154,10 @@ The backend declares what the character may inspect or change. Web and future na
 
 - Any supported statistic, status row, spell, feature, item, background, or companion can open its semantic panel from the Sheet.
 - Only one Sheet inspector is active at a time. Clients return focus to the invoking control when it closes.
-- Staged panels preserve unsaved input until Save or Cancel. Closing or canceling discards staged edits without sending partial commands.
-- Immediate controls provide pending, success, error, stale-version, and retry feedback without optimistic state becoming authoritative.
+- Text and numeric edits commit on blur or Enter. Selects, toggles, clears, additions, removals, HP changes, resource use, and condition changes commit immediately.
+- Only one panel mutation is active at a time. Other mutable controls are briefly disabled until the authoritative response or error arrives.
+- Failed commands restore server truth and expose a field-level error. Optimistic state never becomes authoritative.
+- Rest configuration is the sole staged interaction: preview is read-only until **Take Short Rest** or **Take Long Rest** submits the atomic command.
 - Long descriptions remain readable and independently scrollable without trapping keyboard or touch navigation.
 - Web interaction is keyboard reachable, uses accessible labels and focus management, preserves `prefers-reduced-motion`, and maintains the same information hierarchy in both Forge themes.
 
@@ -170,10 +171,10 @@ The backend declares what the character may inspect or change. Web and future na
 ## Reference capability inventory
 
 | Capability family | Phase result |
-| --- | --- |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
 | Ability detail | Effective score/modifier breakdown and typed score adjustments |
 | Saving throw detail | Proficiency, bonus, override, notes, description, and roll context |
-| Individual and all skills | Searchable list, canonical/custom skills, typed adjustments, and detail |
+| Individual and all skills           | Searchable canonical list, typed adjustments, and detail; custom-skill CRUD deferred |
 | Passive checks and senses | Authoritative passives, special-sense ranges, notes, and adjustments |
 | Movement | All movement modes plus `AUTO` or explicit primary display |
 | Defenses | Resistance, immunity, vulnerability, sources, additions, and suppression |
@@ -242,7 +243,7 @@ The API never trusts a client-supplied total, breakdown, editable flag, or sourc
 - `packages/functions` owns authorization, engine orchestration, panel resolution, rest resolution, command validation, and history summaries.
 - `packages/db` owns structured adjustment, preference, resource-instance, companion, and history persistence with character ownership and stream-version concurrency.
 - `apps/apis` exposes schema-validated thin procedures and maps known command/concurrency failures.
-- `apps/web` owns the exhaustive panel adapter, responsive inspector shell, staged input state, focus behavior, and Sheet entry points.
+- `apps/web` owns the exhaustive panel adapter, responsive inspector shell, transient pending/error state, focus behavior, and Sheet entry points.
 - `packages/design-system` adds only portable semantic vocabulary that represents stable product intent and requires exhaustive active-client adapters.
 
 The phase subplan must choose an explicit relational or constrained typed-payload persistence design for each closed adjustment family. It must not use an unconstrained `target_path + value`, unvalidated JSON, or persisted final-value cache.
@@ -252,8 +253,8 @@ The phase subplan must choose an explicit relational or constrained typed-payloa
 1. **Lock the architecture, target identity, and adjustment policy.** Update ADRs 0005 and 0006 plus the owning architecture guides; define stable grant/source/item/companion identities; then define typed mechanical targets, separate customization/preferences, additive/absolute/suppression operations, D&D 5e 2014 precedence, downstream propagation, clearing, source categories, and calculation examples.
 2. **Add adjustment and preference persistence.** Specify migrations, RLS, Kysely types, repository hydration/patches, stream-version behavior, event summaries, and owner-only mutation authorization.
 3. **Integrate adjustments into engine assembly.** Extend snapshot/ruleset inputs and engine output breakdowns without persisting derived totals or weakening purity.
-4. **Define the semantic panel contracts.** Add explicit DTOs for each panel family, constrained shared primitives, typed action availability, editability, options, atomic-versus-explicit-save command behavior, conflict metadata, and exhaustive adapter tests. Do not add a generic section/field renderer protocol.
-5. **Build core statistic panels.** Cover abilities, saves, canonical/custom skills, passives, senses, movement/display preference, defenses, and proficiencies.
+4. **Define the semantic panel contracts.** Add explicit DTOs for each panel family, constrained shared primitives, typed action availability, editability, options, immediate command behavior, rest preview/apply semantics, conflict metadata, and exhaustive adapter tests. Do not add a generic section/field renderer protocol.
+5. **Build core statistic panels.** Cover abilities, saves, canonical skills, passives, senses, movement/display preference, defenses, and proficiencies.
 6. **Complete HP, conditions, exhaustion, and rest.** Add rest preview/result contracts, hit-die healing, recoverable resources, eligible reset behavior, and atomic/idempotent commands.
 7. **Complete spell, feature, resource, item, and background panels.** Reuse existing mechanics and state while adding source-rich details, legal actions, instance charges, and typed adjustments.
 8. **Add companion/familiar projection and commands.** Hydrate owned creature instances, effective stat blocks, HP/resources, equipment, identity, and supported adjustments.
@@ -277,7 +278,7 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 - Two owned items or companions referencing the same authored definition retain independent charges, state, and adjustments.
 - Repeated feature grants and spell sources also retain stable acquisition identities; no repeated runtime target or resource is keyed only by reusable definition ID.
 - Spell actions respect source and preparation rules; structural spell acquisition cannot bypass Builder.
-- Web panel entry points, staged edits, immediate commands, errors, and focus return work with keyboard, touch, compact, regular, and wide layouts in both themes.
+- Web panel entry points, immediate edits, rest previews, errors, and focus return work with keyboard, touch, compact, regular, and wide layouts in both themes.
 - Existing inspiration, actions, HP, conditions, resources, spells, inventory placement, containers, equipment, attunement, quantity, currency, notes, command idempotency, and Builder/Sheet boundary tests remain green.
 - Schema fixtures for every panel kind are transport-safe and can be consumed without importing web components or CSS.
 
@@ -290,6 +291,7 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 - Campaign membership, GM authorization, GM adjustment editing, Campaign rules, Realtime, Encounter state, or VTT automation.
 - Native application implementation; Phase 02 consumes the portable contract.
 - General dice chat/history infrastructure. This phase adds only the smallest Sheet-owned hit-die result needed for rest.
+- Custom-skill CRUD; Phase 00 preserves ID-based seams but does not create, edit, or remove custom skills.
 - Non-5e adjustment policy implementation.
 
 ## Concerns and expansions
@@ -301,15 +303,15 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 - Additional rulesets may expose different ability, proficiency, rest, exhaustion, movement, or resource concepts. They should register compatible policies and panel kinds rather than adding conditionals to D&D contracts.
 - Campaign inspection requires capability-aware reads and audit correlation. Phase 03 owns that authorization expansion.
 
-## Questions for the phase subplan
+## Phase implementation decisions
 
-- Which closed adjustment families use dedicated relational columns or subtype tables, and which may use a schema-validated constrained payload without weakening database checks?
-- What concrete key shapes encode the required stable grant, source, item, and companion instance identities across reconciliation and hydration?
-- What server-side randomness adapter should hit-die recovery use before the later Campaign dice service exists?
-- Which adjustments may declare short-rest or long-rest clearing behavior, and which require explicit removal only?
-- Which custom-skill labels and notes require length, uniqueness, or localization constraints?
-- Which companion relationship kinds may be created or removed from the Sheet versus only projected from Builder/authored grants?
+- Closed adjustment families use constrained relational subtype tables; arbitrary path/value rows and unvalidated payloads are prohibited.
+- Owned items and companions use their persisted instance UUIDs. Repeated definition-owned sources use a canonical source-kind plus persisted acquisition/source-record identity.
+- Backend dice operations accept an injected CSPRNG adapter and return canonical roll evidence.
+- Manual adjustments require explicit removal and are never cleared by rest.
+- Custom-skill CRUD is deferred beyond Phase 00.
+- Sheet commands may create `COMPANION`, `MOUNT`, and `OWNED` relationships from authorized creatures. `SUMMONED` remains source-owned.
 
 ## New-session instruction
 
-Begin by updating ADRs 0005 and 0006 and the owning architecture guides for the new mechanical-adjustment input layer and stable runtime target identities. Then define the mechanical taxonomy, separate customization/preference contracts, precedence examples, and current Sheet-state persistence audit. The implementation subplan must name the exact domain types, schemas, migrations, repositories, engine stages, explicit panel-family DTOs, web entry points, tests, and branch slices. Preserve current Sheet commands and projections where they already satisfy the requirement; do not rebuild working inspiration, action, HP, condition, spell, resource, inventory, currency, or note behavior merely to adopt the new panel contract.
+Continue from the [implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md). Verify the prior branch handoff and integration SHA before starting the next child branch. Preserve current Sheet commands and projections where they already satisfy the requirement; do not rebuild working inspiration, action, HP, condition, spell, resource, inventory, currency, or note behavior merely to adopt the new panel contract.

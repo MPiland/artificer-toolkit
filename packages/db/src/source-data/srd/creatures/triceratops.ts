@@ -20,7 +20,11 @@ export const triceratops: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 95,
-    hitDice: '10d12+30',
+    hitDice: {
+      count: 10,
+      die: 12,
+      modifier: 30,
+    },
     speeds: [...S.walk(50)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_5,

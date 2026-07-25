@@ -21,7 +21,11 @@ export const rakshasa: CreatureAuthored = {
   armorClass: 16,
   armorClassNote: 'natural armor',
   hitPoints: 110,
-  hitDice: '13d8+52',
+  hitDice: {
+    count: 13,
+    die: 8,
+    modifier: 52,
+  },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSkillProficiency(230, 1, 'DECEPTION', 'INSIGHT'),

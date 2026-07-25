@@ -20,7 +20,11 @@ export const kobold: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 5,
-    hitDice: '2d6 - 2',
+    hitDice: {
+      count: 2,
+      die: 6,
+      modifier: -2,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedLanguageProficiency(179, 1, 'COMMON', 'DRACONIC')

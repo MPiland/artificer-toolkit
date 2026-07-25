@@ -22,7 +22,11 @@ export const beardedDevil: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 52,
-    hitDice: '8d8+16',
+    hitDice: {
+      count: 8,
+      die: 8,
+      modifier: 16,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(3602, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM'),

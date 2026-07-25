@@ -21,7 +21,11 @@ export const gargoyle: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 52,
-  hitDice: '7d8+21',
+  hitDice: {
+    count: 7,
+    die: 8,
+    modifier: 21,
+  },
   speeds: [...S.walk(30), ...S.fly(60)],
   proficiencies: [
     S.grantedLanguageProficiency(108, 1, 'TERRAN')

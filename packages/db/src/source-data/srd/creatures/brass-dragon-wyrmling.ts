@@ -21,7 +21,11 @@ export const brassDragonWyrmling: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'natural armor',
     hitPoints: 16,
-    hitDice: '3d8+3',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 3,
+    },
     speeds: [...S.walk(30), ...S.burrow(15), ...S.fly(60)],
     proficiencies: [
         S.grantedSaveProficiency(53, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

@@ -19,7 +19,11 @@ export const giantBat: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 22,
-    hitDice: '4d10',
+    hitDice: {
+      count: 4,
+      die: 10,
+      modifier: 0,
+    },
     speeds: [...S.walk(10), ...S.fly(60)],
     senses: ['blindsight 60 ft.'],
     passivePerception: 11,

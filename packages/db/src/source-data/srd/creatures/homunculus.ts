@@ -21,7 +21,11 @@ export const homunculus: CreatureAuthored = {
   armorClass: 13,
   armorClassNote: 'natural armor',
   hitPoints: 5,
-  hitDice: '2d4',
+  hitDice: {
+    count: 2,
+    die: 4,
+    modifier: 0,
+  },
   speeds: [...S.walk(20), ...S.fly(40)],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'poisoned'],

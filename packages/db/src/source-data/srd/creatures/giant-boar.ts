@@ -20,7 +20,11 @@ export const giantBoar: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 42,
-    hitDice: '5d10+15',
+    hitDice: {
+      count: 5,
+      die: 10,
+      modifier: 15,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 8,
     challengeRatingId: S.CR.CR_2,

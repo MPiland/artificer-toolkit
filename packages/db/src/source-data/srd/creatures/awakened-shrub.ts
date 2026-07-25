@@ -19,7 +19,11 @@ export const awakenedShrub: CreatureAuthored = {
     },
     armorClass: 9,
     hitPoints: 10,
-    hitDice: '3d6',
+    hitDice: {
+      count: 3,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(20)],
     damageVulnerabilities: ['fire'],
     damageResistances: ['piercing'],

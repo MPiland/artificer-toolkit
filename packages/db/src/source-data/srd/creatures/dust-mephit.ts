@@ -20,7 +20,11 @@ export const dustMephit: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 17,
-    hitDice: '5d6',
+    hitDice: {
+      count: 5,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.fly(30)],
     proficiencies: [
         S.grantedSkillProficiency(92, 1, 'PERCEPTION', 'STEALTH'),

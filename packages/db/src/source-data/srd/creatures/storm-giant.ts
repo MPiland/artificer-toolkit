@@ -20,7 +20,11 @@ export const stormGiant: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'scale mail',
     hitPoints: 230,
-    hitDice: '20d12+100',
+    hitDice: {
+      count: 20,
+      die: 12,
+      modifier: 100,
+    },
     speeds: [...S.walk(50), ...S.swim(50)],
     proficiencies: [
         S.grantedSaveProficiency(266, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

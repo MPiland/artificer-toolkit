@@ -20,7 +20,11 @@ export const cultFanatic: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'leather armor',
     hitPoints: 33,
-    hitDice: '6d8+6',
+    hitDice: {
+      count: 6,
+      die: 8,
+      modifier: 6,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(74, 1, 'DECEPTION', 'PERSUASION', 'RELIGION')

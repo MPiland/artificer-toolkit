@@ -19,7 +19,11 @@ export const blackPudding: CreatureAuthored = {
     },
     armorClass: 7,
     hitPoints: 68,
-    hitDice: '8d10+24',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 24,
+    },
     speeds: [...S.walk(20), ...S.climb(20)],
     damageImmunities: ['acid', 'cold', 'lightning', 'slashing'],
     conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'grappled', 'prone', 'restrained'],

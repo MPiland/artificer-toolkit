@@ -19,7 +19,11 @@ export const giantHyena: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 45,
-    hitDice: '6d10+12',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(126, 1, 'PERCEPTION')

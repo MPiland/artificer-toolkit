@@ -20,7 +20,11 @@ export const giantElk: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 42,
-    hitDice: '5d12+10',
+    hitDice: {
+      count: 5,
+      die: 12,
+      modifier: 10,
+    },
     speeds: [...S.walk(60)],
     proficiencies: [
         S.grantedSkillProficiency(122, 1, 'PERCEPTION'),

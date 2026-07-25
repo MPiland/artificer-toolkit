@@ -21,7 +21,11 @@ export const erinyes: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'plate',
     hitPoints: 153,
-    hitDice: '18d8+72',
+    hitDice: {
+      count: 18,
+      die: 8,
+      modifier: 72,
+    },
     speeds: [...S.walk(30), ...S.fly(60)],
     proficiencies: [
         S.grantedSaveProficiency(98, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

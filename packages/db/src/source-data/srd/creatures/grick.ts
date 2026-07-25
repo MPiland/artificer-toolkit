@@ -19,7 +19,11 @@ export const grick: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 27,
-    hitDice: '6d8',
+    hitDice: {
+      count: 6,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
     senses: ['darkvision 60 ft.'],

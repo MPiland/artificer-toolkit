@@ -20,7 +20,11 @@ export const frog: CreatureAuthored = {
   },
   armorClass: 11,
   hitPoints: 1,
-  hitDice: '1d4 - 1',
+  hitDice: {
+    count: 1,
+    die: 4,
+    modifier: -1,
+  },
   speeds: [...S.walk(20), ...S.swim(20)],
   proficiencies: [
     S.grantedSkillProficiency(106, 1, 'PERCEPTION', 'STEALTH')

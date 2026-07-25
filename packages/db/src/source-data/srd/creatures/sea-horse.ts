@@ -20,7 +20,11 @@ export const seaHorse: CreatureAuthored = {
   },
   armorClass: 11,
   hitPoints: 1,
-  hitDice: '1d4 - 1',
+  hitDice: {
+    count: 1,
+    die: 4,
+    modifier: -1,
+  },
   speeds: [...S.walk(0), ...S.swim(20)],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_0,

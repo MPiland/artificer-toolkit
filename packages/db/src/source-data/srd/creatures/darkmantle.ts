@@ -21,7 +21,11 @@ export const darkmantle: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 22,
-    hitDice: '5d6+5',
+    hitDice: {
+      count: 5,
+      die: 6,
+      modifier: 5,
+    },
     speeds: [...S.walk(10), ...S.fly(30)],
     proficiencies: [
         S.grantedSkillProficiency(6527, 1, 'STEALTH')

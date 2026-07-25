@@ -20,7 +20,11 @@ export const solar: CreatureAuthored = {
     armorClass: 21,
     armorClassNote: 'natural armor',
     hitPoints: 243,
-    hitDice: '18d10+144',
+    hitDice: {
+      count: 18,
+      die: 10,
+      modifier: 144,
+    },
     speeds: [...S.walk(50), ...S.fly(150)],
     damageResistances: ['radiant'],
     damageImmunities: ['necrotic', 'poison'],

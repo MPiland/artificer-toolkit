@@ -20,7 +20,11 @@ export const minotaur: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 76,
-    hitDice: '9d10+27',
+    hitDice: {
+      count: 9,
+      die: 10,
+      modifier: 27,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(198, 1, 'PERCEPTION'),

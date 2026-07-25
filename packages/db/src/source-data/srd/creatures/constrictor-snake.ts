@@ -20,7 +20,11 @@ export const constrictorSnake: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 13,
-    hitDice: '2d10+2',
+    hitDice: {
+      count: 2,
+      die: 10,
+      modifier: 2,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     senses: ['blindsight 10 ft.'],
     passivePerception: 10,

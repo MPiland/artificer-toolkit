@@ -20,7 +20,11 @@ export const stoneGiant: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 126,
-    hitDice: '11d10+66',
+    hitDice: {
+      count: 11,
+      die: 10,
+      modifier: 66,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(3307, 1, 'ATHLETICS', 'PERCEPTION')

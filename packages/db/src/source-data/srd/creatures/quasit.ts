@@ -21,7 +21,11 @@ export const quasit: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 7,
-    hitDice: '3d4',
+    hitDice: {
+      count: 3,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(20), ...S.fly(40)],
     proficiencies: [
         S.grantedSkillProficiency(2663, 1, 'PERCEPTION', 'STEALTH'),

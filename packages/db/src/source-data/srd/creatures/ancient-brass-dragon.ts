@@ -21,7 +21,11 @@ export const ancientBrassDragon: CreatureAuthored = {
     armorClass: 20,
     armorClassNote: 'natural armor',
     hitPoints: 297,
-    hitDice: '17d20+119',
+    hitDice: {
+      count: 17,
+      die: 20,
+      modifier: 119,
+    },
     speeds: [...S.walk(40), ...S.burrow(40), ...S.fly(80)],
     proficiencies: [
         S.grantedSaveProficiency(16, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

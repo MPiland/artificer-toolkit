@@ -23,7 +23,11 @@ export const vampire: CreatureAuthored = {
   armorClass: 16,
   armorClassNote: 'natural armor',
   hitPoints: 144,
-  hitDice: '17d8+68',
+  hitDice: {
+    count: 17,
+    die: 8,
+    modifier: 68,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSaveProficiency(277, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),

@@ -21,7 +21,11 @@ export const flyingSword: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 17,
-    hitDice: '5d6',
+    hitDice: {
+      count: 5,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(0), ...S.fly(50)],
     proficiencies: [
         S.grantedSaveProficiency(105, 1, 'DEXTERITY')

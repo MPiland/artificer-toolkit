@@ -20,7 +20,11 @@ export const ghast: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 36,
-    hitDice: '8d8',
+    hitDice: {
+      count: 8,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [S.grantedLanguageProficiency(110, 1, 'COMMON')],
     damageResistances: ['necrotic'],

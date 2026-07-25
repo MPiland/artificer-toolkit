@@ -19,7 +19,11 @@ export const quipper: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(0), ...S.swim(40)],
     senses: ['darkvision 60 ft.'],
     passivePerception: 8,

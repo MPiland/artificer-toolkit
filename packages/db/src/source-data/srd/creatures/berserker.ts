@@ -20,7 +20,11 @@ export const berserker: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'hide armor',
     hitPoints: 67,
-    hitDice: '9d8+27',
+    hitDice: {
+      count: 9,
+      die: 8,
+      modifier: 27,
+    },
     speeds: [...S.walk(30)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_2,

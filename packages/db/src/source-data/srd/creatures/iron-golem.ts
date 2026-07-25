@@ -20,7 +20,11 @@ export const ironGolem: CreatureAuthored = {
     armorClass: 20,
     armorClassNote: 'natural armor',
     hitPoints: 210,
-    hitDice: '20d10+100',
+    hitDice: {
+      count: 20,
+      die: 10,
+      modifier: 100,
+    },
     speeds: [...S.walk(30)],
     damageImmunities: ["fire, poison, psychic; bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"],
     conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'petrified', 'poisoned'],

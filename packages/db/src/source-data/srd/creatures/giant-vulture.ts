@@ -19,7 +19,11 @@ export const giantVulture: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 22,
-    hitDice: '3d10+6',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 6,
+    },
     speeds: [...S.walk(10), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(137, 1, 'PERCEPTION')

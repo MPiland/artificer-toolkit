@@ -20,7 +20,11 @@ export const mastiff: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 5,
-    hitDice: '1d8+1',
+    hitDice: {
+      count: 1,
+      die: 8,
+      modifier: 1,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(193, 1, 'PERCEPTION')

@@ -19,7 +19,11 @@ export const blinkDog: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 22,
-    hitDice: '4d8+4',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(48, 1, 'PERCEPTION', 'STEALTH'),

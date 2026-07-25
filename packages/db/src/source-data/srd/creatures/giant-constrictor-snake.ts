@@ -20,7 +20,11 @@ export const giantConstrictorSnake: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 60,
-    hitDice: '8d12+8',
+    hitDice: {
+      count: 8,
+      die: 12,
+      modifier: 8,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(118, 1, 'PERCEPTION')

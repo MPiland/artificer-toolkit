@@ -19,7 +19,11 @@ export const specter: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 22,
-    hitDice: '5d8',
+    hitDice: {
+      count: 5,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.fly(50)],
     damageResistances: ['acid', 'fire', 'lightning', 'thunder', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
     damageImmunities: ['necrotic', 'poison'],

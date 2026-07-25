@@ -13,10 +13,7 @@ export type CreatureCategoryCode = keyof typeof CREATURE_CATEGORY_CODE
 
 export type CreatureCategoryOption = CoreMeta<CreatureCategoryCode>
 
-export const CREATURE_CATEGORY_REGISTRY: Record<
-  CreatureCategoryCode,
-  CreatureCategoryOption
-> = {
+export const CREATURE_CATEGORY_REGISTRY: Record<CreatureCategoryCode, CreatureCategoryOption> = {
   [CREATURE_CATEGORY_CODE.NPC]: {
     code: CREATURE_CATEGORY_CODE.NPC,
     label: 'NPC',

@@ -23,7 +23,11 @@ export const vrock: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 104,
-  hitDice: '11d10+44',
+  hitDice: {
+    count: 11,
+    die: 10,
+    modifier: 44,
+  },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
     S.grantedSaveProficiency(281, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),

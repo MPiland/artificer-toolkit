@@ -20,7 +20,11 @@ export const nightmare: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 68,
-    hitDice: '8d10+24',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 24,
+    },
     speeds: [...S.walk(60), ...S.fly(90)],
     damageImmunities: ['fire'],
     passivePerception: 11,

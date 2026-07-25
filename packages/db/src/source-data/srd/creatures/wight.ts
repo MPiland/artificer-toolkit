@@ -21,7 +21,11 @@ export const wight: CreatureAuthored = {
   armorClass: 14,
   armorClassNote: 'chain mail',
   hitPoints: 45,
-  hitDice: '6d8+18',
+  hitDice: {
+    count: 6,
+    die: 8,
+    modifier: 18,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(9377, 1, 'PERCEPTION', 'STEALTH'),

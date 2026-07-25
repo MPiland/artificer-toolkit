@@ -20,7 +20,11 @@ export const assassin: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'studded leather',
     hitPoints: 78,
-    hitDice: '12d8+24',
+    hitDice: {
+      count: 12,
+      die: 8,
+      modifier: 24,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(29, 1, 'DEXTERITY', 'INTELLIGENCE'),

@@ -22,7 +22,11 @@ export const salamander: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 90,
-  hitDice: '12d10+24',
+  hitDice: {
+    count: 12,
+    die: 10,
+    modifier: 24,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedLanguageProficiency(244, 1, 'IGNAN')

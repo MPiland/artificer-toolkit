@@ -20,7 +20,11 @@ export const drider: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 123,
-    hitDice: '13d10+52',
+    hitDice: {
+      count: 13,
+      die: 10,
+      modifier: 52,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(87, 1, 'PERCEPTION', 'STEALTH'),

@@ -20,7 +20,11 @@ export const guard: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'chain shirt, shield',
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(155, 1, 'PERCEPTION')

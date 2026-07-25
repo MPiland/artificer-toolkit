@@ -21,7 +21,11 @@ export const giantCrocodile: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 85,
-    hitDice: '9d12+27',
+    hitDice: {
+      count: 9,
+      die: 12,
+      modifier: 27,
+    },
     speeds: [...S.walk(30), ...S.swim(50)],
     proficiencies: [
         S.grantedSkillProficiency(120, 1, 'STEALTH')

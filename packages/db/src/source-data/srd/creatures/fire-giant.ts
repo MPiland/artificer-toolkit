@@ -20,7 +20,11 @@ export const fireGiant: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'plate',
     hitPoints: 162,
-    hitDice: '13d12+78',
+    hitDice: {
+      count: 13,
+      die: 12,
+      modifier: 78,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(102, 1, 'DEXTERITY', 'CONSTITUTION', 'CHARISMA'),

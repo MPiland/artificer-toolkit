@@ -21,7 +21,11 @@ export const shieldGuardian: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 142,
-  hitDice: '15d10+60',
+  hitDice: {
+    count: 15,
+    die: 10,
+    modifier: 60,
+  },
   speeds: [...S.walk(30)],
   damageImmunities: ['poison'],
   conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'poisoned'],

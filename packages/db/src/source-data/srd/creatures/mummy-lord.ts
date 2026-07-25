@@ -21,7 +21,11 @@ export const mummyLord: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 97,
-  hitDice: '13d8+39',
+  hitDice: {
+    count: 13,
+    die: 8,
+    modifier: 39,
+  },
   speeds: [...S.walk(20)],
   proficiencies: [
     S.grantedSaveProficiency(2129, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

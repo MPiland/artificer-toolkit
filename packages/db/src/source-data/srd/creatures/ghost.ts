@@ -19,7 +19,11 @@ export const ghost: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 45,
-    hitDice: '10d8',
+    hitDice: {
+      count: 10,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(0), ...S.fly(40)],
     damageResistances: ['acid', 'fire', 'lightning', 'thunder', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
     damageImmunities: ['cold', 'necrotic', 'poison'],

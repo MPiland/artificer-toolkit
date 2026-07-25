@@ -19,7 +19,11 @@ export const baboon: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 3,
-    hitDice: '1d6',
+    hitDice: {
+      count: 1,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     passivePerception: 11,
     challengeRatingId: S.CR.CR_0,

@@ -19,7 +19,11 @@ export const octopus: CreatureAuthored = {
   },
   armorClass: 12,
   hitPoints: 3,
-  hitDice: '1d6',
+  hitDice: {
+    count: 1,
+    die: 6,
+    modifier: 0,
+  },
   speeds: [...S.walk(5), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(7953, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 30 ft.'],

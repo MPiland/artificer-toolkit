@@ -19,7 +19,11 @@ export const zombie: CreatureAuthored = {
     },
     armorClass: 8,
     hitPoints: 22,
-    hitDice: '3d8+9',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 9,
+    },
     speeds: [...S.walk(20)],
     proficiencies: [
         S.grantedSaveProficiency(311, 1, 'WISDOM')

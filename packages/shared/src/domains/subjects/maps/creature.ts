@@ -4,7 +4,8 @@ import {
   CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_INITIATIVE_MODE_CODE,
   MEASUREMENT_UNIT_OPTIONS,
-  SIZE_OPTIONS
+  SIZE_OPTIONS,
+  type DiceExpression
 } from '#core'
 import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
@@ -127,6 +128,15 @@ export const CREATURE_CAPACITY_NODE_MAP = capacityNode.define('creatureCapacity'
 
 const creatureNode = buildNodeMap<CreatureAuthored>()
 
+const diceExpressionNode = buildNodeMap<DiceExpression>()
+
+export const CREATURE_HIT_DICE_NODE_MAP = diceExpressionNode.define('creatureHitDice', ({ map, nodes }) => {
+  map
+    .set('count', nodes.number(['count'], 'Count'))
+    .set('die', nodes.number(['die'], 'Die'))
+    .set('modifier', nodes.number(['modifier'], 'Modifier'))
+})
+
 export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, cond, data, logic }) => {
   const { text, richText, number, selectMulti, selectSingle, groupArray, groupObject } = nodes
   const { table } = data
@@ -202,7 +212,7 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     .set('armorClass', number(['armorClass'], 'Armor Class', { section: CREATURE_SECTIONS.stats, order: 20 }))
     .set('armorClassNote', text(['armorClassNote'], 'AC Note', { section: CREATURE_SECTIONS.stats, order: 30 }))
     .set('hitPoints', number(['hitPoints'], 'Hit Points', { section: CREATURE_SECTIONS.stats, order: 40 }))
-    .set('hitDice', text(['hitDice'], 'Hit Dice', { section: CREATURE_SECTIONS.stats, order: 50 }))
+    .set('hitDice', groupObject(['hitDice'], 'Hit Dice', () => CREATURE_HIT_DICE_NODE_MAP, { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 50 }))
 
     // Movement
     .set('speeds', groupArray(['speeds'], 'Speeds', () => SPEED_NODE_MAP, { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 60 }))

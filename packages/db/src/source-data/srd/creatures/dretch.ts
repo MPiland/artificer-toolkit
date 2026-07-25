@@ -22,7 +22,11 @@ export const dretch: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 18,
-    hitDice: '4d6+4',
+    hitDice: {
+      count: 4,
+      die: 6,
+      modifier: 4,
+    },
     speeds: [...S.walk(20)],
     proficiencies: [
         S.grantedLanguageProficiency(86, 1, 'ABYSSAL')

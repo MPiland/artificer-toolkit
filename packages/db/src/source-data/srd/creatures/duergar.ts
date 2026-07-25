@@ -22,7 +22,11 @@ export const duergar: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'scale mail, shield',
     hitPoints: 26,
-    hitDice: '4d8+8',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 8,
+    },
     speeds: [...S.walk(25)],
     proficiencies: [
         S.grantedSkillProficiency(3450, 1, 'PERCEPTION'),

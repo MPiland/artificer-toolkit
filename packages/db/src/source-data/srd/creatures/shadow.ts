@@ -19,7 +19,11 @@ export const shadow: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 16,
-    hitDice: '3d8+3',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 3,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(7360, 1, 'STEALTH')

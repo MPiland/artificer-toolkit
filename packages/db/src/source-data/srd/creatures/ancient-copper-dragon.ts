@@ -21,7 +21,11 @@ export const ancientCopperDragon: CreatureAuthored = {
     armorClass: 21,
     armorClassNote: 'natural armor',
     hitPoints: 350,
-    hitDice: '20d20+140',
+    hitDice: {
+      count: 20,
+      die: 20,
+      modifier: 140,
+    },
     speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
     proficiencies: [
         S.grantedSaveProficiency(5710, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

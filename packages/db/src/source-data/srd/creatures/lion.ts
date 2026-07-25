@@ -19,7 +19,11 @@ export const lion: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 26,
-    hitDice: '4d10+4',
+    hitDice: {
+      count: 4,
+      die: 10,
+      modifier: 4,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(184, 1, 'PERCEPTION', 'STEALTH')

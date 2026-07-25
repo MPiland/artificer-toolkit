@@ -21,7 +21,11 @@ export const harpy: CreatureAuthored = {
   },
   armorClass: 11,
   hitPoints: 38,
-  hitDice: '7d8+7',
+  hitDice: {
+    count: 7,
+    die: 8,
+    modifier: 7,
+  },
   speeds: [...S.walk(20), ...S.fly(40)],
   proficiencies: [
     S.grantedLanguageProficiency(159, 1, 'COMMON')

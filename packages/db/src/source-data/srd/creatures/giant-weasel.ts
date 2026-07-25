@@ -19,7 +19,11 @@ export const giantWeasel: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 9,
-    hitDice: '2d8',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(139, 1, 'PERCEPTION', 'STEALTH')

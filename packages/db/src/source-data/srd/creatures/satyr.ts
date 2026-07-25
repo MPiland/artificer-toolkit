@@ -20,7 +20,11 @@ export const satyr: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'leather armor',
     hitPoints: 31,
-    hitDice: '7d8',
+    hitDice: {
+      count: 7,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(245, 1, 'PERCEPTION', 'PERFORMANCE', 'STEALTH'),

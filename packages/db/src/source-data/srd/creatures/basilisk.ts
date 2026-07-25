@@ -20,7 +20,11 @@ export const basilisk: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 52,
-    hitDice: '8d8+16',
+    hitDice: {
+      count: 8,
+      die: 8,
+      modifier: 16,
+    },
     speeds: [...S.walk(20)],
     senses: ['darkvision 60 ft.'],
     passivePerception: 9,

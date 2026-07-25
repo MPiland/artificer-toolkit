@@ -19,7 +19,11 @@ export const cat: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(40), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(59, 1, 'PERCEPTION', 'STEALTH')

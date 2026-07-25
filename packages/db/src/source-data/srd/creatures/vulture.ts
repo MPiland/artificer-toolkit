@@ -19,7 +19,11 @@ export const vulture: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 5,
-    hitDice: '1d8+1',
+    hitDice: {
+      count: 1,
+      die: 8,
+      modifier: 1,
+    },
     speeds: [...S.walk(10), ...S.fly(50)],
     proficiencies: [
         S.grantedSkillProficiency(282, 1, 'PERCEPTION')

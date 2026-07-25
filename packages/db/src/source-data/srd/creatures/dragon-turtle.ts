@@ -20,7 +20,11 @@ export const dragonTurtle: CreatureAuthored = {
     armorClass: 20,
     armorClassNote: 'natural armor',
     hitPoints: 341,
-    hitDice: '22d20+110',
+    hitDice: {
+      count: 22,
+      die: 20,
+      modifier: 110,
+    },
     speeds: [...S.walk(20), ...S.swim(40)],
     proficiencies: [
         S.grantedSaveProficiency(85, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM'),

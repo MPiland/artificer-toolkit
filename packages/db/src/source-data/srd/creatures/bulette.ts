@@ -21,7 +21,11 @@ export const bulette: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 94,
-    hitDice: '9d10+45',
+    hitDice: {
+      count: 9,
+      die: 10,
+      modifier: 45,
+    },
     speeds: [...S.walk(40), ...S.burrow(40)],
     proficiencies: [
         S.grantedSkillProficiency(9521, 1, 'PERCEPTION')

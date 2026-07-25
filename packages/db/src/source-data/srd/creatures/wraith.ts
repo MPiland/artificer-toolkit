@@ -20,7 +20,11 @@ export const wraith: CreatureAuthored = {
   },
   armorClass: 13,
   hitPoints: 67,
-  hitDice: '9d8+27',
+  hitDice: {
+    count: 9,
+    die: 8,
+    modifier: 27,
+  },
   speeds: [...S.fly(60)],
   damageResistances: ['acid', 'cold', 'fire', 'lightning', 'thunder', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['necrotic', 'poison'],

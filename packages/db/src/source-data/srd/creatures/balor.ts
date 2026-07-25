@@ -21,7 +21,11 @@ export const balor: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 262,
-    hitDice: '21d12+126',
+    hitDice: {
+      count: 21,
+      die: 12,
+      modifier: 126,
+    },
     speeds: [...S.walk(40), ...S.fly(80)],
     proficiencies: [
         S.grantedSaveProficiency(2128, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

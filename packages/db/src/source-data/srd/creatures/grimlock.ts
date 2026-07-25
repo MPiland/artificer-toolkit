@@ -20,7 +20,11 @@ export const grimlock: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(154, 1, 'ATHLETICS', 'PERCEPTION', 'STEALTH'),

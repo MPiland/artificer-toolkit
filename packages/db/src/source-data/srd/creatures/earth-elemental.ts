@@ -20,7 +20,11 @@ export const earthElemental: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 126,
-  hitDice: '12d10+60',
+  hitDice: {
+    count: 12,
+    die: 10,
+    modifier: 60,
+  },
   speeds: [...S.walk(30), ...S.burrow(30)],
   proficiencies: [
     S.grantedLanguageProficiency(94, 1, 'TERRAN')

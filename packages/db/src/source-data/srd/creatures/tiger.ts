@@ -19,7 +19,11 @@ export const tiger: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 37,
-    hitDice: '5d10+10',
+    hitDice: {
+      count: 5,
+      die: 10,
+      modifier: 10,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(270, 1, 'PERCEPTION', 'STEALTH')

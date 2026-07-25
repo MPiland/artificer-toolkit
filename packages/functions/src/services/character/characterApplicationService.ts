@@ -15,7 +15,8 @@ import {
   createCharacterBuilderDraftRepository,
   type CharacterBuilderDraft,
   createCharacterEventRepository,
-  createCharacterRepository
+  createCharacterRepository,
+  createCharacterSheetAdjustmentRepository
 } from '@artificer-toolkit/db'
 import {
   ABILITY_OPTIONS,
@@ -82,8 +83,6 @@ type CharacterBuilderMode = 'create' | 'edit'
 type CharacterBuilderPreview = ReturnType<typeof createCharacterBuilderChangePreview>
 type CharacterFeatureAcquisition = CharacterAuthored['intent']['featureAcquisitions'][number]
 
-type StartingEquipmentItem = StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
-
 function toStartingEquipmentDto(startingEquipment: StartingEquipmentAuthored) {
   return startingEquipmentDtoSchema.parse(startingEquipment)
 }
@@ -99,14 +98,20 @@ function buildStartingEquipmentChoiceLabels(
     set.groups.flatMap((group) => group.options.flatMap((option) => option.items))
   )) {
     if (
-      item.startingEquipmentKind !== 'EQUIPMENT'
-      || !('selectionKind' in item)
-      || item.selectionKind !== 'CHOSEN'
-      || !('count' in item)
-    ) continue
+      item.startingEquipmentKind !== 'EQUIPMENT' ||
+      !('selectionKind' in item) ||
+      item.selectionKind !== 'CHOSEN' ||
+      !('count' in item)
+    )
+      continue
 
     const properties = item.properties ?? []
-    if (item.authoringModeKind === 'ALL' && item.count === 1 && !item.category && properties.length === 1) {
+    if (
+      item.authoringModeKind === 'ALL' &&
+      item.count === 1 &&
+      !item.category &&
+      properties.length === 1
+    ) {
       const propertyLabel = EQUIPMENT_PROPERTY_REGISTRY[properties[0]]?.label
       if (propertyLabel) {
         labels[item.id] = `Any ${propertyLabel.toLocaleLowerCase()}`
@@ -114,16 +119,26 @@ function buildStartingEquipmentChoiceLabels(
       }
     }
 
-    const target = item.authoringModeKind === 'SELECTED'
-      ? item.equipmentIds.map((equipmentId) => equipmentLabels.get(equipmentId) ?? equipmentId).join(' or ')
+    const target =
+      item.authoringModeKind === 'SELECTED'
+        ? item.equipmentIds
+            .map((equipmentId) => equipmentLabels.get(equipmentId) ?? equipmentId)
+            .join(' or ')
       : [
           properties
-            .map((property) => EQUIPMENT_PROPERTY_REGISTRY[property]?.label.toLocaleLowerCase() ?? property.toLocaleLowerCase().replaceAll('_', ' '))
+              .map(
+                (property) =>
+                  EQUIPMENT_PROPERTY_REGISTRY[property]?.label.toLocaleLowerCase() ??
+                  property.toLocaleLowerCase().replaceAll('_', ' ')
+              )
             .join(' '),
           item.category
-            ? EQUIPMENT_CATEGORY_REGISTRY[item.category]?.label.toLocaleLowerCase() ?? item.category.toLocaleLowerCase().replaceAll('_', ' ')
+              ? (EQUIPMENT_CATEGORY_REGISTRY[item.category]?.label.toLocaleLowerCase() ??
+                item.category.toLocaleLowerCase().replaceAll('_', ' '))
             : 'equipment'
-        ].filter(Boolean).join(' ')
+          ]
+            .filter(Boolean)
+            .join(' ')
 
     labels[item.id] = `Choose ${item.count} ${target}`
   }
@@ -149,13 +164,76 @@ function getSelectedClassProficiencyGroups(
 }> {
   if (!classRecord || classRecord.category !== CLASS_CATEGORY.BASE) return []
   const groups = new Map([
-    ['ARMOR', { category: 'ARMOR', label: 'Armor', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['WEAPONS', { category: 'WEAPONS', label: 'Weapons', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['TOOLS', { category: 'TOOLS', label: 'Tools', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['SAVING_THROWS', { category: 'SAVING_THROWS', label: 'Saving Throws', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['SKILLS', { category: 'SKILLS', label: 'Skills', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['LANGUAGES', { category: 'LANGUAGES', label: 'Languages', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['OTHER', { category: 'OTHER', label: 'Other', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }]
+    [
+      'ARMOR',
+      {
+        category: 'ARMOR',
+        label: 'Armor',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'WEAPONS',
+      {
+        category: 'WEAPONS',
+        label: 'Weapons',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'TOOLS',
+      {
+        category: 'TOOLS',
+        label: 'Tools',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'SAVING_THROWS',
+      {
+        category: 'SAVING_THROWS',
+        label: 'Saving Throws',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'SKILLS',
+      {
+        category: 'SKILLS',
+        label: 'Skills',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'LANGUAGES',
+      {
+        category: 'LANGUAGES',
+        label: 'Languages',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'OTHER',
+      {
+        category: 'OTHER',
+        label: 'Other',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ]
   ])
   const categoryFor = (kind: string, category?: string): string => {
     if (kind === 'SAVE_ABILITY') return 'SAVING_THROWS'
@@ -179,30 +257,34 @@ function getSelectedClassProficiencyGroups(
     const category = categoryForLabel.get(proficiencyGroup.label) ?? 'OTHER'
     const group = groups.get(category)
     group?.grantedEntries.push(...proficiencyGroup.grantedEntries)
-    group?.choiceInstructions.push(...proficiencyGroup.entries
+    group?.choiceInstructions.push(
+      ...proficiencyGroup.entries
       .filter((entry) => !proficiencyGroup.grantedEntries.includes(entry))
-      .map((label) => ({ label, required: true })))
+        .map((label) => ({ label, required: true }))
+    )
   }
   groups.get('SAVING_THROWS')?.grantedEntries.push(...(classRecord.savingThrowLabels ?? []))
 
   for (const choice of choices) {
     if (
-      choice.grantKind !== GRANT_KIND.PROFICIENCY_GRANT
-      || choice.ownerFeatureId !== undefined
-      || choice.source.kind !== 'CLASS'
-      || choice.source.classId !== classId
-      || !choice.proficiencyKind
-    ) continue
+      choice.grantKind !== GRANT_KIND.PROFICIENCY_GRANT ||
+      choice.ownerFeatureId !== undefined ||
+      choice.source.kind !== 'CLASS' ||
+      choice.source.classId !== classId ||
+      !choice.proficiencyKind
+    )
+      continue
 
     groups
       .get(categoryFor(choice.proficiencyKind, choice.displayCategory))
       ?.choiceIds.push(choice.id)
   }
-  return [...groups.values()].filter((group) => (
-    group.grantedEntries.length > 0
-    || group.choiceInstructions.length > 0
-    || group.choiceIds.length > 0
-  ))
+  return [...groups.values()].filter(
+    (group) =>
+      group.grantedEntries.length > 0 ||
+      group.choiceInstructions.length > 0 ||
+      group.choiceIds.length > 0
+  )
 }
 
 async function resolveCharacterRouteSubjectId(
@@ -325,7 +407,8 @@ function getClassDisabledReason(
     const candidate = resolution.registry.classes.find((record) => record.id === classId)
     return candidate && isBaseClass(candidate) ? [candidate] : []
   })
-  const unmetClass = proposedClasses.find((candidate) =>
+  const unmetClass = proposedClasses.find(
+    (candidate) =>
     !evaluateMulticlassRequirements(
       candidate.multiclass.requirementGroups,
       resolution.summary.abilities
@@ -368,7 +451,8 @@ function getChosenGrantChoiceViews(params: {
           toChoiceOption({
             ...option,
             disabledReason:
-              choice.selectedTargetIds.includes(option.id) || choice.grantKind !== GRANT_KIND.SPELL_GRANT
+              choice.selectedTargetIds.includes(option.id) ||
+              choice.grantKind !== GRANT_KIND.SPELL_GRANT
                 ? undefined
                 : spellIdsSelectedElsewhere.has(option.id)
                   ? `Granted by ${spellIdsSelectedElsewhere.get(option.id)}`
@@ -410,19 +494,36 @@ function getSourceLabel(
 ): string {
   switch (source.kind) {
     case 'CLASS':
-      return resolution.registry.classes.find((record) => record.id === source.classId)?.label ?? 'another source'
+      return (
+        resolution.registry.classes.find((record) => record.id === source.classId)?.label ??
+        'another source'
+      )
     case 'SUBCLASS':
-      return resolution.registry.classes.find((record) => record.id === source.subclassId)?.label ?? 'another source'
+      return (
+        resolution.registry.classes.find((record) => record.id === source.subclassId)?.label ??
+        'another source'
+      )
     case 'RACE':
-      return resolution.registry.races.find((record) => record.id === source.raceId)?.label ?? 'another source'
+      return (
+        resolution.registry.races.find((record) => record.id === source.raceId)?.label ??
+        'another source'
+      )
     case 'SUBRACE':
-      return resolution.registry.races.find((record) => record.id === source.subraceId)?.label ?? 'another source'
+      return (
+        resolution.registry.races.find((record) => record.id === source.subraceId)?.label ??
+        'another source'
+      )
     case 'ANCESTRY':
-      return resolution.registry.races
+      return (
+        resolution.registry.races
         .flatMap((race) => race.ancestry?.options ?? [])
         .find((option) => option.id === source.optionId)?.label ?? 'another source'
+      )
     case 'BACKGROUND':
-      return resolution.registry.backgrounds.find((record) => record.id === source.backgroundId)?.label ?? 'another source'
+      return (
+        resolution.registry.backgrounds.find((record) => record.id === source.backgroundId)
+          ?.label ?? 'another source'
+      )
     default:
       return 'another source'
   }
@@ -485,7 +586,8 @@ function toFeatureGrantSummary(
   const feature = findGrantedFeature(resolution, grant.id)
   return {
     ...grant,
-    details: feature?.details
+    details:
+      feature?.details
       ?.slice()
       .sort((left, right) => left.order - right.order)
       .map((detail) => ({
@@ -508,17 +610,18 @@ function getGrantedClassContentViews(params: {
 
   for (const item of featureItems) {
     const key = `${item.id}:${JSON.stringify(item.source)}`
-    featureKeysByIdentity.set(`${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`, key)
-    uniqueItems.set(
-      key,
-      { item: toFeatureGrantSummary(params.resolution, item), kind: 'FEATURE' }
+    featureKeysByIdentity.set(
+      `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`,
+      key
     )
+    uniqueItems.set(key, { item: toFeatureGrantSummary(params.resolution, item), kind: 'FEATURE' })
   }
 
   for (const [kind, items] of [
     ['RESOURCE', params.resolution.grants.resources],
     ['SPELLCASTING', params.resolution.grants.spellcasting]
-  ] as const) for (const item of items) {
+  ] as const)
+    for (const item of items) {
     if (!params.includeSource(item.source)) continue
     const matchingFeatureKey = featureKeysByIdentity.get(
       `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
@@ -546,7 +649,8 @@ function getGrantedClassContentViews(params: {
   }
 
   return [...uniqueItems.values()]
-    .sort((left, right) =>
+    .sort(
+      (left, right) =>
       (left.item.availableAtLevel ?? 0) - (right.item.availableAtLevel ?? 0) ||
       (left.item.sortOrder ?? 0) - (right.item.sortOrder ?? 0) ||
       left.kind.localeCompare(right.kind) ||
@@ -655,15 +759,11 @@ function getSpellChoiceViews(params: {
       isSameCharacterProvenanceIdentity(selection.source, params.source)
     )?.spells ?? []
   const selectedCantripIds = selectedSpellIds.filter((spellId) => {
-    const spell = params.resolution.catalog.spells.find(
-      (record) => record.id === spellId
-    )
+    const spell = params.resolution.catalog.spells.find((record) => record.id === spellId)
     return spell?.level === 0
   })
   const selectedLeveledSpellIds = selectedSpellIds.filter((spellId) => {
-    const spell = params.resolution.catalog.spells.find(
-      (record) => record.id === spellId
-    )
+    const spell = params.resolution.catalog.spells.find((record) => record.id === spellId)
     return spell && spell.level > 0
   })
   const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
@@ -675,15 +775,16 @@ function getSpellChoiceViews(params: {
   )
   const classSpellOptions = params.resolution.catalog.spells.filter(
     (spell) =>
-      (spell.classIds.includes(params.classId) ||
-        spell.classIds.includes(params.classRecord?.id ?? ''))
+      spell.classIds.includes(params.classId) ||
+      spell.classIds.includes(params.classRecord?.id ?? '')
   )
-  const toSpellOption = (spell: (typeof classSpellOptions)[number]): CharacterBuilderSpellOptionDto => ({
+  const toSpellOption = (
+    spell: (typeof classSpellOptions)[number]
+  ): CharacterBuilderSpellOptionDto => ({
     ...toChoiceOption({
       id: spell.id,
       label: spell.label,
-      disabledReason:
-        selectedSpellIds.includes(spell.id)
+      disabledReason: selectedSpellIds.includes(spell.id)
           ? undefined
           : spellSourceLabelsSelectedElsewhere.has(spell.id)
             ? `Granted by ${spellSourceLabelsSelectedElsewhere.get(spell.id)}`
@@ -712,9 +813,7 @@ function getSpellChoiceViews(params: {
         : 'Known spells',
       selectedCantripIds,
       selectedSpellIds: selectedLeveledSpellIds,
-      cantripOptions: classSpellOptions
-        .filter((spell) => spell.level === 0)
-        .map(toSpellOption),
+      cantripOptions: classSpellOptions.filter((spell) => spell.level === 0).map(toSpellOption),
       spellOptions: classSpellOptions
         .filter((spell) => spell.level > 0 && spell.level <= maxSpellLevel)
         .map(toSpellOption)
@@ -760,9 +859,7 @@ export function buildCharacterBuilderView(
       properties: equipment.properties
     })
   )
-  const baseRaces = resolution.catalog.races.filter(
-    (race) => race.category !== 'SUBRACE'
-  )
+  const baseRaces = resolution.catalog.races.filter((race) => race.category !== 'SUBRACE')
   const selectedRaceId = character.intent.race.raceId
   const selectedAncestryRace = resolution.registry.races.find(
     (race) => race.id === (character.intent.race.subraceId ?? selectedRaceId)
@@ -975,7 +1072,10 @@ export function buildCharacterBuilderView(
             sourceLabel: primaryBaseClass.label,
             startingGold: primaryBaseClass.startingGold,
             startingEquipment: toStartingEquipmentDto(primaryBaseClass.startingEquipment),
-            choiceLabels: buildStartingEquipmentChoiceLabels(primaryBaseClass.startingEquipment, equipmentOptions)
+            choiceLabels: buildStartingEquipmentChoiceLabels(
+              primaryBaseClass.startingEquipment,
+              equipmentOptions
+            )
           }
         : null,
       backgroundStartingEquipment: selectedBackground?.startingEquipment?.sets.length
@@ -983,7 +1083,10 @@ export function buildCharacterBuilderView(
             source: 'BACKGROUND',
             sourceLabel: selectedBackground.label,
             startingEquipment: toStartingEquipmentDto(selectedBackground.startingEquipment),
-            choiceLabels: buildStartingEquipmentChoiceLabels(selectedBackground.startingEquipment, equipmentOptions)
+            choiceLabels: buildStartingEquipmentChoiceLabels(
+              selectedBackground.startingEquipment,
+              equipmentOptions
+            )
           }
         : null,
       equipmentOptions,
@@ -1609,7 +1712,8 @@ export async function getCharacterSheetForUser(
       character,
       resolution: await resolveCharacterBuilder(db, character, 'edit'),
       streamVersion: row?.stream_version ?? 0,
-      hasBuilderDraft: Boolean(draft)
+      hasBuilderDraft: Boolean(draft),
+      adjustments: await createCharacterSheetAdjustmentRepository(db).listByCharacter(character.id)
     })),
     publicId: routeIdentity.publicId
   }

@@ -19,7 +19,11 @@ export const ochreJelly: CreatureAuthored = {
     },
     armorClass: 8,
     hitPoints: 45,
-    hitDice: '6d10+12',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(10), ...S.climb(10)],
     damageResistances: ['acid'],
     damageImmunities: ['lightning', 'slashing'],

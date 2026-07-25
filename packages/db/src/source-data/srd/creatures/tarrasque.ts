@@ -20,7 +20,11 @@ export const tarrasque: CreatureAuthored = {
     armorClass: 25,
     armorClassNote: 'natural armor',
     hitPoints: 676,
-    hitDice: '33d20+330',
+    hitDice: {
+      count: 33,
+      die: 20,
+      modifier: 330,
+    },
     speeds: [...S.walk(40)],
     damageImmunities: ['fire', 'poison'],
     conditionImmunities: ['charmed', 'frightened', 'paralyzed', 'poisoned', 'stunned'],

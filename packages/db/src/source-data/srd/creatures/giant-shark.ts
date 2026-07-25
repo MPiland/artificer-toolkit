@@ -20,7 +20,11 @@ export const giantShark: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 126,
-    hitDice: '11d12+55',
+    hitDice: {
+      count: 11,
+      die: 12,
+      modifier: 55,
+    },
     speeds: [...S.walk(0), ...S.swim(50)],
     proficiencies: [
         S.grantedSkillProficiency(134, 1, 'PERCEPTION')

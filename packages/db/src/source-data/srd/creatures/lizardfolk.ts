@@ -20,7 +20,11 @@ export const lizardfolk: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor, shield',
     hitPoints: 22,
-    hitDice: '4d8+4',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(186, 1, 'PERCEPTION', 'STEALTH', 'SURVIVAL'),

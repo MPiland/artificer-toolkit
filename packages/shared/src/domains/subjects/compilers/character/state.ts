@@ -9,7 +9,7 @@ import type {
   CharacterOwnedVehicleState,
   CharacterResourceUsageState,
   CharacterRosterEquipmentAssignmentState,
-  CharacterState,
+  CharacterState
 } from '#authored'
 
 export type CompiledCharacterState = {
@@ -45,15 +45,15 @@ export type CompiledCharacterHitpointState = {
   current: number
   temp?: number
   hitDice: CompiledHitDieUsage[]
-  maxOverride?: number
 }
 
-export function compileHitpointState(authored: CharacterHitpointsState): CompiledCharacterHitpointState {
+export function compileHitpointState(
+  authored: CharacterHitpointsState
+): CompiledCharacterHitpointState {
   return {
     current: authored.current,
     temp: authored.temp,
-    hitDice: authored.hitDice,
-    maxOverride: authored.maxOverride
+    hitDice: authored.hitDice
   }
 }
 
@@ -62,7 +62,9 @@ export function compileHitpointState(authored: CharacterHitpointsState): Compile
  * ────────────────────────────────────────────────────────────── */
 export type CompiledCharacterResourceUsageState = CharacterResourceUsageState
 
-export function compileResourceState(authored: CharacterResourceUsageState): CompiledCharacterResourceUsageState {
+export function compileResourceState(
+  authored: CharacterResourceUsageState
+): CompiledCharacterResourceUsageState {
   return authored
 }
 
@@ -80,7 +82,9 @@ export type CompiledCharacterEquipmentState = {
 
 export type CompiledCurrencyGroup = CharacterCurrencyGroupState
 
-export function compileEquipmentState(authored: CharacterEquipmentState): CompiledCharacterEquipmentState {
+export function compileEquipmentState(
+  authored: CharacterEquipmentState
+): CompiledCharacterEquipmentState {
   return {
     inventory: authored.inventory,
     equipped: authored.equipped,
@@ -88,7 +92,9 @@ export function compileEquipmentState(authored: CharacterEquipmentState): Compil
   }
 }
 
-export function compileCurrencyGroups(authored: CharacterCurrencyGroupState[]): CompiledCurrencyGroup[] {
+export function compileCurrencyGroups(
+  authored: CharacterCurrencyGroupState[]
+): CompiledCurrencyGroup[] {
   // Keep as-is; if you later want to prune empty currencies, do it here.
   return authored
 }
@@ -104,12 +110,14 @@ export type CompiledRosterEquipmentAssignmentState = CharacterRosterEquipmentAss
 export type CompiledCharacterClassState = CharacterClassState
 
 export function compileClassState(authored: CharacterClassState): CompiledCharacterClassState {
-  const learned = authored.spells?.learned && authored.spells.learned.length ? authored.spells.learned : undefined
-  const prepared = authored.spells?.prepared && authored.spells.prepared.length ? authored.spells.prepared : undefined
-
-  const spells = (learned || prepared)
-    ? { learned, prepared }
+  const learned =
+    authored.spells?.learned && authored.spells.learned.length ? authored.spells.learned : undefined
+  const prepared =
+    authored.spells?.prepared && authored.spells.prepared.length
+      ? authored.spells.prepared
     : undefined
+
+  const spells = learned || prepared ? { learned, prepared } : undefined
 
   return {
     classId: authored.classId,
@@ -118,13 +126,13 @@ export function compileClassState(authored: CharacterClassState): CompiledCharac
 }
 
 export function compileCharacterState(authored: CharacterState): CompiledCharacterState {
-  const classes
-    = authored.classes && authored.classes.length
+  const classes =
+    authored.classes && authored.classes.length
       ? authored.classes.map(compileClassState)
       : undefined
 
-  const resources
-    = authored.resources && authored.resources.length
+  const resources =
+    authored.resources && authored.resources.length
       ? authored.resources.map(compileResourceState)
       : undefined
 
@@ -136,10 +144,12 @@ export function compileCharacterState(authored: CharacterState): CompiledCharact
     resources,
     creatures: authored.creatures?.length ? authored.creatures : undefined,
     vehicles: authored.vehicles?.length ? authored.vehicles : undefined,
-    creatureEquipment: authored.creatureEquipment && Object.keys(authored.creatureEquipment).length
+    creatureEquipment:
+      authored.creatureEquipment && Object.keys(authored.creatureEquipment).length
       ? authored.creatureEquipment
       : undefined,
-    vehicleEquipment: authored.vehicleEquipment && Object.keys(authored.vehicleEquipment).length
+    vehicleEquipment:
+      authored.vehicleEquipment && Object.keys(authored.vehicleEquipment).length
       ? authored.vehicleEquipment
       : undefined
   }

@@ -19,7 +19,11 @@ export const giantBadger: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 13,
-    hitDice: '2d8+4',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(30), ...S.burrow(10)],
     senses: ['darkvision 30 ft.'],
     passivePerception: 11,

@@ -20,7 +20,11 @@ export const giantFireBeetle: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 4,
-    hitDice: '1d6+1',
+    hitDice: {
+      count: 1,
+      die: 6,
+      modifier: 1,
+    },
     speeds: [...S.walk(30)],
     senses: ['blindsight 30 ft.'],
     passivePerception: 8,

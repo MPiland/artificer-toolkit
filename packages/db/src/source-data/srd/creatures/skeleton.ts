@@ -20,7 +20,11 @@ export const skeleton: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'armor scraps',
     hitPoints: 13,
-    hitDice: '2d8+4',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(30)],
     damageVulnerabilities: ['bludgeoning'],
     damageImmunities: ['poison'],

@@ -21,7 +21,11 @@ export const ettercap: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 44,
-    hitDice: '8d8+8',
+    hitDice: {
+      count: 8,
+      die: 8,
+      modifier: 8,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(99, 1, 'PERCEPTION', 'STEALTH', 'SURVIVAL')

@@ -20,7 +20,11 @@ export const grayOoze: CreatureAuthored = {
   },
   armorClass: 8,
   hitPoints: 22,
-  hitDice: '3d8+9',
+  hitDice: {
+    count: 3,
+    die: 8,
+    modifier: 9,
+  },
   speeds: [...S.walk(10), ...S.climb(10)],
   proficiencies: [
     S.grantedSkillProficiency(9475, 1, 'STEALTH')

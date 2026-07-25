@@ -8,8 +8,11 @@ const mocks = vi.hoisted(() => ({
   findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
+  listAdjustments: vi.fn(),
   patchSheetState: vi.fn(),
-  resolveCharacterBuilder: vi.fn()
+  removeAdjustment: vi.fn(),
+  resolveCharacterBuilder: vi.fn(),
+  upsertAdjustment: vi.fn()
 }))
 
 class MockConcurrencyError extends Error {
@@ -32,6 +35,11 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
+    }),
+    createCharacterSheetAdjustmentRepository: () => ({
+      listByCharacter: mocks.listAdjustments,
+      remove: mocks.removeAdjustment,
+      upsert: mocks.upsertAdjustment
     })
   }
 })
@@ -148,6 +156,10 @@ describe('executeCharacterSheetCommand', () => {
     mocks.findById.mockReset()
     mocks.findByCommandId.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.listAdjustments.mockReset()
+    mocks.listAdjustments.mockResolvedValue([])
+    mocks.removeAdjustment.mockReset()
+    mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
@@ -177,14 +189,21 @@ describe('executeCharacterSheetCommand', () => {
       }
     })
 
-    expect(mocks.patchSheetState).toHaveBeenCalledWith('character-1', [{
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [
+        {
       kind: 'HITPOINTS',
       value: expect.objectContaining({ current: 7 })
-    }], expect.objectContaining({
+        }
+      ],
+      expect.objectContaining({
       expectedStreamVersion: 1,
       afterPersist: expect.any(Function)
-    }))
-    expect(mocks.appendEvent).toHaveBeenCalledWith(expect.objectContaining({
+      })
+    )
+    expect(mocks.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
       type: 'CHARACTER_SHEET_COMMAND_APPLIED',
       characterId: 'character-1',
       actorId: 'user-1',
@@ -192,7 +211,8 @@ describe('executeCharacterSheetCommand', () => {
       commandType: 'ADJUST_HIT_POINTS',
       commandFingerprint: expect.any(String),
       summary: '3 damage applied'
-    }))
+      })
+    )
     expect(response.streamVersion).toBe(2)
     expect(response.historyEntry).toMatchObject({
       eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
@@ -205,7 +225,8 @@ describe('executeCharacterSheetCommand', () => {
   it('rejects commands for characters owned by another user', async () => {
     mocks.findAuthoredById.mockResolvedValue(createCharacter({ userId: 'other-user' }))
 
-    await expect(executeCharacterSheetCommand({
+    await expect(
+      executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
@@ -216,7 +237,8 @@ describe('executeCharacterSheetCommand', () => {
         expectedVersion: 1,
         commandId: '00000000-0000-4000-8000-000000000002'
       }
-    })).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+      })
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
   })
 
@@ -271,7 +293,8 @@ describe('executeCharacterSheetCommand', () => {
     mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
     mocks.findByCommandId.mockResolvedValue(persistedEvent)
 
-    await expect(executeCharacterSheetCommand({
+    await expect(
+      executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
@@ -282,7 +305,8 @@ describe('executeCharacterSheetCommand', () => {
         expectedVersion: 1,
         commandId
       }
-    })).rejects.toThrow('already used with different input')
+      })
+    ).rejects.toThrow('already used with different input')
     expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
     expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
   })
@@ -293,7 +317,8 @@ describe('executeCharacterSheetCommand', () => {
       stream_version: 2
     })
 
-    await expect(executeCharacterSheetCommand({
+    await expect(
+      executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
@@ -304,7 +329,8 @@ describe('executeCharacterSheetCommand', () => {
         expectedVersion: 1,
         commandId: '00000000-0000-4000-8000-000000000003'
       }
-    })).rejects.toMatchObject({ name: 'ConcurrencyError' })
+      })
+    ).rejects.toMatchObject({ name: 'ConcurrencyError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
     expect(mocks.appendEvent).not.toHaveBeenCalled()
   })
@@ -312,7 +338,8 @@ describe('executeCharacterSheetCommand', () => {
   it('rejects sheet commands against unfinalized draft characters', async () => {
     mocks.findAuthoredById.mockResolvedValue(createCharacter({ status: 'DRAFT' }))
 
-    await expect(executeCharacterSheetCommand({
+    await expect(
+      executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
@@ -323,7 +350,8 @@ describe('executeCharacterSheetCommand', () => {
         expectedVersion: 1,
         commandId: '00000000-0000-4000-8000-000000000004'
       }
-    })).rejects.toMatchObject({ name: 'CharacterSheetCommandError' })
+      })
+    ).rejects.toMatchObject({ name: 'CharacterSheetCommandError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
   })
 })

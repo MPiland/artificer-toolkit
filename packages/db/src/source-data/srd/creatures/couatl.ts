@@ -21,7 +21,11 @@ export const couatl: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 97,
-    hitDice: '13d8+39',
+    hitDice: {
+      count: 13,
+      die: 8,
+      modifier: 39,
+    },
     speeds: [...S.walk(30), ...S.fly(90)],
     proficiencies: [
         S.grantedSaveProficiency(8048, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA')

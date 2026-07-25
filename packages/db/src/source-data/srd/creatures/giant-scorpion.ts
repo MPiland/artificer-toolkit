@@ -21,7 +21,11 @@ export const giantScorpion: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 52,
-    hitDice: '7d10+14',
+    hitDice: {
+      count: 7,
+      die: 10,
+      modifier: 14,
+    },
     speeds: [...S.walk(40)],
     senses: ['blindsight 60 ft.'],
     passivePerception: 9,

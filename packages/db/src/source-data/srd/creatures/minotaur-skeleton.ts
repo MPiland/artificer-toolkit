@@ -20,7 +20,11 @@ export const minotaurSkeleton: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 67,
-    hitDice: '9d10+18',
+    hitDice: {
+      count: 9,
+      die: 10,
+      modifier: 18,
+    },
     speeds: [...S.walk(40)],
     damageVulnerabilities: ['bludgeoning'],
     damageImmunities: ['poison'],

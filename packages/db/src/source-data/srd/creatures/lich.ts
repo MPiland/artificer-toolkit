@@ -21,7 +21,11 @@ export const lich: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 135,
-    hitDice: '18d8+54',
+    hitDice: {
+      count: 18,
+      die: 8,
+      modifier: 54,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(2794, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),

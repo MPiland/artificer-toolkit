@@ -19,7 +19,11 @@ export const merfolk: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(10), ...S.swim(40)],
     proficiencies: [
         S.grantedSkillProficiency(195, 1, 'PERCEPTION'),

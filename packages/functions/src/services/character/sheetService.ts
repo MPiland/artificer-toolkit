@@ -2,6 +2,7 @@ import {
   ConcurrencyError,
   createCharacterEventRepository,
   createCharacterRepository,
+  createCharacterSheetAdjustmentRepository,
   createEquipmentRepository,
   getCharacterSheetMechanicsQuery,
   type CharacterSheetStatePatch,
@@ -25,6 +26,7 @@ import {
   type EngineSpellSlots,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
+import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
 import { createHash } from 'node:crypto'
 
 import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
@@ -458,12 +460,24 @@ function getCalculatedMaxHitPoints(character: CharacterAuthored): number {
   return character.intent.hitpoints.levels.reduce((total, level) => total + level.value, 0)
 }
 
-function getMaxHitPoints(character: CharacterAuthored): number {
-  const calculated = getCalculatedMaxHitPoints(character)
-  return (
-    character.state.hitpoints.maxOverride ??
-    (calculated > 0 ? calculated : character.state.hitpoints.current)
+function getHitPointAdjustment(
+  adjustments: readonly CharacterSheetAdjustment[],
+  field: 'MAXIMUM_MODIFIER' | 'MAXIMUM_OVERRIDE'
+): number | undefined {
+  const adjustment = adjustments.find(
+    (candidate) => candidate.family === 'HIT_POINTS' && candidate.field === field
   )
+  return adjustment?.family === 'HIT_POINTS' ? adjustment.value : undefined
+}
+
+function getMaxHitPoints(
+  character: CharacterAuthored,
+  adjustments: readonly CharacterSheetAdjustment[] = []
+): number {
+  const calculated = getCalculatedMaxHitPoints(character)
+  const base = calculated > 0 ? calculated : character.state.hitpoints.current
+  const adjusted = Math.max(base + (getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0), 0)
+  return getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? adjusted
 }
 
 function formatClassSummary(resolution: CharacterBuilderResolution): string {
@@ -1280,8 +1294,10 @@ export async function buildCharacterSheetResponse(params: {
   resolution: CharacterBuilderResolution
   streamVersion: number
   hasBuilderDraft?: boolean
+  adjustments?: readonly CharacterSheetAdjustment[]
 }): Promise<CharacterSheetResponseDto> {
   const { character, resolution } = params
+  const adjustments = params.adjustments ?? []
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
   const engineInput = createCharacterEngineInput(character, resolution)
   const rulesSystem = resolveRulesSystem({
@@ -1290,7 +1306,7 @@ export async function buildCharacterSheetResponse(params: {
   })
   const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, rulesSystem)
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
-  const maxHitPoints = getMaxHitPoints(character)
+  const maxHitPoints = getMaxHitPoints(character, adjustments)
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
@@ -1426,7 +1442,8 @@ export async function buildCharacterSheetResponse(params: {
       if (selection.selectionKey !== 'options') continue
       for (const value of selection.values) {
         const optionIds = value.kind === 'ID' ? [value.id] : value.kind === 'IDS' ? value.ids : []
-        for (const optionId of optionIds) optionParentFeatureIds.set(optionId, acquisition.featureId)
+        for (const optionId of optionIds)
+          optionParentFeatureIds.set(optionId, acquisition.featureId)
       }
     }
   }
@@ -1553,7 +1570,7 @@ export async function buildCharacterSheetResponse(params: {
       currentHitPoints: character.state.hitpoints.current,
       maxHitPoints,
       tempHitPoints: character.state.hitpoints.temp ?? 0,
-      maxHitPointsOverride: character.state.hitpoints.maxOverride ?? null,
+      maxHitPointsOverride: getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? null,
       exhaustionLevel: character.state.exhaustion?.level ?? 0,
       exhaustionNotes: character.state.exhaustion?.notes,
       conditions: (character.state.conditions ?? []).map((condition) => ({
@@ -1900,7 +1917,11 @@ export function applyCharacterSheetCommand(
   character: CharacterAuthored,
   command: CharacterSheetStateCommand,
   sheet: CharacterSheetResponseDto,
-  context: { createId?: () => string; now?: () => string } = {}
+  context: {
+    adjustments?: readonly CharacterSheetAdjustment[]
+    createId?: () => string
+    now?: () => string
+  } = {}
 ): CharacterAuthored {
   const next = structuredClone(character)
   const createId = context.createId ?? (() => crypto.randomUUID())
@@ -1983,11 +2004,18 @@ export function applyCharacterSheetCommand(
 
     case 'SET_HIT_POINTS': {
       next.state.hitpoints.temp = command.temp == null ? next.state.hitpoints.temp : command.temp
-      next.state.hitpoints.maxOverride =
-        command.maxOverride === null
-          ? undefined
-          : (command.maxOverride ?? next.state.hitpoints.maxOverride)
-      const maxHitPoints = getMaxHitPoints(next)
+      const maxHitPoints =
+        command.maxOverride === undefined
+          ? sheet.overview.maxHitPoints
+          : command.maxOverride === null
+            ? getMaxHitPoints(
+                next,
+                (context.adjustments ?? []).filter(
+                  (adjustment) =>
+                    adjustment.family !== 'HIT_POINTS' || adjustment.field !== 'MAXIMUM_OVERRIDE'
+                )
+              )
+            : command.maxOverride
       next.state.hitpoints.current = clamp(
         command.current ?? next.state.hitpoints.current,
         0,
@@ -2735,9 +2763,11 @@ export async function executeCharacterSheetCommand(params: {
   userId: string
 }): Promise<CharacterSheetCommandResponseDto> {
   const repository = createCharacterRepository(params.db)
-  const [row, character] = await Promise.all([
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
+  const [row, character, adjustments] = await Promise.all([
     repository.findById(params.characterId),
-    repository.findAuthoredById(params.characterId)
+    repository.findAuthoredById(params.characterId),
+    adjustmentRepository.listByCharacter(params.characterId)
   ])
   if (!character || !row) {
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
@@ -2784,7 +2814,8 @@ export async function executeCharacterSheetCommand(params: {
         db: params.db,
         character,
         resolution,
-        streamVersion: row.stream_version
+        streamVersion: row.stream_version,
+        adjustments
       }),
       historyEntry: {
         eventId: priorEvent.eventId,
@@ -2818,9 +2849,12 @@ export async function executeCharacterSheetCommand(params: {
     db: params.db,
     character,
     resolution,
-    streamVersion: row.stream_version
+    streamVersion: row.stream_version,
+    adjustments
   })
-  const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet)
+  const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet, {
+    adjustments
+  })
   const statePatches = createCharacterSheetStatePatches(character, nextCharacter)
   const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
   const event = {
@@ -2838,15 +2872,45 @@ export async function executeCharacterSheetCommand(params: {
   const nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
     expectedStreamVersion: params.command.expectedVersion,
     afterPersist: async (trx) => {
+      if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
+        const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
+        const existing = adjustments.find(
+          (adjustment) =>
+            adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
+        )
+        if (params.command.maxOverride === null) {
+          if (existing) {
+            await typedAdjustmentRepository.remove({
+              characterId: params.characterId,
+              adjustmentId: existing.id,
+              family: 'HIT_POINTS'
+            })
+          }
+        } else {
+          await typedAdjustmentRepository.upsert({
+            id: existing?.id ?? crypto.randomUUID(),
+            characterId: params.characterId,
+            actorId: params.userId,
+            family: 'HIT_POINTS',
+            field: 'MAXIMUM_OVERRIDE',
+            value: params.command.maxOverride,
+            sourceCategory: existing?.sourceCategory ?? 'MANUAL',
+            ...(existing?.sourceLabel == null ? {} : { sourceLabel: existing.sourceLabel }),
+            ...(existing?.sourceNote == null ? {} : { sourceNote: existing.sourceNote })
+          })
+        }
+      }
       await createCharacterEventRepository(trx).append(event)
     }
   })
 
+  const persistedAdjustments = await adjustmentRepository.listByCharacter(params.characterId)
   const sheet = await buildCharacterSheetResponse({
     db: params.db,
     character: nextCharacter,
     resolution,
-    streamVersion: nextStreamVersion
+    streamVersion: nextStreamVersion,
+    adjustments: persistedAdjustments
   })
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,

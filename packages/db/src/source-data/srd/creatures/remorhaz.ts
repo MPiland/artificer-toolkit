@@ -21,7 +21,11 @@ export const remorhaz: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 195,
-    hitDice: '17d12+85',
+    hitDice: {
+      count: 17,
+      die: 12,
+      modifier: 85,
+    },
     speeds: [...S.walk(30), ...S.burrow(20)],
     damageImmunities: ['cold', 'fire'],
     senses: ['darkvision 60 ft.', 'tremorsense 60 ft.'],

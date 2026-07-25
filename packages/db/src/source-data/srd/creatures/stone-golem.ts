@@ -19,7 +19,11 @@ export const stoneGolem: CreatureAuthored = {
     },
     armorClass: 17,
     hitPoints: 178,
-    hitDice: '17d10+85',
+    hitDice: {
+      count: 17,
+      die: 10,
+      modifier: 85,
+    },
     speeds: [...S.walk(30)],
     conditionImmunities: ['charmed', 'exhaustion', 'frightened', 'paralyzed', 'petrified', 'poisoned'],
     damageImmunities: ['poison', 'psychic'],

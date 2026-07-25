@@ -22,7 +22,11 @@ export const boneDevil: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 142,
-    hitDice: '15d10+60',
+    hitDice: {
+      count: 15,
+      die: 10,
+      modifier: 60,
+    },
     speeds: [...S.walk(40), ...S.fly(40)],
     proficiencies: [
         S.grantedSaveProficiency(52, 1, 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

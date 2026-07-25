@@ -19,7 +19,11 @@ export const giantWolfSpider: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(40), ...S.climb(40)],
     proficiencies: [
         S.grantedSkillProficiency(140, 1, 'PERCEPTION', 'STEALTH')

@@ -21,7 +21,11 @@ export const crocodile: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 19,
-    hitDice: '3d10+3',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 3,
+    },
     speeds: [...S.walk(20), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(73, 1, 'STEALTH')

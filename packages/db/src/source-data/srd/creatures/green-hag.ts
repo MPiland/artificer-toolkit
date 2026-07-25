@@ -21,7 +21,11 @@ export const greenHag: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 82,
-  hitDice: '11d8+33',
+  hitDice: {
+    count: 11,
+    die: 8,
+    modifier: 33,
+  },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [
     S.grantedSkillProficiency(4388, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION', 'STEALTH'),

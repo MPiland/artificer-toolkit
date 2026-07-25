@@ -18,7 +18,11 @@ export const giantOwl: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 19,
-    hitDice: '3d10+3',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 3,
+    },
     speeds: [...S.walk(5), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(129, 1, 'PERCEPTION', 'STEALTH'),

@@ -19,7 +19,11 @@ export const rugOfSmothering: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 33,
-    hitDice: '6d8+6',
+    hitDice: {
+      count: 6,
+      die: 8,
+      modifier: 6,
+    },
     speeds: [...S.walk(10)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_2,

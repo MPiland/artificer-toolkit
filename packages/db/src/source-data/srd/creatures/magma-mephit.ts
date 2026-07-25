@@ -19,7 +19,11 @@ export const magmaMephit: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 22,
-    hitDice: '5d6+5',
+    hitDice: {
+      count: 5,
+      die: 6,
+      modifier: 5,
+    },
     speeds: [...S.walk(30), ...S.fly(30)],
     proficiencies: [
         S.grantedSkillProficiency(188, 1, 'STEALTH'),

@@ -20,7 +20,11 @@ export const ettin: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 85,
-    hitDice: '10d10+30',
+    hitDice: {
+      count: 10,
+      die: 10,
+      modifier: 30,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(100, 1, 'PERCEPTION'),

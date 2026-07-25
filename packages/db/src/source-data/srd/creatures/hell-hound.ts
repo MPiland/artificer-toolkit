@@ -20,7 +20,11 @@ export const hellHound: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 45,
-    hitDice: '7d8+14',
+    hitDice: {
+      count: 7,
+      die: 8,
+      modifier: 14,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(161, 1, 'PERCEPTION')

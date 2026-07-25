@@ -20,7 +20,11 @@ export const succubusIncubus: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 66,
-    hitDice: '12d8+12',
+    hitDice: {
+      count: 12,
+      die: 8,
+      modifier: 12,
+    },
     speeds: [...S.walk(30), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(7009, 1, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'PERSUASION', 'STEALTH')

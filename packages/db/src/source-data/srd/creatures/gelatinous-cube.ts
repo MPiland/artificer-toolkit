@@ -20,7 +20,11 @@ export const gelatinousCube: CreatureAuthored = {
     armorClass: 6,
     armorClassNote: 'natural armor',
     hitPoints: 84,
-    hitDice: '8d10+40',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 40,
+    },
     speeds: [...S.walk(15)],
     conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'prone'],
     senses: ['blindsight 60 ft. (blind beyond this radius)'],

@@ -21,7 +21,11 @@ export const frostGiant: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'patchwork armor',
   hitPoints: 138,
-  hitDice: '12d12+60',
+  hitDice: {
+    count: 12,
+    die: 12,
+    modifier: 60,
+  },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(107, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

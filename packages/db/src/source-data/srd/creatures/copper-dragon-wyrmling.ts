@@ -20,7 +20,11 @@ export const copperDragonWyrmling: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'natural armor',
     hitPoints: 22,
-    hitDice: '4d8+4',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 4,
+    },
     speeds: [...S.walk(30), ...S.climb(30), ...S.fly(60)],
     proficiencies: [
         S.grantedSaveProficiency(7951, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

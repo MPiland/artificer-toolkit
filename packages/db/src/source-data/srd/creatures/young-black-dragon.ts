@@ -20,7 +20,11 @@ export const youngBlackDragon: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 127,
-    hitDice: '15d10+45',
+    hitDice: {
+      count: 15,
+      die: 10,
+      modifier: 45,
+    },
     speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
     proficiencies: [
         S.grantedSaveProficiency(301, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

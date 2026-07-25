@@ -19,7 +19,11 @@ export const invisibleStalker: CreatureAuthored = {
     },
     armorClass: 14,
     hitPoints: 104,
-    hitDice: '16d8+32',
+    hitDice: {
+      count: 16,
+      die: 8,
+      modifier: 32,
+    },
     speeds: [...S.walk(50), ...S.fly(50)],
     proficiencies: [
         S.grantedSkillProficiency(174, 1, 'PERCEPTION', 'STEALTH'),

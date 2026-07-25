@@ -19,7 +19,11 @@ export const lizard: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(20), ...S.climb(20)],
     senses: ['darkvision 30 ft.'],
     passivePerception: 9,

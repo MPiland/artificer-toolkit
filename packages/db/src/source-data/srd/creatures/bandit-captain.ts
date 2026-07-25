@@ -21,7 +21,11 @@ export const banditCaptain: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'studded leather armor',
   hitPoints: 65,
-  hitDice: '10d8+20',
+  hitDice: {
+    count: 10,
+    die: 8,
+    modifier: 20,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_2,
   xp: 450

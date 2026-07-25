@@ -20,7 +20,11 @@ export const animatedArmor: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 33,
-    hitDice: '6d8+6',
+    hitDice: {
+      count: 6,
+      die: 8,
+      modifier: 6,
+    },
     speeds: [...S.walk(25)],
     damageImmunities: ['poison', 'psychic'],
     conditionImmunities: ['blinded', 'charmed', 'deafened', 'exhaustion', 'frightened', 'paralyzed', 'petrified', 'poisoned'],

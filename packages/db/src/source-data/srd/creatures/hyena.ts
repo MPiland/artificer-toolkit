@@ -19,7 +19,11 @@ export const hyena: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 5,
-    hitDice: '1d8+1',
+    hitDice: {
+      count: 1,
+      die: 8,
+      modifier: 1,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(170, 1, 'PERCEPTION')

@@ -20,7 +20,11 @@ export const scorpion: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(10)],
     senses: ['blindsight 10 ft.'],
     passivePerception: 9,

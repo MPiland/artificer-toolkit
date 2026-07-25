@@ -19,7 +19,11 @@ export const giantApe: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 157,
-    hitDice: '15d12+60',
+    hitDice: {
+      count: 15,
+      die: 12,
+      modifier: 60,
+    },
     speeds: [...S.walk(40), ...S.climb(40)],
     proficiencies: [
         S.grantedSkillProficiency(113, 1, 'ATHLETICS', 'PERCEPTION')

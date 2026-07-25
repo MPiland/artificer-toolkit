@@ -21,7 +21,11 @@ export const knight: CreatureAuthored = {
   armorClass: 18,
   armorClassNote: 'plate armor',
   hitPoints: 52,
-  hitDice: '8d8+16',
+  hitDice: {
+    count: 8,
+    die: 8,
+    modifier: 16,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_3,
   xp: 700

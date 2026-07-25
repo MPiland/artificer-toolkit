@@ -21,7 +21,11 @@ export const worg: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 26,
-    hitDice: '4d10+4',
+    hitDice: {
+      count: 4,
+      die: 10,
+      modifier: 4,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(297, 1, 'PERCEPTION'),

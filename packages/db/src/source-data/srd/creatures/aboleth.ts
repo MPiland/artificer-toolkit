@@ -21,7 +21,11 @@ export const aboleth: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 135,
-    hitDice: '18d10+36',
+    hitDice: {
+      count: 18,
+      die: 10,
+      modifier: 36,
+    },
     speeds: [...S.walk(10), ...S.swim(40)],
     proficiencies: [
         S.grantedSaveProficiency(1, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM'),

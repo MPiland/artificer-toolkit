@@ -20,7 +20,11 @@ export const mage: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: '15 with mage armor',
     hitPoints: 40,
-    hitDice: '9d8',
+    hitDice: {
+      count: 9,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(187, 1, 'INTELLIGENCE', 'WISDOM'),

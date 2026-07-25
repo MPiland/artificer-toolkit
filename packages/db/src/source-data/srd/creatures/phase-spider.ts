@@ -20,7 +20,11 @@ export const phaseSpider: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 32,
-    hitDice: '5d10+5',
+    hitDice: {
+      count: 5,
+      die: 10,
+      modifier: 5,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(218, 1, 'STEALTH')

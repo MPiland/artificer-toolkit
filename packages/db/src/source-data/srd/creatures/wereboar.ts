@@ -20,7 +20,11 @@ export const wereboar: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 78,
-    hitDice: '12d8+24',
+    hitDice: {
+      count: 12,
+      die: 8,
+      modifier: 24,
+    },
     speeds: [...S.walk(30)],
     damageImmunities: ['bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons'],
     passivePerception: 9,

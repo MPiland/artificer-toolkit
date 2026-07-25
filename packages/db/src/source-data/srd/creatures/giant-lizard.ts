@@ -20,7 +20,11 @@ export const giantLizard: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 19,
-    hitDice: '3d10+3',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 3,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     senses: ['darkvision 30 ft.'],
     passivePerception: 10,

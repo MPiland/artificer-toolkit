@@ -19,7 +19,11 @@ export const ogreZombie: CreatureAuthored = {
     },
     armorClass: 8,
     hitPoints: 85,
-    hitDice: '9d10+36',
+    hitDice: {
+      count: 9,
+      die: 10,
+      modifier: 36,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(210, 1, 'WISDOM')

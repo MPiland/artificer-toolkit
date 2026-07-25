@@ -20,7 +20,11 @@ export const kraken: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 472,
-    hitDice: '27d20+189',
+    hitDice: {
+      count: 27,
+      die: 20,
+      modifier: 189,
+    },
     speeds: [...S.swim(60)],
     proficiencies: [
         S.grantedSaveProficiency(9001, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

@@ -20,7 +20,11 @@ export const hillGiant: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 105,
-    hitDice: '10d12+40',
+    hitDice: {
+      count: 10,
+      die: 12,
+      modifier: 40,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(163, 1, 'PERCEPTION'),

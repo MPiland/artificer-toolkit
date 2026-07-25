@@ -20,7 +20,11 @@ export const hunterShark: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 45,
-    hitDice: '6d10+12',
+    hitDice: {
+      count: 6,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(0), ...S.swim(40)],
     proficiencies: [
         S.grantedSkillProficiency(168, 1, 'PERCEPTION')

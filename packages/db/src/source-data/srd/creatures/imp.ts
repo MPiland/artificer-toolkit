@@ -21,7 +21,11 @@ export const imp: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 10,
-    hitDice: '3d4+3',
+    hitDice: {
+      count: 3,
+      die: 4,
+      modifier: 3,
+    },
     speeds: [...S.walk(20), ...S.fly(40)],
     proficiencies: [
         S.grantedSkillProficiency(173, 1, 'DECEPTION', 'INSIGHT', 'PERSUASION', 'STEALTH'),

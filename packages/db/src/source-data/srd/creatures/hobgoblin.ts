@@ -21,7 +21,11 @@ export const hobgoblin: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'chain mail, shield',
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedLanguageProficiency(165, 1, 'COMMON', 'GOBLIN')

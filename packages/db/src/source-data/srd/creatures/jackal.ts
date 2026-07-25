@@ -19,7 +19,11 @@ export const jackal: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 3,
-    hitDice: '1d6',
+    hitDice: {
+      count: 1,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(176, 1, 'PERCEPTION')

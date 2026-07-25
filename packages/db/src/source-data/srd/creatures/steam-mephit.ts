@@ -19,7 +19,11 @@ export const steamMephit: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 21,
-    hitDice: '6d6',
+    hitDice: {
+      count: 6,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.fly(30)],
     proficiencies: [
         S.grantedLanguageProficiency(262, 1, 'AQUAN', 'IGNAN')

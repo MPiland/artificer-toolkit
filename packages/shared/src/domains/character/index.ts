@@ -1,3 +1,6 @@
 export * from './events/index.js'
 export * from './historyView.js'
 export * from './multiclassRequirements.js'
+export * from './sheetAdjustment.js'
+export * from './sheetCalculation.js'
+export * from './sheetResource.js'

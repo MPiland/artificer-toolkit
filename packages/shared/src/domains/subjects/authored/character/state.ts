@@ -122,7 +122,6 @@ export interface CharacterHitpointsState {
   current: number
   temp?: number
   hitDice: CharacterHitDiceUsageState[]
-  maxOverride?: number
 }
 
 export interface CharacterState {

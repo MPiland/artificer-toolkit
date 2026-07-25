@@ -69,21 +69,20 @@ function emptyGrantTables() {
     proficiency_grant_equipment_filters: [],
     proficiency_grant_equipment_filter_properties: [],
     proficiency_grant_equipment_properties: [],
-    proficiency_grant_equipment_property_filters: [],
+    proficiency_grant_equipment_property_filters: []
   }
 }
 
 describe('createCreatureRepository', () => {
   it('persists and hydrates SRD dragon legendary action options from source data', async () => {
     const repository = createCreatureRepository(new InMemoryDb() as never)
-    const sourceDragons = [
-      CREATURE_IDS.ADULT_BLACK_DRAGON,
-      CREATURE_IDS.ADULT_BRASS_DRAGON
-    ].map((id) => {
+    const sourceDragons = [CREATURE_IDS.ADULT_BLACK_DRAGON, CREATURE_IDS.ADULT_BRASS_DRAGON].map(
+      (id) => {
       const creature = srdCreatures.find((candidate) => candidate.id === id)
       if (!creature) throw new Error(`Missing SRD creature ${id}`)
       return creature
-    })
+      }
+    )
 
     for (const creature of sourceDragons) {
       await repository.upsert(creature)
@@ -91,16 +90,21 @@ describe('createCreatureRepository', () => {
 
     for (const creature of sourceDragons) {
       const hydrated = await repository.findById(creature.id)
-      const legendaryActions = hydrated?.features?.find((feature) => feature.label === 'Legendary Actions')
-      const legendaryResistance = hydrated?.features?.find((feature) => feature.label.startsWith('Legendary Resistance'))
+      const legendaryActions = hydrated?.features?.find(
+        (feature) => feature.label === 'Legendary Actions'
+      )
+      const legendaryResistance = hydrated?.features?.find((feature) =>
+        feature.label.startsWith('Legendary Resistance')
+      )
 
-      expect(legendaryActions?.options?.map((option) => option.label), `${creature.label} legendary options`).toEqual([
-        'Detect',
-        'Tail Attack',
-        'Wing Attack (Costs 2 Actions)'
-      ])
+      expect(
+        legendaryActions?.options?.map((option) => option.label),
+        `${creature.label} legendary options`
+      ).toEqual(['Detect', 'Tail Attack', 'Wing Attack (Costs 2 Actions)'])
       expect(legendaryActions?.section).toBe('LEGENDARY_ACTION')
-      expect(legendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects?.length).toBeGreaterThan(0)
+      expect(
+        legendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects?.length
+      ).toBeGreaterThan(0)
       expect(legendaryResistance, `${creature.label} legendary resistance`).toBeDefined()
     }
   })
@@ -108,7 +112,9 @@ describe('createCreatureRepository', () => {
   it('persists and hydrates creature damage type collections in authored order', async () => {
     const db = new InMemoryDb()
     const repository = createCreatureRepository(db as never)
-    const source = srdCreatures.find((candidate) => candidate.id === CREATURE_IDS.ADULT_BLACK_DRAGON)
+    const source = srdCreatures.find(
+      (candidate) => candidate.id === CREATURE_IDS.ADULT_BLACK_DRAGON
+    )
     if (!source) throw new Error('Missing Adult Black Dragon source creature.')
 
     const creature = {
@@ -145,7 +151,8 @@ describe('createCreatureRepository', () => {
   })
 
   it('hydrates a minimal NPC creature with root language proficiency grants', async () => {
-    const repo = createCreatureRepository(createFakeDb({
+    const repo = createCreatureRepository(
+      createFakeDb({
       creatures: [
         {
           id: 'creature-npc-1',
@@ -164,13 +171,16 @@ describe('createCreatureRepository', () => {
           armor_class_note: 'Chain mail',
           hit_points: 11,
           hit_dice: '2d8+2',
+            hit_dice_count: 2,
+            hit_die: 8,
+            hit_dice_modifier: 2,
           senses: null,
           passive_perception: 10,
           challenge_rating_id: 'cr-1-8',
           xp: 25,
           mount_profile: null,
           companion_profile: null,
-          npc_profile: null,
+            npc_profile: null
         }
       ],
       creature_proficiency_grants: [
@@ -208,8 +218,9 @@ describe('createCreatureRepository', () => {
       proficiency_grant_languages: [
         { proficiency_grant_id: 'grant-lang-1', language_id: 'common' }
       ],
-      details: [],
-    }) as never)
+        details: []
+      }) as never
+    )
 
     await expect(repo.findById('creature-npc-1')).resolves.toMatchObject({
       id: 'creature-npc-1',
@@ -247,12 +258,12 @@ describe('createCreatureRepository', () => {
         CONSTITUTION: 10,
         INTELLIGENCE: 10,
         WISDOM: 10,
-        CHARISMA: 10,
+        CHARISMA: 10
       },
       armorClass: 16,
       armorClassNote: 'Chain mail',
       hitPoints: 11,
-      hitDice: '2d8+2',
+      hitDice: { count: 2, die: 8, modifier: 2 },
       speeds: [{ speedId: 'walk', amount: 30, unit: 'FEET' }],
       senses: undefined,
       passivePerception: 10,
@@ -260,7 +271,7 @@ describe('createCreatureRepository', () => {
       xp: 25,
       mountProfile: undefined,
       companionProfile: undefined,
-      npcProfile: undefined,
+      npcProfile: undefined
     })
   })
 
@@ -269,10 +280,11 @@ describe('createCreatureRepository', () => {
       mountType: 'CONTROLLED',
       capacity: 1,
       riderCount: 1,
-      notes: 'War horse',
+      notes: 'War horse'
     }
 
-    const repo = createCreatureRepository(createFakeDb({
+    const repo = createCreatureRepository(
+      createFakeDb({
       creatures: [
         {
           id: 'creature-beast-1',
@@ -298,13 +310,16 @@ describe('createCreatureRepository', () => {
           armor_class_note: null,
           hit_points: 19,
           hit_dice: '3d10+3',
+            hit_dice_count: 3,
+            hit_die: 10,
+            hit_dice_modifier: 3,
           senses: null,
           passive_perception: 11,
           challenge_rating_id: 'cr-1-2',
           xp: 100,
           mount_profile: mountProfile,
           companion_profile: null,
-          npc_profile: null,
+            npc_profile: null
         }
       ],
       creature_proficiency_grants: [],
@@ -324,8 +339,9 @@ describe('createCreatureRepository', () => {
       feature_options: [],
       feature_option_levels: [],
       ...emptyGrantTables(),
-      details: [],
-    }) as never)
+        details: []
+      }) as never
+    )
 
     const result = await repo.findById('creature-beast-1')
     expect(result).toMatchObject({
@@ -337,14 +353,15 @@ describe('createCreatureRepository', () => {
         mountType: 'CONTROLLED',
         capacity: 1,
         riderCount: 1,
-        notes: 'War horse',
-      },
+        notes: 'War horse'
+      }
     })
     expect(result?.speeds).toEqual([{ speedId: 'walk', amount: 60, unit: 'FEET' }])
   })
 
   it('hydrates a MONSTER with root save, skill, and language proficiency grants', async () => {
-    const repo = createCreatureRepository(createFakeDb({
+    const repo = createCreatureRepository(
+      createFakeDb({
       creatures: [
         {
           id: 'creature-monster-1',
@@ -370,18 +387,29 @@ describe('createCreatureRepository', () => {
           armor_class_note: 'Natural armor',
           hit_points: 546,
           hit_dice: '28d20+252',
+            hit_dice_count: 28,
+            hit_die: 20,
+            hit_dice_modifier: 252,
           senses: ['blindsight-60', 'darkvision-120', 'tremorsense-60'],
           passive_perception: 26,
           challenge_rating_id: 'cr-24',
           xp: 62000,
           mount_profile: null,
           companion_profile: null,
-          npc_profile: null,
+            npc_profile: null
         }
       ],
       creature_proficiency_grants: [
-        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-save-1', sort_order: 1 },
-        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-skill-1', sort_order: 2 },
+          {
+            creature_id: 'creature-monster-1',
+            proficiency_grant_id: 'grant-save-1',
+            sort_order: 1
+          },
+          {
+            creature_id: 'creature-monster-1',
+            proficiency_grant_id: 'grant-skill-1',
+            sort_order: 2
+          },
         { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-lang-1', sort_order: 3 }
       ],
       creature_features: [
@@ -426,7 +454,7 @@ describe('createCreatureRepository', () => {
           charge_id: null,
           restriction_id: null,
           sort_order: 0,
-          available_at_level: null,
+            available_at_level: null
         }
       ],
       feature_effects: [],
@@ -488,8 +516,9 @@ describe('createCreatureRepository', () => {
         { proficiency_grant_id: 'grant-lang-1', language_id: 'common' },
         { proficiency_grant_id: 'grant-lang-1', language_id: 'draconic' }
       ],
-      details: [],
-    }) as never)
+        details: []
+      }) as never
+    )
 
     const result = await repo.findById('creature-monster-1')
 
@@ -541,7 +570,8 @@ describe('createCreatureRepository', () => {
   })
 
   it('hydrates creature logistics fields without a competing record kind', async () => {
-    const repo = createCreatureRepository(createFakeDb({
+    const repo = createCreatureRepository(
+      createFakeDb({
       creatures: [
         {
           id: 'creature-logistics-1',
@@ -560,11 +590,19 @@ describe('createCreatureRepository', () => {
           armor_class_note: null,
           hit_points: null,
           hit_dice: null,
+            hit_dice_count: null,
+            hit_die: null,
+            hit_dice_modifier: null,
           senses: null,
           passive_perception: null,
           challenge_rating_id: null,
           xp: null,
-          mount_profile: { mountType: 'CONTROLLED', riderCount: 1, capacity: 1, notes: 'Common mount' },
+            mount_profile: {
+              mountType: 'CONTROLLED',
+              riderCount: 1,
+              capacity: 1,
+              notes: 'Common mount'
+            },
           companion_profile: null,
           npc_profile: null,
           cost: { amount: 75, currencyId: 'gp' },
@@ -594,8 +632,9 @@ describe('createCreatureRepository', () => {
       feature_options: [],
       feature_option_levels: [],
       ...emptyGrantTables(),
-      details: [],
-    }) as never)
+        details: []
+      }) as never
+    )
 
     await expect(repo.findById('creature-logistics-1')).resolves.toMatchObject({
       id: 'creature-logistics-1',
@@ -633,8 +672,10 @@ describe('createCreatureRepository', () => {
   })
 
   it('rejects malformed JSON profiles instead of asserting them as authored data', async () => {
-    const repo = createCreatureRepository(createFakeDb({
-      creatures: [{
+    const repo = createCreatureRepository(
+      createFakeDb({
+        creatures: [
+          {
         id: 'creature-invalid-profile',
         system_id: 'system-1',
         user_id: 'user-1',
@@ -653,7 +694,8 @@ describe('createCreatureRepository', () => {
         armor_class: 10,
         hit_points: 10,
         mount_profile: { mountType: 'CONTROLLED', riderCount: 'one' }
-      }],
+          }
+        ],
       creature_proficiency_grants: [],
       creature_features: [],
       creature_details: [],
@@ -662,7 +704,8 @@ describe('createCreatureRepository', () => {
       creature_damage_immunities: [],
       creature_damage_vulnerabilities: [],
       creature_condition_immunities: []
-    }) as unknown as DBLike)
+      }) as unknown as DBLike
+    )
 
     await expect(repo.findById('creature-invalid-profile')).rejects.toThrow(
       'Creature "creature-invalid-profile" has invalid mount_profile.'
@@ -670,7 +713,8 @@ describe('createCreatureRepository', () => {
   })
 
   it('throws when creature is missing user_id', async () => {
-    const repo = createCreatureRepository(createFakeDb({
+    const repo = createCreatureRepository(
+      createFakeDb({
       creatures: [
         {
           id: 'creature-no-user',
@@ -689,13 +733,16 @@ describe('createCreatureRepository', () => {
           armor_class_note: null,
           hit_points: 45,
           hit_dice: null,
+            hit_dice_count: null,
+            hit_die: null,
+            hit_dice_modifier: null,
           senses: null,
           passive_perception: 11,
           challenge_rating_id: null,
           xp: null,
           mount_profile: null,
           companion_profile: null,
-          npc_profile: null,
+            npc_profile: null
         }
       ],
       creature_proficiency_grants: [],
@@ -713,8 +760,9 @@ describe('createCreatureRepository', () => {
       feature_options: [],
       feature_option_levels: [],
       ...emptyGrantTables(),
-      details: [],
-    }) as never)
+        details: []
+      }) as never
+    )
 
     await expect(repo.findById('creature-no-user')).rejects.toThrow(
       'Creature "creature-no-user" is missing user ownership and cannot be hydrated.'

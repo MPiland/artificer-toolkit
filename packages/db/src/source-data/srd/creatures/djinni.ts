@@ -20,7 +20,11 @@ export const djinni: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 161,
-    hitDice: '14d10+84',
+    hitDice: {
+      count: 14,
+      die: 10,
+      modifier: 84,
+    },
     speeds: [...S.walk(30), ...S.fly(90)],
     proficiencies: [
         S.grantedSaveProficiency(2690, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),

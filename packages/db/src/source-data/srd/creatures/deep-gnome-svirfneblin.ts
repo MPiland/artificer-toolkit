@@ -22,7 +22,11 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'chain shirt',
     hitPoints: 16,
-    hitDice: '3d6+6',
+    hitDice: {
+      count: 3,
+      die: 6,
+      modifier: 6,
+    },
     speeds: [...S.walk(20)],
     proficiencies: [
         S.grantedSkillProficiency(78, 1, 'INVESTIGATION', 'PERCEPTION', 'STEALTH'),

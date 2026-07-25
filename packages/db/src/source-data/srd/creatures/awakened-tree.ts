@@ -20,7 +20,11 @@ export const awakenedTree: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 59,
-    hitDice: '7d12+14',
+    hitDice: {
+      count: 7,
+      die: 12,
+      modifier: 14,
+    },
     speeds: [...S.walk(20)],
     damageVulnerabilities: ['fire'],
     damageResistances: ['bludgeoning', 'piercing'],

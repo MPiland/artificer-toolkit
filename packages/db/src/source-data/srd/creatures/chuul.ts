@@ -21,7 +21,11 @@ export const chuul: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'natural armor',
     hitPoints: 93,
-    hitDice: '11d10+33',
+    hitDice: {
+      count: 11,
+      die: 10,
+      modifier: 33,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(63, 1, 'PERCEPTION')

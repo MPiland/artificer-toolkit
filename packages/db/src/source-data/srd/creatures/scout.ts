@@ -20,7 +20,11 @@ export const scout: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'leather armor',
     hitPoints: 16,
-    hitDice: '3d8+3',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 3,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(247, 1, 'NATURE', 'PERCEPTION', 'STEALTH', 'SURVIVAL')

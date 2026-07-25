@@ -21,7 +21,11 @@ export const winterWolf: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 75,
-    hitDice: '10d10+20',
+    hitDice: {
+      count: 10,
+      die: 10,
+      modifier: 20,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(295, 1, 'PERCEPTION', 'STEALTH'),

@@ -11,6 +11,7 @@ import {
   type CharacterSheetStatePatch
 } from '../domains/subjects/repositories/character.js'
 import { createCharacterEventRepository } from '../domains/subjects/repositories/characterEvent.js'
+import { createCharacterSheetAdjustmentRepository } from '../domains/subjects/repositories/characterSheetAdjustment.js'
 import type { Database } from '../types/index.js'
 type Db = ReturnType<typeof createDb>
 type CharacterTransaction = Transaction<Database>
@@ -47,6 +48,7 @@ interface FixtureIdentity {
   backgroundId: string
   classId: string
   raceId: string
+  speedId: string
   spellId: string
   systemId: string
   userId: string
@@ -73,13 +75,15 @@ async function findFixtureIdentity(db: CharacterTransaction): Promise<FixtureIde
   const userId = userResult.rows[0]?.id
 
   if (!systemId) {
-    throw new Error('The local database has no D&D 5e 2014 system. Run `yarn seed:srd:local` first.')
+    throw new Error(
+      'The local database has no D&D 5e 2014 system. Run `yarn seed:srd:local` first.'
+    )
   }
   if (!userId) {
     throw new Error('The local database has no auth user. Run `yarn seed:srd:local` first.')
   }
 
-  const [backgroundResult, classResult, raceResult, spellResult] = await Promise.all([
+  const [backgroundResult, classResult, raceResult, speedResult, spellResult] = await Promise.all([
     sql<{ id: string }>`
       select id::text as id
       from backgrounds
@@ -105,6 +109,13 @@ async function findFixtureIdentity(db: CharacterTransaction): Promise<FixtureIde
     `.execute(db),
     sql<{ id: string }>`
       select id::text as id
+      from speeds
+      where system_id = ${systemId}::uuid
+      order by created_at, id
+      limit 1
+    `.execute(db),
+    sql<{ id: string }>`
+      select id::text as id
       from spells
       where system_id = ${systemId}::uuid
       order by created_at, id
@@ -114,13 +125,14 @@ async function findFixtureIdentity(db: CharacterTransaction): Promise<FixtureIde
   const backgroundId = backgroundResult.rows[0]?.id
   const classId = classResult.rows[0]?.id
   const raceId = raceResult.rows[0]?.id
+  const speedId = speedResult.rows[0]?.id
   const spellId = spellResult.rows[0]?.id
 
-  if (!backgroundId || !classId || !raceId || !spellId) {
+  if (!backgroundId || !classId || !raceId || !speedId || !spellId) {
     throw new Error('The local D&D 5e 2014 corpus is incomplete. Run `yarn seed:srd:local` first.')
   }
 
-  return { backgroundId, classId, raceId, spellId, systemId, userId }
+  return { backgroundId, classId, raceId, speedId, spellId, systemId, userId }
 }
 
 interface SheetSnapshot {
@@ -139,8 +151,15 @@ interface SheetSnapshot {
   }>
   hitpoints: Array<{
     current: number | null
-    maxOverride: number | null
+    legacyMaxOverride: number | null
     temp: number | null
+  }>
+  adjustments: Array<{
+    field: string
+    sourceCategory: string
+    sourceLabel: string | null
+    sourceNote: string | null
+    value: number
   }>
   events: Array<{
     commandId: string
@@ -157,7 +176,8 @@ async function readSheetSnapshot(
   db: CharacterTransaction,
   characterId: string
 ): Promise<SheetSnapshot> {
-  const [character, exhaustion, hitDice, hitpoints, events, spellSlots] = await Promise.all([
+  const [character, exhaustion, hitDice, hitpoints, adjustments, events, spellSlots] =
+    await Promise.all([
     sql<{ inspiration: boolean; stream_version: number }>`
       select inspiration, stream_version
       from characters
@@ -178,6 +198,18 @@ async function readSheetSnapshot(
       select current, max_override, temp
       from character_hitpoint_state
       where character_id = ${characterId}::uuid
+    `.execute(db),
+      sql<{
+        field_kind: string
+        integer_value: number
+        source_category: string
+        source_label: string | null
+        source_note: string | null
+      }>`
+      select field_kind, integer_value, source_category, source_label, source_note
+      from character_hitpoint_adjustments
+      where character_id = ${characterId}::uuid
+      order by field_kind
     `.execute(db),
     sql<{ command_id: string; event_type: string; schema_version: number }>`
       select command_id::text, event_type, schema_version
@@ -202,8 +234,15 @@ async function readSheetSnapshot(
     hitDice: hitDice.rows,
     hitpoints: hitpoints.rows.map((row) => ({
       current: row.current,
-      maxOverride: row.max_override,
+      legacyMaxOverride: row.max_override,
       temp: row.temp
+    })),
+    adjustments: adjustments.rows.map((row) => ({
+      field: row.field_kind,
+      sourceCategory: row.source_category,
+      sourceLabel: row.source_label,
+      sourceNote: row.source_note,
+      value: row.integer_value
     })),
     events: events.rows.map((row) => ({
       commandId: row.command_id,
@@ -251,7 +290,6 @@ async function insertFixture(
       hitpoints: {
         current: 10,
         temp: 0,
-        maxOverride: 12,
         hitDice: [{ die: 8, total: 2, used: 0 }]
       },
       spellSlots: [{ slotKey: '1', used: 1 }],
@@ -276,6 +314,56 @@ async function assertFixtureWasRolledBack(db: Db, characterId: string): Promise<
   )
 }
 
+async function assertCharacterSheetAdjustmentPolicies(db: CharacterTransaction): Promise<void> {
+  const result = await sql<{
+    tablename: string
+    qual: string | null
+    with_check: string | null
+  }>`
+    select tablename, qual, with_check
+    from pg_policies
+    where schemaname = 'public'
+      and policyname = 'Character owners manage Sheet state'
+    order by tablename
+  `.execute(db)
+
+  assert.equal(result.rows.length, 13)
+  for (const policy of result.rows) {
+    assert.match(policy.qual ?? '', /characters/u)
+    assert.match(policy.qual ?? '', /auth\.uid/u)
+    assert.match(policy.with_check ?? '', /characters/u)
+    assert.match(policy.with_check ?? '', /auth\.uid/u)
+  }
+}
+
+async function runLegacyHitPointOverrideBackfill(
+  db: CharacterTransaction
+): Promise<void> {
+  await sql`
+    insert into character_hitpoint_adjustments (
+      id,
+      character_id,
+      field_kind,
+      integer_value,
+      source_note,
+      created_by,
+      updated_by
+    )
+    select
+      gen_random_uuid(),
+      hitpoints.character_id,
+      'MAXIMUM_OVERRIDE',
+      hitpoints.max_override,
+      'Migrated maximum HP override',
+      characters.user_id,
+      characters.user_id
+    from character_hitpoint_state hitpoints
+    join characters on characters.id = hitpoints.character_id
+    where hitpoints.max_override is not null
+    on conflict (character_id, field_kind) do nothing
+  `.execute(db)
+}
+
 async function main(): Promise<void> {
   const connectionString = requireLocalDatabaseUrl()
   const db = createDb({ connectionString })
@@ -287,9 +375,41 @@ async function main(): Promise<void> {
     try {
       await db.transaction().execute(async (trx) => {
       const identity = await findFixtureIdentity(trx)
+        await assertCharacterSheetAdjustmentPolicies(trx)
       await insertFixture(trx, characterId, identity)
 
       const repository = createCharacterRepository(trx)
+        const adjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
+        await sql`
+          update character_hitpoint_state
+          set max_override = 14
+          where character_id = ${characterId}::uuid
+        `.execute(trx)
+        await runLegacyHitPointOverrideBackfill(trx)
+        await runLegacyHitPointOverrideBackfill(trx)
+        const backfilledAdjustments =
+          await adjustmentRepository.listByCharacter(characterId)
+        assert.equal(backfilledAdjustments.length, 1)
+        assert.equal(
+          backfilledAdjustments[0]?.family === 'HIT_POINTS'
+            ? backfilledAdjustments[0].value
+            : undefined,
+          14
+        )
+        assert.equal(
+          await adjustmentRepository.remove({
+            characterId,
+            adjustmentId: backfilledAdjustments[0]!.id,
+            family: 'HIT_POINTS'
+          }),
+          true
+        )
+        await sql`
+          update character_hitpoint_state
+          set max_override = null
+          where character_id = ${characterId}::uuid
+        `.execute(trx)
+
       const before = await readSheetSnapshot(trx, characterId)
       const commandId = randomUUID()
       const patches = [
@@ -298,7 +418,6 @@ async function main(): Promise<void> {
           value: {
             current: 7,
             temp: 3,
-            maxOverride: 12,
             hitDice: [{ die: 8, total: 2, used: 1 }]
           }
         }
@@ -308,6 +427,17 @@ async function main(): Promise<void> {
         expectedStreamVersion: 0,
         afterPersist: async (eventTrx, streamVersion) => {
           assert.equal(streamVersion, 1)
+            await createCharacterSheetAdjustmentRepository(eventTrx).upsert({
+              id: randomUUID(),
+              characterId,
+              actorId: identity.userId,
+              family: 'HIT_POINTS',
+              field: 'MAXIMUM_OVERRIDE',
+              value: 12,
+              sourceCategory: 'MANUAL',
+              sourceLabel: 'Maximum HP',
+              sourceNote: 'Integration proof'
+            })
           await createCharacterEventRepository(eventTrx).append({
             eventId: randomUUID(),
             characterId,
@@ -326,7 +456,40 @@ async function main(): Promise<void> {
 
       assert.equal(nextStreamVersion, 1)
       assert.deepEqual(after.character, [{ inspiration: false, streamVersion: 1 }])
-      assert.deepEqual(after.hitpoints, [{ current: 7, maxOverride: 12, temp: 3 }])
+        assert.deepEqual(after.hitpoints, [{ current: 7, legacyMaxOverride: null, temp: 3 }])
+        assert.deepEqual(after.adjustments, [
+          {
+            field: 'MAXIMUM_OVERRIDE',
+            sourceCategory: 'MANUAL',
+            sourceLabel: 'Maximum HP',
+            sourceNote: 'Integration proof',
+            value: 12
+          }
+        ])
+        const persistedAdjustments = await adjustmentRepository.listByCharacter(characterId)
+        assert.equal(persistedAdjustments.length, 1)
+        assert.equal(persistedAdjustments[0]?.sourceCategory, 'MANUAL')
+        assert.equal(persistedAdjustments[0]?.sourceLabel, 'Maximum HP')
+        assert.equal(persistedAdjustments[0]?.sourceNote, 'Integration proof')
+
+        await adjustmentRepository.setMovementPreference({
+          characterId,
+          actorId: identity.userId,
+          preference: { mode: 'EXPLICIT', speedId: identity.speedId }
+        })
+        assert.deepEqual(await adjustmentRepository.getMovementPreference(characterId), {
+          mode: 'EXPLICIT',
+          speedId: identity.speedId
+        })
+        await adjustmentRepository.setMovementPreference({
+          characterId,
+          actorId: identity.userId,
+          preference: { mode: 'AUTO' }
+        })
+        assert.deepEqual(await adjustmentRepository.getMovementPreference(characterId), {
+          mode: 'AUTO'
+        })
+
       assert.deepEqual(after.hitDice, [{ die: 8, total: 2, used: 1 }])
       assert.deepEqual(after.events, [
         {
@@ -400,62 +563,88 @@ async function main(): Promise<void> {
       }
       assert.deepEqual(await readSheetSnapshot(trx, characterId), after)
 
+        assert.equal(
+          await adjustmentRepository.remove({
+            characterId,
+            adjustmentId: persistedAdjustments[0]!.id,
+            family: 'HIT_POINTS'
+          }),
+          true
+        )
+        assert.deepEqual(await adjustmentRepository.listByCharacter(characterId), [])
+
       let streamVersion = await repository.patchSheetState(
         characterId,
-        [{
+          [
+            {
           kind: 'CLASS_SPELLS',
-          value: [{
+              value: [
+                {
             classId: identity.classId,
             spells: {
               learned: [identity.spellId],
               prepared: [identity.spellId]
             }
-          }]
-        }],
+                }
+              ]
+            }
+          ],
         { expectedStreamVersion: 1 }
       )
       assert.equal(streamVersion, 2)
       let hydrated = await repository.findAuthoredById(characterId)
-      assert.deepEqual(hydrated?.state.classes, [{
+        assert.deepEqual(hydrated?.state.classes, [
+          {
         classId: identity.classId,
         spells: {
           learned: [identity.spellId],
           prepared: [identity.spellId]
         }
-      }])
+          }
+        ])
 
       streamVersion = await repository.patchSheetState(
         characterId,
-        [{
+          [
+            {
           kind: 'CLASS_SPELLS',
-          value: [{
+              value: [
+                {
             classId: identity.classId,
             spells: { learned: [identity.spellId] }
-          }]
-        }],
+                }
+              ]
+            }
+          ],
         { expectedStreamVersion: streamVersion }
       )
       assert.equal(streamVersion, 3)
       hydrated = await repository.findAuthoredById(characterId)
-      assert.deepEqual(hydrated?.state.classes, [{
+        assert.deepEqual(hydrated?.state.classes, [
+          {
         classId: identity.classId,
         spells: { learned: [identity.spellId] }
-      }])
+          }
+        ])
 
       const noteGroupId = randomUUID()
       const noteId = randomUUID()
       const createdAt = '2026-07-14T12:00:00.000Z'
       streamVersion = await repository.patchSheetState(
         characterId,
-        [{
+          [
+            {
           kind: 'NOTES',
-          groups: [{
+              groups: [
+                {
             id: noteGroupId,
             label: 'Session Notes',
             sortOrder: 0,
             kind: 'SESSION'
-          }],
-          notes: [{
+                }
+              ],
+              notes: [
+                {
             id: noteId,
             title: 'The western gate',
             body: 'An artificer sigil marks the arch.',
@@ -463,19 +652,24 @@ async function main(): Promise<void> {
             pinned: false,
             createdAt,
             updatedAt: createdAt
-          }]
-        }],
+                }
+              ]
+            }
+          ],
         { expectedStreamVersion: streamVersion }
       )
       assert.equal(streamVersion, 4)
       hydrated = await repository.findAuthoredById(characterId)
-      assert.deepEqual(hydrated?.state.noteGroups, [{
+        assert.deepEqual(hydrated?.state.noteGroups, [
+          {
         id: noteGroupId,
         label: 'Session Notes',
         sortOrder: 0,
         kind: 'SESSION'
-      }])
-      assert.deepEqual(hydrated?.state.notes, [{
+          }
+        ])
+        assert.deepEqual(hydrated?.state.notes, [
+          {
         id: noteId,
         title: 'The western gate',
         body: 'An artificer sigil marks the arch.',
@@ -483,20 +677,25 @@ async function main(): Promise<void> {
         pinned: false,
         createdAt,
         updatedAt: createdAt
-      }])
+          }
+        ])
 
       const updatedAt = '2026-07-14T13:00:00.000Z'
       streamVersion = await repository.patchSheetState(
         characterId,
-        [{
+          [
+            {
           kind: 'NOTES',
-          groups: [{
+              groups: [
+                {
             id: noteGroupId,
             label: 'Expedition Notes',
             sortOrder: 2,
             kind: 'SESSION'
-          }],
-          notes: [{
+                }
+              ],
+              notes: [
+                {
             id: noteId,
             title: 'The sealed western gate',
             body: 'The artificer sigil reacts to thunder.',
@@ -504,8 +703,10 @@ async function main(): Promise<void> {
             pinned: true,
             createdAt,
             updatedAt
-          }]
-        }],
+                }
+              ]
+            }
+          ],
         { expectedStreamVersion: streamVersion }
       )
       assert.equal(streamVersion, 5)
@@ -524,11 +725,13 @@ async function main(): Promise<void> {
 
       streamVersion = await repository.patchSheetState(
         characterId,
-        [{
+          [
+            {
           kind: 'NOTES',
           groups: hydrated?.state.noteGroups,
           notes: undefined
-        }],
+            }
+          ],
         { expectedStreamVersion: streamVersion }
       )
       assert.equal(streamVersion, 6)
@@ -561,10 +764,15 @@ async function main(): Promise<void> {
     await assertFixtureWasRolledBack(db, characterId)
     console.info(
       JSON.stringify({
+        adjustmentClear: 'verified',
+        adjustmentRoundTrip: 'verified',
+        backfillIdempotency: 'verified',
         classSpellRoundTrip: 'verified',
         eventAtomicity: 'verified',
         localDatabaseOnly: true,
+        movementPreference: 'verified',
         noteLifecycle: 'verified',
+        ownerRlsPolicy: 'verified',
         rollback: 'verified',
         staleVersion: 'verified',
         touchedStateOnly: 'verified'

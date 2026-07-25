@@ -20,7 +20,11 @@ export const nightHag: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 112,
-    hitDice: '15d8+45',
+    hitDice: {
+      count: 15,
+      die: 8,
+      modifier: 45,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(4849, 1, 'DECEPTION', 'INSIGHT', 'PERCEPTION', 'STEALTH'),

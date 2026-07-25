@@ -20,7 +20,11 @@ export const spy: CreatureAuthored = {
   },
   armorClass: 12,
   hitPoints: 27,
-  hitDice: '6d8',
+  hitDice: {
+    count: 6,
+    die: 8,
+    modifier: 0,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(261, 1, 'DECEPTION', 'INSIGHT', 'INVESTIGATION')

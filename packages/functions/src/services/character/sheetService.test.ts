@@ -486,7 +486,7 @@ describe('character sheet command application', () => {
       createSheet()
     )
 
-    expect(next.state.hitpoints.maxOverride).toBe(6)
+    expect(next.state.hitpoints).not.toHaveProperty('maxOverride')
     expect(next.state.hitpoints.current).toBe(6)
   })
 

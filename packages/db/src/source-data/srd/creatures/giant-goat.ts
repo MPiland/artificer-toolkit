@@ -20,7 +20,11 @@ export const giantGoat: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 19,
-    hitDice: '3d10+3',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 3,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 11,
     challengeRatingId: S.CR.CR_1_2,

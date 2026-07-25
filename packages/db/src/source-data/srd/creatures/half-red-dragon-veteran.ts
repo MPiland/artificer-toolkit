@@ -20,7 +20,11 @@ export const halfRedDragonVeteran: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'plate',
     hitPoints: 65,
-    hitDice: '10d8+20',
+    hitDice: {
+      count: 10,
+      die: 8,
+      modifier: 20,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(158, 1, 'ATHLETICS', 'PERCEPTION'),

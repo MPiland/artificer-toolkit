@@ -20,7 +20,11 @@ export const warhorseSkeleton: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'barding scraps',
     hitPoints: 22,
-    hitDice: '3d10+6',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 6,
+    },
     speeds: [...S.walk(60)],
     damageVulnerabilities: ['bludgeoning'],
     damageImmunities: ['poison'],

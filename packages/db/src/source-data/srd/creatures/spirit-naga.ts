@@ -20,7 +20,11 @@ export const spiritNaga: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 75,
-    hitDice: '10d10+20',
+    hitDice: {
+      count: 10,
+      die: 10,
+      modifier: 20,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSaveProficiency(259, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

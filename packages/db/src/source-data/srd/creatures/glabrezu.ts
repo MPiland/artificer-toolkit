@@ -23,7 +23,11 @@ export const glabrezu: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 157,
-  hitDice: '15d10+75',
+  hitDice: {
+    count: 15,
+    die: 10,
+    modifier: 75,
+  },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(142, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

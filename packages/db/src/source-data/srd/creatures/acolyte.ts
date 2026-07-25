@@ -19,7 +19,11 @@ export const acolyte: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 9,
-    hitDice: '2d8',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(2, 1, 'MEDICINE', 'RELIGION')

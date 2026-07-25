@@ -19,7 +19,11 @@ export const elk: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 13,
-    hitDice: '2d10+2',
+    hitDice: {
+      count: 2,
+      die: 10,
+      modifier: 2,
+    },
     speeds: [...S.walk(50)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_1_4,

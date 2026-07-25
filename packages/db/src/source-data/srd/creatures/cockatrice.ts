@@ -20,7 +20,11 @@ export const cockatrice: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 27,
-    hitDice: '6d6+6',
+    hitDice: {
+      count: 6,
+      die: 6,
+      modifier: 6,
+    },
     speeds: [...S.walk(20), ...S.fly(40)],
     senses: ['darkvision 60 ft.'],
     passivePerception: 11,

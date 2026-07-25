@@ -21,7 +21,11 @@ export const barbedDevil: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 110,
-    hitDice: '13d8+52',
+    hitDice: {
+      count: 13,
+      die: 8,
+      modifier: 52,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSaveProficiency(7311, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

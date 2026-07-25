@@ -21,7 +21,11 @@ export const goblin: CreatureAuthored = {
   armorClass: 15,
   armorClassNote: 'leather armor, shield',
   hitPoints: 7,
-  hitDice: '2d6',
+  hitDice: {
+    count: 2,
+    die: 6,
+    modifier: 0,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_4,
   xp: 50

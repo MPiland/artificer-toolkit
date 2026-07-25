@@ -21,7 +21,11 @@ export const mimic: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 58,
-    hitDice: '9d8+18',
+    hitDice: {
+      count: 9,
+      die: 8,
+      modifier: 18,
+    },
     speeds: [...S.walk(15)],
     proficiencies: [
         S.grantedSkillProficiency(197, 1, 'STEALTH')

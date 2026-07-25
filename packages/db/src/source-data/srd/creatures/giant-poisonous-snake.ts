@@ -19,7 +19,11 @@ export const giantPoisonousSnake: CreatureAuthored = {
     },
     armorClass: 14,
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(130, 1, 'PERCEPTION')

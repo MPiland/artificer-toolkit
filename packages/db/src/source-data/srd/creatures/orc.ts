@@ -21,7 +21,11 @@ export const orc: CreatureAuthored = {
   armorClass: 13,
   armorClassNote: 'hide armor',
   hitPoints: 15,
-  hitDice: '2d8+6',
+  hitDice: {
+    count: 2,
+    die: 8,
+    modifier: 6,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_2,
   xp: 100

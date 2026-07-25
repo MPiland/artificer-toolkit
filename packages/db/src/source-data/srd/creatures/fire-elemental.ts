@@ -19,7 +19,11 @@ export const fireElemental: CreatureAuthored = {
   },
   armorClass: 13,
   hitPoints: 102,
-  hitDice: '12d10+36',
+  hitDice: {
+    count: 12,
+    die: 10,
+    modifier: 36,
+  },
   speeds: [...S.walk(50)],
   proficiencies: [
     S.grantedLanguageProficiency(101, 1, 'IGNAN')

@@ -19,7 +19,11 @@ export const deathDog: CreatureAuthored = {
   },
   armorClass: 12,
   hitPoints: 39,
-  hitDice: '6d8+12',
+  hitDice: {
+    count: 6,
+    die: 8,
+    modifier: 12,
+  },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(1389, 1, 'PERCEPTION', 'STEALTH')],
   passivePerception: 14,

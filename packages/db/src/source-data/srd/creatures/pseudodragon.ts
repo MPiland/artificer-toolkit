@@ -21,7 +21,11 @@ export const pseudodragon: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 7,
-    hitDice: '2d4+2',
+    hitDice: {
+      count: 2,
+      die: 4,
+      modifier: 2,
+    },
     speeds: [...S.walk(15), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(226, 1, 'PERCEPTION', 'STEALTH')

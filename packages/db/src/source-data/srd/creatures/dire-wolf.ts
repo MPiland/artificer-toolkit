@@ -21,7 +21,11 @@ export const direWolf: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 37,
-    hitDice: '5d10+10',
+    hitDice: {
+      count: 5,
+      die: 10,
+      modifier: 10,
+    },
     speeds: [...S.walk(50)],
     proficiencies: [
         S.grantedSkillProficiency(81, 1, 'PERCEPTION', 'STEALTH')

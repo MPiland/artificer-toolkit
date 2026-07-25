@@ -20,7 +20,11 @@ export const blueDragonWyrmling: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 52,
-    hitDice: '8d8+16',
+    hitDice: {
+      count: 8,
+      die: 8,
+      modifier: 16,
+    },
     speeds: [...S.walk(30), ...S.burrow(15), ...S.fly(60)],
     proficiencies: [
         S.grantedSaveProficiency(50, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

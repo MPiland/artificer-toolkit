@@ -19,7 +19,11 @@ export const stirge: CreatureAuthored = {
     },
     armorClass: 14,
     hitPoints: 2,
-    hitDice: '1d4',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: 0,
+    },
     speeds: [...S.walk(10), ...S.fly(40)],
     senses: ['darkvision 60 ft.'],
     passivePerception: 9,

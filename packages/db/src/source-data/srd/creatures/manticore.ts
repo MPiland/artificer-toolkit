@@ -20,7 +20,11 @@ export const manticore: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 68,
-    hitDice: '8d10+24',
+    hitDice: {
+      count: 8,
+      die: 10,
+      modifier: 24,
+    },
     speeds: [...S.walk(30), ...S.fly(50)],
     proficiencies: [
         S.grantedLanguageProficiency(191, 1, 'COMMON')

@@ -19,7 +19,11 @@ export const deer: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 4,
-    hitDice: '1d8',
+    hitDice: {
+      count: 1,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(50)],
     passivePerception: 12,
     challengeRatingId: S.CR.CR_0,

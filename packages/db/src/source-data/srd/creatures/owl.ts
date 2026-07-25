@@ -19,7 +19,11 @@ export const owl: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(5), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(214, 1, 'PERCEPTION', 'STEALTH')

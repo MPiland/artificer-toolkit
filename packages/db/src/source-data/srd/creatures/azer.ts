@@ -20,7 +20,11 @@ export const azer: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor, shield',
     hitPoints: 39,
-    hitDice: '6d8+12',
+    hitDice: {
+      count: 6,
+      die: 8,
+      modifier: 12,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSaveProficiency(33, 1, 'CONSTITUTION'),

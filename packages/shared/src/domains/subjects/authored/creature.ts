@@ -1,4 +1,10 @@
-import type { AbilityCode, SizeCode, CreatureCategoryCode, AuthoredRecordStatus } from '#core'
+import type {
+  AbilityCode,
+  AuthoredRecordStatus,
+  CreatureCategoryCode,
+  DiceExpression,
+  SizeCode
+} from '#core'
 import type {
   CapacityAuthored,
   CostAuthored,
@@ -61,7 +67,7 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   armorClass: number
   armorClassNote?: string
   hitPoints: number
-  hitDice?: string
+  hitDice?: DiceExpression
 
   senses?: string[]
   passivePerception?: number

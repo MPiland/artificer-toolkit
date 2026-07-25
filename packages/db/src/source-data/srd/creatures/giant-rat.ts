@@ -19,7 +19,11 @@ export const giantRat: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 7,
-    hitDice: '2d6',
+    hitDice: {
+      count: 2,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     senses: ['darkvision 60 ft.'],
     passivePerception: 10,

@@ -20,7 +20,11 @@ export const owlbear: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 59,
-    hitDice: '7d10+21',
+    hitDice: {
+      count: 7,
+      die: 10,
+      modifier: 21,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(215, 1, 'PERCEPTION')

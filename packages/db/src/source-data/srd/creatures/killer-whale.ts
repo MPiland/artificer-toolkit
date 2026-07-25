@@ -20,7 +20,11 @@ export const killerWhale: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 90,
-    hitDice: '12d12+12',
+    hitDice: {
+      count: 12,
+      die: 12,
+      modifier: 12,
+    },
     speeds: [...S.walk(0), ...S.swim(60)],
     proficiencies: [
         S.grantedSkillProficiency(177, 1, 'PERCEPTION')

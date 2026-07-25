@@ -19,7 +19,11 @@ export const draftHorse: CreatureAuthored = {
     },
     armorClass: 10,
     hitPoints: 19,
-    hitDice: '3d10+3',
+    hitDice: {
+      count: 3,
+      die: 10,
+      modifier: 3,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_1_4,

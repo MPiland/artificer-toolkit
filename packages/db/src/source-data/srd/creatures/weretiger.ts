@@ -20,7 +20,11 @@ export const weretiger: CreatureAuthored = {
   },
   armorClass: 12,
   hitPoints: 120,
-  hitDice: '16d8+48',
+  hitDice: {
+    count: 16,
+    die: 8,
+    modifier: 48,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(290, 1, 'PERCEPTION', 'STEALTH')

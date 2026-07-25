@@ -21,7 +21,11 @@ export const priest: CreatureAuthored = {
   armorClass: 13,
   armorClassNote: 'chain shirt',
   hitPoints: 27,
-  hitDice: '5d8+5',
+  hitDice: {
+    count: 5,
+    die: 8,
+    modifier: 5,
+  },
   speeds: walk(30),
   challengeRatingId: CR.CR_2,
   xp: 450

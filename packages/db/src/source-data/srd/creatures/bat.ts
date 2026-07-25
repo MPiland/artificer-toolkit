@@ -19,7 +19,11 @@ export const bat: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(5), ...S.fly(30)],
     senses: ['blindsight 60 ft.'],
     passivePerception: 11,

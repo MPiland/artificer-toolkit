@@ -23,7 +23,11 @@ export const chainDevil: CreatureAuthored = {
   armorClass: 16,
   armorClassNote: 'natural armor',
   hitPoints: 85,
-  hitDice: '10d8+40',
+  hitDice: {
+    count: 10,
+    die: 8,
+    modifier: 40,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSaveProficiency(61, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

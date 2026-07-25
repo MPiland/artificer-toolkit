@@ -21,7 +21,11 @@ export const giantCrab: CreatureAuthored = {
     armorClass: 15,
     armorClassNote: 'natural armor',
     hitPoints: 13,
-    hitDice: '3d8',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(119, 1, 'STEALTH')

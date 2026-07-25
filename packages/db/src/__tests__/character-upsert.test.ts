@@ -13,8 +13,7 @@ vi.mock('kysely', () => ({
         .map((piece, index) => `${piece}${index < values.length ? String(values[index]) : ''}`)
         .join('')
       const lowered = statement.toLowerCase()
-      const queryTable =
-        lowered.includes('character_spell_slot_state')
+      const queryTable = lowered.includes('character_spell_slot_state')
           ? 'character_spell_slot_state'
           : lowered.includes('character_conditions')
             ? 'character_conditions'
@@ -267,8 +266,7 @@ function buildCharacter(): CharacterAuthored {
       hitpoints: {
         current: 9,
         temp: 2,
-        hitDice: [{ die: 10, total: 3, used: 1 }],
-        maxOverride: 12
+        hitDice: [{ die: 10, total: 3, used: 1 }]
       },
       classes: [
         {
@@ -468,7 +466,7 @@ describe('upsertCharacter', () => {
         character_id: 'character-1',
         current: 9,
         temp: 2,
-        max_override: 12
+        max_override: null
       }
     ])
     expect(db.snapshot('character_resources')).toEqual([
@@ -844,9 +842,9 @@ describe('upsertCharacter', () => {
       }
     ]
 
-    await expect(
-      upsertCharacter(db as unknown as DBLike, character)
-    ).rejects.toThrow(/duplicate chosen grant selection identity/i)
+    await expect(upsertCharacter(db as unknown as DBLike, character)).rejects.toThrow(
+      /duplicate chosen grant selection identity/i
+    )
     expect(db.snapshot('characters')).toEqual([])
   })
 
@@ -856,18 +854,23 @@ describe('upsertCharacter', () => {
     const currencyGroup = character.state.currency[0]
     if (!currencyGroup) throw new Error('currency group missing from test setup')
 
-    await expect(upsertCharacter(db as unknown as DBLike, {
+    await expect(
+      upsertCharacter(
+        db as unknown as DBLike,
+        {
       ...character,
       state: {
         ...character.state,
-        currency: [{
+            currency: [
+              {
           ...currencyGroup,
           id: undefined
-        }]
       }
-    } as unknown as CharacterAuthored)).rejects.toThrow(
-      'Character character-1 has a currency group without an id.'
+            ]
+          }
+        } as unknown as CharacterAuthored
     )
+    ).rejects.toThrow('Character character-1 has a currency group without an id.')
   })
 
   it('rejects notes that reference a missing note group', async () => {
@@ -876,13 +879,15 @@ describe('upsertCharacter', () => {
     const note = character.state.notes?.[0]
     if (!note) throw new Error('note missing from test setup')
 
-    await expect(upsertCharacter(db as unknown as DBLike, {
+    await expect(
+      upsertCharacter(db as unknown as DBLike, {
       ...character,
       state: {
         ...character.state,
         notes: [{ ...note, groupId: 'missing-note-group' }]
       }
-    })).rejects.toThrow(
+      })
+    ).rejects.toThrow(
       'Character character-1 note note-1 references missing note group missing-note-group.'
     )
   })
@@ -892,12 +897,16 @@ describe('upsertCharacter', () => {
     const initial = buildCharacter()
 
     await upsertCharacter(db as never, initial)
-    await upsertCharacter(db as never, {
+    await upsertCharacter(
+      db as never,
+      {
       ...initial,
       label: 'Aria Finalized'
-    }, {
+      },
+      {
       incrementStreamVersion: true
-    })
+      }
+    )
 
     expect(db.snapshot('characters')).toEqual([
       expect.objectContaining({
@@ -918,14 +927,15 @@ describe('upsertCharacter', () => {
     const repository = createCharacterRepository(db as unknown as DBLike)
     let callbackVersion: number | undefined
 
-    const streamVersion = await repository.patchSheetState(character.id, [
+    const streamVersion = await repository.patchSheetState(
+      character.id,
+      [
       { kind: 'INSPIRATION', value: false },
       {
         kind: 'HITPOINTS',
         value: {
           current: 4,
           temp: 2,
-          maxOverride: 12,
           hitDice: [{ die: 8, total: 2, used: 1 }]
         }
       },
@@ -933,12 +943,14 @@ describe('upsertCharacter', () => {
         kind: 'CONDITIONS',
         value: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
       }
-    ], {
+      ],
+      {
       expectedStreamVersion: 0,
       afterPersist: async (_trx, nextStreamVersion) => {
         callbackVersion = nextStreamVersion
       }
-    })
+      }
+    )
 
     expect(streamVersion).toBe(1)
     expect(callbackVersion).toBe(1)
@@ -947,7 +959,8 @@ describe('upsertCharacter', () => {
     expect(db.snapshot('characters')).toEqual([
       expect.objectContaining({ id: character.id, inspiration: false, stream_version: 1 })
     ])
-    await expect(repository.findAuthoredById(character.id)).resolves.toEqual(expect.objectContaining({
+    await expect(repository.findAuthoredById(character.id)).resolves.toEqual(
+      expect.objectContaining({
       profile: character.profile,
       intent: character.intent,
       state: expect.objectContaining({
@@ -955,12 +968,12 @@ describe('upsertCharacter', () => {
         hitpoints: {
           current: 4,
           temp: 2,
-          maxOverride: 12,
           hitDice: [{ die: 8, total: 2, used: 1 }]
         },
         conditions: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
       })
-    }))
+      })
+    )
   })
 
   it('rejects stale Sheet state patches before mutating state or appending history', async () => {
@@ -971,13 +984,21 @@ describe('upsertCharacter', () => {
     const hitpointsBefore = db.snapshot('character_hitpoint_state')
     const afterPersist = vi.fn()
 
-    await expect(repository.patchSheetState(character.id, [{
+    await expect(
+      repository.patchSheetState(
+        character.id,
+        [
+          {
       kind: 'HITPOINTS',
       value: { current: 1, hitDice: [] }
-    }], {
+          }
+        ],
+        {
       expectedStreamVersion: 1,
       afterPersist
-    })).rejects.toMatchObject({ name: 'ConcurrencyError' })
+        }
+      )
+    ).rejects.toMatchObject({ name: 'ConcurrencyError' })
 
     expect(db.snapshot('character_hitpoint_state')).toEqual(hitpointsBefore)
     expect(afterPersist).not.toHaveBeenCalled()
@@ -995,11 +1016,13 @@ describe('upsertCharacter', () => {
       throw new Error('character ancestry acquisition row missing in test setup')
     }
 
-    await db.deleteFrom('character_ancestry_acquisitions')
+    await db
+      .deleteFrom('character_ancestry_acquisitions')
       .where('id', '=', existingAncestry.id as string)
       .execute()
 
-    await db.insertInto('character_ancestry_acquisitions')
+    await db
+      .insertInto('character_ancestry_acquisitions')
       .values({ ...existingAncestry, source_kind: 'CUSTOM_ORIGIN' as string })
       .execute()
 
@@ -1022,11 +1045,13 @@ describe('upsertCharacter', () => {
       throw new Error('character ancestry acquisition row missing in test setup')
     }
 
-    await db.deleteFrom('character_ancestry_acquisitions')
+    await db
+      .deleteFrom('character_ancestry_acquisitions')
       .where('id', '=', existingAncestry.id as string)
       .execute()
 
-    await db.insertInto('character_ancestry_acquisitions')
+    await db
+      .insertInto('character_ancestry_acquisitions')
       .values({ ...existingAncestry, timing_kind: 'MILESTONE' as string })
       .execute()
 

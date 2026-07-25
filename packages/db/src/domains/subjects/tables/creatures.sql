@@ -53,7 +53,10 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   armor_class integer,
   armor_class_note text,
   hit_points integer,
-  hit_dice text,
+  hit_dice text,                       -- Deprecated after structured hit-die migration
+  hit_dice_count integer,
+  hit_die integer,
+  hit_dice_modifier integer,
 
   -- Senses / passives
   senses text[],
@@ -85,6 +88,18 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   ),
   CONSTRAINT creatures_status_chk CHECK (
     status IN ('DRAFT', 'ACTIVE')
+  ),
+  CONSTRAINT creatures_hit_dice_chk CHECK (
+    (
+      hit_dice_count IS NULL
+      AND hit_die IS NULL
+      AND hit_dice_modifier IS NULL
+    )
+    OR (
+      hit_dice_count > 0
+      AND hit_die >= 2
+      AND hit_dice_modifier IS NOT NULL
+    )
   )
 );
 

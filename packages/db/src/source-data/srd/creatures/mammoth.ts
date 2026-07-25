@@ -20,7 +20,11 @@ export const mammoth: CreatureAuthored = {
     armorClass: 13,
     armorClassNote: 'natural armor',
     hitPoints: 126,
-    hitDice: '11d12+55',
+    hitDice: {
+      count: 11,
+      die: 12,
+      modifier: 55,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_6,

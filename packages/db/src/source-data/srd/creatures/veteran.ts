@@ -20,7 +20,11 @@ export const veteran: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'splint',
     hitPoints: 58,
-    hitDice: '9d8+18',
+    hitDice: {
+      count: 9,
+      die: 8,
+      modifier: 18,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(279, 1, 'ATHLETICS', 'PERCEPTION')

@@ -21,7 +21,11 @@ export const roper: CreatureAuthored = {
     armorClass: 20,
     armorClassNote: 'natural armor',
     hitPoints: 93,
-    hitDice: '11d10+33',
+    hitDice: {
+      count: 11,
+      die: 10,
+      modifier: 33,
+    },
     speeds: [...S.walk(10), ...S.climb(10)],
     proficiencies: [
         S.grantedSkillProficiency(7072, 1, 'PERCEPTION', 'STEALTH')

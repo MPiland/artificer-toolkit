@@ -19,7 +19,11 @@ export const shamblingMound: CreatureAuthored = {
     },
     armorClass: 15,
     hitPoints: 136,
-    hitDice: '16d10+48',
+    hitDice: {
+      count: 16,
+      die: 10,
+      modifier: 48,
+    },
     speeds: [...S.walk(20), ...S.swim(20)],
     conditionImmunities: ['blinded', 'deafened', 'exhaustion'],
     damageResistances: ['cold'],

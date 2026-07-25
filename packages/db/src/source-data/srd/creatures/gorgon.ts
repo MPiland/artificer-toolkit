@@ -21,7 +21,11 @@ export const gorgon: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 114,
-    hitDice: '12d10+48',
+    hitDice: {
+      count: 12,
+      die: 10,
+      modifier: 48,
+    },
     speeds: [...S.walk(40)],
     proficiencies: [
         S.grantedSkillProficiency(148, 1, 'PERCEPTION')

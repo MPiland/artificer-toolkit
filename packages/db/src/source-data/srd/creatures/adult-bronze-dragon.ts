@@ -20,7 +20,11 @@ export const adultBronzeDragon: CreatureAuthored = {
     armorClass: 19,
     armorClassNote: 'natural armor',
     hitPoints: 212,
-    hitDice: '17d12+102',
+    hitDice: {
+      count: 17,
+      die: 12,
+      modifier: 102,
+    },
     speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
     proficiencies: [
         S.grantedSaveProficiency(6, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

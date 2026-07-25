@@ -21,7 +21,11 @@ export const purpleWorm: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 247,
-    hitDice: '15d20+90',
+    hitDice: {
+      count: 15,
+      die: 20,
+      modifier: 90,
+    },
     speeds: [...S.walk(0), ...S.burrow(50)],
     senses: ['blindsight 30 ft.', 'tremorsense 60 ft.'],
     passivePerception: 9,

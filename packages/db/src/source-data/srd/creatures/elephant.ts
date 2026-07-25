@@ -20,7 +20,11 @@ export const elephant: CreatureAuthored = {
     armorClass: 12,
     armorClassNote: 'natural armor',
     hitPoints: 76,
-    hitDice: '8d12+24',
+    hitDice: {
+      count: 8,
+      die: 12,
+      modifier: 24,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 10,
     challengeRatingId: S.CR.CR_4,

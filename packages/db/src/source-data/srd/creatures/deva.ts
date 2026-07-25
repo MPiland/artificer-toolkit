@@ -20,7 +20,11 @@ export const deva: CreatureAuthored = {
     armorClass: 17,
     armorClassNote: 'natural armor',
     hitPoints: 136,
-    hitDice: '16d8+64',
+    hitDice: {
+      count: 16,
+      die: 8,
+      modifier: 64,
+    },
     speeds: [...S.walk(30), ...S.fly(90)],
     proficiencies: [
         S.grantedSaveProficiency(2916, 1, 'WISDOM', 'CHARISMA'),

@@ -19,7 +19,11 @@ export const giantFrog: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 18,
-    hitDice: '4d8',
+    hitDice: {
+      count: 4,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.swim(30)],
     proficiencies: [
         S.grantedSkillProficiency(124, 1, 'PERCEPTION', 'STEALTH')

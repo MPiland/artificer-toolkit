@@ -20,7 +20,11 @@ export const brownBear: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 34,
-    hitDice: '4d10+12',
+    hitDice: {
+      count: 4,
+      die: 10,
+      modifier: 12,
+    },
     speeds: [...S.walk(40), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(55, 1, 'PERCEPTION')

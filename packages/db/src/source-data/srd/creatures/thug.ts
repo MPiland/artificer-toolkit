@@ -21,7 +21,11 @@ export const thug: CreatureAuthored = {
   armorClass: 11,
   armorClassNote: 'leather armor',
   hitPoints: 32,
-  hitDice: '5d8+10',
+  hitDice: {
+    count: 5,
+    die: 8,
+    modifier: 10,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(269, 1, 'INTIMIDATION')

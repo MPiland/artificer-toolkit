@@ -22,7 +22,11 @@ export const nalfeshnee: CreatureAuthored = {
     armorClass: 18,
     armorClassNote: 'natural armor',
     hitPoints: 184,
-    hitDice: '16d10+96',
+    hitDice: {
+      count: 16,
+      die: 10,
+      modifier: 96,
+    },
     speeds: [...S.walk(20), ...S.fly(30)],
     proficiencies: [
         S.grantedSaveProficiency(203, 1, 'CONSTITUTION', 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

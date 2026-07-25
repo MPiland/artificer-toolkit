@@ -20,7 +20,11 @@ export const boar: CreatureAuthored = {
     armorClass: 11,
     armorClassNote: 'natural armor',
     hitPoints: 11,
-    hitDice: '2d8+2',
+    hitDice: {
+      count: 2,
+      die: 8,
+      modifier: 2,
+    },
     speeds: [...S.walk(40)],
     passivePerception: 9,
     challengeRatingId: S.CR.CR_1_4,

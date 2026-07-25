@@ -19,7 +19,11 @@ export const iceMephit: CreatureAuthored = {
     },
     armorClass: 11,
     hitPoints: 21,
-    hitDice: '6d6',
+    hitDice: {
+      count: 6,
+      die: 6,
+      modifier: 0,
+    },
     speeds: [...S.walk(30), ...S.fly(30)],
     proficiencies: [
         S.grantedSkillProficiency(172, 1, 'PERCEPTION', 'STEALTH'),

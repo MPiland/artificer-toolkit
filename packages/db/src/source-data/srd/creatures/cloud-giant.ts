@@ -20,7 +20,11 @@ export const cloudGiant: CreatureAuthored = {
   armorClass: 14,
   armorClassNote: 'natural armor',
   hitPoints: 200,
-  hitDice: '16d12+96',
+  hitDice: {
+    count: 16,
+    die: 12,
+    modifier: 96,
+  },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(66, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA'),

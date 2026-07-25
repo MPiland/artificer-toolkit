@@ -19,7 +19,11 @@ export const giantOctopus: CreatureAuthored = {
   },
   armorClass: 11,
   hitPoints: 52,
-  hitDice: '8d10+8',
+  hitDice: {
+    count: 8,
+    die: 10,
+    modifier: 8,
+  },
   speeds: [...S.walk(10), ...S.swim(60)],
   proficiencies: [S.grantedSkillProficiency(3505, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 60 ft.'],

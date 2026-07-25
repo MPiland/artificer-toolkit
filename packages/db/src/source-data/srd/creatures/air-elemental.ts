@@ -19,7 +19,11 @@ export const airElemental: CreatureAuthored = {
   },
   armorClass: 15,
   hitPoints: 90,
-  hitDice: '12d10+24',
+  hitDice: {
+    count: 12,
+    die: 10,
+    modifier: 24,
+  },
   speeds: [...S.walk(0), ...S.fly(90)],
   proficiencies: [S.grantedLanguageProficiency(6076, 1, 'AURAN')],
   damageResistances: ['lightning; thunder; bludgeoning, piercing, and slashing from nonmagical attacks'],

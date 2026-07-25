@@ -20,7 +20,11 @@ export const ghoul: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 22,
-    hitDice: '5d8',
+    hitDice: {
+      count: 5,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [S.grantedLanguageProficiency(112, 1, 'COMMON')],
     damageImmunities: ['poison'],

@@ -20,7 +20,11 @@ export const gibberingMouther: CreatureAuthored = {
   },
   armorClass: 9,
   hitPoints: 67,
-  hitDice: '9d8+27',
+  hitDice: {
+    count: 9,
+    die: 8,
+    modifier: 27,
+  },
   speeds: [...S.walk(10), ...S.swim(10)],
   conditionImmunities: ['prone'],
   senses: ['darkvision 60 ft.'],

@@ -19,7 +19,11 @@ export const hawk: CreatureAuthored = {
     },
     armorClass: 13,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(10), ...S.fly(60)],
     proficiencies: [
         S.grantedSkillProficiency(160, 1, 'PERCEPTION')

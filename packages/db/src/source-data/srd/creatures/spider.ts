@@ -19,7 +19,11 @@ export const spider: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 1,
-    hitDice: '1d4 - 1',
+    hitDice: {
+      count: 1,
+      die: 4,
+      modifier: -1,
+    },
     speeds: [...S.walk(20), ...S.climb(20)],
     proficiencies: [
         S.grantedSkillProficiency(258, 1, 'STEALTH')

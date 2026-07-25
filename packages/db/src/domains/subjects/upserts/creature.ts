@@ -5,7 +5,7 @@ import {
   CREATURE_CATEGORY_CODE,
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
-  type CreatureAuthored,
+  type CreatureAuthored
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
@@ -30,6 +30,9 @@ type CreatureRow = {
   armor_class_note: string | null
   hit_points: number | null
   hit_dice: string | null
+  hit_dice_count: number | null
+  hit_die: number | null
+  hit_dice_modifier: number | null
   senses: string[] | null
   passive_perception: number | null
   challenge_rating_id: string | null
@@ -75,10 +78,7 @@ type CreatureConditionRow = {
   condition_type_id: string
 }
 
-function requireCreatureCategory(
-  creatureId: string,
-  value: string
-): CreatureAuthored['category'] {
+function requireCreatureCategory(creatureId: string, value: string): CreatureAuthored['category'] {
   const valid = Object.values(CREATURE_CATEGORY_CODE) as string[]
   if (!valid.includes(value)) {
     throw new Error(`Creature "${creatureId}" has invalid category "${value}".`)
@@ -96,10 +96,7 @@ function requireSizeCode(creatureId: string, value?: string | null): string | nu
   return value
 }
 
-function requireMeasurementUnit(
-  creatureId: string,
-  value?: string | null
-): string | null {
+function requireMeasurementUnit(creatureId: string, value?: string | null): string | null {
   if (value == null) {
     return null
   }
@@ -127,25 +124,27 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
     armor_class: jsonData.armorClass,
     armor_class_note: jsonData.armorClassNote ?? null,
     hit_points: jsonData.hitPoints,
-    hit_dice: jsonData.hitDice ?? null,
+    hit_dice: null,
+    hit_dice_count: jsonData.hitDice?.count ?? null,
+    hit_die: jsonData.hitDice?.die ?? null,
+    hit_dice_modifier: jsonData.hitDice?.modifier ?? null,
     senses: jsonData.senses ?? null,
     passive_perception: jsonData.passivePerception ?? null,
     challenge_rating_id: jsonData.challengeRatingId ?? null,
     xp: jsonData.xp ?? null,
-    mount_profile: jsonData.mountProfile
-      ? jsonData.mountProfile as unknown as Json
-      : null,
+    mount_profile: jsonData.mountProfile ? (jsonData.mountProfile as unknown as Json) : null,
     companion_profile: jsonData.companionProfile
-      ? jsonData.companionProfile as unknown as Json
+      ? (jsonData.companionProfile as unknown as Json)
       : null,
-    npc_profile: jsonData.npcProfile
-      ? jsonData.npcProfile as unknown as Json
-      : null,
-    cost: jsonData.cost ? jsonData.cost as unknown as Json : null,
+    npc_profile: jsonData.npcProfile ? (jsonData.npcProfile as unknown as Json) : null,
+    cost: jsonData.cost ? (jsonData.cost as unknown as Json) : null,
     carrying_capacity_amount: jsonData.carryingCapacity?.amount ?? null,
-    carrying_capacity_unit: requireMeasurementUnit(jsonData.id, jsonData.carryingCapacity?.unit ?? null),
+    carrying_capacity_unit: requireMeasurementUnit(
+      jsonData.id,
+      jsonData.carryingCapacity?.unit ?? null
+    ),
     logistics_notes: jsonData.logisticsNotes ?? null,
-    is_master: null,
+    is_master: null
   }
 }
 
@@ -172,6 +171,9 @@ function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'
     armor_class_note: row.armor_class_note,
     hit_points: row.hit_points,
     hit_dice: row.hit_dice,
+    hit_dice_count: row.hit_dice_count,
+    hit_die: row.hit_die,
+    hit_dice_modifier: row.hit_dice_modifier,
     senses: row.senses,
     passive_perception: row.passive_perception,
     challenge_rating_id: row.challenge_rating_id,
@@ -182,64 +184,68 @@ function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'
     cost: row.cost,
     carrying_capacity_amount: row.carrying_capacity_amount,
     carrying_capacity_unit: row.carrying_capacity_unit,
-    logistics_notes: row.logistics_notes,
+    logistics_notes: row.logistics_notes
   }
 }
 
-export async function upsertCreature(
-  db: DBLike,
-  jsonData: CreatureAuthored,
-  _systemId: string
-) {
+export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _systemId: string) {
   const creatureRow = buildCreatureRow(jsonData)
 
   const detailRows: CreatureDetailRow[] = (jsonData.details ?? []).map((detail) => ({
     creature_id: jsonData.id,
     detail_id: detail.id,
-    sort_order: detail.order,
+    sort_order: detail.order
   }))
 
-  const proficiencyRows: CreatureProficiencyGrantRow[] = (jsonData.proficiencies ?? []).map((grant) => ({
+  const proficiencyRows: CreatureProficiencyGrantRow[] = (jsonData.proficiencies ?? []).map(
+    (grant) => ({
     creature_id: jsonData.id,
     proficiency_grant_id: grant.id,
-    sort_order: grant.order,
-  }))
+      sort_order: grant.order
+    })
+  )
 
   const speedRows: CreatureSpeedRow[] = (jsonData.speeds ?? []).map((speed, index) => ({
     creature_id: jsonData.id,
     speed_id: speed.speedId,
     amount: speed.amount,
     unit_code: speed.unit,
-    sort_order: index + 1,
+    sort_order: index + 1
   }))
 
-  const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map((id, index) => ({
+  const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map(
+    (id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
-    sort_order: index + 1,
-  }))
+      sort_order: index + 1
+    })
+  )
 
   const immunityRows: CreatureDamageRow[] = (jsonData.damageImmunities ?? []).map((id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
-    sort_order: index + 1,
+    sort_order: index + 1
   }))
 
-  const vulnerabilityRows: CreatureDamageRow[] = (jsonData.damageVulnerabilities ?? []).map((id, index) => ({
+  const vulnerabilityRows: CreatureDamageRow[] = (jsonData.damageVulnerabilities ?? []).map(
+    (id, index) => ({
     creature_id: jsonData.id,
     damage_type_id: id,
-    sort_order: index + 1,
-  }))
+      sort_order: index + 1
+    })
+  )
 
-  const conditionImmunityRows: CreatureConditionRow[] = (jsonData.conditionImmunities ?? []).map((id) => ({
+  const conditionImmunityRows: CreatureConditionRow[] = (jsonData.conditionImmunities ?? []).map(
+    (id) => ({
     creature_id: jsonData.id,
-    condition_type_id: id,
-  }))
+      condition_type_id: id
+    })
+  )
 
   const featureRows = (jsonData.features ?? []).map((feature) => ({
     creature_id: jsonData.id,
     feature_id: feature.id,
-    sort_order: feature.order,
+    sort_order: feature.order
   }))
 
   return withTransaction(db, async (trx) => {
@@ -250,13 +256,28 @@ export async function upsertCreature(
       .execute()
 
     await trx.deleteFrom('creature_details').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_proficiency_grants').where('creature_id', '=', jsonData.id).execute()
+    await trx
+      .deleteFrom('creature_proficiency_grants')
+      .where('creature_id', '=', jsonData.id)
+      .execute()
     await trx.deleteFrom('creature_features').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_speeds').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_damage_resistances').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_damage_immunities').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_damage_vulnerabilities').where('creature_id', '=', jsonData.id).execute()
-    await trx.deleteFrom('creature_condition_immunities').where('creature_id', '=', jsonData.id).execute()
+    await trx
+      .deleteFrom('creature_damage_resistances')
+      .where('creature_id', '=', jsonData.id)
+      .execute()
+    await trx
+      .deleteFrom('creature_damage_immunities')
+      .where('creature_id', '=', jsonData.id)
+      .execute()
+    await trx
+      .deleteFrom('creature_damage_vulnerabilities')
+      .where('creature_id', '=', jsonData.id)
+      .execute()
+    await trx
+      .deleteFrom('creature_condition_immunities')
+      .where('creature_id', '=', jsonData.id)
+      .execute()
 
     for (const detail of jsonData.details ?? []) {
       await upsertDetail(trx, detail)
@@ -292,6 +313,5 @@ export async function upsertCreature(
     if (conditionImmunityRows.length > 0) {
       await trx.insertInto('creature_condition_immunities').values(conditionImmunityRows).execute()
     }
-
   })
 }

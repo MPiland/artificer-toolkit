@@ -10,10 +10,7 @@ import {
   getCharacterChosenGrantSelectionIdentityKey
 } from '@artificer-toolkit/shared/subjects/authored'
 
-import {
-  abilityCodeSchema,
-  authoredRecordStatusSchema
-} from '../shared/enums.js'
+import { abilityCodeSchema, authoredRecordStatusSchema } from '../shared/enums.js'
 
 const characterProfileAuthoredDtoSchemaRaw = z.object({
   alignmentId: z.string().optional(),
@@ -42,14 +39,12 @@ const characterProvenanceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int()
-      .optional()
+    classLevel: z.number().int().optional()
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int()
-      .optional()
+    classLevel: z.number().int().optional()
   }),
   z.object({
     kind: z.literal('RACE'),
@@ -143,9 +138,9 @@ const characterChosenGrantSelectionRecordDtoSchemaRaw = z.object({
   targetIds: z.array(z.string())
 })
 
-const characterChosenGrantSelectionsDtoSchemaRaw = z.array(
-  characterChosenGrantSelectionRecordDtoSchemaRaw
-).superRefine((selections, context) => {
+const characterChosenGrantSelectionsDtoSchemaRaw = z
+  .array(characterChosenGrantSelectionRecordDtoSchemaRaw)
+  .superRefine((selections, context) => {
   const seen = new Set<string>()
 
   selections.forEach((selection, index) => {
@@ -164,8 +159,7 @@ const characterChosenGrantSelectionsDtoSchemaRaw = z.array(
 const characterAdvancementIntentDtoSchemaRaw = z.union([
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.EXPERIENCE),
-    experience: z.number().int()
-      .optional()
+    experience: z.number().int().optional()
   }),
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.MILESTONE)
@@ -251,16 +245,12 @@ const characterManualRolledAbilityRecordDtoSchemaRaw = z.object({
 
 const characterStandardArrayAssignmentDtoSchemaRaw = z.object({
   ability: abilityCodeSchema,
-  option: z.enum([
-    '8', '10', '12', '13', '14', '15'
-  ])
+  option: z.enum(['8', '10', '12', '13', '14', '15'])
 })
 
 const characterPointBuyAssignmentDtoSchemaRaw = z.object({
   ability: abilityCodeSchema,
-  option: z.enum([
-    '8', '9', '10', '11', '12', '13', '14', '15'
-  ])
+  option: z.enum(['8', '9', '10', '11', '12', '13', '14', '15'])
 })
 
 const characterAbilityScoresIntentDtoSchemaRaw = z.union([
@@ -310,14 +300,12 @@ const characterSpellSelectionSourceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int()
-      .optional()
+    classLevel: z.number().int().optional()
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int()
-      .optional()
+    classLevel: z.number().int().optional()
   }),
   z.object({
     kind: z.literal('FEATURE'),
@@ -363,10 +351,12 @@ const characterIntentDtoSchemaRaw = z.object({
   classes: z.array(characterClassIntentDtoSchemaRaw),
   abilities: characterAbilityScoresIntentDtoSchemaRaw,
   hitpoints: characterHitpointsIntentDtoSchemaRaw,
-  startingEquipment: z.object({
+  startingEquipment: z
+    .object({
     class: characterStartingEquipmentDecisionDtoSchemaRaw.optional(),
     background: characterStartingEquipmentDecisionDtoSchemaRaw.optional()
-  }).optional(),
+    })
+    .optional(),
   featureAcquisitions: z.array(characterFeatureAcquisitionRecordDtoSchemaRaw),
   chosenGrantSelections: characterChosenGrantSelectionsDtoSchemaRaw.optional(),
   spellSelections: z.array(characterSpellSelectionRecordDtoSchemaRaw).optional(),
@@ -391,9 +381,7 @@ const characterEquipmentStateDtoSchemaRaw = z.object({
 const characterOwnedCreatureStateDtoSchemaRaw = z.object({
   id: z.string(),
   creatureId: z.string(),
-  relationshipKind: z.enum([
-    'MOUNT', 'COMPANION', 'OWNED', 'SUMMONED'
-  ]),
+  relationshipKind: z.enum(['MOUNT', 'COMPANION', 'OWNED', 'SUMMONED']),
   customName: z.string().optional(),
   notes: z.string().optional(),
   isActive: z.boolean().optional()
@@ -439,8 +427,7 @@ const characterResourceUsageStateDtoSchemaRaw = z.object({
 
 const characterSpellSlotUsageStateDtoSchemaRaw = z.object({
   slotKey: z.string(),
-  used: z.number().int()
-    .min(0)
+  used: z.number().int().min(0)
 })
 
 const characterConditionStateDtoSchemaRaw = z.object({
@@ -449,9 +436,7 @@ const characterConditionStateDtoSchemaRaw = z.object({
 })
 
 const characterExhaustionStateDtoSchemaRaw = z.object({
-  level: z.number().int()
-    .min(0)
-    .max(6),
+  level: z.number().int().min(0).max(6),
   notes: z.string().optional()
 })
 
@@ -480,11 +465,8 @@ const characterHitDiceUsageStateDtoSchemaRaw = z.object({
 
 const characterHitpointsStateDtoSchemaRaw = z.object({
   current: z.number().int(),
-  temp: z.number().int()
-    .optional(),
-  hitDice: z.array(characterHitDiceUsageStateDtoSchemaRaw),
-  maxOverride: z.number().int()
-    .optional()
+  temp: z.number().int().optional(),
+  hitDice: z.array(characterHitDiceUsageStateDtoSchemaRaw)
 })
 
 const characterStateDtoSchemaRaw = z.object({
@@ -501,8 +483,12 @@ const characterStateDtoSchemaRaw = z.object({
   notes: z.array(characterNoteStateDtoSchemaRaw).optional(),
   creatures: z.array(characterOwnedCreatureStateDtoSchemaRaw).optional(),
   vehicles: z.array(characterOwnedVehicleStateDtoSchemaRaw).optional(),
-  creatureEquipment: z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw)).optional(),
-  vehicleEquipment: z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw)).optional()
+  creatureEquipment: z
+    .record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
+    .optional(),
+  vehicleEquipment: z
+    .record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw))
+    .optional()
 })
 
 const characterAuthoredDtoSchemaRaw = z.object({
@@ -520,22 +506,42 @@ const characterAuthoredDtoSchemaRaw = z.object({
 export type CharacterProfileAuthoredDto = z.infer<typeof characterProfileAuthoredDtoSchemaRaw>
 export type CharacterProvenanceDto = z.infer<typeof characterProvenanceDtoSchemaRaw>
 export type CharacterAcquisitionTimingDto = z.infer<typeof characterAcquisitionTimingDtoSchemaRaw>
-export type CharacterFeatureSelectionValueDto = z.infer<typeof characterFeatureSelectionValueDtoSchemaRaw>
-export type CharacterFeatureSelectionRecordDto = z.infer<typeof characterFeatureSelectionRecordDtoSchemaRaw>
-export type CharacterFeatureAcquisitionRecordDto = z.infer<typeof characterFeatureAcquisitionRecordDtoSchemaRaw>
-export type CharacterChosenGrantSelectionRecordDto = z.infer<typeof characterChosenGrantSelectionRecordDtoSchemaRaw>
+export type CharacterFeatureSelectionValueDto = z.infer<
+  typeof characterFeatureSelectionValueDtoSchemaRaw
+>
+export type CharacterFeatureSelectionRecordDto = z.infer<
+  typeof characterFeatureSelectionRecordDtoSchemaRaw
+>
+export type CharacterFeatureAcquisitionRecordDto = z.infer<
+  typeof characterFeatureAcquisitionRecordDtoSchemaRaw
+>
+export type CharacterChosenGrantSelectionRecordDto = z.infer<
+  typeof characterChosenGrantSelectionRecordDtoSchemaRaw
+>
 export type CharacterAdvancementIntentDto = z.infer<typeof characterAdvancementIntentDtoSchemaRaw>
 export type CharacterDieRollRecordDto = z.infer<typeof characterDieRollRecordDtoSchemaRaw>
 export type CharacterHitpointLevelEntryDto = z.infer<typeof characterHitpointLevelEntryDtoSchemaRaw>
 export type CharacterRaceIntentDto = z.infer<typeof characterRaceIntentDtoSchemaRaw>
 export type CharacterBackgroundIntentDto = z.infer<typeof characterBackgroundIntentDtoSchemaRaw>
-export type CharacterAncestryAcquisitionDto = z.infer<typeof characterAncestryAcquisitionDtoSchemaRaw>
+export type CharacterAncestryAcquisitionDto = z.infer<
+  typeof characterAncestryAcquisitionDtoSchemaRaw
+>
 export type CharacterClassIntentDto = z.infer<typeof characterClassIntentDtoSchemaRaw>
-export type CharacterManualRolledAbilityRecordDto = z.infer<typeof characterManualRolledAbilityRecordDtoSchemaRaw>
-export type CharacterAbilityScoresIntentDto = z.infer<typeof characterAbilityScoresIntentDtoSchemaRaw>
-export type CharacterStartingEquipmentDecisionDto = z.infer<typeof characterStartingEquipmentDecisionDtoSchemaRaw>
-export type CharacterSpellSelectionRecordDto = z.infer<typeof characterSpellSelectionRecordDtoSchemaRaw>
-export type CharacterResourceGrantRecordDto = z.infer<typeof characterResourceGrantRecordDtoSchemaRaw>
+export type CharacterManualRolledAbilityRecordDto = z.infer<
+  typeof characterManualRolledAbilityRecordDtoSchemaRaw
+>
+export type CharacterAbilityScoresIntentDto = z.infer<
+  typeof characterAbilityScoresIntentDtoSchemaRaw
+>
+export type CharacterStartingEquipmentDecisionDto = z.infer<
+  typeof characterStartingEquipmentDecisionDtoSchemaRaw
+>
+export type CharacterSpellSelectionRecordDto = z.infer<
+  typeof characterSpellSelectionRecordDtoSchemaRaw
+>
+export type CharacterResourceGrantRecordDto = z.infer<
+  typeof characterResourceGrantRecordDtoSchemaRaw
+>
 export type CharacterIntentDto = z.infer<typeof characterIntentDtoSchemaRaw>
 export type CharacterStateDto = z.infer<typeof characterStateDtoSchemaRaw>
 export type CharacterAuthoredDto = z.infer<typeof characterAuthoredDtoSchemaRaw>
@@ -545,8 +551,10 @@ export const characterProvenanceDtoSchema = characterProvenanceDtoSchemaRaw
 export const characterAcquisitionTimingDtoSchema = characterAcquisitionTimingDtoSchemaRaw
 export const characterFeatureSelectionValueDtoSchema = characterFeatureSelectionValueDtoSchemaRaw
 export const characterFeatureSelectionRecordDtoSchema = characterFeatureSelectionRecordDtoSchemaRaw
-export const characterFeatureAcquisitionRecordDtoSchema = characterFeatureAcquisitionRecordDtoSchemaRaw
-export const characterChosenGrantSelectionRecordDtoSchema = characterChosenGrantSelectionRecordDtoSchemaRaw
+export const characterFeatureAcquisitionRecordDtoSchema =
+  characterFeatureAcquisitionRecordDtoSchemaRaw
+export const characterChosenGrantSelectionRecordDtoSchema =
+  characterChosenGrantSelectionRecordDtoSchemaRaw
 export const characterAdvancementIntentDtoSchema = characterAdvancementIntentDtoSchemaRaw
 export const characterDieRollRecordDtoSchema = characterDieRollRecordDtoSchemaRaw
 export const characterHitpointLevelEntryDtoSchema = characterHitpointLevelEntryDtoSchemaRaw
@@ -554,9 +562,11 @@ export const characterRaceIntentDtoSchema = characterRaceIntentDtoSchemaRaw
 export const characterBackgroundIntentDtoSchema = characterBackgroundIntentDtoSchemaRaw
 export const characterAncestryAcquisitionDtoSchema = characterAncestryAcquisitionDtoSchemaRaw
 export const characterClassIntentDtoSchema = characterClassIntentDtoSchemaRaw
-export const characterManualRolledAbilityRecordDtoSchema = characterManualRolledAbilityRecordDtoSchemaRaw
+export const characterManualRolledAbilityRecordDtoSchema =
+  characterManualRolledAbilityRecordDtoSchemaRaw
 export const characterAbilityScoresIntentDtoSchema = characterAbilityScoresIntentDtoSchemaRaw
-export const characterStartingEquipmentDecisionDtoSchema = characterStartingEquipmentDecisionDtoSchemaRaw
+export const characterStartingEquipmentDecisionDtoSchema =
+  characterStartingEquipmentDecisionDtoSchemaRaw
 export const characterSpellSelectionRecordDtoSchema = characterSpellSelectionRecordDtoSchemaRaw
 export const characterResourceGrantRecordDtoSchema = characterResourceGrantRecordDtoSchemaRaw
 export const characterIntentDtoSchema = characterIntentDtoSchemaRaw

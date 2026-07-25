@@ -21,7 +21,11 @@ export const giantSpider: CreatureAuthored = {
     armorClass: 14,
     armorClassNote: 'natural armor',
     hitPoints: 26,
-    hitDice: '4d10+4',
+    hitDice: {
+      count: 4,
+      die: 10,
+      modifier: 4,
+    },
     speeds: [...S.walk(30), ...S.climb(30)],
     proficiencies: [
         S.grantedSkillProficiency(135, 1, 'STEALTH')

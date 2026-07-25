@@ -22,7 +22,11 @@ export const hornedDevil: CreatureAuthored = {
   armorClass: 18,
   armorClassNote: 'natural armor',
   hitPoints: 178,
-  hitDice: '17d10+85',
+  hitDice: {
+    count: 17,
+    die: 10,
+    modifier: 85,
+  },
   speeds: [...S.walk(20), ...S.fly(60)],
   proficiencies: [
     S.grantedSaveProficiency(9677, 1, 'STRENGTH', 'DEXTERITY', 'WISDOM', 'CHARISMA'),

@@ -21,7 +21,11 @@ export const lamia: CreatureAuthored = {
   armorClass: 13,
   armorClassNote: 'natural armor',
   hitPoints: 97,
-  hitDice: '13d10+26',
+  hitDice: {
+    count: 13,
+    die: 10,
+    modifier: 26,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(181, 1, 'DECEPTION', 'INSIGHT', 'STEALTH'),

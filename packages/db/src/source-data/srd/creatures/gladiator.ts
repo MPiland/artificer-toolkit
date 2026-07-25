@@ -21,7 +21,11 @@ export const gladiator: CreatureAuthored = {
   armorClass: 16,
   armorClassNote: 'studded leather, shield',
   hitPoints: 112,
-  hitDice: '15d8+45',
+  hitDice: {
+    count: 15,
+    die: 8,
+    modifier: 45,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSaveProficiency(8895, 1, 'STRENGTH', 'DEXTERITY', 'CONSTITUTION'),

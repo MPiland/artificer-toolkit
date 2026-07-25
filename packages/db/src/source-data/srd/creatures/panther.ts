@@ -19,7 +19,11 @@ export const panther: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 13,
-    hitDice: '3d8',
+    hitDice: {
+      count: 3,
+      die: 8,
+      modifier: 0,
+    },
     speeds: [...S.walk(50), ...S.climb(40)],
     proficiencies: [
         S.grantedSkillProficiency(216, 1, 'PERCEPTION', 'STEALTH')

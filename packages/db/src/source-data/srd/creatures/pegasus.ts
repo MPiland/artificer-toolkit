@@ -19,7 +19,11 @@ export const pegasus: CreatureAuthored = {
     },
     armorClass: 12,
     hitPoints: 59,
-    hitDice: '7d10+21',
+    hitDice: {
+      count: 7,
+      die: 10,
+      modifier: 21,
+    },
     speeds: [...S.walk(60), ...S.fly(90)],
     proficiencies: [
         S.grantedSaveProficiency(217, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),

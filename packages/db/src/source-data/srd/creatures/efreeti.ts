@@ -21,7 +21,11 @@ export const efreeti: CreatureAuthored = {
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 200,
-  hitDice: '16d10+112',
+  hitDice: {
+    count: 16,
+    die: 10,
+    modifier: 112,
+  },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
     S.grantedSaveProficiency(95, 1, 'INTELLIGENCE', 'WISDOM', 'CHARISMA'),

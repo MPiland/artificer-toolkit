@@ -20,7 +20,11 @@ export const doppelganger: CreatureAuthored = {
   },
   armorClass: 14,
   hitPoints: 52,
-  hitDice: '8d8+16',
+  hitDice: {
+    count: 8,
+    die: 8,
+    modifier: 16,
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSkillProficiency(83, 1, 'DECEPTION', 'INSIGHT'),

@@ -21,7 +21,11 @@ export const bugbear: CreatureAuthored = {
     armorClass: 16,
     armorClassNote: 'hide armor, shield',
     hitPoints: 27,
-    hitDice: '5d8+5',
+    hitDice: {
+      count: 5,
+      die: 8,
+      modifier: 5,
+    },
     speeds: [...S.walk(30)],
     proficiencies: [
         S.grantedSkillProficiency(56, 1, 'STEALTH', 'SURVIVAL'),
