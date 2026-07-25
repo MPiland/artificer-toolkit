@@ -20,7 +20,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 | Branch                                           | Scope                                                                      | Status    | Base SHA   | Delivery SHA | Mockup gate | Technical gate | Visual gate |
 | ------------------------------------------------ | -------------------------------------------------------------------------- | --------- | ---------- | ------------ | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `ACTIVE`  | `35f22cf6` | pending      | N/A         | green          | N/A         |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `HANDOFF_READY` | `35f22cf6` | `75c44e1ed343` | N/A         | green          | N/A         |
 | `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `PLANNED` | pending    | pending      | N/A         | pending        | N/A         |
 | `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED` | pending    | pending      | pending     | pending        | pending     |
@@ -81,7 +81,16 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ### Handoff
 
-All non-timeout technical gates are green. The full working tree was backed up before formatter recovery; formatter-only churn was removed while preserving the 311 hit-die conversions and the 38 intentional tracked foundation files. Status remains `ACTIVE` only until the delivery SHA is recorded.
+**Status:** `HANDOFF_READY`
+**Delivery SHA:** `75c44e1ed343`
+
+All non-timeout technical gates are green. The full working tree was backed up before formatter recovery; formatter-only churn was removed while preserving the 311 hit-die conversions and the 38 intentional tracked foundation files.
+
+- Migration order: the structured creature columns are part of the canonical creature table; `20260724190000_character_sheet_adjustment_foundation.sql` creates the adjustment aggregate and idempotently backfills legacy HP overrides.
+- Deprecated HP status: `characters.max_override` remains nullable for rollback compatibility but is neither hydrated nor written as authoritative Sheet state.
+- Repository entry point: `characterSheetAdjustmentRepository` is exported from the subject repository index and owns list/upsert/remove plus movement-preference operations.
+- Identity rule: item and companion targets use owned-instance UUIDs; repeated definition-owned sources use source kind plus persisted acquisition/source-record identity.
+- Validation evidence: 112 focused tests, 12 Character Sheet integration assertions, 8 affected typecheck tasks, changed-file type-aware lint, 311 structured SRD records, zero legacy hit-die strings, and clean diff/link checks.
 
 Branch 02 must consume the closed taxonomy and identity format here; it may not introduce a second precedence model, persist derived totals, or pass Sheet labels/notes into the engine. Its entry points are the adjustment repository exports, the typed schema API, and the pure shared calculation/source primitives delivered here.
 
