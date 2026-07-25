@@ -22,7 +22,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
 | `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
 | `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `ACTIVE`        | `f92cc6946541` | pending        | running     | running        | running     |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `HANDOFF_READY` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
 | `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
 | `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
@@ -223,9 +223,9 @@ All evidence is captured from the route-backed Character Sheet story with the pr
 
 ### Handoff
 
-**Status:** `ACTIVE`
+**Status:** `HANDOFF_READY`
 
-**Delivery SHA:** pending
+**Delivery SHA:** `11fa57750faa`
 
 - Panel discriminators: `ABILITY`, `SAVING_THROW`, `SKILL`, `SKILLS`, `SENSES`, `MOVEMENT`, `DEFENSES`, and `PROFICIENCIES`.
 - Command variants: upsert adjustment, remove adjustment, reset target adjustments, and set movement preference.
