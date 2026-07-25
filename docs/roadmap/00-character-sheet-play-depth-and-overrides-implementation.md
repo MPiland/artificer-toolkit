@@ -18,15 +18,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `ACTIVE`     | `7454f314adcf` | pending        | N/A         | running        | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                      | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `HANDOFF_READY` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`       | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -153,9 +153,9 @@ Branch 02 must consume the closed taxonomy and identity format here; it may not 
 
 ### Handoff
 
-**Status:** active
+**Status:** `HANDOFF_READY`
 
-**Delivery SHA:** pending
+**Delivery SHA:** `0ebc81bf2a8e`
 
 - Resolver entry points: `resolveNumericCalculation`, `resolveSelectionCalculation`, `calculateAdjustedDerivedStats`, `resolveSheetSubjectMechanics`, and the existing engine kernel.
 - Breakdown shape: typed calculation identity, effective value, ordered contributions, applied/suppressed state, and typed mechanical source reference.
