@@ -1,5 +1,8 @@
 import { Text, Title } from '@mantine/core'
+import { ChevronRight } from 'lucide-react'
+import clsx from 'clsx'
 import * as styles from './characterSheet.css'
+import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { CharacterSheet } from './CharacterSheet.types'
 import { formatSigned } from './characterSheet.utils'
 import { formatProficiencyLevel, getAbilityShortLabel } from './characterSheetOverview.utils'
@@ -7,24 +10,28 @@ import { formatProficiencyLevel, getAbilityShortLabel } from './characterSheetOv
 export function CharacterSheetOverviewProficiencies({
   abilities,
   savingThrows,
-  skills
+  skills,
+  openPanel
 }: {
   abilities: CharacterSheet['overview']['abilities']
   savingThrows: CharacterSheet['overview']['savingThrows']
   skills: CharacterSheet['overview']['skills']
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (
     <div className={styles.proficiencyPanelGrid}>
-      <CharacterSheetSavingThrowsPanel savingThrows={savingThrows} />
-      <CharacterSheetSkillsPanel abilities={abilities} skills={skills} />
+      <CharacterSheetSavingThrowsPanel openPanel={openPanel} savingThrows={savingThrows} />
+      <CharacterSheetSkillsPanel abilities={abilities} openPanel={openPanel} skills={skills} />
     </div>
   )
 }
 
 export function CharacterSheetSavingThrowsPanel({
-  savingThrows
+  savingThrows,
+  openPanel
 }: {
   savingThrows: CharacterSheet['overview']['savingThrows']
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (
     <section className={styles.proficiencyPanel} aria-labelledby='character-sheet-saving-throws'>
@@ -36,7 +43,13 @@ export function CharacterSheetSavingThrowsPanel({
       </div>
       <div className={styles.proficiencyList}>
         {savingThrows.map((save) => (
-          <div className={styles.proficiencyRow} key={save.ability}>
+          <button
+            className={clsx(styles.proficiencyRow, styles.sheetInspectorTrigger)}
+            disabled={!openPanel}
+            key={save.ability}
+            type='button'
+            onClick={() => openPanel?.({ kind: 'SAVING_THROW', ability: save.ability })}
+          >
             <span
               className={styles.proficiencyDot}
               data-proficiency={save.proficiency}
@@ -44,7 +57,7 @@ export function CharacterSheetSavingThrowsPanel({
             />
             <Text className={styles.proficiencyName}>{save.label}</Text>
             <Text className={styles.proficiencyTotal}>{formatSigned(save.total)}</Text>
-          </div>
+          </button>
         ))}
       </div>
     </section>
@@ -53,10 +66,12 @@ export function CharacterSheetSavingThrowsPanel({
 
 export function CharacterSheetSkillsPanel({
   abilities = [],
-  skills
+  skills,
+  openPanel
 }: {
   abilities?: CharacterSheet['overview']['abilities']
   skills: CharacterSheet['overview']['skills']
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   const abilityModifiers = new Map(abilities.map((ability) => [ability.ability, ability.modifier]))
 
@@ -64,7 +79,15 @@ export function CharacterSheetSkillsPanel({
     <section className={styles.proficiencyPanel} aria-labelledby='character-sheet-skills'>
       <div className={styles.overviewPanelHeader}>
         <div>
-          <Title id='character-sheet-skills' className={styles.panelTitle}>Skills</Title>
+          <button
+            className={styles.panelHeadingTrigger}
+            disabled={!openPanel}
+            type='button'
+            onClick={() => openPanel?.({ kind: 'SKILLS' })}
+          >
+            <Title id='character-sheet-skills' className={styles.panelTitle}>Skills</Title>
+            <ChevronRight aria-hidden='true' size={16} />
+          </button>
         </div>
       </div>
       <div className={styles.proficiencyList}>
@@ -77,7 +100,13 @@ export function CharacterSheetSkillsPanel({
           <Text>Total</Text>
         </div>
         {skills.map((skill) => (
-          <div className={styles.skillRow} key={skill.code}>
+          <button
+            className={clsx(styles.skillRow, styles.sheetInspectorTrigger)}
+            disabled={!openPanel}
+            key={skill.code}
+            type='button'
+            onClick={() => openPanel?.({ kind: 'SKILL', skillId: skill.skillId })}
+          >
             <span
               className={styles.proficiencyDot}
               data-proficiency={skill.proficiency}
@@ -94,7 +123,7 @@ export function CharacterSheetSkillsPanel({
             />
             <Text className={styles.proficiencyMeta}>{formatSigned(abilityModifiers.get(skill.ability) ?? 0)}</Text>
             <Text className={styles.proficiencyTotal}>{formatSigned(skill.total)}</Text>
-          </div>
+          </button>
         ))}
       </div>
     </section>

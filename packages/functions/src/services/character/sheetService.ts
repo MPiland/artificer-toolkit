@@ -20,6 +20,7 @@ import {
   resolveRulesSystem,
   runEngine,
   type CharacterBuildSnapshot,
+  type EngineCharacterOutput,
   type EngineProficiency,
   type EngineResource,
   type EngineSense,
@@ -42,6 +43,8 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
+import type { CharacterSheetCoreAdjustmentCommandDto } from '@artificer-toolkit/schema/api/characterSheet'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { resolveCharacterBuilder, type CharacterBuilderResolution } from './builderService.js'
 import {
   createCharacterAssemblyRegistry,
@@ -51,6 +54,10 @@ import {
   projectCharacterSheetMechanics,
   type CharacterSheetProjectedMechanic
 } from './sheetMechanicsProjector.js'
+import {
+  characterSheetAdjustmentMatchesPanelTarget,
+  getCharacterSheetPanelAdjustmentIds
+} from './sheetPanelTarget.js'
 
 type CharacterSheetStateCommand = CharacterSheetCommandInputDto extends infer Command
   ? Command extends CharacterSheetCommandInputDto
@@ -303,6 +310,13 @@ function createSkillReference(
   return { canonicalBySubject, metadataByCanonical }
 }
 
+export function resolveCharacterSheetSkillKey(
+  systemSkills: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined,
+  skillId: string
+): string {
+  return createSkillReference(systemSkills).canonicalBySubject.get(skillId) ?? skillId
+}
+
 const ENGINE_ABILITY_ALIASES: Readonly<Record<string, string>> = {
   STRENGTH: 'STR',
   DEXTERITY: 'DEX',
@@ -544,6 +558,25 @@ function createCharacterEngineInput(
       movementDisplayPreference
     }
   }
+}
+
+export function resolveCharacterSheetEngine(params: {
+  character: CharacterAuthored
+  resolution: CharacterBuilderResolution
+  adjustments?: readonly CharacterSheetAdjustment[]
+  movementDisplayPreference?: CharacterMovementDisplayPreference
+}): EngineCharacterOutput {
+  const engineInput = createCharacterEngineInput(
+    params.character,
+    params.resolution,
+    params.adjustments,
+    params.movementDisplayPreference
+  )
+  const rulesSystem = resolveRulesSystem({
+    code: params.resolution.registry.system?.rulesetCode ?? '',
+    version: params.resolution.registry.system?.rulesetVersion ?? ''
+  })
+  return runEngine(engineInput.snapshot, engineInput.registry, rulesSystem)
 }
 
 function getSpellSlotMaximums(slotMaximums: EngineSpellSlots) {
@@ -1242,17 +1275,12 @@ export async function buildCharacterSheetResponse(params: {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
-  const engineInput = createCharacterEngineInput(
+  const engineOutput = resolveCharacterSheetEngine({
     character,
     resolution,
     adjustments,
-    params.movementDisplayPreference
-  )
-  const rulesSystem = resolveRulesSystem({
-    code: resolution.registry.system?.rulesetCode ?? '',
-    version: resolution.registry.system?.rulesetVersion ?? ''
+    movementDisplayPreference: params.movementDisplayPreference
   })
-  const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, rulesSystem)
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
   const maxHitPoints = engineOutput.derivedStats.maxHitPoints
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
@@ -1938,6 +1966,12 @@ export function applyCharacterSheetCommand(
   }
 
   switch (command.type) {
+    case 'UPSERT_SHEET_ADJUSTMENT':
+    case 'REMOVE_SHEET_ADJUSTMENT':
+    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
+    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+      return clearEmptyStateArrays(next)
+
     case 'SET_INSPIRATION':
       next.state.inspiration = command.inspired || undefined
       return clearEmptyStateArrays(next)
@@ -2564,6 +2598,15 @@ export function summarizeCharacterSheetCommand(
   sheet?: CharacterSheetResponseDto
 ): string {
   switch (command.type) {
+    case 'UPSERT_SHEET_ADJUSTMENT':
+      return 'Character sheet adjustment updated'
+    case 'REMOVE_SHEET_ADJUSTMENT':
+      return 'Character sheet adjustment cleared'
+    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
+      return 'Character sheet panel customizations reset'
+    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+      return 'Primary movement display updated'
+
     case 'SET_INSPIRATION':
       return command.inspired ? 'Inspiration granted' : 'Inspiration cleared'
 
@@ -2696,12 +2739,124 @@ function createCharacterSheetStatePatches(
   return patches
 }
 
+function sameAdjustmentSlot(
+  adjustment: CharacterSheetAdjustment,
+  input: CharacterSheetCoreAdjustmentCommandDto
+): boolean {
+  if (adjustment.family !== input.family) return false
+  switch (input.family) {
+    case 'ABILITY':
+      return (
+        adjustment.family === 'ABILITY' &&
+        adjustment.ability === input.ability &&
+        adjustment.field === input.field
+      )
+    case 'SAVING_THROW':
+      return (
+        adjustment.family === 'SAVING_THROW' &&
+        adjustment.ability === input.ability &&
+        adjustment.field === input.field
+      )
+    case 'SKILL':
+      return (
+        adjustment.family === 'SKILL' &&
+        adjustment.skillId === input.skillId &&
+        adjustment.field === input.field
+      )
+    case 'PASSIVE':
+      return adjustment.family === 'PASSIVE' && adjustment.skillId === input.skillId
+    case 'SENSE':
+      return adjustment.family === 'SENSE' && adjustment.senseId === input.senseId
+    case 'MOVEMENT':
+      return adjustment.family === 'MOVEMENT' && adjustment.speedId === input.speedId
+    case 'DEFENSE':
+      return (
+        adjustment.family === 'DEFENSE' &&
+        adjustment.defenseKind === input.defenseKind &&
+        adjustment.damageTypeId === input.damageTypeId
+      )
+    case 'PROFICIENCY':
+      return (
+        adjustment.family === 'PROFICIENCY' &&
+        adjustment.proficiencyKind === input.proficiencyKind &&
+        adjustment.targetId === input.targetId
+      )
+  }
+}
+
+function validateCoreAdjustmentTarget(
+  input: CharacterSheetCoreAdjustmentCommandDto,
+  resolution: CharacterBuilderResolution
+): void {
+  const system = resolution.registry.system
+  const ensureVocabularyTarget = (
+    records: ReadonlyArray<{ id: string }> | undefined,
+    targetId: string,
+    label: string
+  ) => {
+    if (!records?.some((record) => record.id === targetId)) {
+      throw new CharacterSheetCommandError(`${label} "${targetId}" is not available in this rules system.`)
+    }
+  }
+
+  switch (input.family) {
+    case 'ABILITY':
+    case 'SAVING_THROW':
+      return
+    case 'SKILL':
+    case 'PASSIVE':
+      ensureVocabularyTarget(system?.skills, input.skillId, 'Skill')
+      return
+    case 'SENSE':
+      ensureVocabularyTarget(system?.senses, input.senseId, 'Sense')
+      return
+    case 'MOVEMENT':
+      ensureVocabularyTarget(system?.speeds, input.speedId, 'Movement type')
+      return
+    case 'DEFENSE':
+      ensureVocabularyTarget(system?.damageTypes, input.damageTypeId, 'Damage type')
+      return
+    case 'PROFICIENCY':
+      if (input.proficiencyKind === 'LANGUAGE') {
+        ensureVocabularyTarget(system?.languages, input.targetId, 'Language')
+        return
+      }
+      const equipment = resolution.catalog.equipment.find(
+        (candidate) => candidate.id === input.targetId
+      )
+      const validCategory =
+        input.proficiencyKind === 'ARMOR'
+          ? equipment?.category === 'ARMOR' || equipment?.category === 'SHIELD'
+          : equipment?.category === input.proficiencyKind
+      if (!equipment || !validCategory) {
+        throw new CharacterSheetCommandError(
+          `${formatCodeLabel(input.proficiencyKind)} proficiency target "${input.targetId}" is not available.`
+        )
+      }
+  }
+}
+
+function validatePanelTarget(
+  target: CharacterSheetPanelTargetDto,
+  resolution: CharacterBuilderResolution
+): void {
+  if (
+    target.kind === 'SKILL' &&
+    !resolution.registry.system?.skills.some((skill) => skill.id === target.skillId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Skill "${target.skillId}" is not available in this rules system.`
+    )
+  }
+}
+
 export async function executeCharacterSheetCommand(params: {
   db: DBLike
   characterId: string
   command: CharacterSheetCommandInputDto
   userId: string
 }): Promise<CharacterSheetCommandResponseDto> {
+  const command = params.command
   const repository = createCharacterRepository(params.db)
   const [row, character] = await Promise.all([
     repository.findById(params.characterId),
@@ -2776,6 +2931,36 @@ export async function executeCharacterSheetCommand(params: {
   }
 
   const resolution = await resolveCharacterBuilder(params.db, character, 'edit')
+  if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
+    validateCoreAdjustmentTarget(command.adjustment, resolution)
+  }
+  if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
+    validatePanelTarget(command.target, resolution)
+    const existing = adjustments.find(
+      (adjustment) =>
+        adjustment.id === command.adjustmentId &&
+        adjustment.family === command.family
+    )
+    if (!existing || !characterSheetAdjustmentMatchesPanelTarget(existing, command.target)) {
+      throw new CharacterSheetCommandError(
+        `Adjustment "${command.adjustmentId}" is not available in this panel.`
+      )
+    }
+  }
+  if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
+    validatePanelTarget(command.target, resolution)
+  }
+  if (
+    command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE' &&
+    command.preference.mode === 'EXPLICIT'
+  ) {
+    const speedId = command.preference.speedId
+    if (!resolution.registry.system?.speeds.some((speed) => speed.id === speedId)) {
+      throw new CharacterSheetCommandError(
+        `Movement type "${speedId}" is not available in this rules system.`
+      )
+    }
+  }
   if (params.command.type === 'ADD_INVENTORY_ITEM') {
     const equipmentId = params.command.equipmentId
     const equipmentAlreadyLoaded = resolution.registry.equipment.some(
@@ -2817,8 +3002,45 @@ export async function executeCharacterSheetCommand(params: {
   const nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
     expectedStreamVersion: params.command.expectedVersion,
     afterPersist: async (trx) => {
+      const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
+      if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
+        const existing = adjustments.find((adjustment) =>
+          sameAdjustmentSlot(adjustment, command.adjustment)
+        )
+        await typedAdjustmentRepository.upsert({
+          ...command.adjustment,
+          id: existing?.id ?? command.adjustment.id ?? crypto.randomUUID(),
+          characterId: params.characterId,
+          actorId: params.userId
+        })
+      }
+      if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
+        await typedAdjustmentRepository.remove({
+          characterId: params.characterId,
+          adjustmentId: command.adjustmentId,
+          family: command.family
+        })
+      }
+      if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
+        for (const adjustment of getCharacterSheetPanelAdjustmentIds(
+          adjustments,
+          command.target
+        )) {
+          await typedAdjustmentRepository.remove({
+            characterId: params.characterId,
+            adjustmentId: adjustment.id,
+            family: adjustment.family
+          })
+        }
+      }
+      if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') {
+        await typedAdjustmentRepository.setMovementPreference({
+          characterId: params.characterId,
+          actorId: params.userId,
+          preference: command.preference
+        })
+      }
       if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
-        const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
         const existing = adjustments.find(
           (adjustment) =>
             adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
@@ -2849,14 +3071,17 @@ export async function executeCharacterSheetCommand(params: {
     }
   })
 
-  const persistedAdjustments = await adjustmentRepository.listByCharacter(params.characterId)
+  const [persistedAdjustments, persistedMovementDisplayPreference] = await Promise.all([
+    adjustmentRepository.listByCharacter(params.characterId),
+    adjustmentRepository.getMovementPreference(params.characterId)
+  ])
   const sheet = await buildCharacterSheetResponse({
     db: params.db,
     character: nextCharacter,
     resolution,
     streamVersion: nextStreamVersion,
     adjustments: persistedAdjustments,
-    movementDisplayPreference
+    movementDisplayPreference: persistedMovementDisplayPreference
   })
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,

@@ -53,6 +53,7 @@ const preview: Preview = {
         <AppProviders
           key={colorScheme}
           defaultColorScheme={colorScheme}
+          forceColorScheme={colorScheme}
           queryClient={queryClient}
         >
           <ColorSchemeScript defaultColorScheme={colorScheme} />

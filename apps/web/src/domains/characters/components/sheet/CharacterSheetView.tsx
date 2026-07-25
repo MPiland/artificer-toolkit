@@ -3,6 +3,7 @@ import { useMediaQuery } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
+import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { CharacterSheetHero } from './CharacterSheetHero'
 import { CharacterSheetMobilePager } from './CharacterSheetMobilePager'
 import { CharacterSheetOverview } from './CharacterSheetOverview'
@@ -10,6 +11,7 @@ import { CharacterSheetOverviewAbilities } from './CharacterSheetOverviewAbiliti
 import { CharacterSheetOverviewStatusStrip } from './CharacterSheetOverviewStatusStrip'
 import { CharacterSheetOverviewVitals } from './CharacterSheetOverviewVitals'
 import { CharacterSheetPanelContent } from './CharacterSheetPanelContent'
+import { CharacterSheetInspector } from './panels/CharacterSheetInspector'
 import * as styles from './characterSheet.css'
 import {
   CHARACTER_SHEET_DESKTOP_TABS,
@@ -38,11 +40,13 @@ export function CharacterSheetView({
 }) {
   const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(initialTab)
   const [activeMobilePage, setActiveMobilePage] = useState<CharacterSheetMobilePageId>(getMobilePageForTab(initialTab))
+  const [inspectorTarget, setInspectorTarget] = useState<CharacterSheetPanelTargetDto>()
   const isMobileSheet = useMediaQuery('(max-width: 760px)', false)
   const isDesktopSheet = useMediaQuery('(min-width: 1200px)', false)
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
   const pending = commandMutation.isPending
   const sectionProps = {
+    openPanel: setInspectorTarget,
     pending,
     sheet,
     submitCommand: async (command: CharacterSheetCommandDraft) => {
@@ -66,10 +70,11 @@ export function CharacterSheetView({
   }
 
   return (
-    <div className={clsx(
-      styles.shell,
-      isMobileSheet ? styles.sheetMobile : isDesktopSheet ? styles.sheetDesktop : styles.sheetTablet
-    )}>
+    <>
+      <div className={clsx(
+        styles.shell,
+        isMobileSheet ? styles.sheetMobile : isDesktopSheet ? styles.sheetDesktop : styles.sheetTablet
+      )}>
       <div className={styles.sheetTopGrid}>
         <CharacterSheetHero characterPublicId={characterPublicId} hasDraft={hasDraft} sheet={sheet} />
         <CharacterSheetOverviewVitals {...sectionProps} />
@@ -77,7 +82,10 @@ export function CharacterSheetView({
       {!isMobileSheet
         ? (
             <div className={styles.sheetAbilityStatusGrid}>
-              <CharacterSheetOverviewAbilities abilities={sheet.overview.abilities} />
+              <CharacterSheetOverviewAbilities
+                abilities={sheet.overview.abilities}
+                openPanel={setInspectorTarget}
+              />
               <CharacterSheetOverviewStatusStrip {...sectionProps} />
             </div>
           )
@@ -158,6 +166,21 @@ export function CharacterSheetView({
               ))}
             </Tabs>
             )}
-    </div>
+      </div>
+      {inspectorTarget
+        ? (
+            <CharacterSheetInspector
+              characterId={sheet.meta.characterId}
+              commandError={commandMutation.error?.message}
+              expectedVersion={sheet.meta.streamVersion}
+              pending={pending}
+              submitCommand={sectionProps.submitCommand}
+              target={inspectorTarget}
+              onClose={() => setInspectorTarget(undefined)}
+              onTargetChange={setInspectorTarget}
+            />
+          )
+        : null}
+    </>
   )
 }

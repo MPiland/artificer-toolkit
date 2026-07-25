@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   patchSheetState: vi.fn(),
   removeAdjustment: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
+  setMovementPreference: vi.fn(),
   upsertAdjustment: vi.fn()
 }))
 
@@ -41,6 +42,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments,
       remove: mocks.removeAdjustment,
+      setMovementPreference: mocks.setMovementPreference,
       upsert: mocks.upsertAdjustment
     })
   }
@@ -165,6 +167,7 @@ describe('executeCharacterSheetCommand', () => {
     mocks.removeAdjustment.mockReset()
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
+    mocks.setMovementPreference.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
@@ -357,5 +360,132 @@ describe('executeCharacterSheetCommand', () => {
       })
     ).rejects.toMatchObject({ name: 'CharacterSheetCommandError' })
     expect(mocks.patchSheetState).not.toHaveBeenCalled()
+  })
+
+  it('persists a typed ability adjustment and history in the character transaction', async () => {
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000005',
+        adjustment: {
+          id: '00000000-0000-4000-8000-000000000006',
+          family: 'ABILITY',
+          ability: 'STRENGTH',
+          field: 'OTHER_MODIFIER',
+          value: 2,
+          sourceCategory: 'MANUAL',
+          sourceLabel: 'Downtime training'
+        }
+      }
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.upsertAdjustment).toHaveBeenCalledWith({
+      id: '00000000-0000-4000-8000-000000000006',
+      characterId: 'character-1',
+      actorId: 'user-1',
+      family: 'ABILITY',
+      ability: 'STRENGTH',
+      field: 'OTHER_MODIFIER',
+      value: 2,
+      sourceCategory: 'MANUAL',
+      sourceLabel: 'Downtime training'
+    })
+    expect(mocks.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commandType: 'UPSERT_SHEET_ADJUSTMENT',
+        summary: 'Character sheet adjustment updated'
+      })
+    )
+  })
+
+  it('resets only adjustments owned by the requested panel target', async () => {
+    mocks.listAdjustments.mockResolvedValue([
+      {
+        id: '00000000-0000-4000-8000-000000000007',
+        characterId: 'character-1',
+        family: 'ABILITY',
+        ability: 'STRENGTH',
+        field: 'OTHER_MODIFIER',
+        value: 2,
+        sourceCategory: 'MANUAL',
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-07-24T00:00:00.000Z',
+        updatedAt: '2026-07-24T00:00:00.000Z'
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000008',
+        characterId: 'character-1',
+        family: 'ABILITY',
+        ability: 'DEXTERITY',
+        field: 'OTHER_MODIFIER',
+        value: 1,
+        sourceCategory: 'MANUAL',
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-07-24T00:00:00.000Z',
+        updatedAt: '2026-07-24T00:00:00.000Z'
+      }
+    ])
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'RESET_SHEET_PANEL_ADJUSTMENTS',
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000009',
+        target: { kind: 'ABILITY', ability: 'STRENGTH' }
+      }
+    })
+
+    expect(mocks.removeAdjustment).toHaveBeenCalledTimes(1)
+    expect(mocks.removeAdjustment).toHaveBeenCalledWith({
+      characterId: 'character-1',
+      adjustmentId: '00000000-0000-4000-8000-000000000007',
+      family: 'ABILITY'
+    })
+  })
+
+  it('persists movement display preferences through the versioned command path', async () => {
+    const resolution = createResolution()
+    resolution.registry.system!.speeds = [
+      { id: '00000000-0000-4000-8000-000000000010', code: 'WALKING', label: 'Walking' }
+    ]
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'SET_MOVEMENT_DISPLAY_PREFERENCE',
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000011',
+        preference: {
+          mode: 'EXPLICIT',
+          speedId: '00000000-0000-4000-8000-000000000010'
+        }
+      }
+    })
+
+    expect(mocks.setMovementPreference).toHaveBeenCalledWith({
+      characterId: 'character-1',
+      actorId: 'user-1',
+      preference: {
+        mode: 'EXPLICIT',
+        speedId: '00000000-0000-4000-8000-000000000010'
+      }
+    })
   })
 })

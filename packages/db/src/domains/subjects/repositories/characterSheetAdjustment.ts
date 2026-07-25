@@ -61,8 +61,8 @@ function parseAdjustment(
   value: Record<string, unknown>
 ): CharacterSheetAdjustment {
   return characterSheetAdjustmentDtoSchema.parse({
-    ...metadata(row),
-    ...value
+    ...value,
+    ...metadata(row)
   })
 }
 

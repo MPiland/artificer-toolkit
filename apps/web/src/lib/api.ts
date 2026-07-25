@@ -80,6 +80,12 @@ import {
   type CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
+  characterSheetPanelDtoSchema,
+  type CharacterSheetPanelDto,
+  type CharacterSheetPanelNumericCalculationDto,
+  type CharacterSheetPanelTargetDto
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
+import {
   nodeRuntimeNormalizeValuesResponseDtoSchema,
   nodeRuntimeResolveResponseDtoSchema,
   type NodeRuntimeNormalizeValuesRequestDto,
@@ -132,6 +138,9 @@ export type {
   CharacterListResponseDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto,
+  CharacterSheetPanelDto,
+  CharacterSheetPanelNumericCalculationDto,
+  CharacterSheetPanelTargetDto,
   CharacterSheetResponseDto,
   ClassListItemDto,
   ClassListResponseDto,
@@ -279,6 +288,7 @@ interface TrpcClient {
     getDraft: QueryProcedure<IdProcedureInput, CharacterBuilderDraftDto | null>
     history: QueryProcedure<IdProcedureInput, CharacterHistoryResponseDto>
     list: EmptyQueryProcedure<CharacterListResponseDto>
+    panel: QueryProcedure<{ id: string, target: CharacterSheetPanelTargetDto }, CharacterSheetPanelDto>
     previewSave: MutationProcedure<CharacterBuilderSaveRequestDto, CharacterBuilderPreviewPayloadDto>
     resolve: MutationProcedure<CharacterBuilderResolveRequestDto, CharacterBuilderPayloadDto>
     saveDraft: MutationProcedure<{ id: string, input: CharacterBuilderDraftSaveRequestDto }, CharacterBuilderDraftDto>
@@ -450,6 +460,7 @@ function buildApi(client: TrpcClient) {
       getDraft: (id: string) => request('characters.getDraft', characterBuilderDraftDtoSchema.nullable(), () => client.characters.getDraft.query({ id })),
       history: (id: string) => request('characters.history', characterHistoryResponseDtoSchema, () => client.characters.history.query({ id })),
       list: () => request('characters.list', characterListResponseDtoSchema, () => client.characters.list.query()),
+      panel: (id: string, target: CharacterSheetPanelTargetDto) => request('characters.panel', characterSheetPanelDtoSchema, () => client.characters.panel.query({ id, target })),
       previewSave: (input: CharacterBuilderSaveRequestDto) => request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () => client.characters.previewSave.mutate(input)),
       resolve: (input: CharacterBuilderResolveRequestDto, options?: ProcedureRequestOptions) => request('characters.resolve', characterBuilderPayloadDtoSchema, () => client.characters.resolve.mutate(input, options)),
       saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => request('characters.saveDraft', characterBuilderDraftDtoSchema, () => client.characters.saveDraft.mutate({ id, input })),

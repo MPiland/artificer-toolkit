@@ -20,6 +20,7 @@ import {
   getCharacterBuilderDraftForUser,
   getCharacterForUser,
   getCharacterHistoryForUser,
+  getCharacterSheetPanelForUser,
   getCharacterSheetForUser,
   listAuthoredDomain,
   listCharactersForUser,
@@ -101,6 +102,10 @@ import {
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
 } from '@artificer-toolkit/schema/api/characters'
+import {
+  characterSheetPanelDtoSchema,
+  characterSheetPanelTargetDtoSchema
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeNormalizeValuesResponseDtoSchema,
@@ -204,6 +209,11 @@ const characterDraftProcedureInputSchema = z.object({
 const characterCommandProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterSheetCommandInputDtoSchema
+})
+
+const characterSheetPanelProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  target: characterSheetPanelTargetDtoSchema
 })
 
 function authoredDomainRouter<TInput extends AuthoredContentInput>(config: AuthoredDomainConfig<TInput>) {
@@ -447,6 +457,15 @@ export const appRouter = createTRPCRouter({
       .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => characterSheetResponseDtoSchema.nullable().parse(
         await getCharacterSheetForUser(db, input.id)
       ))),
+
+    panel: authenticatedProcedure
+      .input(characterSheetPanelProcedureInputSchema)
+      .output(characterSheetPanelDtoSchema)
+      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) =>
+        characterSheetPanelDtoSchema.parse(
+          await getCharacterSheetPanelForUser(db, input.id, input.target, userId)
+        )
+      )),
 
     resolve: authenticatedProcedure
       .input(characterBuilderResolveRequestDtoSchema)

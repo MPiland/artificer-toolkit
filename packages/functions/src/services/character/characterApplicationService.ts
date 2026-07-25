@@ -10,6 +10,10 @@ import {
 } from './builderService.js'
 import { buildCharacterSheetResponse, executeCharacterSheetCommand } from './sheetService.js'
 import {
+  buildCharacterSheetPanel,
+  getAffectedCharacterSheetPanelTargets
+} from './sheetPanelService.js'
+import {
   type Json,
   createAuthoredRouteIdRepository,
   createCharacterBuilderDraftRepository,
@@ -71,10 +75,15 @@ import {
   type CharacterBuilderSpellChoiceViewDto,
   type CharacterListResponseDto,
   type CharacterSheetCommandResponseDto,
+  type CharacterSheetCommandInputDto,
   characterSheetCommandInputDtoSchema,
   type CharacterSheetResponseDto,
   type CharacterHistoryResponseDto
 } from '@artificer-toolkit/schema/api/characters'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
 import type { CharacterBuilderClassCatalogRecord } from './builderCatalog.js'
 
@@ -1726,6 +1735,61 @@ export async function getCharacterSheetForUser(
   }
 }
 
+export async function getCharacterSheetPanelForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  target: CharacterSheetPanelTargetDto,
+  userId: string
+): Promise<CharacterSheetPanelDto> {
+  const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+
+  const repository = createCharacterRepository(db)
+  const [row, character] = await Promise.all([
+    repository.findById(resolvedCharacterId),
+    repository.findAuthoredById(resolvedCharacterId)
+  ])
+  if (
+    !row ||
+    !character ||
+    (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE
+  ) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  if (character.userId !== userId) {
+    throw createNamedError(
+      'AuthoredContentOwnershipError',
+      `Character "${resolvedCharacterId}" cannot be viewed by the current user.`
+    )
+  }
+
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
+  const [resolution, adjustments, movementDisplayPreference] = await Promise.all([
+    resolveCharacterBuilder(db, character, 'edit'),
+    adjustmentRepository.listByCharacter(resolvedCharacterId),
+    adjustmentRepository.getMovementPreference(resolvedCharacterId)
+  ])
+  const sheet = await buildCharacterSheetResponse({
+    db,
+    character,
+    resolution,
+    streamVersion: row.stream_version,
+    adjustments,
+    movementDisplayPreference
+  })
+  return buildCharacterSheetPanel({
+    character,
+    resolution,
+    sheet,
+    adjustments,
+    movementDisplayPreference,
+    target,
+    editable: true
+  })
+}
+
 export async function resolveCharacterForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   body: ReturnType<typeof characterBuilderResolveRequestDtoSchema.parse>,
@@ -1819,6 +1883,26 @@ export async function upsertCharacterBuilderForUser(
   )
 }
 
+type CorePanelCommand = Extract<
+  CharacterSheetCommandInputDto,
+  {
+    type:
+      | 'UPSERT_SHEET_ADJUSTMENT'
+      | 'REMOVE_SHEET_ADJUSTMENT'
+      | 'RESET_SHEET_PANEL_ADJUSTMENTS'
+      | 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+  }
+>
+
+function isCorePanelCommand(command: CharacterSheetCommandInputDto): command is CorePanelCommand {
+  return (
+    command.type === 'UPSERT_SHEET_ADJUSTMENT' ||
+    command.type === 'REMOVE_SHEET_ADJUSTMENT' ||
+    command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' ||
+    command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+  )
+}
+
 export async function dispatchCommandForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   characterId: string,
@@ -1846,9 +1930,17 @@ export async function dispatchCommandForUser(
       subjectId: resolvedCharacterId
     })
   ])
+  const panels = isCorePanelCommand(command)
+    ? await Promise.all(
+        getAffectedCharacterSheetPanelTargets(command).map((target) =>
+          getCharacterSheetPanelForUser(db, resolvedCharacterId, target, userId)
+        )
+      )
+    : undefined
 
   return {
     ...result,
+    ...(panels ? { panels } : {}),
     sheet: {
       ...result.sheet,
       meta: {

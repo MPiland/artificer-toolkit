@@ -1,4 +1,6 @@
 import { Text } from '@mantine/core'
+import { ChevronRight } from 'lucide-react'
+import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import * as styles from './characterSheet.css'
 import { CharacterSheetOverviewPlayArea } from './CharacterSheetOverviewPlayArea'
 import {
@@ -8,14 +10,28 @@ import {
 import { CharacterSheetOverviewResources } from './CharacterSheetOverviewResources'
 import type { CharacterSheet, CharacterSheetSectionProps } from './CharacterSheet.types'
 
-export function CharacterSheetSensesPanel({ sheet }: { sheet: CharacterSheet }) {
+export function CharacterSheetSensesPanel({
+  sheet,
+  openPanel
+}: {
+  sheet: CharacterSheet
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
+}) {
   const passiveFacts = sheet.overview.facts.filter((fact) => fact.label.toLowerCase().startsWith('passive'))
   const senses = sheet.reference.senses
 
   return (
     <section className={styles.overviewPanel} aria-labelledby='character-sheet-senses'>
       <div className={styles.overviewPanelHeader}>
-        <Text id='character-sheet-senses' className={styles.proficiencyHeading}>Senses</Text>
+        <button
+          className={styles.panelHeadingTrigger}
+          disabled={!openPanel}
+          type='button'
+          onClick={() => openPanel?.({ kind: 'SENSES' })}
+        >
+          <Text id='character-sheet-senses' className={styles.proficiencyHeading}>Senses</Text>
+          <ChevronRight aria-hidden='true' size={16} />
+        </button>
       </div>
       <div className={styles.compactDataList}>
         {passiveFacts.map((fact) => (
@@ -36,11 +52,25 @@ export function CharacterSheetSensesPanel({ sheet }: { sheet: CharacterSheet }) 
   )
 }
 
-export function CharacterSheetDefensesPanel({ sheet }: { sheet: CharacterSheet }) {
+export function CharacterSheetDefensesPanel({
+  sheet,
+  openPanel
+}: {
+  sheet: CharacterSheet
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
+}) {
   return (
     <section className={styles.overviewPanel} aria-labelledby='character-sheet-defenses'>
       <div className={styles.overviewPanelHeader}>
-        <Text id='character-sheet-defenses' className={styles.proficiencyHeading}>Defenses</Text>
+        <button
+          className={styles.panelHeadingTrigger}
+          disabled={!openPanel}
+          type='button'
+          onClick={() => openPanel?.({ kind: 'DEFENSES' })}
+        >
+          <Text id='character-sheet-defenses' className={styles.proficiencyHeading}>Defenses</Text>
+          <ChevronRight aria-hidden='true' size={16} />
+        </button>
       </div>
       <div className={styles.compactDataList}>
         {sheet.reference.defenses.map((defense) => (
@@ -55,11 +85,25 @@ export function CharacterSheetDefensesPanel({ sheet }: { sheet: CharacterSheet }
   )
 }
 
-function CharacterSheetProficiencySummary({ sheet }: { sheet: CharacterSheet }) {
+function CharacterSheetProficiencySummary({
+  sheet,
+  openPanel
+}: {
+  sheet: CharacterSheet
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
+}) {
   return (
     <section className={styles.overviewPanel} aria-labelledby='character-sheet-proficiency-summary'>
       <div className={styles.overviewPanelHeader}>
-        <Text id='character-sheet-proficiency-summary' className={styles.proficiencyHeading}>Proficiencies</Text>
+        <button
+          className={styles.panelHeadingTrigger}
+          disabled={!openPanel}
+          type='button'
+          onClick={() => openPanel?.({ kind: 'PROFICIENCIES' })}
+        >
+          <Text id='character-sheet-proficiency-summary' className={styles.proficiencyHeading}>Proficiencies</Text>
+          <ChevronRight aria-hidden='true' size={16} />
+        </button>
       </div>
       <div className={styles.compactDataList}>
         {sheet.reference.proficiencies.slice(0, 5).map((proficiency) => (
@@ -75,6 +119,7 @@ function CharacterSheetProficiencySummary({ sheet }: { sheet: CharacterSheet }) 
 }
 
 export function CharacterSheetOverview({
+  openPanel,
   pending,
   sheet,
   submitCommand
@@ -84,12 +129,16 @@ export function CharacterSheetOverview({
       <h2 id='character-sheet-overview' className={styles.visuallyHidden}>Overview</h2>
       <div className={styles.playSheetGrid}>
         <div className={styles.overviewLeftRail}>
-          <CharacterSheetSavingThrowsPanel savingThrows={sheet.overview.savingThrows} />
-          <CharacterSheetSensesPanel sheet={sheet} />
-          <CharacterSheetDefensesPanel sheet={sheet} />
-          <CharacterSheetProficiencySummary sheet={sheet} />
+          <CharacterSheetSavingThrowsPanel openPanel={openPanel} savingThrows={sheet.overview.savingThrows} />
+          <CharacterSheetSensesPanel openPanel={openPanel} sheet={sheet} />
+          <CharacterSheetDefensesPanel openPanel={openPanel} sheet={sheet} />
+          <CharacterSheetProficiencySummary openPanel={openPanel} sheet={sheet} />
         </div>
-        <CharacterSheetSkillsPanel abilities={sheet.overview.abilities} skills={sheet.overview.skills} />
+        <CharacterSheetSkillsPanel
+          abilities={sheet.overview.abilities}
+          openPanel={openPanel}
+          skills={sheet.overview.skills}
+        />
         <div className={styles.playAreaStack}>
           <CharacterSheetOverviewPlayArea sheet={sheet} />
           <CharacterSheetOverviewResources

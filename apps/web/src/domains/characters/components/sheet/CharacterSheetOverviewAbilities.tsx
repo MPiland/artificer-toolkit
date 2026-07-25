@@ -1,6 +1,8 @@
 import { Text } from '@mantine/core'
 import { Brain, Dumbbell, Eye, Footprints, HeartPulse, Smile } from 'lucide-react'
+import clsx from 'clsx'
 import * as styles from './characterSheet.css'
+import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { CharacterSheet } from './CharacterSheet.types'
 import { formatSigned } from './characterSheet.utils'
 import { getAbilityShortLabel } from './characterSheetOverview.utils'
@@ -15,14 +17,23 @@ const ABILITY_ICONS = {
 } as const
 
 export function CharacterSheetOverviewAbilities({
-  abilities
+  abilities,
+  openPanel
 }: {
   abilities: CharacterSheet['overview']['abilities']
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (
     <section className={styles.abilityStrip} aria-label='Ability scores'>
       {abilities.map((ability) => (
-        <div className={styles.abilityCard} key={ability.ability}>
+        <button
+          aria-label={`Inspect ${getAbilityShortLabel(ability.ability)} ability`}
+          className={clsx(styles.abilityCard, styles.sheetInspectorTrigger)}
+          disabled={!openPanel}
+          key={ability.ability}
+          type='button'
+          onClick={() => openPanel?.({ kind: 'ABILITY', ability: ability.ability })}
+        >
           {(() => {
             const Icon = ABILITY_ICONS[ability.ability as keyof typeof ABILITY_ICONS]
             return Icon ? <Icon className={styles.abilityIcon} aria-hidden='true' size={24} /> : null
@@ -30,7 +41,7 @@ export function CharacterSheetOverviewAbilities({
           <Text className={styles.abilityLabel}>{getAbilityShortLabel(ability.ability)}</Text>
           <Text className={styles.abilityModifier}>{formatSigned(ability.modifier)}</Text>
           <Text className={styles.abilityScore}>{ability.score}</Text>
-        </div>
+        </button>
       ))}
     </section>
   )

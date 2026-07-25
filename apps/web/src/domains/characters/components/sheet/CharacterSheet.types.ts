@@ -1,5 +1,6 @@
 import type {
   CharacterSheetCommandInputDto,
+  CharacterSheetPanelTargetDto,
   CharacterSheetResponseDto
 } from '#app/lib/api'
 
@@ -35,4 +36,5 @@ export type CharacterSheetSectionProps = {
   sheet: CharacterSheet
   pending: boolean
   submitCommand: SubmitSheetCommand
+  openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }

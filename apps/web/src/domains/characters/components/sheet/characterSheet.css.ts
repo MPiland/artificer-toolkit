@@ -384,6 +384,63 @@ export const abilityCard = style({
   }
 })
 
+export const sheetInspectorTrigger = style({
+  '@layer': {
+    [app]: {
+      'appearance': 'none',
+      'color': 'inherit',
+      'cursor': 'pointer',
+      'font': 'inherit',
+      'margin': 0,
+      'outline': 0,
+      'width': '100%',
+      selectors: {
+        '&:hover': {
+          background: foundationVars.color.surface.subtle,
+          borderColor: foundationVars.color.border.strong
+        },
+        '&:focus-visible': {
+          boxShadow: `0 0 0 2px ${foundationVars.color.accent.focus}`
+        },
+        '&:disabled': {
+          cursor: 'default'
+        }
+      }
+    }
+  }
+})
+
+export const panelHeadingTrigger = style({
+  '@layer': {
+    [app]: {
+      'alignItems': 'center',
+      'appearance': 'none',
+      'background': 'transparent',
+      'border': 0,
+      'borderRadius': foundationVars.radius.sm,
+      'color': 'inherit',
+      'cursor': 'pointer',
+      'display': 'inline-flex',
+      'font': 'inherit',
+      'gap': '6px',
+      'margin': '-4px',
+      'padding': '4px',
+      selectors: {
+        '&:hover': {
+          background: foundationVars.color.surface.subtle
+        },
+        '&:focus-visible': {
+          boxShadow: `0 0 0 2px ${foundationVars.color.accent.focus}`,
+          outline: 0
+        },
+        '&:disabled': {
+          cursor: 'default'
+        }
+      }
+    }
+  }
+})
+
 export const abilityIcon = style({
   '@layer': {
     [app]: {

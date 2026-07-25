@@ -27,6 +27,14 @@ import {
   weightDtoSchema
 } from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
+import {
+  characterMovementDisplayPreferenceDtoSchema,
+  characterSheetCoreAdjustmentCommandDtoSchema
+} from './characterSheet.js'
+import {
+  characterSheetPanelDtoSchema,
+  characterSheetPanelTargetDtoSchema
+} from './characterSheetPanel.js'
 
 export const characterBuilderModeDtoSchema = z.enum(['create', 'edit'])
 
@@ -876,6 +884,33 @@ const characterSheetCommandBaseDtoSchema = z.object({
 
 export const characterSheetCommandInputDtoSchema = z.discriminatedUnion('type', [
   characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('UPSERT_SHEET_ADJUSTMENT'),
+    adjustment: characterSheetCoreAdjustmentCommandDtoSchema
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('REMOVE_SHEET_ADJUSTMENT'),
+    adjustmentId: z.string().uuid(),
+    target: characterSheetPanelTargetDtoSchema,
+    family: z.enum([
+      'ABILITY',
+      'SAVING_THROW',
+      'SKILL',
+      'PASSIVE',
+      'SENSE',
+      'MOVEMENT',
+      'DEFENSE',
+      'PROFICIENCY'
+    ])
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('RESET_SHEET_PANEL_ADJUSTMENTS'),
+    target: characterSheetPanelTargetDtoSchema
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('SET_MOVEMENT_DISPLAY_PREFERENCE'),
+    preference: characterMovementDisplayPreferenceDtoSchema
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
     type: z.literal('SET_INSPIRATION'),
     inspired: z.boolean()
   }),
@@ -1045,6 +1080,7 @@ export const characterSheetCommandResponseDtoSchema = z.object({
   characterId: z.string(),
   streamVersion: z.number().int(),
   sheet: characterSheetResponseDtoSchema,
+  panels: z.array(characterSheetPanelDtoSchema).optional(),
   historyEntry: characterHistoryEntryDtoSchema.optional()
 })
 

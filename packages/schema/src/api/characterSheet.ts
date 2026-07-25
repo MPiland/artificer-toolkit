@@ -31,6 +31,7 @@ export const characterMechanicSourceRefDtoSchema = z.union([
   z.object({
     kind: z.literal('AUTHORED'),
     sourceKind: z.enum([
+      'ANCESTRY',
       'BACKGROUND',
       'CLASS',
       'FEAT',
@@ -38,6 +39,7 @@ export const characterMechanicSourceRefDtoSchema = z.union([
       'OPTION',
       'RACE',
       'SPELL',
+      'SUBRACE',
       'SUBCLASS'
     ]),
     definitionId: uuidSchema,
@@ -78,11 +80,18 @@ export const characterSpellSourceRefDtoSchema = z.object({
   sourceInstanceId: identifierSchema
 })
 
-const abilityAdjustmentDtoSchema = z.object({
+const abilityOtherModifierAdjustmentDtoSchema = z.object({
   family: z.literal('ABILITY'),
   ability: abilityCodeSchema,
-  field: z.enum(['OTHER_MODIFIER', 'SCORE_OVERRIDE']),
+  field: z.literal('OTHER_MODIFIER'),
   value: z.number().int()
+})
+
+const abilityScoreOverrideAdjustmentDtoSchema = z.object({
+  family: z.literal('ABILITY'),
+  ability: abilityCodeSchema,
+  field: z.literal('SCORE_OVERRIDE'),
+  value: z.number().int().nonnegative()
 })
 
 const savingThrowNumericAdjustmentDtoSchema = z.object({
@@ -219,8 +228,24 @@ const proficiencyAdditionDtoSchema = z.object({
   value: z.literal(true)
 })
 
+export const characterSheetCoreAdjustmentValueDtoSchema = z.union([
+  abilityOtherModifierAdjustmentDtoSchema,
+  abilityScoreOverrideAdjustmentDtoSchema,
+  savingThrowNumericAdjustmentDtoSchema,
+  savingThrowProficiencyAdjustmentDtoSchema,
+  skillNumericAdjustmentDtoSchema,
+  skillProficiencyAdjustmentDtoSchema,
+  skillAbilityAdjustmentDtoSchema,
+  passiveAdjustmentDtoSchema,
+  senseAdjustmentDtoSchema,
+  movementAdjustmentDtoSchema,
+  defenseAdditionDtoSchema,
+  proficiencyAdditionDtoSchema
+])
+
 export const characterSheetAdjustmentValueDtoSchema = z.union([
-  abilityAdjustmentDtoSchema,
+  abilityOtherModifierAdjustmentDtoSchema,
+  abilityScoreOverrideAdjustmentDtoSchema,
   savingThrowNumericAdjustmentDtoSchema,
   savingThrowProficiencyAdjustmentDtoSchema,
   skillNumericAdjustmentDtoSchema,
@@ -240,6 +265,15 @@ export const characterSheetAdjustmentValueDtoSchema = z.union([
   defenseAdditionDtoSchema,
   proficiencyAdditionDtoSchema
 ])
+
+export const characterSheetCoreAdjustmentCommandDtoSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    sourceCategory: characterSheetAdjustmentSourceCategoryDtoSchema.default('MANUAL'),
+    sourceLabel: characterSheetSourceLabelDtoSchema.optional(),
+    sourceNote: characterSheetSourceNoteDtoSchema.optional()
+  })
+  .and(characterSheetCoreAdjustmentValueDtoSchema)
 
 export const characterSheetAdjustmentMetadataDtoSchema = z.object({
   id: uuidSchema,
@@ -352,6 +386,9 @@ export const characterResourceOwnerRefDtoSchema = z.union([
 ])
 
 export type CharacterSheetAdjustmentDto = z.infer<typeof characterSheetAdjustmentDtoSchema>
+export type CharacterSheetCoreAdjustmentCommandDto = z.infer<
+  typeof characterSheetCoreAdjustmentCommandDtoSchema
+>
 export type CharacterSheetAdjustmentWriteDto = z.infer<
   typeof characterSheetAdjustmentWriteDtoSchema
 >

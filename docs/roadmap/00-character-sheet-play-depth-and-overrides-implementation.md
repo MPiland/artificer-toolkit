@@ -21,8 +21,8 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | Branch                                           | Scope                                                                      | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
 | ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
 | `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `HANDOFF_READY` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `ACTIVE`        | `f92cc6946541` | pending        | running     | running        | running     |
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
 | `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
 | `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
@@ -168,6 +168,70 @@ Branch 02 must consume the closed taxonomy and identity format here; it may not 
 **Entry:** Branch 02 engine output is stable. Run Impeccable before each panel family.
 
 **Exit:** Locked desktop/mobile mockups, Storybook fixtures, explicit panel DTOs/commands, backend orchestration, one responsive inspector shell, exhaustive adapters, immediate persistence, accessibility, screenshots, and focused tests are green. Handoff records discriminators, commands, shell boundaries, evidence, and rejected abstractions.
+
+### Entry verification
+
+- Branch 02 was integrated at `f92cc6946541`; the engine breakdown, adjustment precedence, and stable source identities were reverified before panel work.
+- The current route-backed `CharacterSheetView` Storybook fixture is the visual baseline. Reference screenshots remain a functional inventory only.
+- The inspector is a Mantine portal overlay. It never changes the underlying Sheet layout or reserves adjacent page width.
+
+### Delivered scope
+
+- Closed panel targets and explicit DTO variants for abilities, saving throws, individual and all skills, senses, movement, defenses, and proficiencies.
+- Backend panel resolution, authenticated owner-only queries, target validation, immediate versioned commands, transaction history, and authoritative affected-panel responses.
+- One focused inspector shell: a right-side drawer on desktop/tablet and a bottom/full-screen sheet on mobile.
+- Exhaustive web adapters for every Branch 03 panel kind, including calculation sources, suppressed sources, validation, allowed actions, pending state, errors, and reset behavior.
+- Existing Sheet values are inspect triggers; panel presentation does not duplicate engine calculation.
+- Route-backed Storybook fixtures cover default, adjusted, overridden, desktop, tablet, mobile, and light states using the production Character Sheet fixture.
+
+### Deferred scope
+
+- Spell, feature, item, background, and resource panels remain Branch 04 work.
+- Companions remain Branch 05 work. HP/status/rest mutation flows remain Branch 06 work.
+- Custom-skill CRUD remains outside Phase 00.
+
+### Decisions
+
+- Panel DTOs carry semantic facts, editors, editability, validation, and allowed commands only. They do not carry section-order layout instructions, CSS, Mantine props, callbacks, or platform identifiers.
+- The client owns section composition and responsive drawer geometry while exhaustively rendering the backend-authored panel variant.
+- Commands restore authoritative server state on failure. Successful responses replace returned panel cache entries and invalidate related cached panels without duplicating totals client-side.
+- Ability score overrides reject negative values; ordinary signed ability changes use the additive modifier field.
+- UI controls are gated by both panel editability and explicit allowed commands.
+
+### Visual evidence
+
+All evidence is captured from the route-backed Character Sheet story with the production fixture under `docs/mockups/character-sheet-overrides/`.
+
+- Ability: default, adjusted, overridden, light, tablet, and mobile.
+- Saving throw, individual skill, all skills, senses, movement, defenses, and proficiencies: desktop.
+- Every capture waits for the named inspector dialog before taking the screenshot; the 13 evidence files have distinct content hashes.
+
+### Acceptance and validation
+
+| Gate | Result |
+| --- | --- |
+| Schema and command contracts | green — 14 focused assertions |
+| Character Sheet regression and inspector behavior | green — 2 files, 42 tests |
+| Storybook interaction states | green — 15 route-backed stories |
+| Storybook typecheck | green |
+| Affected typecheck | green — 8 tasks |
+| Focused type-aware lint | green — changed web/schema files |
+| Untouched web lint baseline | existing blockers remain in four unrelated Builder files; no changed file fails |
+| Responsive visual evidence | green — 13 real Sheet-overlay captures |
+| Impeccable review | green after negative-score, cache-coherence, in-drawer status/error, ready-state capture, and semantic-contract corrections |
+| `git diff --check` | green |
+
+### Handoff
+
+**Status:** `ACTIVE`
+
+**Delivery SHA:** pending
+
+- Panel discriminators: `ABILITY`, `SAVING_THROW`, `SKILL`, `SKILLS`, `SENSES`, `MOVEMENT`, `DEFENSES`, and `PROFICIENCIES`.
+- Command variants: upsert adjustment, remove adjustment, reset target adjustments, and set movement preference.
+- Shell boundary: `CharacterSheetInspector` owns query/loading/error/pending overlay behavior; `CharacterSheetInspectorContent` exhaustively adapts semantic panel DTOs.
+- Reused primitives are limited to panel metadata, status, breakdown, adjustment editor, list, and section components that are shared by current panel variants.
+- Rejected abstractions: a panel section-order DSL, arbitrary component node map, parallel standalone mockup surface, and adjacent desktop inspector layout.
 
 ## Branch 04 — Content and resources
 

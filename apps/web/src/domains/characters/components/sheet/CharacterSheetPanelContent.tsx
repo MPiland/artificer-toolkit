@@ -43,7 +43,11 @@ export function CharacterSheetPanelContent({
     case 'skills':
       return (
         <section className={styles.mobilePageStack} aria-label='Skills'>
-          <CharacterSheetSkillsPanel abilities={sectionProps.sheet.overview.abilities} skills={sectionProps.sheet.overview.skills} />
+          <CharacterSheetSkillsPanel
+            abilities={sectionProps.sheet.overview.abilities}
+            openPanel={sectionProps.openPanel}
+            skills={sectionProps.sheet.overview.skills}
+          />
         </section>
       )
     case 'proficiencies':

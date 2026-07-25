@@ -86,6 +86,7 @@ function CharacterSheetHpControls({
 }
 
 export function CharacterSheetOverviewVitals({
+  openPanel,
   pending,
   sheet,
   submitCommand
@@ -130,10 +131,25 @@ export function CharacterSheetOverviewVitals({
       <div className={styles.combatSummaryCard}>
         <div className={styles.combatFactGrid}>
           {primaryFacts.map((fact) => (
-            <div className={styles.combatFact} key={`${fact.label}:${fact.value}`}>
-              <Text className={styles.metricLabel}>{fact.label}</Text>
-              <Text className={styles.metricValue}>{fact.value}</Text>
-            </div>
+            fact.label.toLowerCase() === 'speed'
+              ? (
+                  <button
+                    className={`${styles.combatFact} ${styles.sheetInspectorTrigger}`}
+                    disabled={!openPanel}
+                    key={`${fact.label}:${fact.value}`}
+                    type='button'
+                    onClick={() => openPanel?.({ kind: 'MOVEMENT' })}
+                  >
+                    <Text className={styles.metricLabel}>{fact.label}</Text>
+                    <Text className={styles.metricValue}>{fact.value}</Text>
+                  </button>
+                )
+              : (
+                  <div className={styles.combatFact} key={`${fact.label}:${fact.value}`}>
+                    <Text className={styles.metricLabel}>{fact.label}</Text>
+                    <Text className={styles.metricValue}>{fact.value}</Text>
+                  </div>
+                )
           ))}
         </div>
       </div>

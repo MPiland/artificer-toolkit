@@ -45,7 +45,9 @@ export const queryKeys = {
     list: () => ['characters', 'list'] as const,
     detail: (id: string) => ['characters', 'detail', id] as const,
     draft: (id: string) => ['characters', 'draft', id] as const,
-    sheet: (id: string) => ['characters', 'sheet', id] as const
+    sheet: (id: string) => ['characters', 'sheet', id] as const,
+    panels: (id: string) => ['characters', 'sheet', id, 'panel'] as const,
+    panel: (id: string, target: object) => ['characters', 'sheet', id, 'panel', target] as const
   },
 
   content: {

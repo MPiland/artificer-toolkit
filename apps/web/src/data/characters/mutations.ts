@@ -85,11 +85,27 @@ export function useCharacterSheetCommandMutation(characterId: string) {
     mutationFn: (input: CharacterSheetCommandInputDto) => api.characters.command(characterId, input),
     onSuccess: async (response) => {
       queryClient.setQueryData(queryKeys.characters.sheet(characterId), response.sheet)
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.characters.panels(characterId),
+        refetchType: 'none'
+      })
+      for (const panel of response.panels ?? []) {
+        queryClient.setQueryData(
+          queryKeys.characters.panel(characterId, panel.target),
+          panel
+        )
+      }
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.detail(characterId), exact: true })
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
     },
     onError: async () => {
-      await queryClient.refetchQueries({ queryKey: queryKeys.characters.sheet(characterId), exact: true })
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: queryKeys.characters.sheet(characterId),
+          exact: true
+        }),
+        queryClient.refetchQueries({ queryKey: queryKeys.characters.panels(characterId) })
+      ])
     }
   })
 }
