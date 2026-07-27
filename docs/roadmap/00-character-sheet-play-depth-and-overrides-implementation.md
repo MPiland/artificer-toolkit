@@ -19,15 +19,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED`    | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `HANDOFF_READY` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`       | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
+| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -423,15 +423,17 @@ Current-state and in-progress route-backed captures live under `docs/mockups/cha
 
 ### Status
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Integration base SHA:** `3492e0bdea49`
 
 **Delivery SHA:** `e61821775834bd976dcdf292111a99c0cfe85387`
 
+**Integrated child head SHA:** `b5a4899499cbab5944c2396b115ae00df2703a8d`
+
 Spell, feature, owned-item, background, resource, optimistic-command, and responsive
-play-surface scope has reached the Branch 04 handoff gate. Branch 05 may consume the
-resource-owner and inspector contracts without redefining source identity, recovery
+play-surface scope is integrated into `feature/character-overrides`. Branch 05 may consume
+the resource-owner and inspector contracts without redefining source identity, recovery
 semantics, or Sheet-versus-Builder ownership.
 
 Current corrective validation:
@@ -524,9 +526,11 @@ Current corrective validation:
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Delivery SHA:** `e61821775834bd976dcdf292111a99c0cfe85387`
+
+**Integrated child head SHA:** `b5a4899499cbab5944c2396b115ae00df2703a8d`
 
 #### Contract and ownership decisions
 
