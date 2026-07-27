@@ -8,6 +8,7 @@ import { characterSheetCommandInputDtoSchema } from '../api/characters.js'
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 const adjustmentId = '00000000-0000-4000-8000-000000000002'
+const deterministicSrdSpellId = '00000000-0000-0000-0020-00c600000000'
 
 describe('character sheet panel contracts', () => {
   it('accepts a backend-authored ability panel with calculation provenance', () => {
@@ -19,11 +20,7 @@ describe('character sheet panel contracts', () => {
       title: 'Strength',
       state: 'ADJUSTED',
       editable: true,
-      allowedCommands: [
-        'UPSERT_ADJUSTMENT',
-        'REMOVE_ADJUSTMENT',
-        'RESET_ADJUSTMENTS'
-      ],
+      allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
       ability: 'STRENGTH',
       score: 16,
       modifier: 3,
@@ -50,8 +47,6 @@ describe('character sheet panel contracts', () => {
           commitIntent: 'ON_BLUR_OR_ENTER',
           validation: { integer: true },
           adjustmentId,
-          sourceCategory: 'MANUAL',
-          sourceLabel: 'Training reward',
           sourceNote: 'Granted after session 4'
         },
         {
@@ -60,8 +55,7 @@ describe('character sheet panel contracts', () => {
           label: 'Override score',
           value: null,
           commitIntent: 'ON_BLUR_OR_ENTER',
-          validation: { integer: true },
-          sourceCategory: 'MANUAL'
+          validation: { integer: true }
         }
       ]
     })
@@ -86,8 +80,7 @@ describe('character sheet panel contracts', () => {
         expectedVersion: 2,
         adjustment: {
           id: adjustmentId,
-          sourceCategory: 'MAGIC',
-          sourceLabel: 'Blessing',
+          sourceNote: 'Blessing',
           family: 'SAVING_THROW',
           ability: 'WISDOM',
           field: 'MAGIC_BONUS',
@@ -97,21 +90,20 @@ describe('character sheet panel contracts', () => {
     ).toBe(true)
   })
 
-  it('rejects non-core adjustment families from the core-panel command', () => {
+  it('accepts typed owned-item adjustments through the shared Sheet command', () => {
     expect(
       characterSheetCommandInputDtoSchema.safeParse({
         type: 'UPSERT_SHEET_ADJUSTMENT',
         commandId: '00000000-0000-4000-8000-000000000003',
         expectedVersion: 2,
         adjustment: {
-          sourceCategory: 'MANUAL',
           family: 'ITEM',
           itemInstanceId: adjustmentId,
           field: 'DAMAGE_BONUS',
           value: 1
         }
       }).success
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('rejects a negative absolute ability score', () => {
@@ -121,12 +113,60 @@ describe('character sheet panel contracts', () => {
         commandId: '00000000-0000-4000-8000-000000000003',
         expectedVersion: 2,
         adjustment: {
-          sourceCategory: 'MANUAL',
           family: 'ABILITY',
           ability: 'STRENGTH',
           field: 'SCORE_OVERRIDE',
           value: -1
         }
+      }).success
+    ).toBe(false)
+  })
+
+  it('accepts contextual spell mechanic customization commands', () => {
+    const source = {
+      spellId: deterministicSrdSpellId,
+      sourceKind: 'CLASS',
+      sourceInstanceId: 'CLASS:wizard'
+    }
+
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'SET_SPELL_MECHANIC_CUSTOMIZATION',
+        commandId: '00000000-0000-4000-8000-000000000003',
+        expectedVersion: 2,
+        source,
+        category: 'TO_HIT',
+        mode: 'OVERRIDE',
+        value: 7,
+        sourceNote: 'Table ruling'
+      }).success
+    ).toBe(true)
+
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION',
+        commandId: '00000000-0000-4000-8000-000000000004',
+        expectedVersion: 3,
+        source,
+        category: 'TO_HIT'
+      }).success
+    ).toBe(true)
+  })
+
+  it('rejects damage overrides because damage supports a flat bonus only', () => {
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'SET_SPELL_MECHANIC_CUSTOMIZATION',
+        commandId: '00000000-0000-4000-8000-000000000003',
+        expectedVersion: 2,
+        source: {
+          spellId: characterId,
+          sourceKind: 'CLASS',
+          sourceInstanceId: 'CLASS:wizard'
+        },
+        category: 'DAMAGE',
+        mode: 'OVERRIDE',
+        value: 4
       }).success
     ).toBe(false)
   })

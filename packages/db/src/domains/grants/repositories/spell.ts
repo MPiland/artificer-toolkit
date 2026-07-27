@@ -1,7 +1,4 @@
-import {
-  SPELL_GRANT_ATTRIBUTE,
-  type SpellGrantAuthored
-} from '@artificer-toolkit/shared'
+import { SPELL_GRANT_ATTRIBUTE, type SpellGrantAuthored } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertSpellGrant } from '../upserts/spell.js'
 import { hydrateFacetById } from '../../shared/facets.js'
@@ -21,19 +18,13 @@ function requireChosenCount(value: number | null, message: string): number {
   return value
 }
 
-function requireNoGrantedCount(
-  value: number | null,
-  message: string
-) {
+function requireNoGrantedCount(value: number | null, message: string) {
   if (value != null) {
     throw new Error(message)
   }
 }
 
-function requireProgressionClassId(
-  value: string | null,
-  message: string
-): string {
+function requireProgressionClassId(value: string | null, message: string): string {
   if (!value) {
     throw new Error(message)
   }
@@ -41,10 +32,7 @@ function requireProgressionClassId(
   return value
 }
 
-function requireSelectionKind(
-  value: string,
-  message: string
-): 'GRANTED' | 'CHOSEN' {
+function requireSelectionKind(value: string, message: string): 'GRANTED' | 'CHOSEN' {
   if (value !== 'GRANTED' && value !== 'CHOSEN') {
     throw new Error(message)
   }
@@ -52,10 +40,7 @@ function requireSelectionKind(
   return value
 }
 
-function requireAuthoringModeKind(
-  value: string,
-  message: string
-): 'ALL' | 'SELECTED' {
+function requireAuthoringModeKind(value: string, message: string): 'ALL' | 'SELECTED' {
   if (value !== 'ALL' && value !== 'SELECTED') {
     throw new Error(message)
   }
@@ -63,10 +48,7 @@ function requireAuthoringModeKind(
   return value
 }
 
-function requireNoUnexpectedSelectedIds(
-  ids: string[],
-  message: string
-) {
+function requireNoUnexpectedSelectedIds(ids: string[], message: string) {
   if (ids.length > 0) {
     throw new Error(message)
   }
@@ -77,10 +59,10 @@ function requireScalingSource(
   message: string
 ): 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' {
   if (
-    value !== 'CHARACTER_LEVEL'
-    && value !== 'CLASS_LEVEL'
-    && value !== 'PARENT_CLASS_LEVEL'
-    && value !== 'SPELL_CAST_LEVEL'
+    value !== 'CHARACTER_LEVEL' &&
+    value !== 'CLASS_LEVEL' &&
+    value !== 'PARENT_CLASS_LEVEL' &&
+    value !== 'SPELL_CAST_LEVEL'
   ) {
     throw new Error(message)
   }
@@ -88,10 +70,7 @@ function requireScalingSource(
   return value
 }
 
-function requireScalingKind(
-  value: string,
-  message: string
-): 'NONE' | 'PER_LEVEL' {
+function requireScalingKind(value: string, message: string): 'NONE' | 'PER_LEVEL' {
   if (value !== 'NONE' && value !== 'PER_LEVEL') {
     throw new Error(message)
   }
@@ -99,10 +78,7 @@ function requireScalingKind(
   return value
 }
 
-function requireLinkedRecord<T>(
-  value: T | null | undefined,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
     throw new Error(message)
   }
@@ -130,18 +106,19 @@ function requireSpellGrantApplicability(
   const attributeSet = new Set(attributes ?? [])
 
   if (charge && !attributeSet.has('LIMITED_USE')) {
-    throw new Error(`Spell grant "${grantId}" cannot hydrate charges without LIMITED_USE in attributes.`)
+    throw new Error(
+      `Spell grant "${grantId}" cannot hydrate charges without LIMITED_USE in attributes.`
+    )
   }
 
   if (castAtLevel != null && !attributeSet.has('CAST_AT_LEVEL')) {
-    throw new Error(`Spell grant "${grantId}" cannot hydrate castAtLevel without CAST_AT_LEVEL in attributes.`)
+    throw new Error(
+      `Spell grant "${grantId}" cannot hydrate castAtLevel without CAST_AT_LEVEL in attributes.`
+    )
   }
 }
 
-async function hydrateSpellGrantById(
-  db: DBLike,
-  id: string
-): Promise<SpellGrantAuthored | null> {
+async function hydrateSpellGrantById(db: DBLike, id: string): Promise<SpellGrantAuthored | null> {
   const root = await db
     .selectFrom('spell_grants')
     .select([
@@ -164,28 +141,41 @@ async function hydrateSpellGrantById(
 
   if (!root) return null
 
-  const [attributeRows, rootSpells, scalingLevels, charge, restrictions, filters] = await Promise.all([
-    db.selectFrom('spell_grant_attributes')
-      .select(['attribute_code', 'sort_order'])
-      .where('spell_grant_id', '=', id)
-      .orderBy('sort_order')
-      .execute(),
-    db.selectFrom('spell_grant_spells')
-      .select(['spell_grant_id', 'spell_id'])
-      .where('spell_grant_id', '=', id)
-      .execute(),
-    db.selectFrom('spell_grant_scaling_levels')
-      .select(['id', 'spell_grant_id', 'level', 'sort_order', 'authoring_mode_kind', 'selection_count', 'selection_duplicate_policy'])
-      .where('spell_grant_id', '=', id)
-      .orderBy('sort_order')
-      .execute(),
-    root.charge_id ? hydrateChargeById(db, root.charge_id) : Promise.resolve(null),
-    root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null),
-    root.filter_id ? hydrateFacetById(db, root.filter_id) : Promise.resolve(null)
-  ])
+  const [attributeRows, rootSpells, scalingLevels, charge, restrictions, filters] =
+    await Promise.all([
+      db
+        .selectFrom('spell_grant_attributes')
+        .select(['attribute_code', 'sort_order'])
+        .where('spell_grant_id', '=', id)
+        .orderBy('sort_order')
+        .execute(),
+      db
+        .selectFrom('spell_grant_spells')
+        .select(['spell_grant_id', 'spell_id'])
+        .where('spell_grant_id', '=', id)
+        .execute(),
+      db
+        .selectFrom('spell_grant_scaling_levels')
+        .select([
+          'id',
+          'spell_grant_id',
+          'level',
+          'sort_order',
+          'authoring_mode_kind',
+          'selection_count',
+          'selection_duplicate_policy'
+        ])
+        .where('spell_grant_id', '=', id)
+        .orderBy('sort_order')
+        .execute(),
+      root.charge_id ? hydrateChargeById(db, root.charge_id) : Promise.resolve(null),
+      root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null),
+      root.filter_id ? hydrateFacetById(db, root.filter_id) : Promise.resolve(null)
+    ])
   const scalingLevelIds = scalingLevels.map((level) => level.id)
   const scalingLevelSpells = scalingLevelIds.length
-    ? await db.selectFrom('spell_grant_scaling_level_spells')
+    ? await db
+        .selectFrom('spell_grant_scaling_level_spells')
         .select(['scaling_level_id', 'spell_id'])
         .where('scaling_level_id', 'in', scalingLevelIds)
         .execute()
@@ -205,20 +195,33 @@ async function hydrateSpellGrantById(
     order: root.sort_order,
     castAtLevel: root.cast_at_level ?? undefined,
     charges: charge ?? undefined,
-    attributes: attributeRows.length > 0
-      ? attributeRows.map((attribute) => requireSpellGrantAttribute(id, attribute.attribute_code))
-      : undefined
+    attributes:
+      attributeRows.length > 0
+        ? attributeRows.map((attribute) => requireSpellGrantAttribute(id, attribute.attribute_code))
+        : undefined
   }
   requireSpellGrantApplicability(id, base.attributes, base.charges, base.castAtLevel)
-  const scalingKind = requireScalingKind(root.scaling_kind, `Spell grant "${id}" has invalid scaling_kind "${root.scaling_kind}".`)
+  const scalingKind = requireScalingKind(
+    root.scaling_kind,
+    `Spell grant "${id}" has invalid scaling_kind "${root.scaling_kind}".`
+  )
 
   if (scalingKind === 'NONE') {
-    const selectionKind = requireSelectionKind(root.selection_kind, `Spell grant "${id}" has invalid selection_kind "${root.selection_kind}".`)
+    const selectionKind = requireSelectionKind(
+      root.selection_kind,
+      `Spell grant "${id}" has invalid selection_kind "${root.selection_kind}".`
+    )
     if (selectionKind === 'GRANTED') {
-      requireNoGrantedCount(root.selection_count, `Spell grant "${id}" cannot hydrate selection_count for GRANTED payload.`)
+      requireNoGrantedCount(
+        root.selection_count,
+        `Spell grant "${id}" cannot hydrate selection_count for GRANTED payload.`
+      )
       requireNoSelectionDuplicatePolicy(`Spell grant "${id}"`, root.selection_duplicate_policy)
     }
-    const authoringModeKind = requireAuthoringModeKind(root.authoring_mode_kind, `Spell grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`)
+    const authoringModeKind = requireAuthoringModeKind(
+      root.authoring_mode_kind,
+      `Spell grant "${id}" has invalid authoring_mode_kind "${root.authoring_mode_kind}".`
+    )
     if (authoringModeKind === 'ALL') {
       requireNoUnexpectedSelectedIds(
         rootSpells.map((row) => row.spell_id),
@@ -231,23 +234,30 @@ async function hydrateSpellGrantById(
       selectionKind,
       scalingKind: 'NONE',
       authoringModeKind,
-      count: root.selection_kind === 'CHOSEN'
-        ? requireChosenCount(root.selection_count, `Spell grant "${id}" is missing selection_count for CHOSEN payload.`)
-        : undefined,
-      selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
-        ? requireSelectionDuplicatePolicy(
-          `Spell grant "${id}"`,
-          root.selection_duplicate_policy
-        )
-        : undefined,
-      spellIds: authoringModeKind === 'SELECTED'
-        ? rootSpells.map((row) => row.spell_id)
-        : undefined,
+      count:
+        root.selection_kind === 'CHOSEN'
+          ? requireChosenCount(
+              root.selection_count,
+              `Spell grant "${id}" is missing selection_count for CHOSEN payload.`
+            )
+          : undefined,
+      selectionDuplicatePolicy:
+        root.selection_kind === 'CHOSEN'
+          ? requireSelectionDuplicatePolicy(`Spell grant "${id}"`, root.selection_duplicate_policy)
+          : undefined,
+      spellIds:
+        authoringModeKind === 'SELECTED' ? rootSpells.map((row) => row.spell_id) : undefined,
       restrictions: root.restriction_id
-        ? requireLinkedRecord(restrictions, `Spell grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+        ? requireLinkedRecord(
+            restrictions,
+            `Spell grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`
+          )
         : undefined,
       filters: root.filter_id
-        ? requireLinkedRecord(filters, `Spell grant "${id}" is linked to missing filter facet "${root.filter_id}".`)
+        ? requireLinkedRecord(
+            filters,
+            `Spell grant "${id}" is linked to missing filter facet "${root.filter_id}".`
+          )
         : undefined
     } as SpellGrantAuthored
   }
@@ -261,7 +271,10 @@ async function hydrateSpellGrantById(
   return {
     ...base,
     selectionKind: (() => {
-      const selectionKind = requireSelectionKind(root.selection_kind, `Spell grant "${id}" has invalid selection_kind "${root.selection_kind}".`)
+      const selectionKind = requireSelectionKind(
+        root.selection_kind,
+        `Spell grant "${id}" has invalid selection_kind "${root.selection_kind}".`
+      )
       if (selectionKind === 'GRANTED') {
         for (const level of scalingLevels) {
           requireNoGrantedCount(
@@ -277,13 +290,23 @@ async function hydrateSpellGrantById(
       return selectionKind
     })(),
     scalingKind,
-      progression: {
-        scalingSource: requireScalingSource(root.scaling_source, `Spell grant "${id}" is missing or has invalid scaling_source.`),
-      classId: root.scaling_source === 'CLASS_LEVEL'
-        ? requireProgressionClassId(root.class_id, `Spell grant "${id}" is missing class_id for CLASS_LEVEL progression.`)
-        : undefined,
+    progression: {
+      scalingSource: requireScalingSource(
+        root.scaling_source,
+        `Spell grant "${id}" is missing or has invalid scaling_source.`
+      ),
+      classId:
+        root.scaling_source === 'CLASS_LEVEL'
+          ? requireProgressionClassId(
+              root.class_id,
+              `Spell grant "${id}" is missing class_id for CLASS_LEVEL progression.`
+            )
+          : undefined,
       levels: scalingLevels.map((level) => {
-        const authoringModeKind = requireAuthoringModeKind(level.authoring_mode_kind, `Spell grant "${id}" level "${level.id}" has invalid authoring_mode_kind "${level.authoring_mode_kind}".`)
+        const authoringModeKind = requireAuthoringModeKind(
+          level.authoring_mode_kind,
+          `Spell grant "${id}" level "${level.id}" has invalid authoring_mode_kind "${level.authoring_mode_kind}".`
+        )
         const spellIds = spellsByLevel.get(level.id) ?? []
         if (authoringModeKind === 'ALL') {
           requireNoUnexpectedSelectedIds(
@@ -297,26 +320,35 @@ async function hydrateSpellGrantById(
           level: level.level,
           order: level.sort_order,
           authoringModeKind,
-          count: root.selection_kind === 'CHOSEN'
-            ? requireChosenCount(level.selection_count, `Spell grant "${id}" level "${level.id}" is missing selection_count for CHOSEN payload.`)
-            : undefined,
-          selectionDuplicatePolicy: root.selection_kind === 'CHOSEN'
-            ? requireSelectionDuplicatePolicy(
-              `Spell grant "${id}" level "${level.id}"`,
-              level.selection_duplicate_policy
-            )
-            : undefined,
-          spellIds: authoringModeKind === 'SELECTED'
-            ? spellIds
-            : undefined
+          count:
+            root.selection_kind === 'CHOSEN'
+              ? requireChosenCount(
+                  level.selection_count,
+                  `Spell grant "${id}" level "${level.id}" is missing selection_count for CHOSEN payload.`
+                )
+              : undefined,
+          selectionDuplicatePolicy:
+            root.selection_kind === 'CHOSEN'
+              ? requireSelectionDuplicatePolicy(
+                  `Spell grant "${id}" level "${level.id}"`,
+                  level.selection_duplicate_policy
+                )
+              : undefined,
+          spellIds: authoringModeKind === 'SELECTED' ? spellIds : undefined
         }
       })
     },
     restrictions: root.restriction_id
-      ? requireLinkedRecord(restrictions, `Spell grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+      ? requireLinkedRecord(
+          restrictions,
+          `Spell grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`
+        )
       : undefined,
     filters: root.filter_id
-      ? requireLinkedRecord(filters, `Spell grant "${id}" is linked to missing filter facet "${root.filter_id}".`)
+      ? requireLinkedRecord(
+          filters,
+          `Spell grant "${id}" is linked to missing filter facet "${root.filter_id}".`
+        )
       : undefined
   } as SpellGrantAuthored
 }
@@ -336,15 +368,14 @@ export function createSpellGrantRepository(db: DBLike): SpellGrantRepository {
     },
 
     async findAll() {
-      const rows = await db
-        .selectFrom('spell_grants')
-        .select('id')
-        .orderBy('sort_order')
-        .execute()
+      const rows = await db.selectFrom('spell_grants').select('id').orderBy('sort_order').execute()
 
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSpellGrantById(db, id))
+        await hydrateByIds(
+          rows.map((row) => row.id),
+          (id) => hydrateSpellGrantById(db, id)
+        )
       )
     }
   }

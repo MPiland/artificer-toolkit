@@ -14,5 +14,5 @@ export const handCrossbowPlus3: EquipmentVariantAuthored = {
   maxBonus: 3,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(236), 3),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

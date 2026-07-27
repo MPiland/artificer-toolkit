@@ -28,7 +28,9 @@ export function damageTypeId(code: string): string {
 export function conditionTypeId(code: string): string {
   const entry = SRD_CONDITION_TYPES.find((conditionType) => conditionType.code === code)
   if (!entry) {
-    throw new Error(`SRD condition type vocabulary entry for ${code} required for spell source data.`)
+    throw new Error(
+      `SRD condition type vocabulary entry for ${code} required for spell source data.`
+    )
   }
 
   return entry.id
@@ -37,7 +39,9 @@ export function conditionTypeId(code: string): string {
 export function creatureTypeId(code: string): string {
   const entry = SRD_CREATURE_TYPES.find((creatureType) => creatureType.code === code)
   if (!entry) {
-    throw new Error(`SRD creature type vocabulary entry for ${code} required for spell source data.`)
+    throw new Error(
+      `SRD creature type vocabulary entry for ${code} required for spell source data.`
+    )
   }
 
   return entry.id

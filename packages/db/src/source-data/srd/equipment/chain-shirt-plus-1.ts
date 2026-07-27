@@ -14,5 +14,5 @@ export const chainShirtPlus1: EquipmentVariantAuthored = {
   maxBonus: 1,
   modifiers: S.magicArmorModifiers(S.equipId(318), 1),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

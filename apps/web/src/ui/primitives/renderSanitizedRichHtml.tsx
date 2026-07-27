@@ -33,16 +33,23 @@ const TABLE_SIZE_VALUE_PATTERN = /^(?:\d+(?:\.\d+)?(?:ch|em|px|rem|%)|auto)$/i
 
 function isElementNode(domNode: DOMNode): domNode is Element {
   const candidate = domNode as Partial<Element>
-  return typeof candidate.name === 'string'
-    && typeof candidate.attribs === 'object'
-    && candidate.attribs !== null
-    && Array.isArray(candidate.children)
+  return (
+    typeof candidate.name === 'string' &&
+    typeof candidate.attribs === 'object' &&
+    candidate.attribs !== null &&
+    Array.isArray(candidate.children)
+  )
 }
 
 function isSafeUrl(value: string): boolean {
   const trimmed = value.trim()
   if (!trimmed) return true
-  if (trimmed.startsWith('#') || trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+  if (
+    trimmed.startsWith('#') ||
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('./') ||
+    trimmed.startsWith('../')
+  ) {
     return true
   }
 
@@ -77,7 +84,10 @@ function sanitizeStyleAttribute(tagName: string, value: string): string | null {
   return declarations.length ? declarations.join('; ') : null
 }
 
-function sanitizeAttributes(tagName: string, attributes: Record<string, string | undefined>): Record<string, string> {
+function sanitizeAttributes(
+  tagName: string,
+  attributes: Record<string, string | undefined>
+): Record<string, string> {
   const sanitized: Record<string, string> = {}
 
   for (const [name, value] of Object.entries(attributes)) {

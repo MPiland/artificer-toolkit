@@ -1,16 +1,14 @@
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
-import type {
-  RaceListResponseDto,
-  RaceResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import type { RaceListResponseDto, RaceResponseDto } from '@artificer-toolkit/schema/api/content'
 import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 
 export const ownedBaseRaceFixture: RaceAuthoredDto = {
   id: 'dragonborn',
   label: 'Dragonborn',
   quote: 'Proud dragonkin shaped by clan and ancestry.',
-  description: 'Dragonborn bear draconic heritage that determines their breath weapon and damage resistance.',
+  description:
+    'Dragonborn bear draconic heritage that determines their breath weapon and damage resistance.',
   status: 'DRAFT',
   category: 'BASE',
   selectionMode: 'DIRECT',
@@ -209,22 +207,47 @@ export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Basics',
           order: 10,
           nodes: [
-            selectNode('category', ['category'], 'Category', [
-              { value: 'BASE', label: 'Base Race' },
-              { value: 'SUBRACE', label: 'Subrace' }
-            ], true),
-            selectNode('selectionMode', ['selectionMode'], 'Selection Mode', [
-              { value: 'DIRECT', label: 'Direct' },
-              { value: 'REQUIRES_SUBRACE', label: 'Requires Subrace' }
-            ], true),
-            selectNode('heritageIds', ['heritageIds'], 'Heritages', [
-              { value: 'draconic', label: 'Draconic' },
-              { value: 'elven', label: 'Elven' }
-            ], false, 'SELECT_MULTI'),
-            selectNode('parentRaceId', ['parentRaceId'], 'Parent Race', [
-              { value: 'elf', label: 'Elf' },
-              { value: 'dragonborn', label: 'Dragonborn' }
-            ], true)
+            selectNode(
+              'category',
+              ['category'],
+              'Category',
+              [
+                { value: 'BASE', label: 'Base Race' },
+                { value: 'SUBRACE', label: 'Subrace' }
+              ],
+              true
+            ),
+            selectNode(
+              'selectionMode',
+              ['selectionMode'],
+              'Selection Mode',
+              [
+                { value: 'DIRECT', label: 'Direct' },
+                { value: 'REQUIRES_SUBRACE', label: 'Requires Subrace' }
+              ],
+              true
+            ),
+            selectNode(
+              'heritageIds',
+              ['heritageIds'],
+              'Heritages',
+              [
+                { value: 'draconic', label: 'Draconic' },
+                { value: 'elven', label: 'Elven' }
+              ],
+              false,
+              'SELECT_MULTI'
+            ),
+            selectNode(
+              'parentRaceId',
+              ['parentRaceId'],
+              'Parent Race',
+              [
+                { value: 'elf', label: 'Elf' },
+                { value: 'dragonborn', label: 'Dragonborn' }
+              ],
+              true
+            )
           ]
         }
       ]
@@ -239,11 +262,17 @@ export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Traits',
           order: 40,
           nodes: [
-            selectNode('size', ['size'], 'Size', [
-              { value: 'SMALL', label: 'Small' },
-              { value: 'MEDIUM', label: 'Medium' },
-              { value: 'LARGE', label: 'Large' }
-            ], true)
+            selectNode(
+              'size',
+              ['size'],
+              'Size',
+              [
+                { value: 'SMALL', label: 'Small' },
+                { value: 'MEDIUM', label: 'Medium' },
+                { value: 'LARGE', label: 'Large' }
+              ],
+              true
+            )
           ]
         }
       ]

@@ -7,7 +7,7 @@ import {
   CharacterSheetSavingThrowsPanel,
   CharacterSheetSkillsPanel
 } from './CharacterSheetOverviewProficiencies'
-import { CharacterSheetOverviewResources } from './CharacterSheetOverviewResources'
+import { formatProficiencySummaryLabel } from './characterSheetOverview.utils'
 import type { CharacterSheet, CharacterSheetSectionProps } from './CharacterSheet.types'
 
 export function CharacterSheetSensesPanel({
@@ -17,7 +17,9 @@ export function CharacterSheetSensesPanel({
   sheet: CharacterSheet
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
-  const passiveFacts = sheet.overview.facts.filter((fact) => fact.label.toLowerCase().startsWith('passive'))
+  const passiveFacts = sheet.overview.facts.filter((fact) =>
+    fact.label.toLowerCase().startsWith('passive')
+  )
   const senses = sheet.reference.senses
 
   return (
@@ -29,7 +31,9 @@ export function CharacterSheetSensesPanel({
           type='button'
           onClick={() => openPanel?.({ kind: 'SENSES' })}
         >
-          <Text id='character-sheet-senses' className={styles.proficiencyHeading}>Senses</Text>
+          <Text id='character-sheet-senses' className={styles.proficiencyHeading}>
+            Senses
+          </Text>
           <ChevronRight aria-hidden='true' size={16} />
         </button>
       </div>
@@ -46,7 +50,9 @@ export function CharacterSheetSensesPanel({
             <Text fw={800}>{sense.value}</Text>
           </div>
         ))}
-        {!passiveFacts.length && !senses.length ? <Text className={styles.muted}>No senses are currently available.</Text> : null}
+        {!passiveFacts.length && !senses.length ? (
+          <Text className={styles.muted}>No senses are currently available.</Text>
+        ) : null}
       </div>
     </section>
   )
@@ -68,7 +74,9 @@ export function CharacterSheetDefensesPanel({
           type='button'
           onClick={() => openPanel?.({ kind: 'DEFENSES' })}
         >
-          <Text id='character-sheet-defenses' className={styles.proficiencyHeading}>Defenses</Text>
+          <Text id='character-sheet-defenses' className={styles.proficiencyHeading}>
+            Defenses
+          </Text>
           <ChevronRight aria-hidden='true' size={16} />
         </button>
       </div>
@@ -79,21 +87,39 @@ export function CharacterSheetDefensesPanel({
             <Text fw={800}>{defense.value}</Text>
           </div>
         ))}
-        {!sheet.reference.defenses.length ? <Text className={styles.muted}>No resistances, immunities, or vulnerabilities.</Text> : null}
+        {!sheet.reference.defenses.length ? (
+          <Text className={styles.muted}>No resistances, immunities, or vulnerabilities.</Text>
+        ) : null}
       </div>
     </section>
   )
 }
 
-function CharacterSheetProficiencySummary({
+export function CharacterSheetProficiencySummary({
   sheet,
   openPanel
 }: {
   sheet: CharacterSheet
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
+  const groups = [
+    { kind: 'ARMOR', label: 'Armor' },
+    { kind: 'WEAPON', label: 'Weapons' },
+    { kind: 'TOOL', label: 'Tools' },
+    { kind: 'LANGUAGE', label: 'Languages' }
+  ] as const
+  const populatedGroups = groups
+    .map((group) => ({
+      ...group,
+      items: sheet.reference.proficiencies.filter((proficiency) => proficiency.kind === group.kind)
+    }))
+    .filter((group) => group.items.length)
+
   return (
-    <section className={styles.overviewPanel} aria-labelledby='character-sheet-proficiency-summary'>
+    <section
+      className={`${styles.overviewPanel} ${styles.proficiencySummaryPanel}`}
+      aria-labelledby='character-sheet-proficiency-summary'
+    >
       <div className={styles.overviewPanelHeader}>
         <button
           className={styles.panelHeadingTrigger}
@@ -101,37 +127,63 @@ function CharacterSheetProficiencySummary({
           type='button'
           onClick={() => openPanel?.({ kind: 'PROFICIENCIES' })}
         >
-          <Text id='character-sheet-proficiency-summary' className={styles.proficiencyHeading}>Proficiencies</Text>
+          <Text id='character-sheet-proficiency-summary' className={styles.proficiencyHeading}>
+            Proficiencies
+          </Text>
           <ChevronRight aria-hidden='true' size={16} />
         </button>
       </div>
-      <div className={styles.compactDataList}>
-        {sheet.reference.proficiencies.slice(0, 5).map((proficiency) => (
-          <div className={styles.compactDataRow} key={`${proficiency.label}:${proficiency.value}`}>
-            <Text>{proficiency.label}</Text>
-            <Text>{proficiency.value}</Text>
+      <div className={styles.proficiencySummaryList}>
+        {populatedGroups.map((group) => (
+          <div className={styles.proficiencySummaryGroup} key={group.kind}>
+            <Text className={styles.metricLabel}>{group.label}</Text>
+            <Text className={styles.proficiencySummaryValues}>
+              {group.items.map(formatProficiencySummaryLabel).join(', ')}
+            </Text>
           </div>
         ))}
-        {!sheet.reference.proficiencies.length ? <Text className={styles.muted}>No proficiencies are currently available.</Text> : null}
+        {!populatedGroups.length ? (
+          <Text className={styles.muted}>No proficiencies are currently available.</Text>
+        ) : null}
       </div>
+    </section>
+  )
+}
+
+export function CharacterSheetOverviewFacts({ openPanel, sheet }: CharacterSheetSectionProps) {
+  return (
+    <section className={styles.tabletOverviewGrid} aria-label='Overview facts'>
+      <CharacterSheetSavingThrowsPanel
+        openPanel={openPanel}
+        savingThrows={sheet.overview.savingThrows}
+      />
+      <CharacterSheetSensesPanel openPanel={openPanel} sheet={sheet} />
+      <CharacterSheetDefensesPanel openPanel={openPanel} sheet={sheet} />
+      <CharacterSheetProficiencySummary openPanel={openPanel} sheet={sheet} />
     </section>
   )
 }
 
 export function CharacterSheetOverview({
   openPanel,
-  pending,
   sheet,
-  submitCommand
-}: CharacterSheetSectionProps) {
+  showDefenses = true
+}: CharacterSheetSectionProps & { showDefenses?: boolean }) {
   return (
     <section className={styles.overviewLayout} aria-labelledby='character-sheet-overview'>
-      <h2 id='character-sheet-overview' className={styles.visuallyHidden}>Overview</h2>
+      <h2 id='character-sheet-overview' className={styles.visuallyHidden}>
+        Overview
+      </h2>
       <div className={styles.playSheetGrid}>
         <div className={styles.overviewLeftRail}>
-          <CharacterSheetSavingThrowsPanel openPanel={openPanel} savingThrows={sheet.overview.savingThrows} />
+          <CharacterSheetSavingThrowsPanel
+            openPanel={openPanel}
+            savingThrows={sheet.overview.savingThrows}
+          />
           <CharacterSheetSensesPanel openPanel={openPanel} sheet={sheet} />
-          <CharacterSheetDefensesPanel openPanel={openPanel} sheet={sheet} />
+          {showDefenses ? (
+            <CharacterSheetDefensesPanel openPanel={openPanel} sheet={sheet} />
+          ) : null}
           <CharacterSheetProficiencySummary openPanel={openPanel} sheet={sheet} />
         </div>
         <CharacterSheetSkillsPanel
@@ -141,11 +193,6 @@ export function CharacterSheetOverview({
         />
         <div className={styles.playAreaStack}>
           <CharacterSheetOverviewPlayArea sheet={sheet} />
-          <CharacterSheetOverviewResources
-            pending={pending}
-            sheet={sheet}
-            submitCommand={submitCommand}
-          />
         </div>
       </div>
     </section>

@@ -69,9 +69,15 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
 })
 
 function SpellDetailRoute() {
-  const {
-    draft, references, response, spellId, view
-  } = Route.useLoaderData()
+  const { draft, references, response, spellId, view } = Route.useLoaderData()
 
-  return <SpellDetailPage draft={draft} references={references} response={response} spellId={spellId} view={view} />
+  return (
+    <SpellDetailPage
+      draft={draft}
+      references={references}
+      response={response}
+      spellId={spellId}
+      view={view}
+    />
+  )
 }

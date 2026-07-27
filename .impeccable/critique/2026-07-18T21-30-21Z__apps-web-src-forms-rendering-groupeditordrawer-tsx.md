@@ -6,23 +6,24 @@ p1_count: 0
 timestamp: 2026-07-18T21-30-21Z
 slug: apps-web-src-forms-rendering-groupeditordrawer-tsx
 ---
+
 # Authoring Drawer and Collection Critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of system status | 4 | Saved state, validation progress, selected rail target, and editor state remain visible. |
-| 2 | Match between system and real world | 3 | D&D authoring language is appropriate, though deeply nested effect terminology still assumes system knowledge. |
-| 3 | User control and freedom | 4 | Leaf edits have Cancel, close, Escape behavior, staged rollback, and focus restoration. |
-| 4 | Consistency and standards | 4 | Shared actions, drawer geometry, field recipes, and responsive semantics now apply across all authored domains. |
-| 5 | Error prevention | 3 | AND/OR structure and distinct removal affordances are clear; option removal still depends partly on its trash icon and tooltip. |
-| 6 | Recognition rather than recall | 3 | The rail keeps location visible, but repeated deep labels such as Features and Options require some ancestry tracking. |
-| 7 | Flexibility and efficiency | 3 | Direct rail navigation and inline-versus-focused editing are efficient; dedicated power-user shortcuts are outside this pass. |
-| 8 | Aesthetic and minimalist design | 4 | The Forge drawer is compact, quiet, token-driven, and reserves orange for commit actions. |
-| 9 | Error recognition and recovery | 4 | Validation stays at the repair location and staged cancellation restores the exact subtree. |
-| 10 | Help and documentation | 3 | Tooltips and information affordances exist, but the most advanced authoring concepts still rely on product documentation. |
-| **Total** |  | **35/40** | **Good; MVP-ready for this surface with later P2 polish available.** |
+| #         | Heuristic                           |     Score | Key issue                                                                                                                       |
+| --------- | ----------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status         |         4 | Saved state, validation progress, selected rail target, and editor state remain visible.                                        |
+| 2         | Match between system and real world |         3 | D&D authoring language is appropriate, though deeply nested effect terminology still assumes system knowledge.                  |
+| 3         | User control and freedom            |         4 | Leaf edits have Cancel, close, Escape behavior, staged rollback, and focus restoration.                                         |
+| 4         | Consistency and standards           |         4 | Shared actions, drawer geometry, field recipes, and responsive semantics now apply across all authored domains.                 |
+| 5         | Error prevention                    |         3 | AND/OR structure and distinct removal affordances are clear; option removal still depends partly on its trash icon and tooltip. |
+| 6         | Recognition rather than recall      |         3 | The rail keeps location visible, but repeated deep labels such as Features and Options require some ancestry tracking.          |
+| 7         | Flexibility and efficiency          |         3 | Direct rail navigation and inline-versus-focused editing are efficient; dedicated power-user shortcuts are outside this pass.   |
+| 8         | Aesthetic and minimalist design     |         4 | The Forge drawer is compact, quiet, token-driven, and reserves orange for commit actions.                                       |
+| 9         | Error recognition and recovery      |         4 | Validation stays at the repair location and staged cancellation restores the exact subtree.                                     |
+| 10        | Help and documentation              |         3 | Tooltips and information affordances exist, but the most advanced authoring concepts still rely on product documentation.       |
+| **Total** |                                     | **35/40** | **Good; MVP-ready for this surface with later P2 polish available.**                                                            |
 
 ## Anti-Patterns Verdict
 

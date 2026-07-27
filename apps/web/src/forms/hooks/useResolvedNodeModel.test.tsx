@@ -79,14 +79,19 @@ function ResolvedModelHarness({
 
   return (
     <div>
-      <button type='button' onClick={() => setMode('next')}>Change structural value</button>
+      <button type='button' onClick={() => setMode('next')}>
+        Change structural value
+      </button>
       <div data-testid='model-label'>{model?.steps[0]?.label ?? 'none'}</div>
       <div data-testid='clear-path-count'>{model?.clearPaths.length ?? 0}</div>
     </div>
   )
 }
 
-function createModel(label: string, clearPaths: NodeRuntimePathDto[]): NodeRuntimeResolveResponseDto {
+function createModel(
+  label: string,
+  clearPaths: NodeRuntimePathDto[]
+): NodeRuntimeResolveResponseDto {
   return {
     clearPaths,
     mapId: 'test-form',

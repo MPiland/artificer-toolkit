@@ -8,11 +8,10 @@ import {
 describe('authoring collection ordering', () => {
   it('requires a stable identity for manually ordered rows', () => {
     expect(() =>
-      getCollectionItemIdentity(
-        { label: 'Missing identity' },
-        0,
-        { mode: 'manual', identityPath: ['id'] }
-      )
+      getCollectionItemIdentity({ label: 'Missing identity' }, 0, {
+        mode: 'manual',
+        identityPath: ['id']
+      })
     ).toThrow('Manual collection row 1 is missing stable identity field "id".')
   })
 
@@ -36,7 +35,10 @@ describe('authoring collection ordering', () => {
   })
 
   it('preserves row values when order is resolver-derived', () => {
-    const rows = [{ id: 'a', order: 8 }, { id: 'b', order: 3 }]
+    const rows = [
+      { id: 'a', order: 8 },
+      { id: 'b', order: 3 }
+    ]
 
     expect(renumberCollectionRows(rows, undefined)).toEqual(rows)
     expect(getCollectionItemIdentity(rows[0], 0, { mode: 'derived' })).toBe('a')

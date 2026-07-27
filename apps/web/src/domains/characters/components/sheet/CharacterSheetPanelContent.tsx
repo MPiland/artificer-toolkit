@@ -4,9 +4,8 @@ import { CharacterSheetMobileActions } from './CharacterSheetMobileActions'
 import { CharacterSheetMobileNotes } from './CharacterSheetMobileNotes'
 import { CharacterSheetMobileStats } from './CharacterSheetMobileStats'
 import { CharacterSheetNotes } from './CharacterSheetNotes'
-import { CharacterSheetOverview } from './CharacterSheetOverview'
+import { CharacterSheetOverview, CharacterSheetProficiencySummary } from './CharacterSheetOverview'
 import { CharacterSheetReference } from './CharacterSheetReference'
-import { CharacterSheetResources } from './CharacterSheetResources'
 import { CharacterSheetSpells } from './CharacterSheetSpells'
 import { CharacterSheetSkillsPanel } from './CharacterSheetOverviewProficiencies'
 import * as styles from './characterSheet.css'
@@ -23,23 +22,33 @@ export function CharacterSheetPanelContent({
 }) {
   switch (tab) {
     case 'overview':
-      return mobile ? <CharacterSheetMobileStats {...sectionProps} /> : <CharacterSheetOverview {...sectionProps} />
+      return mobile ? (
+        <CharacterSheetMobileStats {...sectionProps} />
+      ) : (
+        <CharacterSheetOverview {...sectionProps} />
+      )
     case 'actions':
-      return mobile ? <CharacterSheetMobileActions {...sectionProps} /> : <CharacterSheetActions sheet={sectionProps.sheet} />
+      return mobile ? (
+        <CharacterSheetMobileActions {...sectionProps} />
+      ) : (
+        <CharacterSheetActions {...sectionProps} />
+      )
     case 'spells':
-      return <CharacterSheetSpells {...sectionProps} />
+      return <CharacterSheetSpells {...sectionProps} hideTitle={mobile} />
     case 'equipment':
       return <CharacterSheetInventory {...sectionProps} />
     case 'features':
       return <CharacterSheetReference mode='features' sheet={sectionProps.sheet} />
-    case 'resources':
-      return <CharacterSheetResources {...sectionProps} />
     case 'inventory':
       return <CharacterSheetInventory {...sectionProps} />
     case 'reference':
       return <CharacterSheetReference mode='features' sheet={sectionProps.sheet} />
     case 'notes':
-      return mobile ? <CharacterSheetMobileNotes {...sectionProps} /> : <CharacterSheetNotes {...sectionProps} />
+      return mobile ? (
+        <CharacterSheetMobileNotes {...sectionProps} />
+      ) : (
+        <CharacterSheetNotes {...sectionProps} />
+      )
     case 'skills':
       return (
         <section className={styles.mobilePageStack} aria-label='Skills'>
@@ -53,10 +62,17 @@ export function CharacterSheetPanelContent({
     case 'proficiencies':
       return (
         <section className={styles.mobilePageStack} aria-label='Proficiencies'>
-          <CharacterSheetReference mode='proficiencies' sheet={sectionProps.sheet} />
+          <CharacterSheetProficiencySummary
+            openPanel={sectionProps.openPanel}
+            sheet={sectionProps.sheet}
+          />
         </section>
       )
     default:
-      return mobile ? <CharacterSheetMobileStats {...sectionProps} /> : <CharacterSheetOverview {...sectionProps} />
+      return mobile ? (
+        <CharacterSheetMobileStats {...sectionProps} />
+      ) : (
+        <CharacterSheetOverview {...sectionProps} />
+      )
   }
 }

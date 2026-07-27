@@ -10,7 +10,11 @@ const mocks = vi.hoisted(() => ({
   findAuthoredById: vi.fn(),
   getMovementPreference: vi.fn(),
   listAdjustments: vi.fn(),
+  listResourceUsage: vi.fn(),
+  listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
+  setResourceUsage: vi.fn(),
+  setSpellCustomization: vi.fn(),
   resolveCharacterBuilder: vi.fn()
 }))
 
@@ -38,6 +42,12 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments
+    }),
+    createCharacterSheetPlayStateRepository: () => ({
+      listResourceUsage: mocks.listResourceUsage,
+      listSpellCustomizations: mocks.listSpellCustomizations,
+      setResourceUsage: mocks.setResourceUsage,
+      setSpellCustomization: mocks.setSpellCustomization
     })
   }
 })
@@ -150,8 +160,14 @@ describe('MVP character Sheet command audit', () => {
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
     mocks.listAdjustments.mockResolvedValue([])
+    mocks.listResourceUsage.mockReset()
+    mocks.listResourceUsage.mockResolvedValue([])
+    mocks.listSpellCustomizations.mockReset()
+    mocks.listSpellCustomizations.mockResolvedValue([])
     mocks.resolveCharacterBuilder.mockReset()
     mocks.patchSheetState.mockReset()
+    mocks.setResourceUsage.mockReset()
+    mocks.setSpellCustomization.mockReset()
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
   })
@@ -288,7 +304,7 @@ describe('MVP character Sheet command audit', () => {
       identity: { label: character.label, classSummary: 'Fighter 1', totalLevel: 1 },
       actions: { items: [] },
       resources: { items: [], hitDice: [] },
-      spells: { saveDc: null, attackBonus: null, spells: [], slots: [] },
+      spells: { saveDc: null, attackBonus: null, spells: [], slots: [], activeGroups: [] },
       inventory: { items: [], currencies: [] },
       currency: { groups: [] },
       reference: {

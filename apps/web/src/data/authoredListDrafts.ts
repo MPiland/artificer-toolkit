@@ -28,8 +28,12 @@ export function mapDraftSummariesToAuthoredItems(
       description: summarizeDescription(draft.description),
       contentState: 'draft',
       attributes: {
-        ...(options.categoryAttributeKey && categoryLabel ? { [options.categoryAttributeKey]: categoryLabel } : {}),
-        ...(draft.level !== undefined ? { level: Number(draft.level) === 0 ? 'Cantrip' : String(draft.level) } : {}),
+        ...(options.categoryAttributeKey && categoryLabel
+          ? { [options.categoryAttributeKey]: categoryLabel }
+          : {}),
+        ...(draft.level !== undefined
+          ? { level: Number(draft.level) === 0 ? 'Cantrip' : String(draft.level) }
+          : {}),
         ...(schoolLabel ? { school: schoolLabel } : {})
       },
       filterValues: {

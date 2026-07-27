@@ -39,7 +39,9 @@ describe('security headers', () => {
     try {
       const reportOnlyCsp = createSecurityHeaders()['Content-Security-Policy-Report-Only']
 
-      expect(reportOnlyCsp).toContain("connect-src 'self' https://*.supabase.co wss://*.supabase.co")
+      expect(reportOnlyCsp).toContain(
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co"
+      )
       expect(reportOnlyCsp).not.toContain('http://127.0.0.1:54321')
       expect(reportOnlyCsp).not.toContain('ws://127.0.0.1:54321')
     } finally {
@@ -74,12 +76,14 @@ describe('security headers', () => {
 
     try {
       process.env.VITE_SENTRY_DSN = 'http://public@example.ingest.sentry.io/123'
-      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only'])
-        .not.toContain('example.ingest.sentry.io')
+      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only']).not.toContain(
+        'example.ingest.sentry.io'
+      )
 
       process.env.VITE_SENTRY_DSN = 'not-a-url'
-      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only'])
-        .not.toContain('not-a-url')
+      expect(createSecurityHeaders()['Content-Security-Policy-Report-Only']).not.toContain(
+        'not-a-url'
+      )
     } finally {
       if (originalDsn === undefined) {
         delete process.env.VITE_SENTRY_DSN
@@ -118,13 +122,18 @@ describe('security headers', () => {
   })
 
   it('preserves middleware-set security headers when requested', () => {
-    const response = withSecurityHeaders(new Response('ok', {
-      headers: {
-        'Content-Security-Policy-Report-Only': "script-src 'nonce-existing'"
-      }
-    }), { preserveExisting: true })
+    const response = withSecurityHeaders(
+      new Response('ok', {
+        headers: {
+          'Content-Security-Policy-Report-Only': "script-src 'nonce-existing'"
+        }
+      }),
+      { preserveExisting: true }
+    )
 
-    expect(response.headers.get('Content-Security-Policy-Report-Only')).toBe("script-src 'nonce-existing'")
+    expect(response.headers.get('Content-Security-Policy-Report-Only')).toBe(
+      "script-src 'nonce-existing'"
+    )
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
   })
 

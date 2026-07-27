@@ -18,7 +18,7 @@ export const glabrezu: CreatureAuthored = {
     CONSTITUTION: 21,
     INTELLIGENCE: 19,
     WISDOM: 17,
-    CHARISMA: 16,
+    CHARISMA: 16
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -26,14 +26,16 @@ export const glabrezu: CreatureAuthored = {
   hitDice: {
     count: 15,
     die: 10,
-    modifier: 75,
+    modifier: 75
   },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(142, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
     S.grantedLanguageProficiency(142, 2, 'ABYSSAL')
   ],
-  damageResistances: ['cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks'],
+  damageResistances: [
+    'cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   damageImmunities: ['poison'],
   conditionImmunities: ['poisoned'],
   senses: ['truesight 120 ft.'],
@@ -44,13 +46,15 @@ export const glabrezu: CreatureAuthored = {
     {
       id: S.featureId(142, 1),
       label: 'Innate Spellcasting',
-      description: "Innate Spellcasting. The glabrezu's spellcasting ability is Intelligence (spell save DC 16). The glabrezu can innately cast the following spells, requiring no material components: At will: darkness, detect magic, dispel magic. 1/day each: confusion, fly, power word stun.",
+      description:
+        "Innate Spellcasting. The glabrezu's spellcasting ability is Intelligence (spell save DC 16). The glabrezu can innately cast the following spells, requiring no material components: At will: darkness, detect magic, dispel magic. 1/day each: confusion, fly, power word stun.",
       order: 1
     },
     {
       id: S.featureId(142, 2),
       label: 'Magic Resistance',
-      description: 'Magic Resistance. The glabrezu has advantage on saving throws against spells and other magical effects.',
+      description:
+        'Magic Resistance. The glabrezu has advantage on saving throws against spells and other magical effects.',
       order: 2
     },
     {
@@ -62,21 +66,23 @@ export const glabrezu: CreatureAuthored = {
     {
       id: S.featureId(142, 4),
       label: 'Multiattack',
-      description: 'The glabrezu makes four attacks: two with its pincers and two with its fists. Alternatively, it makes two attacks with its pincers and casts one spell.',
+      description:
+        'The glabrezu makes four attacks: two with its pincers and two with its fists. Alternatively, it makes two attacks with its pincers and casts one spell.',
       order: 4
     },
     {
       id: S.featureId(142, 5),
       label: 'Pincer',
-      description: 'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 16 (2d10 + 5) bludgeoning damage. If the target is a Medium or smaller creature, it is grappled (escape DC 15). The glabrezu has two pincers, each of which can grapple only one target.',
+      description:
+        'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 16 (2d10 + 5) bludgeoning damage. If the target is a Medium or smaller creature, it is grappled (escape DC 15). The glabrezu has two pincers, each of which can grapple only one target.',
       order: 5
     },
     {
       id: S.featureId(142, 6),
       label: 'Fist',
-      description: 'Melee Weapon Attack: +9 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) bludgeoning damage.',
+      description:
+        'Melee Weapon Attack: +9 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) bludgeoning damage.',
       order: 6
     }
   ]
 }
-

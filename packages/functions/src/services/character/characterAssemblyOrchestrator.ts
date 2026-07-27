@@ -16,10 +16,7 @@ import type {
   FeatAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import type {
-  ResolvedEquipment,
-  ResolvedRace
-} from '@artificer-toolkit/shared/subjects/compilers'
+import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { CharacterBuilderRegistry } from './builderService.js'
@@ -38,8 +35,8 @@ export async function loadCharacterAssemblyRegistry(params: {
   const { db, character, catalog } = params
   const selectedRaceIds = [
     ...new Set(
-      [character.intent.race.raceId, character.intent.race.subraceId].filter(
-        (id): id is string => Boolean(id)
+      [character.intent.race.raceId, character.intent.race.subraceId].filter((id): id is string =>
+        Boolean(id)
       )
     )
   ]
@@ -83,10 +80,11 @@ export async function loadCharacterAssemblyRegistry(params: {
       option.featureLinks.map((link) => link.featureId)
     )
   ])
-  const activeAcquiredFeatureIds = directlyAcquiredFeatureIds.filter((featureId) =>
-    plan.activeFeatureIds.has(featureId) &&
-    !structurallyOwnedFeatureIds.has(featureId) &&
-    !selectedFeatIds.has(featureId)
+  const activeAcquiredFeatureIds = directlyAcquiredFeatureIds.filter(
+    (featureId) =>
+      plan.activeFeatureIds.has(featureId) &&
+      !structurallyOwnedFeatureIds.has(featureId) &&
+      !selectedFeatIds.has(featureId)
   )
   const raceRepository = createRaceRepository(db)
   const classRepository = createClassRepository(db)
@@ -112,9 +110,7 @@ export async function loadCharacterAssemblyRegistry(params: {
             includeFeatureEffects: false
           })
         )
-      ).then((records) =>
-        records.filter((record): record is ResolvedRace => record !== null)
-      ),
+      ).then((records) => records.filter((record): record is ResolvedRace => record !== null)),
       selectedClassIds.length > 0
         ? classRepository.findByIds(selectedClassIds, {
             systemId: character.systemId,
@@ -145,9 +141,7 @@ export async function loadCharacterAssemblyRegistry(params: {
             includeEffects: false
           })
         )
-      ).then((records) =>
-        records.filter((record): record is ResolvedEquipment => record !== null)
-      )
+      ).then((records) => records.filter((record): record is ResolvedEquipment => record !== null))
     ])
 
   return {

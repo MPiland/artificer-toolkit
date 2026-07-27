@@ -49,26 +49,30 @@ describe('race authoring helpers', () => {
     const base = createEmptyBaseRace({ systemId: 'dnd-5e-srd' })
     const subrace = createEmptySubrace({ systemId: 'dnd-5e-srd' })
 
-    expect(normalizeRaceForSubmit({
-      ...base,
-      label: '  ',
-      category: 'BASE'
-    })).toMatchObject({
+    expect(
+      normalizeRaceForSubmit({
+        ...base,
+        label: '  ',
+        category: 'BASE'
+      })
+    ).toMatchObject({
       label: 'Untitled Race',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',
       speeds: base.speeds
     })
-    expect(normalizeRaceForSubmit({
-      ...subrace,
-      label: ' Wood Elf ',
-      category: 'SUBRACE',
-      parentRaceId: 'elf',
-      selectionMode: 'DIRECT',
-      size: 'MEDIUM',
-      speeds: []
-    })).toEqual({
+    expect(
+      normalizeRaceForSubmit({
+        ...subrace,
+        label: ' Wood Elf ',
+        category: 'SUBRACE',
+        parentRaceId: 'elf',
+        selectionMode: 'DIRECT',
+        size: 'MEDIUM',
+        speeds: []
+      })
+    ).toEqual({
       id: subrace.id,
       label: 'Wood Elf',
       quote: '',

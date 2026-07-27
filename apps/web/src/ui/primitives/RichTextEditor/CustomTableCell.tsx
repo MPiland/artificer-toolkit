@@ -14,9 +14,7 @@ const CustomTableCell = TableCell.extend({
         default: null,
         parseHTML: (element) => {
           const colwidth = element.getAttribute('colwidth')
-          const value = colwidth
-            ? colwidth.split(',').map((item) => parseInt(item, 10))
-            : null
+          const value = colwidth ? colwidth.split(',').map((item) => parseInt(item, 10)) : null
 
           return value
         }
@@ -50,11 +48,7 @@ const CustomTableCell = TableCell.extend({
       HTMLAttributes.style = null
     }
 
-    return [
-      'td',
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
-      0
-    ]
+    return ['td', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   }
 })
 

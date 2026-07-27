@@ -1,9 +1,5 @@
 import type { ForcedMovementDistance } from '#core'
-import {
-  EFFECT_KIND,
-  type ForcedMovementActionEconomy,
-  type ForcedMovementDirection
-} from '#core'
+import { EFFECT_KIND, type ForcedMovementActionEconomy, type ForcedMovementDirection } from '#core'
 
 export type ForcedMovementAuthored = {
   id: string

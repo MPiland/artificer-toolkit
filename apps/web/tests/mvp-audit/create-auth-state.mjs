@@ -26,7 +26,10 @@ try {
     { timeout: 30_000 }
   )
 
-  const error = await page.getByRole('alert').textContent().catch(() => null)
+  const error = await page
+    .getByRole('alert')
+    .textContent()
+    .catch(() => null)
   if (error) throw new Error(`Sign-in failed: ${error.trim()}`)
 
   await context.storageState({ path: statePath })

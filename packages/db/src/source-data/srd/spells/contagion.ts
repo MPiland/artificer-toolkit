@@ -1,11 +1,26 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, RANGE_KIND, SPELL_COMPONENT, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared'
+import {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  RANGE_KIND,
+  SPELL_COMPONENT,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const contagion: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONTAGION,
   label: 'Contagion',
-  description: 'Your touch inflicts disease. Make a melee spell attack against a creature within your reach. On a hit, you afflict the creature with a disease of your choice from any of the ones described below.',
+  description:
+    'Your touch inflicts disease. Make a melee spell attack against a creature within your reach. On a hit, you afflict the creature with a disease of your choice from any of the ones described below.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],

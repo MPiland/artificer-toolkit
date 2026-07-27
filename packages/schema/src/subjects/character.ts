@@ -141,20 +141,20 @@ const characterChosenGrantSelectionRecordDtoSchemaRaw = z.object({
 const characterChosenGrantSelectionsDtoSchemaRaw = z
   .array(characterChosenGrantSelectionRecordDtoSchemaRaw)
   .superRefine((selections, context) => {
-  const seen = new Set<string>()
+    const seen = new Set<string>()
 
-  selections.forEach((selection, index) => {
-    const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
-    if (seen.has(identity)) {
-      context.addIssue({
-        code: 'custom',
-        path: [index],
-        message: 'Chosen grant selections must be unique by grant, source, and progression level.'
-      })
-    }
-    seen.add(identity)
+    selections.forEach((selection, index) => {
+      const identity = getCharacterChosenGrantSelectionIdentityKey(selection)
+      if (seen.has(identity)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index],
+          message: 'Chosen grant selections must be unique by grant, source, and progression level.'
+        })
+      }
+      seen.add(identity)
+    })
   })
-})
 
 const characterAdvancementIntentDtoSchemaRaw = z.union([
   z.object({
@@ -353,8 +353,8 @@ const characterIntentDtoSchemaRaw = z.object({
   hitpoints: characterHitpointsIntentDtoSchemaRaw,
   startingEquipment: z
     .object({
-    class: characterStartingEquipmentDecisionDtoSchemaRaw.optional(),
-    background: characterStartingEquipmentDecisionDtoSchemaRaw.optional()
+      class: characterStartingEquipmentDecisionDtoSchemaRaw.optional(),
+      background: characterStartingEquipmentDecisionDtoSchemaRaw.optional()
     })
     .optional(),
   featureAcquisitions: z.array(characterFeatureAcquisitionRecordDtoSchemaRaw),

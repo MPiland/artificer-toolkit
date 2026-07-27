@@ -1,139 +1,158 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
-import { CLASS_IDS, SPELL_IDS } from '../ids.js';
-import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
+import {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SCALING,
+  SPELL_ATTRIBUTE,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  SPELL_COMPONENT,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const arcaneSword: SpellAuthored = {
-    kind: SUBJECT.SPELL,
-    id: SPELL_IDS.ARCANE_SWORD,
-    label: 'Arcane Sword',
-    description: 'You create a sword-shaped plane of force within range. The sword appears where you choose, strikes at once, and can be driven again with a bonus action while the spell lasts.',
-    castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
-    level: 7,
-    classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
-    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
-    materialDescription: "a miniature platinum sword with a grip and pommel of copper and zinc, worth 250 gp",
-    magicSchoolId: schoolId('EVOCATION'),
-    attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
-    effects: [
-        {
-            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x210, 1),
-            order: 1,
-            invocation: {
-                kind: 'ACTION' as const,
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: {
-                    code: ACTIVATION_CODE.ACTION,
-                    amount: 1
-                },
-                range: {
-                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x211, 1),
-                    rangeKind: RANGE_KIND.DISTANCE,
-                    amount: 60,
-                    unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-                    dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                }
-            },
-            paths: [
-                {
-                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1),
-                    order: 1,
-                    pathCode: PATH_CODE.ON_USE,
-                    groupType: PATH_GROUP_TYPE.SINGLE,
-                    originKind: 'SOURCE' as const,
-                    selectionKind: "FIXED" as const,
-                    resultBlock: {
-                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1) + "__result",
-                        resultKind: "SINGLE" as const,
-                        duration: {
-                            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x213, 1),
-                            durationKind: DURATION_KIND.MINUTE,
-                            amount: 1
-                        },
-                        outcomes: [
-                            {
-                                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1),
-                                effectKind: EFFECT_KIND.MANIFEST,
-                                manifestKind: MANIFEST_KIND.WEAPON,
-                                behaviors: [
-                                    {
-                                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x220, 1),
-                                        order: 1,
-                                        invocation: {
-                                            kind: 'ACTION' as const,
-                                            triggerCode: TRIGGER.SPELL_ATTACK,
-                                            activation: {
-                                                code: ACTIVATION_CODE.BONUS_ACTION,
-                                                amount: 1
-                                            },
-                                            range: {
-                                                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x221, 1),
-                                                rangeKind: RANGE_KIND.DISTANCE,
-                                                amount: 5,
-                                                unit: MEASUREMENT_UNIT_CODE.FEET
-                                            },
-                                            targeting: {
-                                                selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                                                dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                                            }
-                                        },
-                                        paths: [
-                                            {
-                                                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
-                                                order: 1,
-                                                pathCode: PATH_CODE.ON_HIT,
-                                                groupType: PATH_GROUP_TYPE.SINGLE,
-                                                originKind: 'SOURCE' as const,
-                                                selectionKind: "FIXED" as const,
-                                                resultBlock: {
-                                                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1) + "__result",
-                                                    resultKind: "SINGLE" as const,
-                                                    outcomes: [
-                                                        {
-                                                            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
-                                                            effectKind: EFFECT_KIND.DAMAGE,
-                                                            damageTypeId: damageTypeId('FORCE'),
-                                                            valueKind: 'DICE',
-                                                            scalingKind: SCALING.NONE,
-                                                            diceConfig: '3d10'
-                                                        }
-                                                    ]
-                                                }
-                                            },
-                                            {
-                                                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
-                                                order: 2,
-                                                pathCode: PATH_CODE.ON_CRIT,
-                                                groupType: PATH_GROUP_TYPE.SINGLE,
-                                                originKind: 'SOURCE' as const,
-                                                selectionKind: "FIXED" as const,
-                                                resultBlock: {
-                                                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1) + "__result",
-                                                    resultKind: "SINGLE" as const,
-                                                    outcomes: [
-                                                        {
-                                                            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
-                                                            effectKind: EFFECT_KIND.DAMAGE,
-                                                            damageTypeId: damageTypeId('FORCE'),
-                                                            valueKind: 'DICE',
-                                                            scalingKind: SCALING.NONE,
-                                                            diceConfig: '6d10'
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.ARCANE_SWORD,
+  label: 'Arcane Sword',
+  description:
+    'You create a sword-shaped plane of force within range. The sword appears where you choose, strikes at once, and can be driven again with a bonus action while the spell lasts.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  level: 7,
+  classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
+  components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+  materialDescription:
+    'a miniature platinum sword with a grip and pommel of copper and zinc, worth 250 gp',
+  magicSchoolId: schoolId('EVOCATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
+  effects: [
+    {
+      id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x210, 1),
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x211, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 60,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
-    ],
-    userId: SRD_USER_ID,
-    systemId: SRD_SYSTEM_ID,
-};
-
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x213, 1),
+              durationKind: DURATION_KIND.MINUTE,
+              amount: 1
+            },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1),
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.WEAPON,
+                behaviors: [
+                  {
+                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x220, 1),
+                    order: 1,
+                    invocation: {
+                      kind: 'ACTION' as const,
+                      triggerCode: TRIGGER.SPELL_ATTACK,
+                      activation: {
+                        code: ACTIVATION_CODE.BONUS_ACTION,
+                        amount: 1
+                      },
+                      range: {
+                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x221, 1),
+                        rangeKind: RANGE_KIND.DISTANCE,
+                        amount: 5,
+                        unit: MEASUREMENT_UNIT_CODE.FEET
+                      },
+                      targeting: {
+                        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                      }
+                    },
+                    paths: [
+                      {
+                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
+                        order: 1,
+                        pathCode: PATH_CODE.ON_HIT,
+                        groupType: PATH_GROUP_TYPE.SINGLE,
+                        originKind: 'SOURCE' as const,
+                        selectionKind: 'FIXED' as const,
+                        resultBlock: {
+                          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1) + '__result',
+                          resultKind: 'SINGLE' as const,
+                          outcomes: [
+                            {
+                              id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
+                              effectKind: EFFECT_KIND.DAMAGE,
+                              damageTypeId: damageTypeId('FORCE'),
+                              valueKind: 'DICE',
+                              scalingKind: SCALING.NONE,
+                              diceConfig: '3d10'
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
+                        order: 2,
+                        pathCode: PATH_CODE.ON_CRIT,
+                        groupType: PATH_GROUP_TYPE.SINGLE,
+                        originKind: 'SOURCE' as const,
+                        selectionKind: 'FIXED' as const,
+                        resultBlock: {
+                          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1) + '__result',
+                          resultKind: 'SINGLE' as const,
+                          outcomes: [
+                            {
+                              id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x223, 1),
+                              effectKind: EFFECT_KIND.DAMAGE,
+                              damageTypeId: damageTypeId('FORCE'),
+                              valueKind: 'DICE',
+                              scalingKind: SCALING.NONE,
+                              diceConfig: '6d10'
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

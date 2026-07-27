@@ -56,13 +56,13 @@ const Toolbar = () => {
 const TextMenu = () => {
   const { editor } = useRichTextEditorContext()
   const hasActiveTextStyle = Boolean(
-    editor?.isActive('bold')
-      || editor?.isActive('italic')
-      || editor?.isActive('underline')
-      || editor?.isActive('strike')
-      || editor?.isActive('code')
-      || editor?.isActive('subscript')
-      || editor?.isActive('superscript')
+    editor?.isActive('bold') ||
+    editor?.isActive('italic') ||
+    editor?.isActive('underline') ||
+    editor?.isActive('strike') ||
+    editor?.isActive('code') ||
+    editor?.isActive('subscript') ||
+    editor?.isActive('superscript')
   )
 
   return (
@@ -109,7 +109,9 @@ const TextMenu = () => {
           <Menu.Item
             className={editorStyles.editorMenuItem}
             data-active={editor?.isActive('strike') || undefined}
-            leftSection={<Strikethrough aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            leftSection={
+              <Strikethrough aria-hidden='true' className={editorStyles.editorMenuIcon} />
+            }
             onClick={() => editor?.chain().focus().toggleStrike().run()}
           >
             Strikethrough
@@ -142,7 +144,9 @@ const TextMenu = () => {
           <Menu.Divider />
           <Menu.Item
             className={editorStyles.editorMenuItem}
-            leftSection={<RemoveFormatting aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+            leftSection={
+              <RemoveFormatting aria-hidden='true' className={editorStyles.editorMenuIcon} />
+            }
             onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()}
           >
             Clear formatting
@@ -156,11 +160,11 @@ const TextMenu = () => {
 const BlockMenu = () => {
   const { editor } = useRichTextEditorContext()
   const hasActiveBlockTool = Boolean(
-    headingLevels.some((level) => editor?.isActive('heading', { level }))
-      || editor?.isActive('bulletList')
-      || editor?.isActive('orderedList')
-      || editor?.isActive('blockquote')
-      || alignments.some(({ value }) => editor?.isActive({ textAlign: value }))
+    headingLevels.some((level) => editor?.isActive('heading', { level })) ||
+    editor?.isActive('bulletList') ||
+    editor?.isActive('orderedList') ||
+    editor?.isActive('blockquote') ||
+    alignments.some(({ value }) => editor?.isActive({ textAlign: value }))
   )
 
   return (
@@ -185,11 +189,14 @@ const BlockMenu = () => {
               <Menu.Sub.Item
                 className={editorStyles.editorMenuItem}
                 data-active={
-                  (editor?.isActive('paragraph') || headingLevels.some((level) => editor?.isActive('heading', { level })))
-                    || undefined
+                  editor?.isActive('paragraph') ||
+                  headingLevels.some((level) => editor?.isActive('heading', { level })) ||
+                  undefined
                 }
                 leftSection={<Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+                rightSection={
+                  <ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />
+                }
               >
                 Headings
               </Menu.Sub.Item>
@@ -208,7 +215,9 @@ const BlockMenu = () => {
                   className={editorStyles.editorMenuItem}
                   data-active={editor?.isActive('heading', { level }) || undefined}
                   key={level}
-                  leftSection={<Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                  leftSection={
+                    <Heading aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                  }
                   onClick={() => editor?.chain().focus().toggleHeading({ level }).run()}
                 >
                   Heading {level}
@@ -236,9 +245,16 @@ const BlockMenu = () => {
             <Menu.Sub.Target>
               <Menu.Sub.Item
                 className={editorStyles.editorMenuItem}
-                data-active={alignments.some(({ value }) => editor?.isActive({ textAlign: value })) || undefined}
-                leftSection={<AlignLeft aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+                data-active={
+                  alignments.some(({ value }) => editor?.isActive({ textAlign: value })) ||
+                  undefined
+                }
+                leftSection={
+                  <AlignLeft aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                }
+                rightSection={
+                  <ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />
+                }
               >
                 Alignment
               </Menu.Sub.Item>
@@ -322,7 +338,9 @@ const ContentMenu = () => {
                 className={editorStyles.editorMenuItem}
                 data-active={hasActiveLink || undefined}
                 leftSection={<Link aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+                rightSection={
+                  <ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />
+                }
               >
                 Link
               </Menu.Sub.Item>
@@ -353,7 +371,9 @@ const ContentMenu = () => {
                 className={editorStyles.editorMenuItem}
                 data-active={inTable || undefined}
                 leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-                rightSection={<ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />}
+                rightSection={
+                  <ChevronRight aria-hidden='true' className={editorStyles.editorMenuChevron} />
+                }
               >
                 Table
               </Menu.Sub.Item>
@@ -362,7 +382,13 @@ const ContentMenu = () => {
               <Menu.Item
                 className={editorStyles.editorMenuItem}
                 leftSection={<Table aria-hidden='true' className={editorStyles.editorMenuIcon} />}
-                onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                onClick={() =>
+                  editor
+                    ?.chain()
+                    .focus()
+                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                    .run()
+                }
               >
                 Insert table
               </Menu.Item>
@@ -386,7 +412,9 @@ const ContentMenu = () => {
               <Menu.Item
                 className={editorStyles.editorMenuItem}
                 disabled={!inTable}
-                leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                leftSection={
+                  <Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                }
                 onClick={() => editor?.chain().focus().addColumnAfter().run()}
               >
                 Add column
@@ -394,7 +422,9 @@ const ContentMenu = () => {
               <Menu.Item
                 className={editorStyles.editorMenuItem}
                 disabled={!inTable}
-                leftSection={<Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                leftSection={
+                  <Columns3 aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                }
                 onClick={() => editor?.chain().focus().deleteColumn().run()}
               >
                 Delete column
@@ -403,7 +433,9 @@ const ContentMenu = () => {
               <Menu.Item
                 className={editorStyles.editorMenuItem}
                 disabled={!inTable}
-                leftSection={<TableCellsMerge aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                leftSection={
+                  <TableCellsMerge aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                }
                 onClick={() => editor?.chain().focus().mergeCells().run()}
               >
                 Merge cells
@@ -411,7 +443,9 @@ const ContentMenu = () => {
               <Menu.Item
                 className={editorStyles.editorMenuItem}
                 disabled={!inTable}
-                leftSection={<TableCellsSplit aria-hidden='true' className={editorStyles.editorMenuIcon} />}
+                leftSection={
+                  <TableCellsSplit aria-hidden='true' className={editorStyles.editorMenuIcon} />
+                }
                 onClick={() => editor?.chain().focus().splitCell().run()}
               >
                 Split cell

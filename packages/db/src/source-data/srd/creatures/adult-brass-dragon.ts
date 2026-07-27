@@ -24,7 +24,7 @@ export const adultBrassDragon: CreatureAuthored = {
   hitDice: {
     count: 15,
     die: 12,
-    modifier: 75,
+    modifier: 75
   },
   speeds: [...S.walk(40), ...S.burrow(30), ...S.fly(80)],
   proficiencies: [

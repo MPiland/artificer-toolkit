@@ -68,7 +68,10 @@ const LAND_SPECIALIZATIONS: LandSpecializationData[] = [
     order: 3,
     spellLevels: [
       { availableAtLevel: 3, spellIds: [SPELL_IDS.BLUR, SPELL_IDS.SILENCE] },
-      { availableAtLevel: 5, spellIds: [SPELL_IDS.CREATE_FOOD_AND_WATER, SPELL_IDS.PROTECTION_FROM_ENERGY] },
+      {
+        availableAtLevel: 5,
+        spellIds: [SPELL_IDS.CREATE_FOOD_AND_WATER, SPELL_IDS.PROTECTION_FROM_ENERGY]
+      },
       { availableAtLevel: 7, spellIds: [SPELL_IDS.BLIGHT, SPELL_IDS.HALLUCINATORY_TERRAIN] },
       { availableAtLevel: 9, spellIds: [SPELL_IDS.INSECT_PLAGUE, SPELL_IDS.WALL_OF_STONE] }
     ]
@@ -124,11 +127,11 @@ function circleSpellGrantId(specializationOrder: number): string {
 }
 
 function circleSpellProgressionLevelId(specializationOrder: number, tierOrder: number): string {
-  return classRowId(D, 14, ((specializationOrder - 1) * 4) + tierOrder)
+  return classRowId(D, 14, (specializationOrder - 1) * 4 + tierOrder)
 }
 
 function circleSpellRestrictionId(specializationOrder: number, offset: number): string {
-  return classRowId(D, 15, ((specializationOrder - 1) * 4) + offset)
+  return classRowId(D, 15, (specializationOrder - 1) * 4 + offset)
 }
 
 function specializationRestriction(specializationId: string, specializationOrder: number) {
@@ -187,7 +190,8 @@ export const circleOfTheLand: ClassAuthored = {
   label: 'Circle of the Land',
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.DRUID,
-  description: 'The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition.',
+  description:
+    'The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   attributes: [SUBCLASS_ATTRIBUTE.SPECIALIZATION],
@@ -200,7 +204,8 @@ export const circleOfTheLand: ClassAuthored = {
     {
       id: classRowId(D, 11, 1),
       label: 'Bonus Cantrip',
-      description: 'When you choose this circle at 2nd level, you learn one additional druid cantrip of your choice.',
+      description:
+        'When you choose this circle at 2nd level, you learn one additional druid cantrip of your choice.',
       availableAtLevel: 2,
       order: 0,
       grants: {
@@ -223,14 +228,16 @@ export const circleOfTheLand: ClassAuthored = {
     {
       id: classRowId(D, 11, 2),
       label: 'Natural Recovery',
-      description: 'Starting at 2nd level, you can regain some of your magical energy during a short rest. Choose expended spell slots to recover with a combined level equal to or less than half your druid level, rounded up, and none of the slots can be 6th level or higher. You must finish a long rest before you can use this feature again.',
+      description:
+        'Starting at 2nd level, you can regain some of your magical energy during a short rest. Choose expended spell slots to recover with a combined level equal to or less than half your druid level, rounded up, and none of the slots can be 6th level or higher. You must finish a long rest before you can use this feature again.',
       availableAtLevel: 2,
       order: 1
     },
     {
       id: classRowId(D, 11, 3),
       label: 'Circle Spells',
-      description: 'At 3rd, 5th, 7th, and 9th level, your chosen land specialization grants circle spells that are always prepared and do not count against the number of spells you can prepare each day.',
+      description:
+        'At 3rd, 5th, 7th, and 9th level, your chosen land specialization grants circle spells that are always prepared and do not count against the number of spells you can prepare each day.',
       availableAtLevel: 2,
       order: 2,
       grants: {
@@ -239,22 +246,25 @@ export const circleOfTheLand: ClassAuthored = {
     },
     {
       id: classRowId(D, 11, 4),
-      label: 'Land\'s Stride',
-      description: 'Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. You also have advantage on saving throws against plants magically created or manipulated to impede movement.',
+      label: "Land's Stride",
+      description:
+        'Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. You also have advantage on saving throws against plants magically created or manipulated to impede movement.',
       availableAtLevel: 6,
       order: 3
     },
     {
       id: classRowId(D, 11, 5),
-      label: 'Nature\'s Ward',
-      description: 'At 10th level, you can\'t be charmed or frightened by elementals or fey, and you are immune to poison and disease.',
+      label: "Nature's Ward",
+      description:
+        "At 10th level, you can't be charmed or frightened by elementals or fey, and you are immune to poison and disease.",
       availableAtLevel: 10,
       order: 4
     },
     {
       id: classRowId(D, 11, 6),
-      label: 'Nature\'s Sanctuary',
-      description: 'At 14th level, beasts and plant creatures become hesitant to attack you. When a beast or plant creature attacks you, it must make a Wisdom saving throw against your druid spell save DC. On a failed save, it must choose a different target or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.',
+      label: "Nature's Sanctuary",
+      description:
+        'At 14th level, beasts and plant creatures become hesitant to attack you. When a beast or plant creature attacks you, it must make a Wisdom saving throw against your druid spell save DC. On a failed save, it must choose a different target or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.',
       availableAtLevel: 14,
       order: 5
     }

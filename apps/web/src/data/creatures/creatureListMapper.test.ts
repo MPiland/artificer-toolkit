@@ -41,6 +41,8 @@ describe('creature list mapper', () => {
   })
 
   it('summarizes owned and SRD creature counts', () => {
-    expect(summarizeCreatureList(creatureListResponseFixture)).toBe('6 creatures / 1 SRD / 5 homebrew')
+    expect(summarizeCreatureList(creatureListResponseFixture)).toBe(
+      '6 creatures / 1 SRD / 5 homebrew'
+    )
   })
 })

@@ -14,5 +14,5 @@ export const halberdPlus1: EquipmentVariantAuthored = {
   maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(192), 1),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

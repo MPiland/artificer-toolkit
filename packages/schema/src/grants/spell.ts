@@ -18,23 +18,30 @@ const spellGrantTargetDtoSchema = z.union([
     spellIds: z.array(z.string())
   })
 ])
-const spellGrantProgressionFieldsDtoSchema = createGrantProgressionFieldsDtoSchema(
-  spellGrantTargetDtoSchema
-)
+const spellGrantProgressionFieldsDtoSchema =
+  createGrantProgressionFieldsDtoSchema(spellGrantTargetDtoSchema)
 
-export const spellGrantDtoSchema = scalingGrantBaseDtoSchema.extend({
-  grantKind: z.literal('SPELL_GRANT'),
-  castAtLevel: z.number().int().optional(),
-  attributes: z.array(spellGrantAttributeSchema).optional(),
-  filters: facetDtoSchema.optional(),
-  charges: chargeDtoSchema.optional()
-}).and(spellGrantTargetDtoSchema).and(z.union([
-  z.object({
-    scalingKind: z.literal('NONE')
-  }),
-  z.object({
-    scalingKind: z.literal('PER_LEVEL')
-  }).and(spellGrantProgressionFieldsDtoSchema)
-])).superRefine(validateGrantProgressionSelectionFields)
+export const spellGrantDtoSchema = scalingGrantBaseDtoSchema
+  .extend({
+    grantKind: z.literal('SPELL_GRANT'),
+    castAtLevel: z.number().int().optional(),
+    attributes: z.array(spellGrantAttributeSchema).optional(),
+    filters: facetDtoSchema.optional(),
+    charges: chargeDtoSchema.optional()
+  })
+  .and(spellGrantTargetDtoSchema)
+  .and(
+    z.union([
+      z.object({
+        scalingKind: z.literal('NONE')
+      }),
+      z
+        .object({
+          scalingKind: z.literal('PER_LEVEL')
+        })
+        .and(spellGrantProgressionFieldsDtoSchema)
+    ])
+  )
+  .superRefine(validateGrantProgressionSelectionFields)
 
 export type SpellGrantDto = z.infer<typeof spellGrantDtoSchema>

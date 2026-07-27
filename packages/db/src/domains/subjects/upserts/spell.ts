@@ -88,21 +88,21 @@ function mapSpellRow(json_data: SpellAuthored): SpellRow {
   }
 }
 
-export async function upsertSpell(
-  db: DBLike,
-  json_data: SpellAuthored,
-  _systemId: string
-) {
-  const attributeRows: SpellAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
-    spell_id: json_data.id,
-    attribute_code: requireSpellAttribute(json_data.id, attribute),
-    sort_order: index + 1
-  }))
-  const componentRows: SpellAttributeRow[] = (json_data.components ?? []).map((component, index) => ({
-    spell_id: json_data.id,
-    attribute_code: requireSpellComponent(json_data.id, component),
-    sort_order: (json_data.attributes ?? []).length + index + 1
-  }))
+export async function upsertSpell(db: DBLike, json_data: SpellAuthored, _systemId: string) {
+  const attributeRows: SpellAttributeRow[] = (json_data.attributes ?? []).map(
+    (attribute, index) => ({
+      spell_id: json_data.id,
+      attribute_code: requireSpellAttribute(json_data.id, attribute),
+      sort_order: index + 1
+    })
+  )
+  const componentRows: SpellAttributeRow[] = (json_data.components ?? []).map(
+    (component, index) => ({
+      spell_id: json_data.id,
+      attribute_code: requireSpellComponent(json_data.id, component),
+      sort_order: (json_data.attributes ?? []).length + index + 1
+    })
+  )
   const authoredEffects = json_data.effects ?? []
   const effectRows = authoredEffects.map((effect, index) => ({
     spell_id: json_data.id,
@@ -130,29 +130,25 @@ export async function upsertSpell(
     await trx
       .insertInto('spells')
       .values(mapSpellRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        system_id: eb.ref('excluded.system_id'),
-        user_id: eb.ref('excluded.user_id'),
-        label: eb.ref('excluded.label'),
-        description: eb.ref('excluded.description'),
-        status: eb.ref('excluded.status'),
-        level: eb.ref('excluded.level'),
-        magic_school_id: eb.ref('excluded.magic_school_id'),
-        casting_time_unit: eb.ref('excluded.casting_time_unit'),
-        casting_time_amount: eb.ref('excluded.casting_time_amount'),
-        material_description: eb.ref('excluded.material_description')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          user_id: eb.ref('excluded.user_id'),
+          label: eb.ref('excluded.label'),
+          description: eb.ref('excluded.description'),
+          status: eb.ref('excluded.status'),
+          level: eb.ref('excluded.level'),
+          magic_school_id: eb.ref('excluded.magic_school_id'),
+          casting_time_unit: eb.ref('excluded.casting_time_unit'),
+          casting_time_amount: eb.ref('excluded.casting_time_amount'),
+          material_description: eb.ref('excluded.material_description')
+        }))
+      )
       .execute()
 
-    await trx
-      .deleteFrom('spell_attributes')
-      .where('spell_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('spell_attributes').where('spell_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('spell_classes')
-      .where('spell_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('spell_classes').where('spell_id', '=', json_data.id).execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -169,34 +165,24 @@ export async function upsertSpell(
       await trx
         .insertInto('spell_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['spell_id', 'effect_id']).doUpdateSet((eb) => ({
-          sort_order: eb.ref('excluded.sort_order')
-        })))
+        .onConflict((oc) =>
+          oc.columns(['spell_id', 'effect_id']).doUpdateSet((eb) => ({
+            sort_order: eb.ref('excluded.sort_order')
+          }))
+        )
         .execute()
     }
 
     if (attributeRows.length > 0) {
-      await trx
-        .insertInto('spell_attributes')
-        .values(attributeRows)
-        .execute()
+      await trx.insertInto('spell_attributes').values(attributeRows).execute()
     }
 
     if (componentRows.length > 0) {
-      await trx
-        .insertInto('spell_attributes')
-        .values(componentRows)
-        .execute()
+      await trx.insertInto('spell_attributes').values(componentRows).execute()
     }
 
     if (classRows.length > 0) {
-      await trx
-        .insertInto('spell_classes')
-        .values(classRows)
-        .execute()
+      await trx.insertInto('spell_classes').values(classRows).execute()
     }
-
   })
 }
-
-

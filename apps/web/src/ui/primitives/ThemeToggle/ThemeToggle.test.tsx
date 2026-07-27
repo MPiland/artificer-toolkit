@@ -47,7 +47,9 @@ describe('ThemeToggle', () => {
       root = hydrateRoot(container, renderThemeToggle())
     })
 
-    expect(consoleError.mock.calls.some((call) => String(call[0]).includes('Hydration failed'))).toBe(false)
+    expect(
+      consoleError.mock.calls.some((call) => String(call[0]).includes('Hydration failed'))
+    ).toBe(false)
 
     root?.unmount()
     consoleError.mockRestore()

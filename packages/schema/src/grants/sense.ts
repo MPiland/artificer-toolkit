@@ -18,21 +18,28 @@ const senseGrantTargetDtoSchema = z.union([
     senseIds: z.array(z.string())
   })
 ])
-const senseGrantProgressionFieldsDtoSchema = createGrantProgressionFieldsDtoSchema(
-  senseGrantTargetDtoSchema
-)
+const senseGrantProgressionFieldsDtoSchema =
+  createGrantProgressionFieldsDtoSchema(senseGrantTargetDtoSchema)
 
-export const senseGrantDtoSchema = scalingGrantBaseDtoSchema.extend({
-  grantKind: z.literal('SENSE_GRANT'),
-  charges: chargeDtoSchema.optional(),
-  range: rangeDtoSchema.optional()
-}).and(senseGrantTargetDtoSchema).and(z.union([
-  z.object({
-    scalingKind: z.literal('NONE')
-  }),
-  z.object({
-    scalingKind: z.literal('PER_LEVEL')
-  }).and(senseGrantProgressionFieldsDtoSchema)
-])).superRefine(validateGrantProgressionSelectionFields)
+export const senseGrantDtoSchema = scalingGrantBaseDtoSchema
+  .extend({
+    grantKind: z.literal('SENSE_GRANT'),
+    charges: chargeDtoSchema.optional(),
+    range: rangeDtoSchema.optional()
+  })
+  .and(senseGrantTargetDtoSchema)
+  .and(
+    z.union([
+      z.object({
+        scalingKind: z.literal('NONE')
+      }),
+      z
+        .object({
+          scalingKind: z.literal('PER_LEVEL')
+        })
+        .and(senseGrantProgressionFieldsDtoSchema)
+    ])
+  )
+  .superRefine(validateGrantProgressionSelectionFields)
 
 export type SenseGrantDto = z.infer<typeof senseGrantDtoSchema>

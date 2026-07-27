@@ -1,9 +1,15 @@
 import type { ClassListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
 const UNCATEGORIZED_CLASS_CATEGORY = 'UNCATEGORIZED'
 
-function mapPermissions(item: ClassListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: ClassListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -68,7 +74,9 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
 }
 
 export function buildClassListFilters(response: ClassListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? UNCATEGORIZED_CLASS_CATEGORY))).sort()
+  const categories = Array.from(
+    new Set(response.items.map((item) => item.category ?? UNCATEGORIZED_CLASS_CATEGORY))
+  ).sort()
 
   return [
     {
@@ -92,7 +100,9 @@ export function buildClassListFilters(response: ClassListResponseDto): AuthoredL
   ]
 }
 
-export const classListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
+export const classListAttributeColumns = [
+  { key: 'Category', label: 'Category', width: 180 }
+] satisfies AuthoredListAttributeColumn[]
 
 export const classListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

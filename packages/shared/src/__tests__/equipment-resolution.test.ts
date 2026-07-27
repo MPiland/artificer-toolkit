@@ -9,14 +9,8 @@ import {
   MODIFIER_SCOPE_KIND,
   VALUE_DOMAIN_CODE
 } from '#core'
-import {
-  compileResolvedEquipment,
-  resolveEquipmentAuthored
-} from '#compilers'
-import type {
-  EquipmentAuthored,
-  EquipmentVariantAuthored
-} from '#authored'
+import { compileResolvedEquipment, resolveEquipmentAuthored } from '#compilers'
+import type { EquipmentAuthored, EquipmentVariantAuthored } from '#authored'
 
 describe('resolveEquipmentAuthored', () => {
   it('inherits parent rules and merges variant enhancements', () => {
@@ -27,10 +21,7 @@ describe('resolveEquipmentAuthored', () => {
       description: 'A martial blade.',
       weight: { amount: 3, unit: 'POUNDS' },
       rarityId: 'common',
-      properties: [
-        EQUIPMENT_PROPERTY_CODE.MARTIAL,
-        EQUIPMENT_PROPERTY_CODE.VERSATILE
-      ],
+      properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL, EQUIPMENT_PROPERTY_CODE.VERSATILE],
       category: EQUIPMENT_CATEGORY_CODE.WEAPON,
       attributes: ['LIMITED_USE'],
       requiresAttunement: true,
@@ -122,10 +113,7 @@ describe('resolveEquipmentAuthored', () => {
       systemId: 'system-1'
     }
 
-    const resolved = resolveEquipmentAuthored(
-      variant,
-      (id) => id === parent.id ? parent : null
-    )
+    const resolved = resolveEquipmentAuthored(variant, (id) => (id === parent.id ? parent : null))
 
     expect(resolved.category).toBe(EQUIPMENT_CATEGORY_CODE.WEAPON)
     expect(resolved.status).toBe('DRAFT')
@@ -147,10 +135,7 @@ describe('resolveEquipmentAuthored', () => {
       parentLabel: parent.label,
       inherited: {
         category: EQUIPMENT_CATEGORY_CODE.WEAPON,
-        properties: [
-          EQUIPMENT_PROPERTY_CODE.MARTIAL,
-          EQUIPMENT_PROPERTY_CODE.VERSATILE
-        ]
+        properties: [EQUIPMENT_PROPERTY_CODE.MARTIAL, EQUIPMENT_PROPERTY_CODE.VERSATILE]
       }
     })
 
@@ -170,7 +155,7 @@ describe('resolveEquipmentAuthored', () => {
 
     const explicitlyUnattuned = resolveEquipmentAuthored(
       { ...variant, requiresAttunement: false },
-      (id) => id === parent.id ? parent : null
+      (id) => (id === parent.id ? parent : null)
     )
     expect(explicitlyUnattuned.requiresAttunement).toBe(false)
   })

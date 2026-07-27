@@ -1,4 +1,22 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
+import {
+  ABILITY_CODE,
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SHAPE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  SPELL_COMPONENT,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { conditionTypeId, spellChildId } from './shared.js'
@@ -12,12 +30,13 @@ export const grease: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.GREASE,
   label: 'Grease',
-  description: 'Slick grease covers the ground in a 10-foot square centered on a point within range and turns it into difficult terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or fall prone.',
+  description:
+    'Slick grease covers the ground in a 10-foot square centered on a point within range and turns it into difficult terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or fall prone.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
-  materialDescription: "a bit of pork rind or butter",
+  materialDescription: 'a bit of pork rind or butter',
   magicSchoolId: schoolId('CONJURATION'),
   effects: [
     {

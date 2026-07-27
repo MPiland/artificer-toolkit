@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored, FeatureAuthored } from '#authored'
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  MEASUREMENT_UNIT_CODE,
-  SUBJECT
-} from '#core'
+import { EQUIPMENT_CATEGORY_CODE, MEASUREMENT_UNIT_CODE, SUBJECT } from '#core'
 import { compileEquipment, compileFeature } from '#compilers'
 
 describe('compiled owner restrictions', () => {
@@ -69,14 +65,16 @@ describe('compiled owner restrictions', () => {
                 id: 'equipment-restriction-context',
                 order: 1,
                 subject: SUBJECT.CHARACTER,
-                conditions: [{
-                  id: 'feature-obtained-condition',
-                  order: 1,
-                  kind: 'PREDICATE',
-                  constraint: 'INCLUDE',
-                  predicateCode: 'FEATURE_OBTAINED',
-                  featureIds: ['armor-training']
-                }]
+                conditions: [
+                  {
+                    id: 'feature-obtained-condition',
+                    order: 1,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'FEATURE_OBTAINED',
+                    featureIds: ['armor-training']
+                  }
+                ]
               }
             ]
           }

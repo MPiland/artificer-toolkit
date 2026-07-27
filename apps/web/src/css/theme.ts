@@ -18,11 +18,13 @@ export const theme = createTheme({
   defaultRadius: 'lg',
   components: {
     Button: Button.extend({
-      vars: (_theme, props) => {
+      vars: (mantineTheme, props) => {
+        const variant = props.variant ?? 'filled'
+        const usesPrimaryColor = props.color == null || props.color === mantineTheme.primaryColor
         const button =
-          props.variant === 'filled'
+          variant === 'filled' && usesPrimaryColor
             ? foundationVars.color.button.primary
-            : props.variant === 'default'
+            : variant === 'default' && props.color == null
               ? foundationVars.color.button.secondary
               : undefined
 
@@ -58,8 +60,8 @@ export const resolver: CSSVariablesResolver = () => ({
     '--mantine-color-text': foundationVars.color.text.primary,
     '--mantine-color-body': foundationVars.color.surface.canvas,
     '--mantine-color-default-border': foundationVars.color.border.strong,
-    '--mantine-color-brand-filled': foundationVars.color.button.primary.background,
-    '--mantine-color-brand-filled-hover': foundationVars.color.button.primary.hover,
+    '--mantine-color-brand-filled': foundationVars.color.accent.solid,
+    '--mantine-color-brand-filled-hover': foundationVars.color.accent.hover,
     '--mantine-color-brand-light-color': foundationVars.color.text.accent
   },
   dark: {
@@ -67,8 +69,8 @@ export const resolver: CSSVariablesResolver = () => ({
     '--mantine-color-text': foundationVars.color.text.primary,
     '--mantine-color-body': foundationVars.color.surface.canvas,
     '--mantine-color-default-border': foundationVars.color.border.strong,
-    '--mantine-color-brand-filled': foundationVars.color.button.primary.background,
-    '--mantine-color-brand-filled-hover': foundationVars.color.button.primary.hover,
+    '--mantine-color-brand-filled': foundationVars.color.accent.solid,
+    '--mantine-color-brand-filled-hover': foundationVars.color.accent.hover,
     '--mantine-color-brand-light-color': foundationVars.color.text.accent
   }
 })

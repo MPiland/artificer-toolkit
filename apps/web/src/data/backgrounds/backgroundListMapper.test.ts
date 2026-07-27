@@ -38,6 +38,8 @@ describe('backgroundListMapper', () => {
     expect(buildBackgroundListFilters(backgroundListResponseFixture)).toEqual([
       expect.objectContaining({ key: 'source' })
     ])
-    expect(summarizeBackgroundList(backgroundListResponseFixture)).toBe('2 backgrounds / 1 SRD / 1 homebrew')
+    expect(summarizeBackgroundList(backgroundListResponseFixture)).toBe(
+      '2 backgrounds / 1 SRD / 1 homebrew'
+    )
   })
 })

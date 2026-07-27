@@ -238,16 +238,16 @@ async function hydrateCreatureById(db: DBLike, id: string): Promise<CreatureAuth
     speeds: authoredSpeeds,
     mountProfile:
       row.mount_profile == null
-      ? undefined
+        ? undefined
         : parseCreatureJson(id, 'mount_profile', row.mount_profile, (value) =>
             creatureMountProfileDtoSchema.parse(value)
-        ),
+          ),
     companionProfile:
       row.companion_profile == null
-      ? undefined
+        ? undefined
         : parseCreatureJson(id, 'companion_profile', row.companion_profile, (value) =>
             creatureCompanionProfileDtoSchema.parse(value)
-        ),
+          ),
     abilityScores: hydrateAbilityScores(id, row.ability_scores),
     armorClass: Number(row.armor_class ?? 0),
     armorClassNote: row.armor_class_note ?? undefined,
@@ -278,21 +278,21 @@ async function hydrateCreatureById(db: DBLike, id: string): Promise<CreatureAuth
     xp: row.xp ?? undefined,
     npcProfile:
       row.npc_profile == null
-      ? undefined
+        ? undefined
         : parseCreatureJson(id, 'npc_profile', row.npc_profile, (value) =>
             creatureNpcProfileDtoSchema.parse(value)
-        ),
+          ),
     cost:
       row.cost == null
-      ? undefined
-      : parseCreatureJson(id, 'cost', row.cost, (value) => costDtoSchema.parse(value)),
+        ? undefined
+        : parseCreatureJson(id, 'cost', row.cost, (value) => costDtoSchema.parse(value)),
     carryingCapacity:
       row.carrying_capacity_amount != null && row.carrying_capacity_unit
-      ? {
-          amount: Number(row.carrying_capacity_amount),
-          unit: requireMeasurementUnit(id, 'carryingCapacity', row.carrying_capacity_unit)
-        }
-      : undefined,
+        ? {
+            amount: Number(row.carrying_capacity_amount),
+            unit: requireMeasurementUnit(id, 'carryingCapacity', row.carrying_capacity_unit)
+          }
+        : undefined,
     logisticsNotes: row.logistics_notes ?? undefined
   }
 

@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ChargeAuthored } from '#authored'
 import { CHARGE_BONUS_KIND, CHARGE_RESET_KIND } from '#core'
-import {
-  compileCharge,
-  resolveCompiledChargeMaximum
-} from '#compilers'
+import { compileCharge, resolveCompiledChargeMaximum } from '#compilers'
 
 describe('compiled charge maximum resolution', () => {
   it('applies authored bonuses to level-based charge limits', () => {
@@ -25,13 +22,15 @@ describe('compiled charge maximum resolution', () => {
       ]
     })
 
-    expect(resolveCompiledChargeMaximum(compiled, {
-      abilities: {},
-      classLevels: { fighter: 5 },
-      sourceClassLevel: 5,
-      proficiencyBonus: 3,
-      totalLevel: 5
-    })).toBe(8)
+    expect(
+      resolveCompiledChargeMaximum(compiled, {
+        abilities: {},
+        classLevels: { fighter: 5 },
+        sourceClassLevel: 5,
+        proficiencyBonus: 3,
+        totalLevel: 5
+      })
+    ).toBe(8)
   })
 
   it('resolves spell-level and skill-bonus values from explicit context', () => {
@@ -48,13 +47,15 @@ describe('compiled charge maximum resolution', () => {
       scalingKind: 'NONE',
       resetKind: CHARGE_RESET_KIND.MANUAL,
       amount: 1,
-      bonuses: [{
-        id: 'arcana-bonus',
-        bonusKind: CHARGE_BONUS_KIND.SKILL_BONUS,
-        skillId: 'arcana',
-        multiplier: 1,
-        order: 1
-      }]
+      bonuses: [
+        {
+          id: 'arcana-bonus',
+          bonusKind: CHARGE_BONUS_KIND.SKILL_BONUS,
+          skillId: 'arcana',
+          multiplier: 1,
+          order: 1
+        }
+      ]
     })
     const context = {
       abilities: {},
@@ -62,17 +63,21 @@ describe('compiled charge maximum resolution', () => {
       totalLevel: 5
     }
 
-    expect(resolveCompiledChargeMaximum(spellLevelCharge, {
-      ...context,
-      spellCastLevel: 3
-    })).toBe(6)
-    expect(resolveCompiledChargeMaximum(skillBonusCharge, {
-      ...context,
-      skillBonuses: { arcana: 7 }
-    })).toBe(8)
+    expect(
+      resolveCompiledChargeMaximum(spellLevelCharge, {
+        ...context,
+        spellCastLevel: 3
+      })
+    ).toBe(6)
+    expect(
+      resolveCompiledChargeMaximum(skillBonusCharge, {
+        ...context,
+        skillBonuses: { arcana: 7 }
+      })
+    ).toBe(8)
   })
 
-  it.each<{ charge: ChargeAuthored, message: string }>([
+  it.each<{ charge: ChargeAuthored; message: string }>([
     {
       charge: {
         id: 'ability-reserve',
@@ -109,20 +114,24 @@ describe('compiled charge maximum resolution', () => {
         scalingKind: 'NONE',
         resetKind: CHARGE_RESET_KIND.MANUAL,
         amount: 1,
-        bonuses: [{
-          id: 'arcana-bonus',
-          bonusKind: CHARGE_BONUS_KIND.SKILL_BONUS,
-          skillId: 'arcana',
-          order: 1
-        }]
+        bonuses: [
+          {
+            id: 'arcana-bonus',
+            bonusKind: CHARGE_BONUS_KIND.SKILL_BONUS,
+            skillId: 'arcana',
+            order: 1
+          }
+        ]
       },
       message: 'skill bonus for "arcana" is missing'
     }
   ])('rejects missing context instead of silently defaulting ($message)', ({ charge, message }) => {
-    expect(() => resolveCompiledChargeMaximum(compileCharge(charge), {
-      abilities: {},
-      proficiencyBonus: 3,
-      totalLevel: 5
-    })).toThrow(message)
+    expect(() =>
+      resolveCompiledChargeMaximum(compileCharge(charge), {
+        abilities: {},
+        proficiencyBonus: 3,
+        totalLevel: 5
+      })
+    ).toThrow(message)
   })
 })

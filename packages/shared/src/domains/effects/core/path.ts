@@ -80,13 +80,13 @@ export const PATH_CODE_REGISTRY: Record<PathCode, PathCodeOption> = {
   [PATH_CODE.START_OF_TURN]: {
     code: PATH_CODE.START_OF_TURN,
     label: 'Start of Turn',
-    description: 'Occurs at the beginning of a creature\'s turn.',
+    description: "Occurs at the beginning of a creature's turn.",
     tooltip: 'At turn start.'
   },
   [PATH_CODE.END_OF_TURN]: {
     code: PATH_CODE.END_OF_TURN,
     label: 'End of Turn',
-    description: 'Occurs at the end of a creature\'s turn.',
+    description: "Occurs at the end of a creature's turn.",
     tooltip: 'At turn end.'
   },
   [PATH_CODE.ON_MOVE]: {
@@ -98,7 +98,7 @@ export const PATH_CODE_REGISTRY: Record<PathCode, PathCodeOption> = {
   [PATH_CODE.ON_HP_ZERO]: {
     code: PATH_CODE.ON_HP_ZERO,
     label: 'On HP Zero',
-    description: 'Occurs when a creature, player, or NPC\'s hit points drop to zero.',
+    description: "Occurs when a creature, player, or NPC's hit points drop to zero.",
     tooltip: 'When hit points drop to zero.'
   }
 } as const
@@ -114,10 +114,7 @@ export type PathRollTableKind = keyof typeof PATH_ROLL_TABLE_KIND
 
 export type PathRollTableKindOption = CoreMeta<PathRollTableKind>
 
-export const PATH_ROLL_TABLE_KIND_REGISTRY: Record<
-  PathRollTableKind,
-  PathRollTableKindOption
-> = {
+export const PATH_ROLL_TABLE_KIND_REGISTRY: Record<PathRollTableKind, PathRollTableKindOption> = {
   [PATH_ROLL_TABLE_KIND.RANGE]: {
     code: PATH_ROLL_TABLE_KIND.RANGE,
     label: 'Range',
@@ -145,10 +142,7 @@ export type PathResolutionKind = keyof typeof PATH_RESOLUTION_KIND
 
 export type PathResolutionKindOption = CoreMeta<PathResolutionKind>
 
-export const PATH_RESOLUTION_KIND_REGISTRY: Record<
-  PathResolutionKind,
-  PathResolutionKindOption
-> = {
+export const PATH_RESOLUTION_KIND_REGISTRY: Record<PathResolutionKind, PathResolutionKindOption> = {
   [PATH_RESOLUTION_KIND.DIRECT]: {
     code: PATH_RESOLUTION_KIND.DIRECT,
     label: 'Direct',
@@ -177,10 +171,7 @@ export type PathGroupType = keyof typeof PATH_GROUP_TYPE
 
 export type PathGroupTypeOption = CoreMeta<PathGroupType>
 
-export const PATH_GROUP_TYPE_REGISTRY: Record<
-  PathGroupType,
-  PathGroupTypeOption
-> = {
+export const PATH_GROUP_TYPE_REGISTRY: Record<PathGroupType, PathGroupTypeOption> = {
   [PATH_GROUP_TYPE.SINGLE]: {
     code: PATH_GROUP_TYPE.SINGLE,
     label: 'Single',
@@ -201,9 +192,7 @@ export const PATH_GROUP_TYPE_REGISTRY: Record<
   }
 } as const
 
-export const PATH_GROUP_TYPE_OPTIONS = valuesOf(
-  PATH_GROUP_TYPE_REGISTRY
-) as PathGroupTypeOption[]
+export const PATH_GROUP_TYPE_OPTIONS = valuesOf(PATH_GROUP_TYPE_REGISTRY) as PathGroupTypeOption[]
 
 export const PATH_ORIGIN_KIND = {
   SOURCE: 'SOURCE',
@@ -215,10 +204,7 @@ export type PathOriginKind = keyof typeof PATH_ORIGIN_KIND
 
 export type PathOriginKindOption = CoreMeta<PathOriginKind>
 
-export const PATH_ORIGIN_KIND_REGISTRY: Record<
-  PathOriginKind,
-  PathOriginKindOption
-> = {
+export const PATH_ORIGIN_KIND_REGISTRY: Record<PathOriginKind, PathOriginKindOption> = {
   [PATH_ORIGIN_KIND.SOURCE]: {
     code: PATH_ORIGIN_KIND.SOURCE,
     label: 'Source',
@@ -228,7 +214,7 @@ export const PATH_ORIGIN_KIND_REGISTRY: Record<
   [PATH_ORIGIN_KIND.PRIMARY_TARGET]: {
     code: PATH_ORIGIN_KIND.PRIMARY_TARGET,
     label: 'Primary Target',
-    description: 'The path starts from the effect\'s primary target.',
+    description: "The path starts from the effect's primary target.",
     tooltip: 'From the primary target.'
   },
   [PATH_ORIGIN_KIND.PREVIOUS_ENTRY_TARGET]: {
@@ -269,15 +255,12 @@ export const PATH_CODES_BY_TRIGGER: Record<Trigger, readonly PathCode[]> = {
     PATH_CODE.ON_MISS,
     PATH_CODE.ON_CRIT
   ],
-  [TRIGGER.SAVING_THROW]: [
-    PATH_CODE.ON_SAVE_FAIL,
-    PATH_CODE.ON_SAVE_SUCCESS
-  ],
+  [TRIGGER.SAVING_THROW]: [PATH_CODE.ON_SAVE_FAIL, PATH_CODE.ON_SAVE_SUCCESS],
   [TRIGGER.ENTER_AREA]: [PATH_CODE.PASSIVE]
 } as const
 
-export type PathCodesByTrigger<TTrigger extends Trigger>
-  = (typeof PATH_CODES_BY_TRIGGER)[TTrigger][number]
+export type PathCodesByTrigger<TTrigger extends Trigger> =
+  (typeof PATH_CODES_BY_TRIGGER)[TTrigger][number]
 
 export const PATH_LIFECYCLE_RECURRING_KIND = {
   NONE: 'NONE',

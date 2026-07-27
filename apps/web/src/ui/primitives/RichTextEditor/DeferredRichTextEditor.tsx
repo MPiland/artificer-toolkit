@@ -59,11 +59,21 @@ export function DeferredRichTextEditor({
         type='button'
       >
         <span aria-hidden='true' className={editorStyles.deferredEditorToolbar}>
-          <span className={editorStyles.deferredEditorControl}><Bold size={14} /></span>
-          <span className={editorStyles.deferredEditorControl}><Italic size={14} /></span>
-          <span className={editorStyles.deferredEditorControl}><Underline size={14} /></span>
-          <span className={editorStyles.deferredEditorControl}><Undo2 size={14} /></span>
-          <span className={editorStyles.deferredEditorControl}><Redo2 size={14} /></span>
+          <span className={editorStyles.deferredEditorControl}>
+            <Bold size={14} />
+          </span>
+          <span className={editorStyles.deferredEditorControl}>
+            <Italic size={14} />
+          </span>
+          <span className={editorStyles.deferredEditorControl}>
+            <Underline size={14} />
+          </span>
+          <span className={editorStyles.deferredEditorControl}>
+            <Undo2 size={14} />
+          </span>
+          <span className={editorStyles.deferredEditorControl}>
+            <Redo2 size={14} />
+          </span>
         </span>
         <span className={editorStyles.deferredEditorContent}>
           {preview || placeholder || 'Click to edit.'}

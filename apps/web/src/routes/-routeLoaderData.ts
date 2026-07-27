@@ -36,7 +36,10 @@ export interface BackgroundDetailLoaderData {
   backgroundId: string
   breadcrumbLabel: string | undefined
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'currencies' | 'equipment' | 'languages' | 'skills'
+  >
   response: BackgroundResponseDto | null
   view: AuthoredRouteView
 }
@@ -45,7 +48,10 @@ export interface ClassDetailLoaderData {
   breadcrumbLabel: string | undefined
   classId: string
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'classes' | 'currencies' | 'equipment' | 'languages' | 'skills'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'classes' | 'currencies' | 'equipment' | 'languages' | 'skills'
+  >
   response: ClassResponseDto | null
   view: AuthoredRouteView
 }
@@ -54,7 +60,10 @@ export interface CreatureDetailLoaderData {
   breadcrumbLabel: string | undefined
   creatureId: string
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+  >
   response: CreatureResponseDto | null
   view: AuthoredRouteView
 }
@@ -111,13 +120,19 @@ export interface AuthoredEditData<TResponse> {
   system?: SystemResponseDto | null
 }
 
-export type BackgroundEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<BackgroundResponseDto>>
+export type BackgroundEditLoaderData = AuthoredFormRouteLoaderData<
+  AuthoredEditData<BackgroundResponseDto>
+>
 
 export type ClassEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<ClassResponseDto>>
 
-export type CreatureEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<CreatureResponseDto>>
+export type CreatureEditLoaderData = AuthoredFormRouteLoaderData<
+  AuthoredEditData<CreatureResponseDto>
+>
 
-export type EquipmentEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<EquipmentResponseDto>>
+export type EquipmentEditLoaderData = AuthoredFormRouteLoaderData<
+  AuthoredEditData<EquipmentResponseDto>
+>
 
 export type FeatEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<FeatResponseDto>>
 
@@ -125,7 +140,9 @@ export type RaceEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<Ra
 
 export type SpellEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<SpellResponseDto>>
 
-export type VehicleEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<VehicleResponseDto>>
+export type VehicleEditLoaderData = AuthoredFormRouteLoaderData<
+  AuthoredEditData<VehicleResponseDto>
+>
 
 export interface CharacterCreateAuthoringData {
   payload: CharacterBuilderPayloadDto | null

@@ -1,24 +1,8 @@
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 
-import type {
-  GrantPayloadAuthored,
-  SenseGrantAuthored
-} from '#authored'
-import {
-  AUTHORING_MODE_KIND,
-  AUTHORING_SELECTION_KIND,
-  GRANT_KIND
-} from '#core'
-import {
-  compileCharge,
-  compileRange,
-  compileScalingSource
-} from '#compilers'
+import type { GrantPayloadAuthored, SenseGrantAuthored } from '#authored'
+import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
+import { compileCharge, compileRange, compileScalingSource } from '#compilers'
 import type {
   CompiledGrantTarget,
   CompiledScalingGrant,
@@ -146,8 +130,6 @@ export function compileSenseGrantResult(
   }
 }
 
-export function compileSenseGrant(
-  authored: SenseGrantAuthored
-): CompiledSenseGrant {
+export function compileSenseGrant(authored: SenseGrantAuthored): CompiledSenseGrant {
   return unwrapCompileResult(compileSenseGrantResult(authored))
 }

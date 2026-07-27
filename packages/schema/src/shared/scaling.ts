@@ -37,34 +37,43 @@ export const scalingBreakpointDtoSchema = z.object({
 
 export const createBreakpointScalingDtoSchema = <TValue extends z.ZodTypeAny>(
   valueSchema: TValue
-) => z.discriminatedUnion('scalingSource', [
-  z.object({
-    scalingKind: z.literal('BREAKPOINTS'),
-    scalingSource: z.literal(scalingSourceSchema.enum.CHARACTER_LEVEL),
-    breakpoints: z.array(scalingBreakpointDtoSchema.extend({
-      value: valueSchema
-    }))
-  }),
-  z.object({
-    scalingKind: z.literal('BREAKPOINTS'),
-    scalingSource: z.literal(scalingSourceSchema.enum.CLASS_LEVEL),
-    classId: z.string(),
-    breakpoints: z.array(scalingBreakpointDtoSchema.extend({
-      value: valueSchema
-    }))
-  }),
-  z.object({
-    scalingKind: z.literal('BREAKPOINTS'),
-    scalingSource: z.literal(scalingSourceSchema.enum.PARENT_CLASS_LEVEL),
-    breakpoints: z.array(scalingBreakpointDtoSchema.extend({
-      value: valueSchema
-    }))
-  }),
-  z.object({
-    scalingKind: z.literal('BREAKPOINTS'),
-    scalingSource: z.literal(scalingSourceSchema.enum.SPELL_CAST_LEVEL),
-    breakpoints: z.array(scalingBreakpointDtoSchema.extend({
-      value: valueSchema
-    }))
-  })
-])
+) =>
+  z.discriminatedUnion('scalingSource', [
+    z.object({
+      scalingKind: z.literal('BREAKPOINTS'),
+      scalingSource: z.literal(scalingSourceSchema.enum.CHARACTER_LEVEL),
+      breakpoints: z.array(
+        scalingBreakpointDtoSchema.extend({
+          value: valueSchema
+        })
+      )
+    }),
+    z.object({
+      scalingKind: z.literal('BREAKPOINTS'),
+      scalingSource: z.literal(scalingSourceSchema.enum.CLASS_LEVEL),
+      classId: z.string(),
+      breakpoints: z.array(
+        scalingBreakpointDtoSchema.extend({
+          value: valueSchema
+        })
+      )
+    }),
+    z.object({
+      scalingKind: z.literal('BREAKPOINTS'),
+      scalingSource: z.literal(scalingSourceSchema.enum.PARENT_CLASS_LEVEL),
+      breakpoints: z.array(
+        scalingBreakpointDtoSchema.extend({
+          value: valueSchema
+        })
+      )
+    }),
+    z.object({
+      scalingKind: z.literal('BREAKPOINTS'),
+      scalingSource: z.literal(scalingSourceSchema.enum.SPELL_CAST_LEVEL),
+      breakpoints: z.array(
+        scalingBreakpointDtoSchema.extend({
+          value: valueSchema
+        })
+      )
+    })
+  ])

@@ -79,28 +79,36 @@ function ClassesRoute() {
         attributeColumns={classListAttributeColumns}
         sortOptions={classListSortOptions}
         onCreate={() => navigate({ to: '/classes/new' })}
-        onView={(item) => navigate({
-          params: buildClassRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/classes/$classPublicId/$classSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildClassRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/classes/$classPublicId/$classSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getClass({
-            id: item.id,
-            meta: classDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getClass({
+              id: item.id,
+              meta: classDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildClassRouteParams(item.publicId, item.name),
-          to: '/classes/$classPublicId/$classSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildClassRouteParams(item.publicId, item.name),
+            to: '/classes/$classPublicId/$classSlug/edit'
+          })
+        }
         onCopy={(item) => void handleDuplicate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

@@ -1,10 +1,7 @@
 import { useState } from 'react'
-import { Button, Group, SegmentedControl, Stack, Text, TextInput } from '@mantine/core'
+import { Button, SegmentedControl, Stack, Text, TextInput } from '@mantine/core'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
-import {
-  compareCharacterBuilderLabels,
-  type CharacterFormValues
-} from '../characterBuilder.utils'
+import { compareCharacterBuilderLabels, type CharacterFormValues } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderSpellChoiceViewDto } from '@artificer-toolkit/schema/api/characters'
 
@@ -37,40 +34,56 @@ export function CharacterSpellChoices({
 
         return (
           <Stack key={choice.id} gap='sm'>
-            {showSourceHeadings
-              ? <Text fw={600}>{formatSpellSourceHeading(choice)}</Text>
-              : null}
+            {showSourceHeadings ? <Text fw={600}>{formatSpellSourceHeading(choice)}</Text> : null}
             <div className={styles.spellChoiceLists}>
-              {choice.cantripLimit > 0
-                ? (
-                    <SpellChoiceList
-                      title='Cantrips'
-                      limit={choice.cantripLimit}
-                      options={choice.cantripOptions}
-                      selectedIds={selectedCantripIds}
-                      readOnly={readOnly}
-                      onToggle={(spellId) => {
-                        const nextCantripIds = toggleSpellId(selectedCantripIds, spellId, choice.cantripLimit)
-                        onChange(setSpellChoiceValue(currentSelections, choice, nextCantripIds, selectedSpellIds))
-                      }}
-                    />
-                  )
-                : null}
-              {choice.learnedSpellLimit > 0
-                ? (
-                    <SpellChoiceList
-                      title={choice.spellCollectionLabel}
-                      limit={choice.learnedSpellLimit}
-                      options={choice.spellOptions}
-                      selectedIds={selectedSpellIds}
-                      readOnly={readOnly}
-                      onToggle={(spellId) => {
-                        const nextSpellIds = toggleSpellId(selectedSpellIds, spellId, choice.learnedSpellLimit)
-                        onChange(setSpellChoiceValue(currentSelections, choice, selectedCantripIds, nextSpellIds))
-                      }}
-                    />
-                  )
-                : null}
+              {choice.cantripLimit > 0 ? (
+                <SpellChoiceList
+                  title='Cantrips'
+                  limit={choice.cantripLimit}
+                  options={choice.cantripOptions}
+                  selectedIds={selectedCantripIds}
+                  readOnly={readOnly}
+                  onToggle={(spellId) => {
+                    const nextCantripIds = toggleSpellId(
+                      selectedCantripIds,
+                      spellId,
+                      choice.cantripLimit
+                    )
+                    onChange(
+                      setSpellChoiceValue(
+                        currentSelections,
+                        choice,
+                        nextCantripIds,
+                        selectedSpellIds
+                      )
+                    )
+                  }}
+                />
+              ) : null}
+              {choice.learnedSpellLimit > 0 ? (
+                <SpellChoiceList
+                  title={choice.spellCollectionLabel}
+                  limit={choice.learnedSpellLimit}
+                  options={choice.spellOptions}
+                  selectedIds={selectedSpellIds}
+                  readOnly={readOnly}
+                  onToggle={(spellId) => {
+                    const nextSpellIds = toggleSpellId(
+                      selectedSpellIds,
+                      spellId,
+                      choice.learnedSpellLimit
+                    )
+                    onChange(
+                      setSpellChoiceValue(
+                        currentSelections,
+                        choice,
+                        selectedCantripIds,
+                        nextSpellIds
+                      )
+                    )
+                  }}
+                />
+              ) : null}
             </div>
           </Stack>
         )
@@ -100,11 +113,13 @@ function SpellChoiceList({
   const normalizedQuery = query.trim().toLocaleLowerCase('en')
   const visibleOptions = options
     .filter((option) => filter === 'all' || selectedIdSet.has(option.id))
-    .filter((option) => !normalizedQuery || [
-      option.label,
-      option.schoolLabel ?? '',
-      option.disabledReason ?? ''
-    ].some((value) => value.toLocaleLowerCase('en').includes(normalizedQuery)))
+    .filter(
+      (option) =>
+        !normalizedQuery ||
+        [option.label, option.schoolLabel ?? '', option.disabledReason ?? ''].some((value) =>
+          value.toLocaleLowerCase('en').includes(normalizedQuery)
+        )
+    )
     .sort((left, right) => compareCharacterBuilderLabels(left.label, right.label))
   const limitReached = selectedIds.length >= limit
 
@@ -113,7 +128,10 @@ function SpellChoiceList({
       <div className={styles.spellPickerHeader}>
         <div>
           <Text fw={700}>{title}</Text>
-          <Text size='sm' className={styles.mutedText}>{`${selectedIds.length} of ${limit} selected`}</Text>
+          <Text
+            size='sm'
+            className={styles.mutedText}
+          >{`${selectedIds.length} of ${limit} selected`}</Text>
         </div>
         <SegmentedControl
           size='xs'
@@ -132,36 +150,40 @@ function SpellChoiceList({
         onChange={(event) => setQuery(event.currentTarget.value)}
       />
       <div className={styles.spellPickerList}>
-        {visibleOptions.length
-          ? visibleOptions.map((option) => {
-              const selected = selectedIdSet.has(option.id)
-              const metadata = formatSpellMetadata(option)
+        {visibleOptions.length ? (
+          visibleOptions.map((option) => {
+            const selected = selectedIdSet.has(option.id)
+            const metadata = formatSpellMetadata(option)
 
-              return (
-                <div key={option.id} className={styles.spellPickerRow}>
-                  <div className={styles.spellPickerDetails}>
-                    <Text fw={600} size='sm'>{option.label}</Text>
-                    {metadata || option.disabledReason
-                      ? (
-                          <Text size='xs' className={styles.mutedText}>
-                            {[metadata, option.disabledReason].filter(Boolean).join(' · ')}
-                          </Text>
-                        )
-                      : null}
-                  </div>
-                  <Button
-                    type='button'
-                    size='compact-sm'
-                    variant={selected ? 'default' : 'light'}
-                    disabled={readOnly || (!selected && (option.disabled || limitReached))}
-                    onClick={() => onToggle(option.id)}
-                  >
-                    {selected ? 'Remove' : 'Add'}
-                  </Button>
+            return (
+              <div key={option.id} className={styles.spellPickerRow}>
+                <div className={styles.spellPickerDetails}>
+                  <Text fw={600} size='sm'>
+                    {option.label}
+                  </Text>
+                  {metadata || option.disabledReason ? (
+                    <Text size='xs' className={styles.mutedText}>
+                      {[metadata, option.disabledReason].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
                 </div>
-              )
-            })
-          : <Text size='sm' className={styles.mutedText}>No spells match this view.</Text>}
+                <Button
+                  type='button'
+                  size='compact-sm'
+                  variant={selected ? 'default' : 'light'}
+                  disabled={readOnly || (!selected && (option.disabled || limitReached))}
+                  onClick={() => onToggle(option.id)}
+                >
+                  {selected ? 'Remove' : 'Add'}
+                </Button>
+              </div>
+            )
+          })
+        ) : (
+          <Text size='sm' className={styles.mutedText}>
+            No spells match this view.
+          </Text>
+        )}
       </div>
     </section>
   )
@@ -182,7 +204,9 @@ function formatSpellMetadata(
     option.schoolLabel,
     option.ritual ? 'Ritual' : undefined,
     option.concentration ? 'Concentration' : undefined
-  ].filter(Boolean).join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function formatSpellSourceHeading(choice: CharacterBuilderSpellChoiceViewDto): string {
@@ -216,7 +240,9 @@ function setSpellChoiceValue(
   }
 
   return existing
-    ? selections.map((selection) => sameSource(selection.source, source) ? nextSelection : selection)
+    ? selections.map((selection) =>
+        sameSource(selection.source, source) ? nextSelection : selection
+      )
     : [...selections, nextSelection]
 }
 
@@ -225,7 +251,9 @@ function getSelectedCantripIds(
   choice: CharacterBuilderSpellChoiceViewDto
 ): string[] {
   const cantripIds = new Set(choice.cantripOptions.map((option) => option.id))
-  return getSelectedSpellIdsForChoice(selections, choice).filter((spellId) => cantripIds.has(spellId))
+  return getSelectedSpellIdsForChoice(selections, choice).filter((spellId) =>
+    cantripIds.has(spellId)
+  )
 }
 
 function getSelectedSpellIds(
@@ -258,8 +286,15 @@ function getSpellChoiceTiming(source: SpellSelectionSource): CharacterSpellSelec
   return { kind: 'IMMEDIATE' }
 }
 
-function isSpellSelectionSource(source: CharacterBuilderSpellChoiceViewDto['source']): source is SpellSelectionSource {
-  return source.kind === 'CLASS' || source.kind === 'SUBCLASS' || source.kind === 'FEATURE' || source.kind === 'OPTION'
+function isSpellSelectionSource(
+  source: CharacterBuilderSpellChoiceViewDto['source']
+): source is SpellSelectionSource {
+  return (
+    source.kind === 'CLASS' ||
+    source.kind === 'SUBCLASS' ||
+    source.kind === 'FEATURE' ||
+    source.kind === 'OPTION'
+  )
 }
 
 function sameSource(left: SpellSelectionSource, right: SpellSelectionSource): boolean {

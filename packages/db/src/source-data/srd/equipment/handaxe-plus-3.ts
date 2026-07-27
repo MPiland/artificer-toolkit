@@ -14,5 +14,5 @@ export const handaxePlus3: EquipmentVariantAuthored = {
   maxBonus: 3,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(275), 3),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

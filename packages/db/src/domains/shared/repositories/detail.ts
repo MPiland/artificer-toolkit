@@ -10,7 +10,10 @@ type DetailAuthored = {
   order: number
 }
 
-async function hydrateDetailsByIds(db: DBLike, ids: readonly string[]): Promise<Map<string, DetailAuthored>> {
+async function hydrateDetailsByIds(
+  db: DBLike,
+  ids: readonly string[]
+): Promise<Map<string, DetailAuthored>> {
   const distinctIds = uniqueIds(ids)
   if (distinctIds.length === 0) {
     return new Map()
@@ -21,17 +24,24 @@ async function hydrateDetailsByIds(db: DBLike, ids: readonly string[]): Promise<
     .select(['id', 'label', 'description', 'sort_order'])
     .where('id', 'in', distinctIds)
     .execute()
-  const rowsById = new Map(rows.map((row) => [row.id, {
-    id: row.id,
-    label: row.label,
-    description: row.description,
-    order: row.sort_order
-  }]))
+  const rowsById = new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        id: row.id,
+        label: row.label,
+        description: row.description,
+        order: row.sort_order
+      }
+    ])
+  )
 
-  return new Map(distinctIds.flatMap((id) => {
-    const row = rowsById.get(id)
-    return row ? [[id, row]] : []
-  }))
+  return new Map(
+    distinctIds.flatMap((id) => {
+      const row = rowsById.get(id)
+      return row ? [[id, row]] : []
+    })
+  )
 }
 
 async function hydrateDetailById(db: DBLike, id: string) {

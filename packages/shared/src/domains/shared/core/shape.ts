@@ -1,8 +1,4 @@
-import type {
-  CoreMeta,
-  MeasurementUnitCode,
-  ScalableValueAuthored
-} from '#core'
+import type { CoreMeta, MeasurementUnitCode, ScalableValueAuthored } from '#core'
 import { valuesOf } from '#utils'
 
 export const SHAPE_KIND = {

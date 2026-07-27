@@ -17,6 +17,8 @@ import type { CharacterProficiencyLevel } from '../../character/sheetAdjustment.
 import type { CharacterSpellSourceRef } from '../../character/sheetResource.js'
 import type { MeasurementUnitCode } from '../../core/measurement.js'
 import type { SizeCode } from '../../core/size.js'
+import type { CompiledCharge } from '../../shared/compilers/charge.js'
+import type { SpellGrantAttribute } from '../../grants/core/spell.js'
 
 export interface EngineProficiency {
   /** PROFICIENCY_KIND value (SKILL, SAVE_ABILITY, LANGUAGE, EQUIPMENT, EQUIPMENT_PROPERTY) */
@@ -105,10 +107,32 @@ export interface EngineSpellMechanics {
   }
 }
 
+/** A resolved spell-grant access path, including casting metadata and provenance. */
+export interface EngineSpellAccess {
+  /** Stable identity for this specific source/grant/spell access. */
+  id: string
+  spellId: string
+  source: { kind: 'CLASS'; classId: string } | { kind: 'SUBCLASS'; subclassId: string }
+  timing: {
+    kind: 'CLASS_LEVEL'
+    classId: string
+    classLevel: number
+  }
+  sourceFeatureId: string
+  grantId: string
+  /** Deterministic identity for the granting source before its target spell is applied. */
+  sourceInstanceId: string
+  attributes?: SpellGrantAttribute[]
+  castAtLevel?: number
+  charges?: CompiledCharge
+}
+
 export interface EngineItemMechanics {
   itemInstanceId: string
   attackBonus: number
+  cost?: number
   damageBonus: number
+  displayAsAttack: boolean
   properties: {
     adamantine: boolean
     dualWield: boolean
@@ -120,6 +144,7 @@ export interface EngineItemMechanics {
   }
   calculations: {
     attackBonus: CharacterCalculation<number>
+    cost?: CharacterCalculation<number>
     damageBonus: CharacterCalculation<number>
     weight?: CharacterCalculation<number>
   }
@@ -174,7 +199,7 @@ export interface EngineResource {
   /** Resolved maximum count at current level */
   maxCount: number
   maxCountCalculation: CharacterCalculation<number>
-  rechargeOn: 'SHORT_REST' | 'LONG_REST' | 'MANUAL'
+  rechargeOn: 'SHORT_REST' | 'LONG_REST' | 'DAWN' | 'DUSK' | 'DAILY' | 'MANUAL'
   /** Which feature granted this resource */
   sourceFeatureId: string
 }
@@ -200,6 +225,8 @@ export interface EngineCharacterOutput {
   calculations: EngineCalculationBreakdowns
   /** Resolved class-scoped spell state derived from grants */
   spellState?: CompiledCharacterClassState[]
+  /** Resolved spell-grant access paths derived during the same engine run. */
+  spellAccess: EngineSpellAccess[]
   /** Spell slot maximums â€” empty maxByLevel when character has no spellcasting */
   spellSlots: EngineSpellSlots
   /** Class resources with resolved maximums */

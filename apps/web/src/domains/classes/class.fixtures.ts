@@ -1,7 +1,4 @@
-import type {
-  ClassListResponseDto,
-  ClassResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import type { ClassListResponseDto, ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   createRuntimeGroupNode as groupNode,
@@ -144,11 +141,24 @@ export function createClassRuntimeFixture(
             nodes: [
               inputNode('label', ['label'], 'Name', 'TEXT', true),
               inputNode('description', ['description'], 'Description', 'RICH_TEXT'),
-              selectNode('category', ['category'], 'Category', [
-                { value: 'BASE', label: 'Base Class' },
-                { value: 'SUBCLASS', label: 'Subclass' }
-              ], true),
-              selectNode('parentClassId', ['parentClassId'], 'Parent Class', [{ value: 'class-owned', label: 'Fighter' }], true, isSubclass)
+              selectNode(
+                'category',
+                ['category'],
+                'Category',
+                [
+                  { value: 'BASE', label: 'Base Class' },
+                  { value: 'SUBCLASS', label: 'Subclass' }
+                ],
+                true
+              ),
+              selectNode(
+                'parentClassId',
+                ['parentClassId'],
+                'Parent Class',
+                [{ value: 'class-owned', label: 'Fighter' }],
+                true,
+                isSubclass
+              )
             ]
           }
         ]

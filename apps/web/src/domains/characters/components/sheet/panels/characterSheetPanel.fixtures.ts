@@ -5,6 +5,8 @@ const systemId = '00000000-0000-4000-8000-000000000102'
 const adjustmentId = '00000000-0000-4000-8000-000000000103'
 const skillId = '00000000-0000-4000-8000-000000000104'
 const passiveSkillId = '00000000-0000-4000-8000-000000000105'
+const passiveInvestigationSkillId = '00000000-0000-4000-8000-000000000111'
+const passiveInsightSkillId = '00000000-0000-4000-8000-000000000112'
 const senseId = '00000000-0000-4000-8000-000000000106'
 const walkingSpeedId = '00000000-0000-4000-8000-000000000107'
 const swimmingSpeedId = '00000000-0000-4000-8000-000000000108'
@@ -26,7 +28,7 @@ const adjustedCalculation = {
         kind: 'MANUAL_ADJUSTMENT',
         adjustmentId
       },
-      sourceLabel: 'Downtime training',
+      sourceLabel: 'Manual adjustment',
       sourceNote: 'Earned after completing the cliffside trial.',
       value: 2,
       state: 'APPLIED'
@@ -38,8 +40,7 @@ const adjustedCalculation = {
 const numberEditorDefaults = {
   kind: 'NUMBER' as const,
   commitIntent: 'ON_BLUR_OR_ENTER' as const,
-  validation: { integer: true },
-  sourceCategory: 'MANUAL' as const
+  validation: { integer: true }
 }
 
 export const abilityPanelFixture = {
@@ -48,15 +49,10 @@ export const abilityPanelFixture = {
   characterId,
   target: { kind: 'ABILITY', ability: 'STRENGTH' },
   title: 'Strength',
-  description:
-    'Strength measures physical power, bodily force, and the ability to exert muscle.',
+  description: 'Strength measures physical power, bodily force, and the ability to exert muscle.',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   ability: 'STRENGTH',
   score: 8,
   modifier: -1,
@@ -91,7 +87,6 @@ export const adjustedAbilityPanelFixture = {
       field: 'OTHER_MODIFIER',
       label: 'Other modifier',
       value: 2,
-      sourceLabel: 'Downtime training',
       sourceNote: 'Earned after completing the cliffside trial.'
     },
     abilityPanelFixture.editors[1]
@@ -112,7 +107,7 @@ export const overriddenAbilityPanelFixture = {
     override: {
       adjustmentId: '00000000-0000-4000-8000-000000000111',
       value: 12,
-      sourceLabel: 'Table ruling',
+      sourceLabel: 'Manual override',
       sourceNote: 'Temporary score for the alpha playtest.'
     },
     effective: 12
@@ -126,7 +121,6 @@ export const overriddenAbilityPanelFixture = {
       label: 'Override score',
       value: 12,
       validation: { integer: true, minimum: 0 },
-      sourceLabel: 'Table ruling',
       sourceNote: 'Temporary score for the alpha playtest.'
     }
   ]
@@ -140,11 +134,7 @@ export const savingThrowPanelFixture = {
   title: 'Strength saving throw',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   ability: 'STRENGTH',
   total: -1,
   proficiency: 'NONE',
@@ -158,15 +148,13 @@ export const savingThrowPanelFixture = {
       ...numberEditorDefaults,
       field: 'MAGIC_BONUS',
       label: 'Magic bonus',
-      value: null,
-      sourceCategory: 'MAGIC'
+      value: null
     },
     {
       ...numberEditorDefaults,
       field: 'MISC_BONUS',
       label: 'Miscellaneous bonus',
-      value: null,
-      sourceCategory: 'MISCELLANEOUS'
+      value: null
     },
     {
       ...numberEditorDefaults,
@@ -186,8 +174,7 @@ export const savingThrowPanelFixture = {
       { value: 'FULL', label: 'Proficient' },
       { value: 'DOUBLE', label: 'Expertise' }
     ],
-    commitIntent: 'IMMEDIATE',
-    sourceCategory: 'MANUAL'
+    commitIntent: 'IMMEDIATE'
   }
 } satisfies CharacterSheetPanelDto
 
@@ -199,11 +186,7 @@ export const skillPanelFixture = {
   title: 'Arcana',
   state: 'ADJUSTED',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   skillId,
   code: 'ARCANA',
   ability: 'INTELLIGENCE',
@@ -222,7 +205,8 @@ export const skillPanelFixture = {
       {
         id: 'manual-magic',
         source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId },
-        sourceLabel: 'Library access',
+        sourceLabel: 'Manual adjustment',
+        sourceNote: 'Library access',
         value: 1,
         state: 'APPLIED'
       }
@@ -235,8 +219,7 @@ export const skillPanelFixture = {
           ...editor,
           adjustmentId,
           value: 1,
-          sourceCategory: 'MAGIC',
-          sourceLabel: 'Library access'
+          sourceNote: 'Library access'
         }
       : editor
   ),
@@ -254,8 +237,7 @@ export const skillPanelFixture = {
       { value: 'WISDOM', label: 'Wisdom' },
       { value: 'CHARISMA', label: 'Charisma' }
     ],
-    commitIntent: 'IMMEDIATE',
-    sourceCategory: 'MANUAL'
+    commitIntent: 'IMMEDIATE'
   }
 } satisfies CharacterSheetPanelDto
 
@@ -300,11 +282,7 @@ export const sensesPanelFixture = {
   title: 'Senses',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   passiveChecks: [
     {
       skillId: passiveSkillId,
@@ -328,6 +306,56 @@ export const sensesPanelFixture = {
         ...numberEditorDefaults,
         field: 'TOTAL_OVERRIDE',
         label: 'Override Passive Perception',
+        value: null
+      }
+    },
+    {
+      skillId: passiveInvestigationSkillId,
+      label: 'Passive Investigation',
+      total: 13,
+      state: 'DEFAULT',
+      calculation: {
+        base: 10,
+        contributions: [
+          {
+            id: 'investigation',
+            source: { kind: 'SYSTEM', systemId },
+            sourceLabel: 'Investigation bonus',
+            value: 3,
+            state: 'APPLIED'
+          }
+        ],
+        effective: 13
+      },
+      editor: {
+        ...numberEditorDefaults,
+        field: 'TOTAL_OVERRIDE',
+        label: 'Override Passive Investigation',
+        value: null
+      }
+    },
+    {
+      skillId: passiveInsightSkillId,
+      label: 'Passive Insight',
+      total: 11,
+      state: 'DEFAULT',
+      calculation: {
+        base: 10,
+        contributions: [
+          {
+            id: 'insight',
+            source: { kind: 'SYSTEM', systemId },
+            sourceLabel: 'Insight bonus',
+            value: 1,
+            state: 'APPLIED'
+          }
+        ],
+        effective: 11
+      },
+      editor: {
+        ...numberEditorDefaults,
+        field: 'TOTAL_OVERRIDE',
+        label: 'Override Passive Insight',
         value: null
       }
     }
@@ -426,11 +454,7 @@ export const defensesPanelFixture = {
   title: 'Defenses',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   defenses: [],
   additionOptions: [
     {
@@ -454,11 +478,7 @@ export const proficienciesPanelFixture = {
   title: 'Proficiencies',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: [
-    'UPSERT_ADJUSTMENT',
-    'REMOVE_ADJUSTMENT',
-    'RESET_ADJUSTMENTS'
-  ],
+  allowedCommands: ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'],
   proficiencies: [
     {
       kind: 'LANGUAGE',
@@ -472,6 +492,416 @@ export const proficienciesPanelFixture = {
       kind: 'LANGUAGE',
       targetId: '00000000-0000-4000-8000-000000000112',
       label: 'Primordial'
+    }
+  ]
+} satisfies CharacterSheetPanelDto
+
+const wizardSpellSource = {
+  sourceKind: 'CLASS' as const,
+  sourceInstanceId: 'class:wizard'
+}
+const wizardClassId = '00000000-0000-4000-8000-000000000113'
+const detectMagicSpellId = '00000000-0000-0000-0020-005200000000'
+const magicMissileSpellId = '00000000-0000-0000-0020-00c600000000'
+const shieldSpellId = '00000000-0000-0000-0020-011000000000'
+
+export const spellPanelFixture = {
+  kind: 'SPELL',
+  panelId: 'spell:magic-missile:wizard',
+  characterId,
+  target: {
+    kind: 'SPELL',
+    source: {
+      spellId: magicMissileSpellId,
+      ...wizardSpellSource
+    }
+  },
+  title: 'Magic Missile',
+  description: 'Three glowing darts of magical force strike creatures you can see within range.',
+  state: 'DEFAULT',
+  editable: true,
+  allowedCommands: [
+    'RESET_ADJUSTMENTS',
+    'CAST_SPELL',
+    'SET_SPELL_MECHANIC_CUSTOMIZATION',
+    'REMOVE_SPELL_MECHANIC_CUSTOMIZATION',
+    'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+  ],
+  source: {
+    spellId: magicMissileSpellId,
+    ...wizardSpellSource
+  },
+  sourceLabel: 'Wizard',
+  spellId: magicMissileSpellId,
+  displayName: 'Magic Missile',
+  authoredName: 'Magic Missile',
+  facts: [
+    { label: 'Level', value: '1st-level evocation' },
+    { label: 'Casting time', value: '1 action' },
+    { label: 'Range', value: '120 feet' },
+    { label: 'Duration', value: 'Instantaneous' }
+  ],
+  effects: [{ label: 'Damage', value: '3 × (1d4 + 1) Force damage' }],
+  references: [{ label: 'Source', value: 'Core Rules, p. 257' }],
+  prepared: true,
+  canPrepare: true,
+  preparationClassId: wizardClassId,
+  displayAsAttack: false,
+  legalCastModes: [
+    {
+      kind: 'SPELL_SLOT',
+      label: 'Cast at 1st level',
+      slotKey: 'STANDARD:1',
+      castLevel: 1,
+      available: true
+    },
+    {
+      kind: 'SPELL_SLOT',
+      label: 'Cast at 2nd level',
+      slotKey: 'STANDARD:2',
+      castLevel: 2,
+      available: true
+    }
+  ],
+  calculations: {
+    damageBonus: {
+      base: 1,
+      contributions: [],
+      effective: 1
+    }
+  },
+  customizationOptions: [
+    {
+      category: 'DAMAGE',
+      label: 'Damage',
+      supportedModes: ['BONUS']
+    }
+  ],
+  textEditors: [
+    {
+      kind: 'TEXT',
+      field: 'CUSTOM_NAME',
+      label: 'Custom name',
+      value: null,
+      multiline: false,
+      maximumLength: 120,
+      commitIntent: 'ON_BLUR_OR_ENTER'
+    },
+    {
+      kind: 'TEXT',
+      field: 'NOTES',
+      label: 'Notes',
+      value: null,
+      multiline: true,
+      maximumLength: 2000,
+      commitIntent: 'ON_BLUR_OR_ENTER'
+    }
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const spellPanelAttackDamageFixture = {
+  ...spellPanelFixture,
+  displayAsAttack: true,
+  calculations: {
+    attackBonus: {
+      base: 5,
+      contributions: [],
+      effective: 5
+    },
+    damageBonus: {
+      base: 1,
+      contributions: [],
+      effective: 1
+    }
+  },
+  customizationOptions: [
+    {
+      category: 'TO_HIT',
+      label: 'Spell attack',
+      supportedModes: ['BONUS', 'OVERRIDE']
+    },
+    ...spellPanelFixture.customizationOptions
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const spellPanelSaveDamageFixture = {
+  ...spellPanelFixture,
+  calculations: {
+    saveDC: {
+      base: 13,
+      contributions: [],
+      effective: 13
+    },
+    damageBonus: {
+      base: 1,
+      contributions: [],
+      effective: 1
+    }
+  },
+  customizationOptions: [
+    {
+      category: 'SAVE_DC',
+      label: 'Spell save DC',
+      supportedModes: ['BONUS', 'OVERRIDE']
+    },
+    ...spellPanelFixture.customizationOptions
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const spellPanelEmptyCustomizationsFixture = {
+  ...spellPanelFixture,
+  customizationOptions: []
+} satisfies CharacterSheetPanelDto
+
+export const spellPanelConfiguredCustomizationsFixture = {
+  ...spellPanelAttackDamageFixture,
+  customizationOptions: [
+    {
+      category: 'TO_HIT',
+      label: 'Spell attack',
+      supportedModes: ['BONUS', 'OVERRIDE'],
+      configured: {
+        adjustmentId: adjustmentId,
+        mode: 'BONUS',
+        value: 2,
+        sourceNote: 'Wand of the War Mage'
+      }
+    },
+    {
+      category: 'SAVE_DC',
+      label: 'Spell save DC',
+      supportedModes: ['BONUS', 'OVERRIDE'],
+      configured: {
+        adjustmentId: '00000000-0000-4000-8000-000000000119',
+        mode: 'OVERRIDE',
+        value: 17,
+        sourceNote: 'Table ruling'
+      }
+    },
+    {
+      category: 'DAMAGE',
+      label: 'Damage',
+      supportedModes: ['BONUS'],
+      configured: {
+        adjustmentId: '00000000-0000-4000-8000-000000000120',
+        mode: 'BONUS',
+        value: 1,
+        sourceNote: 'Empowered Evocation'
+      }
+    }
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const spellsPanelFixture = {
+  kind: 'SPELLS',
+  panelId: 'spells',
+  characterId,
+  target: { kind: 'SPELLS' },
+  title: 'Manage Spells',
+  state: 'DEFAULT',
+  editable: true,
+  allowedCommands: ['SET_PREPARED_SPELLS', 'USE_SPELL_SLOT', 'RESTORE_SPELL_SLOT', 'CAST_SPELL'],
+  slots: [
+    { slotKey: 'STANDARD:1', label: 'Level 1', used: 1, maximum: 4, remaining: 3 },
+    { slotKey: 'STANDARD:2', label: 'Level 2', used: 1, maximum: 2, remaining: 1 }
+  ],
+  groups: [
+    {
+      level: 1,
+      label: 'Level 1',
+      sources: [
+        {
+          target: {
+            kind: 'SPELL',
+            source: { spellId: shieldSpellId, ...wizardSpellSource }
+          },
+          source: { spellId: shieldSpellId, ...wizardSpellSource },
+          spellId: shieldSpellId,
+          label: 'Shield',
+          sourceLabel: 'Wizard',
+          prepared: true,
+          canPrepare: true,
+          preparationClassId: wizardClassId,
+          state: 'DEFAULT'
+        },
+        {
+          target: {
+            kind: 'SPELL',
+            source: { spellId: magicMissileSpellId, ...wizardSpellSource }
+          },
+          source: { spellId: magicMissileSpellId, ...wizardSpellSource },
+          spellId: magicMissileSpellId,
+          label: 'Magic Missile',
+          sourceLabel: 'Wizard',
+          prepared: true,
+          canPrepare: true,
+          preparationClassId: wizardClassId,
+          state: 'DEFAULT'
+        },
+        {
+          target: {
+            kind: 'SPELL',
+            source: { spellId: detectMagicSpellId, ...wizardSpellSource }
+          },
+          source: { spellId: detectMagicSpellId, ...wizardSpellSource },
+          spellId: detectMagicSpellId,
+          label: 'Detect Magic',
+          sourceLabel: 'Wizard',
+          prepared: true,
+          canPrepare: true,
+          preparationClassId: wizardClassId,
+          state: 'DEFAULT'
+        }
+      ]
+    }
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const itemPanelFixture = {
+  kind: 'ITEM',
+  panelId: 'item:00000000-0000-4000-8000-000000000130',
+  characterId,
+  target: {
+    kind: 'ITEM',
+    itemInstanceId: '00000000-0000-4000-8000-000000000130'
+  },
+  title: 'Moon-Touched Longsword',
+  state: 'ADJUSTED',
+  editable: true,
+  allowedCommands: [
+    'UPSERT_ADJUSTMENT',
+    'REMOVE_ADJUSTMENT',
+    'RESET_ADJUSTMENTS',
+    'UPDATE_OWNED_ITEM',
+    'REMOVE_OWNED_ITEM',
+    'SET_ITEM_EQUIPPED',
+    'SET_ITEM_ATTUNED',
+    'USE_RESOURCE',
+    'RECOVER_RESOURCE'
+  ],
+  itemInstanceId: '00000000-0000-4000-8000-000000000130',
+  equipmentId: '00000000-0000-4000-8000-000000000131',
+  authoredName: 'Longsword',
+  displayName: 'Moon-Touched Longsword',
+  description: 'This longsword sheds moonlight while drawn.',
+  facts: [
+    { label: 'Category', value: 'Weapon' },
+    { label: 'Quantity', value: '1' },
+    { label: 'Weight', value: '3 pounds' },
+    { label: 'Cost', value: '15 gold pieces' },
+    { label: 'Properties', value: 'Versatile' }
+  ],
+  equipped: true,
+  attuned: false,
+  requiresAttunement: true,
+  numericEditors: [
+    {
+      kind: 'NUMBER',
+      field: 'ATTACK_BONUS',
+      label: 'Attack bonus',
+      value: 1,
+      adjustmentId,
+      sourceNote: 'Blessing of the moon',
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true }
+    },
+    {
+      kind: 'NUMBER',
+      field: 'ATTACK_OVERRIDE',
+      label: 'Attack override',
+      value: null,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true }
+    },
+    {
+      kind: 'NUMBER',
+      field: 'DAMAGE_BONUS',
+      label: 'Damage bonus',
+      value: null,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true }
+    },
+    {
+      kind: 'NUMBER',
+      field: 'COST_OVERRIDE',
+      label: 'Cost override',
+      value: null,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true, minimum: 0 }
+    },
+    {
+      kind: 'NUMBER',
+      field: 'WEIGHT_OVERRIDE',
+      label: 'Weight override',
+      value: null,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: false, minimum: 0 }
+    }
+  ],
+  propertyEditors: [
+    {
+      kind: 'BOOLEAN',
+      field: 'SILVERED',
+      label: 'Silvered',
+      value: false,
+      commitIntent: 'IMMEDIATE'
+    },
+    {
+      kind: 'BOOLEAN',
+      field: 'ADAMANTINE',
+      label: 'Adamantine',
+      value: false,
+      commitIntent: 'IMMEDIATE'
+    },
+    {
+      kind: 'BOOLEAN',
+      field: 'DUAL_WIELD',
+      label: 'Dual wield',
+      value: false,
+      commitIntent: 'IMMEDIATE'
+    },
+    {
+      kind: 'BOOLEAN',
+      field: 'DISPLAY_AS_ATTACK',
+      label: 'Display in Actions',
+      value: true,
+      adjustmentId: '00000000-0000-4000-8000-000000000132',
+      commitIntent: 'IMMEDIATE'
+    }
+  ],
+  textEditors: [
+    {
+      kind: 'TEXT',
+      field: 'CUSTOM_NAME',
+      label: 'Custom name',
+      value: 'Moon-Touched Longsword',
+      multiline: false,
+      maximumLength: 120,
+      commitIntent: 'ON_BLUR_OR_ENTER'
+    },
+    {
+      kind: 'TEXT',
+      field: 'NOTES',
+      label: 'Item notes',
+      value: 'Recovered from the old watchtower.',
+      multiline: true,
+      maximumLength: 2000,
+      commitIntent: 'ON_BLUR_OR_ENTER'
+    }
+  ],
+  resources: [
+    {
+      target: {
+        kind: 'RESOURCE',
+        owner: {
+          kind: 'ITEM_INSTANCE',
+          chargeId: '00000000-0000-4000-8000-000000000133',
+          itemInstanceId: '00000000-0000-4000-8000-000000000130'
+        }
+      },
+      label: 'Moon-Touched Longsword charges',
+      remaining: 2,
+      maximum: 3
     }
   ]
 } satisfies CharacterSheetPanelDto

@@ -59,9 +59,6 @@ export function isNodeRuntimeSourceTable(table: string): table is NodeRuntimeSou
   return Object.hasOwn(nodeRuntimeSourceManifest, table)
 }
 
-export function isNodeRuntimeSourceColumn(
-  table: NodeRuntimeSourceTable,
-  column: string
-): boolean {
+export function isNodeRuntimeSourceColumn(table: NodeRuntimeSourceTable, column: string): boolean {
   return (nodeRuntimeSourceManifest[table] as readonly string[]).includes(column)
 }

@@ -29,8 +29,6 @@ export interface CharacterSheetAdjustmentRepository {
 interface AdjustmentMetadataRow {
   id: string
   character_id: string
-  source_category: string
-  source_label: string | null
   source_note: string | null
   created_by: string
   updated_by: string
@@ -46,8 +44,6 @@ function metadata(row: AdjustmentMetadataRow) {
   return {
     id: row.id,
     characterId: row.character_id,
-    sourceCategory: row.source_category,
-    ...(row.source_label == null ? {} : { sourceLabel: row.source_label }),
     ...(row.source_note == null ? {} : { sourceNote: row.source_note }),
     createdBy: row.created_by,
     updatedBy: row.updated_by,
@@ -326,8 +322,6 @@ export function createCharacterSheetAdjustmentRepository(
       const common = {
         id: adjustment.id,
         character_id: adjustment.characterId,
-        source_category: adjustment.sourceCategory ?? 'MANUAL',
-        source_label: adjustment.sourceLabel ?? null,
         source_note: adjustment.sourceNote ?? null,
         created_by: adjustment.actorId,
         updated_by: adjustment.actorId
@@ -346,8 +340,6 @@ export function createCharacterSheetAdjustmentRepository(
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'ability_code', 'field_kind']).doUpdateSet({
                 integer_value: adjustment.value,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -372,8 +364,6 @@ export function createCharacterSheetAdjustmentRepository(
               conflict.columns(['character_id', 'ability_code', 'field_kind']).doUpdateSet({
                 integer_value: integerValue,
                 proficiency_value: proficiencyValue,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -403,8 +393,6 @@ export function createCharacterSheetAdjustmentRepository(
                 integer_value: integerValue,
                 proficiency_value: proficiencyValue,
                 ability_value: abilityValue,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -425,8 +413,6 @@ export function createCharacterSheetAdjustmentRepository(
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'skill_id', 'field_kind']).doUpdateSet({
                 integer_value: adjustment.value,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -447,8 +433,6 @@ export function createCharacterSheetAdjustmentRepository(
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'sense_id', 'field_kind']).doUpdateSet({
                 integer_value: adjustment.value,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -469,8 +453,6 @@ export function createCharacterSheetAdjustmentRepository(
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'speed_id', 'field_kind']).doUpdateSet({
                 integer_value: adjustment.value,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -490,8 +472,6 @@ export function createCharacterSheetAdjustmentRepository(
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'field_kind']).doUpdateSet({
                 integer_value: adjustment.value,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -522,8 +502,6 @@ export function createCharacterSheetAdjustmentRepository(
                 ])
                 .doUpdateSet({
                   integer_value: adjustment.value,
-                  source_category: common.source_category,
-                  source_label: common.source_label,
                   source_note: common.source_note,
                   updated_by: adjustment.actorId
                 })
@@ -548,8 +526,6 @@ export function createCharacterSheetAdjustmentRepository(
               conflict.columns(['character_id', 'item_instance_id', 'field_kind']).doUpdateSet({
                 numeric_value: numericValue,
                 boolean_value: booleanValue,
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -583,8 +559,6 @@ export function createCharacterSheetAdjustmentRepository(
                   integer_value: integerValue,
                   reference_value: referenceValue,
                   text_value: textValue,
-                  source_category: common.source_category,
-                  source_label: common.source_label,
                   source_note: common.source_note,
                   updated_by: adjustment.actorId
                 })
@@ -603,8 +577,6 @@ export function createCharacterSheetAdjustmentRepository(
             })
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'defense_kind', 'damage_type_id']).doUpdateSet({
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })
@@ -623,8 +595,6 @@ export function createCharacterSheetAdjustmentRepository(
             })
             .onConflict((conflict) =>
               conflict.columns(['character_id', 'proficiency_kind', 'target_id']).doUpdateSet({
-                source_category: common.source_category,
-                source_label: common.source_label,
                 source_note: common.source_note,
                 updated_by: adjustment.actorId
               })

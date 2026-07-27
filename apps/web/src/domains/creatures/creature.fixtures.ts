@@ -303,11 +303,11 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['category'],
               'Category',
               [
-              { value: 'MONSTER', label: 'Monster' },
-              { value: 'BEAST', label: 'Beast' },
-              { value: 'NPC', label: 'NPC' },
-              { value: 'COMPANION', label: 'Companion' },
-              { value: 'SUMMON', label: 'Summon' }
+                { value: 'MONSTER', label: 'Monster' },
+                { value: 'BEAST', label: 'Beast' },
+                { value: 'NPC', label: 'NPC' },
+                { value: 'COMPANION', label: 'Companion' },
+                { value: 'SUMMON', label: 'Summon' }
               ],
               true
             ),
@@ -316,9 +316,9 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['creatureTypeId'],
               'Creature Type',
               [
-              { value: 'beast', label: 'Beast' },
-              { value: 'humanoid', label: 'Humanoid' },
-              { value: 'monstrosity', label: 'Monstrosity' }
+                { value: 'beast', label: 'Beast' },
+                { value: 'humanoid', label: 'Humanoid' },
+                { value: 'monstrosity', label: 'Monstrosity' }
               ],
               true
             ),
@@ -327,8 +327,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['alignmentId'],
               'Alignment',
               [
-              { value: 'unaligned', label: 'Unaligned' },
-              { value: 'neutral', label: 'Neutral' }
+                { value: 'unaligned', label: 'Unaligned' },
+                { value: 'neutral', label: 'Neutral' }
               ],
               false
             )
@@ -351,9 +351,9 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['speeds', 'speedId'],
               'Speed',
               [
-              { value: 'walk', label: 'Walk' },
-              { value: 'swim', label: 'Swim' },
-              { value: 'fly', label: 'Fly' }
+                { value: 'walk', label: 'Walk' },
+                { value: 'swim', label: 'Swim' },
+                { value: 'fly', label: 'Fly' }
               ],
               false
             )
@@ -376,8 +376,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['challengeRatingId'],
               'Challenge Rating',
               [
-              { value: 'cr-1-4', label: '1/4' },
-              { value: 'cr-3', label: '3' }
+                { value: 'cr-1-4', label: '1/4' },
+                { value: 'cr-3', label: '3' }
               ],
               false
             ),
@@ -386,8 +386,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['damageVulnerabilities'],
               'Damage Vulnerabilities',
               [
-              { value: 'fire', label: 'Fire' },
-              { value: 'cold', label: 'Cold' }
+                { value: 'fire', label: 'Fire' },
+                { value: 'cold', label: 'Cold' }
               ],
               false,
               'SELECT_MULTI'
@@ -397,8 +397,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['damageResistances'],
               'Damage Resistances',
               [
-              { value: 'fire', label: 'Fire' },
-              { value: 'cold', label: 'Cold' }
+                { value: 'fire', label: 'Fire' },
+                { value: 'cold', label: 'Cold' }
               ],
               false,
               'SELECT_MULTI'
@@ -416,8 +416,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['conditionImmunities'],
               'Condition Immunities',
               [
-              { value: 'charmed', label: 'Charmed' },
-              { value: 'poisoned', label: 'Poisoned' }
+                { value: 'charmed', label: 'Charmed' },
+                { value: 'poisoned', label: 'Poisoned' }
               ],
               false
             )
@@ -440,8 +440,8 @@ export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['cost', 'currencyId'],
               'Currency',
               [
-              { value: 'gold', label: 'Gold' },
-              { value: 'silver', label: 'Silver' }
+                { value: 'gold', label: 'Gold' },
+                { value: 'silver', label: 'Silver' }
               ],
               false
             )

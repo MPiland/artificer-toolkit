@@ -1,5 +1,1 @@
-export type {
-  TableName,
-  ColumnOf,
-  ColumnValueOf
-} from './types.js'
+export type { TableName, ColumnOf, ColumnValueOf } from './types.js'

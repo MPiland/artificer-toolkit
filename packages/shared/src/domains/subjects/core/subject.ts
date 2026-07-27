@@ -46,7 +46,7 @@ export const SUBJECT_REGISTRY: SubjectRegistry = {
   RACE: {
     code: SUBJECT.RACE,
     label: 'Race',
-    tooltip: 'A character\'s race or ancestry.',
+    tooltip: "A character's race or ancestry.",
     description: 'Represents racial attributes and features.'
   },
 

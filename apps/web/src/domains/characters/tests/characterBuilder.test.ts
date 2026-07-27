@@ -95,21 +95,23 @@ describe('character builder utilities', () => {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
       state: {
         assignments: [{ ability: 'STRENGTH', score: 16 }],
-        rollGroups: [{
-          id: 'roll-group-1',
-          rolls: [
-            { die: 6, value: 6 },
-            { die: 6, value: 5 },
-            { die: 6, value: 4 },
-            { die: 6, value: 1 }
-          ],
-          kept: [
-            { die: 6, value: 6 },
-            { die: 6, value: 5 },
-            { die: 6, value: 4 }
-          ],
-          score: 15
-        }]
+        rollGroups: [
+          {
+            id: 'roll-group-1',
+            rolls: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 },
+              { die: 6, value: 1 }
+            ],
+            kept: [
+              { die: 6, value: 6 },
+              { die: 6, value: 5 },
+              { die: 6, value: 4 }
+            ],
+            score: 15
+          }
+        ]
       }
     }
 
@@ -174,7 +176,9 @@ describe('character builder utilities', () => {
       method: CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
     })
     expect(
-      draftInput.builderIntent?.abilities?.methods[CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED]
+      draftInput.builderIntent?.abilities?.methods[
+        CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+      ]
     ).toMatchObject({
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
       state: {
@@ -230,11 +234,13 @@ describe('character builder utilities', () => {
       [{ ability: 'DEXTERITY', option: '14' }, {}, {}, {}, {}, {}]
     )
 
-    expect(getAbilityDraftSlots(
-      pointBuy.cache,
-      pointBuy.abilities,
-      CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
-    )).toEqual(standardSlots)
+    expect(
+      getAbilityDraftSlots(
+        pointBuy.cache,
+        pointBuy.abilities,
+        CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
+      )
+    ).toEqual(standardSlots)
   })
 
   it('includes the active base revision when saving edit drafts', () => {
@@ -263,7 +269,10 @@ describe('character builder utilities', () => {
       assignments: [{ ability: 'STRENGTH', option: '15' }]
     }
 
-    expect(getInactiveAbilityIntentMethodLabels(values)).toEqual(['Standard Array', 'Manual / Rolled'])
+    expect(getInactiveAbilityIntentMethodLabels(values)).toEqual([
+      'Standard Array',
+      'Manual / Rolled'
+    ])
   })
 
   it('reports builder readiness from backend view data', () => {
@@ -301,7 +310,9 @@ describe('character builder utilities', () => {
 
     expect(cleared.intent.race.subraceId).toBeUndefined()
     expect(cleared.intent.ancestrySelections).toBeUndefined()
-    expect(cleared.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['class-feature-choice'])
+    expect(cleared.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual([
+      'class-feature-choice'
+    ])
   })
 
   it('clears class-owned choices and primary starting equipment independently', () => {
@@ -346,7 +357,9 @@ describe('character builder utilities', () => {
 
     expect(withoutPrimaryEquipment.intent.startingEquipment?.class).toBeUndefined()
     expect(withoutPrimaryEquipment.intent.startingEquipment?.background).toBeDefined()
-    expect(withoutPrimaryEquipment.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['background-feature-choice'])
+    expect(
+      withoutPrimaryEquipment.intent.featureAcquisitions.map((acquisition) => acquisition.id)
+    ).toEqual(['background-feature-choice'])
     expect(withoutPrimaryEquipment.intent.spellSelections).toBeUndefined()
     expect(withoutPrimaryEquipment.intent.resourceGrants).toBeUndefined()
   })
@@ -403,9 +416,15 @@ describe('character builder utilities', () => {
 
     const cleared = clearSubclassOwnedChoices(values, classRow)
 
-    expect(cleared.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['class-feature-choice'])
-    expect(cleared.intent.spellSelections?.map((selection) => selection.id)).toEqual(['class-spell-choice'])
-    expect(cleared.intent.resourceGrants?.map((grant) => grant.id)).toEqual(['class-resource-choice'])
+    expect(cleared.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual([
+      'class-feature-choice'
+    ])
+    expect(cleared.intent.spellSelections?.map((selection) => selection.id)).toEqual([
+      'class-spell-choice'
+    ])
+    expect(cleared.intent.resourceGrants?.map((grant) => grant.id)).toEqual([
+      'class-resource-choice'
+    ])
   })
 
   it('clears background-owned choices and starting equipment when background changes', () => {
@@ -432,50 +451,59 @@ describe('character builder utilities', () => {
     values.intent.chosenGrantSelections = [
       createChosenGrantSelection('race', { kind: 'RACE', raceId: 'race-elf' }),
       createChosenGrantSelection('subrace', { kind: 'SUBRACE', subraceId: 'subrace-sea-elf' }),
-      createChosenGrantSelection('ancestry', { kind: 'ANCESTRY', ancestryId: 'ancestry-elf', optionId: 'ancestry-ocean' }),
-      createChosenGrantSelection('class', { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 }),
-      createChosenGrantSelection('subclass', { kind: 'SUBCLASS', subclassId: 'subclass-scribe', classLevel: 1 }),
-      createChosenGrantSelection('background', { kind: 'BACKGROUND', backgroundId: 'background-sage' })
+      createChosenGrantSelection('ancestry', {
+        kind: 'ANCESTRY',
+        ancestryId: 'ancestry-elf',
+        optionId: 'ancestry-ocean'
+      }),
+      createChosenGrantSelection('class', {
+        kind: 'CLASS',
+        classId: 'class-wizard',
+        classLevel: 1
+      }),
+      createChosenGrantSelection('subclass', {
+        kind: 'SUBCLASS',
+        subclassId: 'subclass-scribe',
+        classLevel: 1
+      }),
+      createChosenGrantSelection('background', {
+        kind: 'BACKGROUND',
+        backgroundId: 'background-sage'
+      })
     ]
 
-    expect(clearRaceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
-      'class',
-      'subclass',
-      'background'
-    ])
-    expect(clearSubraceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
-      'race',
-      'class',
-      'subclass',
-      'background'
-    ])
-    expect(clearClassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
-      'race',
-      'subrace',
-      'ancestry',
-      'background'
-    ])
-    expect(clearSubclassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
-      'race',
-      'subrace',
-      'ancestry',
-      'class',
-      'background'
-    ])
-    expect(clearBackgroundDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)).toEqual([
-      'race',
-      'subrace',
-      'ancestry',
-      'class',
-      'subclass'
-    ])
+    expect(
+      clearRaceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)
+    ).toEqual(['class', 'subclass', 'background'])
+    expect(
+      clearSubraceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)
+    ).toEqual(['race', 'class', 'subclass', 'background'])
+    expect(
+      clearClassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map(
+        (selection) => selection.id
+      )
+    ).toEqual(['race', 'subrace', 'ancestry', 'background'])
+    expect(
+      clearSubclassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map(
+        (selection) => selection.id
+      )
+    ).toEqual(['race', 'subrace', 'ancestry', 'class', 'background'])
+    expect(
+      clearBackgroundDependents(values).intent.chosenGrantSelections?.map(
+        (selection) => selection.id
+      )
+    ).toEqual(['race', 'subrace', 'ancestry', 'class', 'subclass'])
   })
 })
 
 function createChosenGrantSelection(
   id: string,
-  source: NonNullable<ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']>[number]['source']
-): NonNullable<ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']>[number] {
+  source: NonNullable<
+    ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']
+  >[number]['source']
+): NonNullable<
+  ReturnType<typeof toCharacterFormValues>['intent']['chosenGrantSelections']
+>[number] {
   return {
     id,
     grantId: 'grant-' + id,

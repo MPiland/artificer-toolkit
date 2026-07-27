@@ -6,10 +6,12 @@ describe('application feature flags', () => {
     expect(parsePublicSignUpEnabled('true')).toBe(true)
   })
 
-  it.each([undefined, '', 'false', 'TRUE', ' true ', 'enabled'])
-  ('disables public sign-up for %j', (value) => {
-    expect(parsePublicSignUpEnabled(value)).toBe(false)
-  })
+  it.each([undefined, '', 'false', 'TRUE', ' true ', 'enabled'])(
+    'disables public sign-up for %j',
+    (value) => {
+      expect(parsePublicSignUpEnabled(value)).toBe(false)
+    }
+  )
 
   it('exposes typed flags with a secure default', () => {
     expect(getApplicationFeatureFlags({})).toEqual({ publicSignUpEnabled: false })

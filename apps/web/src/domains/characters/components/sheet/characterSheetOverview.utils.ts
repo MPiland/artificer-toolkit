@@ -22,20 +22,34 @@ export function getAbilityShortLabel(ability: string): string {
 export function formatHitDiceSummary(hitDice: CharacterSheet['overview']['hitDice']): string {
   if (!hitDice.length) return 'None'
 
-  return hitDice
-    .map((die) => `${die.remaining}/${die.total}d${die.die}`)
-    .join(', ')
+  return hitDice.map((die) => `${die.remaining}/${die.total}d${die.die}`).join(', ')
 }
 
-export function formatProficiencyLevel(proficiency: string): string {
+export function formatProficiencyLevel(
+  proficiency: CharacterSheet['overview']['skills'][number]['proficiency']
+): string {
   switch (proficiency) {
     case 'DOUBLE':
       return 'Expertise'
     case 'FULL':
-      return 'Prof'
+      return 'Proficient'
     case 'HALF':
-      return 'Half'
+      return 'Half proficiency'
     default:
-      return 'None'
+      return 'Not proficient'
   }
+}
+
+export function formatProficiencySummaryLabel(
+  proficiency: CharacterSheet['reference']['proficiencies'][number]
+): string {
+  if (proficiency.kind === 'ARMOR') {
+    return proficiency.label.replace(/\s+Armor$/i, '')
+  }
+
+  if (proficiency.kind === 'WEAPON') {
+    return proficiency.label.replace(/\s+Weapons?$/i, '')
+  }
+
+  return proficiency.label
 }

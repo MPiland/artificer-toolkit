@@ -107,19 +107,19 @@ describe('createEffectRepository', () => {
       invocation: {
         kind: 'ACTION',
         triggerCode: 'SAVING_THROW',
-          savingThrow: {
-            id: 'saving-throw-1',
-            dcMethod: 'FIXED_DC',
-            ability: 'WISDOM',
-            baseDc: 15,
-            bonuses: [
-              {
-                id: 'saving-throw-static-bonus-1',
-                bonusKind: 'STATIC_BONUS',
-                amount: 1
-              }
-            ]
-          },
+        savingThrow: {
+          id: 'saving-throw-1',
+          dcMethod: 'FIXED_DC',
+          ability: 'WISDOM',
+          baseDc: 15,
+          bonuses: [
+            {
+              id: 'saving-throw-static-bonus-1',
+              bonusKind: 'STATIC_BONUS',
+              amount: 1
+            }
+          ]
+        },
         activation: {
           code: 'ACTION',
           amount: 1
@@ -153,11 +153,11 @@ describe('createEffectRepository', () => {
               amount: 1
             },
             outcomes: [
-                  {
-                    id: 'save-fail-1-entry',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'fire',
-                    valueKind: 'DICE',
+              {
+                id: 'save-fail-1-entry',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'fire',
+                valueKind: 'DICE',
                 scalingKind: 'NONE',
                 diceConfig: '2d6',
                 bonuses: [
@@ -334,47 +334,72 @@ describe('createEffectRepository', () => {
         }
       ]
     })
-    db.insertRow('characteristic_ranges', {
-      characteristic_id: 'numeric-range',
-      kind: 'DISTANCE',
-      min: '25',
-      unit_code: 'FEET',
-      scaling: null
-    }, ['characteristic_id'], 'doUpdateSet')
-    db.insertRow('characteristic_shape_dimensions', {
-      characteristic_id: 'numeric-shape',
-      dimension: 'RADIUS',
-      amount: '10',
-      unit_code: 'FEET',
-      scaling: null
-    }, ['characteristic_id', 'dimension'], 'doUpdateSet')
-    db.insertRow('characteristic_durations', {
-      characteristic_id: 'numeric-duration',
-      kind: 'ROUND',
-      amount: '1',
-      scaling: null
-    }, ['characteristic_id'], 'doUpdateSet')
-    db.insertRow('damage_values', {
-      damage_id: 'numeric-damage',
-      amount: '1',
-      dice: null,
-      multiplier: null,
-      min: null,
-      max: null
-    }, ['damage_id'], 'doUpdateSet')
-    db.insertRow('damage_bonuses', {
-      id: 'numeric-damage-bonus',
-      damage_id: 'numeric-damage',
-      bonus_kind: 'ABILITY_BONUS',
-      ability_code: 'DEXTERITY',
-      skill_id: null,
-      multiplier: '2',
-      min: '1',
-      max: '3',
-      sort_order: 1
-    }, ['id'], 'doUpdateSet')
+    db.insertRow(
+      'characteristic_ranges',
+      {
+        characteristic_id: 'numeric-range',
+        kind: 'DISTANCE',
+        min: '25',
+        unit_code: 'FEET',
+        scaling: null
+      },
+      ['characteristic_id'],
+      'doUpdateSet'
+    )
+    db.insertRow(
+      'characteristic_shape_dimensions',
+      {
+        characteristic_id: 'numeric-shape',
+        dimension: 'RADIUS',
+        amount: '10',
+        unit_code: 'FEET',
+        scaling: null
+      },
+      ['characteristic_id', 'dimension'],
+      'doUpdateSet'
+    )
+    db.insertRow(
+      'characteristic_durations',
+      {
+        characteristic_id: 'numeric-duration',
+        kind: 'ROUND',
+        amount: '1',
+        scaling: null
+      },
+      ['characteristic_id'],
+      'doUpdateSet'
+    )
+    db.insertRow(
+      'damage_values',
+      {
+        damage_id: 'numeric-damage',
+        amount: '1',
+        dice: null,
+        multiplier: null,
+        min: null,
+        max: null
+      },
+      ['damage_id'],
+      'doUpdateSet'
+    )
+    db.insertRow(
+      'damage_bonuses',
+      {
+        id: 'numeric-damage-bonus',
+        damage_id: 'numeric-damage',
+        bonus_kind: 'ABILITY_BONUS',
+        ability_code: 'DEXTERITY',
+        skill_id: null,
+        multiplier: '2',
+        min: '1',
+        max: '3',
+        sort_order: 1
+      },
+      ['id'],
+      'doUpdateSet'
+    )
 
-    const effect = await repository.findById('effect-numeric-strings') as unknown as {
+    const effect = (await repository.findById('effect-numeric-strings')) as unknown as {
       invocation?: {
         range?: { amount?: unknown }
         shape?: { radius?: { amount?: unknown } }
@@ -792,4 +817,3 @@ describe('createEffectRepository', () => {
     })
   })
 })
-

@@ -16,7 +16,9 @@ import {
   createAuthoredFormRouteLoaderData
 } from '#forms/layout/authoredFormRouteContext'
 
-export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit')({
+export const Route = createFileRoute(
+  '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+)({
   context: () => createAuthoredFormRouteContext('background', 'edit'),
   loader: async ({ context, params }): Promise<BackgroundEditLoaderData> => {
     const client = createServerApi()

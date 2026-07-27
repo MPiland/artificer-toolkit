@@ -96,20 +96,19 @@ function mapOptionRootRow<N extends NodeSubjectCode>(json_data: OptionAuthored<N
   }
 }
 
-async function upsertOptionRow(
-  db: DBLike,
-  row: OptionRow
-) {
+async function upsertOptionRow(db: DBLike, row: OptionRow) {
   await db
     .insertInto('options')
     .values(row)
-    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-      label: eb.ref('excluded.label'),
-      description: eb.ref('excluded.description'),
-      sort_order: eb.ref('excluded.sort_order'),
-      charge_id: eb.ref('excluded.charge_id'),
-      restriction_id: eb.ref('excluded.restriction_id')
-    })))
+    .onConflict((oc) =>
+      oc.column('id').doUpdateSet((eb) => ({
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        sort_order: eb.ref('excluded.sort_order'),
+        charge_id: eb.ref('excluded.charge_id'),
+        restriction_id: eb.ref('excluded.restriction_id')
+      }))
+    )
     .execute()
 }
 
@@ -134,11 +133,13 @@ export async function upsertOption<N extends NodeSubjectCode>(
     detail_id: detail.id,
     sort_order: detail.order
   }))
-  const attributeRows: OptionAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
-    option_id: json_data.id,
-    attribute_code: requireFeatureAttribute(json_data.id, attribute),
-    sort_order: index + 1
-  }))
+  const attributeRows: OptionAttributeRow[] = (json_data.attributes ?? []).map(
+    (attribute, index) => ({
+      option_id: json_data.id,
+      attribute_code: requireFeatureAttribute(json_data.id, attribute),
+      sort_order: index + 1
+    })
+  )
   const authoredEffects = json_data.effects ?? []
   const effectRows = authoredEffects.map((effect, index) => ({
     option_id: json_data.id,
@@ -150,12 +151,16 @@ export async function upsertOption<N extends NodeSubjectCode>(
     feat_grant_id: grant.id,
     sort_order: grant.order
   }))
-  const modifierGrantRows: OptionModifierGrantRow[] = (json_data.grants?.modifiers ?? []).map((grant) => ({
-    option_id: json_data.id,
-    modifier_grant_id: grant.id,
-    sort_order: grant.order
-  }))
-  const proficiencyGrantRows: OptionProficiencyGrantRow[] = (json_data.grants?.proficiencies ?? []).map((grant) => ({
+  const modifierGrantRows: OptionModifierGrantRow[] = (json_data.grants?.modifiers ?? []).map(
+    (grant) => ({
+      option_id: json_data.id,
+      modifier_grant_id: grant.id,
+      sort_order: grant.order
+    })
+  )
+  const proficiencyGrantRows: OptionProficiencyGrantRow[] = (
+    json_data.grants?.proficiencies ?? []
+  ).map((grant) => ({
     option_id: json_data.id,
     proficiency_grant_id: grant.id,
     sort_order: grant.order
@@ -184,27 +189,25 @@ export async function upsertOption<N extends NodeSubjectCode>(
       .where('option_id', '=', json_data.id)
       .execute()
 
-    if (existingOption?.restriction_id && existingOption.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingOption.restriction_id)
-        .execute()
+    if (
+      existingOption?.restriction_id &&
+      existingOption.restriction_id !== json_data.restrictions?.id
+    ) {
+      await trx.deleteFrom('facets').where('id', '=', existingOption.restriction_id).execute()
     }
 
     await upsertOptionRoot(trx, json_data)
 
-    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id)
+    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id).execute()
+    await trx.deleteFrom('option_details').where('option_id', '=', json_data.id).execute()
+    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id).execute()
+    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id).execute()
+    await trx
+      .deleteFrom('option_proficiency_grants')
+      .where('option_id', '=', json_data.id)
       .execute()
-    await trx.deleteFrom('option_details').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_proficiency_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id).execute()
+    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id).execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -255,46 +258,40 @@ export async function upsertOption<N extends NodeSubjectCode>(
       await trx
         .insertInto('option_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['option_id', 'effect_id']).doUpdateSet((eb) => ({
-          sort_order: eb.ref('excluded.sort_order')
-        })))
+        .onConflict((oc) =>
+          oc.columns(['option_id', 'effect_id']).doUpdateSet((eb) => ({
+            sort_order: eb.ref('excluded.sort_order')
+          }))
+        )
         .execute()
     }
 
     if (attributeRows.length > 0) {
-      await trx.insertInto('option_attributes').values(attributeRows)
-        .execute()
+      await trx.insertInto('option_attributes').values(attributeRows).execute()
     }
 
     if (detailRows.length > 0) {
-      await trx.insertInto('option_details').values(detailRows)
-        .execute()
+      await trx.insertInto('option_details').values(detailRows).execute()
     }
 
     if (featGrantRows.length > 0) {
-      await trx.insertInto('option_feat_grants').values(featGrantRows)
-        .execute()
+      await trx.insertInto('option_feat_grants').values(featGrantRows).execute()
     }
 
     if (modifierGrantRows.length > 0) {
-      await trx.insertInto('option_modifier_grants').values(modifierGrantRows)
-        .execute()
+      await trx.insertInto('option_modifier_grants').values(modifierGrantRows).execute()
     }
 
     if (proficiencyGrantRows.length > 0) {
-      await trx.insertInto('option_proficiency_grants').values(proficiencyGrantRows)
-        .execute()
+      await trx.insertInto('option_proficiency_grants').values(proficiencyGrantRows).execute()
     }
 
     if (senseGrantRows.length > 0) {
-      await trx.insertInto('option_sense_grants').values(senseGrantRows)
-        .execute()
+      await trx.insertInto('option_sense_grants').values(senseGrantRows).execute()
     }
 
     if (spellGrantRows.length > 0) {
-      await trx.insertInto('option_spell_grants').values(spellGrantRows)
-        .execute()
+      await trx.insertInto('option_spell_grants').values(spellGrantRows).execute()
     }
-
   })
 }

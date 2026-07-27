@@ -12,10 +12,7 @@ import {
   SUBCLASS_ATTRIBUTE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import {
-  upsertDetail,
-  upsertStartingEquipment
-} from '../../shared/upserts/index.js'
+import { upsertDetail, upsertStartingEquipment } from '../../shared/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 import { upsertFeature, upsertFeatureRoot } from '../../features/upserts/index.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
@@ -163,12 +160,8 @@ type ClassSpellSlotRow = {
   slot_count: number
 }
 
-function createDerivedUuid(
-  seed: string,
-  purpose: string
-): string {
-  const hex = createHash('sha256').update(`${seed}:${purpose}`)
-    .digest('hex')
+function createDerivedUuid(seed: string, purpose: string): string {
+  const hex = createHash('sha256').update(`${seed}:${purpose}`).digest('hex')
   const variant = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')
 
   return [
@@ -180,10 +173,7 @@ function createDerivedUuid(
   ].join('-')
 }
 
-function requireClassCategory(
-  classId: string,
-  value: string
-): ClassAuthored['category'] {
+function requireClassCategory(classId: string, value: string): ClassAuthored['category'] {
   if (value !== CLASS_CATEGORY.BASE && value !== CLASS_CATEGORY.SUBCLASS) {
     throw new Error(`Class "${classId}" has invalid category "${value}".`)
   }
@@ -210,14 +200,12 @@ function requireSubclassAttribute(
     throw new Error(`Class "${classId}" has invalid subclass attribute "${value}".`)
   }
 
-  return value as NonNullable<Extract<ClassAuthored, { category: 'SUBCLASS' }>['attributes']>[number]
+  return value as NonNullable<
+    Extract<ClassAuthored, { category: 'SUBCLASS' }>['attributes']
+  >[number]
 }
 
-function requireAbilityCode(
-  ownerId: string,
-  value: string,
-  field: string
-): string {
+function requireAbilityCode(ownerId: string, value: string, field: string): string {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`${field} "${ownerId}" has invalid ability "${value}".`)
   }
@@ -225,10 +213,7 @@ function requireAbilityCode(
   return value
 }
 
-function requireSpellcastingAttribute(
-  ownerId: string,
-  value: string
-): string {
+function requireSpellcastingAttribute(ownerId: string, value: string): string {
   if (!(value in SPELLCASTING_ATTRIBUTE)) {
     throw new Error(`Class spellcasting "${ownerId}" has invalid attribute "${value}".`)
   }
@@ -236,10 +221,7 @@ function requireSpellcastingAttribute(
   return value
 }
 
-function requirePrepareLimitMethod(
-  ownerId: string,
-  value: string
-): string {
+function requirePrepareLimitMethod(ownerId: string, value: string): string {
   if (!(value in PREPARE_LIMIT_METHOD_KIND)) {
     throw new Error(`Class spellcasting "${ownerId}" has invalid prepare limit method "${value}".`)
   }
@@ -247,10 +229,7 @@ function requirePrepareLimitMethod(
   return value
 }
 
-function requireScalingAmountKind(
-  ownerId: string,
-  value: string
-): string {
+function requireScalingAmountKind(ownerId: string, value: string): string {
   if (!(value in SCALING_AMOUNT_KIND)) {
     throw new Error(`Class spellcasting "${ownerId}" has invalid scaling "${value}".`)
   }
@@ -258,10 +237,7 @@ function requireScalingAmountKind(
   return value
 }
 
-function requireRoundingCode(
-  ownerId: string,
-  value: string
-): string {
+function requireRoundingCode(ownerId: string, value: string): string {
   if (!(value in ROUNDING_CODE)) {
     throw new Error(`Class spellcasting "${ownerId}" has invalid rounding "${value}".`)
   }
@@ -299,32 +275,27 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
   }
 }
 
-async function upsertClassRow(
-  db: DBLike,
-  json_data: ClassAuthored
-) {
+async function upsertClassRow(db: DBLike, json_data: ClassAuthored) {
   await db
     .insertInto('classes')
     .values(mapClassRow(json_data))
-    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-      system_id: eb.ref('excluded.system_id'),
-      user_id: eb.ref('excluded.user_id'),
-      category: eb.ref('excluded.category'),
-      parent_class_id: eb.ref('excluded.parent_class_id'),
-      subclass_selection_level: eb.ref('excluded.subclass_selection_level'),
-      label: eb.ref('excluded.label'),
-      description: eb.ref('excluded.description'),
-      status: eb.ref('excluded.status'),
-      starting_equipment_id: eb.ref('excluded.starting_equipment_id')
-    })))
+    .onConflict((oc) =>
+      oc.column('id').doUpdateSet((eb) => ({
+        system_id: eb.ref('excluded.system_id'),
+        user_id: eb.ref('excluded.user_id'),
+        category: eb.ref('excluded.category'),
+        parent_class_id: eb.ref('excluded.parent_class_id'),
+        subclass_selection_level: eb.ref('excluded.subclass_selection_level'),
+        label: eb.ref('excluded.label'),
+        description: eb.ref('excluded.description'),
+        status: eb.ref('excluded.status'),
+        starting_equipment_id: eb.ref('excluded.starting_equipment_id')
+      }))
+    )
     .execute()
 }
 
-export async function upsertClassRoot(
-  db: DBLike,
-  json_data: ClassAuthored,
-  _systemId: string
-) {
+export async function upsertClassRoot(db: DBLike, json_data: ClassAuthored, _systemId: string) {
   return withTransaction(db, async (trx) => {
     if (json_data.category === CLASS_CATEGORY.BASE) {
       await upsertStartingEquipment(trx, json_data.startingEquipment)
@@ -334,22 +305,20 @@ export async function upsertClassRoot(
   })
 }
 
-export async function upsertClass(
-  db: DBLike,
-  json_data: ClassAuthored,
-  _systemId: string
-) {
+export async function upsertClass(db: DBLike, json_data: ClassAuthored, _systemId: string) {
   const detailRows: ClassDetailRow[] = (json_data.details ?? []).map((detail) => ({
     class_id: json_data.id,
     detail_id: detail.id,
     sort_order: detail.order
   }))
 
-  const proficiencyRows: ClassProficiencyGrantRow[] = (json_data.proficiencies ?? []).map((grant) => ({
-    class_id: json_data.id,
-    proficiency_grant_id: grant.id,
-    sort_order: grant.order
-  }))
+  const proficiencyRows: ClassProficiencyGrantRow[] = (json_data.proficiencies ?? []).map(
+    (grant) => ({
+      class_id: json_data.id,
+      proficiency_grant_id: grant.id,
+      sort_order: grant.order
+    })
+  )
 
   const resourceRow: ClassResourceRow | null = json_data.resources
     ? {
@@ -395,7 +364,8 @@ export async function upsertClass(
       }))
     : []
 
-  const prepareLimitRow: ClassSpellcastingPrepareLimitRow | null = json_data.spellcasting?.prepareLimit
+  const prepareLimitRow: ClassSpellcastingPrepareLimitRow | null = json_data.spellcasting
+    ?.prepareLimit
     ? {
         spellcasting_id: spellcastingId,
         scaling: json_data.spellcasting.prepareLimit.scaling
@@ -407,7 +377,8 @@ export async function upsertClass(
       }
     : null
 
-  const prepareLimitMethodRows: ClassSpellcastingPrepareLimitMethodRow[] = json_data.spellcasting?.prepareLimit
+  const prepareLimitMethodRows: ClassSpellcastingPrepareLimitMethodRow[] = json_data.spellcasting
+    ?.prepareLimit
     ? json_data.spellcasting.prepareLimit.methodKinds.map((method, index) => ({
         spellcasting_id: spellcastingId,
         method_code: requirePrepareLimitMethod(spellcastingId, method),
@@ -415,7 +386,8 @@ export async function upsertClass(
       }))
     : []
 
-  const prepareLimitLevelRows: ClassSpellcastingPrepareLimitLevelRow[] = json_data.spellcasting?.prepareLimit?.perLevel
+  const prepareLimitLevelRows: ClassSpellcastingPrepareLimitLevelRow[] = json_data.spellcasting
+    ?.prepareLimit?.perLevel
     ? json_data.spellcasting.prepareLimit.perLevel.map((level) => ({
         spellcasting_id: spellcastingId,
         class_level: level.classLevel,
@@ -435,11 +407,13 @@ export async function upsertClass(
     : []
 
   const spellSlotRows: ClassSpellSlotRow[] = json_data.spellcasting
-    ? json_data.spellcasting.spellLimits.flatMap((limit) => limit.slots.map((slot) => ({
-        spell_limit_id: createDerivedUuid(spellcastingId, `spell-limit-${limit.classLevel}`),
-        spell_level: slot.spellLevel,
-        slot_count: slot.slotCount
-      })))
+    ? json_data.spellcasting.spellLimits.flatMap((limit) =>
+        limit.slots.map((slot) => ({
+          spell_limit_id: createDerivedUuid(spellcastingId, `spell-limit-${limit.classLevel}`),
+          spell_level: slot.spellLevel,
+          slot_count: slot.slotCount
+        }))
+      )
     : []
 
   return withTransaction(db, async (trx) => {
@@ -449,31 +423,20 @@ export async function upsertClass(
 
     await upsertClassRow(trx, json_data)
 
-    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id).execute()
 
     if (json_data.category === CLASS_CATEGORY.BASE) {
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
-        .execute()
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id).execute()
     } else {
-      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id)
-        .execute()
-      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id)
-        .execute()
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
-        .execute()
+      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id).execute()
+      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id).execute()
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id).execute()
     }
 
     if (json_data.details) {
@@ -493,8 +456,7 @@ export async function upsertClass(
     }
 
     if (resourceRow) {
-      await trx.insertInto('class_resources').values(resourceRow)
-        .execute()
+      await trx.insertInto('class_resources').values(resourceRow).execute()
     }
 
     if (json_data.features) {
@@ -518,8 +480,7 @@ export async function upsertClass(
     }
 
     if (detailRows.length > 0) {
-      await trx.insertInto('class_details').values(detailRows)
-        .execute()
+      await trx.insertInto('class_details').values(detailRows).execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -529,65 +490,65 @@ export async function upsertClass(
     }))
 
     if (featureRows.length > 0) {
-      await trx.insertInto('class_features').values(featureRows)
-        .execute()
+      await trx.insertInto('class_features').values(featureRows).execute()
     }
 
     if (proficiencyRows.length > 0) {
-      await trx.insertInto('class_proficiency_grants').values(proficiencyRows)
-        .execute()
+      await trx.insertInto('class_proficiency_grants').values(proficiencyRows).execute()
     }
 
     if (spellcastingRow) {
-      await trx.insertInto('class_spellcasting').values(spellcastingRow)
-        .execute()
+      await trx.insertInto('class_spellcasting').values(spellcastingRow).execute()
 
       if (spellcastingAttributeRows.length > 0) {
-        await trx.insertInto('class_spellcasting_attributes').values(spellcastingAttributeRows)
+        await trx
+          .insertInto('class_spellcasting_attributes')
+          .values(spellcastingAttributeRows)
           .execute()
       }
 
       if (spellcastingDetailRows.length > 0) {
-        await trx.insertInto('class_spellcasting_details').values(spellcastingDetailRows)
-          .execute()
+        await trx.insertInto('class_spellcasting_details').values(spellcastingDetailRows).execute()
       }
 
       if (prepareLimitRow) {
-        await trx.insertInto('class_spellcasting_prepare_limit').values(prepareLimitRow)
-          .execute()
+        await trx.insertInto('class_spellcasting_prepare_limit').values(prepareLimitRow).execute()
       }
 
       if (prepareLimitMethodRows.length > 0) {
-        await trx.insertInto('class_spellcasting_prepare_limit_methods').values(prepareLimitMethodRows)
+        await trx
+          .insertInto('class_spellcasting_prepare_limit_methods')
+          .values(prepareLimitMethodRows)
           .execute()
       }
 
       if (prepareLimitLevelRows.length > 0) {
-        await trx.insertInto('class_spellcasting_prepare_limit_levels').values(prepareLimitLevelRows)
+        await trx
+          .insertInto('class_spellcasting_prepare_limit_levels')
+          .values(prepareLimitLevelRows)
           .execute()
       }
 
       if (spellLimitRows.length > 0) {
-        await trx.insertInto('class_spell_limits').values(spellLimitRows)
-          .execute()
+        await trx.insertInto('class_spell_limits').values(spellLimitRows).execute()
       }
 
       if (spellSlotRows.length > 0) {
-        await trx.insertInto('class_spell_slots').values(spellSlotRows)
-          .execute()
+        await trx.insertInto('class_spell_slots').values(spellSlotRows).execute()
       }
     }
 
     if (json_data.category === CLASS_CATEGORY.BASE) {
-      const attributeRows: ClassAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
-        class_id: json_data.id,
-        attribute_code: requireClassAttribute(json_data.id, attribute),
-        sort_order: index + 1
-      }))
+      const attributeRows: ClassAttributeRow[] = (json_data.attributes ?? []).map(
+        (attribute, index) => ({
+          class_id: json_data.id,
+          attribute_code: requireClassAttribute(json_data.id, attribute),
+          sort_order: index + 1
+        })
+      )
 
       if (attributeRows.length > 0) {
-        await trx.insertInto('class_attributes').values(attributeRows)
-          .execute()
+        await trx.insertInto('class_attributes').values(attributeRows).execute()
       }
 
       await trx
@@ -597,10 +558,12 @@ export async function upsertClass(
           ability_code: requireAbilityCode(json_data.id, json_data.hitpoint.ability, 'Class'),
           die_config: json_data.hitpoint.dieConfig
         } satisfies ClassHitpointRow)
-        .onConflict((oc) => oc.column('class_id').doUpdateSet((eb) => ({
-          ability_code: eb.ref('excluded.ability_code'),
-          die_config: eb.ref('excluded.die_config')
-        })))
+        .onConflict((oc) =>
+          oc.column('class_id').doUpdateSet((eb) => ({
+            ability_code: eb.ref('excluded.ability_code'),
+            die_config: eb.ref('excluded.die_config')
+          }))
+        )
         .execute()
 
       await trx
@@ -611,11 +574,13 @@ export async function upsertClass(
           currency_id: json_data.startingGold.currencyId,
           die_config: json_data.startingGold.dieConfig
         } satisfies ClassStartingGoldRow)
-        .onConflict((oc) => oc.column('class_id').doUpdateSet((eb) => ({
-          multiplier: eb.ref('excluded.multiplier'),
-          currency_id: eb.ref('excluded.currency_id'),
-          die_config: eb.ref('excluded.die_config')
-        })))
+        .onConflict((oc) =>
+          oc.column('class_id').doUpdateSet((eb) => ({
+            multiplier: eb.ref('excluded.multiplier'),
+            currency_id: eb.ref('excluded.currency_id'),
+            die_config: eb.ref('excluded.die_config')
+          }))
+        )
         .execute()
 
       if (json_data.multiclass.proficiencies) {
@@ -632,64 +597,81 @@ export async function upsertClass(
         } satisfies ClassMulticlassRow)
         .execute()
 
-      const multiclassGroupRows: ClassMulticlassRequirementGroupRow[] = json_data.multiclass.requirementGroups.groups.map((group, index) => ({
-        id: group.id,
-        multiclass_id: json_data.multiclass.id,
-        sort_order: index + 1
-      }))
+      const multiclassGroupRows: ClassMulticlassRequirementGroupRow[] =
+        json_data.multiclass.requirementGroups.groups.map((group, index) => ({
+          id: group.id,
+          multiclass_id: json_data.multiclass.id,
+          sort_order: index + 1
+        }))
 
       if (multiclassGroupRows.length > 0) {
-        await trx.insertInto('class_multiclass_requirement_groups').values(multiclassGroupRows)
+        await trx
+          .insertInto('class_multiclass_requirement_groups')
+          .values(multiclassGroupRows)
           .execute()
       }
 
-      const multiclassRequirementRows: ClassMulticlassRequirementRow[] = json_data.multiclass.requirementGroups.groups.flatMap((group) => group.requirements.map((requirement, index) => ({
-        id: requirement.id,
-        requirement_group_id: group.id,
-        ability_code: requireAbilityCode(requirement.id, requirement.ability, 'Class multiclass requirement'),
-        min: requirement.min,
-        sort_order: index + 1
-      })))
+      const multiclassRequirementRows: ClassMulticlassRequirementRow[] =
+        json_data.multiclass.requirementGroups.groups.flatMap((group) =>
+          group.requirements.map((requirement, index) => ({
+            id: requirement.id,
+            requirement_group_id: group.id,
+            ability_code: requireAbilityCode(
+              requirement.id,
+              requirement.ability,
+              'Class multiclass requirement'
+            ),
+            min: requirement.min,
+            sort_order: index + 1
+          }))
+        )
 
       if (multiclassRequirementRows.length > 0) {
-        await trx.insertInto('class_multiclass_requirements').values(multiclassRequirementRows)
+        await trx
+          .insertInto('class_multiclass_requirements')
+          .values(multiclassRequirementRows)
           .execute()
       }
 
-      const multiclassProficiencyRows: ClassMulticlassProficiencyGrantRow[] = (json_data.multiclass.proficiencies ?? []).map((grant) => ({
+      const multiclassProficiencyRows: ClassMulticlassProficiencyGrantRow[] = (
+        json_data.multiclass.proficiencies ?? []
+      ).map((grant) => ({
         multiclass_id: json_data.multiclass.id,
         proficiency_grant_id: grant.id,
         sort_order: grant.order
       }))
 
       if (multiclassProficiencyRows.length > 0) {
-        await trx.insertInto('class_multiclass_proficiency_grants').values(multiclassProficiencyRows)
+        await trx
+          .insertInto('class_multiclass_proficiency_grants')
+          .values(multiclassProficiencyRows)
           .execute()
       }
     } else {
-      const attributeRows: ClassAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
-        class_id: json_data.id,
-        attribute_code: requireSubclassAttribute(json_data.id, attribute),
-        sort_order: index + 1
-      }))
+      const attributeRows: ClassAttributeRow[] = (json_data.attributes ?? []).map(
+        (attribute, index) => ({
+          class_id: json_data.id,
+          attribute_code: requireSubclassAttribute(json_data.id, attribute),
+          sort_order: index + 1
+        })
+      )
 
       if (attributeRows.length > 0) {
-        await trx.insertInto('class_attributes').values(attributeRows)
-          .execute()
+        await trx.insertInto('class_attributes').values(attributeRows).execute()
       }
 
-      const specializationRows: ClassSpecializationRow[] = (json_data.specializations ?? []).map((specialization) => ({
-        id: specialization.id,
-        class_id: json_data.id,
-        label: specialization.label,
-        sort_order: specialization.order
-      }))
+      const specializationRows: ClassSpecializationRow[] = (json_data.specializations ?? []).map(
+        (specialization) => ({
+          id: specialization.id,
+          class_id: json_data.id,
+          label: specialization.label,
+          sort_order: specialization.order
+        })
+      )
 
       if (specializationRows.length > 0) {
-        await trx.insertInto('class_specializations').values(specializationRows)
-          .execute()
+        await trx.insertInto('class_specializations').values(specializationRows).execute()
       }
     }
-
   })
 }

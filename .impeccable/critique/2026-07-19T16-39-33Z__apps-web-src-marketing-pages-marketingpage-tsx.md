@@ -6,6 +6,7 @@ p1_count: 2
 timestamp: 2026-07-19T16-39-33Z
 slug: apps-web-src-marketing-pages-marketingpage-tsx
 ---
+
 # Current Marketing Page Critique and Audit
 
 Method: dual-agent (A: /root/current_marketing_design · B: /root/current_marketing_evidence)
@@ -20,36 +21,36 @@ It is not yet launch-ready. The page promises a connected **Create → Connect �
 
 ## Design Health
 
-| Principle | Score | Assessment |
-|---|---:|---|
-| Visibility of system status | 2/4 | The mockup shows save state and authoring completion, but there is no proof that authored content reached the builder or sheet. |
-| Match between system and real world | 3/4 | Copy uses real tabletop language and product concepts. The pictured screen is plausible, but simplified. |
-| User control and freedom | 3/4 | Sign-in, signup, theme control, and section navigation are obvious. The marketing journey itself offers only one conversion path. |
-| Consistency and standards | 3/4 | Palette, type hierarchy, spacing, and CTA treatment are coherent across themes and breakpoints. Repeated card grammar becomes monotonous. |
-| Error prevention | 3/4 | Claims are mostly specific and credible. Calling the handcrafted mockup “Current Artificer Toolkit” creates an avoidable fidelity claim. |
-| Recognition rather than recall | 2/4 | The page names Create, Connect, and Play but asks visitors to imagine the latter two states. |
-| Flexibility and efficiency | 2/4 | The page speaks to several audiences, but does not provide a fast proof path for players versus homebrewers. |
-| Aesthetic and minimalist design | 2/4 | The hero is controlled and strong. The four-card feature grid and boxed final CTA add a recognizable generated-SaaS scaffold. |
-| Error recovery | 2/4 | Not a task-heavy flow, but there is no FAQ, trust/reassurance block, or alternative next step for hesitant visitors. |
-| Help and documentation | 1/4 | Product concepts are described, but onboarding expectations and what “free” includes are not explained. |
-| **Total** | **23/40** | **Solid foundation; major product-proof gap.** |
+| Principle                           |     Score | Assessment                                                                                                                                |
+| ----------------------------------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Visibility of system status         |       2/4 | The mockup shows save state and authoring completion, but there is no proof that authored content reached the builder or sheet.           |
+| Match between system and real world |       3/4 | Copy uses real tabletop language and product concepts. The pictured screen is plausible, but simplified.                                  |
+| User control and freedom            |       3/4 | Sign-in, signup, theme control, and section navigation are obvious. The marketing journey itself offers only one conversion path.         |
+| Consistency and standards           |       3/4 | Palette, type hierarchy, spacing, and CTA treatment are coherent across themes and breakpoints. Repeated card grammar becomes monotonous. |
+| Error prevention                    |       3/4 | Claims are mostly specific and credible. Calling the handcrafted mockup “Current Artificer Toolkit” creates an avoidable fidelity claim.  |
+| Recognition rather than recall      |       2/4 | The page names Create, Connect, and Play but asks visitors to imagine the latter two states.                                              |
+| Flexibility and efficiency          |       2/4 | The page speaks to several audiences, but does not provide a fast proof path for players versus homebrewers.                              |
+| Aesthetic and minimalist design     |       2/4 | The hero is controlled and strong. The four-card feature grid and boxed final CTA add a recognizable generated-SaaS scaffold.             |
+| Error recovery                      |       2/4 | Not a task-heavy flow, but there is no FAQ, trust/reassurance block, or alternative next step for hesitant visitors.                      |
+| Help and documentation              |       1/4 | Product concepts are described, but onboarding expectations and what “free” includes are not explained.                                   |
+| **Total**                           | **23/40** | **Solid foundation; major product-proof gap.**                                                                                            |
 
 ## Technical Audit
 
-| Dimension | Score | Key finding |
-|---|---:|---|
-| Accessibility | 2/4 | Strong landmarks, heading order, contrast, image labeling, and reduced-motion handling. Missing skip link; custom hash scrolling leaves focus in the header; the mobile brand target is 32px high. |
-| Performance | 3/4 | Static and animation-light, with no marketing image requests. The non-interactive product mockup hydrates roughly 98 JSX nodes and 14 icons. |
-| Theming | 4/4 | Light and dark themes both render cleanly using shared foundation tokens; sampled contrast passes AA. |
-| Responsive design | 3/4 | 1440×900 and 390×844 were inspected live with no horizontal overflow. Mobile composition is strong, but the page becomes long and the brand target misses 44px. |
-| Anti-patterns | 2/4 | Product-specific copy and the forge palette help, but the repeated icon-card grid, stacked kickers, and boxed CTA are familiar landing-page templates. |
-| **Total** | **14/20** | **Good, with focused accessibility and brand work remaining.** |
+| Dimension         |     Score | Key finding                                                                                                                                                                                        |
+| ----------------- | --------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accessibility     |       2/4 | Strong landmarks, heading order, contrast, image labeling, and reduced-motion handling. Missing skip link; custom hash scrolling leaves focus in the header; the mobile brand target is 32px high. |
+| Performance       |       3/4 | Static and animation-light, with no marketing image requests. The non-interactive product mockup hydrates roughly 98 JSX nodes and 14 icons.                                                       |
+| Theming           |       4/4 | Light and dark themes both render cleanly using shared foundation tokens; sampled contrast passes AA.                                                                                              |
+| Responsive design |       3/4 | 1440×900 and 390×844 were inspected live with no horizontal overflow. Mobile composition is strong, but the page becomes long and the brand target misses 44px.                                    |
+| Anti-patterns     |       2/4 | Product-specific copy and the forge palette help, but the repeated icon-card grid, stacked kickers, and boxed CTA are familiar landing-page templates.                                             |
+| **Total**         | **14/20** | **Good, with focused accessibility and brand work remaining.**                                                                                                                                     |
 
 ## Anti-pattern Verdict
 
 **LLM review: fail, moderate template risk.** The hero eyebrow, split hero, three mini highlights, four repeated icon/audience/title/copy cards, bordered final CTA, and bare footer combine into a common generated-SaaS structure. The product-specific writing keeps it from feeling generic end to end, but the middle of the page is less distinctive than the app it represents.
 
-**CLI detector:** 964 findings were emitted because the required command’s trailing `.` widened the scan to generated Storybook output, `.agents`, and `output`. **Zero findings were located in `apps/web/src/marketing/**`; all 964 are out-of-scope contaminants.**
+**CLI detector:** 964 findings were emitted because the required command’s trailing `.` widened the scan to generated Storybook output, `.agents`, and `output`. **Zero findings were located in `apps/web/src/marketing/**`; all 964 are out-of-scope contaminants.\*\*
 
 **Live browser detector:** injection succeeded and reported five anti-patterns. Three were false positives on TanStack devtools UI. Two “cramped padding” hits targeted the primary CTAs, but live measurement showed those controls are 44px high, so they are not actionable. Browser visibility remained false after the visibility request, so no reliable user-visible `[Human]` tab is claimed.
 

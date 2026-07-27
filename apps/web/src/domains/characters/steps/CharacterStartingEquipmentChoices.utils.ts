@@ -73,7 +73,12 @@ export function setStartingEquipmentGoldTotal(
   startingGold: StartingGold,
   totalGold: number
 ): CharacterStartingEquipmentDecision {
-  const nextDecision = setStartingEquipmentMode(decision, source, STARTING_EQUIPMENT_MODE.GOLD, startingGold)
+  const nextDecision = setStartingEquipmentMode(
+    decision,
+    source,
+    STARTING_EQUIPMENT_MODE.GOLD,
+    startingGold
+  )
 
   return {
     ...nextDecision,
@@ -97,7 +102,7 @@ export function setStartingEquipmentGroupOption(
   return {
     ...decision,
     groups: hasGroup
-      ? groups.map((group) => group.groupId === groupId ? nextGroup : group)
+      ? groups.map((group) => (group.groupId === groupId ? nextGroup : group))
       : [...groups, nextGroup]
   }
 }
@@ -123,7 +128,7 @@ export function ensureDefaultStartingEquipmentGroupOptions(
     }
 
     nextGroups = existing
-      ? nextGroups.map((selection) => selection.groupId === group.id ? nextSelection : selection)
+      ? nextGroups.map((selection) => (selection.groupId === group.id ? nextSelection : selection))
       : [...nextGroups, nextSelection]
   }
 
@@ -166,11 +171,12 @@ export function getStartingEquipmentSelections(
   groupId: string,
   selectionKey: string
 ): string[] {
-  return decision.groups
-    ?.find((group) => group.groupId === groupId)
-    ?.selections
-    ?.filter((selection) => selection.selectionKey === selectionKey)
-    .flatMap((selection) => expandSelectionQuantity(selection)) ?? []
+  return (
+    decision.groups
+      ?.find((group) => group.groupId === groupId)
+      ?.selections?.filter((selection) => selection.selectionKey === selectionKey)
+      .flatMap((selection) => expandSelectionQuantity(selection)) ?? []
+  )
 }
 
 export function getStartingEquipmentItemOptions(
@@ -193,8 +199,10 @@ export function formatStartingEquipmentOption(
   equipmentOptions: CharacterBuilderChoiceOptionDto[],
   currencyOptions: CharacterBuilderChoiceOptionDto[]
 ): string {
-  return formatStartingEquipmentItems(option.items, equipmentOptions, currencyOptions)
-    || `Option ${option.order}`
+  return (
+    formatStartingEquipmentItems(option.items, equipmentOptions, currencyOptions) ||
+    `Option ${option.order}`
+  )
 }
 
 export function formatStartingEquipmentItems(
@@ -221,7 +229,9 @@ export function formatStartingEquipmentItem(
 ): string {
   if (item.startingEquipmentKind === 'CURRENCY') {
     return item.currencies
-      .map((currency) => `${currency.amount} ${findOptionLabel(currencyOptions, currency.currencyId)}`)
+      .map(
+        (currency) => `${currency.amount} ${findOptionLabel(currencyOptions, currency.currencyId)}`
+      )
       .join(', ')
   }
 
@@ -239,20 +249,21 @@ export function formatStartingGoldOption(
   return `${startingGold.dieConfig} x ${startingGold.multiplier} ${currencyLabel}`
 }
 
-export function isStartingEquipmentDecision(value: unknown): value is CharacterStartingEquipmentDecision {
-  return Boolean(
-    value
-    && typeof value === 'object'
-    && 'source' in value
-    && 'tookGold' in value
-  )
+export function isStartingEquipmentDecision(
+  value: unknown
+): value is CharacterStartingEquipmentDecision {
+  return Boolean(value && typeof value === 'object' && 'source' in value && 'tookGold' in value)
 }
 
-export function isChosenStartingEquipmentItem(item: StartingEquipmentItem): item is ChosenStartingEquipmentItem {
-  return item.startingEquipmentKind === 'EQUIPMENT'
-    && 'selectionKind' in item
-    && item.selectionKind === 'CHOSEN'
-    && 'count' in item
+export function isChosenStartingEquipmentItem(
+  item: StartingEquipmentItem
+): item is ChosenStartingEquipmentItem {
+  return (
+    item.startingEquipmentKind === 'EQUIPMENT' &&
+    'selectionKind' in item &&
+    item.selectionKind === 'CHOSEN' &&
+    'count' in item
+  )
 }
 
 export function hasStartingEquipmentChoices(option: StartingEquipmentOption): boolean {
@@ -334,15 +345,17 @@ function formatStartingEquipmentTarget(
   equipmentOptions: CharacterBuilderChoiceOptionDto[]
 ): string {
   if ('equipmentIds' in item) {
-    return item.equipmentIds.map((equipmentId) => findOptionLabel(equipmentOptions, equipmentId)).join(' or ')
+    return item.equipmentIds
+      .map((equipmentId) => findOptionLabel(equipmentOptions, equipmentId))
+      .join(' or ')
   }
 
-  const propertyText = ('properties' in item ? item.properties ?? [] : [])
+  const propertyText = ('properties' in item ? (item.properties ?? []) : [])
     .map((property) => propertyLabels[property] ?? toReadableToken(property))
     .join(' ')
   const category = 'category' in item ? item.category : undefined
   const categoryText = category
-    ? categoryLabels[category] ?? toReadableToken(category)
+    ? (categoryLabels[category] ?? toReadableToken(category))
     : 'equipment'
 
   return [propertyText, categoryText].filter(Boolean).join(' ')

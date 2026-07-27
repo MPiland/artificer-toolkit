@@ -48,9 +48,11 @@ describe('handleTrpcRequest', () => {
     })
 
     const { handleTrpcRequest } = await import('./trpc')
-    await handleTrpcRequest(new Request('https://app.test/api/trpc/content.races.list', {
-      method: 'POST'
-    }))
+    await handleTrpcRequest(
+      new Request('https://app.test/api/trpc/content.races.list', {
+        method: 'POST'
+      })
+    )
 
     expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
       expect.any(Request),
@@ -90,9 +92,11 @@ describe('handleTrpcRequest', () => {
     })
 
     const { handleTrpcRequest } = await import('./trpc')
-    await handleTrpcRequest(new Request('https://app.test/api/trpc/content.races.list', {
-      method: 'POST'
-    }))
+    await handleTrpcRequest(
+      new Request('https://app.test/api/trpc/content.races.list', {
+        method: 'POST'
+      })
+    )
 
     expect(getClaims).toHaveBeenCalledTimes(1)
     expect(getUser).not.toHaveBeenCalled()

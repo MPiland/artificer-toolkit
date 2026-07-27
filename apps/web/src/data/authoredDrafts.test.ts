@@ -21,16 +21,19 @@ const draftBase = {
 
 describe('parseAuthoredDraftPayload', () => {
   it('returns parsed draft data when the payload matches the schema', () => {
-    const parsed = parseAuthoredDraftPayload({
-      ...draftBase,
-      payload: {
-        id: 'spell-1',
-        label: 'Fire Lace'
-      }
-    }, z.object({
-      id: z.string(),
-      label: z.string()
-    }))
+    const parsed = parseAuthoredDraftPayload(
+      {
+        ...draftBase,
+        payload: {
+          id: 'spell-1',
+          label: 'Fire Lace'
+        }
+      },
+      z.object({
+        id: z.string(),
+        label: z.string()
+      })
+    )
 
     expect(parsed).toMatchObject({
       isInvalid: false,
@@ -42,15 +45,18 @@ describe('parseAuthoredDraftPayload', () => {
   })
 
   it('marks malformed draft payloads invalid instead of throwing', () => {
-    const parsed = parseAuthoredDraftPayload({
-      ...draftBase,
-      payload: {
-        id: 'spell-1'
-      }
-    }, z.object({
-      id: z.string(),
-      label: z.string()
-    }))
+    const parsed = parseAuthoredDraftPayload(
+      {
+        ...draftBase,
+        payload: {
+          id: 'spell-1'
+        }
+      },
+      z.object({
+        id: z.string(),
+        label: z.string()
+      })
+    )
 
     expect(parsed).toMatchObject({
       isInvalid: true,

@@ -12,10 +12,7 @@ import {
   Swords
 } from 'lucide-react'
 import * as styles from './characterSheet.css'
-import {
-  CHARACTER_SHEET_MOBILE_PAGES,
-  getCharacterSheetPageIndex
-} from './characterSheetTabs'
+import { CHARACTER_SHEET_MOBILE_PAGES, getCharacterSheetPageIndex } from './characterSheetTabs'
 import type { CharacterSheetMobilePageId } from './CharacterSheet.types'
 
 const swipeThreshold = 52
@@ -41,13 +38,15 @@ export function CharacterSheetMobilePager({
   onPageChange: (page: CharacterSheetMobilePageId) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const touchStartRef = useRef<{ x: number, y: number } | null>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const activeIndex = getCharacterSheetPageIndex(activePage)
   const activePageLabel = CHARACTER_SHEET_MOBILE_PAGES[activeIndex]?.label ?? 'Overview'
-  const previousPage = activeIndex > 0 ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex - 1]?.id : undefined
-  const nextPage = activeIndex < CHARACTER_SHEET_MOBILE_PAGES.length - 1
-    ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex + 1]?.id
-    : undefined
+  const previousPage =
+    activeIndex > 0 ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex - 1]?.id : undefined
+  const nextPage =
+    activeIndex < CHARACTER_SHEET_MOBILE_PAGES.length - 1
+      ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex + 1]?.id
+      : undefined
 
   function goToPage(page: CharacterSheetMobilePageId) {
     setMenuOpen(false)
@@ -55,14 +54,14 @@ export function CharacterSheetMobilePager({
   }
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    const touch = event.touches.item(0)
+    const touch = event.touches[0]
     if (!touch) return
     touchStartRef.current = { x: touch.clientX, y: touch.clientY }
   }
 
   function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
     const touchStart = touchStartRef.current
-    const touch = event.changedTouches.item(0)
+    const touch = event.changedTouches[0]
     touchStartRef.current = null
     if (!touchStart || !touch) return
 
@@ -95,24 +94,24 @@ export function CharacterSheetMobilePager({
         title='Sheet sections'
         onClose={() => setMenuOpen(false)}
       >
-            <nav className={styles.mobilePageMenu} aria-label='Sheet sections'>
-              {CHARACTER_SHEET_MOBILE_PAGES.map((page) => {
-                const Icon = mobilePageIcons[page.id]
-                return (
-                  <Button
-                    className={styles.mobilePageMenuItem}
-                    data-active={page.id === activePage ? 'true' : undefined}
-                    key={page.id}
-                    leftSection={<Icon aria-hidden='true' size={16} />}
-                    size='sm'
-                    variant={page.id === activePage ? 'filled' : 'default'}
-                    onClick={() => goToPage(page.id)}
-                  >
-                    {page.label}
-                  </Button>
-                )
-              })}
-            </nav>
+        <nav className={styles.mobilePageMenu} aria-label='Sheet sections'>
+          {CHARACTER_SHEET_MOBILE_PAGES.map((page) => {
+            const Icon = mobilePageIcons[page.id]
+            return (
+              <Button
+                className={styles.mobilePageMenuItem}
+                data-active={page.id === activePage ? 'true' : undefined}
+                key={page.id}
+                leftSection={<Icon aria-hidden='true' size={16} />}
+                size='sm'
+                variant={page.id === activePage ? 'filled' : 'default'}
+                onClick={() => goToPage(page.id)}
+              >
+                {page.label}
+              </Button>
+            )
+          })}
+        </nav>
       </Drawer>
 
       <div className={styles.mobileFloatingDock}>

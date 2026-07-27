@@ -83,31 +83,33 @@ export function AppMultiSelect({
         withinPortal: true,
         ...comboboxProps
       }}
-      classNames={typeof classNames === 'function'
-        ? (theme, multiSelectProps, context) => ({
-            root: selectStyles.root,
-            label: selectStyles.label,
-            description: selectStyles.description,
-            required: selectStyles.required,
-            input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
-            dropdown: selectStyles.dropdown,
-            option: selectStyles.option,
-            pillsList: selectStyles.pillsList,
-            inputField: selectStyles.inputField,
-            ...classNames(theme, multiSelectProps, context)
-          })
-        : {
-            root: selectStyles.root,
-            label: selectStyles.label,
-            description: selectStyles.description,
-            required: selectStyles.required,
-            input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
-            dropdown: selectStyles.dropdown,
-            option: selectStyles.option,
-            pillsList: selectStyles.pillsList,
-            inputField: selectStyles.inputField,
-            ...classNames
-          }}
+      classNames={
+        typeof classNames === 'function'
+          ? (theme, multiSelectProps, context) => ({
+              root: selectStyles.root,
+              label: selectStyles.label,
+              description: selectStyles.description,
+              required: selectStyles.required,
+              input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
+              dropdown: selectStyles.dropdown,
+              option: selectStyles.option,
+              pillsList: selectStyles.pillsList,
+              inputField: selectStyles.inputField,
+              ...classNames(theme, multiSelectProps, context)
+            })
+          : {
+              root: selectStyles.root,
+              label: selectStyles.label,
+              description: selectStyles.description,
+              required: selectStyles.required,
+              input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
+              dropdown: selectStyles.dropdown,
+              option: selectStyles.option,
+              pillsList: selectStyles.pillsList,
+              inputField: selectStyles.inputField,
+              ...classNames
+            }
+      }
       renderPill={renderPill ?? renderAppMultiSelectPill}
       {...props}
     />

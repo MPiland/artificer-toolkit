@@ -95,9 +95,7 @@ const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 function requireLocalDatabaseUrl(): string {
   const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) {
-    throw new Error(
-      'DATABASE_CONNECTION_STRING is required for the SRD integration gate.'
-    )
+    throw new Error('DATABASE_CONNECTION_STRING is required for the SRD integration gate.')
   }
 
   let host: string
@@ -258,11 +256,13 @@ async function assertStartingEquipmentEligibilityOwnership(
     'Every authored starting-equipment eligibility facet must be persisted.'
   )
   assert.deepStrictEqual(
-    optionRows.map((row) => row.eligibility_facet_id).sort((left, right) => {
-      const leftValue = String(left)
-      const rightValue = String(right)
-      return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0
-    }),
+    optionRows
+      .map((row) => row.eligibility_facet_id)
+      .sort((left, right) => {
+        const leftValue = String(left)
+        const rightValue = String(right)
+        return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0
+      }),
     expectedIds,
     'Every starting-equipment eligibility facet must be owned by exactly one option.'
   )

@@ -61,14 +61,13 @@ export const CharacterBuilderRenderer = withForm({
     )
     const payloadFormValues = useMemo(() => toCharacterFormValues(payload), [payload])
     const resolutionPending =
-      immediateResolutionFingerprint !== getCharacterBuilderImmediateResolutionFingerprint(payloadFormValues)
-      || deferredResolutionFingerprint !== getCharacterBuilderDeferredResolutionFingerprint(payloadFormValues)
+      immediateResolutionFingerprint !==
+        getCharacterBuilderImmediateResolutionFingerprint(payloadFormValues) ||
+      deferredResolutionFingerprint !==
+        getCharacterBuilderDeferredResolutionFingerprint(payloadFormValues)
     const [isResolving, setIsResolving] = useState(false)
     const progressState = useMemo(
-      () => getCharacterBuilderProgressState(
-        payload,
-        isResolving ? payloadFormValues : values
-      ),
+      () => getCharacterBuilderProgressState(payload, isResolving ? payloadFormValues : values),
       [isResolving, payload, payloadFormValues, values]
     )
     const latestValuesRef = useRef(values)
@@ -98,11 +97,14 @@ export const CharacterBuilderRenderer = withForm({
       resolveRequestIdRef.current = requestId
       setIsResolving(true)
       startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.RESOLUTION_INTENT)
-      const timeoutId = window.setTimeout(() => {
-        void Promise.resolve(onResolve(latestValuesRef.current)).finally(() => {
-          if (resolveRequestIdRef.current === requestId) setIsResolving(false)
-        })
-      }, resolvesImmediately ? 0 : resolveDebounceMs)
+      const timeoutId = window.setTimeout(
+        () => {
+          void Promise.resolve(onResolve(latestValuesRef.current)).finally(() => {
+            if (resolveRequestIdRef.current === requestId) setIsResolving(false)
+          })
+        },
+        resolvesImmediately ? 0 : resolveDebounceMs
+      )
 
       return () => window.clearTimeout(timeoutId)
     }, [
@@ -143,12 +145,7 @@ export const CharacterBuilderRenderer = withForm({
         canSubmit: submitState.canSubmit && payload.view.review.ready,
         isSubmitting: submitState.isSubmitting
       }),
-      [
-        progressState,
-        payload.view.review.ready,
-        submitState.canSubmit,
-        submitState.isSubmitting
-      ]
+      [progressState, payload.view.review.ready, submitState.canSubmit, submitState.isSubmitting]
     )
 
     useEffect(() => {
@@ -159,7 +156,9 @@ export const CharacterBuilderRenderer = withForm({
       <div ref={markBuilderShellReady} className={styles.builderRoot}>
         <div className={styles.builderHeader}>
           <div>
-            <h2 id='character-builder-active-step-title' className={styles.title}>{activeStep.label}</h2>
+            <h2 id='character-builder-active-step-title' className={styles.title}>
+              {activeStep.label}
+            </h2>
             <Text className={styles.stepDescription}>{activeStep.description}</Text>
           </div>
         </div>

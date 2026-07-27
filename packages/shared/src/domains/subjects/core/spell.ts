@@ -11,10 +11,7 @@ export type SpellAttribute = keyof typeof SPELL_ATTRIBUTE
 
 export type SpellAttributeOption = CoreMeta<SpellAttribute>
 
-export const SPELL_ATTRIBUTE_REGISTRY: Record<
-  SpellAttribute,
-  SpellAttributeOption
-> = {
+export const SPELL_ATTRIBUTE_REGISTRY: Record<SpellAttribute, SpellAttributeOption> = {
   CONCENTRATION: {
     code: SPELL_ATTRIBUTE.CONCENTRATION,
     label: 'Concentration',
@@ -34,8 +31,7 @@ export const SPELL_ATTRIBUTE_REGISTRY: Record<
   ADDS_TO_WEAPON_ATTACK: {
     code: SPELL_ATTRIBUTE.ADDS_TO_WEAPON_ATTACK,
     label: 'Adds to Weapon Attack',
-    tooltip:
-      'The spell adds to the weapon attack.',
+    tooltip: 'The spell adds to the weapon attack.',
     description: 'The spell adds to the weapon attack.'
   }
 } as const
@@ -54,10 +50,7 @@ export type SpellComponent = keyof typeof SPELL_COMPONENT
 
 export type SpellComponentOption = CoreMeta<SpellComponent>
 
-export const SPELL_COMPONENT_REGISTRY: Record<
-  SpellComponent,
-  SpellComponentOption
-> = {
+export const SPELL_COMPONENT_REGISTRY: Record<SpellComponent, SpellComponentOption> = {
   VERBAL: {
     code: SPELL_COMPONENT.VERBAL,
     label: 'Verbal',
@@ -92,10 +85,7 @@ export type CastingTimeUnitCode = keyof typeof CASTING_TIME_UNIT_CODE
 
 export type CastingTimeUnitOption = CoreMeta<CastingTimeUnitCode>
 
-export const CASTING_TIME_UNIT_REGISTRY: Record<
-  CastingTimeUnitCode,
-  CastingTimeUnitOption
-> = {
+export const CASTING_TIME_UNIT_REGISTRY: Record<CastingTimeUnitCode, CastingTimeUnitOption> = {
   [CASTING_TIME_UNIT_CODE.ROUND]: {
     code: CASTING_TIME_UNIT_CODE.ROUND,
     label: 'Round',
@@ -132,10 +122,7 @@ export type ConcentrationTypeCode = keyof typeof CONCENTRATION_TYPE_CODE
 
 export type ConcentrationTypeOption = CoreMeta<ConcentrationTypeCode>
 
-export const CONCENTRATION_TYPE_REGISTRY: Record<
-  ConcentrationTypeCode,
-  ConcentrationTypeOption
-> = {
+export const CONCENTRATION_TYPE_REGISTRY: Record<ConcentrationTypeCode, ConcentrationTypeOption> = {
   [CONCENTRATION_TYPE_CODE.NONE]: {
     code: CONCENTRATION_TYPE_CODE.NONE,
     label: 'No Concentration',
@@ -152,8 +139,7 @@ export const CONCENTRATION_TYPE_REGISTRY: Record<
   [CONCENTRATION_TYPE_CODE.AFTER_CASTING]: {
     code: CONCENTRATION_TYPE_CODE.AFTER_CASTING,
     label: 'After Casting',
-    description:
-      'Concentration must be maintained after the spell is cast to sustain its effects.',
+    description: 'Concentration must be maintained after the spell is cast to sustain its effects.',
     tooltip: 'Concentration required to sustain effects.'
   }
 } as const

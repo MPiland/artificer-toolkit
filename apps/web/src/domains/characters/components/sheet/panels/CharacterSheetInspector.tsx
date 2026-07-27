@@ -16,7 +16,8 @@ export function CharacterSheetInspector({
   target,
   submitCommand,
   onClose,
-  onTargetChange
+  onTargetChange,
+  onOpenBuilder
 }: {
   characterId: string
   commandError?: string
@@ -26,6 +27,7 @@ export function CharacterSheetInspector({
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
+  onOpenBuilder: () => void
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
   const panelQuery = useQuery(getCharacterSheetPanel(characterId, target))
@@ -47,49 +49,41 @@ export function CharacterSheetInspector({
       title={panelQuery.data?.title ?? 'Character details'}
       onClose={onClose}
     >
-      {pending
-        ? (
-            <Alert color='blue' role='status' title='Saving changes'>
-              Updating the character sheet…
-            </Alert>
-          )
-        : null}
-      {commandError
-        ? (
-            <Alert color='red' role='alert' title='Character sheet update failed'>
-              {commandError}
-            </Alert>
-          )
-        : null}
-      {panelQuery.isPending
-        ? (
-            <div className={styles.loading} aria-label='Loading character details'>
-              <Skeleton height={24} width='45%' />
-              <Skeleton height={64} />
-              <Skeleton height={16} width='72%' />
-              <Skeleton height={120} />
-              <Skeleton height={160} />
-            </div>
-          )
-        : panelQuery.error
-          ? (
-              <div className={styles.section}>
-                <Alert color='red' title='Character details unavailable'>
-                  {panelQuery.error.message}
-                </Alert>
-              </div>
-            )
-          : panelQuery.data
-            ? (
-                <CharacterSheetInspectorContent
-                  expectedVersion={expectedVersion}
-                  panel={panelQuery.data}
-                  pending={pending}
-                  submitCommand={submitCommand}
-                  onTargetChange={onTargetChange}
-                />
-              )
-            : null}
+      {pending ? (
+        <Alert color='blue' role='status' title='Saving changes'>
+          Updating the character sheet…
+        </Alert>
+      ) : null}
+      {commandError ? (
+        <Alert color='red' role='alert' title='Character sheet update failed'>
+          {commandError}
+        </Alert>
+      ) : null}
+      {panelQuery.isPending ? (
+        <div className={styles.loading} aria-label='Loading character details'>
+          <Skeleton height={24} width='45%' />
+          <Skeleton height={64} />
+          <Skeleton height={16} width='72%' />
+          <Skeleton height={120} />
+          <Skeleton height={160} />
+        </div>
+      ) : panelQuery.error ? (
+        <div className={styles.section}>
+          <Alert color='red' title='Character details unavailable'>
+            {panelQuery.error.message}
+          </Alert>
+        </div>
+      ) : panelQuery.data ? (
+        <CharacterSheetInspectorContent
+          expectedVersion={expectedVersion}
+          panel={panelQuery.data}
+          pending={pending}
+          submitCommand={submitCommand}
+          onClose={onClose}
+          onTargetChange={onTargetChange}
+          onOpenBuilder={onOpenBuilder}
+        />
+      ) : null}
     </Drawer>
   )
 }

@@ -13,10 +13,12 @@ describe('same-origin request security', () => {
   })
 
   it('allows same-origin tRPC writes with the adapter marker header', () => {
-    const headers = applySameOriginRequestHeader(new Headers({
-      Origin: 'https://app.test',
-      'Sec-Fetch-Site': 'same-origin'
-    }))
+    const headers = applySameOriginRequestHeader(
+      new Headers({
+        Origin: 'https://app.test',
+        'Sec-Fetch-Site': 'same-origin'
+      })
+    )
     const request = new Request('https://app.test/api/trpc/content.spells.saveDraft', {
       headers,
       method: 'POST'
@@ -38,9 +40,11 @@ describe('same-origin request security', () => {
   })
 
   it('blocks writes with a mismatched referer even when a marker header is present', () => {
-    const headers = applySameOriginRequestHeader(new Headers({
-      Referer: 'https://evil.test/page'
-    }))
+    const headers = applySameOriginRequestHeader(
+      new Headers({
+        Referer: 'https://evil.test/page'
+      })
+    )
     const request = new Request('https://app.test/api/trpc/content.spells.saveDraft', {
       headers,
       method: 'POST'

@@ -31,8 +31,7 @@ export const DAMAGE_VALUE_REGISTRY: Record<DamageValueKind, DamageValueOption> =
     code: DAMAGE_VALUE_KIND.FIXED,
     label: 'Fixed Value',
     description: 'Damage is determined by a fixed numeric expression.',
-    tooltip:
-      'Use a fixed value or a value derived from level, ability, or proficiency.'
+    tooltip: 'Use a fixed value or a value derived from level, ability, or proficiency.'
   },
 
   [DAMAGE_VALUE_KIND.POOL]: {
@@ -55,30 +54,28 @@ export type DamageBonusKind = keyof typeof DAMAGE_BONUS_KIND
 
 export type DamageBonusOption = CoreMeta<DamageBonusKind>
 
-export const DAMAGE_BONUS_REGISTRY: Record<DamageBonusKind, DamageBonusOption>
-  = {
-    [DAMAGE_BONUS_KIND.ABILITY_BONUS]: {
-      code: DAMAGE_BONUS_KIND.ABILITY_BONUS,
-      label: 'Ability Bonus',
-      tooltip: 'Adds ability bonus to damage.',
-      description: 'Uses a chosen ability bonus for to add to the damage.'
-    },
+export const DAMAGE_BONUS_REGISTRY: Record<DamageBonusKind, DamageBonusOption> = {
+  [DAMAGE_BONUS_KIND.ABILITY_BONUS]: {
+    code: DAMAGE_BONUS_KIND.ABILITY_BONUS,
+    label: 'Ability Bonus',
+    tooltip: 'Adds ability bonus to damage.',
+    description: 'Uses a chosen ability bonus for to add to the damage.'
+  },
 
-    [DAMAGE_BONUS_KIND.SKILL_BONUS]: {
-      code: DAMAGE_BONUS_KIND.SKILL_BONUS,
-      label: 'Skill Bonus',
-      tooltip: 'Adds skill bonus to damage.',
-      description: 'Uses a chosen skill bonus for to add to the damage.'
-    },
+  [DAMAGE_BONUS_KIND.SKILL_BONUS]: {
+    code: DAMAGE_BONUS_KIND.SKILL_BONUS,
+    label: 'Skill Bonus',
+    tooltip: 'Adds skill bonus to damage.',
+    description: 'Uses a chosen skill bonus for to add to the damage.'
+  },
 
-    [DAMAGE_BONUS_KIND.PROFICIENCY_BONUS]: {
-      code: DAMAGE_BONUS_KIND.PROFICIENCY_BONUS,
-      label: 'Proficiency Bonus',
-      tooltip: 'Adds proficiency bonus to damage.',
-      description:
-        'Uses character\'s proficiency bonus for to add to the damage.'
-    }
+  [DAMAGE_BONUS_KIND.PROFICIENCY_BONUS]: {
+    code: DAMAGE_BONUS_KIND.PROFICIENCY_BONUS,
+    label: 'Proficiency Bonus',
+    tooltip: 'Adds proficiency bonus to damage.',
+    description: "Uses character's proficiency bonus for to add to the damage."
   }
+}
 
 export const DAMAGE_BONUS_OPTIONS = valuesOf(DAMAGE_BONUS_REGISTRY) as readonly DamageBonusOption[]
 
@@ -91,7 +88,10 @@ export type SaveSuccessOutcomeKind = keyof typeof SAVE_SUCCESS_OUTCOME_KIND
 
 export type SaveSuccessOutcomeOption = CoreMeta<SaveSuccessOutcomeKind>
 
-export const SAVE_SUCCESS_OUTCOME_REGISTRY: Record<SaveSuccessOutcomeKind, SaveSuccessOutcomeOption> = {
+export const SAVE_SUCCESS_OUTCOME_REGISTRY: Record<
+  SaveSuccessOutcomeKind,
+  SaveSuccessOutcomeOption
+> = {
   [SAVE_SUCCESS_OUTCOME_KIND.NONE]: {
     code: SAVE_SUCCESS_OUTCOME_KIND.NONE,
     label: 'No Effect On Success',

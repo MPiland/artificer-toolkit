@@ -9,9 +9,7 @@ export interface CreateEmptyFeatInput {
   systemId: string
 }
 
-export function createEmptyFeat({
-  systemId
-}: CreateEmptyFeatInput): FeatAuthoringInputDto {
+export function createEmptyFeat({ systemId }: CreateEmptyFeatInput): FeatAuthoringInputDto {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -28,7 +26,9 @@ export function resolveCreateFeatSystemId(systems: readonly { id: string }[]): s
   return systems[0]?.id ?? null
 }
 
-export function normalizeFeatForSubmit(feat: FeatAuthoringInputDto | FeatAuthoredDto): FeatAuthoringInputDto {
+export function normalizeFeatForSubmit(
+  feat: FeatAuthoringInputDto | FeatAuthoredDto
+): FeatAuthoringInputDto {
   return {
     ...feat,
     label: feat.label.trim() || 'Untitled Feat',
@@ -80,13 +80,11 @@ export function createEmptyGrants(): NonNullable<FeatAuthoredDto['grants']> {
 export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const exists = items.some((current) => current.id === item.id)
   return exists
-    ? items.map((current) => current.id === item.id ? item : current)
+    ? items.map((current) => (current.id === item.id ? item : current))
     : [...items, item]
 }
 
-function normalizeFeatGrants(
-  grants: FeatAuthoredDto['grants']
-): FeatAuthoredDto['grants'] {
+function normalizeFeatGrants(grants: FeatAuthoredDto['grants']): FeatAuthoredDto['grants'] {
   if (!grants) return undefined
 
   const next = {

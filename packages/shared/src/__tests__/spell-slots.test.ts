@@ -96,10 +96,13 @@ describe('spell slot resolver', () => {
       })
     ])
 
-    const slots = resolveSpellSlots(createSnapshot([
-      { classId: 'wizard', level: 1 },
-      { classId: 'cleric', level: 1 }
-    ]), registry)
+    const slots = resolveSpellSlots(
+      createSnapshot([
+        { classId: 'wizard', level: 1 },
+        { classId: 'cleric', level: 1 }
+      ]),
+      registry
+    )
 
     expect(slots.fusionStrategy).toBe('MULTICLASS_FUSED')
     expect(slots.maxByLevel).toEqual({ 1: 3 })

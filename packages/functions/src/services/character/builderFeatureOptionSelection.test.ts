@@ -18,11 +18,12 @@ vi.mock('@artificer-toolkit/db', () => ({
       repositoryState.races.find((record) => record.id === id) ?? null
   }),
   createClassRepository: () => ({
-    findByIds: async (ids: readonly string[]) => new Map(
-      repositoryState.classes
-        .filter((record) => ids.includes(record.id))
-        .map((record) => [record.id, record])
-    )
+    findByIds: async (ids: readonly string[]) =>
+      new Map(
+        repositoryState.classes
+          .filter((record) => ids.includes(record.id))
+          .map((record) => [record.id, record])
+      )
   }),
   createBackgroundRepository: () => ({ findByIds: async () => new Map() }),
   createEquipmentRepository: () => ({ findResolvedById: async () => null }),
@@ -48,9 +49,9 @@ vi.mock('@artificer-toolkit/db', () => ({
       id: record.id,
       label: record.label,
       category: record.category,
-      parentClassId: 'parentClassId' in record ? record.parentClassId ?? null : null,
+      parentClassId: 'parentClassId' in record ? (record.parentClassId ?? null) : null,
       subclassSelectionLevel:
-        'subclassSelectionLevel' in record ? record.subclassSelectionLevel ?? null : null
+        'subclassSelectionLevel' in record ? (record.subclassSelectionLevel ?? null) : null
     })),
     meta: { categories: [], parentClasses: [], multiclass: [], features: [] }
   }),
@@ -120,9 +121,7 @@ function createCharacter(selectedOptionIds: string[]) {
   })
   character.intent.race = { raceId: 'half-elf' }
   character.intent.classes = [{ classId: 'fighter', classLevel: 1 }]
-  character.intent.hitpoints.levels = [
-    { level: 1, classId: 'fighter', classLevel: 1, value: 10 }
-  ]
+  character.intent.hitpoints.levels = [{ level: 1, classId: 'fighter', classLevel: 1, value: 10 }]
   character.intent.featureAcquisitions = [
     {
       id: 'half-elf-ability-choice',
@@ -169,10 +168,12 @@ describe('character Builder feature option selection', () => {
       'create'
     )
 
-    expect(resolution.validations).toContainEqual(expect.objectContaining({
-      code,
-      severity: 'blocking'
-    }))
+    expect(resolution.validations).toContainEqual(
+      expect.objectContaining({
+        code,
+        severity: 'blocking'
+      })
+    )
     expect(resolution.readiness.ready).toBe(false)
   })
 

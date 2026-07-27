@@ -15,14 +15,14 @@ export const giantOctopus: CreatureAuthored = {
     CONSTITUTION: 13,
     INTELLIGENCE: 4,
     WISDOM: 10,
-    CHARISMA: 4,
+    CHARISMA: 4
   },
   armorClass: 11,
   hitPoints: 52,
   hitDice: {
     count: 8,
     die: 10,
-    modifier: 8,
+    modifier: 8
   },
   speeds: [...S.walk(10), ...S.swim(60)],
   proficiencies: [S.grantedSkillProficiency(3505, 1, 'PERCEPTION', 'STEALTH')],
@@ -40,21 +40,23 @@ export const giantOctopus: CreatureAuthored = {
     {
       id: S.featureId(128, 2),
       label: 'Underwater Camouflage',
-      description: 'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
+      description:
+        'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
       order: 2
     },
     {
       id: S.featureId(128, 3),
       label: 'Tentacles',
-      description: 'Tentacles. Melee Weapon Attack: +5 to hit, reach 15 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage. The target is grappled (escape DC 16). Until this grapple ends, the target is restrained and the octopus cannot use tentacles on another target.',
+      description:
+        'Tentacles. Melee Weapon Attack: +5 to hit, reach 15 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage. The target is grappled (escape DC 16). Until this grapple ends, the target is restrained and the octopus cannot use tentacles on another target.',
       order: 3
     },
     {
       id: S.featureId(128, 4),
       label: 'Ink Cloud (Recharges after a Short or Long Rest)',
-      description: 'Ink Cloud (Recharges after a Short or Long Rest). A 20-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, though a significant current can disperse the ink. After releasing the ink, the octopus can take the Dash action as a bonus action.',
+      description:
+        'Ink Cloud (Recharges after a Short or Long Rest). A 20-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, though a significant current can disperse the ink. After releasing the ink, the octopus can take the Dash action as a bonus action.',
       order: 4
     }
   ]
 }
-

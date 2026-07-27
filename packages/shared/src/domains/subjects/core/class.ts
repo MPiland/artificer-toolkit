@@ -10,22 +10,17 @@ export type ClassCategory = keyof typeof CLASS_CATEGORY
 
 export type ClassCategoryOption = CoreMeta<ClassCategory>
 
-export const CLASS_CATEGORY_REGISTRY: Record<
-  ClassCategory,
-  ClassCategoryOption
-> = {
+export const CLASS_CATEGORY_REGISTRY: Record<ClassCategory, ClassCategoryOption> = {
   BASE: {
     code: CLASS_CATEGORY.BASE,
     label: 'Base Class',
-    description:
-      'A primary class selection that defines a character progression path.'
+    description: 'A primary class selection that defines a character progression path.'
   },
 
   SUBCLASS: {
     code: CLASS_CATEGORY.SUBCLASS,
     label: 'Subclass',
-    description:
-      'A specialization of a base class that modifies or extends its progression.'
+    description: 'A specialization of a base class that modifies or extends its progression.'
   }
 } as const
 
@@ -76,7 +71,8 @@ export const SUBCLASS_ATTRIBUTE_REGISTRY: Record<SubclassAttribute, SubclassAttr
   SPECIALIZATION: {
     code: SUBCLASS_ATTRIBUTE.SPECIALIZATION,
     label: 'Specialization',
-    description: 'The subclass has a persistent specialization identity, such as Druid Circle of the Land terrain or Barbarian totem path.',
+    description:
+      'The subclass has a persistent specialization identity, such as Druid Circle of the Land terrain or Barbarian totem path.',
     tooltip: 'Defines a lasting specialization within the subclass.'
   }
 } as const
@@ -165,7 +161,7 @@ export const PREPARE_LIMIT_METHOD_REGISTRY: Record<
     label: 'Spellcasting Ability',
     tooltip: 'Preparation limit is based on a spellcasting ability.',
     description:
-      'The number of spells that can be prepared is determined using the class\'s spellcasting ability.'
+      "The number of spells that can be prepared is determined using the class's spellcasting ability."
   },
 
   [PREPARE_LIMIT_METHOD_KIND.CLASS_LEVEL]: {
@@ -173,7 +169,7 @@ export const PREPARE_LIMIT_METHOD_REGISTRY: Record<
     label: 'Class Level',
     tooltip: 'Preparation limit is based on class level.',
     description:
-      'The number of spells that can be prepared scales with the character\'s level in this class.'
+      "The number of spells that can be prepared scales with the character's level in this class."
   },
 
   [PREPARE_LIMIT_METHOD_KIND.PER_LEVEL]: {

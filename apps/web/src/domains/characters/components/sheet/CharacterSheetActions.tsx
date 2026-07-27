@@ -1,35 +1,59 @@
 import { useState } from 'react'
-import { Badge, Text } from '@mantine/core'
-import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import {
-  CharacterSheetDetailPanel,
-  CharacterSheetDetailRow,
-  CharacterSheetDetailRowList
-} from './CharacterSheetDetailPanel'
+import { Button, Text } from '@mantine/core'
+import { CharacterSheetDetailPanel } from './CharacterSheetDetailPanel'
 import * as styles from './characterSheet.css'
-import type { CharacterSheet } from './CharacterSheet.types'
-import { summarizeCharacterSheetMechanics } from './characterSheetMechanics.utils'
 import {
   CHARACTER_SHEET_ACTION_FILTERS,
-  filterPlayableActions,
-  formatPlayableActionKind,
+  formatPlayableActionSummary,
   getPlayableActions,
-  type CharacterSheetActionFilter
+  type CharacterSheetActionFilter,
+  type CharacterSheetPlayableAction
 } from './characterSheetActions.utils'
+import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 
-export function CharacterSheetActions({ sheet }: { sheet: CharacterSheet }) {
+export function CharacterSheetActions({
+  hideTitle,
+  openPanel,
+  pending,
+  sheet,
+  submitCommand
+}: CharacterSheetSectionProps & { hideTitle?: boolean }) {
+  const version = sheet.meta.streamVersion
   const actions = getPlayableActions(sheet)
   const [activeFilter, setActiveFilter] = useState<CharacterSheetActionFilter>('ALL')
-  const filteredActions = filterPlayableActions(actions, activeFilter)
+  const [failedResourceId, setFailedResourceId] = useState<string>()
+  const availableFilters = CHARACTER_SHEET_ACTION_FILTERS.filter(
+    (filter) =>
+      filter.id === 'ALL' ||
+      (filter.id === 'LIMITED_USE'
+        ? actions.some((action) => action.resource)
+        : actions.some((action) => action.kind === filter.id && !action.limitedUseOnly))
+  )
+  const visibleGroups = CHARACTER_SHEET_ACTION_FILTERS.filter(
+    (filter) => filter.id !== 'ALL' && filter.id !== 'LIMITED_USE'
+  )
+    .filter(
+      (filter) =>
+        activeFilter === 'ALL' || activeFilter === 'LIMITED_USE' || filter.id === activeFilter
+    )
+    .map((filter) => ({
+      ...filter,
+      actions: actions.filter(
+        (action) =>
+          action.kind === filter.id &&
+          (activeFilter === 'LIMITED_USE' ? Boolean(action.resource) : !action.limitedUseOnly)
+      )
+    }))
+    .filter((group) => group.actions.length > 0)
 
   return (
     <CharacterSheetDetailPanel
       ariaId='character-sheet-actions'
-      description='Attacks, turn actions, reactions, and limited-use options.'
+      hideTitle={hideTitle}
       title='Actions'
     >
       <div className={styles.actionFilterBar} aria-label='Action type filters' role='toolbar'>
-        {CHARACTER_SHEET_ACTION_FILTERS.map((filter) => (
+        {availableFilters.map((filter) => (
           <button
             aria-pressed={activeFilter === filter.id}
             className={styles.actionFilterChip}
@@ -42,43 +66,206 @@ export function CharacterSheetActions({ sheet }: { sheet: CharacterSheet }) {
           </button>
         ))}
       </div>
-      <CharacterSheetDetailRowList>
-        {filteredActions.length
-          ? filteredActions.map((action) => {
-              const mechanicSummaries = summarizeCharacterSheetMechanics(action.mechanics)
+      <div className={styles.actionCompactList}>
+        {visibleGroups.length ? (
+          visibleGroups.map((group) => (
+            <section className={styles.actionGroup} key={group.id}>
+              <Text className={styles.actionGroupTitle} component='h3'>
+                {group.label}
+              </Text>
+              {group.id === 'ATTACK' && activeFilter !== 'LIMITED_USE' ? (
+                <div
+                  aria-hidden='true'
+                  className={`${styles.actionDataHeader} ${styles.actionAttackColumns}`}
+                >
+                  <span>Name</span>
+                  <span>Range</span>
+                  <span>Hit / DC</span>
+                  <span>Damage</span>
+                </div>
+              ) : null}
+              <div className={styles.actionGroupRows}>
+                {group.actions.map((action) => {
+                  const resource = action.resource
+                  const target = action.target
+                  const isTabularAttack = action.kind === 'ATTACK' && activeFilter !== 'LIMITED_USE'
+                  const effect =
+                    action.kind === 'ATTACK' && !isTabularAttack
+                      ? (action.description ?? action.playFacts?.effect ?? undefined)
+                      : (formatPlayableActionSummary(action) ??
+                        action.playFacts?.effect ??
+                        undefined)
 
-              return (
-                <CharacterSheetDetailRow
-                  ariaLabel={action.label}
-                  key={action.id}
-                  left={(
-                    <>
-                      <Text className={styles.playRowTitle}>{action.label}</Text>
-                      <Text className={styles.muted}>{action.sourceLabel ?? 'Character'}</Text>
-                      {action.detail ? <Text className={styles.muted}>{action.detail}</Text> : null}
-                      {mechanicSummaries.length
-                        ? (
-                            <div className={styles.mechanicList}>
-                              {mechanicSummaries.map((mechanic) => (
-                                <div className={styles.mechanicBlock} key={mechanic.effectId}>
-                                  {mechanic.facts ? <Text className={styles.mechanicFacts}>{mechanic.facts}</Text> : null}
-                                  {mechanic.outcomes.map((outcome) => (
-                                    <Text className={styles.mechanicOutcome} key={outcome}>{outcome}</Text>
-                                  ))}
-                                </div>
-                              ))}
+                  if (!isTabularAttack)
+                    return (
+                      <div
+                        aria-label={action.label}
+                        className={styles.actionDescriptionRow}
+                        key={action.id}
+                        role='group'
+                      >
+                        <div className={styles.actionDescriptionHeading}>
+                          <div className={styles.actionDescriptionIdentity}>
+                            {target ? (
+                              <button
+                                className={styles.actionIdentityButton}
+                                type='button'
+                                onClick={() => openPanel?.(target)}
+                              >
+                                {action.label}
+                              </button>
+                            ) : (
+                              <Text className={styles.playRowTitle} component='span'>
+                                {action.label}
+                              </Text>
+                            )}
+                            {action.kind === 'OTHER' ? (
+                              <Text className={styles.actionSpecialLabel} component='span'>
+                                (Special)
+                              </Text>
+                            ) : null}
+                          </div>
+                          {resource ? (
+                            <div
+                              aria-label={`Uses ${resource.remaining} of ${resource.max} remaining`}
+                              className={styles.actionDescriptionUses}
+                            >
+                              <ActionResourceStepper
+                                actionLabel={action.label}
+                                pending={pending}
+                                resource={resource}
+                                setFailedResourceId={setFailedResourceId}
+                                submitCommand={submitCommand}
+                                version={version}
+                              />
                             </div>
-                          )
-                        : null}
-                      {action.description ? <AuthoredDetailProse html={action.description} fallback='' /> : null}
-                    </>
-                  )}
-                  right={<Badge variant='light'>{formatPlayableActionKind(action.kind)}</Badge>}
-                />
-              )
-            })
-          : <Text className={styles.muted}>No matching actions are currently available.</Text>}
-      </CharacterSheetDetailRowList>
+                          ) : null}
+                        </div>
+                        {effect ? (
+                          <Text className={styles.actionDescriptionText}>{effect}</Text>
+                        ) : null}
+                        {resource && failedResourceId === resource.id ? (
+                          <Text className={styles.commandInlineError} role='alert'>
+                            Charges could not be updated. The sheet was refreshed; try again.
+                          </Text>
+                        ) : null}
+                      </div>
+                    )
+
+                  return (
+                    <div
+                      aria-label={action.label}
+                      className={`${styles.actionDataRow} ${styles.actionAttackColumns}`}
+                      key={action.id}
+                      role='group'
+                    >
+                      <div className={styles.actionRowIdentity}>
+                        {target ? (
+                          <button
+                            className={styles.actionIdentityButton}
+                            type='button'
+                            onClick={() => openPanel?.(target)}
+                          >
+                            {action.label}
+                          </button>
+                        ) : (
+                          <Text className={styles.playRowTitle} component='span'>
+                            {action.label}
+                          </Text>
+                        )}
+                        {action.sourceLabel || resource ? (
+                          <Text className={styles.actionCompactSource} component='span'>
+                            {[
+                              action.sourceLabel,
+                              resource ? `${resource.remaining} / ${resource.max} uses` : undefined
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </Text>
+                        ) : null}
+                      </div>
+                      <div
+                        aria-label={`Range ${action.playFacts?.range ?? 'not applicable'}`}
+                        className={styles.actionDataCell}
+                      >
+                        <strong>{action.playFacts?.range ?? '—'}</strong>
+                      </div>
+                      <div
+                        aria-label={`Hit or DC ${action.playFacts?.hitOrDc ?? 'not applicable'}`}
+                        className={styles.actionDataCell}
+                      >
+                        <strong>{action.playFacts?.hitOrDc ?? '—'}</strong>
+                      </div>
+                      <div
+                        aria-label={`Damage ${action.playFacts?.effect ?? 'not applicable'}`}
+                        className={styles.actionDataCell}
+                      >
+                        <strong>{action.playFacts?.effect ?? '—'}</strong>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))
+        ) : (
+          <Text className={styles.muted}>No matching actions are currently available.</Text>
+        )}
+      </div>
     </CharacterSheetDetailPanel>
+  )
+}
+
+function ActionResourceStepper({
+  actionLabel,
+  pending,
+  resource,
+  setFailedResourceId,
+  submitCommand,
+  version
+}: {
+  actionLabel: string
+  pending: boolean
+  resource: NonNullable<CharacterSheetPlayableAction['resource']>
+  setFailedResourceId: (resourceId: string | undefined) => void
+  submitCommand: CharacterSheetSectionProps['submitCommand']
+  version: number
+}) {
+  const updateResource = async (type: 'USE_RESOURCE' | 'RESTORE_RESOURCE') => {
+    setFailedResourceId(undefined)
+    const succeeded = await submitCommand({
+      type,
+      resourceGrantId: resource.id,
+      expectedVersion: version
+    })
+    if (!succeeded) setFailedResourceId(resource.id)
+  }
+
+  return (
+    <div aria-label={`${actionLabel} charges`} className={styles.resourceStepper} role='group'>
+      <Button
+        aria-label={`Use one ${actionLabel} charge`}
+        className={styles.resourceStepButton}
+        disabled={pending || resource.remaining <= 0}
+        size='compact-xs'
+        variant='default'
+        onClick={() => void updateResource('USE_RESOURCE')}
+      >
+        −
+      </Button>
+      <Text aria-live='polite' className={styles.resourceStepValue} component='output'>
+        {resource.remaining} / {resource.max}
+      </Text>
+      <Button
+        aria-label={`Restore one ${actionLabel} charge`}
+        className={styles.resourceStepButton}
+        disabled={pending || resource.used <= 0}
+        size='compact-xs'
+        variant='default'
+        onClick={() => void updateResource('RESTORE_RESOURCE')}
+      >
+        +
+      </Button>
+    </div>
   )
 }

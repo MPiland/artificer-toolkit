@@ -32,14 +32,16 @@ export const collegeOfLore: ClassAuthored = {
   label: 'College of Lore',
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.BARD,
-  description: 'Bards of the College of Lore know something about most things, collecting bits of knowledge from sources as diverse as scholarly tomes and peasant tales.',
+  description:
+    'Bards of the College of Lore know something about most things, collecting bits of knowledge from sources as diverse as scholarly tomes and peasant tales.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
     {
       id: classRowId(BD, 11, 1),
       label: 'Bonus Proficiencies',
-      description: 'When you join the College of Lore at 3rd level, you gain proficiency with three skills of your choice.',
+      description:
+        'When you join the College of Lore at 3rd level, you gain proficiency with three skills of your choice.',
       availableAtLevel: 3,
       order: 0,
       grants: {
@@ -82,21 +84,24 @@ export const collegeOfLore: ClassAuthored = {
     {
       id: classRowId(BD, 11, 2),
       label: 'Cutting Words',
-      description: 'Also at 3rd level, you learn how to use your wit to distract, confuse, and otherwise sap the confidence and competence of others.',
+      description:
+        'Also at 3rd level, you learn how to use your wit to distract, confuse, and otherwise sap the confidence and competence of others.',
       availableAtLevel: 3,
       order: 1
     },
     {
       id: classRowId(BD, 11, 3),
       label: 'Additional Magical Secrets',
-      description: 'At 6th level, you learn two spells of your choice from any class. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip.',
+      description:
+        'At 6th level, you learn two spells of your choice from any class. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip.',
       availableAtLevel: 6,
       order: 2
     },
     {
       id: classRowId(BD, 11, 4),
       label: 'Peerless Skill',
-      description: 'Starting at 14th level, when you make an ability check, you can expend one use of Bardic Inspiration. Roll a Bardic Inspiration die and add the number rolled to your ability check.',
+      description:
+        'Starting at 14th level, when you make an ability check, you can expend one use of Bardic Inspiration. Roll a Bardic Inspiration die and add the number rolled to your ability check.',
       availableAtLevel: 14,
       order: 3
     }

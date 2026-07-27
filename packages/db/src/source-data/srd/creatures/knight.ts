@@ -4,7 +4,8 @@ import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } fro
 export const knight: CreatureAuthored = {
   id: CREATURE_IDS.KNIGHT,
   label: 'Knight',
-  description: 'A heavily armored warrior sworn to a lord or cause, trained in the finest martial traditions.',
+  description:
+    'A heavily armored warrior sworn to a lord or cause, trained in the finest martial traditions.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   category: 'NPC',
@@ -16,7 +17,7 @@ export const knight: CreatureAuthored = {
     CONSTITUTION: 14,
     INTELLIGENCE: 11,
     WISDOM: 11,
-    CHARISMA: 15,
+    CHARISMA: 15
   },
   armorClass: 18,
   armorClassNote: 'plate armor',
@@ -24,10 +25,9 @@ export const knight: CreatureAuthored = {
   hitDice: {
     count: 8,
     die: 8,
-    modifier: 16,
+    modifier: 16
   },
   speeds: walk(30),
   challengeRatingId: CR.CR_3,
   xp: 700
 }
-

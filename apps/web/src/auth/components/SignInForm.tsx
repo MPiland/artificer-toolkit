@@ -30,7 +30,9 @@ export function SignInForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
+    null
+  )
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()

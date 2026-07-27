@@ -16,7 +16,7 @@ export const youngGoldDragon: CreatureAuthored = {
     CONSTITUTION: 21,
     INTELLIGENCE: 16,
     WISDOM: 13,
-    CHARISMA: 20,
+    CHARISMA: 20
   },
   armorClass: 18,
   armorClassNote: 'natural armor',
@@ -24,12 +24,10 @@ export const youngGoldDragon: CreatureAuthored = {
   hitDice: {
     count: 17,
     die: 10,
-    modifier: 85,
+    modifier: 85
   },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80), ...S.swim(40)],
-  proficiencies: [
-    S.grantedSkillProficiency(9907, 1, 'INSIGHT', 'PERCEPTION', 'STEALTH')
-  ],
+  proficiencies: [S.grantedSkillProficiency(9907, 1, 'INSIGHT', 'PERCEPTION', 'STEALTH')],
   damageImmunities: ['fire'],
   senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
   passivePerception: 19,
@@ -45,27 +43,30 @@ export const youngGoldDragon: CreatureAuthored = {
     {
       id: S.featureId(306, 2),
       label: 'Fire Breath',
-      description: 'Fire Breath. The dragon exhales fire in a cone. Each creature in that area must make a Dexterity saving throw, taking fire damage on a failed save, or half as much damage on a successful one.',
+      description:
+        'Fire Breath. The dragon exhales fire in a cone. Each creature in that area must make a Dexterity saving throw, taking fire damage on a failed save, or half as much damage on a successful one.',
       order: 2
     },
     {
       id: S.featureId(306, 3),
       label: 'Multiattack',
-      description: 'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
+      description:
+        'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
       order: 3
     },
     {
       id: S.featureId(306, 4),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus fire damage.',
+      description:
+        'Bite. Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus fire damage.',
       order: 4
     },
     {
       id: S.featureId(306, 5),
       label: 'Claw',
-      description: 'Claw. Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
+      description:
+        'Claw. Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
       order: 5
     }
   ]
 }
-

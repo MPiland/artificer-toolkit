@@ -10,10 +10,7 @@ export type MeasurementSystemCode = keyof typeof MEASUREMENT_SYSTEM_CODE
 
 export type MeasurementSystemOption = CoreMeta<MeasurementSystemCode>
 
-export const MEASUREMENT_SYSTEM_REGISTRY: Record<
-  MeasurementSystemCode,
-  MeasurementSystemOption
-> = {
+export const MEASUREMENT_SYSTEM_REGISTRY: Record<MeasurementSystemCode, MeasurementSystemOption> = {
   [MEASUREMENT_SYSTEM_CODE.IMPERIAL]: {
     code: MEASUREMENT_SYSTEM_CODE.IMPERIAL,
     label: 'Imperial',
@@ -40,10 +37,7 @@ export type MeasurementTypeCode = keyof typeof MEASUREMENT_TYPE_CODE
 
 export type MeasurementTypeOption = CoreMeta<MeasurementTypeCode>
 
-export const MEASUREMENT_TYPE_REGISTRY: Record<
-  MeasurementTypeCode,
-  MeasurementTypeOption
-> = {
+export const MEASUREMENT_TYPE_REGISTRY: Record<MeasurementTypeCode, MeasurementTypeOption> = {
   [MEASUREMENT_TYPE_CODE.VOLUME]: {
     code: MEASUREMENT_TYPE_CODE.VOLUME,
     label: 'Volume',
@@ -86,10 +80,7 @@ export type MeasurementUnitCode = keyof typeof MEASUREMENT_UNIT_CODE
 
 export type MeasurementUnitOption = CoreMeta<MeasurementUnitCode>
 
-export const MEASUREMENT_UNIT_REGISTRY: Record<
-  MeasurementUnitCode,
-  MeasurementUnitOption
-> = {
+export const MEASUREMENT_UNIT_REGISTRY: Record<MeasurementUnitCode, MeasurementUnitOption> = {
   [MEASUREMENT_UNIT_CODE.POUNDS]: {
     code: MEASUREMENT_UNIT_CODE.POUNDS,
     label: 'Pounds',
@@ -187,8 +178,9 @@ export const MEASUREMENT_UNIT_REGISTRY: Record<
   }
 } as const
 
-export type MeasurementUnitValue
-  = (typeof MEASUREMENT_UNIT_REGISTRY)[keyof typeof MEASUREMENT_UNIT_REGISTRY]
+export type MeasurementUnitValue =
+  (typeof MEASUREMENT_UNIT_REGISTRY)[keyof typeof MEASUREMENT_UNIT_REGISTRY]
 
-export const MEASUREMENT_UNIT_OPTIONS
-  = valuesOf(MEASUREMENT_UNIT_REGISTRY) as readonly MeasurementUnitOption[]
+export const MEASUREMENT_UNIT_OPTIONS = valuesOf(
+  MEASUREMENT_UNIT_REGISTRY
+) as readonly MeasurementUnitOption[]

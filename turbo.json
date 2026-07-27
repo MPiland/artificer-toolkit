@@ -11,22 +11,12 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**",
-        "storybook-static/**",
-        ".output/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "storybook-static/**", ".output/**"]
     },
     "build-storybook": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "storybook-static/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["storybook-static/**"]
     },
     "dev": {
       "cache": false,
@@ -43,14 +33,10 @@
       "outputs": []
     },
     "test:coverage": {
-      "outputs": [
-        "coverage/**"
-      ]
+      "outputs": ["coverage/**"]
     },
     "test:coverage:storybook": {
-      "outputs": [
-        "coverage/**"
-      ]
+      "outputs": ["coverage/**"]
     },
     "test:storybook": {
       "outputs": []
@@ -63,45 +49,28 @@
         "MVP_AUDIT_PASSWORD",
         "MVP_AUDIT_STORAGE_STATE"
       ],
-      "outputs": [
-        "playwright-report/**",
-        "test-results/**"
-      ]
+      "outputs": ["playwright-report/**", "test-results/**"]
     },
     "test:e2e:authoring-storybook": {
-      "outputs": [
-        "playwright-report/**",
-        "test-results/**"
-      ]
+      "outputs": ["playwright-report/**", "test-results/**"]
     },
     "test:forms": {
       "outputs": []
     },
     "typecheck": {
-      "outputs": [
-        ".cache/tsc/*.tsbuildinfo",
-        "tsconfig*.tsbuildinfo"
-      ]
+      "outputs": [".cache/tsc/*.tsbuildinfo", "tsconfig*.tsbuildinfo"]
     },
     "typecheck:app": {
-      "outputs": [
-        ".cache/tsc/typecheck.app.tsbuildinfo"
-      ]
+      "outputs": [".cache/tsc/typecheck.app.tsbuildinfo"]
     },
     "typecheck:config": {
-      "outputs": [
-        ".cache/tsc/typecheck.config.tsbuildinfo"
-      ]
+      "outputs": [".cache/tsc/typecheck.config.tsbuildinfo"]
     },
     "typecheck:stories": {
-      "outputs": [
-        ".cache/tsc/typecheck.stories.tsbuildinfo"
-      ]
+      "outputs": [".cache/tsc/typecheck.stories.tsbuildinfo"]
     },
     "typecheck:tests": {
-      "outputs": [
-        ".cache/tsc/typecheck.tests*.tsbuildinfo"
-      ]
+      "outputs": [".cache/tsc/typecheck.tests*.tsbuildinfo"]
     }
   }
 }

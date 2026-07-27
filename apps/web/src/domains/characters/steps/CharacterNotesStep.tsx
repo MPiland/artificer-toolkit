@@ -10,7 +10,9 @@ export const CharacterNotesStep = withForm({
     return (
       <div className={styles.section}>
         <section className={styles.stepFieldGroup} aria-labelledby='notes-character-title'>
-          <h3 id='notes-character-title' className={styles.stepFieldGroupTitle}>Character</h3>
+          <h3 id='notes-character-title' className={styles.stepFieldGroupTitle}>
+            Character
+          </h3>
           <div className={styles.fieldGrid}>
             <div className={styles.fieldSpan6}>
               <form.AppField name='profile.personalityTraits'>
@@ -35,7 +37,9 @@ export const CharacterNotesStep = withForm({
           </div>
         </section>
         <section className={styles.stepFieldGroup} aria-labelledby='notes-relationships-title'>
-          <h3 id='notes-relationships-title' className={styles.stepFieldGroupTitle}>Relationships</h3>
+          <h3 id='notes-relationships-title' className={styles.stepFieldGroupTitle}>
+            Relationships
+          </h3>
           <div className={styles.fieldGrid}>
             <div className={styles.fieldSpan6}>
               <form.AppField name='profile.organizations'>
@@ -55,7 +59,9 @@ export const CharacterNotesStep = withForm({
           </div>
         </section>
         <section className={styles.stepFieldGroup} aria-labelledby='notes-story-title'>
-          <h3 id='notes-story-title' className={styles.stepFieldGroupTitle}>Story</h3>
+          <h3 id='notes-story-title' className={styles.stepFieldGroupTitle}>
+            Story
+          </h3>
           <div className={styles.fieldGrid}>
             <div className={styles.fieldSpan12}>
               <form.AppField name='profile.backstory'>
@@ -64,7 +70,9 @@ export const CharacterNotesStep = withForm({
             </div>
             <div className={styles.fieldSpan12}>
               <form.AppField name='profile.notes'>
-                {(field) => <field.RichTextField deferActivation label='Notes' readOnly={readOnly} />}
+                {(field) => (
+                  <field.RichTextField deferActivation label='Notes' readOnly={readOnly} />
+                )}
               </form.AppField>
             </div>
           </div>

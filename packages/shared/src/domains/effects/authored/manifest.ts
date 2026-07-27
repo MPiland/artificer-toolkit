@@ -1,4 +1,9 @@
-import type { EffectAuthored, NonManifestOutcomeAuthored, ShapeAuthored, SpeedAuthored } from '#authored'
+import type {
+  EffectAuthored,
+  NonManifestOutcomeAuthored,
+  ShapeAuthored,
+  SpeedAuthored
+} from '#authored'
 import {
   EFFECT_KIND,
   MANIFEST_KIND,
@@ -9,13 +14,13 @@ import {
   type Trigger
 } from '#core'
 
-export type ManifestBehaviorAuthored<
-  TTrigger extends Trigger = Trigger
-> = EffectAuthored<TTrigger, NonManifestOutcomeAuthored>
+export type ManifestBehaviorAuthored<TTrigger extends Trigger = Trigger> = EffectAuthored<
+  TTrigger,
+  NonManifestOutcomeAuthored
+>
 
-export type ManifestNestedBehaviorAuthored<
-  TTrigger extends Trigger = Trigger
-> = ManifestBehaviorAuthored<TTrigger>
+export type ManifestNestedBehaviorAuthored<TTrigger extends Trigger = Trigger> =
+  ManifestBehaviorAuthored<TTrigger>
 
 export const SUMMON_DAMAGEABILITY_KIND = {
   NORMAL: 'NORMAL',
@@ -79,10 +84,7 @@ type NonCreatureManifestAuthored = ManifestAuthoredBase & {
   behaviors?: ManifestBehaviorAuthored[]
 }
 
-export type ManifestAuthored
-  = | CreatureManifestAuthored
-    | SummonManifestAuthored
-    | NonCreatureManifestAuthored
-
-
-
+export type ManifestAuthored =
+  | CreatureManifestAuthored
+  | SummonManifestAuthored
+  | NonCreatureManifestAuthored

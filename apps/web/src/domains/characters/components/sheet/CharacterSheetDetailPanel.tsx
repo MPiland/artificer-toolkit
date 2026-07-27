@@ -11,14 +11,23 @@ export function CharacterSheetDetailPanel({
   title,
   description,
   headerActions,
+  hideTitle,
   children
 }: CharacterSheetDetailPanelProps) {
   return (
-    <section className={styles.panel} aria-labelledby={ariaId}>
+    <section
+      aria-label={hideTitle ? title : undefined}
+      aria-labelledby={hideTitle ? undefined : ariaId}
+      className={styles.panel}
+    >
       <div className={styles.panelHeader}>
         <div>
-          <Title id={ariaId} className={styles.panelTitle}>{title}</Title>
-          <Text className={styles.muted}>{description}</Text>
+          {hideTitle ? null : (
+            <Title id={ariaId} className={styles.panelTitle}>
+              {title}
+            </Title>
+          )}
+          {description ? <Text className={styles.muted}>{description}</Text> : null}
         </div>
         {headerActions ? <div>{headerActions}</div> : null}
       </div>
@@ -40,6 +49,10 @@ export function CharacterSheetDetailRow({ ariaLabel, left, right }: CharacterShe
   )
 }
 
-export function CharacterSheetCompactActions({ children }: { children: CharacterSheetDetailRowListProps['children'] }) {
+export function CharacterSheetCompactActions({
+  children
+}: {
+  children: CharacterSheetDetailRowListProps['children']
+}) {
   return <div className={styles.compactActions}>{children}</div>
 }

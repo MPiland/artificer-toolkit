@@ -1,29 +1,9 @@
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 
-import type {
-  GrantPayloadAuthored,
-  FeatGrantAuthored
-} from '#authored'
-import {
-  AUTHORING_MODE_KIND,
-  AUTHORING_SELECTION_KIND,
-  GRANT_KIND,
-  SCALING
-} from '#core'
-import type {
-  CompiledCharge,
-  CompiledGrantTarget,
-  CompiledScalingGrant
-} from '#compilers'
-import {
-  compileCharge,
-  compileScalingSource
-} from '#compilers'
+import type { GrantPayloadAuthored, FeatGrantAuthored } from '#authored'
+import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND, SCALING } from '#core'
+import type { CompiledCharge, CompiledGrantTarget, CompiledScalingGrant } from '#compilers'
+import { compileCharge, compileScalingSource } from '#compilers'
 
 export type CompiledFeatGrant = CompiledScalingGrant<
   typeof GRANT_KIND.FEAT_GRANT,
@@ -139,8 +119,6 @@ export function compileFeatGrantResult(
   }
 }
 
-export function compileFeatGrant(
-  authored: FeatGrantAuthored
-): CompiledFeatGrant {
+export function compileFeatGrant(authored: FeatGrantAuthored): CompiledFeatGrant {
   return unwrapCompileResult(compileFeatGrantResult(authored))
 }

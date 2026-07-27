@@ -14,5 +14,5 @@ export const slingPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(298), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

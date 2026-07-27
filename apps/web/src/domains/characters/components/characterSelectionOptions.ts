@@ -41,15 +41,19 @@ export function buildRaceSelectionGroups(
 
   return [
     ...(directOptions.length > 0
-      ? [{
-          id: 'direct-races',
-          label: 'Races',
-          options: directOptions.sort((left, right) =>
-            compareCharacterBuilderLabels(left.label, right.label)
-          )
-        }]
+      ? [
+          {
+            id: 'direct-races',
+            label: 'Races',
+            options: directOptions.sort((left, right) =>
+              compareCharacterBuilderLabels(left.label, right.label)
+            )
+          }
+        ]
       : []),
-    ...groupedOptions.sort((left, right) => compareCharacterBuilderLabels(left.label ?? '', right.label ?? ''))
+    ...groupedOptions.sort((left, right) =>
+      compareCharacterBuilderLabels(left.label ?? '', right.label ?? '')
+    )
   ]
 }
 
@@ -72,43 +76,49 @@ export function buildBackgroundSelectionGroups(
 ): CharacterSelectionCardGroup[] {
   const choicesById = new Map(choices.map((choice) => [choice.id, choice]))
 
-  return [{
-    id: 'backgrounds',
-    options: references
-      .filter((background) => choicesById.has(background.id))
-      .map((background) => {
-        const choice = choicesById.get(background.id)
-        const featureValue = [
-          background.featureLabels.join(', '),
-          background.hiddenFeatureCount > 0 ? `${background.hiddenFeatureCount} more` : ''
-        ].filter(Boolean).join(' · ')
-
-        return {
-          id: background.id,
-          label: background.label,
-          description: background.summary,
-          disabled: choice?.disabled,
-          disabledReason: choice?.disabledReason,
-          details: [
-            ...(background.featureLabels.length
-              ? [{
-                label: background.featureLabels.length === 1 ? 'Feature' : 'Features',
-                value: featureValue,
-                prominence: 'primary' as const
-              }]
-              : []),
-            ...background.grantFacts.map((fact) => ({
-              label: fact.label,
-              value: fact.value
-            })),
-            ...(background.hiddenGrantFactCount > 0
-              ? [{ label: 'Additional grants', value: `${background.hiddenGrantFactCount} more` }]
-              : [])
+  return [
+    {
+      id: 'backgrounds',
+      options: references
+        .filter((background) => choicesById.has(background.id))
+        .map((background) => {
+          const choice = choicesById.get(background.id)
+          const featureValue = [
+            background.featureLabels.join(', '),
+            background.hiddenFeatureCount > 0 ? `${background.hiddenFeatureCount} more` : ''
           ]
-        }
-      })
-      .sort((left, right) => compareCharacterBuilderLabels(left.label, right.label))
-  }]
+            .filter(Boolean)
+            .join(' · ')
+
+          return {
+            id: background.id,
+            label: background.label,
+            description: background.summary,
+            disabled: choice?.disabled,
+            disabledReason: choice?.disabledReason,
+            details: [
+              ...(background.featureLabels.length
+                ? [
+                    {
+                      label: background.featureLabels.length === 1 ? 'Feature' : 'Features',
+                      value: featureValue,
+                      prominence: 'primary' as const
+                    }
+                  ]
+                : []),
+              ...background.grantFacts.map((fact) => ({
+                label: fact.label,
+                value: fact.value
+              })),
+              ...(background.hiddenGrantFactCount > 0
+                ? [{ label: 'Additional grants', value: `${background.hiddenGrantFactCount} more` }]
+                : [])
+            ]
+          }
+        })
+        .sort((left, right) => compareCharacterBuilderLabels(left.label, right.label))
+    }
+  ]
 }
 
 export function applyClassChoiceEligibility(params: {
@@ -151,7 +161,10 @@ function getClassChoiceDisabledReason(params: {
   for (const classId of proposedClassIds) {
     const classRecord = params.references.find((candidate) => candidate.id === classId)
     if (!classRecord?.requirementGroups) continue
-    const evaluation = evaluateMulticlassRequirements(classRecord.requirementGroups, params.abilityScores)
+    const evaluation = evaluateMulticlassRequirements(
+      classRecord.requirementGroups,
+      params.abilityScores
+    )
     if (evaluation.passes) continue
 
     return `Requires ${formatMulticlassRequirements(evaluation.unmetRequirementGroups)} (Not met)`
@@ -181,10 +194,12 @@ function toRaceCard(
         ? [{ label: 'Speed', value: speedLabels.join(', '), prominence: 'primary' as const }]
         : []),
       ...(abilityScoreIncreaseDescriptions.length > 0
-        ? [{
-            label: 'Ability scores',
-            value: abilityScoreIncreaseDescriptions.join(' ')
-          }]
+        ? [
+            {
+              label: 'Ability scores',
+              value: abilityScoreIncreaseDescriptions.join(' ')
+            }
+          ]
         : [])
     ]
   }
@@ -207,17 +222,33 @@ function toClassCard(
       : choice?.disabledReason,
     details: [
       ...(classRecord.hitpoint?.dieConfig
-        ? [{ label: 'Hit Die', value: classRecord.hitpoint.dieConfig, prominence: 'primary' as const }]
+        ? [
+            {
+              label: 'Hit Die',
+              value: classRecord.hitpoint.dieConfig,
+              prominence: 'primary' as const
+            }
+          ]
         : []),
       ...(savingThrowLabels.length > 0
-        ? [{ label: 'Saving throws', value: savingThrowLabels.join(', '), prominence: 'primary' as const }]
+        ? [
+            {
+              label: 'Saving throws',
+              value: savingThrowLabels.join(', '),
+              prominence: 'primary' as const
+            }
+          ]
         : []),
       ...(classRecord.requirementGroups?.groups.length
-        ? [{
-            label: 'Multiclass requirements',
-            value: `${formatMulticlassRequirements(classRecord.requirementGroups.groups)}${choice?.disabledReason?.includes('(Not met)') ? ' (Not met)' : ''}`,
-            status: choice?.disabledReason?.includes('(Not met)') ? 'unmet' as const : 'default' as const
-          }]
+        ? [
+            {
+              label: 'Multiclass requirements',
+              value: `${formatMulticlassRequirements(classRecord.requirementGroups.groups)}${choice?.disabledReason?.includes('(Not met)') ? ' (Not met)' : ''}`,
+              status: choice?.disabledReason?.includes('(Not met)')
+                ? ('unmet' as const)
+                : ('default' as const)
+            }
+          ]
         : []),
       ...proficiencyGroups.map((group) => ({
         label: group.label,
@@ -228,12 +259,14 @@ function toClassCard(
 }
 
 function formatMulticlassRequirements(
-  groups: readonly { requirements: readonly { ability: string, min: number }[] }[]
+  groups: readonly { requirements: readonly { ability: string; min: number }[] }[]
 ): string {
   return groups
-    .map((group) => group.requirements
-      .map((requirement) => `${formatAbilityLabel(requirement.ability)} ${requirement.min}`)
-      .join(' and '))
+    .map((group) =>
+      group.requirements
+        .map((requirement) => `${formatAbilityLabel(requirement.ability)} ${requirement.min}`)
+        .join(' and ')
+    )
     .filter(Boolean)
     .join(' or ')
 }

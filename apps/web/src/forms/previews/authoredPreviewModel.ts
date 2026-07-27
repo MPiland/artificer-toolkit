@@ -474,7 +474,7 @@ function createSpeedRows(
 
     return [
       {
-      label: value
+        label: value
       }
     ]
   })
@@ -588,8 +588,8 @@ function readRecord(value: unknown): RuntimeRecord | undefined {
 function readRecords(value: unknown): RuntimeRecord[] {
   return Array.isArray(value)
     ? value.flatMap((entry) => {
-    const record = toRecord(entry)
-    return record ? [record] : []
+        const record = toRecord(entry)
+        return record ? [record] : []
       })
     : []
 }

@@ -4,4 +4,3 @@ export * from '../../domains/shared/authored/index.js'
 export * from '../../domains/subjects/authored/index.js'
 export * from '../../domains/features/authored/index.js'
 export * from '../../domains/vocabulary/authored/index.js'
-

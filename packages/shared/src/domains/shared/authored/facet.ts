@@ -15,9 +15,9 @@ import { EmptyObject } from 'type-fest'
  * Selection
  * ────────────────────────────────────────────────────────────── */
 
-export type SubjectSelectionAuthored<
-  S extends NodeSubjectCode = NodeSubjectCode
-> = Selectable<SubjectSelectionPayload<S>>
+export type SubjectSelectionAuthored<S extends NodeSubjectCode = NodeSubjectCode> = Selectable<
+  SubjectSelectionPayload<S>
+>
 
 /**
  * Selection applied at an EXISTS hop.
@@ -103,64 +103,66 @@ export type FacetGroupAuthored<N extends NodeSubjectCode = NodeSubjectCode> = {
  *   conditions: [{ kind: 'PREDICATE', predicateCode: 'SPELL_OBTAINED', spellIds: [ELDRITCH_BLAST_ID], ... }] }
  * ```
  */
-export type FacetContextAuthored<N extends NodeSubjectCode = NodeSubjectCode>
-  = N extends NodeSubjectCode ? {
-    id: string
-    order: number
-    subject: N
-    conditions?: readonly FacetConditionAuthored<N>[] // AND; omit rather than passing []
-  } & (N extends 'CHARACTER' ? EmptyObject : SubjectSelectionAuthored<N>)
+export type FacetContextAuthored<N extends NodeSubjectCode = NodeSubjectCode> =
+  N extends NodeSubjectCode
+    ? {
+        id: string
+        order: number
+        subject: N
+        conditions?: readonly FacetConditionAuthored<N>[] // AND; omit rather than passing []
+      } & (N extends 'CHARACTER' ? EmptyObject : SubjectSelectionAuthored<N>)
     : never
 
 /* ──────────────────────────────────────────────────────────────
  * Conditions
  * ────────────────────────────────────────────────────────────── */
 
-export type FacetConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode>
-  = | PredicateConditionAuthored<S>
-    | ExistsConditionAuthored<S>
+export type FacetConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode> =
+  | PredicateConditionAuthored<S>
+  | ExistsConditionAuthored<S>
 
 /**
  * Predicate node: code + payload.
  * Payload is correlated to the predicate code for the given subject.
  */
-export type PredicateNodeAuthored<S extends NodeSubjectCode = NodeSubjectCode>
-  = SubjectPredicateCode<S> extends infer C
+export type PredicateNodeAuthored<S extends NodeSubjectCode = NodeSubjectCode> =
+  SubjectPredicateCode<S> extends infer C
     ? C extends keyof PredicatePayloadByCode
       ? { predicateCode: C } & PredicatePayloadByCode[C]
       : never
     : never
 
-export type PredicateConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode>
-  = SubjectPredicateCode<S> extends never
+export type PredicateConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode> =
+  SubjectPredicateCode<S> extends never
     ? never
     : {
-      id: string
-      order: number
-      kind: 'PREDICATE'
-      constraint: AuthoringConstraintCode
-    } & PredicateNodeAuthored<S>
+        id: string
+        order: number
+        kind: 'PREDICATE'
+        constraint: AuthoringConstraintCode
+      } & PredicateNodeAuthored<S>
 
 /**
  * EXISTS condition.
  * Allowed only for subjects that have relations.
  */
-export type ExistsConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode>
-  = S extends SubjectWithRelations ? ExistsConditionAuthoredInner<S> : never
+export type ExistsConditionAuthored<S extends NodeSubjectCode = NodeSubjectCode> =
+  S extends SubjectWithRelations ? ExistsConditionAuthoredInner<S> : never
 
 /**
  * EXISTS condition with correlated relationCode → target subject typing.
  * The where clause uses a single-subject OR-of-AND body.
  */
-export type ExistsConditionAuthoredInner<S extends SubjectWithRelations = SubjectWithRelations>
-  = RelationCode<S> extends infer R
-    ? R extends RelationCode<S> ? {
-      id: string
-      order: number
-      kind: 'EXISTS'
-      constraint: AuthoringConstraintCode
-      relationCode: R
-      where?: FacetBodyAuthored<RelationTargetSubject<S, R>>
-    } & FacetRelationSelectionAuthored<S, R>
+export type ExistsConditionAuthoredInner<S extends SubjectWithRelations = SubjectWithRelations> =
+  RelationCode<S> extends infer R
+    ? R extends RelationCode<S>
+      ? {
+          id: string
+          order: number
+          kind: 'EXISTS'
+          constraint: AuthoringConstraintCode
+          relationCode: R
+          where?: FacetBodyAuthored<RelationTargetSubject<S, R>>
+        } & FacetRelationSelectionAuthored<S, R>
       : never
     : never

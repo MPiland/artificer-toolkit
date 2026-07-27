@@ -133,9 +133,7 @@ function collectWhere(
       return
     case 'AND':
     case 'OR':
-      where.expressions.forEach((expression) =>
-        collectWhere(table, expression, columnsByTable)
-      )
+      where.expressions.forEach((expression) => collectWhere(table, expression, columnsByTable))
   }
 }
 

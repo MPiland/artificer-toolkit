@@ -1,6 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { fn } from 'storybook/test'
-import { AuthPageShell, SignInForm, ResetPasswordForm, SignUpForm, UpdatePasswordForm } from '../components'
+import {
+  AuthPageShell,
+  SignInForm,
+  ResetPasswordForm,
+  SignUpForm,
+  UpdatePasswordForm
+} from '../components'
 import { createMockAuthClient } from './authStories.utils'
 
 const meta = {
@@ -44,7 +50,8 @@ export const SignUp: Story = {
 export const ResetPassword: Story = {
   args: {
     title: 'Reset your password',
-    description: 'Enter your email and we\'ll send a secure reset link if email delivery is available.',
+    description:
+      "Enter your email and we'll send a secure reset link if email delivery is available.",
     children: null
   },
   render: ({ title, description }) => (

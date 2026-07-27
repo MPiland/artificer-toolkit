@@ -41,7 +41,7 @@ export interface AuthoredListFilter {
   key: string
   label: string
   placeholder: string
-  options: Array<{ value: string, label: string }>
+  options: Array<{ value: string; label: string }>
 }
 
 export interface AuthoredListAttributeColumn {

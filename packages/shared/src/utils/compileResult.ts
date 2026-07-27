@@ -4,7 +4,7 @@ export const COMPILE_DIAGNOSTIC_SEVERITY = {
 } as const
 
 export type CompileDiagnosticSeverity =
-  typeof COMPILE_DIAGNOSTIC_SEVERITY[keyof typeof COMPILE_DIAGNOSTIC_SEVERITY]
+  (typeof COMPILE_DIAGNOSTIC_SEVERITY)[keyof typeof COMPILE_DIAGNOSTIC_SEVERITY]
 
 export interface CompileDiagnostic {
   code: string
@@ -13,13 +13,13 @@ export interface CompileDiagnostic {
   path?: string[]
 }
 
-export type CompileResult<T>
-  = | {
-    ok: true
-    value: T
-    diagnostics: CompileDiagnostic[]
-  }
-    | {
+export type CompileResult<T> =
+  | {
+      ok: true
+      value: T
+      diagnostics: CompileDiagnostic[]
+    }
+  | {
       ok: false
       diagnostics: CompileDiagnostic[]
     }

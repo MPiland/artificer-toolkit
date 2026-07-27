@@ -21,7 +21,11 @@ import {
 } from '../marketing.css'
 import { MarketingRouteLink } from './MarketingLinks'
 
-export function MarketingPricingSection({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
+export function MarketingPricingSection({
+  publicSignUpEnabled = false
+}: {
+  publicSignUpEnabled?: boolean
+}) {
   if (!publicSignUpEnabled) return null
 
   return (

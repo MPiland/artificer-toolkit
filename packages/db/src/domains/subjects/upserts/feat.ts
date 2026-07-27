@@ -75,11 +75,7 @@ function mapFeatRow(json_data: FeatAuthored): FeatRow {
   }
 }
 
-export async function upsertFeat(
-  db: DBLike,
-  json_data: FeatAuthored,
-  _systemId: string
-) {
+export async function upsertFeat(db: DBLike, json_data: FeatAuthored, _systemId: string) {
   const detailRows: FeatDetailRow[] = (json_data.details ?? []).map((detail) => ({
     feat_id: json_data.id,
     detail_id: detail.id,
@@ -111,51 +107,32 @@ export async function upsertFeat(
     await trx
       .insertInto('feats')
       .values(mapFeatRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        system_id: eb.ref('excluded.system_id'),
-        user_id: eb.ref('excluded.user_id'),
-        label: eb.ref('excluded.label'),
-        description: eb.ref('excluded.description'),
-        status: eb.ref('excluded.status'),
-        prerequisite_id: eb.ref('excluded.prerequisite_id'),
-        charge_id: eb.ref('excluded.charge_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          user_id: eb.ref('excluded.user_id'),
+          label: eb.ref('excluded.label'),
+          description: eb.ref('excluded.description'),
+          status: eb.ref('excluded.status'),
+          prerequisite_id: eb.ref('excluded.prerequisite_id'),
+          charge_id: eb.ref('excluded.charge_id')
+        }))
+      )
       .execute()
 
-    await trx
-      .deleteFrom('feat_details')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_details').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_features')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_features').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_feat_grants')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_feat_grants').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_modifier_grants')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_modifier_grants').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_proficiency_grants')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_proficiency_grants').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_sense_grants')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_sense_grants').where('feat_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('feat_spell_grants')
-      .where('feat_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_spell_grants').where('feat_id', '=', json_data.id).execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -216,17 +193,16 @@ export async function upsertFeat(
       await trx
         .insertInto('feat_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['feat_id', 'effect_id']).doUpdateSet((eb) => ({
-          sort_order: eb.ref('excluded.sort_order')
-        })))
+        .onConflict((oc) =>
+          oc.columns(['feat_id', 'effect_id']).doUpdateSet((eb) => ({
+            sort_order: eb.ref('excluded.sort_order')
+          }))
+        )
         .execute()
     }
 
     if (detailRows.length > 0) {
-      await trx
-        .insertInto('feat_details')
-        .values(detailRows)
-        .execute()
+      await trx.insertInto('feat_details').values(detailRows).execute()
     }
 
     const featGrantRows: FeatFeatGrantRow[] = (json_data.grants?.feats ?? []).map((grant) => ({
@@ -236,23 +212,19 @@ export async function upsertFeat(
     }))
 
     if (featGrantRows.length > 0) {
-      await trx
-        .insertInto('feat_feat_grants')
-        .values(featGrantRows)
-        .execute()
+      await trx.insertInto('feat_feat_grants').values(featGrantRows).execute()
     }
 
-    const proficiencyRows: FeatProficiencyGrantRow[] = (json_data.grants?.proficiencies ?? []).map((grant) => ({
-      feat_id: json_data.id,
-      proficiency_grant_id: grant.id,
-      sort_order: grant.order
-    }))
+    const proficiencyRows: FeatProficiencyGrantRow[] = (json_data.grants?.proficiencies ?? []).map(
+      (grant) => ({
+        feat_id: json_data.id,
+        proficiency_grant_id: grant.id,
+        sort_order: grant.order
+      })
+    )
 
     if (proficiencyRows.length > 0) {
-      await trx
-        .insertInto('feat_proficiency_grants')
-        .values(proficiencyRows)
-        .execute()
+      await trx.insertInto('feat_proficiency_grants').values(proficiencyRows).execute()
     }
 
     const senseRows: FeatSenseGrantRow[] = (json_data.grants?.senses ?? []).map((grant) => ({
@@ -262,10 +234,7 @@ export async function upsertFeat(
     }))
 
     if (senseRows.length > 0) {
-      await trx
-        .insertInto('feat_sense_grants')
-        .values(senseRows)
-        .execute()
+      await trx.insertInto('feat_sense_grants').values(senseRows).execute()
     }
 
     const spellRows: FeatSpellGrantRow[] = (json_data.grants?.spells ?? []).map((grant) => ({
@@ -275,23 +244,19 @@ export async function upsertFeat(
     }))
 
     if (spellRows.length > 0) {
-      await trx
-        .insertInto('feat_spell_grants')
-        .values(spellRows)
-        .execute()
+      await trx.insertInto('feat_spell_grants').values(spellRows).execute()
     }
 
-    const modifierRows: FeatModifierGrantRow[] = (json_data.grants?.modifiers ?? []).map((grant) => ({
-      feat_id: json_data.id,
-      modifier_grant_id: grant.id,
-      sort_order: grant.order
-    }))
+    const modifierRows: FeatModifierGrantRow[] = (json_data.grants?.modifiers ?? []).map(
+      (grant) => ({
+        feat_id: json_data.id,
+        modifier_grant_id: grant.id,
+        sort_order: grant.order
+      })
+    )
 
     if (modifierRows.length > 0) {
-      await trx
-        .insertInto('feat_modifier_grants')
-        .values(modifierRows)
-        .execute()
+      await trx.insertInto('feat_modifier_grants').values(modifierRows).execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -301,13 +266,7 @@ export async function upsertFeat(
     }))
 
     if (featureRows.length > 0) {
-      await trx
-        .insertInto('feat_features')
-        .values(featureRows)
-        .execute()
+      await trx.insertInto('feat_features').values(featureRows).execute()
     }
-
   })
 }
-
-

@@ -16,14 +16,14 @@ export const shrieker: CreatureAuthored = {
     CONSTITUTION: 10,
     INTELLIGENCE: 1,
     WISDOM: 3,
-    CHARISMA: 1,
+    CHARISMA: 1
   },
   armorClass: 5,
   hitPoints: 13,
   hitDice: {
     count: 3,
     die: 8,
-    modifier: 0,
+    modifier: 0
   },
   speeds: [],
   passivePerception: 10,
@@ -33,15 +33,16 @@ export const shrieker: CreatureAuthored = {
     {
       id: S.featureId(253, 1),
       label: 'False Appearance',
-      description: 'False Appearance. While the shrieker remains motionless, it is indistinguishable from an ordinary fungus.',
+      description:
+        'False Appearance. While the shrieker remains motionless, it is indistinguishable from an ordinary fungus.',
       order: 1
     },
     {
       id: S.featureId(253, 2),
       label: 'Shriek',
-      description: 'Shriek. When bright light or a creature is within 30 feet of the shrieker, it emits a shriek audible within 300 feet of it. The shrieker continues to shriek until the disturbance moves out of range and for 1d4 of the shrieker’s turns afterward.',
+      description:
+        'Shriek. When bright light or a creature is within 30 feet of the shrieker, it emits a shriek audible within 300 feet of it. The shrieker continues to shriek until the disturbance moves out of range and for 1d4 of the shrieker’s turns afterward.',
       order: 2
     }
   ]
 }
-

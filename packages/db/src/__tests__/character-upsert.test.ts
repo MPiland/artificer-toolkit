@@ -14,12 +14,12 @@ vi.mock('kysely', () => ({
         .join('')
       const lowered = statement.toLowerCase()
       const queryTable = lowered.includes('character_spell_slot_state')
-          ? 'character_spell_slot_state'
-          : lowered.includes('character_conditions')
-            ? 'character_conditions'
-            : lowered.includes('character_exhaustion')
-              ? 'character_exhaustion'
-              : null
+        ? 'character_spell_slot_state'
+        : lowered.includes('character_conditions')
+          ? 'character_conditions'
+          : lowered.includes('character_exhaustion')
+            ? 'character_exhaustion'
+            : null
 
       if (!queryTable) {
         throw new Error(`Unhandled SQL in test mock: ${statement}`)
@@ -858,18 +858,18 @@ describe('upsertCharacter', () => {
       upsertCharacter(
         db as unknown as DBLike,
         {
-      ...character,
-      state: {
-        ...character.state,
+          ...character,
+          state: {
+            ...character.state,
             currency: [
               {
-          ...currencyGroup,
-          id: undefined
-      }
+                ...currencyGroup,
+                id: undefined
+              }
             ]
           }
         } as unknown as CharacterAuthored
-    )
+      )
     ).rejects.toThrow('Character character-1 has a currency group without an id.')
   })
 
@@ -881,11 +881,11 @@ describe('upsertCharacter', () => {
 
     await expect(
       upsertCharacter(db as unknown as DBLike, {
-      ...character,
-      state: {
-        ...character.state,
-        notes: [{ ...note, groupId: 'missing-note-group' }]
-      }
+        ...character,
+        state: {
+          ...character.state,
+          notes: [{ ...note, groupId: 'missing-note-group' }]
+        }
       })
     ).rejects.toThrow(
       'Character character-1 note note-1 references missing note group missing-note-group.'
@@ -900,11 +900,11 @@ describe('upsertCharacter', () => {
     await upsertCharacter(
       db as never,
       {
-      ...initial,
-      label: 'Aria Finalized'
+        ...initial,
+        label: 'Aria Finalized'
       },
       {
-      incrementStreamVersion: true
+        incrementStreamVersion: true
       }
     )
 
@@ -930,25 +930,25 @@ describe('upsertCharacter', () => {
     const streamVersion = await repository.patchSheetState(
       character.id,
       [
-      { kind: 'INSPIRATION', value: false },
-      {
-        kind: 'HITPOINTS',
-        value: {
-          current: 4,
-          temp: 2,
-          hitDice: [{ die: 8, total: 2, used: 1 }]
+        { kind: 'INSPIRATION', value: false },
+        {
+          kind: 'HITPOINTS',
+          value: {
+            current: 4,
+            temp: 2,
+            hitDice: [{ die: 8, total: 2, used: 1 }]
+          }
+        },
+        {
+          kind: 'CONDITIONS',
+          value: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
         }
-      },
-      {
-        kind: 'CONDITIONS',
-        value: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
-      }
       ],
       {
-      expectedStreamVersion: 0,
-      afterPersist: async (_trx, nextStreamVersion) => {
-        callbackVersion = nextStreamVersion
-      }
+        expectedStreamVersion: 0,
+        afterPersist: async (_trx, nextStreamVersion) => {
+          callbackVersion = nextStreamVersion
+        }
       }
     )
 
@@ -961,17 +961,17 @@ describe('upsertCharacter', () => {
     ])
     await expect(repository.findAuthoredById(character.id)).resolves.toEqual(
       expect.objectContaining({
-      profile: character.profile,
-      intent: character.intent,
-      state: expect.objectContaining({
-        inspiration: false,
-        hitpoints: {
-          current: 4,
-          temp: 2,
-          hitDice: [{ die: 8, total: 2, used: 1 }]
-        },
-        conditions: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
-      })
+        profile: character.profile,
+        intent: character.intent,
+        state: expect.objectContaining({
+          inspiration: false,
+          hitpoints: {
+            current: 4,
+            temp: 2,
+            hitDice: [{ die: 8, total: 2, used: 1 }]
+          },
+          conditions: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
+        })
       })
     )
   })
@@ -989,13 +989,13 @@ describe('upsertCharacter', () => {
         character.id,
         [
           {
-      kind: 'HITPOINTS',
-      value: { current: 1, hitDice: [] }
+            kind: 'HITPOINTS',
+            value: { current: 1, hitDice: [] }
           }
         ],
         {
-      expectedStreamVersion: 1,
-      afterPersist
+          expectedStreamVersion: 1,
+          afterPersist
         }
       )
     ).rejects.toMatchObject({ name: 'ConcurrencyError' })

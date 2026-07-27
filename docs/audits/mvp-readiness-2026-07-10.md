@@ -27,20 +27,20 @@ The Playwright project is deliberately outside the default end-to-end directory.
 
 ## Evidence
 
-| Check | Result |
-| --- | --- |
-| Focused character web tests | 71/71 passed across 5 files |
-| Authoring test task | 58/58 passed across 5 files |
-| Existing character service/API/DB seam set | 105 passed, 1 existing Sheet execution test timed out at its 5s limit |
-| New authored-domain audit | 4/4 passed |
-| New character audit | 5 passed, 3 expected failures |
-| Functions service typecheck | Passed |
-| Web config typecheck | Passed |
-| Playwright discovery | 4 tests discovered in 2 files and 2 projects |
-| Browser runtime | Chromium installed; authenticated Builder run reached the app but failed on route validation |
-| Local data runtime | Docker/Supabase ready; database, auth, REST, realtime, and storage containers healthy |
+| Check                                      | Result                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Focused character web tests                | 71/71 passed across 5 files                                                                  |
+| Authoring test task                        | 58/58 passed across 5 files                                                                  |
+| Existing character service/API/DB seam set | 105 passed, 1 existing Sheet execution test timed out at its 5s limit                        |
+| New authored-domain audit                  | 4/4 passed                                                                                   |
+| New character audit                        | 5 passed, 3 expected failures                                                                |
+| Functions service typecheck                | Passed                                                                                       |
+| Web config typecheck                       | Passed                                                                                       |
+| Playwright discovery                       | 4 tests discovered in 2 files and 2 projects                                                 |
+| Browser runtime                            | Chromium installed; authenticated Builder run reached the app but failed on route validation |
+| Local data runtime                         | Docker/Supabase ready; database, auth, REST, realtime, and storage containers healthy        |
 
-The runtime audit reached the authenticated app with the seeded local owner. Navigating to /characters/new produced Validation failed and a route-match warning for /_authed/characters/new/characters/new; the authoring canvas never mounted. This is a real Builder route/loader defect, not an environment skip. No latency target is marked as passed. The Sheet flow still needs a finalized character path.
+The runtime audit reached the authenticated app with the seeded local owner. Navigating to /characters/new produced Validation failed and a route-match warning for /\_authed/characters/new/characters/new; the authoring canvas never mounted. This is a real Builder route/loader defect, not an environment skip. No latency target is marked as passed. The Sheet flow still needs a finalized character path.
 
 ## Findings
 

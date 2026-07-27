@@ -76,7 +76,12 @@ describe('createDetailRepository', () => {
     ])
     const repository = createDetailRepository(db as unknown as DBLike)
 
-    const results = await repository.findByIds(['detail-2', 'detail-missing', 'detail-1', 'detail-2'])
+    const results = await repository.findByIds([
+      'detail-2',
+      'detail-missing',
+      'detail-1',
+      'detail-2'
+    ])
 
     expect(Array.from(results.keys())).toEqual(['detail-2', 'detail-1'])
     expect(results.has('detail-missing')).toBe(false)
@@ -85,14 +90,16 @@ describe('createDetailRepository', () => {
   })
 
   it('hydrates one detail record', async () => {
-    const repository = createDetailRepository(createFakeDb([
-      {
-        id: 'detail-1',
-        label: 'Overview',
-        description: 'Description',
-        sort_order: 2
-      }
-    ]) as never)
+    const repository = createDetailRepository(
+      createFakeDb([
+        {
+          id: 'detail-1',
+          label: 'Overview',
+          description: 'Description',
+          sort_order: 2
+        }
+      ]) as never
+    )
 
     await expect(repository.findById('detail-1')).resolves.toEqual({
       id: 'detail-1',
@@ -103,20 +110,22 @@ describe('createDetailRepository', () => {
   })
 
   it('returns all details in sort order', async () => {
-    const repository = createDetailRepository(createFakeDb([
-      {
-        id: 'detail-2',
-        label: 'Second',
-        description: 'Second description',
-        sort_order: 2
-      },
-      {
-        id: 'detail-1',
-        label: 'First',
-        description: 'First description',
-        sort_order: 1
-      }
-    ]) as never)
+    const repository = createDetailRepository(
+      createFakeDb([
+        {
+          id: 'detail-2',
+          label: 'Second',
+          description: 'Second description',
+          sort_order: 2
+        },
+        {
+          id: 'detail-1',
+          label: 'First',
+          description: 'First description',
+          sort_order: 1
+        }
+      ]) as never
+    )
 
     await expect(repository.findAll()).resolves.toEqual([
       {

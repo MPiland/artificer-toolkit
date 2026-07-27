@@ -1,14 +1,37 @@
-import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
+import {
+  ABILITY_CODE,
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  SPELL_COMPONENT,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const charmPerson: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CHARM_PERSON,
   label: 'Charm Person',
-  description: 'You attempt to charm a humanoid you can see within range. The target must succeed on a Wisdom saving throw or be charmed by you until the spell ends or until you or your companions do anything harmful to it.',
+  description:
+    'You attempt to charm a humanoid you can see within range. The target must succeed on a Wisdom saving throw or be charmed by you until the spell ends or until you or your companions do anything harmful to it.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
-  classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+  classIds: [
+    CLASS_IDS.BARD,
+    CLASS_IDS.DRUID,
+    CLASS_IDS.SORCERER,
+    CLASS_IDS.WARLOCK,
+    CLASS_IDS.WIZARD
+  ],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('ENCHANTMENT'),
   effects: [

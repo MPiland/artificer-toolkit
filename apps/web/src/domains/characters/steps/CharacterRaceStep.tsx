@@ -38,28 +38,24 @@ export const CharacterRaceStep = withForm({
     )
     const measuredAncestryOptionRef = useRef<string | undefined>(undefined)
     const raceView = payload.view.race
-    const selectedRaceId = raceIntent.subraceId
-      ?? raceIntent.raceId
-      ?? null
+    const selectedRaceId = raceIntent.subraceId ?? raceIntent.raceId ?? null
     const selectedRace = payload.references.races.find((race) => race.id === selectedRaceId)
-    const selectedRaceLabel = selectedRace?.label
-      ?? [...raceView.raceOptions, ...raceView.subraceOptions]
-        .find((option) => option.id === selectedRaceId)?.label
-    const raceSelectionGroups = buildRaceSelectionGroups(
-      payload.references.races,
-      [...raceView.raceOptions, ...raceView.subraceOptions]
-    )
+    const selectedRaceLabel =
+      selectedRace?.label ??
+      [...raceView.raceOptions, ...raceView.subraceOptions].find(
+        (option) => option.id === selectedRaceId
+      )?.label
+    const raceSelectionGroups = buildRaceSelectionGroups(payload.references.races, [
+      ...raceView.raceOptions,
+      ...raceView.subraceOptions
+    ])
     const hasAncestryFeature = raceView.ancestry
       ? raceView.features.some((feature) => isAncestryFeature(feature, raceView.ancestry?.label))
       : false
     const featureGrantChoices = raceView.grantChoices.filter((choice) => choice.ownerFeatureId)
     const standaloneGrantChoices = raceView.grantChoices.filter((choice) => !choice.ownerFeatureId)
     const selectedAncestryOptionId = raceView.ancestry
-      ? getSelectedAncestryOptionId(
-          ancestrySelections,
-          raceView.ancestry.ancestryId,
-          raceIntent
-        )
+      ? getSelectedAncestryOptionId(ancestrySelections, raceView.ancestry.ancestryId, raceIntent)
       : undefined
     const previewFeatures = selectedRace?.ancestry?.options.find(
       (option) => option.id === selectedAncestryOptionId
@@ -92,23 +88,21 @@ export const CharacterRaceStep = withForm({
           <h3 id='character-race-title' className={styles.sectionTitle}>
             {selectedRaceLabel ?? 'No race selected'}
           </h3>
-          {!readOnly
-            ? (
-                <Button
-                  type='button'
-                  onClick={() => {
-                    setStagedRaceId(null)
-                    setRaceChooserOpened(true)
-                  }}
-                >
-                  {selectedRaceId ? 'Change Race' : 'Choose Race'}
-                </Button>
-              )
-            : null}
+          {!readOnly ? (
+            <Button
+              type='button'
+              onClick={() => {
+                setStagedRaceId(null)
+                setRaceChooserOpened(true)
+              }}
+            >
+              {selectedRaceId ? 'Change Race' : 'Choose Race'}
+            </Button>
+          ) : null}
         </div>
-        {raceView.ancestry && !hasAncestryFeature
-          ? <div className={styles.inlinePanel}>{renderAncestryChoiceControl()}</div>
-          : null}
+        {raceView.ancestry && !hasAncestryFeature ? (
+          <div className={styles.inlinePanel}>{renderAncestryChoiceControl()}</div>
+        ) : null}
         <form.AppField name='intent.chosenGrantSelections'>
           {(field) => (
             <>
@@ -135,7 +129,9 @@ export const CharacterRaceStep = withForm({
                           : null}
                         <CharacterChosenGrantChoices
                           allChoices={allGrantChoices}
-                          choices={featureGrantChoices.filter((choice) => choice.ownerFeatureId === feature.id)}
+                          choices={featureGrantChoices.filter(
+                            (choice) => choice.ownerFeatureId === feature.id
+                          )}
                           presentation='controls'
                           selections={field.state.value}
                           readOnly={readOnly}
@@ -175,9 +171,10 @@ export const CharacterRaceStep = withForm({
 
             form.setFieldValue('intent', {
               ...clearedCharacter.intent,
-              race: nextRace.category === 'SUBRACE' && nextRace.parentRaceId
-                ? { raceId: nextRace.parentRaceId, subraceId: nextRace.id }
-                : { raceId: nextRace.id }
+              race:
+                nextRace.category === 'SUBRACE' && nextRace.parentRaceId
+                  ? { raceId: nextRace.parentRaceId, subraceId: nextRace.id }
+                  : { raceId: nextRace.id }
             })
             setStagedRaceId(null)
             setRaceChooserOpened(false)
@@ -235,9 +232,9 @@ function isAncestryFeature(
   ancestryLabel: string | undefined
 ): boolean {
   return Boolean(
-    ancestryLabel
-    && feature.label === ancestryLabel
-    && (feature.source.kind === 'RACE' || feature.source.kind === 'SUBRACE')
+    ancestryLabel &&
+    feature.label === ancestryLabel &&
+    (feature.source.kind === 'RACE' || feature.source.kind === 'SUBRACE')
   )
 }
 
@@ -246,12 +243,10 @@ function getSelectedAncestryOptionId(
   ancestryId: string,
   raceIntent: CharacterFormValues['intent']['race']
 ): string | undefined {
-  return selections
-    ?.find((selection) => (
-      selection.ancestryId === ancestryId
-      && isCurrentAncestrySource(selection.source, raceIntent)
-    ))
-    ?.optionId
+  return selections?.find(
+    (selection) =>
+      selection.ancestryId === ancestryId && isCurrentAncestrySource(selection.source, raceIntent)
+  )?.optionId
 }
 
 function isCurrentAncestrySource(

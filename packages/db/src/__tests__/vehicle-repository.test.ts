@@ -49,42 +49,44 @@ function createFakeDb(rowsByTable: RowMap) {
 
 describe('createVehicleRepository', () => {
   it('hydrates a minimal vehicle with optional fields omitted', async () => {
-    const repo = createVehicleRepository(createFakeDb({
-      vehicles: [
-        {
-          id: 'vehicle-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Wagon',
-          description: 'A sturdy wagon.',
-          category: 'LAND',
-          size_code: 'LARGE',
-          armor_class: 11,
-          hit_points: 30,
-          speed: null,
-          speed_note: null,
-          crew_min: null,
-          crew_max: null,
-          passenger_capacity: null,
-          cargo_capacity: null,
-          cost: null,
-          properties: null
-        }
-      ],
-      vehicle_details: [],
-      vehicle_features: [],
-      details: [],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: []
-    }) as never)
+    const repo = createVehicleRepository(
+      createFakeDb({
+        vehicles: [
+          {
+            id: 'vehicle-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Wagon',
+            description: 'A sturdy wagon.',
+            category: 'LAND',
+            size_code: 'LARGE',
+            armor_class: 11,
+            hit_points: 30,
+            speed: null,
+            speed_note: null,
+            crew_min: null,
+            crew_max: null,
+            passenger_capacity: null,
+            cargo_capacity: null,
+            cost: null,
+            properties: null
+          }
+        ],
+        vehicle_details: [],
+        vehicle_features: [],
+        details: [],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: []
+      }) as never
+    )
 
     await expect(repo.findById('vehicle-1')).resolves.toEqual({
       id: 'vehicle-1',
@@ -111,42 +113,44 @@ describe('createVehicleRepository', () => {
   })
 
   it('hydrates an SRD-style logistics vehicle with only category, speed, and cost fields', async () => {
-    const repo = createVehicleRepository(createFakeDb({
-      vehicles: [
-        {
-          id: 'vehicle-3',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Keelboat',
-          description: null,
-          category: 'WATER',
-          size_code: null,
-          armor_class: null,
-          hit_points: null,
-          speed: null,
-          speed_note: '1 mph',
-          crew_min: null,
-          crew_max: null,
-          passenger_capacity: null,
-          cargo_capacity: null,
-          cost: { amount: 3000, currencyId: 'gp' },
-          properties: null
-        }
-      ],
-      vehicle_details: [],
-      vehicle_features: [],
-      details: [],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: []
-    }) as never)
+    const repo = createVehicleRepository(
+      createFakeDb({
+        vehicles: [
+          {
+            id: 'vehicle-3',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Keelboat',
+            description: null,
+            category: 'WATER',
+            size_code: null,
+            armor_class: null,
+            hit_points: null,
+            speed: null,
+            speed_note: '1 mph',
+            crew_min: null,
+            crew_max: null,
+            passenger_capacity: null,
+            cargo_capacity: null,
+            cost: { amount: 3000, currencyId: 'gp' },
+            properties: null
+          }
+        ],
+        vehicle_details: [],
+        vehicle_features: [],
+        details: [],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: []
+      }) as never
+    )
 
     await expect(repo.findById('vehicle-3')).resolves.toEqual({
       id: 'vehicle-3',
@@ -173,71 +177,73 @@ describe('createVehicleRepository', () => {
   })
 
   it('hydrates a spelljammer with details, features, and optional fields', async () => {
-    const repo = createVehicleRepository(createFakeDb({
-      vehicles: [
-        {
-          id: 'vehicle-2',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Nautiloid',
-          description: 'A psionic vessel.',
-          category: 'SPELLJAMMER',
-          size_code: 'GARGANTUAN',
-          armor_class: 17,
-          hit_points: 400,
-          speed: 12,
-          speed_note: 'Spelljamming speed',
-          crew_min: 8,
-          crew_max: 20,
-          passenger_capacity: 40,
-          cargo_capacity: '20 tons',
-          cost: { amount: 100000, currencyId: 'gp' },
-          properties: ['ARMORED', 'SIEGE']
-        }
-      ],
-      vehicle_details: [
-        {
-          vehicle_id: 'vehicle-2',
-          detail_id: 'detail-1',
-          sort_order: 0
-        }
-      ],
-      vehicle_features: [
-        {
-          vehicle_id: 'vehicle-2',
-          feature_id: 'feature-1',
-          sort_order: 0
-        }
-      ],
-      details: [
-        {
-          id: 'detail-1',
-          label: 'Crew Stations',
-          description: 'Multiple specialized stations.',
-          order: 0
-        }
-      ],
-      features: [
-        {
-          id: 'feature-1',
-          label: 'Psionic Helm',
-          description: 'Allows spelljamming travel.',
-          charge_id: null,
-          restriction_id: null,
-          sort_order: 0,
-          available_at_level: null
-        }
-      ],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: []
-    }) as never)
+    const repo = createVehicleRepository(
+      createFakeDb({
+        vehicles: [
+          {
+            id: 'vehicle-2',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Nautiloid',
+            description: 'A psionic vessel.',
+            category: 'SPELLJAMMER',
+            size_code: 'GARGANTUAN',
+            armor_class: 17,
+            hit_points: 400,
+            speed: 12,
+            speed_note: 'Spelljamming speed',
+            crew_min: 8,
+            crew_max: 20,
+            passenger_capacity: 40,
+            cargo_capacity: '20 tons',
+            cost: { amount: 100000, currencyId: 'gp' },
+            properties: ['ARMORED', 'SIEGE']
+          }
+        ],
+        vehicle_details: [
+          {
+            vehicle_id: 'vehicle-2',
+            detail_id: 'detail-1',
+            sort_order: 0
+          }
+        ],
+        vehicle_features: [
+          {
+            vehicle_id: 'vehicle-2',
+            feature_id: 'feature-1',
+            sort_order: 0
+          }
+        ],
+        details: [
+          {
+            id: 'detail-1',
+            label: 'Crew Stations',
+            description: 'Multiple specialized stations.',
+            order: 0
+          }
+        ],
+        features: [
+          {
+            id: 'feature-1',
+            label: 'Psionic Helm',
+            description: 'Allows spelljamming travel.',
+            charge_id: null,
+            restriction_id: null,
+            sort_order: 0,
+            available_at_level: null
+          }
+        ],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: []
+      }) as never
+    )
 
     const result = await repo.findById('vehicle-2')
     expect(result).toMatchObject({
@@ -270,18 +276,22 @@ describe('createVehicleRepository', () => {
   })
 
   it('rejects malformed JSON cost data instead of asserting it as authored data', async () => {
-    const repo = createVehicleRepository(createFakeDb({
-      vehicles: [{
-        id: 'vehicle-invalid-cost',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Invalid Vehicle',
-        category: 'LAND',
-        cost: { amount: 'expensive', currencyId: 'gp' }
-      }],
-      vehicle_details: [],
-      vehicle_features: []
-    }) as unknown as DBLike)
+    const repo = createVehicleRepository(
+      createFakeDb({
+        vehicles: [
+          {
+            id: 'vehicle-invalid-cost',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Invalid Vehicle',
+            category: 'LAND',
+            cost: { amount: 'expensive', currencyId: 'gp' }
+          }
+        ],
+        vehicle_details: [],
+        vehicle_features: []
+      }) as unknown as DBLike
+    )
 
     await expect(repo.findById('vehicle-invalid-cost')).rejects.toThrow(
       'Vehicle "vehicle-invalid-cost" has invalid cost.'

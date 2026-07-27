@@ -1,5 +1,15 @@
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
+async function findAuthoringRailItem(container: HTMLElement, name: RegExp) {
+  const scope = within(container)
+
+  return await waitFor(() => {
+    const target = scope.queryByRole('link', { name }) ?? scope.queryByRole('button', { name })
+    if (!target) throw new Error(`Unable to find authoring rail item matching ${name}.`)
+    return target
+  })
+}
+
 export async function expectCreateEmptyAuthoringRoute(canvasElement: HTMLElement) {
   const canvas = within(canvasElement)
 
@@ -51,28 +61,25 @@ export async function expectMasterLockedAuthoringRoute(canvasElement: HTMLElemen
 export async function selectAuthoringTarget(canvasElement: HTMLElement, name: RegExp) {
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const target = await within(steps).findByRole('button', { name })
+  const target = await findAuthoringRailItem(steps, name)
 
   await userEvent.click(target)
-  await waitFor(() =>
-    expect(within(steps).getByRole('button', { name })).toHaveAttribute('aria-current', 'step')
-  )
+  await waitFor(() => expect(target).toHaveAttribute('aria-current', 'step'))
 }
 
 export async function expandAuthoringBranch(canvasElement: HTMLElement, name: RegExp) {
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const branch = await within(steps).findByRole('button', { name })
+  const branch = await findAuthoringRailItem(steps, name)
 
   if (branch.getAttribute('aria-expanded') !== 'true') {
     await userEvent.click(branch)
   }
 
   await waitFor(async () => {
-    const expandedBranch = within(steps).getByRole('button', { name })
-    await expect(expandedBranch).toHaveAttribute('aria-expanded', 'true')
+    await expect(branch).toHaveAttribute('aria-expanded', 'true')
 
-    const controlledId = expandedBranch.getAttribute('aria-controls')
+    const controlledId = branch.getAttribute('aria-controls')
     await expect(controlledId).toBeTruthy()
     await expect(
       canvasElement.ownerDocument.getElementById(controlledId ?? '')?.firstElementChild
@@ -89,20 +96,14 @@ export async function selectAuthoringChildTarget(
 
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const parent = within(steps).getByRole('button', { name: parentName })
+  const parent = await findAuthoringRailItem(steps, parentName)
   const controlledId = parent.getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
 
   await expect(controlledRegion).toBeInTheDocument()
-  const target = await within(controlledRegion as HTMLElement).findByRole('button', {
-    name: childName
-  })
+  const target = await findAuthoringRailItem(controlledRegion as HTMLElement, childName)
   await userEvent.click(target)
-  await waitFor(() =>
-    expect(
-      within(controlledRegion as HTMLElement).getByRole('button', { name: childName })
-    ).toHaveAttribute('aria-current', 'step')
-  )
+  await waitFor(() => expect(target).toHaveAttribute('aria-current', 'step'))
 }
 
 export async function expandAuthoringChildBranch(
@@ -114,25 +115,20 @@ export async function expandAuthoringChildBranch(
 
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const parent = within(steps).getByRole('button', { name: parentName })
+  const parent = await findAuthoringRailItem(steps, parentName)
   const controlledId = parent.getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
 
   await expect(controlledRegion).toBeInTheDocument()
-  const child = await within(controlledRegion as HTMLElement).findByRole('button', {
-    name: childName
-  })
+  const child = await findAuthoringRailItem(controlledRegion as HTMLElement, childName)
   if (child.getAttribute('aria-expanded') !== 'true') {
     await userEvent.click(child)
   }
 
   await waitFor(async () => {
-    const expandedChild = within(controlledRegion as HTMLElement).getByRole('button', {
-      name: childName
-    })
-    await expect(expandedChild).toHaveAttribute('aria-expanded', 'true')
+    await expect(child).toHaveAttribute('aria-expanded', 'true')
 
-    const childControlledId = expandedChild.getAttribute('aria-controls')
+    const childControlledId = child.getAttribute('aria-controls')
     await expect(
       canvasElement.ownerDocument.getElementById(childControlledId ?? '')?.firstElementChild
     ).toHaveAttribute('aria-hidden', 'false')
@@ -145,10 +141,9 @@ export async function expectAuthoringTargetLabels(
 ) {
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const stepsCanvas = within(steps)
 
   for (const label of labels) {
-    await expect(await stepsCanvas.findByRole('button', { name: label })).toBeInTheDocument()
+    await expect(await findAuthoringRailItem(steps, label)).toBeInTheDocument()
   }
 }
 

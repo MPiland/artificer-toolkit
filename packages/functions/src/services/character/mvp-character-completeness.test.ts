@@ -233,6 +233,7 @@ describe('MVP character Builder-to-engine completeness', () => {
           maxHitPoints: { base: 23, contributions: [], effective: 23 }
         },
         spellSlots: { maxByLevel: {}, fusionStrategy: 'NONE' },
+        spellAccess: [],
         resources: [],
         spellMechanics: [],
         itemMechanics: [],

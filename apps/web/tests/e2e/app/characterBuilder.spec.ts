@@ -286,7 +286,9 @@ test.describe('MVP character Builder to Sheet', () => {
     ).toBeVisible()
 
     await page.reload({ waitUntil: 'networkidle' })
-    await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({ timeout: 120_000 })
+    await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
+      timeout: 120_000
+    })
     await page.getByRole('tab', { name: 'Spells', exact: true }).click()
     const reloadedSpellsPanel = page.getByRole('region', { name: 'Spells', exact: true })
     await expect(
@@ -426,11 +428,7 @@ async function completeFighterAndAcolyteEquipment(page: Page): Promise<void> {
   await selectBuilderOptionAtIndexAndResolve(page, /^Option$/, 3, "1 Explorer's Pack")
   await selectBuilderOptionAndResolve(page, /^Choose 1 martial weapon$/i, 'Longsword')
   await selectBuilderOptionAndResolve(page, /^Choose 1 shield$/i, 'Shield')
-  await selectBuilderOptionAndResolve(
-    page,
-    /^Choose 1 Prayer Book or Prayer Wheel/,
-    'Prayer Book'
-  )
+  await selectBuilderOptionAndResolve(page, /^Choose 1 Prayer Book or Prayer Wheel/, 'Prayer Book')
 }
 
 async function saveReloadPreviewAndFinalize(
@@ -513,9 +511,7 @@ async function assertPersistedClericChoices(page: Page): Promise<void> {
   await goToBuilderStep(page, 'Equipment & Currency')
   await expect(page.getByRole('combobox', { name: /^Option$/ })).toHaveCount(4)
   await expect(page.getByRole('combobox', { name: /^Option$/ }).nth(0)).toHaveValue('1 Mace')
-  await expect(page.getByRole('combobox', { name: /^Option$/ }).nth(1)).toHaveValue(
-    '1 Chain Mail'
-  )
+  await expect(page.getByRole('combobox', { name: /^Option$/ }).nth(1)).toHaveValue('1 Chain Mail')
   await expect(page.getByRole('combobox', { name: /^Option$/ }).nth(2)).toHaveValue(
     '1 Light Crossbow + 1 Crossbow Bolts (20)'
   )
@@ -616,9 +612,7 @@ async function assertPersistedMulticlassChoices(
   await expect(page.getByRole('combobox', { name: /^Fighting Style choice/ })).toHaveValue(
     'Defense'
   )
-  await expect(page.getByRole('combobox', { name: /^Skill Proficiencies$/ })).toHaveValue(
-    'Stealth'
-  )
+  await expect(page.getByRole('combobox', { name: /^Skill Proficiencies$/ })).toHaveValue('Stealth')
 
   await goToBuilderStep(page, 'Background')
   await expect(page.getByRole('combobox', { name: 'Background', exact: true })).toHaveValue(
@@ -699,7 +693,7 @@ function normalizeText(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-function readHitPointPair(vitals: string): { current: number, maximum: number } {
+function readHitPointPair(vitals: string): { current: number; maximum: number } {
   const match = /\bHP\s+(\d+)\s*\/\s*(\d+)\b/i.exec(vitals)
   const current = match?.[1]
   const maximum = match?.[2]

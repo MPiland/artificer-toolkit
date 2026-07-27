@@ -34,29 +34,41 @@ export function CharacterSheetSavingThrowsPanel({
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
 }) {
   return (
-    <section className={styles.proficiencyPanel} aria-labelledby='character-sheet-saving-throws'>
+    <section
+      className={`${styles.proficiencyPanel} ${styles.savingThrowsPanel}`}
+      aria-labelledby='character-sheet-saving-throws'
+    >
       <div className={styles.overviewPanelHeader}>
         <div>
-          <Title id='character-sheet-saving-throws' className={styles.panelTitle}>Saving Throws</Title>
-          <Text className={styles.muted}>Ability defenses and proficiency.</Text>
+          <Title id='character-sheet-saving-throws' className={styles.panelTitle}>
+            Saving Throws
+          </Title>
         </div>
       </div>
-      <div className={styles.proficiencyList}>
+      <div className={`${styles.proficiencyList} ${styles.savingThrowsList}`}>
         {savingThrows.map((save) => (
           <button
-            className={clsx(styles.proficiencyRow, styles.sheetInspectorTrigger)}
+            aria-label={`Inspect ${save.label} saving throw. ${formatProficiencyLevel(
+              save.proficiency
+            )}. Total ${formatSigned(save.total)}.`}
+            className={clsx(styles.savingThrowCard, styles.sheetInspectorTrigger)}
             disabled={!openPanel}
             key={save.ability}
             type='button'
             onClick={() => openPanel?.({ kind: 'SAVING_THROW', ability: save.ability })}
           >
-            <span
-              className={styles.proficiencyDot}
-              data-proficiency={save.proficiency}
-              aria-label={formatProficiencyLevel(save.proficiency)}
-            />
-            <Text className={styles.proficiencyName}>{save.label}</Text>
-            <Text className={styles.proficiencyTotal}>{formatSigned(save.total)}</Text>
+            <div className={styles.savingThrowCardHeader}>
+              <span className={styles.savingThrowMarkerSpacer} aria-hidden='true' />
+              <Text className={styles.savingThrowCardLabel}>
+                {getAbilityShortLabel(save.ability)}
+              </Text>
+              <span
+                className={styles.proficiencyDot}
+                data-proficiency={save.proficiency}
+                aria-hidden='true'
+              />
+            </div>
+            <Text className={styles.savingThrowCardValue}>{formatSigned(save.total)}</Text>
           </button>
         ))}
       </div>
@@ -76,7 +88,10 @@ export function CharacterSheetSkillsPanel({
   const abilityModifiers = new Map(abilities.map((ability) => [ability.ability, ability.modifier]))
 
   return (
-    <section className={styles.proficiencyPanel} aria-labelledby='character-sheet-skills'>
+    <section
+      className={`${styles.proficiencyPanel} ${styles.skillsPanel}`}
+      aria-labelledby='character-sheet-skills'
+    >
       <div className={styles.overviewPanelHeader}>
         <div>
           <button
@@ -85,14 +100,15 @@ export function CharacterSheetSkillsPanel({
             type='button'
             onClick={() => openPanel?.({ kind: 'SKILLS' })}
           >
-            <Title id='character-sheet-skills' className={styles.panelTitle}>Skills</Title>
+            <Title id='character-sheet-skills' className={styles.panelTitle}>
+              Skills
+            </Title>
             <ChevronRight aria-hidden='true' size={16} />
           </button>
         </div>
       </div>
-      <div className={styles.proficiencyList}>
+      <div className={`${styles.proficiencyList} ${styles.skillsList}`}>
         <div className={styles.skillTableHeader}>
-          <span aria-hidden='true' />
           <Text>Skill</Text>
           <Text>Abil.</Text>
           <Text>Prof.</Text>
@@ -107,11 +123,6 @@ export function CharacterSheetSkillsPanel({
             type='button'
             onClick={() => openPanel?.({ kind: 'SKILL', skillId: skill.skillId })}
           >
-            <span
-              className={styles.proficiencyDot}
-              data-proficiency={skill.proficiency}
-              aria-label={formatProficiencyLevel(skill.proficiency)}
-            />
             <div>
               <Text className={styles.proficiencyName}>{skill.label}</Text>
             </div>
@@ -120,8 +131,11 @@ export function CharacterSheetSkillsPanel({
               className={styles.proficiencyDot}
               data-proficiency={skill.proficiency}
               aria-label={formatProficiencyLevel(skill.proficiency)}
+              role='img'
             />
-            <Text className={styles.proficiencyMeta}>{formatSigned(abilityModifiers.get(skill.ability) ?? 0)}</Text>
+            <Text className={styles.proficiencyMeta}>
+              {formatSigned(abilityModifiers.get(skill.ability) ?? 0)}
+            </Text>
             <Text className={styles.proficiencyTotal}>{formatSigned(skill.total)}</Text>
           </button>
         ))}

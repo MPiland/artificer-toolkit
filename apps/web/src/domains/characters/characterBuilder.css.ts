@@ -516,9 +516,9 @@ export const selectionEmptyState = style({
 export const fieldGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gap': '16px',
-      'gridTemplateColumns': 'repeat(12, minmax(0, 1fr))',
+      display: 'grid',
+      gap: '16px',
+      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
       '@media': {
         '(max-width: 760px)': {
           gridTemplateColumns: '1fr'
@@ -557,7 +557,7 @@ export const stepFieldGroupTitle = style({
 export const fieldSpan6 = style({
   '@layer': {
     [app]: {
-      'gridColumn': 'span 6',
+      gridColumn: 'span 6',
       '@media': {
         '(max-width: 760px)': {
           gridColumn: '1'
@@ -570,7 +570,7 @@ export const fieldSpan6 = style({
 export const fieldSpan4 = style({
   '@layer': {
     [app]: {
-      'gridColumn': 'span 4',
+      gridColumn: 'span 4',
       '@media': {
         '(max-width: 760px)': {
           gridColumn: '1'

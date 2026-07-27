@@ -35,6 +35,6 @@ export function compileVehicle(authored: VehicleAuthored): CompiledVehicle {
     cargoCapacity: authored.cargoCapacity,
     cost: authored.cost,
     properties: authored.properties,
-    features: authored.features?.map(compileFeature),
+    features: authored.features?.map(compileFeature)
   }
 }

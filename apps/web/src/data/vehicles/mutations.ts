@@ -1,6 +1,4 @@
-import {
-  useMutation,
-  useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -15,7 +13,9 @@ export function useActivateVehicleMutation() {
 
       if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.vehicles.detail(response.item.id), response)
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.vehicles.draft(response.item.id) })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.content.vehicles.draft(response.item.id)
+        })
       }
     }
   })
@@ -28,7 +28,9 @@ export function useSaveVehicleDraftMutation() {
     mutationFn: (vehicle: VehicleAuthoringInputDto) => api.content.vehicles.saveDraft(vehicle),
     onSuccess: async (draft) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.vehicles.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.vehicles.draft(draft.subjectId) })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.vehicles.draft(draft.subjectId)
+      })
     }
   })
 }

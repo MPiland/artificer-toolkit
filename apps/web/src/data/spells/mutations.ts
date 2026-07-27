@@ -1,7 +1,4 @@
-import {
-  useMutation,
-  useQueryClient
-} from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { SpellAuthoringInputDto } from '@artificer-toolkit/schema/subjects/spell'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -16,7 +13,9 @@ export function useActivateSpellMutation() {
 
       if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.spells.detail(response.item.id), response)
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(response.item.id) })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.content.spells.draft(response.item.id)
+        })
       }
     }
   })
@@ -29,7 +28,9 @@ export function useSaveSpellDraftMutation() {
     mutationFn: (spell: SpellAuthoringInputDto) => api.content.spells.saveDraft(spell),
     onSuccess: async (draft) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(draft.subjectId) })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.spells.draft(draft.subjectId)
+      })
     }
   })
 }

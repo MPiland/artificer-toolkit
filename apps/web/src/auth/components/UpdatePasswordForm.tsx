@@ -22,7 +22,9 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
+    null
+  )
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -46,7 +48,8 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
       const result = await authClient.updatePassword({ password })
 
       if (!result.ok) {
-        const message = result.message ?? 'Try the recovery link again or request a new reset email.'
+        const message =
+          result.message ?? 'Try the recovery link again or request a new reset email.'
         setFeedback({ tone: 'error', message })
         return
       }
@@ -74,7 +77,9 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
         onChange={(event) => setPassword(event.currentTarget.value)}
         required
       />
-      <p className={authFieldHint}>Use at least 8 characters. Avoid a password you use at another table or tool.</p>
+      <p className={authFieldHint}>
+        Use at least 8 characters. Avoid a password you use at another table or tool.
+      </p>
       <PasswordInput
         label='Confirm password'
         classNames={{

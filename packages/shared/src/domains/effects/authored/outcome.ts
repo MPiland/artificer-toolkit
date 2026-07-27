@@ -14,16 +14,16 @@ export type OutcomeRowMetadataAuthored = {
   description?: string
 }
 
-export type OutcomeAuthored
-  = | DamageAuthored
-    | ConditionAuthored
-    | HealAuthored
-    | ApplyGrantAuthored
-    | ForcedMovementAuthored
-    | TeleportAuthored
-    | ManifestAuthored
-    | MoveManifestAuthored
-    | CommandManifestAuthored
-    | ManualAdjudicationAuthored
+export type OutcomeAuthored =
+  | DamageAuthored
+  | ConditionAuthored
+  | HealAuthored
+  | ApplyGrantAuthored
+  | ForcedMovementAuthored
+  | TeleportAuthored
+  | ManifestAuthored
+  | MoveManifestAuthored
+  | CommandManifestAuthored
+  | ManualAdjudicationAuthored
 
 export type NonManifestOutcomeAuthored = Exclude<OutcomeAuthored, ManifestAuthored>

@@ -39,7 +39,9 @@ function createEffectReferenceApi(): EffectReferenceApi {
         rulesetVersion: '2014',
         alignments: [],
         challengeRatings: [],
-        conditionTypes: [{ id: `${id}-condition`, code: `${id}-condition`, label: `${id} Condition` }],
+        conditionTypes: [
+          { id: `${id}-condition`, code: `${id}-condition`, label: `${id} Condition` }
+        ],
         creatureTypes: [],
         currencies: [],
         damageTypes: [{ id: `${id}-damage`, code: `${id}-damage`, label: `${id} Damage` }],
@@ -99,7 +101,9 @@ describe('effect reference data', () => {
 
     expect(references.systemId).toBe('system-b')
     expect(references.damageTypes).toEqual([{ value: 'system-b-damage', label: 'system-b Damage' }])
-    expect(references.conditionTypes).toEqual([{ value: 'system-b-condition', label: 'system-b Condition' }])
+    expect(references.conditionTypes).toEqual([
+      { value: 'system-b-condition', label: 'system-b Condition' }
+    ])
     expect(references.creatures).toEqual([{ value: 'creature-b', label: 'Creature B' }])
   })
 })

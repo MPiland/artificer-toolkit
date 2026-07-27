@@ -79,7 +79,7 @@ export function getCharacterBuilderProgressState(
   values: CharacterFormValues
 ): CharacterBuilderProgressState {
   const stepStatuses: Record<CharacterBuilderStepId, AuthoringStepProgressStatus> = {
-    BASICS: Boolean(values.label.trim() && values.intent.advancement?.method) ? 'complete' : 'incomplete',
+    BASICS: values.label.trim() && values.intent.advancement?.method ? 'complete' : 'incomplete',
     RACE: values.intent.race?.raceId ? 'complete' : 'incomplete',
     CLASSES: values.intent.classes.length > 0 ? 'complete' : 'incomplete',
     BACKGROUND: values.intent.background?.backgroundId ? 'complete' : 'incomplete',
@@ -109,13 +109,17 @@ function isAbilitiesAndHitpointsComplete(values: CharacterFormValues): boolean {
   const assignedAbilities = new Set(getAssignedAbilityCodes(values.intent.abilities))
   const hitpointLevels = values.intent.hitpoints.levels ?? []
 
-  return assignedAbilities.size === 6
-    && isHitpointProgressionComplete(values.intent.classes, hitpointLevels)
+  return (
+    assignedAbilities.size === 6 &&
+    isHitpointProgressionComplete(values.intent.classes, hitpointLevels)
+  )
 }
 
 function isStartingEquipmentChoicesComplete(payload: CharacterBuilderPayloadDto): boolean {
-  return !payload.view.equipment.classStartingEquipmentRequired
-    && !payload.view.equipment.backgroundStartingEquipmentRequired
+  return (
+    !payload.view.equipment.classStartingEquipmentRequired &&
+    !payload.view.equipment.backgroundStartingEquipmentRequired
+  )
 }
 
 function setStepStatus(

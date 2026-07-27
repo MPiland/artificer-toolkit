@@ -34,9 +34,7 @@ export type CompiledFeatureBase = {
 export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatureBase {
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
 
-  const effects = authored.effects?.length
-    ? authored.effects.map(compileEffect)
-    : undefined
+  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
 
   const feats = authored.grants?.feats?.length
     ? authored.grants.feats.map(compileFeatGrant)
@@ -71,4 +69,3 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
     order: authored.order
   }
 }
-

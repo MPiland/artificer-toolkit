@@ -29,10 +29,7 @@ export type RaceRepositoryWithReadOptions = Omit<
     ids: readonly string[],
     filter?: RaceRepositoryReadOptions
   ): Promise<Map<string, RaceAuthored>>
-  findResolvedById(
-    id: string,
-    filter?: RaceRepositoryReadOptions
-  ): Promise<ResolvedRace | null>
+  findResolvedById(id: string, filter?: RaceRepositoryReadOptions): Promise<ResolvedRace | null>
 }
 
 const RACE_COLUMNS = [
@@ -79,10 +76,7 @@ type RaceAncestryOptionFeatureLinkRow = {
 
 type RaceOwnedRow = { race_id: string }
 
-function requireLinkedRecord<T>(
-  value: T | null,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message)
   }
@@ -102,10 +96,7 @@ function requireAncestryOptionDescription(
   return value
 }
 
-function requireRaceCategory(
-  raceId: string,
-  value: string
-): RaceAuthored['category'] {
+function requireRaceCategory(raceId: string, value: string): RaceAuthored['category'] {
   if (value !== RACE_CATEGORY_CODE.BASE && value !== RACE_CATEGORY_CODE.SUBRACE) {
     throw new Error(`Race "${raceId}" has invalid category "${value}".`)
   }
@@ -117,10 +108,7 @@ function requireSelectionMode(
   raceId: string,
   value: string
 ): Extract<RaceAuthored, { category: 'BASE' }>['selectionMode'] {
-  if (
-    value !== RACE_SELECTION_MODE.DIRECT
-    && value !== RACE_SELECTION_MODE.REQUIRES_SUBRACE
-  ) {
+  if (value !== RACE_SELECTION_MODE.DIRECT && value !== RACE_SELECTION_MODE.REQUIRES_SUBRACE) {
     throw new Error(`Race "${raceId}" has invalid selection_mode "${value}".`)
   }
 
@@ -185,28 +173,56 @@ async function hydrateRaceRows(
   }
 
   const [featureLinks, ancestryRows, detailLinks, speedRows, heritageRows] = await Promise.all([
-    db.selectFrom('race_features').select(['race_id', 'feature_id', 'sort_order']).where('race_id', 'in', raceIds).orderBy('sort_order').execute(),
-    db.selectFrom('race_ancestries').select(['id', 'race_id', 'label', 'description']).where('race_id', 'in', raceIds).execute(),
-    db.selectFrom('race_details').select(['race_id', 'detail_id', 'sort_order']).where('race_id', 'in', raceIds).orderBy('sort_order').execute(),
-    db.selectFrom('race_speeds').select(['race_id', 'speed_id', 'amount', 'unit_code']).where('race_id', 'in', raceIds).orderBy('speed_id').execute(),
-    db.selectFrom('race_heritages').select(['race_id', 'heritage_id', 'sort_order']).where('race_id', 'in', raceIds).orderBy('sort_order').execute()
+    db
+      .selectFrom('race_features')
+      .select(['race_id', 'feature_id', 'sort_order'])
+      .where('race_id', 'in', raceIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('race_ancestries')
+      .select(['id', 'race_id', 'label', 'description'])
+      .where('race_id', 'in', raceIds)
+      .execute(),
+    db
+      .selectFrom('race_details')
+      .select(['race_id', 'detail_id', 'sort_order'])
+      .where('race_id', 'in', raceIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('race_speeds')
+      .select(['race_id', 'speed_id', 'amount', 'unit_code'])
+      .where('race_id', 'in', raceIds)
+      .orderBy('speed_id')
+      .execute(),
+    db
+      .selectFrom('race_heritages')
+      .select(['race_id', 'heritage_id', 'sort_order'])
+      .where('race_id', 'in', raceIds)
+      .orderBy('sort_order')
+      .execute()
   ])
   const ancestryIds = ancestryRows.map((ancestry) => ancestry.id)
-  const optionRows: RaceAncestryOptionRow[] = ancestryIds.length > 0
-    ? await db.selectFrom('race_ancestry_options')
-        .select(['id', 'ancestry_id', 'label', 'description', 'sort_order'])
-        .where('ancestry_id', 'in', ancestryIds)
-        .orderBy('sort_order')
-        .execute()
-    : []
+  const optionRows: RaceAncestryOptionRow[] =
+    ancestryIds.length > 0
+      ? await db
+          .selectFrom('race_ancestry_options')
+          .select(['id', 'ancestry_id', 'label', 'description', 'sort_order'])
+          .where('ancestry_id', 'in', ancestryIds)
+          .orderBy('sort_order')
+          .execute()
+      : []
   const optionIds = optionRows.map((option) => option.id)
-  const optionFeatureLinks: RaceAncestryOptionFeatureLinkRow[] = optionIds.length > 0
-    ? await db.selectFrom('race_ancestry_option_features')
-        .select(['ancestry_option_id', 'feature_id', 'sort_order'])
-        .where('ancestry_option_id', 'in', optionIds)
-        .orderBy('sort_order')
-        .execute()
-    : []
+  const optionFeatureLinks: RaceAncestryOptionFeatureLinkRow[] =
+    optionIds.length > 0
+      ? await db
+          .selectFrom('race_ancestry_option_features')
+          .select(['ancestry_option_id', 'feature_id', 'sort_order'])
+          .where('ancestry_option_id', 'in', optionIds)
+          .orderBy('sort_order')
+          .execute()
+      : []
   const selectedFeatureLinks = options.allowedFeatureIds
     ? featureLinks.filter((link) => options.allowedFeatureIds?.has(link.feature_id))
     : featureLinks
@@ -235,10 +251,13 @@ async function hydrateRaceRows(
 
   const [detailsById, featuresById] = await Promise.all([
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
-    createFeatureRepository(db).findByIds([
-      ...selectedFeatureLinks.map((link) => link.feature_id),
-      ...selectedOptionFeatureLinks.map((link) => link.feature_id)
-    ], { includeEffects: options.includeFeatureEffects })
+    createFeatureRepository(db).findByIds(
+      [
+        ...selectedFeatureLinks.map((link) => link.feature_id),
+        ...selectedOptionFeatureLinks.map((link) => link.feature_id)
+      ],
+      { includeEffects: options.includeFeatureEffects }
+    )
   ])
   const detailLinksByRace = groupRaceRows(detailLinks)
   const speedsByRace = groupRaceRows(speedRows)
@@ -251,14 +270,18 @@ async function hydrateRaceRows(
     }
 
     const id = row.id
-    const authoredDetails = (detailLinksByRace.get(id) ?? []).map((link) => requireLinkedRecord(
-      detailsById.get(link.detail_id) ?? null,
-      `Race "${id}" is linked to missing detail "${link.detail_id}".`
-    ))
-    const authoredFeatures = (featureLinksByRace.get(id) ?? []).map((link) => requireLinkedRecord(
-      featuresById.get(link.feature_id) ?? null,
-      `Race "${id}" is linked to missing feature "${link.feature_id}".`
-    ))
+    const authoredDetails = (detailLinksByRace.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        detailsById.get(link.detail_id) ?? null,
+        `Race "${id}" is linked to missing detail "${link.detail_id}".`
+      )
+    )
+    const authoredFeatures = (featureLinksByRace.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        featuresById.get(link.feature_id) ?? null,
+        `Race "${id}" is linked to missing feature "${link.feature_id}".`
+      )
+    )
     const ancestry = ancestryByRace.get(id)?.[0]
     const authoredAncestry = ancestry
       ? {
@@ -272,12 +295,15 @@ async function hydrateRaceRows(
               label: option.label,
               description: requireAncestryOptionDescription(id, option.id, option.description),
               order: option.sort_order,
-              features: links.length > 0
-                ? links.map((link) => requireLinkedRecord(
-                    featuresById.get(link.feature_id) ?? null,
-                    `Race "${id}" ancestry option "${option.id}" is linked to missing feature "${link.feature_id}".`
-                  ))
-                : undefined
+              features:
+                links.length > 0
+                  ? links.map((link) =>
+                      requireLinkedRecord(
+                        featuresById.get(link.feature_id) ?? null,
+                        `Race "${id}" ancestry option "${option.id}" is linked to missing feature "${link.feature_id}".`
+                      )
+                    )
+                  : undefined
             }
           })
         }
@@ -344,13 +370,21 @@ async function hydrateRacesByIds(
     return new Map()
   }
 
-  const rows = await db.selectFrom('races').select(RACE_COLUMNS).where('id', 'in', distinctIds).execute() as RaceRow[]
+  const rows = (await db
+    .selectFrom('races')
+    .select(RACE_COLUMNS)
+    .where('id', 'in', distinctIds)
+    .execute()) as RaceRow[]
   const rowsById = new Map(rows.map((row) => [row.id, row]))
 
-  return hydrateRaceRows(db, distinctIds.flatMap((id) => {
-    const row = rowsById.get(id)
-    return row ? [row] : []
-  }), options)
+  return hydrateRaceRows(
+    db,
+    distinctIds.flatMap((id) => {
+      const row = rowsById.get(id)
+      return row ? [row] : []
+    }),
+    options
+  )
 }
 
 export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions {
@@ -384,10 +418,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
       return null
     }
 
-    return resolveRaceAuthored(
-      authored,
-      (parentId: string) => cache.get(parentId) ?? undefined
-    )
+    return resolveRaceAuthored(authored, (parentId: string) => cache.get(parentId) ?? undefined)
   }
 
   return {
@@ -408,10 +439,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('races')
-        .select(RACE_COLUMNS)
-        .orderBy('label')
+      let query = db.selectFrom('races').select(RACE_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
         query = query.where('system_id', '=', filter.systemId)
@@ -429,10 +457,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
     },
 
     async findResolvedAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('races')
-        .select(RACE_COLUMNS)
-        .orderBy('label')
+      let query = db.selectFrom('races').select(RACE_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
         query = query.where('system_id', '=', filter.systemId)
@@ -442,18 +467,20 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
         query = query.where('user_id', '=', filter.userId)
       }
 
-      const rows = await query.execute() as RaceRow[]
+      const rows = (await query.execute()) as RaceRow[]
       const rowsById = new Map(rows.map((row) => [row.id, row]))
-      let missingParentIds = uniqueIds(rows.flatMap((row) =>
-        row.parent_race_id && !rowsById.has(row.parent_race_id) ? [row.parent_race_id] : []
-      ))
+      let missingParentIds = uniqueIds(
+        rows.flatMap((row) =>
+          row.parent_race_id && !rowsById.has(row.parent_race_id) ? [row.parent_race_id] : []
+        )
+      )
 
       while (missingParentIds.length > 0) {
-        const parentRows = await db
+        const parentRows = (await db
           .selectFrom('races')
           .select(RACE_COLUMNS)
           .where('id', 'in', missingParentIds)
-          .execute() as RaceRow[]
+          .execute()) as RaceRow[]
 
         for (const parentRow of parentRows) {
           rowsById.set(parentRow.id, parentRow)
@@ -463,11 +490,13 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
           break
         }
 
-        missingParentIds = uniqueIds(parentRows.flatMap((parentRow) =>
-          parentRow.parent_race_id && !rowsById.has(parentRow.parent_race_id)
-            ? [parentRow.parent_race_id]
-            : []
-        ))
+        missingParentIds = uniqueIds(
+          parentRows.flatMap((parentRow) =>
+            parentRow.parent_race_id && !rowsById.has(parentRow.parent_race_id)
+              ? [parentRow.parent_race_id]
+              : []
+          )
+        )
       }
 
       const cache = await hydrateRaceRows(db, [...rowsById.values()])
@@ -480,10 +509,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
         }
 
         return [
-          resolveRaceAuthored(
-            authored,
-            (parentId: string) => cache.get(parentId) ?? undefined
-          )
+          resolveRaceAuthored(authored, (parentId: string) => cache.get(parentId) ?? undefined)
         ]
       })
     }

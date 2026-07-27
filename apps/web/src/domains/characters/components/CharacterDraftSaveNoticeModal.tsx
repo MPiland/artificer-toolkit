@@ -21,21 +21,38 @@ export function CharacterDraftSaveNoticeModal({
       size='lg'
       closeButtonProps={{
         'aria-label': 'Close draft save notice',
-        'className': styles.modalCloseButton
+        className: styles.modalCloseButton
       }}
       onClose={onClose}
     >
       <Stack gap='md'>
         <Text>
-          This draft contains ability-generation work from another method. Saving keeps that inactive work recoverable,
-          but only the currently selected ability method is used for review and finalization.
+          This draft contains ability-generation work from another method. Saving keeps that
+          inactive work recoverable, but only the currently selected ability method is used for
+          review and finalization.
         </Text>
         <List spacing='xs'>
-          {inactiveAbilityMethodLabels.map((label) => <List.Item key={label}>{label}</List.Item>)}
+          {inactiveAbilityMethodLabels.map((label) => (
+            <List.Item key={label}>{label}</List.Item>
+          ))}
         </List>
         <Group justify='flex-end'>
-          <Button className={styles.modalActionButton} type='button' variant='default' onClick={onClose}>Cancel</Button>
-          <Button className={styles.modalActionButton} type='button' loading={isSaving} onClick={onConfirm}>Save Draft</Button>
+          <Button
+            className={styles.modalActionButton}
+            type='button'
+            variant='default'
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            className={styles.modalActionButton}
+            type='button'
+            loading={isSaving}
+            onClick={onConfirm}
+          >
+            Save Draft
+          </Button>
         </Group>
       </Stack>
     </Modal>

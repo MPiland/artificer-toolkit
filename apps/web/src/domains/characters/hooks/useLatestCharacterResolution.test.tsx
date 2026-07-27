@@ -25,10 +25,12 @@ describe('useLatestCharacterResolution', () => {
     const pending = deferred<CharacterBuilderPayloadDto>()
     const onResolved = vi.fn()
     mocks.mutateAsync.mockReturnValueOnce(pending.promise)
-    const { result } = renderHook(() => useLatestCharacterResolution({
-      mode: 'edit',
-      onResolved
-    }))
+    const { result } = renderHook(() =>
+      useLatestCharacterResolution({
+        mode: 'edit',
+        onResolved
+      })
+    )
     const character = toCharacterFormValues(characterBuilderPayloadFixture)
     let firstPromise!: Promise<void>
     let secondPromise!: Promise<void>
@@ -51,13 +53,13 @@ describe('useLatestCharacterResolution', () => {
     const first = deferred<CharacterBuilderPayloadDto>()
     const second = deferred<CharacterBuilderPayloadDto>()
     const onResolved = vi.fn()
-    mocks.mutateAsync
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(second.promise)
-    const { result } = renderHook(() => useLatestCharacterResolution({
-      mode: 'edit',
-      onResolved
-    }))
+    mocks.mutateAsync.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { result } = renderHook(() =>
+      useLatestCharacterResolution({
+        mode: 'edit',
+        onResolved
+      })
+    )
     const character = toCharacterFormValues(characterBuilderPayloadFixture)
     const changedCharacter = structuredClone(character)
     changedCharacter.intent.classes[0].classLevel += 1

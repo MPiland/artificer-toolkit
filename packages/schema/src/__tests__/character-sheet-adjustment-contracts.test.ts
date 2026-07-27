@@ -137,41 +137,20 @@ describe('character Sheet adjustment contracts', () => {
     ).toThrow()
   })
 
-  it('keeps provenance labels and categories closed', () => {
-    expect(
-      characterSheetAdjustmentWriteDtoSchema.parse({
-        ...metadata,
-        sourceCategory: 'MAGIC',
-        sourceLabel: 'Arcane focus',
-        family: 'ABILITY',
-        ability: 'INTELLIGENCE',
-        field: 'OTHER_MODIFIER',
-        value: 1
-      })
-    ).toMatchObject({
+  it('keeps manual provenance note-only', () => {
+    const adjustment = characterSheetAdjustmentWriteDtoSchema.parse({
+      ...metadata,
       sourceCategory: 'MAGIC',
-      sourceLabel: 'Arcane focus'
+      sourceLabel: 'Arcane focus',
+      family: 'ABILITY',
+      ability: 'INTELLIGENCE',
+      field: 'OTHER_MODIFIER',
+      value: 1
     })
-    expect(() =>
-      characterSheetAdjustmentWriteDtoSchema.parse({
-        ...metadata,
-        sourceCategory: 'HOMEBREW',
-        family: 'ABILITY',
-        ability: 'INTELLIGENCE',
-        field: 'OTHER_MODIFIER',
-        value: 1
-      })
-    ).toThrow()
-    expect(() =>
-      characterSheetAdjustmentWriteDtoSchema.parse({
-        ...metadata,
-        sourceLabel: 'First line\nSecond line',
-        family: 'ABILITY',
-        ability: 'INTELLIGENCE',
-        field: 'OTHER_MODIFIER',
-        value: 1
-      })
-    ).toThrow()
+
+    expect(adjustment).not.toHaveProperty('sourceCategory')
+    expect(adjustment).not.toHaveProperty('sourceLabel')
+    expect(adjustment).toMatchObject({ sourceNote: 'Player adjustment' })
   })
 
   it('requires an available explicit movement identity', () => {

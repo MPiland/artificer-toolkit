@@ -222,7 +222,7 @@ function buildEquipmentAuthored(
       properties:
         relations.properties.length > 0
           ? relations.properties.map((property) => requireProperty(id, property.property_code))
-        : undefined
+          : undefined
     }
   }
 
@@ -235,34 +235,34 @@ function buildEquipmentAuthored(
     attributes:
       relations.attributes.length > 0
         ? relations.attributes.map((attribute) => requireAttribute(id, attribute.attribute_code))
-      : undefined,
+        : undefined,
     cost:
       row.cost_amount != null && row.cost_currency_id
-      ? {
-          amount: readNumericValue(id, row.cost_amount, 'cost_amount'),
-          currencyId: row.cost_currency_id
-        }
-      : undefined,
+        ? {
+            amount: readNumericValue(id, row.cost_amount, 'cost_amount'),
+            currencyId: row.cost_currency_id
+          }
+        : undefined,
     weight: {
       amount: readNumericValue(id, row.weight_amount, 'weight_amount'),
       unit: requireMeasurementUnit(id, row.weight_unit)
     },
     capacity:
       row.capacity_amount != null && row.capacity_unit
-      ? {
-          amount: readNumericValue(id, row.capacity_amount, 'capacity_amount'),
-          unit: requireMeasurementUnit(id, row.capacity_unit)
-        }
-      : undefined,
+        ? {
+            amount: readNumericValue(id, row.capacity_amount, 'capacity_amount'),
+            unit: requireMeasurementUnit(id, row.capacity_unit)
+          }
+        : undefined,
     maxStack: row.max_stack ?? undefined,
     armorClass: row.armor_class ?? undefined,
     contains:
       relations.contains.length > 0
         ? relations.contains.map((entry) => ({
-          equipmentId: entry.contained_equipment_id,
-          quantity: entry.quantity
-        }))
-      : undefined,
+            equipmentId: entry.contained_equipment_id,
+            quantity: entry.quantity
+          }))
+        : undefined,
     properties: relations.properties.map((property) => requireProperty(id, property.property_code)),
     category
   }

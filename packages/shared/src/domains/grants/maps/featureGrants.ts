@@ -14,9 +14,32 @@ export const FEATURE_GRANTS_NODE_MAP = featureGrants.define('featureGrants', ({ 
   const { groupArray } = nodes
 
   map
-    .set('feats', groupArray(['feats'], 'Feat Grants', () => FEAT_GRANT_NODE_MAP, { presentation: 'focused' }))
-    .set('modifiers', groupArray(['modifiers'], 'Modifier Grants', () => MODIFIER_GRANT_NODE_MAP, { presentation: 'focused' }))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiency Grants', () => PROFICIENCY_NODE_MAP, { presentation: 'focused' }))
-    .set('senses', groupArray(['senses'], 'Sense Grants', () => SENSE_GRANT_NODE_MAP, { presentation: 'focused' }))
-    .set('spells', groupArray(['spells'], 'Spell Grants', () => SPELL_GRANT_NODE_MAP, { presentation: 'focused' }))
+    .set(
+      'feats',
+      groupArray(['feats'], 'Feat Grants', () => FEAT_GRANT_NODE_MAP, { presentation: 'focused' })
+    )
+    .set(
+      'modifiers',
+      groupArray(['modifiers'], 'Modifier Grants', () => MODIFIER_GRANT_NODE_MAP, {
+        presentation: 'focused'
+      })
+    )
+    .set(
+      'proficiencies',
+      groupArray(['proficiencies'], 'Proficiency Grants', () => PROFICIENCY_NODE_MAP, {
+        presentation: 'focused'
+      })
+    )
+    .set(
+      'senses',
+      groupArray(['senses'], 'Sense Grants', () => SENSE_GRANT_NODE_MAP, {
+        presentation: 'focused'
+      })
+    )
+    .set(
+      'spells',
+      groupArray(['spells'], 'Spell Grants', () => SPELL_GRANT_NODE_MAP, {
+        presentation: 'focused'
+      })
+    )
 })

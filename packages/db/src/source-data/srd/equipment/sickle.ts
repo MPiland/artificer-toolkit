@@ -7,7 +7,11 @@ export const sickle: EquipmentAuthored = {
   label: 'Sickle',
   description: 'A curved blade on a short handle.',
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
-  properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.LIGHT],
+  properties: [
+    S.EQUIPMENT_PROPERTY_CODE.SIMPLE,
+    S.EQUIPMENT_PROPERTY_CODE.MELEE,
+    S.EQUIPMENT_PROPERTY_CODE.LIGHT
+  ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(9)),
   effects: S.meleeWeaponEffects(S.equipId(9), 'SLASHING', '1d4'),
   cost: S.gp(1),
@@ -16,4 +20,3 @@ export const sickle: EquipmentAuthored = {
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }
-

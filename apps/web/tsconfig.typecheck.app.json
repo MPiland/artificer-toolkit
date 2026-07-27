@@ -4,10 +4,7 @@
     "incremental": true,
     "noEmit": true,
     "tsBuildInfoFile": ".cache/tsc/typecheck.app.tsbuildinfo",
-    "types": [
-      "vite/client",
-      "node"
-    ]
+    "types": ["vite/client", "node"]
   },
   "include": [
     "src/app/**/*",

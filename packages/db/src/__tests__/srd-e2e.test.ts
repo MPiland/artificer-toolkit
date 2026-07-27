@@ -18,7 +18,7 @@ import {
   dnd5e2014RulesSystem,
   runEngine,
   type CharacterAssemblyRegistry,
-  type CharacterBuildSnapshot,
+  type CharacterBuildSnapshot
 } from '@artificer-toolkit/shared'
 import { warlock } from '../source-data/srd/classes/warlock.js'
 import { theFiend } from '../source-data/srd/classes/the-fiend.js'
@@ -38,9 +38,7 @@ const snapshot: CharacterBuildSnapshot = {
   characterId: 'warlock-e2e-001',
   systemId: 'dnd5e2014',
   totalLevel: 3,
-  classes: [
-    { classId: CLASS_IDS.WARLOCK, level: 3, subclassId: SUBCLASS_IDS.FIEND }
-  ],
+  classes: [{ classId: CLASS_IDS.WARLOCK, level: 3, subclassId: SUBCLASS_IDS.FIEND }],
   abilities: {
     STRENGTH: 8,
     DEXTERITY: 14,
@@ -51,8 +49,8 @@ const snapshot: CharacterBuildSnapshot = {
   },
   hitpoints: [
     { classId: CLASS_IDS.WARLOCK, classLevel: 1, value: 10 }, // d8 max + CON mod 2
-    { classId: CLASS_IDS.WARLOCK, classLevel: 2, value: 7 },  // avg 5 + CON mod 2
-    { classId: CLASS_IDS.WARLOCK, classLevel: 3, value: 7 }   // avg 5 + CON mod 2
+    { classId: CLASS_IDS.WARLOCK, classLevel: 2, value: 7 }, // avg 5 + CON mod 2
+    { classId: CLASS_IDS.WARLOCK, classLevel: 3, value: 7 } // avg 5 + CON mod 2
   ],
   features: [
     // Agonizing Blast invocation — sourced from OPTION; modifiers from this feature
@@ -127,7 +125,9 @@ const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
 
 describe('compileClass(warlock)', () => {
   it('spellcasting ability is CHARISMA', () => {
-    expect(compiledWarlock.category === 'BASE' && compiledWarlock.spellcasting?.ability).toBe('CHARISMA')
+    expect(compiledWarlock.category === 'BASE' && compiledWarlock.spellcasting?.ability).toBe(
+      'CHARISMA'
+    )
   })
 
   it('pact magic charges are present (SHORT_REST reset)', () => {
@@ -241,8 +241,11 @@ describe('runEngine — Agonizing Blast scopeSpellIds', () => {
     // The integration-level assertion here is that the modifier grant's restrictions
     // round-trip through the class compile without throwing.
     expect(SPELL_IDS.ELDRITCH_BLAST).toBeDefined()
-    const restrictionSpellIds = (agonizingBlastModifierGrant as { restrictions: { groups: Array<{ contexts: Array<{ spellIds?: string[] }> }> } })
-      .restrictions.groups[0].contexts[0].spellIds
+    const restrictionSpellIds = (
+      agonizingBlastModifierGrant as {
+        restrictions: { groups: Array<{ contexts: Array<{ spellIds?: string[] }> }> }
+      }
+    ).restrictions.groups[0].contexts[0].spellIds
     expect(restrictionSpellIds).toEqual([SPELL_IDS.ELDRITCH_BLAST])
   })
 })
@@ -274,7 +277,6 @@ describe('SRD source data consistency', () => {
   it('ELDRITCH_BLAST is defined in SPELL_IDS', () => {
     expect(SPELL_IDS.ELDRITCH_BLAST).toBeDefined()
   })
-
 
   it('THAUMATURGY is defined in SPELL_IDS', () => {
     expect(SPELL_IDS.THAUMATURGY).toBeDefined()

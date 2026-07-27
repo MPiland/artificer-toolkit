@@ -144,12 +144,18 @@ export const vehicleRuntimeFixture = {
           nodes: [
             inputNode('label', ['label'], 'Name', 'TEXT', true),
             inputNode('description', ['description'], 'Description', 'RICH_TEXT'),
-            selectNode('category', ['category'], 'Category', [
-              { value: 'LAND', label: 'Land' },
-              { value: 'WATER', label: 'Water' },
-              { value: 'AIR', label: 'Air' },
-              { value: 'SPELLJAMMER', label: 'Spelljammer' }
-            ], true)
+            selectNode(
+              'category',
+              ['category'],
+              'Category',
+              [
+                { value: 'LAND', label: 'Land' },
+                { value: 'WATER', label: 'Water' },
+                { value: 'AIR', label: 'Air' },
+                { value: 'SPELLJAMMER', label: 'Spelljammer' }
+              ],
+              true
+            )
           ]
         }
       ]

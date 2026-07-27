@@ -5,6 +5,7 @@ type SavingThrowPanel = Extract<CharacterSheetPanelDto, { kind: 'SAVING_THROW' }
 type SkillPanel = Extract<CharacterSheetPanelDto, { kind: 'SKILL' }>
 type SensesPanel = Extract<CharacterSheetPanelDto, { kind: 'SENSES' }>
 type MovementPanel = Extract<CharacterSheetPanelDto, { kind: 'MOVEMENT' }>
+type ItemPanel = Extract<CharacterSheetPanelDto, { kind: 'ITEM' }>
 
 export type CharacterSheetNumberEditorDto =
   | AbilityPanel['editors'][number]
@@ -13,6 +14,7 @@ export type CharacterSheetNumberEditorDto =
   | SensesPanel['passiveChecks'][number]['editor']
   | SensesPanel['senses'][number]['editor']
   | MovementPanel['speeds'][number]['editor']
+  | ItemPanel['numericEditors'][number]
 
 export type CharacterSheetSelectEditorDto =
   | SavingThrowPanel['proficiencyEditor']
@@ -21,8 +23,6 @@ export type CharacterSheetSelectEditorDto =
 
 export interface CharacterSheetEditorCommit {
   value: number | string
-  sourceCategory: CharacterSheetNumberEditorDto['sourceCategory']
-  sourceLabel?: string
   sourceNote?: string
 }
 
@@ -37,8 +37,6 @@ export function getSheetAdjustmentMetadata(
 ) {
   return {
     ...(adjustmentId ? { id: adjustmentId } : {}),
-    sourceCategory: commit.sourceCategory,
-    ...(commit.sourceLabel ? { sourceLabel: commit.sourceLabel } : {}),
     ...(commit.sourceNote ? { sourceNote: commit.sourceNote } : {})
   }
 }

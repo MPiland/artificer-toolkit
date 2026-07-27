@@ -71,33 +71,21 @@ function getClassIdForProgression(
   return progression.classId
 }
 
-function requireChosenCount(
-  grantId: string,
-  count: number | undefined,
-  scope: string
-): number {
+function requireChosenCount(grantId: string, count: number | undefined, scope: string): number {
   if (count == null) {
-    const suffix = scope === 'root'
-      ? 'payload'
-      : `level "${scope}" payload`
+    const suffix = scope === 'root' ? 'payload' : `level "${scope}" payload`
     throw new Error(`Feat grant "${grantId}" is missing count for CHOSEN ${suffix}.`)
   }
 
   return count
 }
 
-function rejectGrantedCount(
-  grantId: string,
-  count: number | undefined,
-  scope: string
-) {
+function rejectGrantedCount(grantId: string, count: number | undefined, scope: string) {
   if (count == null) {
     return
   }
 
-  const suffix = scope === 'root'
-    ? 'root payload'
-    : `level "${scope}" payload`
+  const suffix = scope === 'root' ? 'root payload' : `level "${scope}" payload`
   throw new Error(`Feat grant "${grantId}" cannot persist count for GRANTED ${suffix}.`)
 }
 
@@ -107,28 +95,22 @@ function requireSelectedFeatIds(
   scope: string
 ): string[] {
   if (!featIds) {
-    const suffix = scope === 'root'
-      ? 'payload'
-      : `level "${scope}" payload`
+    const suffix = scope === 'root' ? 'payload' : `level "${scope}" payload`
     throw new Error(`Feat grant "${grantId}" is missing featIds for SELECTED ${suffix}.`)
   }
 
   return featIds
 }
 
-function rejectAllModeFeatIds(
-  grantId: string,
-  featIds: string[] | undefined,
-  scope: string
-) {
+function rejectAllModeFeatIds(grantId: string, featIds: string[] | undefined, scope: string) {
   if (!featIds || featIds.length === 0) {
     return
   }
 
-  const suffix = scope === 'root'
-    ? 'root payload'
-    : `level "${scope}" payload`
-  throw new Error(`Feat grant "${grantId}" cannot persist featIds when authoringModeKind is ALL for ${suffix}.`)
+  const suffix = scope === 'root' ? 'root payload' : `level "${scope}" payload`
+  throw new Error(
+    `Feat grant "${grantId}" cannot persist featIds when authoringModeKind is ALL for ${suffix}.`
+  )
 }
 
 function mapFeatGrantRootRow(
@@ -161,15 +143,17 @@ function mapFeatGrantRootRow(
       selection_kind: json_data.selectionKind,
       scaling_kind: json_data.scalingKind,
       authoring_mode_kind: json_data.authoringModeKind,
-      selection_count: json_data.selectionKind === 'CHOSEN'
-        ? requireChosenCount(json_data.id, json_data.count, 'root')
-        : null,
-      selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
-        ? requireSelectionDuplicatePolicy(
-          `Feat grant "${json_data.id}"`,
-          json_data.selectionDuplicatePolicy
-        )
-        : null,
+      selection_count:
+        json_data.selectionKind === 'CHOSEN'
+          ? requireChosenCount(json_data.id, json_data.count, 'root')
+          : null,
+      selection_duplicate_policy:
+        json_data.selectionKind === 'CHOSEN'
+          ? requireSelectionDuplicatePolicy(
+              `Feat grant "${json_data.id}"`,
+              json_data.selectionDuplicatePolicy
+            )
+          : null,
       scaling_source: null,
       class_id: null,
       charge_id: chargeId,
@@ -223,29 +207,25 @@ function mapScalingLevelRows(json_data: FeatGrantAuthored): FeatGrantScalingLeve
     level: level.level,
     sort_order: level.order,
     authoring_mode_kind: level.authoringModeKind,
-    selection_count: json_data.selectionKind === 'CHOSEN'
-      ? requireChosenCount(json_data.id, level.count, level.id)
-      : (
-          'count' in level
-            ? (rejectGrantedCount(json_data.id, (level as { count?: number }).count, level.id), null)
-            : null
-        ),
-    selection_duplicate_policy: json_data.selectionKind === 'CHOSEN'
-      ? requireSelectionDuplicatePolicy(
-        `Feat grant "${json_data.id}" level "${level.id}"`,
-        level.selectionDuplicatePolicy
-      )
-      : (
-          'selectionDuplicatePolicy' in level
-            ? (
-                requireNoSelectionDuplicatePolicy(
-                  `Feat grant "${json_data.id}" level "${level.id}"`,
-                  (level as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
-                ),
-                null
-              )
-            : null
-        )
+    selection_count:
+      json_data.selectionKind === 'CHOSEN'
+        ? requireChosenCount(json_data.id, level.count, level.id)
+        : 'count' in level
+          ? (rejectGrantedCount(json_data.id, (level as { count?: number }).count, level.id), null)
+          : null,
+    selection_duplicate_policy:
+      json_data.selectionKind === 'CHOSEN'
+        ? requireSelectionDuplicatePolicy(
+            `Feat grant "${json_data.id}" level "${level.id}"`,
+            level.selectionDuplicatePolicy
+          )
+        : 'selectionDuplicatePolicy' in level
+          ? (requireNoSelectionDuplicatePolicy(
+              `Feat grant "${json_data.id}" level "${level.id}"`,
+              (level as { selectionDuplicatePolicy?: string }).selectionDuplicatePolicy
+            ),
+            null)
+          : null
   }))
 }
 
@@ -269,10 +249,7 @@ function mapScalingLevelFeatRows(json_data: FeatGrantAuthored): FeatGrantScaling
   })
 }
 
-export async function upsertFeatGrant(
-  db: DBLike,
-  json_data: FeatGrantAuthored
-) {
+export async function upsertFeatGrant(db: DBLike, json_data: FeatGrantAuthored) {
   const root = mapFeatGrantRootRow(json_data, json_data.charges?.id ?? null)
   const rootFeats = mapRootFeatRows(json_data)
   const scalingLevels = mapScalingLevelRows(json_data)
@@ -285,9 +262,11 @@ export async function upsertFeatGrant(
       .where('id', '=', json_data.id)
       .executeTakeFirst()
 
-    if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
-        .execute()
+    if (
+      existingGrant?.restriction_id &&
+      existingGrant.restriction_id !== json_data.restrictions?.id
+    ) {
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
     }
 
     if (json_data.charges) {
@@ -301,24 +280,23 @@ export async function upsertFeatGrant(
     await trx
       .insertInto('feat_grants')
       .values(root)
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        sort_order: eb.ref('excluded.sort_order'),
-        selection_kind: eb.ref('excluded.selection_kind'),
-        scaling_kind: eb.ref('excluded.scaling_kind'),
-        authoring_mode_kind: eb.ref('excluded.authoring_mode_kind'),
-        selection_count: eb.ref('excluded.selection_count'),
-        selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
-        scaling_source: eb.ref('excluded.scaling_source'),
-        class_id: eb.ref('excluded.class_id'),
-        charge_id: eb.ref('excluded.charge_id'),
-        restriction_id: eb.ref('excluded.restriction_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          sort_order: eb.ref('excluded.sort_order'),
+          selection_kind: eb.ref('excluded.selection_kind'),
+          scaling_kind: eb.ref('excluded.scaling_kind'),
+          authoring_mode_kind: eb.ref('excluded.authoring_mode_kind'),
+          selection_count: eb.ref('excluded.selection_count'),
+          selection_duplicate_policy: eb.ref('excluded.selection_duplicate_policy'),
+          scaling_source: eb.ref('excluded.scaling_source'),
+          class_id: eb.ref('excluded.class_id'),
+          charge_id: eb.ref('excluded.charge_id'),
+          restriction_id: eb.ref('excluded.restriction_id')
+        }))
+      )
       .execute()
 
-    await trx
-      .deleteFrom('feat_grant_feats')
-      .where('feat_grant_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('feat_grant_feats').where('feat_grant_id', '=', json_data.id).execute()
 
     await trx
       .deleteFrom('feat_grant_scaling_levels')
@@ -326,25 +304,15 @@ export async function upsertFeatGrant(
       .execute()
 
     if (rootFeats.length > 0) {
-      await trx
-        .insertInto('feat_grant_feats')
-        .values(rootFeats)
-        .execute()
+      await trx.insertInto('feat_grant_feats').values(rootFeats).execute()
     }
 
     if (scalingLevels.length > 0) {
-      await trx
-        .insertInto('feat_grant_scaling_levels')
-        .values(scalingLevels)
-        .execute()
+      await trx.insertInto('feat_grant_scaling_levels').values(scalingLevels).execute()
 
       if (scalingLevelFeats.length > 0) {
-        await trx
-          .insertInto('feat_grant_scaling_level_feats')
-          .values(scalingLevelFeats)
-          .execute()
+        await trx.insertInto('feat_grant_scaling_level_feats').values(scalingLevelFeats).execute()
       }
     }
-
   })
 }

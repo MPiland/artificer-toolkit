@@ -54,7 +54,9 @@ describe('route states', () => {
 })
 
 function renderRouteError({ user }: { user: User | null }) {
-  const errorState = <RouteErrorState error={new Error('The spells list failed to load.')} reset={() => undefined} />
+  const errorState = (
+    <RouteErrorState error={new Error('The spells list failed to load.')} reset={() => undefined} />
+  )
 
   return renderWithRouter(errorState, user)
 }

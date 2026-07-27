@@ -19,8 +19,8 @@ export const alignments: AlignmentOption[] = [
     id: '3ccbc183-c125-43fc-94b4-9aeb1af88f94',
     label: 'Neutral',
     description:
-      'Neutral (N) is the alignment of those who prefer to steer clear of moral questions and don\'t take sides, doing what seems best at the time. Lizardfolk, most druids, and many humans are neutral.',
-    tooltip: 'Prefer to steer clear of moral questions and don\'t take sides.',
+      "Neutral (N) is the alignment of those who prefer to steer clear of moral questions and don't take sides, doing what seems best at the time. Lizardfolk, most druids, and many humans are neutral.",
+    tooltip: "Prefer to steer clear of moral questions and don't take sides.",
     code: AlignmentCode.NEUTRAL
   },
   {
@@ -68,7 +68,8 @@ export const alignments: AlignmentOption[] = [
     label: 'Lawful Evil',
     description:
       'Lawful evil (LE) creatures methodically take what they want, within the limits of a code of tradition, loyalty, or order. Devils, blue dragons, and hobgoblins are lawful evil.',
-    tooltip: 'Methodically take what they want, within the limits of a code of tradition, loyalty, or order.',
+    tooltip:
+      'Methodically take what they want, within the limits of a code of tradition, loyalty, or order.',
     code: AlignmentCode.LAWFUL_EVIL
   },
   {

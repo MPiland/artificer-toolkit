@@ -122,7 +122,9 @@ export const ShortswordPlusOneDamageModifierDrawer: Story = {
     const drawer = await story.findByRole('dialog', { name: /edit \+1 damage rolls/i })
     const drawerCanvas = within(drawer)
     await expect(drawerCanvas.getByText('Restrictions')).toBeInTheDocument()
-    await expect(await drawerCanvas.findByRole('button', { name: /remove option/i })).toBeInTheDocument()
+    await expect(
+      await drawerCanvas.findByRole('button', { name: /remove option/i })
+    ).toBeInTheDocument()
     await expect(
       await drawerCanvas.findByRole('button', { name: /remove condition/i })
     ).toBeInTheDocument()

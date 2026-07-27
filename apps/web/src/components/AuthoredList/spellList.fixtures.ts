@@ -20,7 +20,12 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'magic-missile',
     publicId: '1',
     name: 'Magic Missile',
-    attributes: { level: '1', school: 'Evocation', classes: ['Sorcerer', 'Wizard'], castingTime: '1 Action' },
+    attributes: {
+      level: '1',
+      school: 'Evocation',
+      classes: ['Sorcerer', 'Wizard'],
+      castingTime: '1 Action'
+    },
     statusLabel: 'Active',
     filterValues: { level: '1', school: 'Evocation', class: ['Sorcerer', 'Wizard'] },
     sortValues: { name: 'Magic Missile', level: 1, school: 'Evocation' },
@@ -34,7 +39,12 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'misty-step',
     publicId: '2',
     name: 'Misty Step',
-    attributes: { level: '2', school: 'Conjuration', classes: ['Sorcerer', 'Warlock', 'Wizard'], castingTime: '1 Bonus Action' },
+    attributes: {
+      level: '2',
+      school: 'Conjuration',
+      classes: ['Sorcerer', 'Warlock', 'Wizard'],
+      castingTime: '1 Bonus Action'
+    },
     statusLabel: 'Active',
     filterValues: { level: '2', school: 'Conjuration', class: ['Sorcerer', 'Warlock', 'Wizard'] },
     sortValues: { name: 'Misty Step', level: 2, school: 'Conjuration' },
@@ -48,7 +58,12 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'ember-lace',
     publicId: '3',
     name: 'Ember Lace',
-    attributes: { level: '3', school: 'Evocation', classes: ['Bard', 'Sorcerer', 'Wizard'], castingTime: '1 Action' },
+    attributes: {
+      level: '3',
+      school: 'Evocation',
+      classes: ['Bard', 'Sorcerer', 'Wizard'],
+      castingTime: '1 Action'
+    },
     statusLabel: 'Draft',
     statusTone: 'draft',
     filterValues: { level: '3', school: 'Evocation', class: ['Bard', 'Sorcerer', 'Wizard'] },
@@ -63,7 +78,12 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'warding-rune',
     publicId: '4',
     name: 'Warding Rune',
-    attributes: { level: '2', school: 'Abjuration', classes: ['Cleric', 'Wizard'], castingTime: '1 Reaction' },
+    attributes: {
+      level: '2',
+      school: 'Abjuration',
+      classes: ['Cleric', 'Wizard'],
+      castingTime: '1 Reaction'
+    },
     statusLabel: 'Draft',
     statusTone: 'draft',
     filterValues: { level: '2', school: 'Abjuration', class: ['Cleric', 'Wizard'] },
@@ -78,7 +98,12 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'healing-word',
     publicId: '5',
     name: 'Healing Word',
-    attributes: { level: '1', school: 'Evocation', classes: ['Bard', 'Cleric', 'Druid'], castingTime: '1 Bonus Action' },
+    attributes: {
+      level: '1',
+      school: 'Evocation',
+      classes: ['Bard', 'Cleric', 'Druid'],
+      castingTime: '1 Bonus Action'
+    },
     statusLabel: 'Active',
     filterValues: { level: '1', school: 'Evocation', class: ['Bard', 'Cleric', 'Druid'] },
     sortValues: { name: 'Healing Word', level: 1, school: 'Evocation' },

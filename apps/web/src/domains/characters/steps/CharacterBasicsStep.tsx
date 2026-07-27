@@ -1,8 +1,5 @@
 import { withForm } from '#forms/app-form/AppForm'
-import {
-  createFallbackCharacterFormValues,
-  selectOptions
-} from '../characterBuilder.utils'
+import { createFallbackCharacterFormValues, selectOptions } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
 

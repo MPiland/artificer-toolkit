@@ -622,9 +622,8 @@ const rawSrdCreatureRecords = [
   youngRedDragon,
   youngSilverDragon,
   youngWhiteDragon,
-  zombie,
+  zombie
 ]
 
 export const srdCreatureRecords = rawSrdCreatureRecords.map(normalizeLegendaryActionOptions)
 export const srdCreatures = srdCreatureRecords
-

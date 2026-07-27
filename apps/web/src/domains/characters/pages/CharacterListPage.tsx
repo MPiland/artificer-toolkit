@@ -9,7 +9,11 @@ import {
   mapCharacterListToDraftAuthoredItems,
   summarizeCharacterList
 } from '#app/data/characters/characterListMapper'
-import { getCharacterDraft, getCharacterList, getCharacterSheet } from '#app/data/characters/queries'
+import {
+  getCharacterDraft,
+  getCharacterList,
+  getCharacterSheet
+} from '#app/data/characters/queries'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 
 export function CharacterListPage() {
@@ -28,18 +32,22 @@ export function CharacterListPage() {
       attributeColumns={characterListAttributeColumns}
       sortOptions={characterListSortOptions}
       onCreate={() => navigate({ to: '/characters/new' })}
-      onView={(item) => navigate({
-        params: buildCharacterRouteParams(item.publicId, item.name),
-        to: '/characters/$characterPublicId/$characterSlug'
-      })}
+      onView={(item) =>
+        navigate({
+          params: buildCharacterRouteParams(item.publicId, item.name),
+          to: '/characters/$characterPublicId/$characterSlug'
+        })
+      }
       onViewIntent={(item) => {
         void queryClient.prefetchQuery(getCharacterSheet(item.publicId))
         void queryClient.prefetchQuery(getCharacterDraft(item.publicId))
       }}
-      onEdit={(item) => navigate({
-        params: buildCharacterRouteParams(item.publicId, item.name),
-        to: '/characters/$characterPublicId/$characterSlug/edit'
-      })}
+      onEdit={(item) =>
+        navigate({
+          params: buildCharacterRouteParams(item.publicId, item.name),
+          to: '/characters/$characterPublicId/$characterSlug/edit'
+        })
+      }
     />
   )
 }

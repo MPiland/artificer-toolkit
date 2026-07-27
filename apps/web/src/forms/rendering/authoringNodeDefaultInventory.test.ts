@@ -107,8 +107,6 @@ function collectNodeMaps(roots: readonly unknown[]): Map<string, RuntimeMap> {
   return result
 }
 
-function resolveChildMap(
-  child: RuntimeMap | (() => RuntimeMap)
-): RuntimeMap {
+function resolveChildMap(child: RuntimeMap | (() => RuntimeMap)): RuntimeMap {
   return typeof child === 'function' ? child() : child
 }

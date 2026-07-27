@@ -4,7 +4,8 @@ import { gp, SRD_SYSTEM_ID, SRD_USER_ID, VEHICLE_IDS } from './shared.js'
 export const keelboat: VehicleAuthored = {
   id: VEHICLE_IDS.KEELBOAT,
   label: 'Keelboat',
-  description: 'A small riverboat with a keel for stability, capable of navigating rivers and coastal waters.',
+  description:
+    'A small riverboat with a keel for stability, capable of navigating rivers and coastal waters.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   category: 'WATER',

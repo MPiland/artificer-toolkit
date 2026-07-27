@@ -8,78 +8,200 @@
         "role": "primary",
         "displayName": "Forge Orange",
         "canonical": "#ec8c06",
-        "tonalRamp": ["#7c2d12", "#9a3412", "#b84a04", "#c95704", "#ec8c06", "#f97316", "#fed7aa", "#fff7ed"]
+        "tonalRamp": [
+          "#7c2d12",
+          "#9a3412",
+          "#b84a04",
+          "#c95704",
+          "#ec8c06",
+          "#f97316",
+          "#fed7aa",
+          "#fff7ed"
+        ]
       },
       "secondary-accent": {
         "role": "secondary",
         "displayName": "Workshop Teal",
         "canonical": "#0891b2",
-        "tonalRamp": ["#164e63", "#155e75", "#0e7490", "#0891b2", "#0ea5c5", "#38bdd6", "#84ddec", "#d8f6fb"]
+        "tonalRamp": [
+          "#164e63",
+          "#155e75",
+          "#0e7490",
+          "#0891b2",
+          "#0ea5c5",
+          "#38bdd6",
+          "#84ddec",
+          "#d8f6fb"
+        ]
       },
       "surface-canvas-light": {
         "role": "neutral",
         "displayName": "Paper Canvas",
         "canonical": "#f7f9fb",
-        "tonalRamp": ["#151b20", "#363b40", "#55626d", "#8a97a1", "#b5b9c6", "#d7dbe4", "#eef2f6", "#f7f9fb"]
+        "tonalRamp": [
+          "#151b20",
+          "#363b40",
+          "#55626d",
+          "#8a97a1",
+          "#b5b9c6",
+          "#d7dbe4",
+          "#eef2f6",
+          "#f7f9fb"
+        ]
       },
       "surface-panel-light": {
         "role": "neutral",
         "displayName": "Panel White",
         "canonical": "#ffffff",
-        "tonalRamp": ["#20262d", "#475569", "#78858f", "#cbd5e1", "#dfe4ea", "#f1f5f9", "#fbfcfd", "#ffffff"]
+        "tonalRamp": [
+          "#20262d",
+          "#475569",
+          "#78858f",
+          "#cbd5e1",
+          "#dfe4ea",
+          "#f1f5f9",
+          "#fbfcfd",
+          "#ffffff"
+        ]
       },
       "surface-canvas-dark": {
         "role": "neutral",
         "displayName": "Night Canvas",
         "canonical": "#0a0f0e",
-        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1a2127", "#1b2120", "#262b2a", "#2a3038", "#75828c"]
+        "tonalRamp": [
+          "#0a0f0e",
+          "#0f1413",
+          "#171d1c",
+          "#1a2127",
+          "#1b2120",
+          "#262b2a",
+          "#2a3038",
+          "#75828c"
+        ]
       },
       "surface-panel-dark": {
         "role": "neutral",
         "displayName": "Forge Panel",
         "canonical": "#171d1c",
-        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1b2120", "#202830", "#262b2a", "#334049", "#eef4f6"]
+        "tonalRamp": [
+          "#0a0f0e",
+          "#0f1413",
+          "#171d1c",
+          "#1b2120",
+          "#202830",
+          "#262b2a",
+          "#334049",
+          "#eef4f6"
+        ]
       },
       "text-strong": {
         "role": "text",
         "displayName": "Slate Ink",
         "canonical": "#151b20",
-        "tonalRamp": ["#151b20", "#20262d", "#363b40", "#55626d", "#78858f", "#8a97a1", "#cbd5e1", "#eef4f6"]
+        "tonalRamp": [
+          "#151b20",
+          "#20262d",
+          "#363b40",
+          "#55626d",
+          "#78858f",
+          "#8a97a1",
+          "#cbd5e1",
+          "#eef4f6"
+        ]
       },
       "success": {
         "role": "success",
         "displayName": "Success",
         "canonical": "#2f9b63",
-        "tonalRamp": ["#14532d", "#166534", "#237a4b", "#2f9b63", "#29a195", "#86d5a4", "#c2ecd2", "#e3f6ea"]
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#237a4b",
+          "#2f9b63",
+          "#29a195",
+          "#86d5a4",
+          "#c2ecd2",
+          "#e3f6ea"
+        ]
       },
       "warning": {
         "role": "warning",
         "displayName": "Warning",
         "canonical": "#8a5a00",
-        "tonalRamp": ["#422006", "#5f3700", "#704700", "#8a5a00", "#b7791f", "#d9a441", "#f3d78b", "#fff4cc"]
+        "tonalRamp": [
+          "#422006",
+          "#5f3700",
+          "#704700",
+          "#8a5a00",
+          "#b7791f",
+          "#d9a441",
+          "#f3d78b",
+          "#fff4cc"
+        ]
       },
       "danger": {
         "role": "danger",
         "displayName": "Danger",
         "canonical": "#c15336",
-        "tonalRamp": ["#651d14", "#84271c", "#a33b29", "#c15336", "#dc3545", "#e98a76", "#f6beb2", "#fee7e2"]
+        "tonalRamp": [
+          "#651d14",
+          "#84271c",
+          "#a33b29",
+          "#c15336",
+          "#dc3545",
+          "#e98a76",
+          "#f6beb2",
+          "#fee7e2"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero-auth and marketing entry moments only." },
-      "headline": { "displayName": "Headline", "purpose": "Page-level titles and major shell headings." },
-      "title": { "displayName": "Title", "purpose": "Section titles and important grouped surfaces." },
-      "body": { "displayName": "Body", "purpose": "Primary application copy and descriptive text." },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero-auth and marketing entry moments only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page-level titles and major shell headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section titles and important grouped surfaces."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary application copy and descriptive text."
+      },
       "label": { "displayName": "Label", "purpose": "Fields, overlines, and compact metadata." }
     },
     "shadows": [
-      { "name": "card", "value": "none", "purpose": "Repeated cards and panels stay flat at rest." },
-      { "name": "card-hover", "value": "none", "purpose": "Hover state uses color and borders instead of decorative lift." },
-      { "name": "floating-control", "value": "0 6px 8px rgba(0, 0, 0, 0.22)", "purpose": "Floating authoring actions that overlay workspace content." },
-      { "name": "focus-halo", "value": "0 0 0 4px rgba(14, 165, 197, 0.24)", "purpose": "Keyboard focus and selected-input emphasis." }
+      {
+        "name": "card",
+        "value": "none",
+        "purpose": "Repeated cards and panels stay flat at rest."
+      },
+      {
+        "name": "card-hover",
+        "value": "none",
+        "purpose": "Hover state uses color and borders instead of decorative lift."
+      },
+      {
+        "name": "floating-control",
+        "value": "0 6px 8px rgba(0, 0, 0, 0.22)",
+        "purpose": "Floating authoring actions that overlay workspace content."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 4px rgba(14, 165, 197, 0.24)",
+        "purpose": "Keyboard focus and selected-input emphasis."
+      }
     ],
     "motion": [
-      { "name": "fast", "value": "120ms", "purpose": "Hover, focus, and compact state transitions." },
+      {
+        "name": "fast",
+        "value": "120ms",
+        "purpose": "Hover, focus, and compact state transitions."
+      },
       { "name": "base", "value": "180ms", "purpose": "Default interface transition timing." },
       { "name": "slow", "value": "320ms", "purpose": "Larger stateful surface transitions." }
     ],
@@ -142,16 +264,57 @@
   "narrative": {
     "northStar": "Forge Clarity, Reliable Play",
     "overview": "Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.\n\nThe canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.\n\nThe visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.",
-    "keyCharacteristics": ["Playful, not gimmicky", "Clear, not bureaucratic", "Familiar, not generic", "Creative, not ornamental", "Dense when needed, but always navigable", "Dual-theme by design, not as an afterthought", "Modular content authoring, not admin CRUD", "Form-backed, but not form-shaped"],
+    "keyCharacteristics": [
+      "Playful, not gimmicky",
+      "Clear, not bureaucratic",
+      "Familiar, not generic",
+      "Creative, not ornamental",
+      "Dense when needed, but always navigable",
+      "Dual-theme by design, not as an afterthought",
+      "Modular content authoring, not admin CRUD",
+      "Form-backed, but not form-shaped"
+    ],
     "rules": [
-      { "name": "The Purposeful Accent Rule", "body": "Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.", "section": "colors" },
-      { "name": "The Dual-Surface Rule", "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.", "section": "colors" },
-      { "name": "The No-Monotony Rule", "body": "Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.", "section": "colors" },
-      { "name": "The Orange-Is-Action Rule", "body": "Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.", "section": "colors" },
-      { "name": "The Density Hierarchy Rule", "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.", "section": "typography" },
-      { "name": "The One-Step Rule", "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.", "section": "typography" },
-      { "name": "The Cheer Without Shouting Rule", "body": "Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.", "section": "typography" },
-      { "name": "The Flat-at-Rest Rule", "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.", "section": "elevation" }
+      {
+        "name": "The Purposeful Accent Rule",
+        "body": "Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dual-Surface Rule",
+        "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Monotony Rule",
+        "body": "Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orange-Is-Action Rule",
+        "body": "Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Density Hierarchy Rule",
+        "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Step Rule",
+        "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.",
+        "section": "typography"
+      },
+      {
+        "name": "The Cheer Without Shouting Rule",
+        "body": "Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do make authored screens feel creative and approachable, with enough structure to stay readable.",

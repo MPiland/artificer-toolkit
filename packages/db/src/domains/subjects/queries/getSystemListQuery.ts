@@ -22,5 +22,5 @@ export async function getSystemListQuery(db: DBLike): Promise<SystemListItem[]> 
       sql<string>`coalesce(${sql.ref('user_id')}::text, 'master')`.as('userId')
     ])
     .execute()
-    .then((rows) => rows?.length ? rows : [])
+    .then((rows) => (rows?.length ? rows : []))
 }

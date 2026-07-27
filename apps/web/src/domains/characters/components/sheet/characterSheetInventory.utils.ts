@@ -1,34 +1,14 @@
 import type { CharacterSheet } from './CharacterSheet.types'
 
-export type SheetInventoryItem = CharacterSheet['inventory']['items'][number]
+export function getInventoryCurrencyTotals(sheet: CharacterSheet) {
+  const totals = new Map<string, number>()
+  for (const currency of sheet.inventory.currencies) {
+    totals.set(currency.currencyId, (totals.get(currency.currencyId) ?? 0) + currency.amount)
+  }
 
-function formatLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(' ')
-}
-
-function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
-}
-
-export function formatInventoryItemSummary(item: SheetInventoryItem): string {
-  const facts = [
-    `Qty ${item.quantity}`,
-    item.category ? formatLabel(item.category) : undefined,
-    item.weight ? `${formatNumber(item.weight.amount)} ${formatLabel(item.weight.unit)}` : undefined,
-    item.cost ? `${formatNumber(item.cost.amount)} ${item.costLabel ?? 'currency'}` : undefined,
-    item.armorClass ? `AC ${item.armorClass}` : undefined,
-    item.equipped ? 'Equipped' : undefined,
-    item.attuned ? 'Attuned' : undefined
-  ].filter((fact): fact is string => Boolean(fact))
-
-  return facts.join(' - ')
-}
-
-export function formatInventoryItemProperties(item: SheetInventoryItem): string | null {
-  if (!item.properties?.length) return null
-  return item.properties.map(formatLabel).join(', ')
+  return sheet.reference.currencyOptions.map((currency) => ({
+    id: currency.id,
+    label: currency.label,
+    amount: totals.get(currency.id) ?? 0
+  }))
 }

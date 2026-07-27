@@ -83,6 +83,4 @@ export const OPERATIONS_REGISTRY: Record<OperationCode, OperationOption> = {
   }
 } as const
 
-export const OPERATIONS_OPTIONS = valuesOf(
-  OPERATIONS_REGISTRY
-) as readonly OperationOption[]
+export const OPERATIONS_OPTIONS = valuesOf(OPERATIONS_REGISTRY) as readonly OperationOption[]

@@ -11,7 +11,10 @@ export type SavingThrowDcMethod = keyof typeof SAVING_THROW_DC_METHOD
 
 export type SavingThrowDcMethodOption = CoreMeta<SavingThrowDcMethod>
 
-export const SAVING_THROW_DC_METHOD_REGISTRY: Record<typeof SAVING_THROW_DC_METHOD[keyof typeof SAVING_THROW_DC_METHOD], SavingThrowDcMethodOption> = {
+export const SAVING_THROW_DC_METHOD_REGISTRY: Record<
+  (typeof SAVING_THROW_DC_METHOD)[keyof typeof SAVING_THROW_DC_METHOD],
+  SavingThrowDcMethodOption
+> = {
   [SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC]: {
     code: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC,
     label: 'Source Save DC',
@@ -32,7 +35,9 @@ export const SAVING_THROW_DC_METHOD_REGISTRY: Record<typeof SAVING_THROW_DC_METH
   }
 }
 
-export const SAVING_THROW_DC_METHOD_OPTIONS = valuesOf(SAVING_THROW_DC_METHOD_REGISTRY) as SavingThrowDcMethodOption[]
+export const SAVING_THROW_DC_METHOD_OPTIONS = valuesOf(
+  SAVING_THROW_DC_METHOD_REGISTRY
+) as SavingThrowDcMethodOption[]
 
 export const SAVING_THROW_DC_BONUS_KIND = {
   ABILITY_MODIFIER: 'ABILITY_MODIFIER',
@@ -45,7 +50,7 @@ export type SavingThrowDcBonusKind = keyof typeof SAVING_THROW_DC_BONUS_KIND
 export type SavingThrowDcBonusOption = CoreMeta<SavingThrowDcBonusKind>
 
 export const SAVING_THROW_DC_BONUS_REGISTRY: Record<
-  typeof SAVING_THROW_DC_BONUS_KIND[keyof typeof SAVING_THROW_DC_BONUS_KIND],
+  (typeof SAVING_THROW_DC_BONUS_KIND)[keyof typeof SAVING_THROW_DC_BONUS_KIND],
   SavingThrowDcBonusOption
 > = {
   [SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER]: {
@@ -68,4 +73,6 @@ export const SAVING_THROW_DC_BONUS_REGISTRY: Record<
   }
 }
 
-export const SAVING_THROW_DC_BONUS_OPTIONS = valuesOf(SAVING_THROW_DC_BONUS_REGISTRY) as SavingThrowDcBonusOption[]
+export const SAVING_THROW_DC_BONUS_OPTIONS = valuesOf(
+  SAVING_THROW_DC_BONUS_REGISTRY
+) as SavingThrowDcBonusOption[]

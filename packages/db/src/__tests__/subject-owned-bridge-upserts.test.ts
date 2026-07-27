@@ -19,7 +19,7 @@ function feature(id: string) {
     id,
     label: 'Repeatable Feature',
     description: 'A feature that should survive repeat subject upserts.',
-    order: 1,
+    order: 1
   }
 }
 
@@ -40,25 +40,23 @@ describe('subject owned bridge upserts', () => {
         CONSTITUTION: 10,
         INTELLIGENCE: 10,
         WISDOM: 10,
-        CHARISMA: 10,
+        CHARISMA: 10
       },
       armorClass: 10,
       hitPoints: 1,
       speeds: [],
-      features: [feature('creature-feature-1')],
+      features: [feature('creature-feature-1')]
     } satisfies Parameters<typeof upsertCreature>[1]
 
     await upsertCreature(db, creature, systemId)
     await upsertCreature(db, creature, systemId)
 
-    expect(db.snapshot('features')).toEqual([
-      expect.objectContaining({ id: 'creature-feature-1' }),
-    ])
+    expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'creature-feature-1' })])
     expect(db.snapshot('creature_features')).toEqual([
       expect.objectContaining({
         creature_id: 'creature-1',
-        feature_id: 'creature-feature-1',
-      }),
+        feature_id: 'creature-feature-1'
+      })
     ])
   })
 
@@ -70,20 +68,18 @@ describe('subject owned bridge upserts', () => {
       description: 'A feat with an owned feature.',
       userId,
       systemId,
-      features: [feature('feat-feature-1')],
+      features: [feature('feat-feature-1')]
     } satisfies Parameters<typeof upsertFeat>[1]
 
     await upsertFeat(db, feat, systemId)
     await upsertFeat(db, feat, systemId)
 
-    expect(db.snapshot('features')).toEqual([
-      expect.objectContaining({ id: 'feat-feature-1' }),
-    ])
+    expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'feat-feature-1' })])
     expect(db.snapshot('feat_features')).toEqual([
       expect.objectContaining({
         feat_id: 'feat-1',
-        feature_id: 'feat-feature-1',
-      }),
+        feature_id: 'feat-feature-1'
+      })
     ])
   })
 
@@ -95,20 +91,18 @@ describe('subject owned bridge upserts', () => {
       userId,
       systemId,
       category: 'LAND',
-      features: [feature('vehicle-feature-1')],
+      features: [feature('vehicle-feature-1')]
     } satisfies Parameters<typeof upsertVehicle>[1]
 
     await upsertVehicle(db, vehicle, systemId)
     await upsertVehicle(db, vehicle, systemId)
 
-    expect(db.snapshot('features')).toEqual([
-      expect.objectContaining({ id: 'vehicle-feature-1' }),
-    ])
+    expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'vehicle-feature-1' })])
     expect(db.snapshot('vehicle_features')).toEqual([
       expect.objectContaining({
         vehicle_id: 'vehicle-1',
-        feature_id: 'vehicle-feature-1',
-      }),
+        feature_id: 'vehicle-feature-1'
+      })
     ])
   })
 })

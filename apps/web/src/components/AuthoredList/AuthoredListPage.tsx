@@ -76,8 +76,8 @@ export function AuthoredListPage({
   const isMobile = useMediaQuery(mobileQuery, false)
   const isTablet = useMediaQuery(tabletQuery, false)
   const [query, setQuery] = useState('')
-  const [filterValues, setFilterValues] = useState<AuthoredListFilterValues>(
-    () => buildInitialFilters(filters)
+  const [filterValues, setFilterValues] = useState<AuthoredListFilterValues>(() =>
+    buildInitialFilters(filters)
   )
   const [sort, setSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
@@ -95,28 +95,24 @@ export function AuthoredListPage({
   const viewportRef = useRef<HTMLDivElement>(null)
   const normalizedQuery = query.trim().toLowerCase()
   const visibleItems = contentPanel === 'draft' ? draftItems : items
-  const draftEmptyState
-    = contentPanel === 'draft' && draftItems.length === 0
-      ? (
-          <StatePanel
-            title={`No draft ${title.toLowerCase()}.`}
-            copy={`There are currently no draft ${title.toLowerCase()}.`}
-          />
-        )
-      : null
+  const draftEmptyState =
+    contentPanel === 'draft' && draftItems.length === 0 ? (
+      <StatePanel
+        title={`No draft ${title.toLowerCase()}.`}
+        copy={`There are currently no draft ${title.toLowerCase()}.`}
+      />
+    ) : null
 
   const filteredItems = useMemo(() => {
     const matchingItems = visibleItems.filter((item) => {
       return (
-        itemMatchesQuery(item, normalizedQuery)
-        && itemMatchesSelectedFilters(item, filters, filterValues)
+        itemMatchesQuery(item, normalizedQuery) &&
+        itemMatchesSelectedFilters(item, filters, filterValues)
       )
     })
 
     return sortAuthoredListItems(matchingItems, sort)
-  }, [
-    filterValues, filters, normalizedQuery, sort, visibleItems
-  ])
+  }, [filterValues, filters, normalizedQuery, sort, visibleItems])
   const facetedFilterOptions = useMemo(() => {
     return getFacetedFilterOptionsByKey({
       filters,
@@ -124,23 +120,18 @@ export function AuthoredListPage({
       items: visibleItems,
       normalizedQuery
     })
-  }, [
-    filterValues, filters, normalizedQuery, visibleItems
-  ])
+  }, [filterValues, filters, normalizedQuery, visibleItems])
   const hasAccentColumn = visibleItems.some(hasAuthoredListAccent)
   const hasStatusColumn = visibleItems.some(hasAuthoredListStatus)
   const hasBadgeColumn = visibleItems.some(hasAuthoredListBadges)
-  const defaultSortLabel
-    = sortOptions.find((option) => option.value === defaultSort)?.label
-      ?? sortOptions[0]?.label
-      ?? 'Default'
+  const defaultSortLabel =
+    sortOptions.find((option) => option.value === defaultSort)?.label ??
+    sortOptions[0]?.label ??
+    'Default'
 
-  const cardColumnCount
-    = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
-  const virtualRowCount
-    = viewMode === 'cards'
-      ? Math.ceil(filteredItems.length / cardColumnCount)
-      : filteredItems.length
+  const cardColumnCount = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
+  const virtualRowCount =
+    viewMode === 'cards' ? Math.ceil(filteredItems.length / cardColumnCount) : filteredItems.length
   const rowVirtualizer = useVirtualizer({
     count: virtualRowCount,
     getScrollElement: () => viewportRef.current,
@@ -152,28 +143,20 @@ export function AuthoredListPage({
     }
   })
   const virtualRows = rowVirtualizer.getVirtualItems()
-  const renderedRows
-    = virtualRows.length > 0
+  const renderedRows =
+    virtualRows.length > 0
       ? virtualRows.map((virtualRow) => virtualRow.index)
       : Array.from({ length: virtualRowCount }, (_, index) => index)
   const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0
-  const paddingBottom
-    = virtualRows.length > 0
+  const paddingBottom =
+    virtualRows.length > 0
       ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end
       : 0
 
   useEffect(() => {
     rowVirtualizer.measure()
     rowVirtualizer.scrollToOffset(0)
-  }, [
-    cardColumnCount,
-    contentPanel,
-    filterValues,
-    query,
-    rowVirtualizer,
-    sort,
-    viewMode
-  ])
+  }, [cardColumnCount, contentPanel, filterValues, query, rowVirtualizer, sort, viewMode])
 
   useEffect(() => {
     if (isMobile && viewMode !== 'cards') {
@@ -192,11 +175,11 @@ export function AuthoredListPage({
       <PageHeader
         title={title}
         description={summary}
-        actions={(
+        actions={
           <Button leftSection={<ICreate />} onClick={onCreate}>
             {createLabel}
           </Button>
-        )}
+        }
       />
 
       <div className={styles.contentTabs}>
@@ -255,7 +238,10 @@ export function AuthoredListPage({
             <ActionIcon
               aria-label='Table view'
               aria-pressed={viewMode === 'table'}
-              className={clsx(styles.viewToggleButton, viewMode === 'table' && styles.viewToggleButtonActive)}
+              className={clsx(
+                styles.viewToggleButton,
+                viewMode === 'table' && styles.viewToggleButtonActive
+              )}
               disabled={isMobile}
               variant='subtle'
               onClick={() => setViewMode('table')}
@@ -267,7 +253,10 @@ export function AuthoredListPage({
             <ActionIcon
               aria-label='Card view'
               aria-pressed={viewMode === 'cards'}
-              className={clsx(styles.viewToggleButton, viewMode === 'cards' && styles.viewToggleButtonActive)}
+              className={clsx(
+                styles.viewToggleButton,
+                viewMode === 'cards' && styles.viewToggleButtonActive
+              )}
               variant='subtle'
               onClick={() => setViewMode('cards')}
             >
@@ -279,56 +268,48 @@ export function AuthoredListPage({
 
       <section className={styles.tableShell} aria-label={`${title} results`}>
         {loading ? <LoadingRows /> : null}
-        {!loading && error
-          ? (
-              <StatePanel title='Something went sideways.' copy={error} />
-            )
-          : null}
+        {!loading && error ? <StatePanel title='Something went sideways.' copy={error} /> : null}
         {!loading && !error && filteredItems.length === 0
-          ? (draftEmptyState
-            ?? emptyState ?? (
+          ? (draftEmptyState ??
+            emptyState ?? (
               <StatePanel
                 title={`No ${title.toLowerCase()} found.`}
                 copy='Try a different search or clear a filter.'
               />
             ))
           : null}
-        {!loading && !error && filteredItems.length > 0
-          ? (
-              viewMode === 'cards'
-                ? (
-                    <CardList
-                      cardColumnCount={cardColumnCount}
-                      filteredItems={filteredItems}
-                      attributeColumns={attributeColumns}
-                      onView={onView}
-                      onViewIntent={onViewIntent}
-                      paddingBottom={paddingBottom}
-                      paddingTop={paddingTop}
-                      renderedRows={renderedRows}
-                      viewportRef={viewportRef}
-                      actionHandlers={actionHandlers}
-                      useMenuActions={isMobile}
-                    />
-                  )
-                : (
-                    <TableList
-                      filteredItems={filteredItems}
-                      attributeColumns={attributeColumns}
-                      hasAccentColumn={hasAccentColumn}
-                      hasStatusColumn={hasStatusColumn}
-                      hasBadgeColumn={hasBadgeColumn}
-                      onView={onView}
-                      onViewIntent={onViewIntent}
-                      paddingBottom={paddingBottom}
-                      paddingTop={paddingTop}
-                      renderedRows={renderedRows}
-                      viewportRef={viewportRef}
-                      actionHandlers={actionHandlers}
-                    />
-                  )
-            )
-          : null}
+        {!loading && !error && filteredItems.length > 0 ? (
+          viewMode === 'cards' ? (
+            <CardList
+              cardColumnCount={cardColumnCount}
+              filteredItems={filteredItems}
+              attributeColumns={attributeColumns}
+              onView={onView}
+              onViewIntent={onViewIntent}
+              paddingBottom={paddingBottom}
+              paddingTop={paddingTop}
+              renderedRows={renderedRows}
+              viewportRef={viewportRef}
+              actionHandlers={actionHandlers}
+              useMenuActions={isMobile}
+            />
+          ) : (
+            <TableList
+              filteredItems={filteredItems}
+              attributeColumns={attributeColumns}
+              hasAccentColumn={hasAccentColumn}
+              hasStatusColumn={hasStatusColumn}
+              hasBadgeColumn={hasBadgeColumn}
+              onView={onView}
+              onViewIntent={onViewIntent}
+              paddingBottom={paddingBottom}
+              paddingTop={paddingTop}
+              renderedRows={renderedRows}
+              viewportRef={viewportRef}
+              actionHandlers={actionHandlers}
+            />
+          )
+        ) : null}
       </section>
     </div>
   )
@@ -367,7 +348,10 @@ function TableList({
     hasBadgeColumn
   })
   const columnCount = columnWidths.length
-  const tableMinWidth = Math.max(minimumTableWidth, columnWidths.reduce((sum, width) => sum + width, 0))
+  const tableMinWidth = Math.max(
+    minimumTableWidth,
+    columnWidths.reduce((sum, width) => sum + width, 0)
+  )
 
   return (
     <div className={styles.tableScroll} ref={viewportRef}>
@@ -391,14 +375,12 @@ function TableList({
         </colgroup>
         <Table.Thead>
           <Table.Tr>
-            {hasAccentColumn
-              ? (
-                  <Table.Th
-                    className={clsx(styles.dotCell, styles.tableHeaderEdgeStart)}
-                    aria-label='Accent'
-                  />
-                )
-              : null}
+            {hasAccentColumn ? (
+              <Table.Th
+                className={clsx(styles.dotCell, styles.tableHeaderEdgeStart)}
+                aria-label='Accent'
+              />
+            ) : null}
             <Table.Th
               className={clsx(
                 !hasAccentColumn && styles.nameColumnNoAccent,
@@ -413,15 +395,13 @@ function TableList({
             {hasStatusColumn ? <Table.Th>Status</Table.Th> : null}
             {hasBadgeColumn ? <Table.Th>Tags</Table.Th> : null}
             <Table.Th>Source</Table.Th>
-            <Table.Th className={clsx(styles.actionCell, styles.tableHeaderEdgeEnd)}>Actions</Table.Th>
+            <Table.Th className={clsx(styles.actionCell, styles.tableHeaderEdgeEnd)}>
+              Actions
+            </Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {paddingTop > 0
-            ? (
-                <SpacerRow height={paddingTop} columnCount={columnCount} />
-              )
-            : null}
+          {paddingTop > 0 ? <SpacerRow height={paddingTop} columnCount={columnCount} /> : null}
           {renderedRows.map((itemIndex) => (
             <AuthoredListRow
               item={filteredItems[itemIndex]}
@@ -435,11 +415,9 @@ function TableList({
               actionHandlers={actionHandlers}
             />
           ))}
-          {paddingBottom > 0
-            ? (
-                <SpacerRow height={paddingBottom} columnCount={columnCount} />
-              )
-            : null}
+          {paddingBottom > 0 ? (
+            <SpacerRow height={paddingBottom} columnCount={columnCount} />
+          ) : null}
         </Table.Tbody>
       </Table>
     </div>
@@ -473,14 +451,13 @@ function CardList({
 }) {
   return (
     <div className={styles.cardViewport} ref={viewportRef}>
-      {paddingTop > 0
-        ? (
-            <div aria-hidden='true' style={{ height: paddingTop }} />
-          )
-        : null}
+      {paddingTop > 0 ? <div aria-hidden='true' style={{ height: paddingTop }} /> : null}
       <div className={styles.cardStack}>
         {renderedRows.map((rowIndex) => {
-          const rowItems = filteredItems.slice(rowIndex * cardColumnCount, rowIndex * cardColumnCount + cardColumnCount)
+          const rowItems = filteredItems.slice(
+            rowIndex * cardColumnCount,
+            rowIndex * cardColumnCount + cardColumnCount
+          )
 
           return (
             <div
@@ -508,29 +485,15 @@ function CardList({
           )
         })}
       </div>
-      {paddingBottom > 0
-        ? (
-            <div aria-hidden='true' style={{ height: paddingBottom }} />
-          )
-        : null}
+      {paddingBottom > 0 ? <div aria-hidden='true' style={{ height: paddingBottom }} /> : null}
     </div>
   )
 }
 
-function SpacerRow({
-  height,
-  columnCount
-}: {
-  height: number
-  columnCount: number
-}) {
+function SpacerRow({ height, columnCount }: { height: number; columnCount: number }) {
   return (
     <Table.Tr aria-hidden='true'>
-      <Table.Td
-        className={styles.spacerCell}
-        colSpan={columnCount}
-        style={{ height }}
-      />
+      <Table.Td className={styles.spacerCell} colSpan={columnCount} style={{ height }} />
     </Table.Tr>
   )
 }
@@ -543,18 +506,13 @@ function AuthoredListAccentDot({ item }: { item: AuthoredListItem }) {
   const style = { '--authored-list-accent': item.accentColor } as CSSProperties
 
   return (
-    <span
-      aria-hidden='true'
-      className={styles.sourceDot}
-      style={style}
-      title={item.accentLabel}
-    />
+    <span aria-hidden='true' className={styles.sourceDot} style={style} title={item.accentLabel} />
   )
 }
 
 function hasAuthoredListAccent(
   item: AuthoredListItem
-): item is AuthoredListItem & { accentColor: string, accentLabel: string } {
+): item is AuthoredListItem & { accentColor: string; accentLabel: string } {
   return Boolean(item.accentColor && item.accentLabel)
 }
 
@@ -607,13 +565,11 @@ function AuthoredListRow({
         }
       }}
     >
-      {hasAccentColumn
-        ? (
-            <Table.Td className={clsx(styles.dotCell, styles.tableBodyEdgeStart)}>
-              <AuthoredListAccentDot item={item} />
-            </Table.Td>
-          )
-        : null}
+      {hasAccentColumn ? (
+        <Table.Td className={clsx(styles.dotCell, styles.tableBodyEdgeStart)}>
+          <AuthoredListAccentDot item={item} />
+        </Table.Td>
+      ) : null}
       <Table.Td
         className={clsx(
           styles.nameCell,
@@ -621,19 +577,13 @@ function AuthoredListRow({
           !hasAccentColumn && styles.tableBodyEdgeStart
         )}
       >
-        <NameContent
-          item={item}
-          onViewIntent={onViewIntent}
-          handleView={handleView}
-        />
+        <NameContent item={item} onViewIntent={onViewIntent} handleView={handleView} />
       </Table.Td>
       {attributeColumns.map((column) => (
         <Table.Td
           key={column.key}
           className={
-            Array.isArray(item.attributes?.[column.key])
-              ? styles.chipCell
-              : styles.monoCell
+            Array.isArray(item.attributes?.[column.key]) ? styles.chipCell : styles.monoCell
           }
         >
           <AuthoredListAttributeContent
@@ -642,27 +592,19 @@ function AuthoredListRow({
           />
         </Table.Td>
       ))}
-      {hasStatusColumn
-        ? (
-            <Table.Td className={styles.statusCell}>
-              <AuthoredListStatusChip item={item} />
-            </Table.Td>
-          )
-        : null}
-      {hasBadgeColumn
-        ? (
-            <Table.Td className={styles.chipCell}>
-              <AuthoredListBadges item={item} />
-            </Table.Td>
-          )
-        : null}
+      {hasStatusColumn ? (
+        <Table.Td className={styles.statusCell}>
+          <AuthoredListStatusChip item={item} />
+        </Table.Td>
+      ) : null}
+      {hasBadgeColumn ? (
+        <Table.Td className={styles.chipCell}>
+          <AuthoredListBadges item={item} />
+        </Table.Td>
+      ) : null}
       <Table.Td>
         <span
-          className={
-            item.sourceKind === 'master'
-              ? styles.masterSourceChip
-              : styles.sourceChip
-          }
+          className={item.sourceKind === 'master' ? styles.masterSourceChip : styles.sourceChip}
         >
           {sourceLabel}
         </span>
@@ -671,11 +613,7 @@ function AuthoredListRow({
         className={clsx(styles.actionCell, styles.tableBodyEdgeEnd)}
         onClick={(event) => event.stopPropagation()}
       >
-        <AuthoredListActions
-          item={item}
-          actionHandlers={actionHandlers}
-          itemName={item.name}
-        />
+        <AuthoredListActions item={item} actionHandlers={actionHandlers} itemName={item.name} />
       </Table.Td>
     </Table.Tr>
   )
@@ -694,32 +632,26 @@ function NameContent({
   const hierarchyStyle = {
     '--authored-list-hierarchy-level': hierarchyLevel
   } as CSSProperties
-  const name = item.permissions.canView
-    ? (
-        <button
-          aria-label={`Open ${item.name}`}
-          className={styles.itemNameButton}
-          onFocus={() => onViewIntent?.(item)}
-          onClick={(event) => {
-            event.stopPropagation()
-            handleView()
-          }}
-          type='button'
-        >
-          {item.name}
-        </button>
-      )
-    : (
-        item.name
-      )
+  const name = item.permissions.canView ? (
+    <button
+      aria-label={`Open ${item.name}`}
+      className={styles.itemNameButton}
+      onFocus={() => onViewIntent?.(item)}
+      onClick={(event) => {
+        event.stopPropagation()
+        handleView()
+      }}
+      type='button'
+    >
+      {item.name}
+    </button>
+  ) : (
+    item.name
+  )
 
   return (
     <span className={styles.nameHierarchy} style={hierarchyStyle}>
-      {hierarchyLevel > 0
-        ? (
-            <span aria-hidden='true' className={styles.hierarchyMarker} />
-          )
-        : null}
+      {hierarchyLevel > 0 ? <span aria-hidden='true' className={styles.hierarchyMarker} /> : null}
       {name}
     </span>
   )
@@ -747,14 +679,19 @@ function AuthoredListCard({
   const primaryAttribute = attributeColumns[0]
   const secondaryAttribute = attributeColumns[1]
   const primaryLabel = primaryAttribute
-    ? formatAttributeValue(item.attributes?.[primaryAttribute.key], primaryAttribute.fallback ?? primaryAttribute.label)
+    ? formatAttributeValue(
+        item.attributes?.[primaryAttribute.key],
+        primaryAttribute.fallback ?? primaryAttribute.label
+      )
     : (item.description ?? 'Details not set')
   const secondaryLabel = secondaryAttribute
-    ? formatAttributeValue(item.attributes?.[secondaryAttribute.key], secondaryAttribute.fallback ?? secondaryAttribute.label)
+    ? formatAttributeValue(
+        item.attributes?.[secondaryAttribute.key],
+        secondaryAttribute.fallback ?? secondaryAttribute.label
+      )
     : (item.description ?? 'Summary not set')
   const primaryAttributeInHeader = primaryAttribute?.key === 'level'
-  const sourceChipClass
-    = item.sourceKind === 'master' ? styles.masterSourceChip : styles.sourceChip
+  const sourceChipClass = item.sourceKind === 'master' ? styles.masterSourceChip : styles.sourceChip
   const handleView = () => {
     if (item.permissions.canView) {
       onView?.(item)
@@ -777,57 +714,42 @@ function AuthoredListCard({
           <AuthoredListAccentDot item={item} />
           <div className={styles.cardTitleStack}>
             <h2 className={styles.cardTitle}>
-              {item.permissions.canView
-                ? (
-                    <button
-                      aria-label={`Open ${item.name}`}
-                      className={styles.cardTitleButton}
-                      onFocus={() => onViewIntent?.(item)}
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        handleView()
-                      }}
-                      type='button'
-                    >
-                      {item.name}
-                    </button>
-                  )
-                : (
-                    item.name
-                  )}
+              {item.permissions.canView ? (
+                <button
+                  aria-label={`Open ${item.name}`}
+                  className={styles.cardTitleButton}
+                  onFocus={() => onViewIntent?.(item)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleView()
+                  }}
+                  type='button'
+                >
+                  {item.name}
+                </button>
+              ) : (
+                item.name
+              )}
             </h2>
-            {hierarchySubline || secondaryAttribute
-              ? (
-                  <span className={styles.cardSubline}>
-                    {hierarchySubline ?? secondaryLabel}
-                  </span>
-                )
-              : null}
+            {hierarchySubline || secondaryAttribute ? (
+              <span className={styles.cardSubline}>{hierarchySubline ?? secondaryLabel}</span>
+            ) : null}
           </div>
         </div>
         <span className={styles.cardMetaGroup}>
           <AuthoredListStatusChip item={item} />
-          {primaryAttributeInHeader
-            ? (
-                <span className={styles.levelBadge}>{primaryLabel}</span>
-              )
-            : null}
+          {primaryAttributeInHeader ? (
+            <span className={styles.levelBadge}>{primaryLabel}</span>
+          ) : null}
         </span>
       </div>
       <div className={styles.cardFeatureRow}>
-        {primaryAttribute && !primaryAttributeInHeader
-          ? (
-              <span className={styles.levelBadge}>{primaryLabel}</span>
-            )
-          : null}
-        <span className={styles.cardFeatureText}>
-          {item.description ?? 'No description yet.'}
-        </span>
+        {primaryAttribute && !primaryAttributeInHeader ? (
+          <span className={styles.levelBadge}>{primaryLabel}</span>
+        ) : null}
+        <span className={styles.cardFeatureText}>{item.description ?? 'No description yet.'}</span>
       </div>
-      <div
-        className={styles.cardFooter}
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className={styles.cardFooter} onClick={(event) => event.stopPropagation()}>
         <span className={styles.cardFooterMeta}>
           <span className={sourceChipClass}>{sourceLabel}</span>
           <AuthoredListBadges item={item} />
@@ -849,15 +771,10 @@ function compareAuthoredListItems(sort: string) {
     const rightValue = right.sortValues?.[sort]
 
     if (typeof leftValue === 'number' || typeof rightValue === 'number') {
-      return (
-        Number(leftValue ?? 0) - Number(rightValue ?? 0)
-        || left.name.localeCompare(right.name)
-      )
+      return Number(leftValue ?? 0) - Number(rightValue ?? 0) || left.name.localeCompare(right.name)
     }
 
-    return String(leftValue ?? left.name).localeCompare(
-      String(rightValue ?? right.name)
-    )
+    return String(leftValue ?? left.name).localeCompare(String(rightValue ?? right.name))
   }
 }
 
@@ -886,10 +803,7 @@ function sortAuthoredListItems(items: AuthoredListItem[], sort: string) {
     if (emitted.has(item.id)) return []
     emitted.add(item.id)
 
-    return [
-      item,
-      ...(childItems.get(item.id) ?? []).sort(compare).flatMap(appendWithDescendants)
-    ]
+    return [item, ...(childItems.get(item.id) ?? []).sort(compare).flatMap(appendWithDescendants)]
   }
 
   return [
@@ -959,11 +873,7 @@ function AuthoredListActions({
   return (
     <Group gap='xs' justify='flex-start'>
       {actions.map((action) => (
-        <Tooltip
-          key={action.label}
-          label={`${action.label} ${itemName}`}
-          withArrow
-        >
+        <Tooltip key={action.label} label={`${action.label} ${itemName}`} withArrow>
           <ActionIcon
             aria-label={`${action.label} ${itemName}`}
             className={getActionButtonClassName(action)}
@@ -981,10 +891,7 @@ function AuthoredListActions({
   )
 }
 
-function getAvailableActions(
-  item: AuthoredListItem,
-  actionHandlers: AuthoredListActionHandlers
-) {
+function getAvailableActions(item: AuthoredListItem, actionHandlers: AuthoredListActionHandlers) {
   const actions: AuthoredListAction[] = []
 
   if (item.permissions.canEdit && actionHandlers.onEdit) {
@@ -1026,9 +933,7 @@ function getActionButtonClassName(action: AuthoredListAction): string {
     .join(' ')
 }
 
-function getActionMenuItemClassName(
-  action: AuthoredListAction
-): string | undefined {
+function getActionMenuItemClassName(action: AuthoredListAction): string | undefined {
   if (action.tone === 'copy') return styles.copyMenuItem
   if (action.tone === 'danger') return styles.dangerMenuItem
   return undefined
@@ -1088,12 +993,8 @@ function AuthoredListStatusChip({ item }: { item: AuthoredListItem }) {
   )
 }
 
-function formatAttributeValue(
-  value: AuthoredListAttributeValue,
-  fallback: string
-) {
-  if (Array.isArray(value))
-    return value.length > 0 ? value.join(', ') : fallback
+function formatAttributeValue(value: AuthoredListAttributeValue, fallback: string) {
+  if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : fallback
   return value ?? fallback
 }
 
@@ -1108,9 +1009,7 @@ function getAuthoredListColumnWidths(
   return [
     ...(options.hasAccentColumn ? [accentColumnWidth] : []),
     nameColumnWidth,
-    ...attributeColumns.map(
-      (column) => column.width ?? defaultAttributeColumnWidth
-    ),
+    ...attributeColumns.map((column) => column.width ?? defaultAttributeColumnWidth),
     ...(options.hasStatusColumn ? [statusColumnWidth] : []),
     ...(options.hasBadgeColumn ? [badgeColumnWidth] : []),
     sourceColumnWidth,
@@ -1129,7 +1028,7 @@ function LoadingRows() {
   )
 }
 
-function StatePanel({ title, copy }: { title: string, copy: string }) {
+function StatePanel({ title, copy }: { title: string; copy: string }) {
   return (
     <div className={styles.statePanel}>
       <Text fw={700}>{title}</Text>
@@ -1140,9 +1039,7 @@ function StatePanel({ title, copy }: { title: string, copy: string }) {
   )
 }
 
-function buildInitialFilters(
-  filters: AuthoredListFilter[]
-): AuthoredListFilterValues {
+function buildInitialFilters(filters: AuthoredListFilter[]): AuthoredListFilterValues {
   return filters.reduce<AuthoredListFilterValues>((values, filter) => {
     values[filter.key] = null
     return values

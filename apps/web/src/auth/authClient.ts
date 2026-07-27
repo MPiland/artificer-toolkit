@@ -40,7 +40,9 @@ function getAuthRedirectUrl(path: string) {
 export const browserAuthClient: AuthClient = {
   async signIn(input) {
     const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword(input)
-    return error ? { ok: false, message: error.message } : { ok: true, session: data.session ?? null }
+    return error
+      ? { ok: false, message: error.message }
+      : { ok: true, session: data.session ?? null }
   },
   async signUp(input) {
     return signUpFn({ data: input })

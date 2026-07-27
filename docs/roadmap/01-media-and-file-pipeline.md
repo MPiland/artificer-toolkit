@@ -36,17 +36,17 @@ Verify these statements against the phase branch before selecting migrations, bu
 
 Define centrally validated profiles for at least:
 
-| Profile | Owner/reference | Initial purpose |
-| --- | --- | --- |
-| `CHARACTER_PORTRAIT` | Character | Sheet, Builder summary, Campaign roster, and Encounter actor portrait |
-| `AUTHORED_THUMBNAIL` | Exact authored revision | Compact cards, lists, search results, and selection surfaces |
-| `AUTHORED_DISPLAY_IMAGE` | Exact authored revision | Detail/reader surface and optional larger artwork |
-| `CAMPAIGN_LOGO` | Campaign | Compact Campaign identity and roster/list surfaces |
-| `CAMPAIGN_ATTACHMENT` | Campaign, optionally linked to a session or note | Size-limited supporting file or handout |
-| `CAMPAIGN_HANDOUT_MAP` | Campaign | Downloadable/viewable map reference that is not a VTT scene map |
-| `MARKETPLACE_PREVIEW` | Package draft or immutable release | Catalog and release preview media |
-| `MARKETPLACE_SUPPLEMENT` | Package draft or immutable release | Licensed supplemental downloads |
-| `VTT_MAP` | Encounter scene | Larger map input with separate size, dimension, quota, transfer, and optimization rules |
+| Profile                  | Owner/reference                                  | Initial purpose                                                                         |
+| ------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `CHARACTER_PORTRAIT`     | Character                                        | Sheet, Builder summary, Campaign roster, and Encounter actor portrait                   |
+| `AUTHORED_THUMBNAIL`     | Exact authored revision                          | Compact cards, lists, search results, and selection surfaces                            |
+| `AUTHORED_DISPLAY_IMAGE` | Exact authored revision                          | Detail/reader surface and optional larger artwork                                       |
+| `CAMPAIGN_LOGO`          | Campaign                                         | Compact Campaign identity and roster/list surfaces                                      |
+| `CAMPAIGN_ATTACHMENT`    | Campaign, optionally linked to a session or note | Size-limited supporting file or handout                                                 |
+| `CAMPAIGN_HANDOUT_MAP`   | Campaign                                         | Downloadable/viewable map reference that is not a VTT scene map                         |
+| `MARKETPLACE_PREVIEW`    | Package draft or immutable release               | Catalog and release preview media                                                       |
+| `MARKETPLACE_SUPPLEMENT` | Package draft or immutable release               | Licensed supplemental downloads                                                         |
+| `VTT_MAP`                | Encounter scene                                  | Larger map input with separate size, dimension, quota, transfer, and optimization rules |
 
 - A profile defines allowed verified media types, maximum bytes, image pixel/dimension limits, transfer method, required processing, generated variants, quota accounting, and delivery behavior.
 - Clients submit the intended profile and domain target. They never choose an arbitrary bucket, object path, public visibility, or authorization policy.

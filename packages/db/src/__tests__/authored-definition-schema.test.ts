@@ -14,18 +14,12 @@ const equipmentSchema = read('packages/db/src/domains/subjects/tables/equipment.
 const spellSchema = read('packages/db/src/domains/subjects/tables/spells.sql')
 
 describe('authored definition revision persistence', () => {
-  const canonical = read(
-    'packages/db/src/domains/subjects/tables/authored_definitions.sql'
-  )
+  const canonical = read('packages/db/src/domains/subjects/tables/authored_definitions.sql')
   const generatedBundle = read(
     'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
   )
-  const bootstrapMigration = read(
-    'supabase/migrations/20260316000100_bootstrap_bundle.sql'
-  )
-  const routeIdMigration = read(
-    'supabase/migrations/20260510123258_authored_route_ids.sql'
-  )
+  const bootstrapMigration = read('supabase/migrations/20260316000100_bootstrap_bundle.sql')
+  const routeIdMigration = read('supabase/migrations/20260510123258_authored_route_ids.sql')
   const optimizedRlsMigration = read(
     'supabase/migrations/20260521185305_optimize_rls_auth_initplans.sql'
   )
@@ -36,21 +30,13 @@ describe('authored definition revision persistence', () => {
   it('uses stable definitions and immutable complete revisions as canonical storage', () => {
     for (const source of [canonical, generatedBundle, bootstrapMigration]) {
       expect(source).toContain('CREATE TABLE IF NOT EXISTS public.authored_definitions')
-      expect(source).toContain(
-        'CREATE TABLE IF NOT EXISTS public.authored_definition_revisions'
-      )
+      expect(source).toContain('CREATE TABLE IF NOT EXISTS public.authored_definition_revisions')
       expect(source).toContain('payload jsonb NOT NULL')
       expect(source).toContain('active_revision_id uuid')
       expect(source).toContain('draft_revision_id uuid')
-      expect(source).toContain(
-        'CONSTRAINT authored_definitions_owner_chk CHECK'
-      )
-      expect(source).toContain(
-        'CONSTRAINT authored_definitions_active_revision_fk FOREIGN KEY'
-      )
-      expect(source).toContain(
-        'CONSTRAINT authored_definitions_draft_revision_fk FOREIGN KEY'
-      )
+      expect(source).toContain('CONSTRAINT authored_definitions_owner_chk CHECK')
+      expect(source).toContain('CONSTRAINT authored_definitions_active_revision_fk FOREIGN KEY')
+      expect(source).toContain('CONSTRAINT authored_definitions_draft_revision_fk FOREIGN KEY')
       expect(source).not.toContain('authored_subject_drafts')
     }
   })
@@ -72,12 +58,8 @@ describe('authored definition revision persistence', () => {
     expect(forwardStorageMigration).toContain(
       'CREATE TABLE IF NOT EXISTS public.authored_definition_revisions'
     )
-    expect(forwardStorageMigration).toContain(
-      "conname = 'authored_definitions_active_revision_fk'"
-    )
-    expect(forwardStorageMigration).toContain(
-      "conname = 'authored_definitions_draft_revision_fk'"
-    )
+    expect(forwardStorageMigration).toContain("conname = 'authored_definitions_active_revision_fk'")
+    expect(forwardStorageMigration).toContain("conname = 'authored_definitions_draft_revision_fk'")
     expect(forwardStorageMigration).toContain(
       'ALTER TABLE public.authored_definitions ENABLE ROW LEVEL SECURITY'
     )
@@ -98,8 +80,6 @@ describe('authored root reference integrity', () => {
   })
 
   it('keeps spell class references backed by a database foreign key', () => {
-    expect(spellSchema).toMatch(
-      /class_id uuid NOT NULL\s+REFERENCES public\.classes\(id\)/
-    )
+    expect(spellSchema).toMatch(/class_id uuid NOT NULL\s+REFERENCES public\.classes\(id\)/)
   })
 })

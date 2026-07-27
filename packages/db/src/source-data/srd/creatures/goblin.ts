@@ -16,7 +16,7 @@ export const goblin: CreatureAuthored = {
     CONSTITUTION: 10,
     INTELLIGENCE: 10,
     WISDOM: 8,
-    CHARISMA: 8,
+    CHARISMA: 8
   },
   armorClass: 15,
   armorClassNote: 'leather armor, shield',
@@ -24,10 +24,9 @@ export const goblin: CreatureAuthored = {
   hitDice: {
     count: 2,
     die: 6,
-    modifier: 0,
+    modifier: 0
   },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_4,
   xp: 50
 }
-

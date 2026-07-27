@@ -46,8 +46,13 @@ const response: SpellListResponseDto = {
   drafts: [],
   meta: {
     classes: [{ id: 'class-wizard', label: 'Wizard', spellIds: ['magic-missile', 'ember-lace'] }],
-    schools: [{ id: 'school-evocation', label: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }],
-    levels: [{ id: 1, spellIds: ['magic-missile'] }, { id: 3, spellIds: ['ember-lace'] }]
+    schools: [
+      { id: 'school-evocation', label: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }
+    ],
+    levels: [
+      { id: 1, spellIds: ['magic-missile'] },
+      { id: 3, spellIds: ['ember-lace'] }
+    ]
   }
 }
 

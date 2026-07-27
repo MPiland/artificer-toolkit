@@ -15,7 +15,7 @@ export const earthElemental: CreatureAuthored = {
     CONSTITUTION: 20,
     INTELLIGENCE: 5,
     WISDOM: 10,
-    CHARISMA: 5,
+    CHARISMA: 5
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -23,12 +23,10 @@ export const earthElemental: CreatureAuthored = {
   hitDice: {
     count: 12,
     die: 10,
-    modifier: 60,
+    modifier: 60
   },
   speeds: [...S.walk(30), ...S.burrow(30)],
-  proficiencies: [
-    S.grantedLanguageProficiency(94, 1, 'TERRAN')
-  ],
+  proficiencies: [S.grantedLanguageProficiency(94, 1, 'TERRAN')],
   damageVulnerabilities: ['thunder'],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['poison'],
@@ -41,7 +39,8 @@ export const earthElemental: CreatureAuthored = {
     {
       id: S.featureId(94, 1),
       label: 'Earth Glide',
-      description: "Earth Glide. The elemental can burrow through nonmagical, unworked earth and stone. While doing so, the elemental doesn't disturb the material it moves through.",
+      description:
+        "Earth Glide. The elemental can burrow through nonmagical, unworked earth and stone. While doing so, the elemental doesn't disturb the material it moves through.",
       order: 1
     },
     {
@@ -59,9 +58,9 @@ export const earthElemental: CreatureAuthored = {
     {
       id: S.featureId(94, 4),
       label: 'Slam',
-      description: 'Slam. Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
+      description:
+        'Slam. Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
       order: 4
     }
   ]
 }
-

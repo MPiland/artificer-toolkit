@@ -7,12 +7,12 @@ const mobileBreakpoint = 'screen and (max-width: 760px)'
 export const listStack = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateRows': 'auto auto auto minmax(0, 1fr)',
-      'height': `calc(100dvh - 48px - ${foundationVars.space[8]} - ${foundationVars.space[8]})`,
-      'minWidth': 0,
-      'minHeight': 0,
-      'gap': foundationVars.space[5],
+      display: 'grid',
+      gridTemplateRows: 'auto auto auto minmax(0, 1fr)',
+      height: `calc(100dvh - 48px - ${foundationVars.space[8]} - ${foundationVars.space[8]})`,
+      minWidth: 0,
+      minHeight: 0,
+      gap: foundationVars.space[5],
       '@media': {
         [mobileBreakpoint]: {
           height: 'auto'
@@ -33,11 +33,11 @@ export const contentTabs = style({
 export const toolbar = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'minmax(0, 1fr) auto',
-      'alignItems': 'end',
-      'gap': foundationVars.space[3],
-      'minWidth': 0,
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      alignItems: 'end',
+      gap: foundationVars.space[3],
+      minWidth: 0,
       '@media': {
         [mobileBreakpoint]: {
           gridTemplateColumns: '1fr'
@@ -50,12 +50,11 @@ export const toolbar = style({
 export const filterControls = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns':
-        'minmax(16rem, 320px) repeat(auto-fit, minmax(10rem, 160px))',
-      'alignItems': 'end',
-      'gap': foundationVars.space[3],
-      'minWidth': 0,
+      display: 'grid',
+      gridTemplateColumns: 'minmax(16rem, 320px) repeat(auto-fit, minmax(10rem, 160px))',
+      alignItems: 'end',
+      gap: foundationVars.space[3],
+      minWidth: 0,
       '@media': {
         [mobileBreakpoint]: {
           gridTemplateColumns: '1fr'
@@ -68,14 +67,14 @@ export const filterControls = style({
 export const viewToggleGroup = style({
   '@layer': {
     [app]: {
-      'alignSelf': 'end',
-      'justifySelf': 'end',
-      'display': 'inline-flex',
-      'minHeight': '42px',
-      'padding': '3px',
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.md,
-      'backgroundColor': foundationVars.color.input.background.default,
+      alignSelf: 'end',
+      justifySelf: 'end',
+      display: 'inline-flex',
+      minHeight: '42px',
+      padding: '3px',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.input.background.default,
       '@media': {
         [mobileBreakpoint]: {
           justifySelf: 'start',
@@ -89,12 +88,12 @@ export const viewToggleGroup = style({
 export const viewToggleButton = style({
   '@layer': {
     [app]: {
-      'width': '34px',
-      'height': '34px',
-      'border': '1px solid transparent',
-      'borderRadius': foundationVars.radius.sm,
-      'backgroundColor': 'transparent',
-      'color': foundationVars.color.text.secondary,
+      width: '34px',
+      height: '34px',
+      border: '1px solid transparent',
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: 'transparent',
+      color: foundationVars.color.text.secondary,
 
       ':hover': {
         borderColor: foundationVars.color.border.subtle,
@@ -263,9 +262,9 @@ export const spacerCell = style({
 export const listRow = style({
   '@layer': {
     [app]: {
-      'cursor': 'pointer',
-      'outline': 'none',
-      'transition': `background-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
+      cursor: 'pointer',
+      outline: 'none',
+      transition: `background-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         backgroundColor: foundationVars.color.card.background.hover
@@ -319,16 +318,16 @@ export const nameColumnNoAccent = style({
 export const itemNameButton = style({
   '@layer': {
     [app]: {
-      'display': 'inline-flex',
-      'maxWidth': '100%',
-      'padding': 0,
-      'border': 0,
-      'background': 'transparent',
-      'color': foundationVars.color.text.primary,
-      'cursor': 'pointer',
-      'font': 'inherit',
-      'fontWeight': foundationVars.fontWeight.medium,
-      'textAlign': 'left',
+      display: 'inline-flex',
+      maxWidth: '100%',
+      padding: 0,
+      border: 0,
+      background: 'transparent',
+      color: foundationVars.color.text.primary,
+      cursor: 'pointer',
+      font: 'inherit',
+      fontWeight: foundationVars.fontWeight.medium,
+      textAlign: 'left',
 
       ':hover': {
         color: foundationVars.color.text.accent
@@ -493,21 +492,21 @@ export const actionCell = style({
 export const rowActionButton = style({
   '@layer': {
     [app]: {
-      'vars': {
+      vars: {
         '--ai-bg': foundationVars.color.input.background.default,
         '--ai-bd': `1px solid ${foundationVars.color.accent.border}`,
         '--ai-color': foundationVars.color.text.accent,
         '--ai-hover': foundationVars.color.accent.soft,
         '--ai-hover-color': foundationVars.color.text.accent
       },
-      'width': '34px',
-      'height': '34px',
-      'border': `1px solid ${foundationVars.color.accent.border}`,
-      'borderColor': foundationVars.color.accent.border,
-      'borderRadius': foundationVars.radius.sm,
-      'backgroundColor': foundationVars.color.input.background.default,
-      'color': foundationVars.color.text.accent,
-      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+      width: '34px',
+      height: '34px',
+      border: `1px solid ${foundationVars.color.accent.border}`,
+      borderColor: foundationVars.color.accent.border,
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.text.accent,
+      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         borderColor: foundationVars.color.accent.border,
@@ -531,16 +530,16 @@ export const rowActionButton = style({
 export const dangerActionButton = style({
   '@layer': {
     [app]: {
-      'vars': {
+      vars: {
         '--ai-bg': foundationVars.color.input.background.default,
         '--ai-bd': `1px solid ${foundationVars.color.status.danger}`,
         '--ai-color': foundationVars.color.status.danger,
         '--ai-hover': foundationVars.color.status.dangerSoft,
         '--ai-hover-color': foundationVars.color.status.danger
       },
-      'backgroundColor': foundationVars.color.input.background.default,
-      'borderColor': foundationVars.color.status.danger,
-      'color': foundationVars.color.status.danger,
+      backgroundColor: foundationVars.color.input.background.default,
+      borderColor: foundationVars.color.status.danger,
+      color: foundationVars.color.status.danger,
 
       ':hover': {
         borderColor: foundationVars.color.status.danger,
@@ -554,17 +553,17 @@ export const dangerActionButton = style({
 export const copyActionButton = style({
   '@layer': {
     [app]: {
-      'vars': {
+      vars: {
         '--ai-bg': foundationVars.color.input.background.default,
         '--ai-bd': `1px solid ${foundationVars.color.accent.tertiaryBorder}`,
         '--ai-color': foundationVars.color.accent.tertiarySolid,
         '--ai-hover': foundationVars.color.accent.tertiarySoft,
         '--ai-hover-color': foundationVars.color.accent.tertiaryHover
       },
-      'border': `1px solid ${foundationVars.color.accent.tertiaryBorder}`,
-      'borderColor': foundationVars.color.accent.tertiaryBorder,
-      'backgroundColor': foundationVars.color.input.background.default,
-      'color': foundationVars.color.accent.tertiarySolid,
+      border: `1px solid ${foundationVars.color.accent.tertiaryBorder}`,
+      borderColor: foundationVars.color.accent.tertiaryBorder,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.accent.tertiarySolid,
 
       ':hover': {
         borderColor: foundationVars.color.accent.tertiaryBorder,
@@ -578,7 +577,7 @@ export const copyActionButton = style({
 export const dangerMenuItem = style({
   '@layer': {
     [app]: {
-      'color': foundationVars.color.status.danger,
+      color: foundationVars.color.status.danger,
 
       ':hover': {
         backgroundColor: foundationVars.color.status.dangerSoft,
@@ -591,7 +590,7 @@ export const dangerMenuItem = style({
 export const copyMenuItem = style({
   '@layer': {
     [app]: {
-      'color': foundationVars.color.accent.tertiarySolid,
+      color: foundationVars.color.accent.tertiarySolid,
 
       ':hover': {
         backgroundColor: foundationVars.color.accent.tertiarySoft,
@@ -637,8 +636,7 @@ export const cardRow = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns:
-        'repeat(var(--authored-list-card-columns), minmax(0, 1fr))',
+      gridTemplateColumns: 'repeat(var(--authored-list-card-columns), minmax(0, 1fr))',
       gap: foundationVars.space[3]
     }
   }
@@ -647,16 +645,16 @@ export const cardRow = style({
 export const card = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'alignContent': 'space-between',
-      'gap': foundationVars.space[4],
-      'minHeight': '176px',
-      'padding': foundationVars.space[4],
-      'border': `1px solid ${foundationVars.color.border.strong}`,
-      'borderRadius': foundationVars.radius.lg,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'cursor': 'pointer',
-      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
+      display: 'grid',
+      alignContent: 'space-between',
+      gap: foundationVars.space[4],
+      minHeight: '176px',
+      padding: foundationVars.space[4],
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.lg,
+      backgroundColor: foundationVars.color.surface.panel,
+      cursor: 'pointer',
+      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         borderColor: foundationVars.color.accent.border,
@@ -735,19 +733,19 @@ export const cardTitle = style({
 export const cardTitleButton = style({
   '@layer': {
     [app]: {
-      'display': 'inline-block',
-      'overflow': 'hidden',
-      'maxWidth': '100%',
-      'padding': 0,
-      'border': 0,
-      'background': 'transparent',
-      'color': 'inherit',
-      'cursor': 'pointer',
-      'font': 'inherit',
-      'fontWeight': 'inherit',
-      'textAlign': 'left',
-      'textOverflow': 'ellipsis',
-      'whiteSpace': 'nowrap',
+      display: 'inline-block',
+      overflow: 'hidden',
+      maxWidth: '100%',
+      padding: 0,
+      border: 0,
+      background: 'transparent',
+      color: 'inherit',
+      cursor: 'pointer',
+      font: 'inherit',
+      fontWeight: 'inherit',
+      textAlign: 'left',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
 
       ':hover': {
         color: foundationVars.color.text.accent

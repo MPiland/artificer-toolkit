@@ -11,9 +11,9 @@ const sectionScrollMarginTop = `calc(${shellHeaderHeight} + ${foundationVars.spa
 export const storyCanvas = style({
   '@layer': {
     [app]: {
-      'minHeight': '100dvh',
-      'padding': `${foundationVars.space[8]} ${foundationVars.space[6]}`,
-      'backgroundColor': foundationVars.color.surface.canvas,
+      minHeight: '100dvh',
+      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+      backgroundColor: foundationVars.color.surface.canvas,
       '@media': {
         [mobile]: {
           padding: foundationVars.space[4]
@@ -39,13 +39,13 @@ export const layout = style({
 export const hero = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gap': foundationVars.space[5],
-      'padding': foundationVars.space[6],
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.xl,
-      'backgroundColor': foundationVars.color.surface.panel,
-      'boxShadow': foundationVars.shadow.card,
+      display: 'grid',
+      gap: foundationVars.space[5],
+      padding: foundationVars.space[6],
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.xl,
+      backgroundColor: foundationVars.color.surface.panel,
+      boxShadow: foundationVars.shadow.card,
       '@media': {
         [narrow]: {
           padding: foundationVars.space[5]
@@ -58,10 +58,10 @@ export const hero = style({
 export const heroToolbar = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'flex-start',
-      'justifyContent': 'space-between',
-      'gap': foundationVars.space[3],
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[3],
       '@media': {
         [mobile]: {
           display: 'grid'
@@ -98,13 +98,13 @@ export const eyebrow = style({
 export const title = style({
   '@layer': {
     [app]: {
-      'margin': 0,
-      'color': foundationVars.color.text.primary,
-      'fontFamily': foundationVars.font.display,
-      'fontSize': '2.75rem',
-      'fontWeight': foundationVars.fontWeight.heavy,
-      'letterSpacing': '0',
-      'lineHeight': 1.08,
+      margin: 0,
+      color: foundationVars.color.text.primary,
+      fontFamily: foundationVars.font.display,
+      fontSize: '2.75rem',
+      fontWeight: foundationVars.fontWeight.heavy,
+      letterSpacing: '0',
+      lineHeight: 1.08,
       '@media': {
         [mobile]: {
           fontSize: '2rem'
@@ -129,12 +129,12 @@ export const summary = style({
 export const actionBar = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'flexWrap': 'wrap',
-      'gap': foundationVars.space[2],
-      'alignItems': 'center',
-      'justifyContent': 'flex-end',
-      'marginLeft': 'auto',
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: foundationVars.space[2],
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      marginLeft: 'auto',
       '@media': {
         [narrow]: {
           justifyContent: 'flex-start'
@@ -147,17 +147,17 @@ export const actionBar = style({
 export const dangerActionButton = style({
   '@layer': {
     [app]: {
-      'vars': {
+      vars: {
         '--button-bg': foundationVars.color.status.dangerSoft,
         '--button-bd': `1px solid ${foundationVars.color.status.danger}`,
         '--button-color': foundationVars.color.status.danger,
         '--button-hover': foundationVars.color.status.dangerSoft,
         '--button-hover-color': foundationVars.color.status.danger
       },
-      'borderColor': foundationVars.color.status.danger,
-      'backgroundColor': foundationVars.color.status.dangerSoft,
-      'color': foundationVars.color.status.danger,
-      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+      borderColor: foundationVars.color.status.danger,
+      backgroundColor: foundationVars.color.status.dangerSoft,
+      color: foundationVars.color.status.danger,
+      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         borderColor: foundationVars.color.status.danger,
@@ -229,10 +229,10 @@ export const statusChipDraft = style({
 export const contentLayout = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': '190px minmax(0, 1fr)',
-      'gap': foundationVars.space[8],
-      'alignItems': 'start',
+      display: 'grid',
+      gridTemplateColumns: '190px minmax(0, 1fr)',
+      gap: foundationVars.space[8],
+      alignItems: 'start',
       '@media': {
         [narrow]: {
           gridTemplateColumns: '1fr',
@@ -255,14 +255,14 @@ export const contentLayoutNoNav = style({
 export const nav = style({
   '@layer': {
     [app]: {
-      'position': 'sticky',
-      'top': stickyNavTop,
-      'display': 'grid',
-      'gap': foundationVars.space[1],
-      'maxHeight': `calc(100dvh - ${stickyNavTop} - ${foundationVars.space[5]})`,
-      'overflowY': 'auto',
-      'paddingTop': foundationVars.space[1],
-      'overscrollBehavior': 'contain',
+      position: 'sticky',
+      top: stickyNavTop,
+      display: 'grid',
+      gap: foundationVars.space[1],
+      maxHeight: `calc(100dvh - ${stickyNavTop} - ${foundationVars.space[5]})`,
+      overflowY: 'auto',
+      paddingTop: foundationVars.space[1],
+      overscrollBehavior: 'contain',
       '@media': {
         [narrow]: {
           position: 'static',
@@ -280,19 +280,19 @@ export const nav = style({
 export const navLink = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'minHeight': '40px',
-      'padding': `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      'border': `1px solid transparent`,
-      'borderRadius': foundationVars.radius.pill,
-      'color': foundationVars.color.text.secondary,
-      'fontSize': foundationVars.typography.caption.fontSize,
-      'fontWeight': foundationVars.fontWeight.semibold,
-      'lineHeight': 1.2,
-      'textDecoration': 'none',
-      'whiteSpace': 'nowrap',
-      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: '40px',
+      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+      border: `1px solid transparent`,
+      borderRadius: foundationVars.radius.pill,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.caption.fontSize,
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: 1.2,
+      textDecoration: 'none',
+      whiteSpace: 'nowrap',
+      transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         borderColor: foundationVars.color.border.subtle,
@@ -519,54 +519,65 @@ globalStyle(`${prose} table[data-detail-table='class-progression']`, {
   }
 })
 
-globalStyle(`${prose} table[data-detail-table='class-progression'] th, ${prose} table[data-detail-table='class-progression'] td`, {
-  '@layer': {
-    [app]: {
-      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      fontSize: '0.82rem',
-      lineHeight: '1.38',
-      overflowWrap: 'normal',
-      wordBreak: 'normal'
+globalStyle(
+  `${prose} table[data-detail-table='class-progression'] th, ${prose} table[data-detail-table='class-progression'] td`,
+  {
+    '@layer': {
+      [app]: {
+        padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+        fontSize: '0.82rem',
+        lineHeight: '1.38',
+        overflowWrap: 'normal',
+        wordBreak: 'normal'
+      }
     }
   }
-})
+)
 
-globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='features'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='features']`, {
-  '@layer': {
-    [app]: {
-      minWidth: '18rem'
+globalStyle(
+  `${prose} table[data-detail-table='class-progression'] th[data-progression-column='features'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='features']`,
+  {
+    '@layer': {
+      [app]: {
+        minWidth: '18rem'
+      }
     }
   }
-})
+)
 
-globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='slot']`, {
-  '@layer': {
-    [app]: {
-      textAlign: 'center',
-      whiteSpace: 'nowrap'
+globalStyle(
+  `${prose} table[data-detail-table='class-progression'] th[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='level'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='proficiency'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='number'], ${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot'], ${prose} table[data-detail-table='class-progression'] td[data-progression-column='slot']`,
+  {
+    '@layer': {
+      [app]: {
+        textAlign: 'center',
+        whiteSpace: 'nowrap'
+      }
     }
   }
-})
+)
 
-globalStyle(`${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot-group']`, {
-  '@layer': {
-    [app]: {
-      textAlign: 'center'
+globalStyle(
+  `${prose} table[data-detail-table='class-progression'] th[data-progression-column='slot-group']`,
+  {
+    '@layer': {
+      [app]: {
+        textAlign: 'center'
+      }
     }
   }
-})
+)
 
 export const factGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns':
-        'repeat(var(--authored-detail-fact-grid-columns, 4), minmax(0, 1fr))',
-      'gap': 0,
-      'overflow': 'hidden',
-      'border': `1px solid ${foundationVars.color.border.subtle}`,
-      'borderRadius': foundationVars.radius.lg,
-      'backgroundColor': foundationVars.color.surface.panel,
+      display: 'grid',
+      gridTemplateColumns: 'repeat(var(--authored-detail-fact-grid-columns, 4), minmax(0, 1fr))',
+      gap: 0,
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      backgroundColor: foundationVars.color.surface.panel,
       '@media': {
         [narrow]: {
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
@@ -707,13 +718,13 @@ export const notice = styleVariants({
 export const noticeBase = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'justifyContent': 'space-between',
-      'gap': foundationVars.space[3],
-      'padding': foundationVars.space[4],
-      'border': '1px solid',
-      'borderRadius': foundationVars.radius.xl,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[3],
+      padding: foundationVars.space[4],
+      border: '1px solid',
+      borderRadius: foundationVars.radius.xl,
       '@media': {
         [mobile]: {
           display: 'grid'

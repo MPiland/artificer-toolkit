@@ -97,9 +97,7 @@ describe('createProficiencyGrantRepository', () => {
         { proficiency_grant_id: 'grant-unrequested', skill_id: 'stealth' }
       ],
       proficiency_grant_save_abilities: [],
-      proficiency_grant_languages: [
-        { proficiency_grant_id: 'grant-2', language_id: 'elvish' }
-      ],
+      proficiency_grant_languages: [{ proficiency_grant_id: 'grant-2', language_id: 'elvish' }],
       proficiency_grant_equipment: [],
       proficiency_grant_equipment_filters: [],
       proficiency_grant_equipment_filter_properties: [],
@@ -120,29 +118,31 @@ describe('createProficiencyGrantRepository', () => {
   })
 
   it('hydrates an equipment proficiency grant with filters', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-1',
-          sort_order: 1,
-          proficiency_kind: 'EQUIPMENT',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_equipment: [
-        { proficiency_grant_id: 'grant-1', equipment_id: 'equipment-1' }
-      ],
-      proficiency_grant_equipment_filters: [
-        { proficiency_grant_id: 'grant-1', category_code: 'WEAPON' }
-      ],
-      proficiency_grant_equipment_filter_properties: [
-        { proficiency_grant_id: 'grant-1', property_code: 'LIGHT' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-1',
+            sort_order: 1,
+            proficiency_kind: 'EQUIPMENT',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_equipment: [
+          { proficiency_grant_id: 'grant-1', equipment_id: 'equipment-1' }
+        ],
+        proficiency_grant_equipment_filters: [
+          { proficiency_grant_id: 'grant-1', category_code: 'WEAPON' }
+        ],
+        proficiency_grant_equipment_filter_properties: [
+          { proficiency_grant_id: 'grant-1', property_code: 'LIGHT' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-1')).resolves.toEqual({
       id: 'grant-1',
@@ -164,28 +164,30 @@ describe('createProficiencyGrantRepository', () => {
   })
 
   it('hydrates an equipment-property proficiency grant from the selected path shape', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-2',
-          sort_order: 2,
-          proficiency_kind: 'EQUIPMENT_PROPERTY',
-          selection_kind: 'CHOSEN',
-          authoring_mode_kind: 'SELECTED',
-          count: 1,
-          selection_duplicate_policy: 'UNIQUE',
-          level: 'HALF',
-          rounding: 'UP'
-        }
-      ],
-      proficiency_grant_equipment_properties: [
-        { proficiency_grant_id: 'grant-2', property_code: 'LIGHT' },
-        { proficiency_grant_id: 'grant-2', property_code: 'FINESSE' }
-      ],
-      proficiency_grant_equipment_property_filters: [
-        { proficiency_grant_id: 'grant-2', category_code: 'WEAPON' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-2',
+            sort_order: 2,
+            proficiency_kind: 'EQUIPMENT_PROPERTY',
+            selection_kind: 'CHOSEN',
+            authoring_mode_kind: 'SELECTED',
+            count: 1,
+            selection_duplicate_policy: 'UNIQUE',
+            level: 'HALF',
+            rounding: 'UP'
+          }
+        ],
+        proficiency_grant_equipment_properties: [
+          { proficiency_grant_id: 'grant-2', property_code: 'LIGHT' },
+          { proficiency_grant_id: 'grant-2', property_code: 'FINESSE' }
+        ],
+        proficiency_grant_equipment_property_filters: [
+          { proficiency_grant_id: 'grant-2', category_code: 'WEAPON' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-2')).resolves.toEqual({
       id: 'grant-2',
@@ -206,181 +208,199 @@ describe('createProficiencyGrantRepository', () => {
   })
 
   it('fails loudly when a chosen proficiency grant is missing its persisted count', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-count',
-          sort_order: 3,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'CHOSEN',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          selection_duplicate_policy: 'UNIQUE',
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-bad-count', skill_id: 'skill-1' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-count',
+            sort_order: 3,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'CHOSEN',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            selection_duplicate_policy: 'UNIQUE',
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_skills: [{ proficiency_grant_id: 'grant-bad-count', skill_id: 'skill-1' }]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-count')).rejects.toThrow('missing count')
   })
 
   it('fails loudly when a granted proficiency grant persists count', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-unexpected-count',
-          sort_order: 4,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: 1,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-unexpected-count', skill_id: 'skill-1' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-unexpected-count',
+            sort_order: 4,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: 1,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_skills: [
+          { proficiency_grant_id: 'grant-unexpected-count', skill_id: 'skill-1' }
+        ]
+      }) as never
+    )
 
-    await expect(repository.findById('grant-unexpected-count')).rejects.toThrow('cannot hydrate count for GRANTED payload')
+    await expect(repository.findById('grant-unexpected-count')).rejects.toThrow(
+      'cannot hydrate count for GRANTED payload'
+    )
   })
 
   it('fails loudly when a half proficiency grant is missing rounding', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-rounding',
-          sort_order: 4,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'HALF',
-          rounding: null
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-bad-rounding', skill_id: 'skill-1' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-rounding',
+            sort_order: 4,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'HALF',
+            rounding: null
+          }
+        ],
+        proficiency_grant_skills: [
+          { proficiency_grant_id: 'grant-bad-rounding', skill_id: 'skill-1' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-rounding')).rejects.toThrow('missing rounding')
   })
 
   it('fails loudly when a non-half proficiency grant persists rounding', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-unexpected-rounding',
-          sort_order: 5,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: 'UP'
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-unexpected-rounding', skill_id: 'skill-1' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-unexpected-rounding',
+            sort_order: 5,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: 'UP'
+          }
+        ],
+        proficiency_grant_skills: [
+          { proficiency_grant_id: 'grant-unexpected-rounding', skill_id: 'skill-1' }
+        ]
+      }) as never
+    )
 
-    await expect(repository.findById('grant-unexpected-rounding')).rejects.toThrow('cannot hydrate rounding for FULL level')
+    await expect(repository.findById('grant-unexpected-rounding')).rejects.toThrow(
+      'cannot hydrate rounding for FULL level'
+    )
   })
 
   it('fails loudly when a proficiency grant has an invalid persisted proficiency kind', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-kind',
-          sort_order: 5,
-          proficiency_kind: 'TOOLS',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'ALL',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-kind',
+            sort_order: 5,
+            proficiency_kind: 'TOOLS',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'ALL',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-kind')).rejects.toThrow('invalid proficiency_kind')
   })
 
   it('fails loudly when a save-ability proficiency grant has an invalid ability code', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-ability',
-          sort_order: 6,
-          proficiency_kind: 'SAVE_ABILITY',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_save_abilities: [
-        { proficiency_grant_id: 'grant-bad-ability', ability_code: 'LUCK' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-ability',
+            sort_order: 6,
+            proficiency_kind: 'SAVE_ABILITY',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_save_abilities: [
+          { proficiency_grant_id: 'grant-bad-ability', ability_code: 'LUCK' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-ability')).rejects.toThrow('invalid ability_code')
   })
 
   it('fails loudly when an equipment proficiency grant has an invalid property code', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-property',
-          sort_order: 7,
-          proficiency_kind: 'EQUIPMENT',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_equipment: [
-        { proficiency_grant_id: 'grant-bad-property', equipment_id: 'equipment-1' }
-      ],
-      proficiency_grant_equipment_filter_properties: [
-        { proficiency_grant_id: 'grant-bad-property', property_code: 'SHINY' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-property',
+            sort_order: 7,
+            proficiency_kind: 'EQUIPMENT',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_equipment: [
+          { proficiency_grant_id: 'grant-bad-property', equipment_id: 'equipment-1' }
+        ],
+        proficiency_grant_equipment_filter_properties: [
+          { proficiency_grant_id: 'grant-bad-property', property_code: 'SHINY' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-property')).rejects.toThrow('invalid property_code')
   })
 
   it('hydrates an all-mode equipment proficiency grant with a category filter (TExtra field valid on ALL)', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-all-equipment-with-category',
-          sort_order: 8,
-          proficiency_kind: 'EQUIPMENT',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'ALL',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_equipment_filters: [
-        { proficiency_grant_id: 'grant-all-equipment-with-category', category_code: 'WEAPON' }
-      ],
-      proficiency_grant_equipment_filter_properties: [
-        { proficiency_grant_id: 'grant-all-equipment-with-category', property_code: 'LIGHT' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-all-equipment-with-category',
+            sort_order: 8,
+            proficiency_kind: 'EQUIPMENT',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'ALL',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_equipment_filters: [
+          { proficiency_grant_id: 'grant-all-equipment-with-category', category_code: 'WEAPON' }
+        ],
+        proficiency_grant_equipment_filter_properties: [
+          { proficiency_grant_id: 'grant-all-equipment-with-category', property_code: 'LIGHT' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-all-equipment-with-category')).resolves.toEqual({
       id: 'grant-all-equipment-with-category',
@@ -402,23 +422,25 @@ describe('createProficiencyGrantRepository', () => {
   })
 
   it('fails loudly when an all-mode equipment-property proficiency grant has persisted selected properties', async () => {
-    const repository = createProficiencyGrantRepository(createFakeDb({
-      proficiency_grants: [
-        {
-          id: 'grant-bad-all-equipment-property',
-          sort_order: 9,
-          proficiency_kind: 'EQUIPMENT_PROPERTY',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'ALL',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_equipment_properties: [
-        { proficiency_grant_id: 'grant-bad-all-equipment-property', property_code: 'LIGHT' }
-      ]
-    }) as never)
+    const repository = createProficiencyGrantRepository(
+      createFakeDb({
+        proficiency_grants: [
+          {
+            id: 'grant-bad-all-equipment-property',
+            sort_order: 9,
+            proficiency_kind: 'EQUIPMENT_PROPERTY',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'ALL',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_equipment_properties: [
+          { proficiency_grant_id: 'grant-bad-all-equipment-property', property_code: 'LIGHT' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('grant-bad-all-equipment-property')).rejects.toThrow(
       'cannot hydrate properties when authoring_mode_kind is ALL'

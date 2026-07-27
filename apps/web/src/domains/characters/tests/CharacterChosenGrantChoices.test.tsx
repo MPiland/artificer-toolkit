@@ -22,7 +22,7 @@ describe('CharacterChosenGrantChoices', () => {
 
     await user.click(field)
 
-    expect((await screen.findAllByRole('option', { hidden: true, name: 'Arcana' }))).toHaveLength(1)
+    expect(await screen.findAllByRole('option', { hidden: true, name: 'Arcana' })).toHaveLength(1)
     expect(screen.getAllByRole('option', { hidden: true, name: 'Perception' })).toHaveLength(1)
     expect(screen.getAllByRole('option', { hidden: true, name: 'Athletics' })).toHaveLength(1)
   })
@@ -34,18 +34,21 @@ describe('CharacterChosenGrantChoices', () => {
 
     await user.click(screen.getByRole('combobox', { name: /choice 1 of 2/i }))
 
-    expect((await screen.findAllByRole('option', { hidden: true, name: 'Arcana' }))).toHaveLength(2)
+    expect(await screen.findAllByRole('option', { hidden: true, name: 'Arcana' })).toHaveLength(2)
     expect(screen.getAllByRole('option', { hidden: true, name: 'Athletics' })).toHaveLength(2)
     expect(screen.getAllByRole('option', { hidden: true, name: 'Perception' })).toHaveLength(2)
   })
 
   it('renders spell grants as feature cards without a source subtitle', () => {
-    renderChosenGrantChoices({
-      ...createChoice('UNIQUE'),
-      grantKind: 'SPELL_GRANT',
-      label: 'Cantrip',
-      requiredCount: 1
-    }, 'feature')
+    renderChosenGrantChoices(
+      {
+        ...createChoice('UNIQUE'),
+        grantKind: 'SPELL_GRANT',
+        label: 'Cantrip',
+        requiredCount: 1
+      },
+      'feature'
+    )
 
     expect(screen.queryByText('Choices')).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /^choose 1$/i })).toBeInTheDocument()
@@ -66,29 +69,36 @@ describe('CharacterChosenGrantChoices', () => {
       selectedTargetIds: ['skill-perception']
     }
 
-    renderChosenGrantChoices(choice, undefined, [choice, otherChoice], [
-      {
-        id: 'selection-skills',
-        grantId: choice.grantId,
-        source: choice.source,
-        timing: choice.timing,
-        targetIds: ['skill-arcana', 'skill-athletics']
-      },
-      {
-        id: 'selection-background-skills',
-        grantId: otherChoice.grantId,
-        source: otherChoice.source,
-        timing: otherChoice.timing,
-        targetIds: ['skill-perception']
-      }
-    ])
+    renderChosenGrantChoices(
+      choice,
+      undefined,
+      [choice, otherChoice],
+      [
+        {
+          id: 'selection-skills',
+          grantId: choice.grantId,
+          source: choice.source,
+          timing: choice.timing,
+          targetIds: ['skill-arcana', 'skill-athletics']
+        },
+        {
+          id: 'selection-background-skills',
+          grantId: otherChoice.grantId,
+          source: otherChoice.source,
+          timing: otherChoice.timing,
+          targetIds: ['skill-perception']
+        }
+      ]
+    )
 
     await user.click(screen.getByRole('combobox', { name: /^choose 2$/i }))
 
-    expect(await screen.findByRole('option', {
-      hidden: true,
-      name: /perception .*already has full proficiency/i
-    })).toHaveAttribute('data-combobox-disabled', 'true')
+    expect(
+      await screen.findByRole('option', {
+        hidden: true,
+        name: /perception .*already has full proficiency/i
+      })
+    ).toHaveAttribute('data-combobox-disabled', 'true')
   })
 })
 
@@ -107,7 +117,8 @@ function renderChosenGrantChoices(
   ]
 ) {
   function Harness() {
-    const [selections, setSelections] = useState<CharacterFormValues['intent']['chosenGrantSelections']>(initialSelections)
+    const [selections, setSelections] =
+      useState<CharacterFormValues['intent']['chosenGrantSelections']>(initialSelections)
 
     return (
       <CharacterChosenGrantChoices

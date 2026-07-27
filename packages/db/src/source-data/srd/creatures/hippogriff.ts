@@ -16,19 +16,17 @@ export const hippogriff: CreatureAuthored = {
     CONSTITUTION: 13,
     INTELLIGENCE: 2,
     WISDOM: 12,
-    CHARISMA: 8,
+    CHARISMA: 8
   },
   armorClass: 11,
   hitPoints: 19,
   hitDice: {
     count: 3,
     die: 10,
-    modifier: 3,
+    modifier: 3
   },
   speeds: [...S.walk(40), ...S.fly(60)],
-  proficiencies: [
-    S.grantedSkillProficiency(164, 1, 'PERCEPTION')
-  ],
+  proficiencies: [S.grantedSkillProficiency(164, 1, 'PERCEPTION')],
   passivePerception: 15,
   challengeRatingId: S.CR.CR_1,
   xp: 200,
@@ -36,7 +34,8 @@ export const hippogriff: CreatureAuthored = {
     {
       id: S.featureId(164, 1),
       label: 'Keen Sight',
-      description: 'Keen Sight. The hippogriff has advantage on Wisdom (Perception) checks that rely on sight.',
+      description:
+        'Keen Sight. The hippogriff has advantage on Wisdom (Perception) checks that rely on sight.',
       order: 1
     },
     {
@@ -48,15 +47,16 @@ export const hippogriff: CreatureAuthored = {
     {
       id: S.featureId(164, 3),
       label: 'Beak',
-      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage.',
+      description:
+        'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage.',
       order: 3
     },
     {
       id: S.featureId(164, 4),
       label: 'Claws',
-      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
+      description:
+        'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
       order: 4
     }
   ]
 }
-

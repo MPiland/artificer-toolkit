@@ -72,7 +72,9 @@ export function getFacetedFilterOptions({
     }
   }
 
-  return filter.options.filter((option) => availableValues.has(option.value) || option.value === selected)
+  return filter.options.filter(
+    (option) => availableValues.has(option.value) || option.value === selected
+  )
 }
 
 export function getFacetedFilterOptionsByKey({

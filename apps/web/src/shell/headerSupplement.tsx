@@ -21,11 +21,13 @@ export interface ShellHeaderSupplement {
   hideBreadcrumbLeaf?: boolean
 }
 
-export const ShellHeaderSupplementContext = createContext<ShellHeaderSupplementContextValue | null>(null)
+export const ShellHeaderSupplementContext = createContext<ShellHeaderSupplementContextValue | null>(
+  null
+)
 
 export function useShellHeaderSupplement(
   content: ReactNode | null,
-  options: { actions?: ReactNode, hideBreadcrumbLeaf?: boolean } = {}
+  options: { actions?: ReactNode; hideBreadcrumbLeaf?: boolean } = {}
 ) {
   const context = useContext(ShellHeaderSupplementContext)
   const actions = options.actions
@@ -36,12 +38,7 @@ export function useShellHeaderSupplement(
     context.setHeaderSupplement(content ? { actions, content, hideBreadcrumbLeaf } : null)
 
     return () => context.setHeaderSupplement(null)
-  }, [
-    actions,
-    content,
-    context,
-    hideBreadcrumbLeaf
-  ])
+  }, [actions, content, context, hideBreadcrumbLeaf])
 
   return Boolean(context)
 }
@@ -54,10 +51,7 @@ export function useShellAuthoringChrome(chrome: ShellAuthoringChrome | null) {
     context.setHeaderSupplement(chrome ? { authoringChrome: chrome } : null)
 
     return () => context.setHeaderSupplement(null)
-  }, [
-    chrome,
-    context
-  ])
+  }, [chrome, context])
 
   return Boolean(context)
 }

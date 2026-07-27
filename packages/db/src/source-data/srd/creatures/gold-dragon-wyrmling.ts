@@ -16,7 +16,7 @@ export const goldDragonWyrmling: CreatureAuthored = {
     CONSTITUTION: 17,
     INTELLIGENCE: 14,
     WISDOM: 11,
-    CHARISMA: 16,
+    CHARISMA: 16
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -24,7 +24,7 @@ export const goldDragonWyrmling: CreatureAuthored = {
   hitDice: {
     count: 8,
     die: 8,
-    modifier: 24,
+    modifier: 24
   },
   speeds: [...S.walk(30), ...S.fly(60), ...S.swim(30)],
   proficiencies: [
@@ -47,15 +47,16 @@ export const goldDragonWyrmling: CreatureAuthored = {
     {
       id: S.featureId(147, 2),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 9 (1d10 + 4) piercing damage.',
+      description:
+        'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 9 (1d10 + 4) piercing damage.',
       order: 2
     },
     {
       id: S.featureId(147, 3),
       label: 'Breath Weapons (Recharge 5-6)',
-      description: 'Breath Weapons (Recharge 5-6). The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 15-foot cone. Each creature in that area must make a DC 13 Dexterity saving throw, taking 22 (4d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 15-foot cone. Each creature in that area must succeed on a DC 13 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
+      description:
+        'Breath Weapons (Recharge 5-6). The dragon uses one of the following breath weapons. Fire Breath. The dragon exhales fire in a 15-foot cone. Each creature in that area must make a DC 13 Dexterity saving throw, taking 22 (4d10) fire damage on a failed save, or half as much damage on a successful one. Weakening Breath. The dragon exhales gas in a 15-foot cone. Each creature in that area must succeed on a DC 13 Strength saving throw or have disadvantage on Strength-based attack rolls, Strength checks, and Strength saving throws for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       order: 3
     }
   ]
 }
-

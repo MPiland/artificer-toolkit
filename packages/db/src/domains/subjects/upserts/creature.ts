@@ -199,8 +199,8 @@ export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _sy
 
   const proficiencyRows: CreatureProficiencyGrantRow[] = (jsonData.proficiencies ?? []).map(
     (grant) => ({
-    creature_id: jsonData.id,
-    proficiency_grant_id: grant.id,
+      creature_id: jsonData.id,
+      proficiency_grant_id: grant.id,
       sort_order: grant.order
     })
   )
@@ -215,8 +215,8 @@ export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _sy
 
   const resistanceRows: CreatureDamageRow[] = (jsonData.damageResistances ?? []).map(
     (id, index) => ({
-    creature_id: jsonData.id,
-    damage_type_id: id,
+      creature_id: jsonData.id,
+      damage_type_id: id,
       sort_order: index + 1
     })
   )
@@ -229,15 +229,15 @@ export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _sy
 
   const vulnerabilityRows: CreatureDamageRow[] = (jsonData.damageVulnerabilities ?? []).map(
     (id, index) => ({
-    creature_id: jsonData.id,
-    damage_type_id: id,
+      creature_id: jsonData.id,
+      damage_type_id: id,
       sort_order: index + 1
     })
   )
 
   const conditionImmunityRows: CreatureConditionRow[] = (jsonData.conditionImmunities ?? []).map(
     (id) => ({
-    creature_id: jsonData.id,
+      creature_id: jsonData.id,
       condition_type_id: id
     })
   )

@@ -40,7 +40,10 @@ describe('AuthoredDetail', () => {
     expect(screen.getByText('Draft Preview')).toBeInTheDocument()
     expect(screen.getByText('1 Action')).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /detail sections/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /description/i })).toHaveAttribute('href', '#description')
+    expect(screen.getByRole('link', { name: /description/i })).toHaveAttribute(
+      'href',
+      '#description'
+    )
     expect(screen.getByText('Move like water.')).toBeInTheDocument()
   })
 
@@ -142,12 +145,7 @@ describe('AuthoredDetail', () => {
   })
 
   it('uses empty blocks instead of blank repeated sections', () => {
-    renderAuthoredDetail(
-      <AuthoredDetailItemList
-        empty='No features have been added.'
-        items={[]}
-      />
-    )
+    renderAuthoredDetail(<AuthoredDetailItemList empty='No features have been added.' items={[]} />)
 
     expect(screen.getByText('No features have been added.')).toBeInTheDocument()
   })

@@ -98,13 +98,7 @@ export const semanticTextStyles = [
 export type SemanticTextStyle = (typeof semanticTextStyles)[number]
 
 /** Text color intent. */
-export const semanticTextTones = [
-  'primary',
-  'secondary',
-  'muted',
-  'accent',
-  'critical'
-] as const
+export const semanticTextTones = ['primary', 'secondary', 'muted', 'accent', 'critical'] as const
 export type SemanticTextTone = (typeof semanticTextTones)[number]
 
 /** Complete text recipe for a single presentation context. */

@@ -16,7 +16,7 @@ export const gladiator: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 10,
     WISDOM: 12,
-    CHARISMA: 15,
+    CHARISMA: 15
   },
   armorClass: 16,
   armorClassNote: 'studded leather, shield',
@@ -24,7 +24,7 @@ export const gladiator: CreatureAuthored = {
   hitDice: {
     count: 15,
     die: 8,
-    modifier: 45,
+    modifier: 45
   },
   speeds: [...S.walk(30)],
   proficiencies: [
@@ -45,7 +45,8 @@ export const gladiator: CreatureAuthored = {
     {
       id: S.featureId(143, 2),
       label: 'Brute',
-      description: 'Brute. A melee weapon deals one extra die of its damage when the gladiator hits with it (included in the attack).',
+      description:
+        'Brute. A melee weapon deals one extra die of its damage when the gladiator hits with it (included in the attack).',
       order: 2
     },
     {
@@ -57,21 +58,23 @@ export const gladiator: CreatureAuthored = {
     {
       id: S.featureId(143, 4),
       label: 'Spear',
-      description: 'Spear. Melee or Ranged Weapon Attack: +7 to hit, reach 5 ft. and range 20/60 ft., one target. Hit: 11 (2d6 + 4) piercing damage, or 13 (2d8 + 4) piercing damage if used with two hands to make a melee attack.',
+      description:
+        'Spear. Melee or Ranged Weapon Attack: +7 to hit, reach 5 ft. and range 20/60 ft., one target. Hit: 11 (2d6 + 4) piercing damage, or 13 (2d8 + 4) piercing damage if used with two hands to make a melee attack.',
       order: 4
     },
     {
       id: S.featureId(143, 5),
       label: 'Shield Bash',
-      description: 'Shield Bash. Melee Weapon Attack: +7 to hit, reach 5 ft., one creature. Hit: 9 (2d4 + 4) bludgeoning damage. If the target is a Medium or smaller creature, it must succeed on a DC 15 Strength saving throw or be knocked prone.',
+      description:
+        'Shield Bash. Melee Weapon Attack: +7 to hit, reach 5 ft., one creature. Hit: 9 (2d4 + 4) bludgeoning damage. If the target is a Medium or smaller creature, it must succeed on a DC 15 Strength saving throw or be knocked prone.',
       order: 5
     },
     {
       id: S.featureId(143, 6),
       label: 'Parry',
-      description: 'Parry. The gladiator adds 3 to its AC against one melee attack that would hit it. To do so, the gladiator must see the attacker and be wielding a melee weapon.',
+      description:
+        'Parry. The gladiator adds 3 to its AC against one melee attack that would hit it. To do so, the gladiator must see the attacker and be wielding a melee weapon.',
       order: 6
     }
   ]
 }
-

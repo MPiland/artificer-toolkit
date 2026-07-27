@@ -36,8 +36,6 @@ describe('service orchestration boundaries', () => {
     expect(result).toEqual({ authored, compiled, persisted: undefined })
     expect(events).toEqual(['validate', 'compile', 'persist'])
   })
-
-
 })
 
 describe('service read-path delegation', () => {
@@ -74,5 +72,4 @@ describe('service read-path delegation', () => {
     expect(findAll).toHaveBeenCalledWith({ systemId: 'sys-1' })
     expect(result).toBe(items)
   })
-
 })

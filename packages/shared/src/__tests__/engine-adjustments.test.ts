@@ -617,8 +617,6 @@ describe('movement, dice, and engine input boundaries', () => {
       ability: 'STRENGTH',
       field: 'OTHER_MODIFIER',
       value: 1,
-      sourceCategory: 'MANUAL',
-      sourceLabel: 'Gauntlets',
       sourceNote: 'Temporary table ruling',
       createdBy: 'user-1',
       updatedBy: 'user-1',
@@ -634,7 +632,6 @@ describe('movement, dice, and engine input boundaries', () => {
       value: 1
     })
     expect(mechanical).not.toHaveProperty('characterId')
-    expect(mechanical).not.toHaveProperty('sourceLabel')
     expect(mechanical).not.toHaveProperty('sourceNote')
     expect(mechanical).not.toHaveProperty('createdBy')
   })

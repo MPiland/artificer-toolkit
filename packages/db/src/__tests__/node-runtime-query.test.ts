@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DBLike } from '../types/index.js'
-import {
-  selectNodeRuntimeRows,
-  type NodeRuntimeQueryWhere
-} from '../utils/nodeRuntimeQuery.js'
+import { selectNodeRuntimeRows, type NodeRuntimeQueryWhere } from '../utils/nodeRuntimeQuery.js'
 
 describe('node runtime query where contract', () => {
   it('rejects legacy property-presence constants', async () => {

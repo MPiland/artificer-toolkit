@@ -12,21 +12,22 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 ## Assumptions
 
 - Sheet edits persist immediately except for rest configuration, which remains a preview until the player takes the rest.
+- The TanStack Query cache is the web Sheet's server-state holder. Safe command-specific optimistic projections use snapshot, rollback, and authoritative-response replacement; the web app does not add a parallel Zustand Sheet store or recalculate engine-owned totals.
 - UI branches run Impeccable just in time and lock desktop/mobile mockups before implementation.
 - Backend-only branches mark mockup and visual gates `N/A`.
 - Branch-head SHAs recorded below identify the delivery commit; the ledger-only handoff commit is resolved from Git history.
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `HANDOFF_READY` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`       | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `ACTIVE`     | `3492e0bdea49` | pending        | running     | running        | running     |
+| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -40,7 +41,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 - Closed adjustment, calculation-source, resource-owner, rest, movement-preference, and dice-result primitives.
 - Constrained adjustment subtype tables, owner RLS, provenance metadata, timestamps/actors, movement preferences, repository operations, and event-transaction integration.
-- Adjustment provenance retains source category, label, and notes as Sheet metadata; only typed mechanical value intent may enter engine assembly.
+- Every adjustment family retains only an optional `sourceNote` as manual Sheet metadata; only typed mechanical value intent may enter engine assembly, while authored provenance remains in calculation breakdowns.
 - Owned item and companion targets use persisted instance UUIDs. Repeated definition-owned sources use source kind plus persisted acquisition/source-record identity.
 - Provisional HP `max_override` is backfilled once, retained only as a deprecated rollback column, and no longer hydrated or written as authoritative character state.
 - Creature hit dice are structured as count, die size, and modifier across authored contracts, SRD sources, persistence, hydration, and projections.
@@ -58,9 +59,9 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 - No arbitrary target path, EAV value, or unvalidated adjustment JSON exists.
 - Derived totals are never persisted.
 - Adjustment removal restores current authored/derived behavior and never rewrites Builder intent.
-- Source label/category/notes remain outside pure mechanical engine inputs.
+- `sourceNote` remains outside pure mechanical engine inputs; authored provenance remains in calculation breakdowns.
 - Manual adjustments never clear during rest.
-- Source note maximum is 240 characters; source labels are single-line, nonblank, and at most 80 characters.
+- `sourceNote` is optional and has a 240-character maximum.
 - D&D 5e 2014 size overrides use closed size codes; alignment and creature type use reference UUIDs.
 
 ### Acceptance and validation
@@ -137,23 +138,22 @@ Branch 02 must consume the closed taxonomy and identity format here; it may not 
 
 ### Acceptance and validation
 
-| Gate                                | Result                                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Adjustment precedence/clearing      | green — focused engine suite, 10 tests                                                                        |
-| Shared package test/build           | green — 23 files, 164 tests; build green                                                                      |
-| Functions orchestration tests       | green — 4 focused files, 21 tests                                                                             |
-| Web regression tests                | green — 103 files, 613 tests                                                                                  |
-| Bootstrap artifact parity           | green — 6 tests                                                                                               |
-| Affected typecheck                  | green — 8 tasks                                                                                               |
-| Affected tests                      | green — 8 tasks across web, functions, DB, shared, schema, and dependent packages                             |
-| Type-aware lint                     | green — shared package and every changed functions/web file                                                   |
-| Untouched lint baseline             | existing blockers remain in two functions files and four web files outside this branch; no changed file fails |
-| Engine metadata-boundary inspection | green — no Sheet label, note, actor, or timestamp enters engine code                                          |
-| `git diff --check`                  | green                                                                                                         |
+| Gate                                | Result                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| Adjustment precedence/clearing      | green — focused engine suite, 10 tests                                            |
+| Shared package test/build           | green — 23 files, 164 tests; build green                                          |
+| Functions orchestration tests       | green — 4 focused files, 21 tests                                                 |
+| Web regression tests                | green — 103 files, 613 tests                                                      |
+| Bootstrap artifact parity           | green — 6 tests                                                                   |
+| Affected typecheck                  | green — 8 tasks                                                                   |
+| Affected tests                      | green — 8 tasks across web, functions, DB, shared, schema, and dependent packages |
+| Type-aware lint                     | green — complete repository type-aware lint gate                                  |
+| Engine metadata-boundary inspection | green — no Sheet label, note, actor, or timestamp enters engine code              |
+| `git diff --check`                  | green                                                                             |
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Delivery SHA:** `0ebc81bf2a8e`
 
@@ -208,22 +208,21 @@ All evidence is captured from the route-backed Character Sheet story with the pr
 
 ### Acceptance and validation
 
-| Gate | Result |
-| --- | --- |
-| Schema and command contracts | green — 14 focused assertions |
-| Character Sheet regression and inspector behavior | green — 2 files, 42 tests |
-| Storybook interaction states | green — 15 route-backed stories |
-| Storybook typecheck | green |
-| Affected typecheck | green — 8 tasks |
-| Focused type-aware lint | green — changed web/schema files |
-| Untouched web lint baseline | existing blockers remain in four unrelated Builder files; no changed file fails |
-| Responsive visual evidence | green — 13 real Sheet-overlay captures |
-| Impeccable review | green after negative-score, cache-coherence, in-drawer status/error, ready-state capture, and semantic-contract corrections |
-| `git diff --check` | green |
+| Gate                                              | Result                                                                                                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Schema and command contracts                      | green — 14 focused assertions                                                                                               |
+| Character Sheet regression and inspector behavior | green — 2 files, 42 tests                                                                                                   |
+| Storybook interaction states                      | green — 15 route-backed stories                                                                                             |
+| Storybook typecheck                               | green                                                                                                                       |
+| Affected typecheck                                | green — 8 tasks                                                                                                             |
+| Type-aware lint                                   | green — complete repository type-aware lint gate                                                                            |
+| Responsive visual evidence                        | green — 13 real Sheet-overlay captures                                                                                      |
+| Impeccable review                                 | green after negative-score, cache-coherence, in-drawer status/error, ready-state capture, and semantic-contract corrections |
+| `git diff --check`                                | green                                                                                                                       |
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Delivery SHA:** `11fa57750faa`
 
@@ -239,6 +238,285 @@ All evidence is captured from the route-backed Character Sheet story with the pr
 
 **Exit:** Spell, feature, item, background, and resource panels preserve Sheet/Builder ownership, per-source/per-instance isolation, recovery semantics, immediate persistence, mockup parity, and focused tests. Handoff records owner mappings, recovery rules, action matrix, and evidence.
 
+### Entry verification
+
+- Branch 03 was integrated at `3492e0bdea49`; its semantic inspector shell, portal-overlay behavior, immediate command boundary, and source/instance identity rules were reverified before content-panel work.
+- The route-backed `CharacterSheetView` Storybook fixture remains the visual baseline. D&D Beyond captures remain a capability inventory only.
+- Zustand is neither installed nor referenced. Sheet DTOs and panels remain TanStack Query server state; local React state is limited to transient interaction state and pre-commit field drafts. TanStack Form remains confined to Builder and authored-content forms.
+
+### Active scope
+
+- Typed spell, spell-management, feature, owned-item, background, and resource panel contracts are in progress.
+- Spell and resource persistence is being extended around stable spell-source and resource-owner identities.
+- Backend Sheet projection emits ordered active spell groups only. Authored `SPELL_CAST_LEVEL` scaling is the intersection of each spell's legal cast levels and its source's owned slot levels; `TO_HIT` and `SAVE_DC` adjustments are contextual and mutually exclusive, while `DAMAGE` adjustments are bonus-only.
+- Route-backed Spell detail and Manage Spells Storybook fixtures compose the production Character Sheet with the existing inspector as a portal overlay.
+- Optimistic Sheet commands snapshot the affected Query cache, apply only safe command-specific direct-value projections, roll back immediately on failure, refetch server truth after failure, and reconcile from the authoritative Sheet and affected-panel response on success.
+- Current optimistic projections cover spell-source customizations, prepared spells, spell-slot use, typed/legacy resource use, direct inventory updates, equipment/attunement state, inspiration, exhaustion, and condition removal. Derived adjustments, dice recovery, HP clamping, additions requiring server-assigned identity, and other mechanically resolved values remain backend-only.
+- Spell-slot pips are immediate Sheet commands for using or restoring one slot. Individual spell panels do not expose preparation controls; preparation remains centralized in Manage Spells.
+- Structural known-spell acquisition remains Builder-owned. Manage Spells provides an explicit Builder handoff instead of introducing a second Sheet acquisition model.
+- Cast and Info remain always-visible spell sections. Authored description and Customize use flat, transparent disclosures separated by rules; source references use the same treatment when reference data is available.
+- Actions are a play-time scan surface: attack rows show one backend-resolved primary mechanic, while feature actions and feature-backed resources retain at most two lines of authored description beside their immediate controls. Equipment properties and equipment descriptions remain in their owning detail surfaces.
+- The frontend trusts explicit backend action membership. Description-only actions such as Trance remain visible instead of being discarded by a second client-side playability policy.
+- Action activation and tracked uses are orthogonal. The backend links an unambiguous one-action/one-resource feature pair with `resourceGrantId`; the Sheet renders one linked action row instead of inventing a second resource row. Multi-action or multi-resource features require an explicit authored relation and remain unlinked rather than relying on display-label matching.
+- `ATTACK`, `ACTION`, `BONUS_ACTION`, `REACTION`, and `OTHER` are the only action activation groups. `LIMITED_USE` is a cross-cutting filter: it selects resource-backed actions while preserving their activation group, and it never creates a `Limited Use` section in All.
+- Resource-backed attacks remain in the same four-column Attack table in All and Attack, with remaining uses shown as quiet identity metadata beneath the name. Interactive use controls appear only in the Limited Use filter's descriptive row and the owning detail panel, so charge management cannot distort the play-scan columns.
+- A standalone resource without an authored action is omitted from All and activation filters. It appears only through the Limited Use filter under Other/Special until its source provides an authoritative activation.
+- Resource ownership remains a typed backend linkage for limits, charges, recovery, and atomic commands, but the Sheet does not expose a generic Resources destination. Class pools, feature uses, spell uses, and owned-item charges remain attached to their owning play rows or inspectors; hit dice remain in HP/rest workflows. A later tranche may introduce a more intentional cross-owner management surface.
+- The desktop lower workspace uses one 690px play-surface height. Saving Throws and Senses remain intrinsic; Proficiencies fills the remaining rail; Skills and the active tab fill their columns. Proficiencies, Skills, and the active tab scroll internally when their content exceeds that shared height.
+- Main Sheet proficiency facts use the closed `ARMOR`, `WEAPON`, `TOOL`, and `LANGUAGE` groups. Skills and saving throws remain in their dedicated projections and are not duplicated in Proficiencies. Broad equipment-property grants resolve to player-facing labels such as `Light Armor` and `Martial Weapons`.
+- Skills render one proficiency indicator under the labeled proficiency column. The closed `NONE`, `HALF`, `FULL`, and `DOUBLE` values render as hollow, half-filled, filled, and filled-with-ring indicators with explicit accessible labels.
+- Desktop Defenses is grouped under the combat facts as Resistances, Immunities, and Vulnerabilities. The left-rail Defenses card remains available outside desktop, and Long Rest uses the outlined treatment at every breakpoint.
+- Mobile retains the locked swipe pager and icon-only section launcher. Its shared play header is now a compact identity, four-fact combat rail, HP summary, collapsed HP/recovery controls, and cross-page Conditions/Exhaustion/Inspiration summary. Ancestry, background, authored description, and level badges remain available through the character edit/detail flow rather than consuming every play page.
+- Mobile Overview uses a three-by-two ability grid at regular phone widths, a two-column saving-throw block, and compact defense/sense entries. The dedicated Proficiencies page reuses the same typed Armor, Weapons, Tools, and Languages grouping as desktop instead of repeating generic proficiency cards.
+- The mobile shared header exposes Defenses and Conditions as management actions. Exhaustion is managed with Conditions in the same bottom drawer, while the duplicate Overview status block is removed. The pager owns vertical scrolling below the header and positions the icon-only section launcher absolutely within that pager rather than against the browser viewport.
+- HP uses one compact hierarchy without a progress meter: current/max, Temp HP, and Hit Dice are aligned as primary facts, with recovery actions beneath them on desktop. Mobile presents the same facts and Manage in one row. Manage never expands the Sheet: HP settings use a 420px anchored popover on desktop/tablet and a compact bottom drawer on mobile; mobile recovery actions live in that drawer.
+- HP settings use the canonical Artificer input treatment. Damage, amount, and healing share one equal-width compact row; damage uses the danger treatment. Temp HP and Max HP override share an equal-width full row, commit immediately on blur or Enter, and there is no Sheet Save action.
+- Dark-mode primary actions use the shared transparent orange-outline treatment; light-mode primary actions retain the filled orange treatment. Custom danger colors remain independent of the primary token mapping.
+- Route-backed Sheet fixtures use currently seeded content. The primary Wizard fixture is a High Elf Acolyte from the School of Evocation, and the Short Rest fixture reuses the proven Human Acolyte Fighter 2 / Rogue 1 lifecycle shape with separate d10 and d8 pools.
+- Desktop tab content fills the bordered workspace panel. That bordered panel owns overflow scrolling; the outer tab panel no longer reserves a scrollbar gutter, so its left and right workspace insets remain equal.
+- The shared tab panel compensates its thin desktop scrollbar so every row keeps the same
+  visible 18px inset on both sides. The mobile pager preserves touch/wheel scrolling while
+  hiding the platform scrollbar, allowing every page panel to fill the Sheet's equal outer
+  gutters.
+- Owned-item detail will include authored description in its own collapsible section; instance customization remains separate and cannot suppress authored traits or properties.
+- Actions, active spells, and inventory now share a compact play-list grammar: ordered groups, aligned facts, divider-separated rows, quiet source text, and no row cards or redundant panel descriptions.
+- Active spell rows expose damage expressions and damage type only when the backend has typed damage mechanics. Rich effect categories remain deferred until a closed backend taxonomy is approved; clients do not infer tags from prose.
+- Attack is the only tabular action group and uses Name, Range, Hit/DC, and Damage.
+  Non-attack groups are descriptive rows: the title and compact tracked-use controls share
+  one line, followed by the authored play description. `OTHER` entries render `(Special)`.
+  Limited Use is a filter over those activation groups, not an additional action kind or
+  section; resource-backed entries remain in their Action, Bonus Action, Reaction, or
+  Other group in All and in the Limited Use result.
+  Spells enter Actions only when their exact source instance is explicitly configured with
+  `Display in Actions`; other spell action-economy categories remain in the Spells filters.
+- Resource steppers use compact fixed geometry: 30px on pointer layouts and 34px on
+  touch/narrow layouts. Their title-row placement is independent of optional description
+  content, so labels and controls cannot drift into separate columns or cross row borders.
+- Spell rows vertically center the name/source block with their backend facts and compact
+  Cast action. At the narrow 320px boundary the source and Use fact progressively hide,
+  preserving Name, Range, Hit/DC, Effect, and Cast without horizontal overflow.
+- Mobile Spells places Spell Attack, Save DC, and Manage Spells on one compact summary row.
+  The mobile pager is the sole vertical scroll owner; the ordered spell list expands inside
+  that page and never introduces a nested scrollbar. Desktop and tablet retain the bounded
+  internal play-list scroll needed by their fixed-height workspace.
+- Tablet is a dedicated hybrid layout from 761px through 1199px rather than a scaled phone
+  or compressed desktop. Portrait stacks identity over combat facts, keeps all six abilities
+  in one compact rail, places the status strip beneath it, and uses a two-column Overview.
+  Landscape keeps identity and combat facts on one row, aligns abilities beside the status
+  strip, then keeps Skills persistent in a bounded left rail beside the tabbed play workspace.
+- Tablet tabs omit Skills and Proficiencies because both remain directly available from
+  Overview. In portrait, Overview owns Skills, saving throws, senses, defenses, proficiencies,
+  and the current play summary. In landscape, the right-side Overview tab owns saving throws,
+  senses, defenses, and proficiencies while Skills remains visible beside every play tab.
+- Every tablet detail surface remains a 480px right inspector; only phone layouts use bottom
+  drawers. One explicit tablet-landscape composition branch prevents duplicated hidden content
+  and preserves the persistent Skills rail. Existing component classes and simple media-query
+  selectors own the responsive geometry; no general layout abstraction was introduced.
+- Sheet and inventory tabs use one active-state signal: the orange bottom rule. Keyboard
+  focus preserves that rule instead of drawing a competing outline around the full tab.
+- `Display in Actions` remains a per-source user preference for this tranche. Its current `displayAsAttack` name is transitional: action economy and resolution method require separate backend semantics before broader automatic inclusion or multi-filter membership is introduced.
+- Inventory owner totals aggregate the flattened balance list once, including container-assigned balances. Campaign-defined denominations and versioned exchange policy are owned by Phases 03 and 04 rather than this Sheet tranche.
+
+### Current visual evidence
+
+**Tablet responsive visual status:** `LOCKED`. The approved portrait and landscape
+compositions, right-side inspector behavior, complete passive-sense state, and supporting
+desktop/mobile play-surface direction require no further design iteration in Branch 04.
+
+Current-state and in-progress route-backed captures live under `docs/mockups/character-sheet-overrides/`:
+
+- Character Sheet baseline: `04-character-sheet-baseline-desktop.png`, `04-character-sheet-baseline-mobile.png`.
+- Existing Spells surface: `04-spells-current-desktop.png`, `04-spells-current-mobile.png`.
+- Existing Manage Spells drawer: `04-manage-spells-current-drawer-desktop.png`, `04-manage-spells-current-drawer-mobile.png`.
+- Spell inspector mock: `04-spell-inspector-mock-desktop.png`, `04-spell-inspector-mock-mobile.png`.
+- Manage Spells inspector mock: `04-manage-spells-inspector-mock-desktop.png`, `04-manage-spells-inspector-mock-mobile.png`.
+- Flat spell inspector: `04-spell-inspector-flat-desktop.png`, `04-spell-inspector-flat-mobile.png`.
+- Expanded flat spell Customize state: `04-spell-inspector-customize-flat-desktop.png`, `04-spell-inspector-customize-flat-mobile.png`.
+- Flat Manage Spells inspector: `04-manage-spells-inspector-flat-desktop.png`, `04-manage-spells-inspector-flat-mobile.png`.
+- Corrected active-spell groups: `04-spell-states-corrected-desktop.png`, `04-spell-states-corrected-mobile.png`.
+- Corrected configured spell customization: `04-spell-inspector-customize-corrected-desktop.png`, `04-spell-inspector-customize-corrected-mobile.png`.
+- Corrected ability-card geometry: `04-ability-cards-corrected-desktop.png`, `04-ability-cards-corrected-mobile.png`.
+- Seed-backed fixture and proficiency states:
+  `04-character-sheet-seeded-fixture-desktop.png`,
+  `04-proficiency-states-single-indicator-desktop.png`,
+  `04-saving-throws-right-proficiency-desktop.png`, and
+  `06-multiclass-hit-dice-sheet-mobile.png`.
+- Coordinated header, saving-throw, status, and proficiency polish:
+  `04-coordinated-sheet-polish-desktop.png`,
+  `04-coordinated-sheet-polish-tablet.png`, and
+  `04-coordinated-sheet-polish-mobile.png`.
+- Unified readiness header: `04-readiness-header-polished-desktop.png`, `04-readiness-header-polished-mobile.png`.
+- Final compact Actions/resource controls: `04-actions-compact-final-desktop.png`,
+  `04-mobile-pager-restored-actions.png`, and the narrow-width containment check
+  `04-mobile-pager-restored-actions-320.png`.
+- Explicit action coverage: `04-action-types-descriptive-desktop.png` and
+  `04-action-types-descriptive-mobile.png` verify Attack, Action, Bonus Action, Reaction,
+  and Other grouping. Resource-backed attacks retain the same aligned four-column play row,
+  with their use count folded into quiet source metadata. `04-limited-use-filter-desktop.png`
+  and `04-limited-use-filter-mobile.png` verify that Limited Use is the cross-cutting
+  management view with compact controls and descriptive rows.
+- Final aligned desktop play surface: `04-desktop-aligned-play-surface.png`; the
+  1200px internal-scroll and containment check is
+  `04-desktop-aligned-play-surface-1200.png`.
+- Restored locked mobile pager: `04-mobile-pager-restored-overview.png`; the swipeable
+  main-section model and icon-only floating dot-grid launcher remain governed by
+  `docs/mockups/character-sheet-play-surface-direction.md`.
+- Compact mobile play surface: `04-mobile-compact-overview-final.png`,
+  `04-mobile-compact-actions.png`, `04-mobile-compact-spells.png`, and
+  `04-mobile-compact-proficiencies-final.png`; the narrow-width checks are
+  `04-mobile-compact-overview-320.png` and `04-mobile-compact-proficiencies-320.png`.
+- Superseded inline mobile HP exploration: `04-mobile-hp-rest-expanded.png`.
+- Final full-Shell HP treatment: `04-hp-vitals-shell-desktop.png`,
+  `04-hp-vitals-shell-mobile.png`, and
+  `04-hp-vitals-shell-mobile-expanded.png`. The mobile captures include the
+  production app header and footer.
+- Final responsive HP management:
+  `04-hp-management-popover-desktop.png`,
+  `04-hp-management-drawer-shell-mobile.png`, and the 320px containment check
+  `04-hp-management-drawer-shell-mobile-320.png`. The earlier
+  `04-hp-management-drawer-shell-desktop.png` is superseded.
+- Final shared Actions insets: `04-actions-insets-shell-desktop.png` and
+  `04-actions-insets-shell-mobile.png`.
+- Short Rest direction:
+  `06-short-rest-preview-popover-desktop.png`,
+  `06-short-rest-preview-drawer-mobile.png`,
+  `06-short-rest-preview-drawer-mobile-320.png`, and
+  `06-short-rest-rolled-popover-desktop.png`.
+- Final mobile scroll ownership: `04-mobile-actions-scroll-owner-final.png`. The app shell
+  has no residual scroll range at 390px or 320px; the active pager owns only its actual
+  content overflow, and its final dock clearance keeps the section launcher clear of the
+  last action row.
+- Mobile feedback corrections: `04-mobile-feedback-overview-final.png`,
+  `04-mobile-feedback-overview-scrolled.png`,
+  `04-mobile-feedback-overview-320.png`, and
+  `04-mobile-feedback-conditions-drawer.png`.
+- Desktop internal-scroll correction: `04-desktop-feedback-workspace-fill-final.png`.
+- The earlier `04-actions-charges-polished-*` captures are superseded by the compact Actions evidence.
+- Final authored equipment labels: `04-equipment-labels-polished-desktop.png`, `04-equipment-labels-polished-mobile.png`.
+- Final compact spell list: `04-spell-list-final-desktop.png`, `04-spell-list-final-mobile.png`, `04-spell-list-final-tablet.png`.
+- Final divider-row play-surface review: route-backed desktop Actions, Spells, Inventory,
+  and owned-item inspector captures; mobile Overview, Actions, Spells, and Equipment
+  captures; and tablet portrait/landscape Spells captures were saved in the Codex app
+  visualization artifact set for direct review. The captures verify contained tab focus,
+  aligned table facts, unclipped Cast controls, tap-to-inspect inventory rows, and the
+  existing mobile pager/launcher model.
+- Final action-column placement regression check:
+  `character-sheet-actions-alignment-desktop.png`,
+  `character-sheet-actions-alignment-tablet.png`, and
+  `character-sheet-actions-alignment-mobile.png` in the Codex app visualization artifact
+  set.
+- Locked tablet adaptation:
+  `04-tablet-portrait-locked-shell.png`,
+  `04-tablet-landscape-locked-shell.png`,
+  `04-tablet-portrait-locked-overview.png`,
+  `04-tablet-landscape-locked-overview.png`,
+  `04-tablet-portrait-locked-actions.png`,
+  `04-tablet-landscape-locked-actions.png`,
+  `04-tablet-portrait-locked-spells.png`,
+  `04-tablet-landscape-locked-spells.png`,
+  `04-tablet-portrait-locked-equipment.png`,
+  `04-tablet-landscape-locked-equipment.png`,
+  `04-tablet-portrait-right-inspector.png`, and
+  `04-tablet-landscape-right-inspector.png`.
+- The earlier `04-spell-list-polished-*` captures are superseded by the final spell-list evidence.
+- The earlier `*-refined-*` and `*-customize-expanded-*` captures are superseded visual experiments and are not implementation references.
+
+### Status
+
+**Status:** `ACTIVE`
+
+**Integration base SHA:** `3492e0bdea49`
+
+The spell and ability corrective tranche is current and green, but Branch 04 has not reached handoff and has no delivery SHA. Feature, item, background, and remaining resource scope must still satisfy the branch exit gate before this status can advance.
+
+Current corrective validation:
+
+- Multiclass rest and proficiency correction: green — the focused Sheet suite remains 44/44; Storybook typecheck, Turbo Web app/test typecheck, design-system token tests (6/6), scoped Web/design-system type-aware Oxlint, Oxfmt, and `git diff --check` pass.
+- Browser evidence is green at 1440px, 390px, and 320px. The Sheet displays both d10 and d8 pools, the rest overlay resolves `1d10 + 1d8 + 4`, the 390px drawer keeps its action row visible, and the 320px drawer owns its required overflow without horizontal page overflow.
+- Theme evidence is green: dark primary buttons compute to transparent with the orange border and warm accent text; light primary buttons remain filled; custom red danger buttons remain red.
+
+- Final correction-specific web tests: green — 44 tests across Sheet sections and optimistic reconciliation.
+- Character Sheet Storybook project: green — 27 stories.
+- Focused schema, shared-engine, and DB contracts: green — 50 tests.
+- Focused Sheet services, command execution, audit, and mechanics projection: green — 84 tests.
+- Turbo affected typecheck: green — eight package tasks.
+- Web app/test typecheck: green — two Turbo tasks.
+- Repository type-aware Oxlint: green across every package; the four Web, two Functions, and two DB failures discovered during final validation were corrected.
+- Oxfmt is the canonical formatting process. With explicit approval, `yarn format` normalized all 2,462 matched files once; `yarn format:check` is green and remains the required gate for future changes.
+- Focused Builder regression tests: green — 13 tests across selection-option and starting-equipment behavior.
+- Responsive visual review: green — the corrected desktop/mobile captures preserve the incumbent Character Sheet and use an overlay inspector.
+- Readiness and spell-density polish: green — 44 focused web tests, 27 Character Sheet browser stories, two web typecheck tasks, scoped type-aware Oxlint, scoped Oxfmt, and `git diff --check`.
+- Compact Actions correction: green — recovery-only duplicates are suppressed; Trance and feature descriptions are preserved; attacks remain mechanic-only; mobile Resources is separate; 42 focused Sheet-section tests and 27 Storybook browser tests pass; and the exact Sheet service suite passes 68 tests.
+- Desktop alignment and reference correction: green — Skills, Proficiencies, and the tabbed play workspace share an exact 690px bottom edge at 1440px and 1200px; overflow is contained in the intended nested scroll regions; Proficiencies excludes skills/saves and groups only armor, weapons, tools, and languages; Defenses appears once in the desktop header; Long Rest is secondary at every breakpoint. Focused Sheet-section tests pass 43/43, focused proficiency/schema service tests pass 77/77, the Functions suite passes 224/224, Turbo affected typecheck passes eight tasks, and scoped Web/Functions/Schema type-aware Oxlint is green.
+- Mobile pager restoration: green — the original swipe navigation and icon-only floating
+  launcher are restored; the focused Sheet suite exercises the Overview-to-Actions swipe;
+  390px and 320px browser geometry keeps both charge steppers fully inside their owning
+  rows with no document-level horizontal overflow.
+- Compact mobile play surface: green — the shared header is 255px at 390px with no
+  horizontal overflow or browser errors, all nine pager pages were exercised, the grouped
+  Proficiencies page fits in one 844px viewport, the 320px Overview and Proficiencies states
+  remain contained, Turbo web app/test typecheck passes both tasks, and the focused Sheet
+  suite passes 43/43.
+- Mobile/desktop feedback correction: green — the 390px and 320px Sheet documents fit
+  their 844px viewports, the pager is the vertical scroll owner, the launcher is absolute to
+  that pager, Wisdom and Charisma have no trailing save separator, Conditions and Exhaustion
+  share one manager drawer, and the duplicate mobile status block is absent. The desktop
+  bordered tab panel fills its 596px content area, owns scrolling, and has equal 13px
+  workspace insets.
+- HP vitals correction: green — the progress meter is removed at every breakpoint; current/max,
+  Temp HP, Hit Dice, and recovery actions form one aligned cluster. Manage causes no Sheet
+  reflow: it opens a 420px anchored popover on desktop/tablet and a 336px bottom drawer on
+  mobile. Damage, amount, and healing are equal thirds; Temp HP and Max HP override are
+  equal halves. The 390px and 320px captures have no horizontal overflow or clipped labels.
+  HP settings commit on blur or Enter without a Save action; the focused Sheet suite passes
+  43/43 and the route-backed Storybook console has no runtime errors. Turbo web app/test
+  typecheck, type-aware Web Oxlint, repository Oxfmt, and `git diff --check` are green.
+- Shared content-inset correction: green — desktop and mobile Action rows measure 18.67px
+  from both panel edges; the shared desktop tab panel and mobile pager own the correction,
+  so Spells, Inventory, Features, Resources, and Notes inherit it without per-row overrides.
+- Mobile scroll-boundary correction: green — the obsolete 82px footer allowance was removed
+  from shell content because the footer is already a non-overlapping flex sibling. The mobile
+  Sheet now fills the shell content box and flexes its pager beneath the static Sheet header.
+  At 390px the app main measures 733/733 client-to-scroll height; at 320px it measures
+  689/689 with no horizontal overflow. The pager remains the only vertical scroll owner.
+- Impeccable critique/polish/audit: final Actions design score is 40/40 with no findings; the broader technical audit is 45/50 and the deterministic detector returns `[]`. The stale combined pre-polish critique was replaced by the single current snapshot under `.impeccable/critique/`.
+- `git diff --check`: green.
+- Live Storybook MCP remains unavailable because its configured HTTP transport rejects tool POST requests with HTTP 501. The repository Storybook browser-test project is green; no connector or product configuration workaround was added.
+- Final compact play-list correction: green — Sheet sections pass 42/42, Inspector tests
+  pass 8/8, focused Sheet panel/projection services pass 70/70, command audit passes 3/3,
+  Turbo Web typecheck passes both tasks, schema build passes all three tasks, Functions
+  typecheck passes, Oxfmt check covers 2,462 files, and `git diff --check` passes.
+- Limited-use action correction: green — the Sheet action contract exposes only activation
+  kinds and links actions to authored resources by ID. All and activation filters keep
+  limited-use entries in their real groups; the Limited Use filter selects those same rows
+  without introducing a redundant section. Focused schema tests pass 9/9, Sheet services
+  pass 69/69, Sheet sections pass 43/43, the schema build passes three tasks, the Storybook
+  typecheck passes, and Turbo affected typecheck passes all eight package tasks.
+- Resource-backed attack alignment refinement: green — All and Attack keep the exact
+  Name, Range, Hit/DC, and Damage grid, with the source and remaining uses sharing one quiet
+  identity line. Limited Use switches those attacks to the same descriptive management row
+  as other tracked actions. Focused Sheet sections pass 43/43; Turbo Web app/test and
+  Storybook typechecks pass. Browser geometry at 1440px, 390px, and 320px confirms exact
+  vertical centering, contained controls, zero page overflow, and no console errors.
+- Final in-app browser review is green at 1440×1000, 1180×820, 820×1180, and
+  390×844. Actions remain grouped by action kind in All; attack rows share Range,
+  Hit/DC, and Damage columns; Spells use backend facts with quiet source text and
+  damage-only effects; Inventory uses Carried terminology and divider rows; and the
+  owned-item inspector exposes instance facts, charges, description, and customization.
+- Locked tablet validation is green at 820×1180 portrait and 1180×820 landscape. All six
+  tablet tabs were exercised with zero document-level horizontal overflow; the Overview,
+  Actions, Spells, and Equipment captures have no console or page errors. In landscape, the
+  Skills rail and tabbed workspace share a 492px bounded height and independent internal
+  scrolling. Boundary checks at 1024×768 and 960×720 have no horizontal overflow or console
+  errors; the narrower 960px composition uses normal document scrolling when the header wraps.
+  Both inspector stories measure exactly 480px wide, attach to the right viewport edge, and
+  fill the viewport height. Focused Sheet and inspector tests, Storybook typecheck, scoped
+  type-aware lint, Oxfmt, and diff validation are recorded with the Branch 04 handoff.
+- The final tablet lock includes Passive Perception, Passive Investigation, and Passive Insight
+  in both Overview and the Senses inspector. Their earlier visual omission was fixture-only;
+  the engine-backed Sheet projection and generic passive-fact renderer already supported all
+  three standard checks.
+
 ## Branch 05 — Companions
 
 **Entry:** Generic resource owners and companion calculation context are available.
@@ -248,6 +526,32 @@ All evidence is captured from the route-backed Character Sheet story with the pr
 ## Branch 06 — Vitals and complete rests
 
 **Entry:** Character/companion resources share recovery contracts and deterministic dice results.
+
+**Locked short-rest direction:** Short Rest uses a 420px anchored popover on desktop/tablet and a
+responsive bottom drawer up to 48rem on mobile. The staged preview shows current, temporary, and
+missing HP; every backend-authorized class hit-die pool with independent selected counts and
+per-die Constitution modifiers; one canonical mixed-die roll expression; roll/healing status;
+automatic recoveries; and one atomic **Take Short Rest** action. A multiclass Fighter 2 / Rogue 1
+fixture proves separate d10 and d8 pools on both the Sheet and the rest surface.
+
+The preview includes **Reset Maximum HP changes during this rest** and **Automatically apply healing
+with dice result**. Reset Maximum HP removes only the current additive maximum-HP change selected
+for the rest; it does not clear an absolute maximum-HP override or unrelated manual adjustments.
+When automatic healing is enabled, the canonical result stages healing immediately. When disabled,
+the result remains available for an explicit apply-healing choice before rest completion. The dice
+expression opens the product dice interaction; the accepted roll evidence, healing, recoveries, and
+rest completion remain one versioned transaction. Temporary HP is unchanged.
+
+The current immediate `USE_HIT_DIE` and `APPLY_REST` commands remain transitional and must not power
+this production UI: hit-die rolls, healing, resource recovery, and rest completion require the
+planned versioned preview/apply contract and one transaction.
+
+Mockup evidence:
+
+- `docs/mockups/character-sheet-overrides/06-short-rest-preview-popover-desktop.png`
+- `docs/mockups/character-sheet-overrides/06-short-rest-preview-drawer-mobile.png`
+- `docs/mockups/character-sheet-overrides/06-short-rest-rolled-popover-desktop.png`
+- `docs/mockups/character-sheet-overrides/06-multiclass-hit-dice-sheet-mobile.png`
 
 **Exit:** HP clamping, conditions/exhaustion, backend previews, atomic short/long rest, stale-preview safety, exact result evidence, selected eligible companion recovery, mockup parity, and focused tests are green. Handoff records transaction/order/roll contracts and evidence.
 

@@ -53,7 +53,7 @@ The initial family covers:
 - defense additions or suppression for resistance, immunity, and vulnerability;
 - custom and adjusted proficiencies;
 - max-HP additive adjustments and absolute max-HP overrides;
-- spell-source attack, save-DC, and damage adjustments;
+- spell-source attack, save-DC, and bonus-only damage adjustments, with contextual mutually exclusive `TO_HIT` or `SAVE_DC` targets; and separately authored `SPELL_CAST_LEVEL` scaling intersected with the source's owned slot levels;
 - owned item-instance attack, damage, weight, and mechanically meaningful property adjustments;
 - owned companion-instance ability, defense, movement, sense, HP, type, size, and alignment adjustments.
 
@@ -70,7 +70,7 @@ For example, an ability-score adjustment changes its modifier and dependent save
 
 Persist adjustment intent only. Never persist effective ability scores, skill totals, AC, spell DC, speed, or other derived output as a second source of truth.
 
-Every adjustment records a stable identity, typed target, source category, player-facing provenance label, optional source notes, creator, and timestamps. Sheet history records creation, replacement, and removal through the existing command/event boundary.
+Every adjustment records a stable identity, typed target, optional `sourceNote`, creator, and timestamps. `sourceNote` is the only manual metadata across adjustment families; authored provenance remains in the calculation breakdown. Sheet history records creation, replacement, and removal through the existing command/event boundary.
 
 Before schemas or migrations are accepted, the phase subplan must define stable target and resource-owner identities. Repeated feature grants and spell sources use an acquisition or grant-instance identity; items and companions use their owned-instance identity. A reusable definition ID is never sufficient when multiple runtime instances may exist.
 
@@ -83,7 +83,7 @@ Engine output and Sheet projections expose ordered contribution breakdowns for a
 - base or authored value;
 - class, race, background, feat, feature, equipment, spell, and system contributions;
 - proficiency and governing-ability contribution where applicable;
-- active manual additive adjustments;
+- active manual additive adjustments with their `sourceNote` when present;
 - suppressed contributions;
 - absolute override;
 - final effective value.
@@ -99,7 +99,7 @@ This is a Character Sheet contract, not another Authoring Schema node map, a gen
 Each panel kind provides:
 
 - stable panel and target identity;
-- family-specific title, summary, descriptions, source labels, and ordered facts;
+- family-specific title, summary, descriptions, authored source labels, and ordered facts;
 - authoritative values and calculation breakdowns;
 - typed editable payloads and valid options for that family;
 - allowed commands, target identities, and owner authorization;
@@ -135,7 +135,7 @@ The backend declares what the character may inspect or change. Web and future na
 
 ### Spells, features, resources, and items
 
-- Spell detail panels expose authored descriptions, source, level, school, casting facts, tags, projected mechanics, legal cast modes, attacks/DCs/damage, linked resources, and supported per-character adjustments.
+- Spell detail panels expose authored descriptions, source, level, school, casting facts, tags, projected mechanics, legal cast modes, attacks/DCs/damage, linked resources, and supported per-character adjustments. Backend spell groups include active sources only; each upcast value is available only for the intersection of the spell's legal cast levels and the source's available slot levels.
 - Spell management exposes only backend-authorized transitions for each source. Preparing or unpreparing Sheet-owned state is allowed where rules permit; structural acquisition remains read-only or routes to Builder.
 - Feature panels expose authored details, source, mechanics, granted choices, and resource trackers without inventing placeholder charges for features that do not own a resource.
 - Resource trackers use a stable owner identity. Feature grants, spell-source uses, item-instance charges, and companion resources must not collide when two owned instances share one authored definition.
@@ -156,6 +156,8 @@ The backend declares what the character may inspect or change. Web and future na
 - Only one Sheet inspector is active at a time. Clients return focus to the invoking control when it closes.
 - Text and numeric edits commit on blur or Enter. Selects, toggles, clears, additions, removals, HP changes, resource use, and condition changes commit immediately.
 - Only one panel mutation is active at a time. Other mutable controls are briefly disabled until the authoritative response or error arrives.
+- The web client applies safe, command-specific optimistic projections to the TanStack Query Sheet and panel cache. It snapshots cache state before mutation, restores that snapshot on failure, and replaces the projection with the authoritative response on success.
+- Optimistic projections may update direct play-state intent, but never reproduce rules-engine calculations. Values that require mechanical resolution reconcile from the backend response.
 - Failed commands restore server truth and expose a field-level error. Optimistic state never becomes authoritative.
 - Rest configuration is the sole staged interaction: preview is read-only until **Take Short Rest** or **Take Long Rest** submits the atomic command.
 - Long descriptions remain readable and independently scrollable without trapping keyboard or touch navigation.
@@ -170,26 +172,26 @@ The backend declares what the character may inspect or change. Web and future na
 
 ## Reference capability inventory
 
-| Capability family | Phase result |
+| Capability family                   | Phase result                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------ |
-| Ability detail | Effective score/modifier breakdown and typed score adjustments |
-| Saving throw detail | Proficiency, bonus, override, notes, description, and roll context |
+| Ability detail                      | Effective score/modifier breakdown and typed score adjustments                       |
+| Saving throw detail                 | Proficiency, bonus, override, notes, description, and roll context                   |
 | Individual and all skills           | Searchable canonical list, typed adjustments, and detail; custom-skill CRUD deferred |
-| Passive checks and senses | Authoritative passives, special-sense ranges, notes, and adjustments |
-| Movement | All movement modes plus `AUTO` or explicit primary display |
-| Defenses | Resistance, immunity, vulnerability, sources, additions, and suppression |
-| Proficiencies | Grouped armor, weapons, tools, languages, sources, and custom entries |
-| HP management | Current/temp HP, damage/healing, additive max adjustment, and override |
-| Short and long rest | Recovery preview, hit-die healing, selected recovery, and results |
-| Conditions and exhaustion | Definitions, descriptions, active state, notes, and ruleset limits |
-| Spell management | Slots, legal cast modes, preparation state, source restrictions, and detail |
-| Feature detail | Authored description, mechanics, source, choices, and owning charges |
-| Item detail | Authored mechanics plus instance customization, state, adjustments, and charges |
-| Companion/familiar detail | Effective stat block, play state, equipment, identity, and adjustments |
-| Background detail | Authored description, feature, characteristics, grants, and source |
-| Inspiration and actions | Existing authoritative play controls preserved alongside focused panels |
-| Inventory, containers, and currency | Existing placement, state, quantity, and currency behavior preserved |
-| Notes | Existing Sheet-owned notes remain available and non-mechanical |
+| Passive checks and senses           | Authoritative passives, special-sense ranges, notes, and adjustments                 |
+| Movement                            | All movement modes plus `AUTO` or explicit primary display                           |
+| Defenses                            | Resistance, immunity, vulnerability, sources, additions, and suppression             |
+| Proficiencies                       | Grouped armor, weapons, tools, languages, sources, and custom entries                |
+| HP management                       | Current/temp HP, damage/healing, additive max adjustment, and override               |
+| Short and long rest                 | Recovery preview, hit-die healing, selected recovery, and results                    |
+| Conditions and exhaustion           | Definitions, descriptions, active state, notes, and ruleset limits                   |
+| Spell management                    | Slots, legal cast modes, preparation state, source restrictions, and detail          |
+| Feature detail                      | Authored description, mechanics, source, choices, and owning charges                 |
+| Item detail                         | Authored mechanics plus instance customization, state, adjustments, and charges      |
+| Companion/familiar detail           | Effective stat block, play state, equipment, identity, and adjustments               |
+| Background detail                   | Authored description, feature, characteristics, grants, and source                   |
+| Inspiration and actions             | Existing authoritative play controls preserved alongside focused panels              |
+| Inventory, containers, and currency | Existing placement, state, quantity, and currency behavior preserved                 |
+| Notes                               | Existing Sheet-owned notes remain available and non-mechanical                       |
 
 ## Design
 
@@ -234,7 +236,7 @@ sequenceDiagram
   S-->>UI: Updated Sheet, panel, and history result
 ```
 
-The API never trusts a client-supplied total, breakdown, editable flag, or source label. Commands submit typed adjustment intent or play-state intent; the service rebuilds authoritative output before and after persistence.
+The API never trusts a client-supplied total, breakdown, editable flag, or authored source label. Commands submit typed adjustment intent or play-state intent; the service rebuilds authoritative output before and after persistence.
 
 ## Package and client seams
 
@@ -300,6 +302,8 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 - Mobile clients eventually update less frequently than the API. Phase 02 must define additive contract evolution and minimum-client behavior before native mutation ships.
 - Item and companion resources need instance-scoped identities. Definition-scoped charge keys would couple duplicate owned instances and are not acceptable.
 - Long prose and large source breakdowns may require progressive disclosure, but clients must not hide the final value, override indicator, or source notes needed for trust.
+- Compact spell and action rows may need backend-projected, closed effect categories such as damage, healing, control, defense, movement, summoning, and utility. Clients must not infer them from authored prose, display labels, or free-form primary-effect text. The implementation subplan must settle one primary category versus ordered tags before adding transport fields.
+- Spell inclusion in Actions, action economy, and resolution method are separate concepts. The implementation subplan must not keep conflating the user-owned “Display in Actions” preference with `ATTACK`, `ACTION`, `BONUS_ACTION`, or `REACTION` classification.
 - Additional rulesets may expose different ability, proficiency, rest, exhaustion, movement, or resource concepts. They should register compatible policies and panel kinds rather than adding conditionals to D&D contracts.
 - Campaign inspection requires capability-aware reads and audit correlation. Phase 03 owns that authorization expansion.
 

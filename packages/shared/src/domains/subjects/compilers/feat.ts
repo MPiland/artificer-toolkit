@@ -32,38 +32,35 @@ export type CompiledFeat = {
 }
 
 export function compileFeat(authored: FeatAuthored): CompiledFeat {
-  const effects
-    = authored.effects?.length
-      ? authored.effects.map(compileEffect)
-      : undefined
+  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
 
-  const modifiers
-    = authored.grants?.modifiers && authored.grants.modifiers.length
+  const modifiers =
+    authored.grants?.modifiers && authored.grants.modifiers.length
       ? authored.grants.modifiers.map(compileModifierGrant)
       : undefined
 
-  const feats
-    = authored.grants?.feats && authored.grants.feats.length
+  const feats =
+    authored.grants?.feats && authored.grants.feats.length
       ? authored.grants.feats.map(compileFeatGrant)
       : undefined
 
-  const senses
-    = authored.grants?.senses && authored.grants.senses.length
+  const senses =
+    authored.grants?.senses && authored.grants.senses.length
       ? authored.grants.senses.map(compileSenseGrant)
       : undefined
 
-  const proficiencies
-    = authored.grants?.proficiencies && authored.grants.proficiencies.length
+  const proficiencies =
+    authored.grants?.proficiencies && authored.grants.proficiencies.length
       ? authored.grants.proficiencies.map(compileProficiencyGrant)
       : undefined
 
-  const spells
-    = authored.grants?.spells && authored.grants.spells.length
+  const spells =
+    authored.grants?.spells && authored.grants.spells.length
       ? authored.grants.spells.map(compileSpellGrant)
       : undefined
 
-  const features
-    = authored.features && authored.features.length
+  const features =
+    authored.features && authored.features.length
       ? authored.features.map(compileFeature)
       : undefined
 
@@ -82,4 +79,3 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
     charges
   }
 }
-

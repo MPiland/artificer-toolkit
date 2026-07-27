@@ -68,8 +68,8 @@ export function ManualCollectionOrderingProvider({
         {children}
       </DragDropProvider>
       <VisuallyHidden id={instructionsId}>
-        To reorder this collection, focus a drag handle and press Space or Enter. Use the arrow
-        keys to move the item, press Space or Enter to place it, or press Escape to cancel.
+        To reorder this collection, focus a drag handle and press Space or Enter. Use the arrow keys
+        to move the item, press Space or Enter to place it, or press Escape to cancel.
       </VisuallyHidden>
       <VisuallyHidden aria-live='assertive' aria-atomic='true'>
         {announcement}

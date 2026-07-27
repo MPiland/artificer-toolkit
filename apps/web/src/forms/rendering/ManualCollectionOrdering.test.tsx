@@ -25,7 +25,9 @@ type CapturedProviderProps = {
   onDragEnd: (event: { canceled: boolean; operation: DragOperation }) => void
 }
 
-const captured = vi.hoisted(() => ({ providerProps: undefined as CapturedProviderProps | undefined }))
+const captured = vi.hoisted(() => ({
+  providerProps: undefined as CapturedProviderProps | undefined
+}))
 
 vi.mock('@dnd-kit/react', () => ({
   DragDropProvider: (props: CapturedProviderProps) => {
@@ -126,12 +128,7 @@ describe('ManualCollectionOrdering', () => {
 function renderOrdering({ disabled, onMove }: { disabled: boolean; onMove: () => void }) {
   render(
     <TestRouterProvider>
-      <ManualCollectionOrderingProvider
-        disabled={disabled}
-        enabled
-        items={items}
-        onMove={onMove}
-      >
+      <ManualCollectionOrderingProvider disabled={disabled} enabled items={items} onMove={onMove}>
         {items.map((item, index) => (
           <ManualCollectionOrderingRow
             disabled={disabled}

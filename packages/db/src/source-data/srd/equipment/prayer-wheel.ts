@@ -5,7 +5,8 @@ export const prayerWheel: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(363),
   label: 'Prayer Wheel',
-  description: 'A cylindrical wheel on a spindle used in religious practice to accumulate wisdom and good karma.',
+  description:
+    'A cylindrical wheel on a spindle used in religious practice to accumulate wisdom and good karma.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(5),

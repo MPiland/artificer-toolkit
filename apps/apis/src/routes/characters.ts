@@ -52,28 +52,25 @@ export const createCharacterDraft = handleAuthoringRequest(
 
 export const getCharacterBuilderDraft = handleRequest(
   getCharacterBuilderDraftForUser,
-  (request: Request, userId: string) => [
-    extractCharacterIdFromBuilderDraftRoute(request),
-    userId
-  ] as [string, string]
+  (request: Request, userId: string) =>
+    [extractCharacterIdFromBuilderDraftRoute(request), userId] as [string, string]
 )
 
 export const saveCharacterBuilderDraft = handleAuthoringRequest(
   characterBuilderDraftSaveRequestDtoSchema,
-  (db, body, userId, request) => saveCharacterBuilderDraftForUser(
-    db,
-    extractCharacterIdFromBuilderDraftRoute(request),
-    body,
-    userId
-  )
+  (db, body, userId, request) =>
+    saveCharacterBuilderDraftForUser(
+      db,
+      extractCharacterIdFromBuilderDraftRoute(request),
+      body,
+      userId
+    )
 )
 
 export const discardCharacterBuilderDraft = handleRequest(
   discardCharacterBuilderDraftForUser,
-  (request: Request, userId: string) => [
-    extractCharacterIdFromBuilderDraftRoute(request),
-    userId
-  ] as [string, string]
+  (request: Request, userId: string) =>
+    [extractCharacterIdFromBuilderDraftRoute(request), userId] as [string, string]
 )
 
 export const createCharacter = handleAuthoringRequest(
@@ -88,9 +85,7 @@ export const getCharacter = handleRequest(
 
 export const getCharacterSheet = handleRequest(
   getCharacterSheetForUser,
-  (request: Request) => [
-    extractCharacterIdBeforeSegment(request, 'sheet')
-  ] as [string]
+  (request: Request) => [extractCharacterIdBeforeSegment(request, 'sheet')] as [string]
 )
 
 export const resolveCharacter = handleAuthoringRequest(
@@ -110,18 +105,17 @@ export const upsertCharacterBuilder = handleAuthoringRequest(
 
 export const dispatchCommand = handleAuthoringRequest(
   characterSheetCommandInputDtoSchema,
-  (db, command, userId, request) => dispatchCommandForUser(
-    db,
-    extractCharacterIdBeforeSegment(request, 'commands'),
-    command,
-    userId
-  )
+  (db, command, userId, request) =>
+    dispatchCommandForUser(
+      db,
+      extractCharacterIdBeforeSegment(request, 'commands'),
+      command,
+      userId
+    )
 )
 
 export const getCharacterHistory = handleRequest(
   getCharacterHistoryForUser,
-  (request: Request, userId: string) => [
-    extractCharacterIdBeforeSegment(request, 'history'),
-    userId
-  ] as [string, string]
+  (request: Request, userId: string) =>
+    [extractCharacterIdBeforeSegment(request, 'history'), userId] as [string, string]
 )

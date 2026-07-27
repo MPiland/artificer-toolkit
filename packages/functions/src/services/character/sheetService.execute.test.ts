@@ -10,10 +10,14 @@ const mocks = vi.hoisted(() => ({
   findAuthoredById: vi.fn(),
   getMovementPreference: vi.fn(),
   listAdjustments: vi.fn(),
+  listResourceUsage: vi.fn(),
+  listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
   removeAdjustment: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
   setMovementPreference: vi.fn(),
+  setResourceUsage: vi.fn(),
+  setSpellCustomization: vi.fn(),
   upsertAdjustment: vi.fn()
 }))
 
@@ -44,6 +48,12 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       remove: mocks.removeAdjustment,
       setMovementPreference: mocks.setMovementPreference,
       upsert: mocks.upsertAdjustment
+    }),
+    createCharacterSheetPlayStateRepository: () => ({
+      listResourceUsage: mocks.listResourceUsage,
+      listSpellCustomizations: mocks.listSpellCustomizations,
+      setResourceUsage: mocks.setResourceUsage,
+      setSpellCustomization: mocks.setSpellCustomization
     })
   }
 })
@@ -58,17 +68,17 @@ vi.mock('./builderService.js', async (importOriginal) => {
 
 const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
-const db = {
-  selectFrom: () => ({
-    select: () => ({
-      where: () => ({
-        orderBy: () => ({
-          execute: async () => [{ id: 'condition-1', label: 'Poisoned' }]
-        })
-      })
-    })
-  })
+const emptyQuery = {
+  select: () => emptyQuery,
+  selectAll: () => emptyQuery,
+  innerJoin: () => emptyQuery,
+  leftJoin: () => emptyQuery,
+  where: () => emptyQuery,
+  orderBy: () => emptyQuery,
+  execute: async () => []
 }
+
+const db = { selectFrom: () => emptyQuery }
 
 function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterAuthored {
   return {
@@ -164,10 +174,16 @@ describe('executeCharacterSheetCommand', () => {
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
     mocks.listAdjustments.mockResolvedValue([])
+    mocks.listResourceUsage.mockReset()
+    mocks.listResourceUsage.mockResolvedValue([])
+    mocks.listSpellCustomizations.mockReset()
+    mocks.listSpellCustomizations.mockResolvedValue([])
     mocks.removeAdjustment.mockReset()
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
     mocks.setMovementPreference.mockReset()
+    mocks.setResourceUsage.mockReset()
+    mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
@@ -377,8 +393,7 @@ describe('executeCharacterSheetCommand', () => {
           ability: 'STRENGTH',
           field: 'OTHER_MODIFIER',
           value: 2,
-          sourceCategory: 'MANUAL',
-          sourceLabel: 'Downtime training'
+          sourceNote: 'Downtime training'
         }
       }
     })
@@ -396,8 +411,7 @@ describe('executeCharacterSheetCommand', () => {
       ability: 'STRENGTH',
       field: 'OTHER_MODIFIER',
       value: 2,
-      sourceCategory: 'MANUAL',
-      sourceLabel: 'Downtime training'
+      sourceNote: 'Downtime training'
     })
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -416,7 +430,6 @@ describe('executeCharacterSheetCommand', () => {
         ability: 'STRENGTH',
         field: 'OTHER_MODIFIER',
         value: 2,
-        sourceCategory: 'MANUAL',
         createdBy: 'user-1',
         updatedBy: 'user-1',
         createdAt: '2026-07-24T00:00:00.000Z',
@@ -429,7 +442,6 @@ describe('executeCharacterSheetCommand', () => {
         ability: 'DEXTERITY',
         field: 'OTHER_MODIFIER',
         value: 1,
-        sourceCategory: 'MANUAL',
         createdBy: 'user-1',
         updatedBy: 'user-1',
         createdAt: '2026-07-24T00:00:00.000Z',
@@ -486,6 +498,105 @@ describe('executeCharacterSheetCommand', () => {
         mode: 'EXPLICIT',
         speedId: '00000000-0000-4000-8000-000000000010'
       }
+    })
+  })
+
+  it('replaces and clears customization fields for only the targeted spell source', async () => {
+    const character = createCharacter()
+    character.intent.spellSelections = [
+      {
+        id: 'feature-spell-target',
+        source: { kind: 'FEATURE', featureId: 'feature-1' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      },
+      {
+        id: 'feature-spell-other',
+        source: { kind: 'FEATURE', featureId: 'feature-2' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    const resolution = createResolution()
+    resolution.catalog.spells = [
+      {
+        id: 'spell-1',
+        label: 'Shield',
+        description: '',
+        castingTime: { amount: 1, unit: 'ROUND' },
+        level: 1,
+        classIds: [],
+        magicSchoolId: 'ABJURATION'
+      }
+    ]
+    mocks.findAuthoredById.mockResolvedValue(character)
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+    mocks.listSpellCustomizations.mockResolvedValue([
+      {
+        id: 'custom-target',
+        characterId: 'character-1',
+        source: {
+          spellId: 'spell-1',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'FEATURE:feature-spell-target'
+        },
+        customName: 'Old Shield',
+        notes: 'Remove this note',
+        displayAsAttack: true,
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-07-25T00:00:00.000Z',
+        updatedAt: '2026-07-25T00:00:00.000Z'
+      },
+      {
+        id: 'custom-other',
+        characterId: 'character-1',
+        source: {
+          spellId: 'spell-1',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'FEATURE:feature-spell-other'
+        },
+        customName: 'Other Shield',
+        displayAsAttack: false,
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-07-25T00:00:00.000Z',
+        updatedAt: '2026-07-25T00:00:00.000Z'
+      }
+    ])
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'UPDATE_SPELL_SOURCE_CUSTOMIZATION',
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000012',
+        source: {
+          spellId: 'spell-1',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'FEATURE:feature-spell-target'
+        },
+        customName: 'Arcane Shield',
+        notes: null,
+        displayAsAttack: false
+      }
+    })
+
+    expect(mocks.setSpellCustomization).toHaveBeenCalledTimes(1)
+    expect(mocks.setSpellCustomization).toHaveBeenCalledWith({
+      id: 'custom-target',
+      characterId: 'character-1',
+      actorId: 'user-1',
+      source: {
+        spellId: 'spell-1',
+        sourceKind: 'FEATURE',
+        sourceInstanceId: 'FEATURE:feature-spell-target'
+      },
+      customName: 'Arcane Shield',
+      notes: undefined,
+      displayAsAttack: false
     })
   })
 })

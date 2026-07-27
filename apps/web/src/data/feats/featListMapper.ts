@@ -1,7 +1,13 @@
 import type { FeatListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
-function mapPermissions(item: FeatListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: FeatListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -51,9 +57,7 @@ export function buildFeatListFilters(_response: FeatListResponseDto): AuthoredLi
 
 export const featListAttributeColumns = [] satisfies AuthoredListAttributeColumn[]
 
-export const featListSortOptions = [
-  { value: 'name', label: 'Name A-Z' }
-]
+export const featListSortOptions = [{ value: 'name', label: 'Name A-Z' }]
 
 export function summarizeFeatList(response: FeatListResponseDto) {
   const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length

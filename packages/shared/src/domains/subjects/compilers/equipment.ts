@@ -1,8 +1,4 @@
-import type {
-  BaseEquipmentAuthored,
-  EquipmentAuthored,
-  VariantEquipmentAuthored
-} from '#authored'
+import type { BaseEquipmentAuthored, EquipmentAuthored, VariantEquipmentAuthored } from '#authored'
 import type {
   EquipmentAttribute,
   EquipmentCategoryCode,
@@ -45,10 +41,7 @@ export interface CompiledContainsAuthored {
 }
 
 export interface ResolvedEquipmentVariantInherited {
-  category: Exclude<
-    EquipmentCategoryCode,
-    typeof EQUIPMENT_CATEGORY_CODE.VARIANT
-  >
+  category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
   properties: EquipmentPropertyCode[]
   description: BaseEquipmentAuthored['description']
   quote?: BaseEquipmentAuthored['quote']
@@ -75,14 +68,8 @@ export interface ResolvedEquipmentVariantMeta {
   inherited: ResolvedEquipmentVariantInherited
 }
 
-export type ResolvedEquipment = Omit<
-  BaseEquipmentAuthored,
-  'category' | 'properties'
-> & {
-  category: Exclude<
-    EquipmentCategoryCode,
-    typeof EQUIPMENT_CATEGORY_CODE.VARIANT
-  >
+export type ResolvedEquipment = Omit<BaseEquipmentAuthored, 'category' | 'properties'> & {
+  category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
   properties: EquipmentPropertyCode[]
   variant?: ResolvedEquipmentVariantMeta
 }
@@ -108,10 +95,7 @@ export type CompiledEquipmentBase = {
 
 export type CompiledEquipment = {
   properties: EquipmentPropertyCode[]
-  category: Exclude<
-    EquipmentCategoryCode,
-    typeof EQUIPMENT_CATEGORY_CODE.VARIANT
-  >
+  category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
 } & CompiledEquipmentBase
 
 export type CompiledEquipmentVariant = {
@@ -120,14 +104,8 @@ export type CompiledEquipmentVariant = {
   properties?: EquipmentPropertyCode[]
 } & CompiledEquipmentBase
 
-function mergeOrderedValues<T>(
-  parent?: readonly T[],
-  child?: readonly T[]
-): T[] | undefined {
-  const merged = [
-    ...(parent ?? []),
-    ...(child ?? [])
-  ]
+function mergeOrderedValues<T>(parent?: readonly T[], child?: readonly T[]): T[] | undefined {
+  const merged = [...(parent ?? []), ...(child ?? [])]
 
   return merged.length > 0 ? [...merged] : undefined
 }
@@ -136,10 +114,7 @@ function mergeUniqueValues<T extends string>(
   parent?: readonly T[],
   child?: readonly T[]
 ): T[] | undefined {
-  const merged = [
-    ...(parent ?? []),
-    ...(child ?? [])
-  ]
+  const merged = [...(parent ?? []), ...(child ?? [])]
 
   return merged.length > 0 ? [...new Set(merged)] : undefined
 }
@@ -147,20 +122,19 @@ function mergeUniqueValues<T extends string>(
 function compileEquipmentBase(
   authored: EquipmentAuthored | VariantEquipmentAuthored | ResolvedEquipment
 ): CompiledEquipmentBase {
-  const effects
-    = authored.effects?.length
-      ? authored.effects.map(compileEffect)
-      : undefined
+  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
 
-  const features
-    = authored.features && authored.features.length
-      ? authored.features.map((feature) => compileFeature(feature as Parameters<typeof compileFeature>[0]))
+  const features =
+    authored.features && authored.features.length
+      ? authored.features.map((feature) =>
+          compileFeature(feature as Parameters<typeof compileFeature>[0])
+        )
       : undefined
 
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
 
-  const modifiers
-    = authored.modifiers && authored.modifiers.length
+  const modifiers =
+    authored.modifiers && authored.modifiers.length
       ? authored.modifiers.map(compileModifierGrant)
       : undefined
 
@@ -209,14 +183,8 @@ export function resolveEquipmentAuthored(
     )
   }
 
-  const resolvedParent = resolveEquipmentAuthored(parent, lookupParent, [
-    ...lineage,
-    authored.id
-  ])
-  const properties = mergeUniqueValues(
-    resolvedParent.properties,
-    authored.properties
-  ) ?? []
+  const resolvedParent = resolveEquipmentAuthored(parent, lookupParent, [...lineage, authored.id])
+  const properties = mergeUniqueValues(resolvedParent.properties, authored.properties) ?? []
 
   return {
     kind: authored.kind,
@@ -228,25 +196,16 @@ export function resolveEquipmentAuthored(
     quote: authored.quote ?? resolvedParent.quote,
     cost: resolvedParent.cost,
     weight: resolvedParent.weight,
-    effects: mergeOrderedValues(
-      resolvedParent.effects,
-      authored.effects
-    ),
+    effects: mergeOrderedValues(resolvedParent.effects, authored.effects),
     charges: authored.charges ?? resolvedParent.charges,
     capacity: resolvedParent.capacity,
-    modifiers: mergeOrderedValues(
-      resolvedParent.modifiers,
-      authored.modifiers
-    ),
+    modifiers: mergeOrderedValues(resolvedParent.modifiers, authored.modifiers),
     maxStack: resolvedParent.maxStack,
     rarityId: authored.rarityId,
     maxBonus: authored.maxBonus ?? resolvedParent.maxBonus,
     armorClass: resolvedParent.armorClass,
     contains: resolvedParent.contains,
-    features: mergeOrderedValues(
-      resolvedParent.features,
-      authored.features
-    ),
+    features: mergeOrderedValues(resolvedParent.features, authored.features),
     restrictions: authored.restrictions ?? resolvedParent.restrictions,
     requiresAttunement: authored.requiresAttunement ?? resolvedParent.requiresAttunement,
     userId: authored.userId,
@@ -303,13 +262,10 @@ export function compileEquipment(
   }
 }
 
-export function compileResolvedEquipment(
-  authored: ResolvedEquipment
-): CompiledEquipment {
+export function compileResolvedEquipment(authored: ResolvedEquipment): CompiledEquipment {
   return {
     ...compileEquipmentBase(authored),
     category: authored.category,
     properties: authored.properties
   }
 }
-

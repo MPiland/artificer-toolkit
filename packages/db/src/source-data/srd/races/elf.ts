@@ -19,8 +19,17 @@ import {
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_ELVEN_HERITAGE_ID, SRD_SKILLS, SRD_CONDITION_TYPES } from '../vocabulary.js'
+import { CLASS_IDS, RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import {
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_ELVEN_HERITAGE_ID,
+  SRD_SKILLS,
+  SRD_CONDITION_TYPES
+} from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -42,7 +51,8 @@ function conditionTypeId(code: string): string {
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
-if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const elfWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
 
@@ -60,9 +70,9 @@ function languageId(code: string): string {
 
 function availableLanguageIds(excludedCodes: string[] = []): string[] {
   const excluded = new Set(excludedCodes)
-  return SRD_LANGUAGES
-    .filter((language) => !excluded.has(language.code))
-    .map((language) => language.id)
+  return SRD_LANGUAGES.filter((language) => !excluded.has(language.code)).map(
+    (language) => language.id
+  )
 }
 
 const wizardCantripIds = srdSpells
@@ -74,7 +84,8 @@ const wizardCantripIds = srdSpells
 export const elf: RaceAuthored = {
   id: RACE_IDS.ELF,
   label: 'Elf',
-  description: '<p>Your elf character has a variety of natural abilities, the result of thousands of years of elven refinement.</p>',
+  description:
+    '<p>Your elf character has a variety of natural abilities, the result of thousands of years of elven refinement.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
@@ -84,19 +95,22 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 0, 1),
       label: 'Age',
-      description: 'Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old.',
+      description:
+        'Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old.',
       order: 0
     },
     {
       id: raceFeatureId(2, 0, 2),
       label: 'Alignment',
-      description: 'Elves love freedom, variety, and self-expression, so they lean strongly toward the gentler aspects of chaos. They value and protect others\' freedom as well as their own, and they are more often good than not.',
+      description:
+        "Elves love freedom, variety, and self-expression, so they lean strongly toward the gentler aspects of chaos. They value and protect others' freedom as well as their own, and they are more often good than not.",
       order: 1
     },
     {
       id: raceFeatureId(2, 0, 3),
       label: 'Size',
-      description: 'Elves range from under 5 to over 6 feet tall and have slender builds. Your size is Medium.',
+      description:
+        'Elves range from under 5 to over 6 feet tall and have slender builds. Your size is Medium.',
       order: 2
     },
     {
@@ -135,7 +149,8 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 1, 1),
       label: 'Darkvision',
-      description: 'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+      description:
+        'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -183,7 +198,8 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 3, 1),
       label: 'Fey Ancestry',
-      description: 'You have advantage on saving throws against being charmed, and magic can\'t put you to sleep.',
+      description:
+        "You have advantage on saving throws against being charmed, and magic can't put you to sleep.",
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -208,7 +224,8 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 4, 1),
       label: 'Trance',
-      description: 'Elves don\'t need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.',
+      description:
+        "Elves don't need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.",
       availableAtLevel: 1,
       order: 4
     },
@@ -216,7 +233,8 @@ export const elf: RaceAuthored = {
       id: raceFeatureId(2, 5, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar.',
+      description:
+        'You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar.',
       availableAtLevel: 1,
       order: 5,
       grants: {
@@ -243,7 +261,8 @@ export const elf: RaceAuthored = {
 export const highElf: RaceAuthored = {
   id: SUBRACE_IDS.HIGH_ELF,
   label: 'High Elf',
-  description: '<p>As a high elf, you have a keen mind and a mastery of at least the basics of magic.</p>',
+  description:
+    '<p>As a high elf, you have a keen mind and a mastery of at least the basics of magic.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.ELF,
   userId: SRD_USER_ID,
@@ -292,7 +311,7 @@ export const highElf: RaceAuthored = {
               equipId(22), // longsword
               equipId(28), // shortsword
               equipId(13), // shortbow
-              equipId(36)  // longbow
+              equipId(36) // longbow
             ],
             order: 0
           }
@@ -302,7 +321,8 @@ export const highElf: RaceAuthored = {
     {
       id: raceFeatureId(103, 3, 1),
       label: 'Cantrip',
-      description: 'You know one cantrip of your choice from the wizard spell list. Intelligence is your spellcasting ability for it.',
+      description:
+        'You know one cantrip of your choice from the wizard spell list. Intelligence is your spellcasting ability for it.',
       availableAtLevel: 1,
       order: 2,
       grants: {

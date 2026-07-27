@@ -1,10 +1,12 @@
 import { z } from 'zod'
 
-import {
-  castingTimeDtoSchema
-} from './shared.js'
+import { castingTimeDtoSchema } from './shared.js'
 import { effectDtoSchema } from '../effects/index.js'
-import { authoredRecordStatusSchema, spellAttributeSchema, spellComponentSchema } from '../shared/enums.js'
+import {
+  authoredRecordStatusSchema,
+  spellAttributeSchema,
+  spellComponentSchema
+} from '../shared/enums.js'
 
 export const spellAuthoredDtoSchema = z.object({
   kind: z.literal('SPELL'),
@@ -31,5 +33,3 @@ export const spellAuthoringInputDtoSchema = spellAuthoredDtoSchema.extend({
 })
 
 export type SpellAuthoringInputDto = z.infer<typeof spellAuthoringInputDtoSchema>
-
-

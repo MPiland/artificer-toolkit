@@ -48,13 +48,17 @@ function DeleteHarness({
     <>
       <button
         type='button'
-        onClick={() => deleteAction.requestDelete({ id: 'race-1', kind: 'draft', label: 'Dragonborn Copy' })}
+        onClick={() =>
+          deleteAction.requestDelete({ id: 'race-1', kind: 'draft', label: 'Dragonborn Copy' })
+        }
       >
         Delete draft
       </button>
       <button
         type='button'
-        onClick={() => deleteAction.requestDelete({ id: 'race-1', kind: 'active', label: 'Dragonborn Copy' })}
+        onClick={() =>
+          deleteAction.requestDelete({ id: 'race-1', kind: 'active', label: 'Dragonborn Copy' })
+        }
       >
         Delete active
       </button>
@@ -108,13 +112,17 @@ describe('useAuthoredDeleteAction', () => {
     )
 
     await user.click(screen.getByRole('button', { name: /delete active/i }))
-    expect(await screen.findByText(/any draft for this race will stay available/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/any draft for this race will stay available/i)
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^delete$/i }))
 
     await waitFor(() => expect(deleteActive).toHaveBeenCalledWith('race-1'))
     expect(deleteDraft).not.toHaveBeenCalled()
     expect(requireQueryClient(queryClient).getQueryData(detailKey)).toBeUndefined()
-    expect(requireQueryClient(queryClient).getQueryData(draftKey)).toEqual({ label: 'Dragonborn Draft' })
+    expect(requireQueryClient(queryClient).getQueryData(draftKey)).toEqual({
+      label: 'Dragonborn Draft'
+    })
   })
 })

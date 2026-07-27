@@ -16,6 +16,15 @@ const ABILITY_ICONS = {
   CHARISMA: Smile
 } as const
 
+const ABILITY_LABELS = {
+  STRENGTH: 'Strength',
+  DEXTERITY: 'Dexterity',
+  CONSTITUTION: 'Constitution',
+  INTELLIGENCE: 'Intelligence',
+  WISDOM: 'Wisdom',
+  CHARISMA: 'Charisma'
+} as const
+
 export function CharacterSheetOverviewAbilities({
   abilities,
   openPanel
@@ -27,7 +36,7 @@ export function CharacterSheetOverviewAbilities({
     <section className={styles.abilityStrip} aria-label='Ability scores'>
       {abilities.map((ability) => (
         <button
-          aria-label={`Inspect ${getAbilityShortLabel(ability.ability)} ability`}
+          aria-label={`Inspect ${ABILITY_LABELS[ability.ability]} ability`}
           className={clsx(styles.abilityCard, styles.sheetInspectorTrigger)}
           disabled={!openPanel}
           key={ability.ability}
@@ -36,11 +45,13 @@ export function CharacterSheetOverviewAbilities({
         >
           {(() => {
             const Icon = ABILITY_ICONS[ability.ability as keyof typeof ABILITY_ICONS]
-            return Icon ? <Icon className={styles.abilityIcon} aria-hidden='true' size={24} /> : null
+            return Icon ? (
+              <Icon className={styles.abilityIcon} aria-hidden='true' size={16} />
+            ) : null
           })()}
           <Text className={styles.abilityLabel}>{getAbilityShortLabel(ability.ability)}</Text>
           <Text className={styles.abilityModifier}>{formatSigned(ability.modifier)}</Text>
-          <Text className={styles.abilityScore}>{ability.score}</Text>
+          <Text className={styles.abilityScore}>Score {ability.score}</Text>
         </button>
       ))}
     </section>

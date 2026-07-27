@@ -30,8 +30,12 @@ export const CharacterBackgroundStep = withForm({
       payload.references.backgrounds,
       backgroundView.backgroundOptions
     )
-    const featureGrantChoices = backgroundView.grantChoices.filter((choice) => choice.ownerFeatureId)
-    const standaloneGrantChoices = backgroundView.grantChoices.filter((choice) => !choice.ownerFeatureId)
+    const featureGrantChoices = backgroundView.grantChoices.filter(
+      (choice) => choice.ownerFeatureId
+    )
+    const standaloneGrantChoices = backgroundView.grantChoices.filter(
+      (choice) => !choice.ownerFeatureId
+    )
     const allGrantChoices = getAllChosenGrantChoices(payload.view)
 
     return (
@@ -40,23 +44,23 @@ export const CharacterBackgroundStep = withForm({
           <h3 id='character-background-title' className={styles.sectionTitle}>
             {selectedBackground?.label ?? 'No background selected'}
           </h3>
-          {!readOnly
-            ? (
-                <Button
-                  type='button'
-                  onClick={() => {
-                    setStagedBackgroundId(null)
-                    setChooserOpened(true)
-                  }}
-                >
-                  {selectedBackgroundId ? 'Change Background' : 'Choose Background'}
-                </Button>
-              )
-            : null}
+          {!readOnly ? (
+            <Button
+              type='button'
+              onClick={() => {
+                setStagedBackgroundId(null)
+                setChooserOpened(true)
+              }}
+            >
+              {selectedBackgroundId ? 'Change Background' : 'Choose Background'}
+            </Button>
+          ) : null}
         </div>
-        {backgroundView.description?.trim()
-          ? <div className={styles.backgroundDescription}>{renderSanitizedRichHtml(backgroundView.description)}</div>
-          : null}
+        {backgroundView.description?.trim() ? (
+          <div className={styles.backgroundDescription}>
+            {renderSanitizedRichHtml(backgroundView.description)}
+          </div>
+        ) : null}
         <form.AppField name='intent.chosenGrantSelections'>
           {(grantField) => (
             <>
@@ -79,7 +83,9 @@ export const CharacterBackgroundStep = withForm({
                     renderFeatureControls={(feature) => (
                       <CharacterChosenGrantChoices
                         allChoices={allGrantChoices}
-                        choices={featureGrantChoices.filter((choice) => choice.ownerFeatureId === feature.id)}
+                        choices={featureGrantChoices.filter(
+                          (choice) => choice.ownerFeatureId === feature.id
+                        )}
                         presentation='controls'
                         selections={grantField.state.value}
                         readOnly={readOnly}
@@ -93,30 +99,30 @@ export const CharacterBackgroundStep = withForm({
             </>
           )}
         </form.AppField>
-        {backgroundView.detailSections.length
-          ? (
-              <details className={styles.suggestedCharacteristics}>
-                <summary className={styles.suggestedCharacteristicsSummary}>
-                  Suggested Characteristics
-                </summary>
-                <div className={styles.suggestedCharacteristicsContent}>
-                  {backgroundView.detailSections.map((section) => (
-                    <section key={section.label} className={styles.suggestedCharacteristicsGroup}>
-                      <Text fw={700}>{section.label}</Text>
-                      {section.details.map((detail) => (
-                        <div key={detail.id} className={styles.suggestedCharacteristic}>
-                          <Text fw={600} size='sm'>{detail.label}</Text>
-                          <div className={styles.grantedFeatureDescription}>
-                            {renderSanitizedRichHtml(detail.description)}
-                          </div>
-                        </div>
-                      ))}
-                    </section>
+        {backgroundView.detailSections.length ? (
+          <details className={styles.suggestedCharacteristics}>
+            <summary className={styles.suggestedCharacteristicsSummary}>
+              Suggested Characteristics
+            </summary>
+            <div className={styles.suggestedCharacteristicsContent}>
+              {backgroundView.detailSections.map((section) => (
+                <section key={section.label} className={styles.suggestedCharacteristicsGroup}>
+                  <Text fw={700}>{section.label}</Text>
+                  {section.details.map((detail) => (
+                    <div key={detail.id} className={styles.suggestedCharacteristic}>
+                      <Text fw={600} size='sm'>
+                        {detail.label}
+                      </Text>
+                      <div className={styles.grantedFeatureDescription}>
+                        {renderSanitizedRichHtml(detail.description)}
+                      </div>
+                    </div>
                   ))}
-                </div>
-              </details>
-            )
-          : null}
+                </section>
+              ))}
+            </div>
+          </details>
+        ) : null}
         <CharacterSelectionModal
           title={selectedBackgroundId ? 'Change background' : 'Choose a background'}
           description='Compare backgrounds and their defining features before choosing.'
@@ -131,15 +137,19 @@ export const CharacterBackgroundStep = withForm({
             setChooserOpened(false)
           }}
           onCommit={(backgroundId) => {
-            if (readOnly || isChoiceOptionDisabled(backgroundView.backgroundOptions, backgroundId)) return
+            if (readOnly || isChoiceOptionDisabled(backgroundView.backgroundOptions, backgroundId))
+              return
             if (backgroundId !== selectedBackgroundId) {
-              form.setFieldValue('intent', clearBackgroundDependents({
-                ...form.state.values,
-                intent: {
-                  ...form.state.values.intent,
-                  background: { backgroundId }
-                }
-              }).intent)
+              form.setFieldValue(
+                'intent',
+                clearBackgroundDependents({
+                  ...form.state.values,
+                  intent: {
+                    ...form.state.values.intent,
+                    background: { backgroundId }
+                  }
+                }).intent
+              )
             }
             setStagedBackgroundId(null)
             setChooserOpened(false)

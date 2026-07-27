@@ -43,7 +43,8 @@ export const speedOptions: SpeedTypeOption[] = [
     id: '1f9b5978-6c2b-4fef-8ed4-eda6a87555cc',
     code: SpeedType.BURROWING,
     label: 'Burrowing',
-    description: 'Burrowing represents movement through earth or similar materials beneath the surface.',
+    description:
+      'Burrowing represents movement through earth or similar materials beneath the surface.',
     tooltip: 'Underground movement.'
   }
 ]

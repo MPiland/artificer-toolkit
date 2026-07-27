@@ -654,8 +654,6 @@ export type Database = {
           field_kind: string
           id: string
           integer_value: number
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -668,8 +666,6 @@ export type Database = {
           field_kind: string
           id?: string
           integer_value: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -682,8 +678,6 @@ export type Database = {
           field_kind?: string
           id?: string
           integer_value?: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -1544,8 +1538,6 @@ export type Database = {
           id: string
           integer_value: number | null
           reference_value: string | null
-          source_category: string
-          source_label: string | null
           source_note: string | null
           text_value: string | null
           updated_at: string
@@ -1560,8 +1552,6 @@ export type Database = {
           id?: string
           integer_value?: number | null
           reference_value?: string | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           text_value?: string | null
           updated_at?: string
@@ -1576,8 +1566,6 @@ export type Database = {
           id?: string
           integer_value?: number | null
           reference_value?: string | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           text_value?: string | null
           updated_at?: string
@@ -1832,8 +1820,6 @@ export type Database = {
           damage_type_id: string
           defense_kind: string
           id: string
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -1845,8 +1831,6 @@ export type Database = {
           damage_type_id: string
           defense_kind: string
           id?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -1858,8 +1842,6 @@ export type Database = {
           damage_type_id?: string
           defense_kind?: string
           id?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -2321,8 +2303,6 @@ export type Database = {
           field_kind: string
           id: string
           integer_value: number
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -2334,8 +2314,6 @@ export type Database = {
           field_kind: string
           id?: string
           integer_value: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -2347,8 +2325,6 @@ export type Database = {
           field_kind?: string
           id?: string
           integer_value?: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -2523,8 +2499,6 @@ export type Database = {
           id: string
           item_instance_id: string
           numeric_value: number | null
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -2538,8 +2512,6 @@ export type Database = {
           id?: string
           item_instance_id: string
           numeric_value?: number | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -2553,8 +2525,6 @@ export type Database = {
           id?: string
           item_instance_id?: string
           numeric_value?: number | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -2584,8 +2554,6 @@ export type Database = {
           field_kind: string
           id: string
           integer_value: number
-          source_category: string
-          source_label: string | null
           source_note: string | null
           speed_id: string
           updated_at: string
@@ -2598,8 +2566,6 @@ export type Database = {
           field_kind?: string
           id?: string
           integer_value: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           speed_id: string
           updated_at?: string
@@ -2612,8 +2578,6 @@ export type Database = {
           field_kind?: string
           id?: string
           integer_value?: number
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           speed_id?: string
           updated_at?: string
@@ -2731,8 +2695,6 @@ export type Database = {
           id: string
           integer_value: number
           skill_id: string
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -2745,8 +2707,6 @@ export type Database = {
           id?: string
           integer_value: number
           skill_id: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -2759,8 +2719,6 @@ export type Database = {
           id?: string
           integer_value?: number
           skill_id?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -2789,8 +2747,6 @@ export type Database = {
           created_by: string
           id: string
           proficiency_kind: string
-          source_category: string
-          source_label: string | null
           source_note: string | null
           target_id: string
           updated_at: string
@@ -2802,8 +2758,6 @@ export type Database = {
           created_by: string
           id?: string
           proficiency_kind: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           target_id: string
           updated_at?: string
@@ -2815,8 +2769,6 @@ export type Database = {
           created_by?: string
           id?: string
           proficiency_kind?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           target_id?: string
           updated_at?: string
@@ -3138,8 +3090,6 @@ export type Database = {
           id: string
           integer_value: number | null
           proficiency_value: string | null
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -3153,8 +3103,6 @@ export type Database = {
           id?: string
           integer_value?: number | null
           proficiency_value?: string | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -3168,8 +3116,6 @@ export type Database = {
           id?: string
           integer_value?: number | null
           proficiency_value?: string | null
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -3193,8 +3139,6 @@ export type Database = {
           id: string
           integer_value: number
           sense_id: string
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -3207,8 +3151,6 @@ export type Database = {
           id?: string
           integer_value: number
           sense_id: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -3221,8 +3163,6 @@ export type Database = {
           id?: string
           integer_value?: number
           sense_id?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -3286,6 +3226,66 @@ export type Database = {
           }
         ]
       }
+      character_sheet_resource_usage: {
+        Row: {
+          charge_id: string | null
+          character_id: string
+          companion_instance_id: string | null
+          created_at: string
+          created_by: string
+          feature_id: string | null
+          id: string
+          item_instance_id: string | null
+          owner_kind: string
+          resource_grant_id: string | null
+          sense_grant_id: string | null
+          source_instance_id: string | null
+          source_kind: string | null
+          spell_id: string | null
+          updated_at: string
+          updated_by: string
+          used: number
+        }
+        Insert: {
+          charge_id?: string | null
+          character_id: string
+          companion_instance_id?: string | null
+          created_at?: string
+          created_by: string
+          feature_id?: string | null
+          id?: string
+          item_instance_id?: string | null
+          owner_kind: string
+          resource_grant_id?: string | null
+          sense_grant_id?: string | null
+          source_instance_id?: string | null
+          source_kind?: string | null
+          spell_id?: string | null
+          updated_at?: string
+          updated_by: string
+          used?: number
+        }
+        Update: {
+          charge_id?: string | null
+          character_id?: string
+          companion_instance_id?: string | null
+          created_at?: string
+          created_by?: string
+          feature_id?: string | null
+          id?: string
+          item_instance_id?: string | null
+          owner_kind?: string
+          resource_grant_id?: string | null
+          sense_grant_id?: string | null
+          source_instance_id?: string | null
+          source_kind?: string | null
+          spell_id?: string | null
+          updated_at?: string
+          updated_by?: string
+          used?: number
+        }
+        Relationships: []
+      }
       character_skill_adjustments: {
         Row: {
           ability_value: string | null
@@ -3297,8 +3297,6 @@ export type Database = {
           integer_value: number | null
           proficiency_value: string | null
           skill_id: string
-          source_category: string
-          source_label: string | null
           source_note: string | null
           updated_at: string
           updated_by: string
@@ -3313,8 +3311,6 @@ export type Database = {
           integer_value?: number | null
           proficiency_value?: string | null
           skill_id: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by: string
@@ -3329,8 +3325,6 @@ export type Database = {
           integer_value?: number | null
           proficiency_value?: string | null
           skill_id?: string
-          source_category?: string
-          source_label?: string | null
           source_note?: string | null
           updated_at?: string
           updated_by?: string
@@ -3352,6 +3346,51 @@ export type Database = {
           }
         ]
       }
+      character_spell_customizations: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          custom_name: string | null
+          display_as_attack: boolean
+          id: string
+          notes: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id?: string
+          source_kind?: string
+          spell_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
       character_spell_adjustments: {
         Row: {
           character_id: string
@@ -3360,10 +3399,8 @@ export type Database = {
           field_kind: string
           id: string
           integer_value: number
-          source_category: string
           source_instance_id: string
           source_kind: string
-          source_label: string | null
           source_note: string | null
           spell_id: string
           updated_at: string
@@ -3376,10 +3413,8 @@ export type Database = {
           field_kind: string
           id?: string
           integer_value: number
-          source_category?: string
           source_instance_id: string
           source_kind: string
-          source_label?: string | null
           source_note?: string | null
           spell_id: string
           updated_at?: string
@@ -3392,10 +3427,8 @@ export type Database = {
           field_kind?: string
           id?: string
           integer_value?: number
-          source_category?: string
           source_instance_id?: string
           source_kind?: string
-          source_label?: string | null
           source_note?: string | null
           spell_id?: string
           updated_at?: string

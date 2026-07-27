@@ -18,7 +18,13 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_HUMAN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_HUMAN_HERITAGE_ID,
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -35,13 +41,14 @@ function languageId(code: string): string {
 
 function availableLanguageIds(excludedCodes: string[] = []): string[] {
   const excluded = new Set(excludedCodes)
-  return SRD_LANGUAGES
-    .filter((language) => !excluded.has(language.code))
-    .map((language) => language.id)
+  return SRD_LANGUAGES.filter((language) => !excluded.has(language.code)).map(
+    (language) => language.id
+  )
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
-if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const humanWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
 
@@ -50,7 +57,8 @@ const humanWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_
 export const human: RaceAuthored = {
   id: RACE_IDS.HUMAN,
   label: 'Human',
-  description: '<p>Humans are the most adaptable and ambitious people among the common races. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds.</p>',
+  description:
+    '<p>Humans are the most adaptable and ambitious people among the common races. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
@@ -66,13 +74,15 @@ export const human: RaceAuthored = {
     {
       id: raceFeatureId(4, 0, 2),
       label: 'Alignment',
-      description: 'Humans tend toward no particular alignment. The best and the worst are found among them.',
+      description:
+        'Humans tend toward no particular alignment. The best and the worst are found among them.',
       order: 1
     },
     {
       id: raceFeatureId(4, 0, 3),
       label: 'Size',
-      description: 'Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Your size is Medium.',
+      description:
+        'Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Your size is Medium.',
       order: 2
     },
     {
@@ -212,4 +222,3 @@ export const human: RaceAuthored = {
     }
   ]
 }
-

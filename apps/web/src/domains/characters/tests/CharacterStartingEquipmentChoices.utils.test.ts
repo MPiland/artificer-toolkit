@@ -16,9 +16,18 @@ import type { CharacterBuilderChoiceOptionDto } from '@artificer-toolkit/schema/
 
 describe('CharacterStartingEquipmentChoices utils', () => {
   it('stores repeated equipment picks as quantities and expands them for rendering', () => {
-    const decision = setStartingEquipmentGroupOption(createStartingEquipmentDecision('CLASS'), 'fighter-group', 'fighter-option')
+    const decision = setStartingEquipmentGroupOption(
+      createStartingEquipmentDecision('CLASS'),
+      'fighter-group',
+      'fighter-option'
+    )
 
-    const nextDecision = setStartingEquipmentSelections(decision, 'fighter-group', 'martial-weapon-choice', ['longsword', 'longsword', 'battleaxe'])
+    const nextDecision = setStartingEquipmentSelections(
+      decision,
+      'fighter-group',
+      'martial-weapon-choice',
+      ['longsword', 'longsword', 'battleaxe']
+    )
 
     expect(nextDecision.groups?.[0]?.selections).toEqual([
       {
@@ -32,11 +41,9 @@ describe('CharacterStartingEquipmentChoices utils', () => {
         quantity: 1
       }
     ])
-    expect(getStartingEquipmentSelections(nextDecision, 'fighter-group', 'martial-weapon-choice')).toEqual([
-      'longsword',
-      'longsword',
-      'battleaxe'
-    ])
+    expect(
+      getStartingEquipmentSelections(nextDecision, 'fighter-group', 'martial-weapon-choice')
+    ).toEqual(['longsword', 'longsword', 'battleaxe'])
   })
 
   it('formats selected equipment requirements from explicit options and item facets', () => {
@@ -45,59 +52,81 @@ describe('CharacterStartingEquipmentChoices utils', () => {
       { id: 'prayer-wheel', label: 'Prayer Wheel' }
     ]
 
-    expect(formatStartingEquipmentChoiceLabel({
-      id: 'devotional-choice',
-      order: 1,
-      startingEquipmentKind: 'EQUIPMENT',
-      selectionKind: 'CHOSEN',
-      count: 1,
-      authoringModeKind: 'SELECTED',
-      equipmentIds: ['prayer-book', 'prayer-wheel']
-    }, equipmentOptions)).toBe('Choose 1 Prayer Book or Prayer Wheel')
-    expect(formatStartingEquipmentChoiceLabel({
-      id: 'martial-melee-choice',
-      order: 1,
-      startingEquipmentKind: 'EQUIPMENT',
-      category: 'WEAPON',
-      properties: ['MARTIAL', 'MELEE'],
-      selectionKind: 'CHOSEN',
-      count: 1
-    }, equipmentOptions)).toBe('Choose 1 martial melee weapon')
-    expect(formatStartingEquipmentItem({
-      id: 'included-greataxe',
-      order: 1,
-      startingEquipmentKind: 'EQUIPMENT',
-      selectionKind: 'GRANTED',
-      quantity: 1,
-      authoringModeKind: 'SELECTED',
-      equipmentIds: ['greataxe']
-    }, [{ id: 'greataxe', label: 'Greataxe' }], [])).toBe('Greataxe')
+    expect(
+      formatStartingEquipmentChoiceLabel(
+        {
+          id: 'devotional-choice',
+          order: 1,
+          startingEquipmentKind: 'EQUIPMENT',
+          selectionKind: 'CHOSEN',
+          count: 1,
+          authoringModeKind: 'SELECTED',
+          equipmentIds: ['prayer-book', 'prayer-wheel']
+        },
+        equipmentOptions
+      )
+    ).toBe('Choose 1 Prayer Book or Prayer Wheel')
+    expect(
+      formatStartingEquipmentChoiceLabel(
+        {
+          id: 'martial-melee-choice',
+          order: 1,
+          startingEquipmentKind: 'EQUIPMENT',
+          category: 'WEAPON',
+          properties: ['MARTIAL', 'MELEE'],
+          selectionKind: 'CHOSEN',
+          count: 1
+        },
+        equipmentOptions
+      )
+    ).toBe('Choose 1 martial melee weapon')
+    expect(
+      formatStartingEquipmentItem(
+        {
+          id: 'included-greataxe',
+          order: 1,
+          startingEquipmentKind: 'EQUIPMENT',
+          selectionKind: 'GRANTED',
+          quantity: 1,
+          authoringModeKind: 'SELECTED',
+          equipmentIds: ['greataxe']
+        },
+        [{ id: 'greataxe', label: 'Greataxe' }],
+        []
+      )
+    ).toBe('Greataxe')
   })
 
   it('formats fixed equipment as a natural-language list', () => {
-    expect(formatStartingEquipmentItems([
-      {
-        id: 'explorers-pack',
-        order: 1,
-        startingEquipmentKind: 'EQUIPMENT',
-        selectionKind: 'GRANTED',
-        quantity: 1,
-        authoringModeKind: 'SELECTED',
-        equipmentIds: ['explorers-pack']
-      },
-      {
-        id: 'javelins',
-        order: 2,
-        startingEquipmentKind: 'EQUIPMENT',
-        selectionKind: 'GRANTED',
-        quantity: 4,
-        authoringModeKind: 'SELECTED',
-        equipmentIds: ['javelin']
-      }
-    ], [
-      { id: 'explorers-pack', label: "Explorer's Pack" },
-      { id: 'javelin', label: 'Javelin' }
-    ], [])).toBe("Explorer's Pack and 4 Javelins")
+    expect(
+      formatStartingEquipmentItems(
+        [
+          {
+            id: 'explorers-pack',
+            order: 1,
+            startingEquipmentKind: 'EQUIPMENT',
+            selectionKind: 'GRANTED',
+            quantity: 1,
+            authoringModeKind: 'SELECTED',
+            equipmentIds: ['explorers-pack']
+          },
+          {
+            id: 'javelins',
+            order: 2,
+            startingEquipmentKind: 'EQUIPMENT',
+            selectionKind: 'GRANTED',
+            quantity: 4,
+            authoringModeKind: 'SELECTED',
+            equipmentIds: ['javelin']
+          }
+        ],
+        [
+          { id: 'explorers-pack', label: "Explorer's Pack" },
+          { id: 'javelin', label: 'Javelin' }
+        ],
+        []
+      )
+    ).toBe("Explorer's Pack and 4 Javelins")
   })
 
   it('defaults single-option starting equipment groups without making the user choose the obvious option', () => {
@@ -238,9 +267,23 @@ describe('CharacterStartingEquipmentChoices utils', () => {
       multiplier: 10,
       currencyId: 'gp'
     }
-    const groupDecision = setStartingEquipmentGroupOption(createStartingEquipmentDecision('CLASS'), 'fighter-group', 'fighter-option')
-    const equipmentDecision = setStartingEquipmentSelections(groupDecision, 'fighter-group', 'martial-weapon-choice', ['longsword'])
-    const goldModeDecision = setStartingEquipmentMode(equipmentDecision, 'CLASS', 'GOLD', startingGold)
+    const groupDecision = setStartingEquipmentGroupOption(
+      createStartingEquipmentDecision('CLASS'),
+      'fighter-group',
+      'fighter-option'
+    )
+    const equipmentDecision = setStartingEquipmentSelections(
+      groupDecision,
+      'fighter-group',
+      'martial-weapon-choice',
+      ['longsword']
+    )
+    const goldModeDecision = setStartingEquipmentMode(
+      equipmentDecision,
+      'CLASS',
+      'GOLD',
+      startingGold
+    )
     const goldDecision = setStartingEquipmentGoldTotal(goldModeDecision, 'CLASS', startingGold, 120)
 
     expect(goldDecision).toMatchObject({
@@ -251,7 +294,9 @@ describe('CharacterStartingEquipmentChoices utils', () => {
       },
       groups: equipmentDecision.groups
     })
-    expect(setStartingEquipmentMode(goldDecision, 'CLASS', 'EQUIPMENT', startingGold)).toMatchObject({
+    expect(
+      setStartingEquipmentMode(goldDecision, 'CLASS', 'EQUIPMENT', startingGold)
+    ).toMatchObject({
       tookGold: false,
       gold: undefined,
       groups: equipmentDecision.groups

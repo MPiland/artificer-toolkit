@@ -16,19 +16,36 @@ export const wraith: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 12,
     WISDOM: 14,
-    CHARISMA: 15,
+    CHARISMA: 15
   },
   armorClass: 13,
   hitPoints: 67,
   hitDice: {
     count: 9,
     die: 8,
-    modifier: 27,
+    modifier: 27
   },
   speeds: [...S.fly(60)],
-  damageResistances: ['acid', 'cold', 'fire', 'lightning', 'thunder', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
+  damageResistances: [
+    'acid',
+    'cold',
+    'fire',
+    'lightning',
+    'thunder',
+    'bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   damageImmunities: ['necrotic', 'poison'],
-  conditionImmunities: ['charmed', 'exhaustion', 'grappled', 'paralyzed', 'petrified', 'poisoned', 'prone', 'restrained', 'unconscious'],
+  conditionImmunities: [
+    'charmed',
+    'exhaustion',
+    'grappled',
+    'paralyzed',
+    'petrified',
+    'poisoned',
+    'prone',
+    'restrained',
+    'unconscious'
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 12,
   challengeRatingId: S.CR.CR_5,
@@ -37,27 +54,30 @@ export const wraith: CreatureAuthored = {
     {
       id: S.featureId(298, 1),
       label: 'Incorporeal Movement',
-      description: 'Incorporeal Movement. The wraith can move through other creatures and objects as if they were difficult terrain.',
+      description:
+        'Incorporeal Movement. The wraith can move through other creatures and objects as if they were difficult terrain.',
       order: 1
     },
     {
       id: S.featureId(298, 2),
       label: 'Sunlight Sensitivity',
-      description: 'Sunlight Sensitivity. While in sunlight, the wraith has disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight.',
+      description:
+        'Sunlight Sensitivity. While in sunlight, the wraith has disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight.',
       order: 2
     },
     {
       id: S.featureId(298, 3),
       label: 'Life Drain',
-      description: 'Life Drain. Melee Weapon Attack: +6 to hit, reach 5 ft., one creature. Hit: 21 (4d8 + 3) necrotic damage, and the target’s hit point maximum is reduced by an amount equal to the necrotic damage taken.',
+      description:
+        'Life Drain. Melee Weapon Attack: +6 to hit, reach 5 ft., one creature. Hit: 21 (4d8 + 3) necrotic damage, and the target’s hit point maximum is reduced by an amount equal to the necrotic damage taken.',
       order: 3
     },
     {
       id: S.featureId(298, 4),
       label: 'Create Specter',
-      description: 'Create Specter. The wraith targets a humanoid it killed; the corpse rises as a specter under the wraith’s control if the body is suitable and the wraith chooses to claim it.',
+      description:
+        'Create Specter. The wraith targets a humanoid it killed; the corpse rises as a specter under the wraith’s control if the body is suitable and the wraith chooses to claim it.',
       order: 4
     }
   ]
 }
-

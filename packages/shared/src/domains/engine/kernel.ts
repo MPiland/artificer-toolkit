@@ -73,6 +73,7 @@ export function runEngine(
     derivedStats: derived.derivedStats,
     calculations: derived.calculations,
     spellState: resolvedSpellGrantState.spellState,
+    spellAccess: resolvedSpellGrantState.spellAccess,
     spellSlots,
     resources,
     ...subjectMechanics,

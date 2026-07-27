@@ -1,16 +1,35 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SHAPE_KIND, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
+import {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SHAPE_KIND,
+  SPELL_ATTRIBUTE,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  TRIGGER,
+  SPELL_COMPONENT,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const floatingDisk: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.FLOATING_DISK,
   label: 'Floating Disk',
-  description: 'This spell creates a circular plane of force that floats above the ground in an unoccupied space you can see. The disk can carry up to 500 pounds and follows you while you remain close enough.',
+  description:
+    'This spell creates a circular plane of force that floats above the ground in an unoccupied space you can see. The disk can carry up to 500 pounds and follows you while you remain close enough.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.WIZARD],
   components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
-  materialDescription: "a drop of mercury",
+  materialDescription: 'a drop of mercury',
   magicSchoolId: schoolId('CONJURATION'),
   attributes: [SPELL_ATTRIBUTE.RITUAL],
   userId: SRD_USER_ID,

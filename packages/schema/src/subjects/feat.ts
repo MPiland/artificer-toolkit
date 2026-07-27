@@ -22,13 +22,15 @@ export const featAuthoredDtoSchema = z.object({
   prerequisites: facetDtoSchema.optional(),
   effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
-  grants: z.object({
-    feats: z.array(featGrantDtoSchema).optional(),
-    modifiers: z.array(modifierGrantDtoSchema).optional(),
-    proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
-    senses: z.array(senseGrantDtoSchema).optional(),
-    spells: z.array(spellGrantDtoSchema).optional()
-  }).optional(),
+  grants: z
+    .object({
+      feats: z.array(featGrantDtoSchema).optional(),
+      modifiers: z.array(modifierGrantDtoSchema).optional(),
+      proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
+      senses: z.array(senseGrantDtoSchema).optional(),
+      spells: z.array(spellGrantDtoSchema).optional()
+    })
+    .optional(),
   features: z.array(featureDtoSchema).optional(),
   userId: z.string(),
   systemId: z.string()

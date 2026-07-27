@@ -115,7 +115,7 @@ export function compileClassState(authored: CharacterClassState): CompiledCharac
   const prepared =
     authored.spells?.prepared && authored.spells.prepared.length
       ? authored.spells.prepared
-    : undefined
+      : undefined
 
   const spells = learned || prepared ? { learned, prepared } : undefined
 
@@ -146,11 +146,11 @@ export function compileCharacterState(authored: CharacterState): CompiledCharact
     vehicles: authored.vehicles?.length ? authored.vehicles : undefined,
     creatureEquipment:
       authored.creatureEquipment && Object.keys(authored.creatureEquipment).length
-      ? authored.creatureEquipment
-      : undefined,
+        ? authored.creatureEquipment
+        : undefined,
     vehicleEquipment:
       authored.vehicleEquipment && Object.keys(authored.vehicleEquipment).length
-      ? authored.vehicleEquipment
-      : undefined
+        ? authored.vehicleEquipment
+        : undefined
   }
 }

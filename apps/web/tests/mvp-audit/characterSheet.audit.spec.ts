@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import {
-  runAndWaitForSuccessfulTrpcProcedure
-} from '../e2e/app/support/trpc'
+import { runAndWaitForSuccessfulTrpcProcedure } from '../e2e/app/support/trpc'
 import { installDevtoolLauncherHiding } from '../e2e/app/support/devtools'
 import { captureAuditNetwork } from './auditNetwork'
 import { navigateForMvpAudit } from './auditNavigation'
@@ -102,7 +100,9 @@ test.describe('MVP character Sheet audit', () => {
       await expect.poll(() => readCurrentHitPoints(page)).toBe(hitPointsBeforeDamage)
 
       await page.reload({ waitUntil: 'networkidle' })
-      await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({ timeout: 120_000 })
+      await expect(page.getByText('Character Sheet', { exact: true })).toBeVisible({
+        timeout: 120_000
+      })
       await goToNotes(page)
       await selectNote(page, noteTitle)
       await expect(page.getByRole('heading', { name: noteTitle, exact: true })).toBeVisible()
@@ -141,7 +141,7 @@ async function goToNotes(page: Page) {
 async function ensureHpControlsOpen(page: Page) {
   const manageHp = page.getByRole('button', { name: 'Manage HP' })
   await expect(manageHp).toBeVisible()
-  if (await manageHp.getAttribute('aria-expanded') !== 'true') {
+  if ((await manageHp.getAttribute('aria-expanded')) !== 'true') {
     await manageHp.click()
   }
   await expect(page.getByLabel('Amount')).toBeVisible()

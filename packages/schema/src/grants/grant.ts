@@ -5,7 +5,7 @@ import {
   authoringModeKindSchema,
   authoringSelectionDuplicatePolicySchema,
   authoringSelectionKindSchema,
-  scalingKindSchema,
+  scalingKindSchema
 } from '../shared/enums.js'
 
 type SelectionPolicyCandidate = {
@@ -83,34 +83,36 @@ export const scalingLevelDtoSchema = z.object({
   selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
 })
 
-export const scalingGrantBaseDtoSchema = staticGrantBaseDtoSchema.extend({
-  selectionKind: authoringSelectionKindSchema,
-  scalingKind: scalingKindSchema,
-  count: z.number().int().optional(),
-  selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
-}).superRefine((value, ctx) => {
-  if (value.scalingKind === 'NONE') {
-    validateChosenGrantSelectionFields(value, ctx)
-    return
-  }
+export const scalingGrantBaseDtoSchema = staticGrantBaseDtoSchema
+  .extend({
+    selectionKind: authoringSelectionKindSchema,
+    scalingKind: scalingKindSchema,
+    count: z.number().int().optional(),
+    selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
+  })
+  .superRefine((value, ctx) => {
+    if (value.scalingKind === 'NONE') {
+      validateChosenGrantSelectionFields(value, ctx)
+      return
+    }
 
-  if (value.count !== undefined) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['count'],
-      message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
-    })
-  }
+    if (value.count !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['count'],
+        message: 'count belongs to progression levels when scalingKind is PER_LEVEL'
+      })
+    }
 
-  if (value.selectionDuplicatePolicy !== undefined) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['selectionDuplicatePolicy'],
-      message:
-        'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
-    })
-  }
-})
+    if (value.selectionDuplicatePolicy !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['selectionDuplicatePolicy'],
+        message:
+          'selectionDuplicatePolicy belongs to progression levels when scalingKind is PER_LEVEL'
+      })
+    }
+  })
 
 export const grantProgressionLevelDtoSchema = scalingLevelDtoSchema
 
@@ -155,10 +157,10 @@ export function validateGrantProgressionSelectionFields(
   }
 
   value.progression.levels.forEach((level, index) => {
-    validateChosenGrantSelectionFields(
-      { ...level, selectionKind: value.selectionKind },
-      ctx,
-      ['progression', 'levels', index]
-    )
+    validateChosenGrantSelectionFields({ ...level, selectionKind: value.selectionKind }, ctx, [
+      'progression',
+      'levels',
+      index
+    ])
   })
 }

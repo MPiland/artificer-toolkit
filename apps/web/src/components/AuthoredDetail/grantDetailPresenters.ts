@@ -24,19 +24,23 @@ type ProficiencyGrantLineOptions = {
   skillLabel?: string
 }
 
-type StartingEquipmentItem = StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
+type StartingEquipmentItem =
+  StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
 
 export function formatProficiencyGrantLines(
   grants: readonly ProficiencyGrantDto[] | null | undefined,
   references: GrantReferenceData,
   options: ProficiencyGrantLineOptions = {}
 ): GrantDetailLine[] {
-  const groups = new Map<string, {
-    id: string
-    label: string
-    order: number
-    parts: string[]
-  }>()
+  const groups = new Map<
+    string,
+    {
+      id: string
+      label: string
+      order: number
+      parts: string[]
+    }
+  >()
 
   for (const grant of [...(grants ?? [])].sort((first, second) => first.order - second.order)) {
     const label = formatProficiencyGrantLineLabel(grant, options)
@@ -86,7 +90,9 @@ export function formatStartingEquipmentLine(
 export function formatGrantDetailLinesHtml(lines: readonly GrantDetailLine[]): string {
   return lines
     .filter((line) => line.description.trim())
-    .map((line) => `<p><strong>${escapeHtml(line.label)}:</strong> ${escapeHtml(line.description)}</p>`)
+    .map(
+      (line) => `<p><strong>${escapeHtml(line.label)}:</strong> ${escapeHtml(line.description)}</p>`
+    )
     .join('')
 }
 
@@ -115,7 +121,9 @@ function formatProficiencyGrantDescription(
     return formatGrantTarget({
       allOptions: isAllTarget(grant, readGrantIds(grant, 'skillIds'), references.skills),
       count: grant.count,
-      labels: readGrantIds(grant, 'skillIds').map((id) => findReferenceLabel(id, references.skills)),
+      labels: readGrantIds(grant, 'skillIds').map((id) =>
+        findReferenceLabel(id, references.skills)
+      ),
       noun: 'skill'
     })
   }
@@ -124,7 +132,9 @@ function formatProficiencyGrantDescription(
     return formatGrantTarget({
       allOptions: isAllTarget(grant, readGrantIds(grant, 'languageIds'), references.languages),
       count: grant.count,
-      labels: readGrantIds(grant, 'languageIds').map((id) => findReferenceLabel(id, references.languages)),
+      labels: readGrantIds(grant, 'languageIds').map((id) =>
+        findReferenceLabel(id, references.languages)
+      ),
       noun: 'language'
     })
   }
@@ -159,7 +169,9 @@ function formatEquipmentProficiencyDescription(
   }
 
   const equipmentIds = readGrantIds(grant, 'equipmentIds')
-  const labels = equipmentIds.map((id) => formatEquipmentName(findReferenceLabel(id, equipmentReferences)))
+  const labels = equipmentIds.map((id) =>
+    formatEquipmentName(findReferenceLabel(id, equipmentReferences))
+  )
   const allOptions = isAllTarget(grant, equipmentIds, [])
 
   if (allOptions && !labels.length) {
@@ -187,9 +199,7 @@ function formatGrantTarget({
 }): string | undefined {
   if (count && count > 0) {
     if (allOptions) {
-      return count === 1
-        ? `Choose any ${noun}.`
-        : `Choose any ${count} ${pluralize(noun)}.`
+      return count === 1 ? `Choose any ${noun}.` : `Choose any ${count} ${pluralize(noun)}.`
     }
 
     if (labels.length === 2 && count === 1) {
@@ -202,9 +212,7 @@ function formatGrantTarget({
         : `Choose ${count} from ${formatOrList(labels)}.`
     }
 
-    return count === 1
-      ? `Choose one ${noun}.`
-      : `Choose ${count} ${pluralize(noun)}.`
+    return count === 1 ? `Choose one ${noun}.` : `Choose ${count} ${pluralize(noun)}.`
   }
 
   if (allOptions) return `all ${pluralize(noun)}`
@@ -217,11 +225,13 @@ function formatStartingEquipmentDescription(
 ): string {
   const setDescriptions = [...(startingEquipment?.sets ?? [])]
     .sort((first, second) => first.order - second.order)
-    .map((set) => [...set.groups]
-      .sort((first, second) => first.order - second.order)
-      .map((group) => formatStartingEquipmentGroup(group, references))
-      .filter(Boolean)
-      .join('; '))
+    .map((set) =>
+      [...set.groups]
+        .sort((first, second) => first.order - second.order)
+        .map((group) => formatStartingEquipmentGroup(group, references))
+        .filter(Boolean)
+        .join('; ')
+    )
     .filter(Boolean)
 
   return ensureSentencePunctuation(sentenceCase(setDescriptions.join('; ')))
@@ -260,12 +270,17 @@ function formatStartingEquipmentItem(
 ): string {
   if (item.startingEquipmentKind === 'CURRENCY') {
     return item.currencies
-      .map((currency) => `${currency.amount} ${formatCurrency(currency.currencyId, references.currencies)}`)
+      .map(
+        (currency) =>
+          `${currency.amount} ${formatCurrency(currency.currencyId, references.currencies)}`
+      )
       .join(', ')
   }
 
   const equipmentIds = readGrantIds(item, 'equipmentIds')
-  const labels = equipmentIds.map((id) => formatEquipmentName(findReferenceLabel(id, references.equipment)))
+  const labels = equipmentIds.map((id) =>
+    formatEquipmentName(findReferenceLabel(id, references.equipment))
+  )
   const fallback = formatEquipmentCategoryTarget(readOptionalString(item, 'category'))
   const choices = labels.length ? labels : [fallback]
 
@@ -276,7 +291,11 @@ function formatStartingEquipmentItem(
   return formatGrantedEquipment(choices, item.quantity)
 }
 
-function formatEquipmentChoice(labels: string[], count: number, category: string | undefined): string {
+function formatEquipmentChoice(
+  labels: string[],
+  count: number,
+  category: string | undefined
+): string {
   if (labels.length === 2 && count === 1) {
     return `choose either ${withIndefiniteArticle(labels[0])} or ${labels[1]}`
   }
@@ -349,10 +368,12 @@ function formatEquipmentCategoryTarget(category: string | undefined): string {
 }
 
 function isFullArmorProficiency(category: string | undefined, properties: string[]): boolean {
-  return category === 'ARMOR'
-    && properties.includes('LIGHT')
-    && properties.includes('MEDIUM')
-    && properties.includes('HEAVY')
+  return (
+    category === 'ARMOR' &&
+    properties.includes('LIGHT') &&
+    properties.includes('MEDIUM') &&
+    properties.includes('HEAVY')
+  )
 }
 
 function isAllTarget<T extends object>(
@@ -370,7 +391,10 @@ function readGrantIds<T extends object, TKey extends string>(value: T, key: TKey
   return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
 }
 
-function readOptionalString<T extends object, TKey extends string>(value: T, key: TKey): string | undefined {
+function readOptionalString<T extends object, TKey extends string>(
+  value: T,
+  key: TKey
+): string | undefined {
   if (!(key in value)) return undefined
   const field = (value as Record<TKey, unknown>)[key]
   return typeof field === 'string' ? field : undefined
@@ -416,11 +440,13 @@ function withIndefiniteArticle(label: string): string {
 }
 
 function doesNotNeedArticle(label: string): boolean {
-  return /^(a|an|all|any|some|\d+)\b/i.test(label)
-    || (label.endsWith('s') && !label.endsWith('ss'))
-    || label === 'armor'
-    || label === 'equipment'
-    || label === 'incense'
+  return (
+    /^(a|an|all|any|some|\d+)\b/i.test(label) ||
+    (label.endsWith('s') && !label.endsWith('ss')) ||
+    label === 'armor' ||
+    label === 'equipment' ||
+    label === 'incense'
+  )
 }
 
 function formatAndList(values: string[]): string {

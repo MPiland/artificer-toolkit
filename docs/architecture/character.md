@@ -74,7 +74,9 @@ The repository upsert is replacement-based and transactional; omitted child stat
 
 ## Snapshot, Sheet, and history
 
-The Sheet path only serves active characters. It hydrates authored character/state plus separately persisted typed adjustments/preferences, resolves Builder content for labels/choices, assembles a `CharacterBuildSnapshot` containing both automatic structural features and explicit acquisitions, loads a compiled registry, and runs the pure engine before projecting the `CharacterSheetResponseDto`. Adjustment source categories, labels, notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for engine assembly.
+The Sheet path only serves active characters. It hydrates authored character/state plus separately persisted typed adjustments/preferences, resolves Builder content for labels/choices, assembles a `CharacterBuildSnapshot` containing both automatic structural features and explicit acquisitions, loads a compiled registry, and runs the pure engine before projecting the `CharacterSheetResponseDto`. Optional manual source notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for engine assembly. Authored engine provenance retains its authoritative source labels independently of those notes.
+
+The main Sheet reference projection keeps canonical skills and saving throws in their dedicated calculated surfaces. Its compact proficiency collection carries only the closed `ARMOR`, `WEAPON`, `TOOL`, and `LANGUAGE` groups, including recognized broad equipment-property grants, so clients can group training without parsing display labels or repeating skills and saves.
 
 Focused Sheet inspection uses the closed `CharacterSheetPanelDto` union. The backend panel resolver combines engine-authored effective values and breakdowns with Sheet-owned labels, notes, editability, valid options, and allowed commands. These DTOs contain design-system semantics only; drawer geometry, responsive composition, focus behavior, and native control selection remain client responsibilities. The web exhaustively maps panel variants into one overlay inspector and does not recalculate mechanics.
 
@@ -85,6 +87,8 @@ Sheet commands (typed adjustments, movement-display preference, rest, hit points
 Typed adjustments use closed family tables and target identities outside `CharacterAuthored` and Builder drafts. The provisional `character_hitpoint_state.max_override` column is deprecated: migration backfills it into `character_hitpoint_adjustments`, repositories no longer hydrate it, and Sheet writes keep it null. Removal of the deprecated column waits for deployed backfill confidence.
 
 Play notes are Sheet-owned titled records with groups and timestamps. Builder-owned profile, personality, and backstory fields remain structural content and are never rewritten by note commands. Spell casting is one atomic command that validates the selected source/cast mode before consuming a slot or limited-use resource. Inventory containers are owned equipment items with capacity metadata; item placement and container-owned currency remain Sheet play state.
+
+Sheet inventory item properties cross the transport boundary as structured `{ code, label }` facts. The stable code remains available for identity and commands, while the backend resolves the authored registry label so web and future native clients never derive presentation text from enum codes.
 
 ## Decision: Builder is distinct from Authoring Schema authoring
 

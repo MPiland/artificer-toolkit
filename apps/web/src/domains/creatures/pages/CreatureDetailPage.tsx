@@ -1,6 +1,4 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
@@ -54,7 +52,10 @@ export function CreatureDetailPage({
 }: {
   creatureId: string
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+  >
   response: CreatureResponseDto
   view: 'active' | 'draft'
 }) {
@@ -76,10 +77,11 @@ export function CreatureDetailPage({
     duplicate: api.content.creatures.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: creatureId,
-    navigateEdit: async (subject) => navigate({
-      params: buildCreatureRouteParams(subject.publicId, subject.label),
-      to: '/creatures/$creaturePublicId/$creatureSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildCreatureRouteParams(subject.publicId, subject.label),
+        to: '/creatures/$creaturePublicId/$creatureSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/creatures' })
   })
 
@@ -87,15 +89,19 @@ export function CreatureDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This creature draft cannot be previewed. Delete it to return to the creature list.</Alert>
+          <Alert color='yellow'>
+            This creature draft cannot be previewed. Delete it to return to the creature list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: creatureId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'creature draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: creatureId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'creature draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -115,18 +121,52 @@ export function CreatureDetailPage({
   }
 
   const item = detailState.item
-  const creatureParams = buildCreatureRouteParams(draft?.publicId ?? response?.publicId ?? creatureId, item.label)
+  const creatureParams = buildCreatureRouteParams(
+    draft?.publicId ?? response?.publicId ?? creatureId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug/edit', params: creatureParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () =>
+            navigate({
+              to: '/creatures/$creaturePublicId/$creatureSlug/edit',
+              params: creatureParams
+            })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug/edit', params: creatureParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({
+                to: '/creatures/$creaturePublicId/$creatureSlug/edit',
+                params: creatureParams
+              })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/creatures/$creaturePublicId/$creatureSlug',
+              params: creatureParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -134,11 +174,12 @@ export function CreatureDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: creatureId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: creatureId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/creatures/new' }) }
@@ -158,8 +199,14 @@ export function CreatureDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams }),
-          onViewDraft: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams }),
+          onViewDraft: () =>
+            navigate({
+              to: '/creatures/$creaturePublicId/$creatureSlug',
+              params: creatureParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getCreatureSections(item, references)}
@@ -183,11 +230,25 @@ function getCreatureFacts(
 ): AuthoredDetailFact[] {
   return [
     { label: 'Category', value: formatEnumLabel(creature.category) },
-    { label: 'Type', value: formatReferenceLabel(creature.creatureTypeId, 'Creature type selected', references.creatureTypes) },
+    {
+      label: 'Type',
+      value: formatReferenceLabel(
+        creature.creatureTypeId,
+        'Creature type selected',
+        references.creatureTypes
+      )
+    },
     { label: 'Size', value: formatReference(creature.size, 'Size selected') },
     { label: 'Armor Class', value: formatNumber(creature.armorClass) },
     { label: 'Hit Points', value: formatNumber(creature.hitPoints) },
-    { label: 'Challenge', value: formatReferenceLabel(creature.challengeRatingId, 'Challenge selected', references.challengeRatings) }
+    {
+      label: 'Challenge',
+      value: formatReferenceLabel(
+        creature.challengeRatingId,
+        'Challenge selected',
+        references.challengeRatings
+      )
+    }
   ]
 }
 
@@ -199,22 +260,38 @@ function getCreatureSections(
     {
       id: 'damage-vulnerabilities',
       title: 'Damage Vulnerabilities',
-      description: formatReferenceLabelList(creature.damageVulnerabilities, 'damage type', references.damageTypes)
+      description: formatReferenceLabelList(
+        creature.damageVulnerabilities,
+        'damage type',
+        references.damageTypes
+      )
     },
     {
       id: 'damage-resistances',
       title: 'Damage Resistances',
-      description: formatReferenceLabelList(creature.damageResistances, 'damage type', references.damageTypes)
+      description: formatReferenceLabelList(
+        creature.damageResistances,
+        'damage type',
+        references.damageTypes
+      )
     },
     {
       id: 'damage-immunities',
       title: 'Damage Immunities',
-      description: formatReferenceLabelList(creature.damageImmunities, 'damage type', references.damageTypes)
+      description: formatReferenceLabelList(
+        creature.damageImmunities,
+        'damage type',
+        references.damageTypes
+      )
     },
     {
       id: 'condition-immunities',
       title: 'Condition Immunities',
-      description: formatReferenceLabelList(creature.conditionImmunities, 'condition', references.conditionTypes)
+      description: formatReferenceLabelList(
+        creature.conditionImmunities,
+        'condition',
+        references.conditionTypes
+      )
     }
   ].filter((item) => item.description !== 'None')
   const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
@@ -224,67 +301,110 @@ function getCreatureSections(
   const reactionItems = featureBuckets.reactions
   const lairActionItems = featureBuckets.lairActions
   const profileItems = getCreatureProfileItems(creature)
-  const traitItems = [
-    ...toDetailItems(creature.details),
-    ...featureBuckets.traits
-  ]
+  const traitItems = [...toDetailItems(creature.details), ...featureBuckets.traits]
 
   return compactAuthoredDetailSections([
-    hasDetailText(creature.description) ? {
-      id: 'description',
-      title: 'Description',
-      content: <AuthoredDetailProse html={creature.description} />
-    } : null,
+    hasDetailText(creature.description)
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: <AuthoredDetailProse html={creature.description} />
+        }
+      : null,
     {
       id: 'stats',
       title: 'Stats',
       content: <CreatureStats creature={creature} references={references} />
     },
-    defenseItems.length ? {
-      id: 'defenses',
-      title: 'Defenses',
-      content: <AuthoredDetailItemList empty='No defenses have been added.' items={defenseItems} />
-    } : null,
-    actionItems.length ? {
-      id: 'actions',
-      title: 'Actions',
-      content: <AuthoredDetailItemList empty='No actions have been added.' items={actionItems} />
-    } : null,
-    bonusActionItems.length ? {
-      id: 'bonus-actions',
-      title: 'Bonus Actions',
-      content: <AuthoredDetailItemList empty='No bonus actions have been added.' items={bonusActionItems} />
-    } : null,
-    reactionItems.length ? {
-      id: 'reactions',
-      title: 'Reactions',
-      content: <AuthoredDetailItemList empty='No reactions have been added.' items={reactionItems} />
-    } : null,
-    lairActionItems.length ? {
-      id: 'lair-actions',
-      title: 'Lair Actions',
-      content: <AuthoredDetailItemList empty='No lair actions have been added.' items={lairActionItems} />
-    } : null,
-    legendaryActionFeature ? {
-      id: 'legendary-actions',
-      title: 'Legendary Actions',
-      content: <LegendaryActionsContent feature={legendaryActionFeature} />
-    } : null,
-    featureBuckets.regionalEffects.length ? {
-      id: 'regional-effects',
-      title: 'Regional Effects',
-      content: <AuthoredDetailItemList empty='No regional effects have been added.' items={featureBuckets.regionalEffects} />
-    } : null,
-    profileItems.length ? {
-      id: 'profile',
-      title: 'Profile',
-      content: <AuthoredDetailItemList empty='No profile details have been added.' items={profileItems} />
-    } : null,
-    traitItems.length ? {
-      id: 'traits',
-      title: 'Traits',
-      content: <AuthoredDetailItemList empty='No traits have been added.' items={traitItems} />
-    } : null
+    defenseItems.length
+      ? {
+          id: 'defenses',
+          title: 'Defenses',
+          content: (
+            <AuthoredDetailItemList empty='No defenses have been added.' items={defenseItems} />
+          )
+        }
+      : null,
+    actionItems.length
+      ? {
+          id: 'actions',
+          title: 'Actions',
+          content: (
+            <AuthoredDetailItemList empty='No actions have been added.' items={actionItems} />
+          )
+        }
+      : null,
+    bonusActionItems.length
+      ? {
+          id: 'bonus-actions',
+          title: 'Bonus Actions',
+          content: (
+            <AuthoredDetailItemList
+              empty='No bonus actions have been added.'
+              items={bonusActionItems}
+            />
+          )
+        }
+      : null,
+    reactionItems.length
+      ? {
+          id: 'reactions',
+          title: 'Reactions',
+          content: (
+            <AuthoredDetailItemList empty='No reactions have been added.' items={reactionItems} />
+          )
+        }
+      : null,
+    lairActionItems.length
+      ? {
+          id: 'lair-actions',
+          title: 'Lair Actions',
+          content: (
+            <AuthoredDetailItemList
+              empty='No lair actions have been added.'
+              items={lairActionItems}
+            />
+          )
+        }
+      : null,
+    legendaryActionFeature
+      ? {
+          id: 'legendary-actions',
+          title: 'Legendary Actions',
+          content: <LegendaryActionsContent feature={legendaryActionFeature} />
+        }
+      : null,
+    featureBuckets.regionalEffects.length
+      ? {
+          id: 'regional-effects',
+          title: 'Regional Effects',
+          content: (
+            <AuthoredDetailItemList
+              empty='No regional effects have been added.'
+              items={featureBuckets.regionalEffects}
+            />
+          )
+        }
+      : null,
+    profileItems.length
+      ? {
+          id: 'profile',
+          title: 'Profile',
+          content: (
+            <AuthoredDetailItemList
+              empty='No profile details have been added.'
+              items={profileItems}
+            />
+          )
+        }
+      : null,
+    traitItems.length
+      ? {
+          id: 'traits',
+          title: 'Traits',
+          content: <AuthoredDetailItemList empty='No traits have been added.' items={traitItems} />
+        }
+      : null
   ])
 }
 
@@ -315,7 +435,9 @@ function CreatureStats({
           {creature.speeds.map((speed, index) => (
             <span className={styles.speedPill} key={`${speed.speedId}-${index}`}>
               <span>{formatReferenceLabel(speed.speedId, 'Speed', references.speeds)}</span>
-              <strong>{speed.amount} {formatEnumLabel(speed.unit)}</strong>
+              <strong>
+                {speed.amount} {formatEnumLabel(speed.unit)}
+              </strong>
             </span>
           ))}
         </div>
@@ -324,7 +446,7 @@ function CreatureStats({
   )
 }
 
-function formatAbilityAbbreviation(ability: typeof abilityOrder[number]): string {
+function formatAbilityAbbreviation(ability: (typeof abilityOrder)[number]): string {
   switch (ability) {
     case 'STRENGTH':
       return 'STR'
@@ -350,11 +472,7 @@ function isLegendaryActionFeature(feature: CreatureFeature) {
   return feature.section === 'LEGENDARY_ACTION'
 }
 
-function LegendaryActionsContent({
-  feature
-}: {
-  feature: CreatureFeature
-}) {
+function LegendaryActionsContent({ feature }: { feature: CreatureFeature }) {
   const options = toDetailItems(feature.options).map((item) => ({
     id: item.id,
     title: item.title,
@@ -417,7 +535,9 @@ function toCreatureFeatureItem(feature: CreatureFeature) {
   }
 }
 
-function getCreatureFeatureSection(feature: CreatureFeature): 'traits' | 'actions' | 'bonusActions' | 'reactions' | 'lairActions' | 'regionalEffects' {
+function getCreatureFeatureSection(
+  feature: CreatureFeature
+): 'traits' | 'actions' | 'bonusActions' | 'reactions' | 'lairActions' | 'regionalEffects' {
   if (feature.section === 'ACTION') return 'actions'
   if (feature.section === 'BONUS_ACTION') return 'bonusActions'
   if (feature.section === 'REACTION') return 'reactions'
@@ -425,15 +545,20 @@ function getCreatureFeatureSection(feature: CreatureFeature): 'traits' | 'action
   if (feature.section === 'REGIONAL_EFFECT') return 'regionalEffects'
   if (hasFeatureActivation(feature, 'REACTION')) return 'reactions'
   if (hasFeatureActivation(feature, 'BONUS_ACTION')) return 'bonusActions'
-  if (hasFeatureActivation(feature, 'ACTION') || feature.label.toLowerCase() === 'multiattack') return 'actions'
+  if (hasFeatureActivation(feature, 'ACTION') || feature.label.toLowerCase() === 'multiattack')
+    return 'actions'
 
   return 'traits'
 }
 
-function hasFeatureActivation(feature: CreatureFeature, activationCode: 'ACTION' | 'BONUS_ACTION' | 'REACTION') {
-  return (feature.effects ?? []).some((effect) => (
-    'activation' in effect.invocation && effect.invocation.activation.code === activationCode
-  ))
+function hasFeatureActivation(
+  feature: CreatureFeature,
+  activationCode: 'ACTION' | 'BONUS_ACTION' | 'REACTION'
+) {
+  return (feature.effects ?? []).some(
+    (effect) =>
+      'activation' in effect.invocation && effect.invocation.activation.code === activationCode
+  )
 }
 
 function getCreatureProfileItems(creature: CreatureAuthoredDto) {

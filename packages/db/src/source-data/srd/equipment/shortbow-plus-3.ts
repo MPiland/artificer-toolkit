@@ -14,5 +14,5 @@ export const shortbowPlus3: EquipmentVariantAuthored = {
   maxBonus: 3,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(296), 3),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

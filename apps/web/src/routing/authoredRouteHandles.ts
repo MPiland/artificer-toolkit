@@ -70,8 +70,8 @@ export function getAuthoredRouteSubjectLabel(
 
 export function getAuthoredRouteSubject(
   fallbackId: string,
-  active: { publicId?: string, item?: { id?: string, label?: string } | null } | null | undefined,
-  draft: { publicId?: string, subjectId?: string, label?: string } | null | undefined
+  active: { publicId?: string; item?: { id?: string; label?: string } | null } | null | undefined,
+  draft: { publicId?: string; subjectId?: string; label?: string } | null | undefined
 ): AuthoredRouteSubject | null {
   const label = getAuthoredRouteSubjectLabel(active, draft)
   const publicId = draft?.publicId ?? active?.publicId ?? fallbackId

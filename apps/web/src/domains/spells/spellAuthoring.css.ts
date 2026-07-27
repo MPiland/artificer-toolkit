@@ -7,9 +7,9 @@ const mobile = 'screen and (max-width: 760px)'
 export const fieldGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
-      'gap': foundationVars.space[4],
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: foundationVars.space[4],
       '@media': {
         [mobile]: {
           gridTemplateColumns: '1fr'
@@ -22,7 +22,7 @@ export const fieldGrid = style({
 export const inputRow = style({
   '@layer': {
     [app]: {
-      'width': 'min(100%, 276px)',
+      width: 'min(100%, 276px)',
       '@media': {
         [mobile]: {
           width: '100%'

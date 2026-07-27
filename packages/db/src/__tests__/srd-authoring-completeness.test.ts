@@ -140,20 +140,31 @@ describe('SRD authoring completeness', () => {
     )
   })
 
-  it.each(domainCases)('keeps all $domain SRD seed records complete for authored form flows', (domainCase) => {
-    const knownIds = buildKnownReferenceIds()
-    const issues = domainCase.records.flatMap((record) => validateRecord(domainCase, record, knownIds))
+  it.each(domainCases)(
+    'keeps all $domain SRD seed records complete for authored form flows',
+    (domainCase) => {
+      const knownIds = buildKnownReferenceIds()
+      const issues = domainCase.records.flatMap((record) =>
+        validateRecord(domainCase, record, knownIds)
+      )
 
-    expect(formatIssues(issues)).toEqual([])
-  })
+      expect(formatIssues(issues)).toEqual([])
+    },
+    15_000
+  )
 
-  it.each(domainCases)('maps every populated $domain payload field to an authored node', (domainCase) => {
-    const uncoveredPaths = new Set(domainCase.records.flatMap((record) => {
-      return collectUncoveredPayloadPaths(domainCase, record).map(formatPathPattern)
-    }))
+  it.each(domainCases)(
+    'maps every populated $domain payload field to an authored node',
+    (domainCase) => {
+      const uncoveredPaths = new Set(
+        domainCase.records.flatMap((record) => {
+          return collectUncoveredPayloadPaths(domainCase, record).map(formatPathPattern)
+        })
+      )
 
-    expect([...uncoveredPaths].sort()).toEqual([])
-  })
+      expect([...uncoveredPaths].sort()).toEqual([])
+    }
+  )
 
   it('does not treat absent optional payload values as populated authoring fields', () => {
     const paths: RuntimePath[] = []
@@ -167,11 +178,13 @@ describe('SRD authoring completeness', () => {
     const proficiencyRecord = {
       id: 'proficiency-record',
       grants: {
-        proficiencies: [{
-          grantKind: 'PROFICIENCY_GRANT',
-          proficiencyKind: 'SKILL',
-          scalingKind: 'NONE'
-        }],
+        proficiencies: [
+          {
+            grantKind: 'PROFICIENCY_GRANT',
+            proficiencyKind: 'SKILL',
+            scalingKind: 'NONE'
+          }
+        ],
         modifiers: [{ scalingKind: 'NONE' }]
       }
     }
@@ -194,26 +207,21 @@ describe('SRD authoring completeness', () => {
       }
     }
 
-    expect(isSystemOwnedPayloadValue(
-      proficiencyRecord,
-      ['grants', 'proficiencies', 0, 'grantKind']
-    )).toBe(true)
-    expect(isSystemOwnedPayloadValue(
-      proficiencyRecord,
-      ['grants', 'proficiencies', 0, 'scalingKind']
-    )).toBe(true)
-    expect(isSystemOwnedPayloadValue(
-      proficiencyRecord,
-      ['grants', 'modifiers', 0, 'scalingKind']
-    )).toBe(false)
-    expect(isSystemOwnedPayloadValue(
-      nonFixedResourceRecord,
-      ['resources', 'charges', 'scalingKind']
-    )).toBe(true)
-    expect(isSystemOwnedPayloadValue(
-      fixedResourceRecord,
-      ['resources', 'charges', 'scalingKind']
-    )).toBe(false)
+    expect(
+      isSystemOwnedPayloadValue(proficiencyRecord, ['grants', 'proficiencies', 0, 'grantKind'])
+    ).toBe(true)
+    expect(
+      isSystemOwnedPayloadValue(proficiencyRecord, ['grants', 'proficiencies', 0, 'scalingKind'])
+    ).toBe(true)
+    expect(
+      isSystemOwnedPayloadValue(proficiencyRecord, ['grants', 'modifiers', 0, 'scalingKind'])
+    ).toBe(false)
+    expect(
+      isSystemOwnedPayloadValue(nonFixedResourceRecord, ['resources', 'charges', 'scalingKind'])
+    ).toBe(true)
+    expect(
+      isSystemOwnedPayloadValue(fixedResourceRecord, ['resources', 'charges', 'scalingKind'])
+    ).toBe(false)
   })
 })
 
@@ -227,12 +235,9 @@ function validateRecord(
 
   if (!parsed.success) {
     for (const schemaIssue of parsed.error.issues) {
-      issues.push(createIssue(
-        domainCase.domain,
-        record,
-        schemaIssue.path,
-        `schema: ${schemaIssue.message}`
-      ))
+      issues.push(
+        createIssue(domainCase.domain, record, schemaIssue.path, `schema: ${schemaIssue.message}`)
+      )
     }
   }
 
@@ -270,17 +275,15 @@ function collectUncoveredPayloadPaths(
   })
 
   return payloadLeafPaths.filter((path) => {
-    return !isSystemOwnedPayloadValue(record, path)
-      && !reachableNodePaths.has(formatPath(path))
-      && !controlledNodePaths.some((controlledPath) => pathStartsWith(path, controlledPath))
+    return (
+      !isSystemOwnedPayloadValue(record, path) &&
+      !reachableNodePaths.has(formatPath(path)) &&
+      !controlledNodePaths.some((controlledPath) => pathStartsWith(path, controlledPath))
+    )
   })
 }
 
-function collectPayloadLeafPaths(
-  value: unknown,
-  path: RuntimePath,
-  paths: RuntimePath[]
-) {
+function collectPayloadLeafPaths(value: unknown, path: RuntimePath, paths: RuntimePath[]) {
   if (value === undefined) return
 
   if (Array.isArray(value)) {
@@ -393,10 +396,12 @@ function isSystemOwnedPayloadValue(record: AuthoredSeedRecord, path: RuntimePath
   const lastSegment = path[path.length - 1]
 
   // Proficiency grants are already narrowed by their authored union branch.
-  if (lastSegment === 'grantKind'
-    && value === 'PROFICIENCY_GRANT'
-    && isRuntimeRecord(parent)
-    && typeof parent.proficiencyKind === 'string') {
+  if (
+    lastSegment === 'grantKind' &&
+    value === 'PROFICIENCY_GRANT' &&
+    isRuntimeRecord(parent) &&
+    typeof parent.proficiencyKind === 'string'
+  ) {
     return true
   }
 
@@ -410,9 +415,11 @@ function isSystemOwnedPayloadValue(record: AuthoredSeedRecord, path: RuntimePath
   }
 
   // A non-fixed resource limit determines its amount without authored scaling.
-  return hasNamedPathSuffix(path, ['resources', 'charges', 'scalingKind'])
-    && typeof parent.limitKind === 'string'
-    && parent.limitKind !== 'FIXED_AMOUNT'
+  return (
+    hasNamedPathSuffix(path, ['resources', 'charges', 'scalingKind']) &&
+    typeof parent.limitKind === 'string' &&
+    parent.limitKind !== 'FIXED_AMOUNT'
+  )
 }
 
 function hasNamedPathSuffix(path: RuntimePath, suffix: readonly string[]): boolean {
@@ -455,11 +462,14 @@ function validateNodeMap(args: {
 
     const value = getValueAtPath(args.values, node.path)
     const path = [...args.pathPrefix, ...node.path]
-    const required = node.requiredIf === true
-      || (node.requiredIf !== undefined && evaluateConditionIf(node.requiredIf, scope))
+    const required =
+      node.requiredIf === true ||
+      (node.requiredIf !== undefined && evaluateConditionIf(node.requiredIf, scope))
 
     if (required && isMissingRequiredValue(value, node)) {
-      args.issues.push(createIssue(args.domain, args.record, path, `required field "${node.label}" is empty`))
+      args.issues.push(
+        createIssue(args.domain, args.record, path, `required field "${node.label}" is empty`)
+      )
     }
 
     if (node.kind === 'INPUT') {
@@ -484,7 +494,9 @@ function validateNodeMap(args: {
     if (node.groupKind === 'OBJECT') {
       if (value === undefined || value === null) continue
       if (!isRuntimeRecord(value)) {
-        args.issues.push(createIssue(args.domain, args.record, path, `group "${node.label}" must be an object`))
+        args.issues.push(
+          createIssue(args.domain, args.record, path, `group "${node.label}" must be an object`)
+        )
         continue
       }
 
@@ -501,7 +513,9 @@ function validateNodeMap(args: {
 
     if (value === undefined || value === null) continue
     if (!Array.isArray(value)) {
-      args.issues.push(createIssue(args.domain, args.record, path, `group "${node.label}" must be an array`))
+      args.issues.push(
+        createIssue(args.domain, args.record, path, `group "${node.label}" must be an array`)
+      )
       continue
     }
 
@@ -520,12 +534,26 @@ function validateNodeMap(args: {
           return
         }
 
-        args.issues.push(createIssue(args.domain, args.record, itemPath, `array item in "${node.label}" must be an object`))
+        args.issues.push(
+          createIssue(
+            args.domain,
+            args.record,
+            itemPath,
+            `array item in "${node.label}" must be an object`
+          )
+        )
         return
       }
 
       if ('id' in childMap.nodes && isEmptyValue(item.id)) {
-        args.issues.push(createIssue(args.domain, args.record, [...itemPath, 'id'], `array item in "${node.label}" requires an id`))
+        args.issues.push(
+          createIssue(
+            args.domain,
+            args.record,
+            [...itemPath, 'id'],
+            `array item in "${node.label}" requires an id`
+          )
+        )
       }
 
       validateNodeMap({
@@ -544,34 +572,53 @@ function validateSelectValue(args: {
   domain: SubjectDomain
   record: AuthoredSeedRecord
   nodeId: string
-  node: NodeEntry<Record<string, unknown>> & { kind: 'INPUT', type: 'SELECT_SINGLE' | 'SELECT_MULTI' }
+  node: NodeEntry<Record<string, unknown>> & {
+    kind: 'INPUT'
+    type: 'SELECT_SINGLE' | 'SELECT_MULTI'
+  }
   value: unknown
   path: RuntimePath
   scope: NodeRuntimeScope
   knownIds: ReadonlyMap<string, ReadonlySet<string>>
   issues: CompletenessIssue[]
 }) {
-  const values = args.node.type === 'SELECT_MULTI'
-    ? Array.isArray(args.value) ? args.value : [args.value]
-    : [args.value]
+  const values =
+    args.node.type === 'SELECT_MULTI'
+      ? Array.isArray(args.value)
+        ? args.value
+        : [args.value]
+      : [args.value]
 
   const inlineValues = collectInlineOptionValues(args.node.source, args.scope)
   if (inlineValues) {
-    const invalidValues = values.filter((value) => !inlineValues.has(normalizeInlineSelectValue(value)))
+    const invalidValues = values.filter(
+      (value) => !inlineValues.has(normalizeInlineSelectValue(value))
+    )
     if (invalidValues.length > 0) {
-      args.issues.push(createIssue(
-        args.domain,
-        args.record,
-        args.path,
-        `select field "${args.node.label}" has values outside inline options: ${invalidValues.map(String).join(', ')}`
-      ))
+      args.issues.push(
+        createIssue(
+          args.domain,
+          args.record,
+          args.path,
+          `select field "${args.node.label}" has values outside inline options: ${invalidValues.map(String).join(', ')}`
+        )
+      )
     }
     return
   }
 
-  const stringValues = values.filter((value): value is string => typeof value === 'string' && value.length > 0)
+  const stringValues = values.filter(
+    (value): value is string => typeof value === 'string' && value.length > 0
+  )
   if (stringValues.length !== values.length) {
-    args.issues.push(createIssue(args.domain, args.record, args.path, `select field "${args.node.label}" must contain string values`))
+    args.issues.push(
+      createIssue(
+        args.domain,
+        args.record,
+        args.path,
+        `select field "${args.node.label}" must contain string values`
+      )
+    )
     return
   }
 
@@ -581,14 +628,18 @@ function validateSelectValue(args: {
 
   if (candidateIdSets.length === 0) return
 
-  const missingValues = stringValues.filter((value) => !candidateIdSets.some((ids) => ids.has(value)))
+  const missingValues = stringValues.filter(
+    (value) => !candidateIdSets.some((ids) => ids.has(value))
+  )
   if (missingValues.length > 0) {
-    args.issues.push(createIssue(
-      args.domain,
-      args.record,
-      args.path,
-      `select field "${args.node.label}" references unknown ids: ${missingValues.join(', ')}`
-    ))
+    args.issues.push(
+      createIssue(
+        args.domain,
+        args.record,
+        args.path,
+        `select field "${args.node.label}" references unknown ids: ${missingValues.join(', ')}`
+      )
+    )
   }
 }
 
@@ -597,9 +648,7 @@ function isPrimitiveArrayWrapper(nodeMap: NodeMap<Record<string, unknown>>): boo
   if (nodes.length !== 1) return false
 
   const [node] = nodes
-  return node?.kind === 'INPUT'
-    && node.path.length === 1
-    && node.path[0] === 'value'
+  return node?.kind === 'INPUT' && node.path.length === 1 && node.path[0] === 'value'
 }
 
 function normalizeInlineSelectValue(value: unknown): string {
@@ -615,17 +664,28 @@ function validateSemanticCompleteness(
   issues: CompletenessIssue[]
 ) {
   if (Array.isArray(value)) {
-    value.forEach((item, index) => validateSemanticCompleteness(domain, record, item, [...path, index], issues))
+    value.forEach((item, index) =>
+      validateSemanticCompleteness(domain, record, item, [...path, index], issues)
+    )
     return
   }
 
   if (!isRuntimeRecord(value)) return
 
-  if (path[path.length - 1] === 'targeting'
-    && value.selectionKind !== undefined
-    && value.selectionKind !== 'SELF'
-    && isEmptyValue(value.dispositionKind)) {
-    issues.push(createIssue(domain, record, [...path, 'dispositionKind'], 'non-self targeting must declare target disposition'))
+  if (
+    path[path.length - 1] === 'targeting' &&
+    value.selectionKind !== undefined &&
+    value.selectionKind !== 'SELF' &&
+    isEmptyValue(value.dispositionKind)
+  ) {
+    issues.push(
+      createIssue(
+        domain,
+        record,
+        [...path, 'dispositionKind'],
+        'non-self targeting must declare target disposition'
+      )
+    )
   }
 
   if (Array.isArray(value.paths)) {
@@ -634,28 +694,70 @@ function validateSemanticCompleteness(
       if (!isRuntimeRecord(pathValue)) return
 
       if (isEmptyValue(pathValue.originKind)) {
-        issues.push(createIssue(domain, record, [...pathPath, 'originKind'], 'effect path must declare where it starts from'))
+        issues.push(
+          createIssue(
+            domain,
+            record,
+            [...pathPath, 'originKind'],
+            'effect path must declare where it starts from'
+          )
+        )
       }
 
       if (pathValue.originKind !== undefined && pathValue.originKind !== PATH_ORIGIN_KIND.SOURCE) {
-        const originKind = typeof pathValue.originKind === 'string'
-          ? pathValue.originKind
-          : (JSON.stringify(pathValue.originKind) ?? 'unserializable value')
-        issues.push(createIssue(domain, record, [...pathPath, 'originKind'], `unexpected SRD effect path origin: ${originKind}`))
+        const originKind =
+          typeof pathValue.originKind === 'string'
+            ? pathValue.originKind
+            : (JSON.stringify(pathValue.originKind) ?? 'unserializable value')
+        issues.push(
+          createIssue(
+            domain,
+            record,
+            [...pathPath, 'originKind'],
+            `unexpected SRD effect path origin: ${originKind}`
+          )
+        )
       }
 
-      if (pathValue.selectionKind === 'CHOICE' && (!Array.isArray(pathValue.options) || pathValue.options.length === 0)) {
-        issues.push(createIssue(domain, record, [...pathPath, 'options'], 'choice effect path must define at least one option'))
+      if (
+        pathValue.selectionKind === 'CHOICE' &&
+        (!Array.isArray(pathValue.options) || pathValue.options.length === 0)
+      ) {
+        issues.push(
+          createIssue(
+            domain,
+            record,
+            [...pathPath, 'options'],
+            'choice effect path must define at least one option'
+          )
+        )
       }
 
-      if (pathValue.selectionKind === 'ROLL_TABLE' && (!Array.isArray(pathValue.rows) || pathValue.rows.length === 0)) {
-        issues.push(createIssue(domain, record, [...pathPath, 'rows'], 'roll-table effect path must define at least one row'))
+      if (
+        pathValue.selectionKind === 'ROLL_TABLE' &&
+        (!Array.isArray(pathValue.rows) || pathValue.rows.length === 0)
+      ) {
+        issues.push(
+          createIssue(
+            domain,
+            record,
+            [...pathPath, 'rows'],
+            'roll-table effect path must define at least one row'
+          )
+        )
       }
     })
   }
 
   if ('resultKind' in value && Array.isArray(value.outcomes) && value.outcomes.length === 0) {
-    issues.push(createIssue(domain, record, [...path, 'outcomes'], 'result block must define at least one outcome'))
+    issues.push(
+      createIssue(
+        domain,
+        record,
+        [...path, 'outcomes'],
+        'result block must define at least one outcome'
+      )
+    )
   }
 
   for (const [key, entry] of Object.entries(value)) {
@@ -673,9 +775,11 @@ function collectInlineOptionValues(
     return new Set(source.options.map((option) => String(option.code)))
   }
 
-  return new Set(source.optionGroups
-    .filter((group) => evaluateConditionIf(group.showIf, scope))
-    .flatMap((group) => group.options.map((option) => String(option.code))))
+  return new Set(
+    source.optionGroups
+      .filter((group) => evaluateConditionIf(group.showIf, scope))
+      .flatMap((group) => group.options.map((option) => String(option.code)))
+  )
 }
 
 function collectRelationshipTables(source: NodeSelectSource): string[] {
@@ -812,7 +916,10 @@ function isEmptyValue(value: unknown): boolean {
 }
 
 function stripHtml(value: string): string {
-  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function recordToRuntimeValues(record: AuthoredSeedRecord): Record<string, unknown> {

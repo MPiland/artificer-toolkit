@@ -1,18 +1,16 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "composite": true,
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "outDir": "dist",
-        "rootDir": "src",
-        "noEmit": false,
-        "stripInternal": true
-    },
-    "include": [
-        "src"
-    ]
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    "stripInternal": true
+  },
+  "include": ["src"]
 }

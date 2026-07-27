@@ -25,7 +25,8 @@ export const damageTypes: DamageTypeOption[] = [
     code: DamageTypeCode.ACID,
     label: 'Acid',
     short: 'Acid',
-    description: 'Acid damage represents corrosive substances that dissolve or eat away at material.',
+    description:
+      'Acid damage represents corrosive substances that dissolve or eat away at material.',
     tooltip: 'Corrosive damage.'
   },
   {
@@ -65,7 +66,8 @@ export const damageTypes: DamageTypeOption[] = [
     code: DamageTypeCode.HEALING,
     label: 'Healing',
     short: 'Heal',
-    description: 'Healing represents restorative energy that restores vitality rather than causing harm.',
+    description:
+      'Healing represents restorative energy that restores vitality rather than causing harm.',
     tooltip: 'Restorative energy.'
   },
   {

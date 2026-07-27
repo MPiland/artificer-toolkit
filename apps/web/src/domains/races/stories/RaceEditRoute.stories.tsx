@@ -86,7 +86,9 @@ export const DragonbornAncestryFeatureBranch: Story = {
 
     const story = getStoryDocument(canvasElement)
     await expect(await story.findByDisplayValue('Breath Weapon')).toBeInTheDocument()
-    await expect(await story.findByText('Exhale destructive fire in a 15-foot cone.')).toBeInTheDocument()
+    await expect(
+      await story.findByText('Exhale destructive fire in a 15-foot cone.')
+    ).toBeInTheDocument()
   }
 }
 export const MasterLocked: Story = {

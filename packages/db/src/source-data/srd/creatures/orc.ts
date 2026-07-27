@@ -16,7 +16,7 @@ export const orc: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 7,
     WISDOM: 11,
-    CHARISMA: 10,
+    CHARISMA: 10
   },
   armorClass: 13,
   armorClassNote: 'hide armor',
@@ -24,10 +24,9 @@ export const orc: CreatureAuthored = {
   hitDice: {
     count: 2,
     die: 8,
-    modifier: 6,
+    modifier: 6
   },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_2,
   xp: 100
 }
-

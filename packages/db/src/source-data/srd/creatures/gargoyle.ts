@@ -16,7 +16,7 @@ export const gargoyle: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 6,
     WISDOM: 11,
-    CHARISMA: 7,
+    CHARISMA: 7
   },
   armorClass: 15,
   armorClassNote: 'natural armor',
@@ -24,13 +24,13 @@ export const gargoyle: CreatureAuthored = {
   hitDice: {
     count: 7,
     die: 8,
-    modifier: 21,
+    modifier: 21
   },
   speeds: [...S.walk(30), ...S.fly(60)],
-  proficiencies: [
-    S.grantedLanguageProficiency(108, 1, 'TERRAN')
+  proficiencies: [S.grantedLanguageProficiency(108, 1, 'TERRAN')],
+  damageResistances: [
+    "bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"
   ],
-  damageResistances: ["bludgeoning, piercing, and slashing from nonmagical attacks that aren't adamantine"],
   damageImmunities: ['poison'],
   conditionImmunities: ['exhaustion', 'petrified', 'poisoned'],
   senses: ['darkvision 60 ft.'],
@@ -41,27 +41,30 @@ export const gargoyle: CreatureAuthored = {
     {
       id: S.featureId(108, 1),
       label: 'False Appearance',
-      description: 'False Appearance. While the gargoyle remains motionless, it is indistinguishable from an inanimate statue.',
+      description:
+        'False Appearance. While the gargoyle remains motionless, it is indistinguishable from an inanimate statue.',
       order: 1
     },
     {
       id: S.featureId(108, 2),
       label: 'Multiattack',
-      description: 'Multiattack. The gargoyle makes two attacks: one with its bite and one with its claws.',
+      description:
+        'Multiattack. The gargoyle makes two attacks: one with its bite and one with its claws.',
       order: 2
     },
     {
       id: S.featureId(108, 3),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
+      description:
+        'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
       order: 3
     },
     {
       id: S.featureId(108, 4),
       label: 'Claws',
-      description: 'Claws. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage.',
+      description:
+        'Claws. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage.',
       order: 4
     }
-  ],
+  ]
 }
-

@@ -9,12 +9,14 @@ export interface AuthSessionSnapshot {
   user: User | null
 }
 
-export const loadCurrentSessionFn = createServerFn({ method: 'GET' }).handler(async (): Promise<AuthSessionSnapshot> => {
-  const supabase = getSupabaseServerClient()
-  const { data: userData } = await supabase.auth.getUser()
+export const loadCurrentSessionFn = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<AuthSessionSnapshot> => {
+    const supabase = getSupabaseServerClient()
+    const { data: userData } = await supabase.auth.getUser()
 
-  return {
-    featureFlags: getApplicationFeatureFlags(),
-    user: userData.user ?? null
+    return {
+      featureFlags: getApplicationFeatureFlags(),
+      user: userData.user ?? null
+    }
   }
-})
+)

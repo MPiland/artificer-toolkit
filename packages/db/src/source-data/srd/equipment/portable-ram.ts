@@ -12,5 +12,5 @@ export const portableRam: EquipmentAuthored = {
   weight: S.lbs(35),
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

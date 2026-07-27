@@ -24,8 +24,10 @@ export function summarizeCharacterSheetMechanics(
     effectId: mechanic.effectId,
     facts: formatMechanicFacts(mechanic),
     outcomes: mechanic.outcomes.map((outcome) => formatMechanicOutcome(outcome, castLevel)),
-    hasScaling: mechanic.outcomes.some((outcome) =>
-      (outcome.kind === 'DAMAGE' || outcome.kind === 'HEAL') && Boolean(outcome.scaling?.length))
+    hasScaling: mechanic.outcomes.some(
+      (outcome) =>
+        (outcome.kind === 'DAMAGE' || outcome.kind === 'HEAL') && Boolean(outcome.scaling?.length)
+    )
   }))
 }
 
@@ -73,9 +75,11 @@ function resolveOutcomeExpression(
 ): string {
   if (castLevel == null || !outcome.scaling?.length) return outcome.expression
 
-  return [...outcome.scaling]
-    .sort((left, right) => right.level - left.level)
-    .find((entry) => entry.level <= castLevel)?.expression ?? outcome.expression
+  return (
+    [...outcome.scaling]
+      .sort((left, right) => right.level - left.level)
+      .find((entry) => entry.level <= castLevel)?.expression ?? outcome.expression
+  )
 }
 
 function formatOutcomePath(pathCode: string): string | undefined {

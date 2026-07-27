@@ -84,9 +84,15 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
 })
 
 function CreatureDetailRoute() {
-  const {
-    creatureId, draft, references, response, view
-  } = Route.useLoaderData()
+  const { creatureId, draft, references, response, view } = Route.useLoaderData()
 
-  return <CreatureDetailPage creatureId={creatureId} draft={draft} references={references} response={response} view={view} />
+  return (
+    <CreatureDetailPage
+      creatureId={creatureId}
+      draft={draft}
+      references={references}
+      response={response}
+      view={view}
+    />
+  )
 }

@@ -1,7 +1,10 @@
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertBackground } from '../upserts/background.js'
-import type { BackgroundRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import type {
+  BackgroundRepository,
+  RepositoryFindAllOptions
+} from '../../../repositories/contracts.js'
 import { orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
@@ -43,10 +46,7 @@ type BackgroundRow = {
 
 type BackgroundOwnedRow = { background_id: string }
 
-function requireLinkedRecord<T>(
-  value: T | null,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message)
   }
@@ -101,17 +101,20 @@ async function hydrateBackgroundRows(
     import('../../features/repositories/feature.js'),
     import('../../grants/repositories/proficiency.js'),
     import('../../shared/repositories/starting_equipment.js'),
-    db.selectFrom('background_details')
+    db
+      .selectFrom('background_details')
       .select(['background_id', 'detail_id', 'sort_order'])
       .where('background_id', 'in', backgroundIds)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('background_features')
+    db
+      .selectFrom('background_features')
       .select(['background_id', 'feature_id', 'sort_order'])
       .where('background_id', 'in', backgroundIds)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('background_proficiency_grants')
+    db
+      .selectFrom('background_proficiency_grants')
       .select(['background_id', 'proficiency_grant_id', 'sort_order'])
       .where('background_id', 'in', backgroundIds)
       .orderBy('sort_order')
@@ -119,7 +122,8 @@ async function hydrateBackgroundRows(
   ])
   const detailRepository = detailRepositoryModule.createDetailRepository(db)
   const proficiencyRepository = proficiencyRepositoryModule.createProficiencyGrantRepository(db)
-  const startingEquipmentRepository = startingEquipmentRepositoryModule.createStartingEquipmentRepository(db)
+  const startingEquipmentRepository =
+    startingEquipmentRepositoryModule.createStartingEquipmentRepository(db)
   const startingEquipmentIds = rows.flatMap((row) =>
     row.starting_equipment_id ? [row.starting_equipment_id] : []
   )
@@ -199,11 +203,11 @@ async function hydrateBackgroundsByIds(
     return new Map()
   }
 
-  const rows = await db
+  const rows = (await db
     .selectFrom('backgrounds')
     .select(BACKGROUND_COLUMNS)
     .where('id', 'in', distinctIds)
-    .execute() as BackgroundRow[]
+    .execute()) as BackgroundRow[]
   const rowsById = new Map(rows.map((row) => [row.id, row]))
 
   return hydrateBackgroundRows(
@@ -231,10 +235,7 @@ export function createBackgroundRepository(db: DBLike): BackgroundRepositoryWith
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('backgrounds')
-        .select(BACKGROUND_COLUMNS)
-        .orderBy('label')
+      let query = db.selectFrom('backgrounds').select(BACKGROUND_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
         query = query.where('system_id', '=', filter.systemId)

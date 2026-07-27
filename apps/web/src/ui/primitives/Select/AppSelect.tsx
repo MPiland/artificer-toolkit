@@ -32,27 +32,29 @@ export function AppSelect({
         withinPortal: true,
         ...comboboxProps
       }}
-      classNames={typeof classNames === 'function'
-        ? (theme, selectProps, context) => ({
-            root: selectStyles.root,
-            label: selectStyles.label,
-            description: selectStyles.description,
-            required: selectStyles.required,
-            input: selectStyles.input,
-            dropdown: selectStyles.dropdown,
-            option: selectStyles.option,
-            ...classNames(theme, selectProps, context)
-          })
-        : {
-            root: selectStyles.root,
-            label: selectStyles.label,
-            description: selectStyles.description,
-            required: selectStyles.required,
-            input: selectStyles.input,
-            dropdown: selectStyles.dropdown,
-            option: selectStyles.option,
-            ...classNames
-          }}
+      classNames={
+        typeof classNames === 'function'
+          ? (theme, selectProps, context) => ({
+              root: selectStyles.root,
+              label: selectStyles.label,
+              description: selectStyles.description,
+              required: selectStyles.required,
+              input: selectStyles.input,
+              dropdown: selectStyles.dropdown,
+              option: selectStyles.option,
+              ...classNames(theme, selectProps, context)
+            })
+          : {
+              root: selectStyles.root,
+              label: selectStyles.label,
+              description: selectStyles.description,
+              required: selectStyles.required,
+              input: selectStyles.input,
+              dropdown: selectStyles.dropdown,
+              option: selectStyles.option,
+              ...classNames
+            }
+      }
       {...props}
     />
   )

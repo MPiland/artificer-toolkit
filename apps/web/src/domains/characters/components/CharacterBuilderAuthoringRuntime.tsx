@@ -42,7 +42,9 @@ export function CharacterBuilderAuthoringRuntime({
 }) {
   const navigate = useNavigate()
   const router = useRouter()
-  const discardDraftMutation = useDiscardCharacterDraftMutation(session.characterId ?? 'missing-character')
+  const discardDraftMutation = useDiscardCharacterDraftMutation(
+    session.characterId ?? 'missing-character'
+  )
   const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
   const handleCancel = useCallback(async () => {
@@ -177,22 +179,25 @@ function CharacterBuilderFormRuntime({
   const commitMutation = useCommitCharacterBuilderMutation()
   const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
-  const handlePreviewFinalize = useCallback(async (value: CharacterFormValues) => {
-    try {
-      const nextPreview = await previewMutation.mutateAsync({
-        character: normalizeCharacterForCommit(value),
-        mode: session.mode,
-        targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
-      })
-      setPreview(nextPreview)
-      setPreviewOpened(true)
-    } catch {
-      notifications.show({
-        color: 'red',
-        message: 'This character is not ready to finalize yet.'
-      })
-    }
-  }, [previewMutation, session.mode])
+  const handlePreviewFinalize = useCallback(
+    async (value: CharacterFormValues) => {
+      try {
+        const nextPreview = await previewMutation.mutateAsync({
+          character: normalizeCharacterForCommit(value),
+          mode: session.mode,
+          targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
+        })
+        setPreview(nextPreview)
+        setPreviewOpened(true)
+      } catch {
+        notifications.show({
+          color: 'red',
+          message: 'This character is not ready to finalize yet.'
+        })
+      }
+    },
+    [previewMutation, session.mode]
+  )
 
   const form = useAppForm({
     defaultValues: session.initialValues,

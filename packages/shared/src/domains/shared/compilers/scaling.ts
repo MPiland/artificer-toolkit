@@ -3,9 +3,7 @@ import { assertNever } from '#utils'
 
 export type CompiledScalingSource = ScalingSourceAuthored
 
-export function compileScalingSource(
-  authored: ScalingSourceAuthored
-): CompiledScalingSource {
+export function compileScalingSource(authored: ScalingSourceAuthored): CompiledScalingSource {
   switch (authored.scalingSource) {
     case SCALING_SOURCE.CHARACTER_LEVEL:
       return { scalingSource: SCALING_SOURCE.CHARACTER_LEVEL }
@@ -31,12 +29,8 @@ export function compileScalingSource(
   }
 }
 
-export type ForbidIfMissing<
-  C,
-  Map extends Record<PropertyKey, object>
->
-  = C extends keyof Map
-    ? Map[C]
-    : {
-        [K in keyof Map[keyof Map]]?: never
-      }
+export type ForbidIfMissing<C, Map extends Record<PropertyKey, object>> = C extends keyof Map
+  ? Map[C]
+  : {
+      [K in keyof Map[keyof Map]]?: never
+    }

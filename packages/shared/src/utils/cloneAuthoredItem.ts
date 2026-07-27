@@ -60,8 +60,10 @@ function shouldRemapAuthoredId(key: string | undefined): boolean {
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object'
-    && value !== null
-    && !Array.isArray(value)
-    && Object.getPrototypeOf(value) === Object.prototype
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  )
 }

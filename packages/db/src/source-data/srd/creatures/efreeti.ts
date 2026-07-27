@@ -16,7 +16,7 @@ export const efreeti: CreatureAuthored = {
     CONSTITUTION: 24,
     INTELLIGENCE: 16,
     WISDOM: 15,
-    CHARISMA: 16,
+    CHARISMA: 16
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
@@ -24,7 +24,7 @@ export const efreeti: CreatureAuthored = {
   hitDice: {
     count: 16,
     die: 10,
-    modifier: 112,
+    modifier: 112
   },
   speeds: [...S.walk(40), ...S.fly(60)],
   proficiencies: [
@@ -40,33 +40,37 @@ export const efreeti: CreatureAuthored = {
     {
       id: S.featureId(95, 1),
       label: 'Elemental Demise',
-      description: 'Elemental Demise. If the efreeti dies, its body disintegrates in a flash of fire and puff of smoke, leaving behind only equipment the efreeti was wearing or carrying.',
+      description:
+        'Elemental Demise. If the efreeti dies, its body disintegrates in a flash of fire and puff of smoke, leaving behind only equipment the efreeti was wearing or carrying.',
       order: 1
     },
     {
       id: S.featureId(95, 2),
       label: 'Innate Spellcasting',
-      description: "Innate Spellcasting. The efreeti's innate spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). It can innately cast the following spells, requiring no material components: At will: detect magic. 3/day each: enlarge/reduce, tongues. 1/day each: conjure elemental (fire elemental only), gaseous form, invisibility, major image, plane shift, wall of fire.",
+      description:
+        "Innate Spellcasting. The efreeti's innate spellcasting ability is Charisma (spell save DC 15, +7 to hit with spell attacks). It can innately cast the following spells, requiring no material components: At will: detect magic. 3/day each: enlarge/reduce, tongues. 1/day each: conjure elemental (fire elemental only), gaseous form, invisibility, major image, plane shift, wall of fire.",
       order: 2
     },
     {
       id: S.featureId(95, 3),
       label: 'Multiattack',
-      description: 'Multiattack. The efreeti makes two scimitar attacks or uses its Hurl Flame twice.',
+      description:
+        'Multiattack. The efreeti makes two scimitar attacks or uses its Hurl Flame twice.',
       order: 3
     },
     {
       id: S.featureId(95, 4),
       label: 'Scimitar',
-      description: 'Scimitar. Melee Weapon Attack: +10 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage plus 7 (2d6) fire damage.',
+      description:
+        'Scimitar. Melee Weapon Attack: +10 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage plus 7 (2d6) fire damage.',
       order: 4
     },
     {
       id: S.featureId(95, 5),
       label: 'Hurl Flame',
-      description: 'Hurl Flame. Ranged Spell Attack: +7 to hit, range 120 ft., one target. Hit: 17 (5d6) fire damage.',
+      description:
+        'Hurl Flame. Ranged Spell Attack: +7 to hit, range 120 ft., one target. Hit: 17 (5d6) fire damage.',
       order: 5
     }
   ]
 }
-

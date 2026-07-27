@@ -24,30 +24,32 @@ export function CharacterSheetCalculationBreakdown({
         >
           <div>
             <Text>{contribution.sourceLabel}</Text>
-            {contribution.sourceNote
-              ? <Text className={styles.muted}>{contribution.sourceNote}</Text>
-              : null}
-            {contribution.state === 'SUPPRESSED'
-              ? <Badge color='gray' size='xs' variant='light'>Suppressed</Badge>
-              : null}
+            {contribution.sourceNote ? (
+              <Text className={styles.muted}>{contribution.sourceNote}</Text>
+            ) : null}
+            {contribution.state === 'SUPPRESSED' ? (
+              <Badge color='gray' size='xs' variant='light'>
+                Suppressed
+              </Badge>
+            ) : null}
           </div>
           <Text fw={760}>{formatSigned(contribution.value)}</Text>
         </div>
       ))}
-      {calculation.override
-        ? (
-            <div className={styles.calculationRow}>
-              <div>
-                <Text>{calculation.override.sourceLabel}</Text>
-                {calculation.override.sourceNote
-                  ? <Text className={styles.muted}>{calculation.override.sourceNote}</Text>
-                  : null}
-                <Badge color='orange' size='xs' variant='light'>Absolute override</Badge>
-              </div>
-              <Text fw={760}>{calculation.override.value}</Text>
-            </div>
-          )
-        : null}
+      {calculation.override ? (
+        <div className={styles.calculationRow}>
+          <div>
+            <Text>{calculation.override.sourceLabel}</Text>
+            {calculation.override.sourceNote ? (
+              <Text className={styles.muted}>{calculation.override.sourceNote}</Text>
+            ) : null}
+            <Badge color='orange' size='xs' variant='light'>
+              Absolute override
+            </Badge>
+          </div>
+          <Text fw={760}>{calculation.override.value}</Text>
+        </div>
+      ) : null}
       <div className={styles.calculationRow}>
         <Text fw={760}>Effective value</Text>
         <Text fw={800}>{calculation.effective}</Text>

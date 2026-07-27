@@ -31,10 +31,7 @@ describe('vehicle authoring utils', () => {
     const payload = normalizeVehicleForSubmit({
       ...vehicle,
       label: '  ',
-      properties: [
-        { value: ' fast ' },
-        { value: '' }
-      ]
+      properties: [{ value: ' fast ' }, { value: '' }]
     })
 
     expect(payload).toMatchObject({
@@ -46,7 +43,9 @@ describe('vehicle authoring utils', () => {
   })
 
   it('maps persisted property strings to editable property rows', () => {
-    expect(toVehicleFormValues(ownedVehicleResponseFixture.item).properties).toEqual([{ value: 'fast' }])
+    expect(toVehicleFormValues(ownedVehicleResponseFixture.item).properties).toEqual([
+      { value: 'fast' }
+    ])
   })
 
   it('creates nested group defaults', () => {

@@ -3,15 +3,18 @@ import {
   createCharacterEventRepository,
   createCharacterRepository,
   createCharacterSheetAdjustmentRepository,
+  createCharacterSheetPlayStateRepository,
   createEquipmentRepository,
   getCharacterSheetMechanicsQuery,
   type CharacterSheetStatePatch,
+  type CharacterSpellCustomization,
   type DBLike
 } from '@artificer-toolkit/db'
 import {
   ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  EQUIPMENT_PROPERTY_REGISTRY,
   FEATURE_ATTRIBUTE,
   PREPARE_LIMIT_METHOD_KIND,
   ROUNDING_CODE,
@@ -21,6 +24,7 @@ import {
   runEngine,
   type CharacterBuildSnapshot,
   type EngineCharacterOutput,
+  type CharacterMechanicSourceRef,
   type EngineProficiency,
   type EngineResource,
   type EngineSense,
@@ -28,22 +32,35 @@ import {
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
 import {
+  createCharacterDefinitionSourceInstanceId,
+  createCharacterResourceOwnerKey,
+  createCharacterSpellSourceKey,
   toCharacterMechanicalAdjustment,
+  toCharacterResourceOwnerKey,
   type CharacterMovementDisplayPreference,
+  type CharacterResourceOwnerRef,
+  type CharacterResourceUsage,
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
 import { createHash } from 'node:crypto'
 
 import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
 import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/engine/resolution'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CharacterAuthored,
+  CharacterProvenance
+} from '@artificer-toolkit/shared/subjects/authored'
+import { getCharacterProvenanceIdentityKey } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { CharacterSheetCoreAdjustmentCommandDto } from '@artificer-toolkit/schema/api/characterSheet'
+import type {
+  CharacterSheetCoreAdjustmentCommandDto,
+  CharacterSheetItemAdjustmentCommandDto
+} from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { resolveCharacterBuilder, type CharacterBuilderResolution } from './builderService.js'
 import {
@@ -58,6 +75,7 @@ import {
   characterSheetAdjustmentMatchesPanelTarget,
   getCharacterSheetPanelAdjustmentIds
 } from './sheetPanelTarget.js'
+import { getProficiencyTargetKind } from './sheetProficiency.js'
 
 type CharacterSheetStateCommand = CharacterSheetCommandInputDto extends infer Command
   ? Command extends CharacterSheetCommandInputDto
@@ -166,8 +184,12 @@ function formatProficiencyLabel(params: {
   switch (proficiency.kind) {
     case 'EQUIPMENT':
       return params.equipmentLabels.get(proficiency.subjectId) ?? 'Unknown equipment'
-    case 'EQUIPMENT_PROPERTY':
-      return formatCodeLabel(proficiency.subjectId)
+    case 'EQUIPMENT_PROPERTY': {
+      const propertyLabel = formatCodeLabel(proficiency.subjectId)
+      if (proficiency.category === 'ARMOR') return `${propertyLabel} Armor`
+      if (proficiency.category === 'WEAPON') return `${propertyLabel} Weapons`
+      return propertyLabel
+    }
     case 'LANGUAGE':
       return params.languageLabels.get(proficiency.subjectId) ?? 'Unknown language'
     case 'SAVE_ABILITY':
@@ -496,6 +518,85 @@ function createEngineHitpointEntries(
     }))
 }
 
+type ClassSpellSelectionSource = {
+  sourceKind: 'CLASS' | 'SUBCLASS'
+  sourceRecordId: string
+}
+
+function classSpellSelectionKey(classId: string, spellId: string): string {
+  return `${classId}:${spellId}`
+}
+
+function getClassSpellSelectionSources(
+  character: CharacterAuthored
+): ReadonlyMap<string, ClassSpellSelectionSource> {
+  const sources = new Map<string, ClassSpellSelectionSource>()
+
+  for (const selection of character.intent.spellSelections ?? []) {
+    if (selection.source.kind !== 'CLASS' && selection.source.kind !== 'SUBCLASS') continue
+    const source = selection.source
+    const classId =
+      source.kind === 'CLASS'
+        ? source.classId
+        : character.intent.classes.find((entry) => entry.subclassId === source.subclassId)?.classId
+    if (!classId) continue
+
+    for (const spellId of selection.spells) {
+      const key = classSpellSelectionKey(classId, spellId)
+      if (sources.has(key)) continue
+      sources.set(key, {
+        sourceKind: source.kind,
+        sourceRecordId: selection.id
+      })
+    }
+  }
+
+  return sources
+}
+
+function createEngineSpellSources(
+  character: CharacterAuthored
+): NonNullable<CharacterBuildSnapshot['spellSources']> {
+  const sources = new Map<string, NonNullable<CharacterBuildSnapshot['spellSources']>[number]>()
+  const classSelectionSources = getClassSpellSelectionSources(character)
+  const add = (
+    spellId: string,
+    sourceKind:
+      | 'BACKGROUND'
+      | 'CLASS'
+      | 'FEAT'
+      | 'FEATURE'
+      | 'ITEM'
+      | 'OPTION'
+      | 'RACE'
+      | 'SUBCLASS',
+    sourceRecordId: string
+  ) => {
+    const source = {
+      spellId,
+      sourceKind,
+      sourceInstanceId: createCharacterDefinitionSourceInstanceId(sourceKind, sourceRecordId)
+    }
+    sources.set(createCharacterSpellSourceKey(source), source)
+  }
+
+  for (const selection of character.intent.spellSelections ?? []) {
+    for (const spellId of selection.spells) add(spellId, selection.source.kind, selection.id)
+  }
+  for (const classState of character.state.classes ?? []) {
+    for (const spellId of [
+      ...(classState.spells?.learned ?? []),
+      ...(classState.spells?.prepared ?? [])
+    ]) {
+      const selected = classSelectionSources.get(
+        classSpellSelectionKey(classState.classId, spellId)
+      )
+      add(spellId, selected?.sourceKind ?? 'CLASS', selected?.sourceRecordId ?? classState.classId)
+    }
+  }
+  return [...sources.values()]
+}
+
 function createCharacterEngineInput(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution,
@@ -554,6 +655,7 @@ function createCharacterEngineInput(
       hitpoints: createEngineHitpointEntries(character),
       features: createCharacterEngineFeatures(character, resolution),
       equipmentItems,
+      spellSources: createEngineSpellSources(character),
       adjustments: adjustments.map(toCharacterMechanicalAdjustment),
       movementDisplayPreference
     }
@@ -654,6 +756,19 @@ type CharacterSheetSpellSource = {
   id?: string
   classId?: string
   label: string
+  source: {
+    spellId: string
+    sourceKind:
+      | 'BACKGROUND'
+      | 'CLASS'
+      | 'FEAT'
+      | 'FEATURE'
+      | 'ITEM'
+      | 'OPTION'
+      | 'RACE'
+      | 'SUBCLASS'
+    sourceInstanceId: string
+  }
   canPrepare: boolean
   prepared: boolean
   provenance?:
@@ -669,6 +784,7 @@ type CharacterSheetSpellSource = {
   castMode?: 'SPELL_SLOT' | 'AT_WILL' | 'FIXED_LEVEL' | 'LIMITED_USE'
   fixedLevel?: number
   resourceGrantId?: string
+  resourceOwner?: CharacterResourceOwnerRef
 }
 
 const DEFAULT_NOTE_GROUPS = [
@@ -983,7 +1099,9 @@ function getSpellSourcesBySpellId(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>,
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
-  preparationCapableClassIds: ReadonlySet<string>
+  preparationCapableClassIds: ReadonlySet<string>,
+  spellAccess: readonly EngineCharacterOutput['spellAccess'][number][],
+  featureLabels: ReadonlyMap<string, string>
 ): Map<string, CharacterSheetSpellSource[]> {
   const classStateById = new Map(
     (character.state.classes ?? []).map((classState) => [classState.classId, classState])
@@ -998,6 +1116,7 @@ function getSpellSourcesBySpellId(
     character.intent.classes.map((classIntent, index) => [classIntent.classId, index])
   )
   const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
+  const classSelectionSources = getClassSpellSelectionSources(character)
   const sourcesBySpellId = new Map<string, Map<string, CharacterSheetSpellSource>>()
 
   function addSpellSource(
@@ -1012,12 +1131,28 @@ function getSpellSourcesBySpellId(
     const classState = classStateById.get(classId)
     const prepared = classState?.spells?.prepared?.includes(spellId) ?? false
     const known = knownSpellIdsByClassId.get(classId)?.has(spellId) ?? false
-    const current = sources.get(classId)
-    sources.set(classId, {
-      id: sourceId ?? classId,
+    const selectedSource =
+      sourceId === undefined
+        ? classSelectionSources.get(classSpellSelectionKey(classId, spellId))
+        : undefined
+    const effectiveProvenance = selectedSource?.sourceKind ?? provenance
+    const sourceInstanceId = createCharacterDefinitionSourceInstanceId(
+      effectiveProvenance,
+      sourceId ?? selectedSource?.sourceRecordId ?? classId
+    )
+    const source = {
+      spellId,
+      sourceKind: effectiveProvenance,
+      sourceInstanceId
+    }
+    const sourceKey = createCharacterSpellSourceKey(source)
+    const current = sources.get(sourceKey)
+    sources.set(sourceKey, {
+      id: sourceInstanceId,
       classId,
       label: classLabels.get(classId) ?? 'Class',
-      provenance,
+      source,
+      provenance: effectiveProvenance,
       ...(prepared
         ? { acquisition: 'PREPARED' as const }
         : known
@@ -1056,9 +1191,16 @@ function getSpellSourcesBySpellId(
 
     for (const spellId of selection.spells) {
       const existing = sourcesBySpellId.get(spellId) ?? new Map<string, CharacterSheetSpellSource>()
-      existing.set(selection.id, {
-        id: selection.id,
+      const sourceInstanceId = createCharacterDefinitionSourceInstanceId(source.kind, selection.id)
+      const spellSource = {
+        spellId,
+        sourceKind: source.kind,
+        sourceInstanceId
+      }
+      existing.set(createCharacterSpellSourceKey(spellSource), {
+        id: sourceInstanceId,
         label: source.kind === 'FEATURE' ? 'Feature' : 'Option',
+        source: spellSource,
         provenance: source.kind,
         acquisition: 'GRANTED',
         castMode: 'SPELL_SLOT',
@@ -1078,6 +1220,46 @@ function getSpellSourcesBySpellId(
       if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId))
         addSpellSource(spellId, classState.classId)
     }
+  }
+
+  for (const access of spellAccess) {
+    const sources =
+      sourcesBySpellId.get(access.spellId) ?? new Map<string, CharacterSheetSpellSource>()
+    const attributes = new Set(access.attributes ?? [])
+    const source = {
+      spellId: access.spellId,
+      sourceKind: 'FEATURE' as const,
+      sourceInstanceId: access.sourceInstanceId
+    }
+    sources.set(createCharacterSpellSourceKey(source), {
+      id: access.id,
+      label:
+        featureLabels.get(access.sourceFeatureId) ??
+        (access.source.kind === 'CLASS'
+          ? (classLabels.get(access.source.classId) ?? 'Feature')
+          : 'Feature'),
+      source,
+      provenance: 'FEATURE',
+      acquisition: attributes.has('PREPARED')
+        ? 'ALWAYS_PREPARED'
+        : attributes.has('KNOWN')
+          ? 'KNOWN'
+          : 'GRANTED',
+      castMode: attributes.has('LIMITED_USE')
+        ? 'LIMITED_USE'
+        : attributes.has('CAST_AT_WILL')
+          ? 'AT_WILL'
+          : attributes.has('CAST_AT_LEVEL')
+            ? 'FIXED_LEVEL'
+            : 'SPELL_SLOT',
+      ...(attributes.has('CAST_AT_LEVEL') && access.castAtLevel !== undefined
+        ? { fixedLevel: access.castAtLevel }
+        : {}),
+      ...(access.charges ? { resourceGrantId: access.id } : {}),
+      canPrepare: false,
+      prepared: attributes.has('PREPARED')
+    })
+    sourcesBySpellId.set(access.spellId, sources)
   }
 
   return new Map(
@@ -1121,6 +1303,258 @@ function getSpellPreparationSources(
         ].filter((spellId) => sheetSpellIds.has(spellId))
       }
     })
+}
+
+type SheetSpell = CharacterSheetResponseDto['spells']['spells'][number]
+type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
+type SheetSpellSlot = CharacterSheetResponseDto['spells']['slots'][number]
+type SheetResource = CharacterSheetResponseDto['resources']['items'][number]
+
+function isActiveSpellSource(spell: SheetSpell, source: SheetSpellSource): boolean {
+  if (source.acquisition === 'ALWAYS_PREPARED' || source.acquisition === 'GRANTED') return true
+  if (spell.level === 0) return source.acquisition === 'KNOWN' || Boolean(source.prepared)
+  if (source.canPrepare) return Boolean(source.prepared)
+  return source.acquisition === 'KNOWN' || Boolean(source.prepared)
+}
+
+function applyFlatSpellDamageBonus(expression: string, bonus: number): string {
+  if (bonus === 0) return expression
+  return `${expression} ${bonus > 0 ? '+' : '-'} ${Math.abs(bonus)}`
+}
+
+function getSpellPrimaryEffect(
+  mechanics: readonly CharacterSheetProjectedMechanic[],
+  castLevel: number,
+  damageBonus: number
+): string | undefined {
+  const outcomes = mechanics.flatMap((mechanic) => mechanic.outcomes)
+  const damage = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
+  if (damage?.kind === 'DAMAGE') {
+    const expression =
+      damage.scaling?.find((entry) => entry.level === castLevel)?.expression ?? damage.expression
+    return `${applyFlatSpellDamageBonus(expression, damageBonus)} ${damage.damageTypeLabel}`
+  }
+
+  return undefined
+}
+
+function getExplicitSpellCastLevels(
+  spell: SheetSpell,
+  source: SheetSpellSource,
+  ownedSlotLevels: ReadonlySet<number>
+): number[] {
+  const baseLevel = source.fixedLevel ?? spell.level
+  if ((source.castMode ?? 'SPELL_SLOT') !== 'SPELL_SLOT' || spell.level === 0) return [baseLevel]
+
+  const explicitLevels = new Set(
+    (spell.mechanics ?? []).flatMap((mechanic) =>
+      mechanic.outcomes.flatMap((outcome) =>
+        outcome.kind === 'DAMAGE' || outcome.kind === 'HEAL'
+          ? (outcome.scaling ?? []).map((entry) => entry.level)
+          : []
+      )
+    )
+  )
+  return [
+    baseLevel,
+    ...[...explicitLevels].filter((level) => level > baseLevel && ownedSlotLevels.has(level))
+  ].sort((left, right) => left - right)
+}
+
+function getSpellCastAvailability(params: {
+  spell: SheetSpell
+  source: SheetSpellSource
+  castLevel: number
+  baseEntry: boolean
+  slots: readonly SheetSpellSlot[]
+  resources: readonly SheetResource[]
+}): {
+  available: boolean
+  unavailableReason?: string
+  slotKey?: string
+} {
+  const castMode = params.source.castMode ?? 'SPELL_SLOT'
+  if (params.spell.level === 0 || castMode === 'AT_WILL') return { available: true }
+
+  if (castMode === 'LIMITED_USE' || castMode === 'FIXED_LEVEL') {
+    if (!params.source.resourceGrantId) {
+      return castMode === 'FIXED_LEVEL'
+        ? { available: true }
+        : { available: false, unavailableReason: 'No linked uses are available.' }
+    }
+    const resource = params.resources.find(
+      (candidate) =>
+        candidate.owner.kind === 'SPELL_SOURCE' &&
+        candidate.owner.resourceGrantId === params.source.resourceGrantId &&
+        createCharacterSpellSourceKey(candidate.owner.source) ===
+          createCharacterSpellSourceKey(params.source.source)
+    )
+    return resource?.remaining
+      ? { available: true }
+      : { available: false, unavailableReason: 'No uses remaining.' }
+  }
+
+  const eligibleSlots = params.slots
+    .filter((slot) => {
+      const level = slot.level ?? parseSlotLevel(slot.slotKey)
+      return (
+        level !== null &&
+        (params.baseEntry ? level >= params.castLevel : level === params.castLevel) &&
+        slot.max > 0
+      )
+    })
+    .sort(
+      (left, right) =>
+        (left.level ?? parseSlotLevel(left.slotKey) ?? 0) -
+        (right.level ?? parseSlotLevel(right.slotKey) ?? 0)
+    )
+  const selected = eligibleSlots.find((slot) => slot.remaining > 0) ?? eligibleSlots[0]
+  if (!selected) {
+    return {
+      available: false,
+      unavailableReason: `No level ${params.castLevel} spell slot is available.`
+    }
+  }
+  return selected.remaining > 0
+    ? { available: true, slotKey: selected.slotKey }
+    : {
+        available: false,
+        unavailableReason: `${selected.label} spell slots are exhausted.`,
+        slotKey: selected.slotKey
+      }
+}
+
+function buildActiveSpellGroups(params: {
+  spells: readonly SheetSpell[]
+  slots: readonly SheetSpellSlot[]
+  resources: readonly SheetResource[]
+  spellMechanics: EngineCharacterOutput['spellMechanics']
+}): CharacterSheetResponseDto['spells']['activeGroups'] {
+  const ownedSlotLevels = new Set(
+    params.slots.flatMap((slot) => {
+      const level = slot.level ?? parseSlotLevel(slot.slotKey)
+      return level !== null && slot.max > 0 ? [level] : []
+    })
+  )
+  const spellMechanicsBySourceKey = new Map(
+    params.spellMechanics.map((mechanics) => [
+      createCharacterSpellSourceKey(mechanics.source),
+      mechanics
+    ])
+  )
+  const rows = params.spells.flatMap((spell) =>
+    (spell.sources ?? []).flatMap((source) => {
+      if (!isActiveSpellSource(spell, source)) return []
+      const sourceKey = createCharacterSpellSourceKey(source.source)
+      const sourceMechanics = spellMechanicsBySourceKey.get(sourceKey)
+      const castLevels = getExplicitSpellCastLevels(spell, source, ownedSlotLevels)
+      return castLevels.map((castLevel, index) => {
+        const mechanics = spell.mechanics ?? []
+        const availability = getSpellCastAvailability({
+          spell,
+          source,
+          castLevel,
+          baseEntry: index === 0,
+          slots: params.slots,
+          resources: params.resources
+        })
+        const displayName = source.customName ?? spell.label
+        const primaryEffect = getSpellPrimaryEffect(
+          mechanics,
+          castLevel,
+          sourceMechanics?.damageBonus ?? 0
+        )
+        const activation = mechanics
+          .map((mechanic) => mechanic.activation)
+          .find((candidate) => candidate?.kind.trim())
+        const activationType: 'ACTION' | 'BONUS_ACTION' | 'REACTION' | 'FREE' | undefined =
+          activation?.kind === 'ACTION'
+            ? 'ACTION'
+            : activation?.kind === 'BONUS_ACTION'
+              ? 'BONUS_ACTION'
+              : activation?.kind === 'REACTION'
+                ? 'REACTION'
+                : activation?.kind === 'FREE'
+                  ? 'FREE'
+                  : undefined
+        const activationKindLabel = activation ? formatCodeLabel(activation.kind) : undefined
+        const activationLabel =
+          activation && activationKindLabel
+            ? activation.amount === 1
+              ? activationKindLabel
+              : `${activation.amount} ${activationKindLabel.toLowerCase()}s`
+            : undefined
+        const rangeLabel = mechanics
+          .map((mechanic) => mechanic.rangeLabel?.trim())
+          .find((candidate): candidate is string => Boolean(candidate))
+        const hasAttack = mechanics.some(
+          (mechanic) => mechanic.trigger === 'SPELL_ATTACK' || mechanic.attackBonus !== undefined
+        )
+        const authoredAttackBonus = mechanics.find(
+          (mechanic) => mechanic.attackBonus !== undefined
+        )?.attackBonus
+        const save = mechanics.find((mechanic) => mechanic.save)?.save
+        const attackBonus = sourceMechanics?.attackBonus ?? authoredAttackBonus
+        const saveDc = sourceMechanics?.saveDC ?? save?.dc
+        const hitOrDcLabel =
+          hasAttack && attackBonus !== undefined
+            ? formatModifier(attackBonus)
+            : save && saveDc !== undefined
+              ? `${ABILITIES[save.ability].short} ${saveDc}`
+              : undefined
+        return {
+          rowId: `${sourceKey}:level:${castLevel}`,
+          target: { kind: 'SPELL' as const, source: source.source, castLevel },
+          spellId: spell.id,
+          source: source.source,
+          sourceId: source.id ?? source.source.sourceInstanceId,
+          displayName,
+          sourceLabel: source.label,
+          castLevel,
+          ...(activationType ? { activationType } : {}),
+          ...(activationLabel ? { activationLabel } : {}),
+          ...(rangeLabel ? { rangeLabel } : {}),
+          ...(hitOrDcLabel ? { hitOrDcLabel } : {}),
+          ...(primaryEffect ? { primaryEffect } : {}),
+          available: availability.available,
+          ...(availability.unavailableReason
+            ? { unavailableReason: availability.unavailableReason }
+            : {}),
+          cast: {
+            spellId: spell.id,
+            sourceId: source.id ?? source.source.sourceInstanceId,
+            ...(availability.slotKey ? { slotKey: availability.slotKey } : {})
+          }
+        }
+      })
+    })
+  )
+
+  const duplicateCounts = new Map<string, number>()
+  for (const row of rows) {
+    const key = `${row.castLevel}:${row.displayName.toLocaleLowerCase()}`
+    duplicateCounts.set(key, (duplicateCounts.get(key) ?? 0) + 1)
+  }
+
+  return [...new Set(rows.map((row) => row.castLevel))]
+    .sort((left, right) => left - right)
+    .map((level) => ({
+      level,
+      label: level === 0 ? 'Cantrips' : `Level ${level}`,
+      entries: rows
+        .filter((row) => row.castLevel === level)
+        .map((row) => {
+          const duplicateKey = `${row.castLevel}:${row.displayName.toLocaleLowerCase()}`
+          return (duplicateCounts.get(duplicateKey) ?? 0) > 1
+            ? { ...row, sourceQualifier: row.sourceLabel }
+            : row
+        })
+        .sort(
+          (left, right) =>
+            left.displayName.localeCompare(right.displayName) ||
+            left.rowId.localeCompare(right.rowId)
+        )
+    }))
 }
 
 function getSheetPreparationAvailableSpellIds(
@@ -1201,14 +1635,57 @@ function findResourceGrantRecord(
   )
 }
 
-function getResourceRecovery(resetKind: string): 'SHORT_REST' | 'LONG_REST' | 'OTHER' {
+function getResourceRecovery(
+  resetKind: string
+): CharacterSheetResponseDto['resources']['items'][number]['recoveries'][number] {
   switch (resetKind) {
+    case 'DAILY':
+    case 'DAWN':
+    case 'DUSK':
     case 'SHORT_REST':
-      return 'SHORT_REST'
     case 'LONG_REST':
-      return 'LONG_REST'
+    case 'MANUAL':
+      return { trigger: resetKind, amount: { kind: 'ALL' } }
     default:
-      return 'OTHER'
+      return { trigger: 'MANUAL', amount: { kind: 'ALL' } }
+  }
+}
+
+function resourceGrantSourceRef(
+  source: CharacterProvenance,
+  systemId: string
+): CharacterMechanicSourceRef {
+  if (source.kind === 'MANUAL') {
+    return { kind: 'SYSTEM', systemId }
+  }
+
+  const definitionId = (() => {
+    switch (source.kind) {
+      case 'CLASS':
+        return source.classId
+      case 'SUBCLASS':
+        return source.subclassId
+      case 'RACE':
+        return source.raceId
+      case 'SUBRACE':
+        return source.subraceId
+      case 'ANCESTRY':
+        return source.optionId
+      case 'BACKGROUND':
+        return source.backgroundId
+      case 'FEAT':
+        return source.featId
+      case 'FEATURE':
+        return source.featureId
+      case 'OPTION':
+        return source.optionId
+    }
+  })()
+  return {
+    kind: 'AUTHORED',
+    sourceKind: source.kind,
+    definitionId,
+    sourceInstanceId: getCharacterProvenanceIdentityKey(source)
   }
 }
 
@@ -1222,7 +1699,7 @@ function getResourceSheetConfig(params: {
   totalLevel: number
 }): {
   max: number
-  recovery: 'SHORT_REST' | 'LONG_REST' | 'OTHER'
+  recoveries: CharacterSheetResponseDto['resources']['items'][number]['recoveries']
 } | null {
   const definition = findResourceDefinition(
     params.resolution,
@@ -1241,7 +1718,7 @@ function getResourceSheetConfig(params: {
       proficiencyBonus: params.proficiencyBonus,
       totalLevel: params.totalLevel
     }),
-    recovery: getResourceRecovery(params.resolvedRecovery ?? definition.charges.resetKind)
+    recoveries: [getResourceRecovery(params.resolvedRecovery ?? definition.charges.resetKind)]
   }
 }
 
@@ -1271,9 +1748,12 @@ export async function buildCharacterSheetResponse(params: {
   hasBuilderDraft?: boolean
   adjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
+  resourceUsage?: readonly CharacterResourceUsage[]
+  spellCustomizations?: readonly CharacterSpellCustomization[]
 }): Promise<CharacterSheetResponseDto> {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
+  const spellCustomizations = params.spellCustomizations ?? []
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
   const engineOutput = resolveCharacterSheetEngine({
     character,
@@ -1281,6 +1761,15 @@ export async function buildCharacterSheetResponse(params: {
     adjustments,
     movementDisplayPreference: params.movementDisplayPreference
   })
+  const itemMechanicsByInstanceId = new Map(
+    engineOutput.itemMechanics.map((item) => [item.itemInstanceId, item])
+  )
+  const spellCustomizationsBySourceKey = new Map(
+    spellCustomizations.map((customization) => [
+      createCharacterSpellSourceKey(customization.source),
+      customization
+    ])
+  )
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
   const maxHitPoints = engineOutput.derivedStats.maxHitPoints
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
@@ -1316,8 +1805,22 @@ export async function buildCharacterSheetResponse(params: {
   const { learned, prepared } = getPreparedAndKnownSpellIds(character)
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map(
-    (character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used])
+    (params.resourceUsage ?? []).map((resource) => [
+      createCharacterResourceOwnerKey(resource.owner),
+      resource.used
+    ])
   )
+  if (params.resourceUsage === undefined) {
+    for (const resource of character.state.resources ?? []) {
+      resourceUsage.set(
+        createCharacterResourceOwnerKey({
+          kind: 'AUTHORED_GRANT',
+          resourceGrantId: resource.resourceGrantId
+        }),
+        resource.used
+      )
+    }
+  }
   const resourceRecoveryByDefinitionId = new Map(
     engineOutput.resources.map((resource) => [resource.resourceId, resource.rechargeOn])
   )
@@ -1326,6 +1829,9 @@ export async function buildCharacterSheetResponse(params: {
   )
   const classLabels = new Map(
     resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label])
+  )
+  const featureLabels = new Map(
+    resolution.grants.features.map((feature) => [feature.id, feature.label])
   )
   const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(
@@ -1337,11 +1843,14 @@ export async function buildCharacterSheetResponse(params: {
   for (const spellIds of sheetSpellIdsByClassId.values()) {
     for (const spellId of spellIds) displayedSpellIds.add(spellId)
   }
+  for (const access of engineOutput.spellAccess) displayedSpellIds.add(access.spellId)
   const spellSourcesBySpellId = getSpellSourcesBySpellId(
     character,
     classLabels,
     sheetSpellIdsByClassId,
-    preparationCapableClassIds
+    preparationCapableClassIds,
+    engineOutput.spellAccess,
+    featureLabels
   )
   const spellPreparationSources = getSpellPreparationSources(
     character,
@@ -1370,7 +1879,7 @@ export async function buildCharacterSheetResponse(params: {
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
   const selectedFeatureOptionIds = getSelectedFeatureOptionIds(character)
   const mechanicsQuery = await getCharacterSheetMechanicsQuery(params.db, {
-    spellIds: [...knownSpellIds],
+    spellIds: [...displayedSpellIds],
     featureIds: sheetReferenceFeatures.map((feature) => feature.id),
     featureOptionIds: [...selectedFeatureOptionIds],
     featIds: (resolution.registry.feats ?? []).map((feat) => feat.id),
@@ -1411,6 +1920,7 @@ export async function buildCharacterSheetResponse(params: {
     }
   }
   const actionItems: CharacterSheetResponseDto['actions']['items'] = []
+  const actionSourceFeatureIds = new Map<string, string>()
   for (const ownerKind of ['FEATURE', 'FEATURE_OPTION', 'FEAT', 'EQUIPMENT'] as const) {
     for (const [ownerId, mechanics] of projectedMechanics[ownerKind]) {
       const owner = mechanicOwnersByKey.get(`${ownerKind}:${ownerId}`)
@@ -1426,8 +1936,9 @@ export async function buildCharacterSheetResponse(params: {
               ? featureSourceLabels.get(sourceFeatureId)?.join(', ')
               : undefined
       for (const mechanic of mechanics) {
+        const actionId = `${ownerKind}:${ownerId}:${mechanic.effectId}`
         actionItems.push({
-          id: `${ownerKind}:${ownerId}:${mechanic.effectId}`,
+          id: actionId,
           label: owner.label,
           kind: toSheetActionKind(mechanic),
           sourceLabel,
@@ -1435,12 +1946,14 @@ export async function buildCharacterSheetResponse(params: {
           rollable: isRollableSheetMechanic(mechanic),
           mechanic
         })
+        if (sourceFeatureId) actionSourceFeatureIds.set(actionId, sourceFeatureId)
       }
     }
   }
   const inventoryItems = character.state.equipment.inventory
     .map((item) => {
       const equipment = equipmentById.get(item.equipmentId)
+      const mechanics = itemMechanicsByInstanceId.get(item.id)
       return {
         id: item.id,
         equipmentId: item.equipmentId,
@@ -1448,17 +1961,24 @@ export async function buildCharacterSheetResponse(params: {
         equipmentLabel: equipment?.label,
         description: equipment?.description,
         category: equipment?.category,
-        properties: equipment?.properties,
+        properties: equipment?.properties.map((code) => ({
+          code,
+          label: EQUIPMENT_PROPERTY_REGISTRY[code].label
+        })),
         rarityId: equipment?.rarityId,
-        cost: equipment?.cost,
+        cost:
+          equipment?.cost && mechanics?.cost !== undefined
+            ? { ...equipment.cost, amount: mechanics.cost }
+            : equipment?.cost,
         costLabel: equipment?.cost ? currencyLabels.get(equipment.cost.currencyId) : undefined,
-        weight: equipment?.weight,
+        weight: mechanics?.weight ?? equipment?.weight,
         armorClass: equipment?.armorClass,
         customName: item.customName,
         quantity: item.quantity,
         equipped: character.state.equipment.equipped.includes(item.id),
         attuned: character.state.equipment.attuned.includes(item.id),
         requiresAttunement: equipment?.requiresAttunement ?? false,
+        displayAsAttack: mechanics?.displayAsAttack,
         containerId: item.containerId,
         capacity: equipment?.capacity,
         notes: item.notes
@@ -1477,6 +1997,206 @@ export async function buildCharacterSheetResponse(params: {
   const noteItems: NonNullable<CharacterSheetResponseDto['notes']['items']> = (
     character.state.notes ?? []
   ).map((note) => ({ ...note, pinned: note.pinned ?? false }))
+  const authoredResourceItems: CharacterSheetResponseDto['resources']['items'] =
+    resolution.grants.resources.flatMap((resource) => {
+      const grantRecord = findResourceGrantRecord(character, resource)
+      const resourceGrantId = grantRecord?.id ?? resource.id
+      const config = getResourceSheetConfig({
+        character,
+        proficiencyBonus,
+        resolution,
+        resource,
+        resourceDefinitionId: grantRecord?.resourceId,
+        resolvedRecovery: resourceRecoveryByDefinitionId.get(
+          grantRecord?.resourceId ?? resource.id
+        ),
+        totalLevel
+      })
+      if (!config) return []
+      const owner: CharacterResourceOwnerRef = {
+        kind: 'AUTHORED_GRANT',
+        resourceGrantId,
+        source: resourceGrantSourceRef(grantRecord?.source ?? resource.source, character.systemId)
+      }
+      const max = config.max
+      const used = Math.min(
+        resourceUsage.get(createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))) ?? 0,
+        max
+      )
+      return [
+        {
+          id: createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner)),
+          owner,
+          label: resource.label,
+          description: resource.description,
+          sourceLabel: resource.sourceLabel,
+          sourceFeatureId: resourceFeatureByDefinitionId.get(
+            grantRecord?.resourceId ?? resource.id
+          ),
+          used,
+          max,
+          remaining: Math.max(max - used, 0),
+          recoveries: config.recoveries
+        }
+      ]
+    })
+  const itemResourceItems: CharacterSheetResponseDto['resources']['items'] = inventoryItems.flatMap(
+    (item) => {
+      const charge = equipmentById.get(item.equipmentId)?.charges
+      if (!charge) return []
+      const owner: CharacterResourceOwnerRef = {
+        kind: 'ITEM_INSTANCE',
+        chargeId: charge.id,
+        itemInstanceId: item.id
+      }
+      const max = resolveCompiledChargeMaximum(charge, {
+        abilities: resolution.summary.abilities,
+        classLevels: Object.fromEntries(
+          character.intent.classes.map((entry) => [entry.classId, entry.classLevel])
+        ),
+        proficiencyBonus,
+        sourceClassLevel: totalLevel,
+        totalLevel
+      })
+      const used = Math.min(
+        resourceUsage.get(createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))) ?? 0,
+        max
+      )
+      return [
+        {
+          id: createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner)),
+          owner,
+          label: `${item.label} charges`,
+          description: item.description ?? undefined,
+          sourceLabel: item.label,
+          used,
+          max,
+          remaining: Math.max(max - used, 0),
+          recoveries: [getResourceRecovery(charge.resetKind)]
+        }
+      ]
+    }
+  )
+  const spellResourceItems: CharacterSheetResponseDto['resources']['items'] =
+    engineOutput.spellAccess.flatMap((access) => {
+      if (!access.charges) return []
+      const source = {
+        spellId: access.spellId,
+        sourceKind: 'FEATURE' as const,
+        sourceInstanceId: access.sourceInstanceId
+      }
+      const owner: CharacterResourceOwnerRef = {
+        kind: 'SPELL_SOURCE',
+        resourceGrantId: access.id,
+        source
+      }
+      const max = resolveCompiledChargeMaximum(access.charges, {
+        abilities: resolution.summary.abilities,
+        classLevels: Object.fromEntries(
+          character.intent.classes.map((entry) => [entry.classId, entry.classLevel])
+        ),
+        proficiencyBonus,
+        sourceClassLevel: access.timing.classLevel,
+        totalLevel
+      })
+      const used = Math.min(
+        resourceUsage.get(createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))) ?? 0,
+        max
+      )
+      const spell = resolution.catalog.spells.find((candidate) => candidate.id === access.spellId)
+      return [
+        {
+          id: createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner)),
+          owner,
+          label: `${spell?.label ?? 'Spell'} uses`,
+          sourceLabel: featureLabels.get(access.sourceFeatureId) ?? 'Feature',
+          sourceFeatureId: access.sourceFeatureId,
+          used,
+          max,
+          remaining: Math.max(max - used, 0),
+          recoveries: [getResourceRecovery(access.charges.resetKind)]
+        }
+      ]
+    })
+  const sheetSpells: CharacterSheetResponseDto['spells']['spells'] = resolution.catalog.spells
+    .filter((spell) => displayedSpellIds.has(spell.id))
+    .map((spell) => {
+      const sources = (spellSourcesBySpellId.get(spell.id) ?? []).map((source) => {
+        const sourceKey = createCharacterSpellSourceKey(source.source)
+        const customization = spellCustomizationsBySourceKey.get(sourceKey)
+        return {
+          ...source,
+          ...(source.resourceGrantId
+            ? {
+                resourceOwner: {
+                  kind: 'SPELL_SOURCE' as const,
+                  resourceGrantId: source.resourceGrantId,
+                  source: source.source
+                }
+              }
+            : {}),
+          ...(customization?.customName ? { customName: customization.customName } : {}),
+          ...(customization?.notes ? { notes: customization.notes } : {}),
+          ...(customization?.displayAsAttack ? { displayAsAttack: true } : {})
+        }
+      })
+      return {
+        id: spell.id,
+        label: spell.label,
+        description: spell.description,
+        level: spell.level,
+        school: spell.magicSchoolId,
+        castingTime: spell.castingTime,
+        components: spell.components,
+        attributes: spell.attributes,
+        materialDescription: spell.materialDescription,
+        prepared: prepared.has(spell.id),
+        known: learned.has(spell.id),
+        sourceLabel: sources.length ? sources.map((source) => source.label).join(', ') : undefined,
+        sources: sources.length ? sources : undefined,
+        mechanics: projectedMechanics.SPELL.has(spell.id)
+          ? [...(projectedMechanics.SPELL.get(spell.id) ?? [])]
+          : undefined
+      }
+    })
+  const sheetSpellSlots: CharacterSheetResponseDto['spells']['slots'] = spellSlots.map((slot) => ({
+    ...slot,
+    level: slot.level ?? parseSlotLevel(slot.slotKey)
+  }))
+  const sheetResources = [...authoredResourceItems, ...itemResourceItems, ...spellResourceItems]
+  const actionIdsByFeatureId = new Map<string, string[]>()
+  for (const [actionId, featureId] of actionSourceFeatureIds) {
+    const actionIds = actionIdsByFeatureId.get(featureId) ?? []
+    actionIds.push(actionId)
+    actionIdsByFeatureId.set(featureId, actionIds)
+  }
+  const resourceIdsByFeatureId = new Map<string, string[]>()
+  for (const resource of authoredResourceItems) {
+    if (!resource.sourceFeatureId) continue
+    const resourceIds = resourceIdsByFeatureId.get(resource.sourceFeatureId) ?? []
+    resourceIds.push(resource.id)
+    resourceIdsByFeatureId.set(resource.sourceFeatureId, resourceIds)
+  }
+  const visibleActionItems = actionItems.map((action) => {
+    const sourceFeatureId = actionSourceFeatureIds.get(action.id)
+    const featureActionIds = sourceFeatureId ? actionIdsByFeatureId.get(sourceFeatureId) : undefined
+    const featureResourceIds = sourceFeatureId
+      ? resourceIdsByFeatureId.get(sourceFeatureId)
+      : undefined
+    const resourceGrantId =
+      featureActionIds?.length === 1 && featureResourceIds?.length === 1
+        ? featureResourceIds[0]
+        : undefined
+
+    return resourceGrantId ? { ...action, resourceGrantId } : action
+  })
+  const activeSpellGroups = buildActiveSpellGroups({
+    spells: sheetSpells,
+    slots: sheetSpellSlots,
+    resources: sheetResources,
+    spellMechanics: engineOutput.spellMechanics
+  })
+  const displayedProficiencyKeys = new Set<string>()
 
   return {
     meta: {
@@ -1555,42 +2275,10 @@ export async function buildCharacterSheetResponse(params: {
       }))
     },
     actions: {
-      items: actionItems
+      items: visibleActionItems
     },
     resources: {
-      items: resolution.grants.resources.flatMap((resource) => {
-        const grantRecord = findResourceGrantRecord(character, resource)
-        const resourceGrantId = grantRecord?.id ?? resource.id
-        const config = getResourceSheetConfig({
-          character,
-          proficiencyBonus,
-          resolution,
-          resource,
-          resourceDefinitionId: grantRecord?.resourceId,
-          resolvedRecovery: resourceRecoveryByDefinitionId.get(
-            grantRecord?.resourceId ?? resource.id
-          ),
-          totalLevel
-        })
-        if (!config) return []
-        const max = config.max
-        const used = Math.min(resourceUsage.get(resourceGrantId) ?? 0, max)
-        return [
-          {
-            id: resourceGrantId,
-            label: resource.label,
-            description: resource.description,
-            sourceLabel: resource.sourceLabel,
-            sourceFeatureId: resourceFeatureByDefinitionId.get(
-              grantRecord?.resourceId ?? resource.id
-            ),
-            used,
-            max,
-            remaining: Math.max(max - used, 0),
-            recovery: config.recovery
-          }
-        ]
-      }),
+      items: sheetResources,
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
         die: die.die,
         total: die.total,
@@ -1601,35 +2289,9 @@ export async function buildCharacterSheetResponse(params: {
     spells: {
       saveDc: engineOutput.derivedStats.spellSaveDC ?? null,
       attackBonus: engineOutput.derivedStats.spellAttackBonus ?? null,
-      slots: spellSlots.map((slot) => ({
-        ...slot,
-        level: slot.level ?? parseSlotLevel(slot.slotKey)
-      })),
-      spells: resolution.catalog.spells
-        .filter((spell) => displayedSpellIds.has(spell.id))
-        .map((spell) => {
-          const sources = spellSourcesBySpellId.get(spell.id) ?? []
-          return {
-            id: spell.id,
-            label: spell.label,
-            description: spell.description,
-            level: spell.level,
-            school: spell.magicSchoolId,
-            castingTime: spell.castingTime,
-            components: spell.components,
-            attributes: spell.attributes,
-            materialDescription: spell.materialDescription,
-            prepared: prepared.has(spell.id),
-            known: learned.has(spell.id),
-            sourceLabel: sources.length
-              ? sources.map((source) => source.label).join(', ')
-              : undefined,
-            sources: sources.length ? sources : undefined,
-            mechanics: projectedMechanics.SPELL.has(spell.id)
-              ? [...(projectedMechanics.SPELL.get(spell.id) ?? [])]
-              : undefined
-          }
-        }),
+      slots: sheetSpellSlots,
+      activeGroups: activeSpellGroups,
+      spells: sheetSpells,
       preparationSources: spellPreparationSources.length ? spellPreparationSources : undefined
     },
     inventory: {
@@ -1649,15 +2311,27 @@ export async function buildCharacterSheetResponse(params: {
     },
     reference: {
       features: sheetReferenceFeatures,
-      proficiencies: engineOutput.proficiencies.map((proficiency) => ({
-        label: formatProficiencyLabel({
+      proficiencies: engineOutput.proficiencies.reduce<
+        CharacterSheetResponseDto['reference']['proficiencies']
+      >((proficiencies, proficiency) => {
+        const kind = getProficiencyTargetKind(proficiency, resolution)
+        const label = formatProficiencyLabel({
           equipmentLabels,
           languageLabels,
           proficiency,
           skillLabels
-        }),
-        value: `${formatProficiencyKind(proficiency.kind)} · ${formatProficiencyScaling(proficiency.scaling)}`
-      })),
+        })
+        if (!kind) return proficiencies
+        const key = `${kind}:${proficiency.subjectId}`
+        if (displayedProficiencyKeys.has(key)) return proficiencies
+        displayedProficiencyKeys.add(key)
+        proficiencies.push({
+          kind,
+          label,
+          value: `${formatProficiencyKind(proficiency.kind)} · ${formatProficiencyScaling(proficiency.scaling)}`
+        })
+        return proficiencies
+      }, []),
       defenses: engineOutput.defenses.map((defense) => ({
         kind: defense.kind,
         damageTypeId: defense.damageTypeId,
@@ -1815,19 +2489,20 @@ function updateSpellSlotUsage(
   })
 }
 
-type CharacterSheetResourceRecovery = NonNullable<
-  CharacterSheetResponseDto['resources']['items'][number]['recovery']
->
+type CharacterSheetResourceRecoveryTrigger =
+  CharacterSheetResponseDto['resources']['items'][number]['recoveries'][number]['trigger']
 
 function restoreResourcesForRecoveries(
   character: CharacterAuthored,
   sheet: CharacterSheetResponseDto,
-  recoveries: readonly CharacterSheetResourceRecovery[]
+  triggers: readonly CharacterSheetResourceRecoveryTrigger[]
 ): CharacterAuthored {
-  const recoverySet = new Set(recoveries)
+  const recoverySet = new Set(triggers)
   const restorableResourceIds = new Set(
     sheet.resources.items
-      .filter((resource) => resource.recovery && recoverySet.has(resource.recovery))
+      .filter((resource) =>
+        resource.recoveries.some((recovery) => recoverySet.has(recovery.trigger))
+      )
       .map((resource) => resource.id)
   )
   if (restorableResourceIds.size === 0) return character
@@ -1846,7 +2521,7 @@ function restoreResourcesForRecoveries(
 function restoreResourcesForRest(
   character: CharacterAuthored,
   sheet: CharacterSheetResponseDto,
-  recovery: CharacterSheetResourceRecovery
+  recovery: CharacterSheetResourceRecoveryTrigger
 ): CharacterAuthored {
   return restoreResourcesForRecoveries(character, sheet, [recovery])
 }
@@ -1970,6 +2645,11 @@ export function applyCharacterSheetCommand(
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
       return clearEmptyStateArrays(next)
 
     case 'SET_INSPIRATION':
@@ -2606,6 +3286,12 @@ export function summarizeCharacterSheetCommand(
       return 'Character sheet panel customizations reset'
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
       return 'Primary movement display updated'
+    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
+      return 'Spell mechanic customization updated'
+    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
+      return 'Spell mechanic customization cleared'
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+      return 'Spell source customization updated'
 
     case 'SET_INSPIRATION':
       return command.inspired ? 'Inspiration granted' : 'Inspiration cleared'
@@ -2630,6 +3316,10 @@ export function summarizeCharacterSheetCommand(
       return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} used`
     case 'RESTORE_RESOURCE':
       return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} restored`
+    case 'USE_SHEET_RESOURCE':
+      return 'Sheet resource used'
+    case 'RECOVER_SHEET_RESOURCE':
+      return 'Sheet resource recovered'
     case 'USE_SPELL_SLOT': {
       const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
       return slotLabel ? `${slotLabel} spell slot used` : 'Spell slot used'
@@ -2741,7 +3431,7 @@ function createCharacterSheetStatePatches(
 
 function sameAdjustmentSlot(
   adjustment: CharacterSheetAdjustment,
-  input: CharacterSheetCoreAdjustmentCommandDto
+  input: CharacterSheetCoreAdjustmentCommandDto | CharacterSheetItemAdjustmentCommandDto
 ): boolean {
   if (adjustment.family !== input.family) return false
   switch (input.family) {
@@ -2781,12 +3471,19 @@ function sameAdjustmentSlot(
         adjustment.proficiencyKind === input.proficiencyKind &&
         adjustment.targetId === input.targetId
       )
+    case 'ITEM':
+      return (
+        adjustment.family === 'ITEM' &&
+        adjustment.itemInstanceId === input.itemInstanceId &&
+        adjustment.field === input.field
+      )
   }
 }
 
-function validateCoreAdjustmentTarget(
-  input: CharacterSheetCoreAdjustmentCommandDto,
-  resolution: CharacterBuilderResolution
+function validateSheetAdjustmentTarget(
+  input: CharacterSheetCoreAdjustmentCommandDto | CharacterSheetItemAdjustmentCommandDto,
+  resolution: CharacterBuilderResolution,
+  character: CharacterAuthored
 ): void {
   const system = resolution.registry.system
   const ensureVocabularyTarget = (
@@ -2795,7 +3492,9 @@ function validateCoreAdjustmentTarget(
     label: string
   ) => {
     if (!records?.some((record) => record.id === targetId)) {
-      throw new CharacterSheetCommandError(`${label} "${targetId}" is not available in this rules system.`)
+      throw new CharacterSheetCommandError(
+        `${label} "${targetId}" is not available in this rules system.`
+      )
     }
   }
 
@@ -2833,6 +3532,14 @@ function validateCoreAdjustmentTarget(
           `${formatCodeLabel(input.proficiencyKind)} proficiency target "${input.targetId}" is not available.`
         )
       }
+      return
+    case 'ITEM':
+      if (!character.state.equipment.inventory.some((item) => item.id === input.itemInstanceId)) {
+        throw new CharacterSheetCommandError(
+          `Owned item "${input.itemInstanceId}" is not available on this character.`
+        )
+      }
+      return
   }
 }
 
@@ -2846,6 +3553,104 @@ function validatePanelTarget(
   ) {
     throw new CharacterSheetCommandError(
       `Skill "${target.skillId}" is not available in this rules system.`
+    )
+  }
+}
+
+type SpellMechanicCustomizationCommand = Extract<
+  CharacterSheetCommandInputDto,
+  {
+    type: 'SET_SPELL_MECHANIC_CUSTOMIZATION' | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+  }
+>
+
+function getSpellCustomizationFields(
+  category: SpellMechanicCustomizationCommand['category']
+): readonly Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['field'][] {
+  switch (category) {
+    case 'TO_HIT':
+      return ['ATTACK_BONUS', 'ATTACK_OVERRIDE']
+    case 'SAVE_DC':
+      return ['DC_BONUS', 'DC_OVERRIDE']
+    case 'DAMAGE':
+      return ['DAMAGE_BONUS']
+  }
+}
+
+function getSpellCustomizationField(
+  command: Extract<SpellMechanicCustomizationCommand, { type: 'SET_SPELL_MECHANIC_CUSTOMIZATION' }>
+): Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['field'] {
+  switch (command.category) {
+    case 'TO_HIT':
+      return command.mode === 'OVERRIDE' ? 'ATTACK_OVERRIDE' : 'ATTACK_BONUS'
+    case 'SAVE_DC':
+      return command.mode === 'OVERRIDE' ? 'DC_OVERRIDE' : 'DC_BONUS'
+    case 'DAMAGE':
+      if (command.mode !== 'BONUS') {
+        throw new CharacterSheetCommandError('Damage customization supports a bonus only.')
+      }
+      return 'DAMAGE_BONUS'
+  }
+}
+
+function sameSpellSource(
+  left: Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['source'],
+  right: Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['source']
+): boolean {
+  return createCharacterSpellSourceKey(left) === createCharacterSpellSourceKey(right)
+}
+
+function validateSpellMechanicCustomization(
+  command: SpellMechanicCustomizationCommand,
+  sheet: CharacterSheetResponseDto
+): void {
+  const sourceKey = createCharacterSpellSourceKey(command.source)
+  const spell = sheet.spells.spells.find((candidate) => candidate.id === command.source.spellId)
+  const source = spell?.sources?.find(
+    (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+  )
+  if (!spell || !source) {
+    throw new CharacterSheetCommandError(
+      `Spell source "${sourceKey}" is not available on this character.`
+    )
+  }
+
+  const mechanics = spell.mechanics ?? []
+  const valid =
+    command.category === 'TO_HIT'
+      ? mechanics.some((mechanic) => mechanic.attackBonus !== undefined)
+      : command.category === 'SAVE_DC'
+        ? mechanics.some((mechanic) => mechanic.save !== undefined)
+        : mechanics.some((mechanic) =>
+            mechanic.outcomes.some((outcome) => outcome.kind === 'DAMAGE')
+          )
+  if (!valid) {
+    throw new CharacterSheetCommandError(
+      `${formatCodeLabel(command.category)} customization is not available for this spell.`
+    )
+  }
+
+  if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
+    getSpellCustomizationField(command)
+  }
+}
+
+function validateSpellSource(
+  source: Extract<
+    CharacterSheetCommandInputDto,
+    { type: 'UPDATE_SPELL_SOURCE_CUSTOMIZATION' }
+  >['source'],
+  sheet: CharacterSheetResponseDto
+): void {
+  const sourceKey = createCharacterSpellSourceKey(source)
+  const available = sheet.spells.spells.some((spell) =>
+    spell.sources?.some(
+      (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+    )
+  )
+  if (!available) {
+    throw new CharacterSheetCommandError(
+      `Spell source "${sourceKey}" is not available on this character.`
     )
   }
 }
@@ -2878,10 +3683,14 @@ export async function executeCharacterSheetCommand(params: {
   }
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
-  const [adjustments, movementDisplayPreference] = await Promise.all([
-    adjustmentRepository.listByCharacter(params.characterId),
-    adjustmentRepository.getMovementPreference(params.characterId)
-  ])
+  const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
+  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      adjustmentRepository.listByCharacter(params.characterId),
+      adjustmentRepository.getMovementPreference(params.characterId),
+      playStateRepository.listResourceUsage(params.characterId),
+      playStateRepository.listSpellCustomizations(params.characterId)
+    ])
   const eventRepository = createCharacterEventRepository(params.db)
   const commandFingerprint = fingerprintCharacterSheetCommand(params.command)
   const priorEvent = await eventRepository.findByCommandId(
@@ -2914,7 +3723,9 @@ export async function executeCharacterSheetCommand(params: {
         resolution,
         streamVersion: row.stream_version,
         adjustments,
-        movementDisplayPreference
+        movementDisplayPreference,
+        resourceUsage,
+        spellCustomizations
       }),
       historyEntry: {
         eventId: priorEvent.eventId,
@@ -2932,14 +3743,12 @@ export async function executeCharacterSheetCommand(params: {
 
   const resolution = await resolveCharacterBuilder(params.db, character, 'edit')
   if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
-    validateCoreAdjustmentTarget(command.adjustment, resolution)
+    validateSheetAdjustmentTarget(command.adjustment, resolution, character)
   }
   if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
     validatePanelTarget(command.target, resolution)
     const existing = adjustments.find(
-      (adjustment) =>
-        adjustment.id === command.adjustmentId &&
-        adjustment.family === command.family
+      (adjustment) => adjustment.id === command.adjustmentId && adjustment.family === command.family
     )
     if (!existing || !characterSheetAdjustmentMatchesPanelTarget(existing, command.target)) {
       throw new CharacterSheetCommandError(
@@ -2980,8 +3789,19 @@ export async function executeCharacterSheetCommand(params: {
     resolution,
     streamVersion: row.stream_version,
     adjustments,
-    movementDisplayPreference
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
   })
+  if (
+    command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+  ) {
+    validateSpellMechanicCustomization(command, currentSheet)
+  }
+  if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
+    validateSpellSource(command.source, currentSheet)
+  }
   const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet, {
     adjustments
   })
@@ -3003,6 +3823,7 @@ export async function executeCharacterSheetCommand(params: {
     expectedStreamVersion: params.command.expectedVersion,
     afterPersist: async (trx) => {
       const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
+      const typedPlayStateRepository = createCharacterSheetPlayStateRepository(trx)
       if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
         const existing = adjustments.find((adjustment) =>
           sameAdjustmentSlot(adjustment, command.adjustment)
@@ -3022,10 +3843,7 @@ export async function executeCharacterSheetCommand(params: {
         })
       }
       if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
-        for (const adjustment of getCharacterSheetPanelAdjustmentIds(
-          adjustments,
-          command.target
-        )) {
+        for (const adjustment of getCharacterSheetPanelAdjustmentIds(adjustments, command.target)) {
           await typedAdjustmentRepository.remove({
             characterId: params.characterId,
             adjustmentId: adjustment.id,
@@ -3038,6 +3856,67 @@ export async function executeCharacterSheetCommand(params: {
           characterId: params.characterId,
           actorId: params.userId,
           preference: command.preference
+        })
+      }
+      if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
+        const fields = getSpellCustomizationFields(command.category)
+        for (const adjustment of adjustments) {
+          if (
+            adjustment.family === 'SPELL' &&
+            sameSpellSource(adjustment.source, command.source) &&
+            fields.includes(adjustment.field)
+          ) {
+            await typedAdjustmentRepository.remove({
+              characterId: params.characterId,
+              adjustmentId: adjustment.id,
+              family: 'SPELL'
+            })
+          }
+        }
+        await typedAdjustmentRepository.upsert({
+          id: crypto.randomUUID(),
+          characterId: params.characterId,
+          actorId: params.userId,
+          family: 'SPELL',
+          source: command.source,
+          field: getSpellCustomizationField(command),
+          value: command.value,
+          ...(command.sourceNote ? { sourceNote: command.sourceNote } : {})
+        })
+      }
+      if (command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION') {
+        const fields = getSpellCustomizationFields(command.category)
+        for (const adjustment of adjustments) {
+          if (
+            adjustment.family === 'SPELL' &&
+            sameSpellSource(adjustment.source, command.source) &&
+            fields.includes(adjustment.field)
+          ) {
+            await typedAdjustmentRepository.remove({
+              characterId: params.characterId,
+              adjustmentId: adjustment.id,
+              family: 'SPELL'
+            })
+          }
+        }
+      }
+      if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
+        const existing = spellCustomizations.find(
+          (customization) =>
+            createCharacterSpellSourceKey(customization.source) ===
+            createCharacterSpellSourceKey(command.source)
+        )
+        await typedPlayStateRepository.setSpellCustomization({
+          id: existing?.id ?? crypto.randomUUID(),
+          characterId: params.characterId,
+          actorId: params.userId,
+          source: command.source,
+          customName:
+            command.customName === undefined
+              ? existing?.customName
+              : (command.customName ?? undefined),
+          notes: command.notes === undefined ? existing?.notes : (command.notes ?? undefined),
+          displayAsAttack: command.displayAsAttack ?? existing?.displayAsAttack ?? false
         })
       }
       if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
@@ -3061,8 +3940,6 @@ export async function executeCharacterSheetCommand(params: {
             family: 'HIT_POINTS',
             field: 'MAXIMUM_OVERRIDE',
             value: params.command.maxOverride,
-            sourceCategory: existing?.sourceCategory ?? 'MANUAL',
-            ...(existing?.sourceLabel == null ? {} : { sourceLabel: existing.sourceLabel }),
             ...(existing?.sourceNote == null ? {} : { sourceNote: existing.sourceNote })
           })
         }
@@ -3071,9 +3948,16 @@ export async function executeCharacterSheetCommand(params: {
     }
   })
 
-  const [persistedAdjustments, persistedMovementDisplayPreference] = await Promise.all([
+  const [
+    persistedAdjustments,
+    persistedMovementDisplayPreference,
+    persistedResourceUsage,
+    persistedSpellCustomizations
+  ] = await Promise.all([
     adjustmentRepository.listByCharacter(params.characterId),
-    adjustmentRepository.getMovementPreference(params.characterId)
+    adjustmentRepository.getMovementPreference(params.characterId),
+    playStateRepository.listResourceUsage(params.characterId),
+    playStateRepository.listSpellCustomizations(params.characterId)
   ])
   const sheet = await buildCharacterSheetResponse({
     db: params.db,
@@ -3081,7 +3965,9 @@ export async function executeCharacterSheetCommand(params: {
     resolution,
     streamVersion: nextStreamVersion,
     adjustments: persistedAdjustments,
-    movementDisplayPreference: persistedMovementDisplayPreference
+    movementDisplayPreference: persistedMovementDisplayPreference,
+    resourceUsage: persistedResourceUsage,
+    spellCustomizations: persistedSpellCustomizations
   })
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,

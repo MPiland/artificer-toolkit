@@ -78,9 +78,9 @@ describe('createCreatureRepository', () => {
     const repository = createCreatureRepository(new InMemoryDb() as never)
     const sourceDragons = [CREATURE_IDS.ADULT_BLACK_DRAGON, CREATURE_IDS.ADULT_BRASS_DRAGON].map(
       (id) => {
-      const creature = srdCreatures.find((candidate) => candidate.id === id)
-      if (!creature) throw new Error(`Missing SRD creature ${id}`)
-      return creature
+        const creature = srdCreatures.find((candidate) => candidate.id === id)
+        if (!creature) throw new Error(`Missing SRD creature ${id}`)
+        return creature
       }
     )
 
@@ -153,71 +153,71 @@ describe('createCreatureRepository', () => {
   it('hydrates a minimal NPC creature with root language proficiency grants', async () => {
     const repo = createCreatureRepository(
       createFakeDb({
-      creatures: [
-        {
-          id: 'creature-npc-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Town Guard',
-          quote: null,
-          description: 'A stalwart defender.',
-          category: 'NPC',
-          creature_type_id: 'humanoid',
-          size_code: 'MEDIUM',
-          alignment_id: null,
-          tags: null,
-          ability_scores: BASE_ABILITY_SCORES,
-          armor_class: 16,
-          armor_class_note: 'Chain mail',
-          hit_points: 11,
-          hit_dice: '2d8+2',
+        creatures: [
+          {
+            id: 'creature-npc-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Town Guard',
+            quote: null,
+            description: 'A stalwart defender.',
+            category: 'NPC',
+            creature_type_id: 'humanoid',
+            size_code: 'MEDIUM',
+            alignment_id: null,
+            tags: null,
+            ability_scores: BASE_ABILITY_SCORES,
+            armor_class: 16,
+            armor_class_note: 'Chain mail',
+            hit_points: 11,
+            hit_dice: '2d8+2',
             hit_dice_count: 2,
             hit_die: 8,
             hit_dice_modifier: 2,
-          senses: null,
-          passive_perception: 10,
-          challenge_rating_id: 'cr-1-8',
-          xp: 25,
-          mount_profile: null,
-          companion_profile: null,
+            senses: null,
+            passive_perception: 10,
+            challenge_rating_id: 'cr-1-8',
+            xp: 25,
+            mount_profile: null,
+            companion_profile: null,
             npc_profile: null
-        }
-      ],
-      creature_proficiency_grants: [
-        { creature_id: 'creature-npc-1', proficiency_grant_id: 'grant-lang-1', sort_order: 1 }
-      ],
-      creature_features: [],
-      creature_details: [],
-      creature_speeds: [
-        { creature_id: 'creature-npc-1', speed_id: 'walk', amount: 30, unit_code: 'FEET' }
-      ],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      ...emptyGrantTables(),
-      proficiency_grants: [
-        {
-          id: 'grant-lang-1',
-          sort_order: 1,
-          proficiency_kind: 'LANGUAGE',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null,
-          restriction_id: null
-        }
-      ],
-      proficiency_grant_languages: [
-        { proficiency_grant_id: 'grant-lang-1', language_id: 'common' }
-      ],
+          }
+        ],
+        creature_proficiency_grants: [
+          { creature_id: 'creature-npc-1', proficiency_grant_id: 'grant-lang-1', sort_order: 1 }
+        ],
+        creature_features: [],
+        creature_details: [],
+        creature_speeds: [
+          { creature_id: 'creature-npc-1', speed_id: 'walk', amount: 30, unit_code: 'FEET' }
+        ],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        ...emptyGrantTables(),
+        proficiency_grants: [
+          {
+            id: 'grant-lang-1',
+            sort_order: 1,
+            proficiency_kind: 'LANGUAGE',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null,
+            restriction_id: null
+          }
+        ],
+        proficiency_grant_languages: [
+          { proficiency_grant_id: 'grant-lang-1', language_id: 'common' }
+        ],
         details: []
       }) as never
     )
@@ -285,60 +285,60 @@ describe('createCreatureRepository', () => {
 
     const repo = createCreatureRepository(
       createFakeDb({
-      creatures: [
-        {
-          id: 'creature-beast-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Warhorse',
-          quote: null,
-          description: null,
-          category: 'BEAST',
-          creature_type_id: 'beast',
-          size_code: 'LARGE',
-          alignment_id: null,
-          tags: null,
-          ability_scores: {
-            STRENGTH: 18,
-            DEXTERITY: 12,
-            CONSTITUTION: 13,
-            INTELLIGENCE: 2,
-            WISDOM: 12,
-            CHARISMA: 7
-          },
-          armor_class: 11,
-          armor_class_note: null,
-          hit_points: 19,
-          hit_dice: '3d10+3',
+        creatures: [
+          {
+            id: 'creature-beast-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Warhorse',
+            quote: null,
+            description: null,
+            category: 'BEAST',
+            creature_type_id: 'beast',
+            size_code: 'LARGE',
+            alignment_id: null,
+            tags: null,
+            ability_scores: {
+              STRENGTH: 18,
+              DEXTERITY: 12,
+              CONSTITUTION: 13,
+              INTELLIGENCE: 2,
+              WISDOM: 12,
+              CHARISMA: 7
+            },
+            armor_class: 11,
+            armor_class_note: null,
+            hit_points: 19,
+            hit_dice: '3d10+3',
             hit_dice_count: 3,
             hit_die: 10,
             hit_dice_modifier: 3,
-          senses: null,
-          passive_perception: 11,
-          challenge_rating_id: 'cr-1-2',
-          xp: 100,
-          mount_profile: mountProfile,
-          companion_profile: null,
+            senses: null,
+            passive_perception: 11,
+            challenge_rating_id: 'cr-1-2',
+            xp: 100,
+            mount_profile: mountProfile,
+            companion_profile: null,
             npc_profile: null
-        }
-      ],
-      creature_proficiency_grants: [],
-      creature_features: [],
-      creature_details: [],
-      creature_speeds: [
-        { creature_id: 'creature-beast-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
-      ],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      ...emptyGrantTables(),
+          }
+        ],
+        creature_proficiency_grants: [],
+        creature_features: [],
+        creature_details: [],
+        creature_speeds: [
+          { creature_id: 'creature-beast-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
+        ],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        ...emptyGrantTables(),
         details: []
       }) as never
     )
@@ -362,44 +362,44 @@ describe('createCreatureRepository', () => {
   it('hydrates a MONSTER with root save, skill, and language proficiency grants', async () => {
     const repo = createCreatureRepository(
       createFakeDb({
-      creatures: [
-        {
-          id: 'creature-monster-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Ancient Red Dragon',
-          quote: 'I am fire. I am death.',
-          description: 'The apex of draconic might.',
-          category: 'MONSTER',
-          creature_type_id: 'dragon',
-          size_code: 'GARGANTUAN',
-          alignment_id: 'chaotic-evil',
-          tags: ['dragon', 'legendary'],
-          ability_scores: {
-            STRENGTH: 30,
-            DEXTERITY: 10,
-            CONSTITUTION: 29,
-            INTELLIGENCE: 18,
-            WISDOM: 15,
-            CHARISMA: 23
-          },
-          armor_class: 22,
-          armor_class_note: 'Natural armor',
-          hit_points: 546,
-          hit_dice: '28d20+252',
+        creatures: [
+          {
+            id: 'creature-monster-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Ancient Red Dragon',
+            quote: 'I am fire. I am death.',
+            description: 'The apex of draconic might.',
+            category: 'MONSTER',
+            creature_type_id: 'dragon',
+            size_code: 'GARGANTUAN',
+            alignment_id: 'chaotic-evil',
+            tags: ['dragon', 'legendary'],
+            ability_scores: {
+              STRENGTH: 30,
+              DEXTERITY: 10,
+              CONSTITUTION: 29,
+              INTELLIGENCE: 18,
+              WISDOM: 15,
+              CHARISMA: 23
+            },
+            armor_class: 22,
+            armor_class_note: 'Natural armor',
+            hit_points: 546,
+            hit_dice: '28d20+252',
             hit_dice_count: 28,
             hit_die: 20,
             hit_dice_modifier: 252,
-          senses: ['blindsight-60', 'darkvision-120', 'tremorsense-60'],
-          passive_perception: 26,
-          challenge_rating_id: 'cr-24',
-          xp: 62000,
-          mount_profile: null,
-          companion_profile: null,
+            senses: ['blindsight-60', 'darkvision-120', 'tremorsense-60'],
+            passive_perception: 26,
+            challenge_rating_id: 'cr-24',
+            xp: 62000,
+            mount_profile: null,
+            companion_profile: null,
             npc_profile: null
-        }
-      ],
-      creature_proficiency_grants: [
+          }
+        ],
+        creature_proficiency_grants: [
           {
             creature_id: 'creature-monster-1',
             proficiency_grant_id: 'grant-save-1',
@@ -410,112 +410,112 @@ describe('createCreatureRepository', () => {
             proficiency_grant_id: 'grant-skill-1',
             sort_order: 2
           },
-        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-lang-1', sort_order: 3 }
-      ],
-      creature_features: [
-        { creature_id: 'creature-monster-1', feature_id: 'feature-legendary', sort_order: 0 }
-      ],
-      creature_details: [],
-      creature_speeds: [
-        {
-          creature_id: 'creature-monster-1',
-          speed_id: 'fly',
-          amount: 80,
-          unit_code: 'FEET',
-          sort_order: 2
-        },
-        {
-          creature_id: 'creature-monster-1',
-          speed_id: 'walk',
-          amount: 40,
-          unit_code: 'FEET',
-          sort_order: 1
-        }
-      ],
-      creature_damage_resistances: [
-        { creature_id: 'creature-monster-1', damage_type_id: 'lightning', sort_order: 2 },
-        { creature_id: 'creature-monster-1', damage_type_id: 'cold', sort_order: 1 }
-      ],
-      creature_damage_immunities: [
-        { creature_id: 'creature-monster-1', damage_type_id: 'poison', sort_order: 2 },
-        { creature_id: 'creature-monster-1', damage_type_id: 'fire', sort_order: 1 }
-      ],
-      creature_damage_vulnerabilities: [
-        { creature_id: 'creature-monster-1', damage_type_id: 'force', sort_order: 2 },
-        { creature_id: 'creature-monster-1', damage_type_id: 'radiant', sort_order: 1 }
-      ],
-      creature_condition_immunities: [],
-      features: [
-        {
-          id: 'feature-legendary',
-          label: 'Legendary Resistance',
-          description: 'If the dragon fails a saving throw, it can choose to succeed instead.',
-          section_code: 'TRAIT',
-          charge_id: null,
-          restriction_id: null,
-          sort_order: 0,
+          { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-lang-1', sort_order: 3 }
+        ],
+        creature_features: [
+          { creature_id: 'creature-monster-1', feature_id: 'feature-legendary', sort_order: 0 }
+        ],
+        creature_details: [],
+        creature_speeds: [
+          {
+            creature_id: 'creature-monster-1',
+            speed_id: 'fly',
+            amount: 80,
+            unit_code: 'FEET',
+            sort_order: 2
+          },
+          {
+            creature_id: 'creature-monster-1',
+            speed_id: 'walk',
+            amount: 40,
+            unit_code: 'FEET',
+            sort_order: 1
+          }
+        ],
+        creature_damage_resistances: [
+          { creature_id: 'creature-monster-1', damage_type_id: 'lightning', sort_order: 2 },
+          { creature_id: 'creature-monster-1', damage_type_id: 'cold', sort_order: 1 }
+        ],
+        creature_damage_immunities: [
+          { creature_id: 'creature-monster-1', damage_type_id: 'poison', sort_order: 2 },
+          { creature_id: 'creature-monster-1', damage_type_id: 'fire', sort_order: 1 }
+        ],
+        creature_damage_vulnerabilities: [
+          { creature_id: 'creature-monster-1', damage_type_id: 'force', sort_order: 2 },
+          { creature_id: 'creature-monster-1', damage_type_id: 'radiant', sort_order: 1 }
+        ],
+        creature_condition_immunities: [],
+        features: [
+          {
+            id: 'feature-legendary',
+            label: 'Legendary Resistance',
+            description: 'If the dragon fails a saving throw, it can choose to succeed instead.',
+            section_code: 'TRAIT',
+            charge_id: null,
+            restriction_id: null,
+            sort_order: 0,
             available_at_level: null
-        }
-      ],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      ...emptyGrantTables(),
-      proficiency_grants: [
-        {
-          id: 'grant-save-1',
-          sort_order: 1,
-          proficiency_kind: 'SAVE_ABILITY',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null,
-          restriction_id: null
-        },
-        {
-          id: 'grant-skill-1',
-          sort_order: 2,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null,
-          restriction_id: null
-        },
-        {
-          id: 'grant-lang-1',
-          sort_order: 3,
-          proficiency_kind: 'LANGUAGE',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null,
-          restriction_id: null
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-skill-1', skill_id: 'perception' },
-        { proficiency_grant_id: 'grant-skill-1', skill_id: 'stealth' }
-      ],
-      proficiency_grant_save_abilities: [
-        { proficiency_grant_id: 'grant-save-1', ability_code: 'DEXTERITY' },
-        { proficiency_grant_id: 'grant-save-1', ability_code: 'CONSTITUTION' },
-        { proficiency_grant_id: 'grant-save-1', ability_code: 'WISDOM' },
-        { proficiency_grant_id: 'grant-save-1', ability_code: 'CHARISMA' }
-      ],
-      proficiency_grant_languages: [
-        { proficiency_grant_id: 'grant-lang-1', language_id: 'common' },
-        { proficiency_grant_id: 'grant-lang-1', language_id: 'draconic' }
-      ],
+          }
+        ],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        ...emptyGrantTables(),
+        proficiency_grants: [
+          {
+            id: 'grant-save-1',
+            sort_order: 1,
+            proficiency_kind: 'SAVE_ABILITY',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null,
+            restriction_id: null
+          },
+          {
+            id: 'grant-skill-1',
+            sort_order: 2,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null,
+            restriction_id: null
+          },
+          {
+            id: 'grant-lang-1',
+            sort_order: 3,
+            proficiency_kind: 'LANGUAGE',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null,
+            restriction_id: null
+          }
+        ],
+        proficiency_grant_skills: [
+          { proficiency_grant_id: 'grant-skill-1', skill_id: 'perception' },
+          { proficiency_grant_id: 'grant-skill-1', skill_id: 'stealth' }
+        ],
+        proficiency_grant_save_abilities: [
+          { proficiency_grant_id: 'grant-save-1', ability_code: 'DEXTERITY' },
+          { proficiency_grant_id: 'grant-save-1', ability_code: 'CONSTITUTION' },
+          { proficiency_grant_id: 'grant-save-1', ability_code: 'WISDOM' },
+          { proficiency_grant_id: 'grant-save-1', ability_code: 'CHARISMA' }
+        ],
+        proficiency_grant_languages: [
+          { proficiency_grant_id: 'grant-lang-1', language_id: 'common' },
+          { proficiency_grant_id: 'grant-lang-1', language_id: 'draconic' }
+        ],
         details: []
       }) as never
     )
@@ -572,66 +572,66 @@ describe('createCreatureRepository', () => {
   it('hydrates creature logistics fields without a competing record kind', async () => {
     const repo = createCreatureRepository(
       createFakeDb({
-      creatures: [
-        {
-          id: 'creature-logistics-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Riding Horse',
-          quote: null,
-          description: 'A dependable riding animal.',
-          category: 'BEAST',
-          creature_type_id: 'beast',
-          size_code: null,
-          alignment_id: null,
-          tags: ['mount'],
-          ability_scores: null,
-          armor_class: null,
-          armor_class_note: null,
-          hit_points: null,
-          hit_dice: null,
+        creatures: [
+          {
+            id: 'creature-logistics-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Riding Horse',
+            quote: null,
+            description: 'A dependable riding animal.',
+            category: 'BEAST',
+            creature_type_id: 'beast',
+            size_code: null,
+            alignment_id: null,
+            tags: ['mount'],
+            ability_scores: null,
+            armor_class: null,
+            armor_class_note: null,
+            hit_points: null,
+            hit_dice: null,
             hit_dice_count: null,
             hit_die: null,
             hit_dice_modifier: null,
-          senses: null,
-          passive_perception: null,
-          challenge_rating_id: null,
-          xp: null,
+            senses: null,
+            passive_perception: null,
+            challenge_rating_id: null,
+            xp: null,
             mount_profile: {
               mountType: 'CONTROLLED',
               riderCount: 1,
               capacity: 1,
               notes: 'Common mount'
             },
-          companion_profile: null,
-          npc_profile: null,
-          cost: { amount: 75, currencyId: 'gp' },
-          carrying_capacity_amount: 480,
-          carrying_capacity_unit: 'POUNDS',
-          logistics_notes: ['Requires saddle for riding.']
-        }
-      ],
-      creature_proficiency_grants: [],
-      creature_features: [],
-      creature_details: [],
-      creature_speeds: [
-        { creature_id: 'creature-logistics-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
-      ],
-      creature_damage_resistances: [],
-      creature_damage_immunities: [],
-      creature_damage_vulnerabilities: [],
-      creature_condition_immunities: [],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      ...emptyGrantTables(),
+            companion_profile: null,
+            npc_profile: null,
+            cost: { amount: 75, currencyId: 'gp' },
+            carrying_capacity_amount: 480,
+            carrying_capacity_unit: 'POUNDS',
+            logistics_notes: ['Requires saddle for riding.']
+          }
+        ],
+        creature_proficiency_grants: [],
+        creature_features: [],
+        creature_details: [],
+        creature_speeds: [
+          { creature_id: 'creature-logistics-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
+        ],
+        creature_damage_resistances: [],
+        creature_damage_immunities: [],
+        creature_damage_vulnerabilities: [],
+        creature_condition_immunities: [],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        ...emptyGrantTables(),
         details: []
       }) as never
     )
@@ -676,34 +676,34 @@ describe('createCreatureRepository', () => {
       createFakeDb({
         creatures: [
           {
-        id: 'creature-invalid-profile',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Invalid Creature',
-        category: 'MONSTER',
-        creature_type_id: 'creature-type-1',
-        size_code: 'MEDIUM',
-        ability_scores: {
-          STRENGTH: 10,
-          DEXTERITY: 10,
-          CONSTITUTION: 10,
-          INTELLIGENCE: 10,
-          WISDOM: 10,
-          CHARISMA: 10
-        },
-        armor_class: 10,
-        hit_points: 10,
-        mount_profile: { mountType: 'CONTROLLED', riderCount: 'one' }
+            id: 'creature-invalid-profile',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Invalid Creature',
+            category: 'MONSTER',
+            creature_type_id: 'creature-type-1',
+            size_code: 'MEDIUM',
+            ability_scores: {
+              STRENGTH: 10,
+              DEXTERITY: 10,
+              CONSTITUTION: 10,
+              INTELLIGENCE: 10,
+              WISDOM: 10,
+              CHARISMA: 10
+            },
+            armor_class: 10,
+            hit_points: 10,
+            mount_profile: { mountType: 'CONTROLLED', riderCount: 'one' }
           }
         ],
-      creature_proficiency_grants: [],
-      creature_features: [],
-      creature_details: [],
-      creature_speeds: [],
-      creature_damage_resistances: [],
-      creature_damage_immunities: [],
-      creature_damage_vulnerabilities: [],
-      creature_condition_immunities: []
+        creature_proficiency_grants: [],
+        creature_features: [],
+        creature_details: [],
+        creature_speeds: [],
+        creature_damage_resistances: [],
+        creature_damage_immunities: [],
+        creature_damage_vulnerabilities: [],
+        creature_condition_immunities: []
       }) as unknown as DBLike
     )
 
@@ -715,51 +715,51 @@ describe('createCreatureRepository', () => {
   it('throws when creature is missing user_id', async () => {
     const repo = createCreatureRepository(
       createFakeDb({
-      creatures: [
-        {
-          id: 'creature-no-user',
-          system_id: 'system-1',
-          user_id: null,
-          label: 'Ghost',
-          quote: null,
-          description: null,
-          category: 'MONSTER',
-          creature_type_id: null,
-          size_code: 'MEDIUM',
-          alignment_id: null,
-          tags: null,
-          ability_scores: BASE_ABILITY_SCORES,
-          armor_class: 11,
-          armor_class_note: null,
-          hit_points: 45,
-          hit_dice: null,
+        creatures: [
+          {
+            id: 'creature-no-user',
+            system_id: 'system-1',
+            user_id: null,
+            label: 'Ghost',
+            quote: null,
+            description: null,
+            category: 'MONSTER',
+            creature_type_id: null,
+            size_code: 'MEDIUM',
+            alignment_id: null,
+            tags: null,
+            ability_scores: BASE_ABILITY_SCORES,
+            armor_class: 11,
+            armor_class_note: null,
+            hit_points: 45,
+            hit_dice: null,
             hit_dice_count: null,
             hit_die: null,
             hit_dice_modifier: null,
-          senses: null,
-          passive_perception: 11,
-          challenge_rating_id: null,
-          xp: null,
-          mount_profile: null,
-          companion_profile: null,
+            senses: null,
+            passive_perception: 11,
+            challenge_rating_id: null,
+            xp: null,
+            mount_profile: null,
+            companion_profile: null,
             npc_profile: null
-        }
-      ],
-      creature_proficiency_grants: [],
-      creature_features: [],
-      creature_details: [],
-      creature_speeds: [],
-      features: [],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      ...emptyGrantTables(),
+          }
+        ],
+        creature_proficiency_grants: [],
+        creature_features: [],
+        creature_details: [],
+        creature_speeds: [],
+        features: [],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        ...emptyGrantTables(),
         details: []
       }) as never
     )

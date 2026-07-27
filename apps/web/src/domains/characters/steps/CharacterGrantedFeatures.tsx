@@ -7,10 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
-import {
-  choiceOptions,
-  type CharacterFormValues
-} from '../characterBuilder.utils'
+import { choiceOptions, type CharacterFormValues } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 
 type CharacterFeatureAcquisition = CharacterFormValues['intent']['featureAcquisitions'][number]
@@ -61,49 +58,51 @@ export function CharacterGrantedFeatures({
           return (
             <article
               key={`${feature.id}-${feature.sourceLabel}-${feature.source.kind}`}
-              className={presentation === 'rows' ? styles.grantedFeatureRow : styles.grantedFeatureItem}
+              className={
+                presentation === 'rows' ? styles.grantedFeatureRow : styles.grantedFeatureItem
+              }
             >
               <div className={styles.grantedFeatureHeader}>
                 <Text fw={700}>{feature.label}</Text>
-                {showSourceBadge
-                  ? <Badge variant='light'>{formatSourceKind(feature.source.kind)}</Badge>
-                  : null}
+                {showSourceBadge ? (
+                  <Badge variant='light'>{formatSourceKind(feature.source.kind)}</Badge>
+                ) : null}
               </div>
-              {feature.description?.trim()
-                ? <div className={styles.grantedFeatureDescription}>{renderSanitizedRichHtml(feature.description)}</div>
-                : null}
-              {feature.details?.length
-                ? (
-                    <div className={styles.grantedFeatureDetails}>
-                      {feature.details.map((detail) => (
-                        <section key={detail.id} className={styles.grantedFeatureDetail}>
-                          {isRedundantDetailLabel(detail.label, feature.label)
-                            ? null
-                            : <Text fw={650} size='sm'>{detail.label}</Text>}
-                          <div className={styles.grantedFeatureDescription}>
-                            {renderSanitizedRichHtml(detail.description)}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  )
-                : null}
+              {feature.description?.trim() ? (
+                <div className={styles.grantedFeatureDescription}>
+                  {renderSanitizedRichHtml(feature.description)}
+                </div>
+              ) : null}
+              {feature.details?.length ? (
+                <div className={styles.grantedFeatureDetails}>
+                  {feature.details.map((detail) => (
+                    <section key={detail.id} className={styles.grantedFeatureDetail}>
+                      {isRedundantDetailLabel(detail.label, feature.label) ? null : (
+                        <Text fw={650} size='sm'>
+                          {detail.label}
+                        </Text>
+                      )}
+                      <div className={styles.grantedFeatureDescription}>
+                        {renderSanitizedRichHtml(detail.description)}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : null}
               {renderFeatureControls?.(feature)}
-              {featureChoices.length
-                ? (
-                    <div className={styles.grantedFeatureChoices}>
-                      {featureChoices.map((choice) => (
-                        <CharacterFeatureChoiceControl
-                          key={`${choice.featureId}-${choice.sourceLabel}-${choice.selectionKey}`}
-                          acquisitions={acquisitions}
-                          choice={choice}
-                          readOnly={readOnly}
-                          onChange={onChange}
-                        />
-                      ))}
-                    </div>
-                  )
-                : null}
+              {featureChoices.length ? (
+                <div className={styles.grantedFeatureChoices}>
+                  {featureChoices.map((choice) => (
+                    <CharacterFeatureChoiceControl
+                      key={`${choice.featureId}-${choice.sourceLabel}-${choice.selectionKey}`}
+                      acquisitions={acquisitions}
+                      choice={choice}
+                      readOnly={readOnly}
+                      onChange={onChange}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </article>
           )
         })}
@@ -127,47 +126,45 @@ function CharacterFeatureChoiceControl({
   const selectedOptionIds = getSelectedFeatureOptionIds(acquisitions, choice)
   const options = choiceOptions(choice.options)
 
-  return choice.requiredCount === 1
-    ? (
-        <AppSelect
-          label='Choose 1'
-          data={options}
-          value={selectedOptionIds[0] ?? null}
-          required
-          disabled={readOnly}
-          clearable
-          onChange={(optionId) => {
-            if (readOnly) return
-            onChange(setFeatureChoiceValue(acquisitions, choice, optionId ? [optionId] : []))
-          }}
-        />
-      )
-    : (
-        <AppMultiSelect
-          label={`Choose ${choice.requiredCount}`}
-          data={options}
-          value={selectedOptionIds}
-          required
-          disabled={readOnly}
-          clearable
-          maxValues={choice.requiredCount}
-          onChange={(optionIds) => {
-            if (readOnly) return
-            onChange(setFeatureChoiceValue(
-              acquisitions,
-              choice,
-              optionIds.slice(0, choice.requiredCount)
-            ))
-          }}
-        />
-      )
+  return choice.requiredCount === 1 ? (
+    <AppSelect
+      label='Choose 1'
+      data={options}
+      value={selectedOptionIds[0] ?? null}
+      required
+      disabled={readOnly}
+      clearable
+      onChange={(optionId) => {
+        if (readOnly) return
+        onChange(setFeatureChoiceValue(acquisitions, choice, optionId ? [optionId] : []))
+      }}
+    />
+  ) : (
+    <AppMultiSelect
+      label={`Choose ${choice.requiredCount}`}
+      data={options}
+      value={selectedOptionIds}
+      required
+      disabled={readOnly}
+      clearable
+      maxValues={choice.requiredCount}
+      onChange={(optionIds) => {
+        if (readOnly) return
+        onChange(
+          setFeatureChoiceValue(acquisitions, choice, optionIds.slice(0, choice.requiredCount))
+        )
+      }}
+    />
+  )
 }
 
 function toFeatureViews(
   features: CharacterBuilderGrantSummaryItemDto[],
   choices: CharacterBuilderFeatureChoiceViewDto[]
 ): CharacterBuilderGrantSummaryItemDto[] {
-  const orphanChoices = choices.filter((choice) => !features.some((feature) => isChoiceForFeature(choice, feature)))
+  const orphanChoices = choices.filter(
+    (choice) => !features.some((feature) => isChoiceForFeature(choice, feature))
+  )
 
   return [
     ...features,
@@ -204,7 +201,9 @@ function setFeatureChoiceValue(
   }
 
   return existing
-    ? acquisitions.map((acquisition) => isChoiceAcquisition(acquisition, choice) ? nextAcquisition : acquisition)
+    ? acquisitions.map((acquisition) =>
+        isChoiceAcquisition(acquisition, choice) ? nextAcquisition : acquisition
+      )
     : [...acquisitions, nextAcquisition]
 }
 
@@ -214,14 +213,18 @@ function getSelectedFeatureOptionIds(
 ): string[] {
   const acquisition = acquisitions.find((candidate) => isChoiceAcquisition(candidate, choice))
 
-  return acquisition?.selections
-    ?.filter((selection) => selection.selectionKey === choice.selectionKey)
-    .flatMap((selection) => selection.values.flatMap((value) => {
-      if (value.kind === 'ID') return [value.id]
-      if (value.kind === 'IDS') return value.ids
+  return (
+    acquisition?.selections
+      ?.filter((selection) => selection.selectionKey === choice.selectionKey)
+      .flatMap((selection) =>
+        selection.values.flatMap((value) => {
+          if (value.kind === 'ID') return [value.id]
+          if (value.kind === 'IDS') return value.ids
 
-      return []
-    })) ?? []
+          return []
+        })
+      ) ?? []
+  )
 }
 
 function toSelectionValues(selectedOptionIds: string[]): FeatureSelectionValue[] {
@@ -232,7 +235,9 @@ function toSelectionValues(selectedOptionIds: string[]): FeatureSelectionValue[]
   return [{ kind: 'IDS', ids: selectedOptionIds }]
 }
 
-function getFeatureChoiceTiming(source: FeatureChoiceSource): CharacterFeatureAcquisition['timing'] {
+function getFeatureChoiceTiming(
+  source: FeatureChoiceSource
+): CharacterFeatureAcquisition['timing'] {
   if (source.kind === 'CLASS') {
     return {
       kind: 'CLASS_LEVEL',
@@ -258,7 +263,10 @@ function isChoiceForFeature(
   return choice.featureId === feature.id && sameSource(feature.source, choice.source)
 }
 
-function sameSource(left: CharacterFeatureAcquisition['source'], right: FeatureChoiceSource): boolean {
+function sameSource(
+  left: CharacterFeatureAcquisition['source'],
+  right: FeatureChoiceSource
+): boolean {
   return isSameCharacterProvenanceIdentity(left, right)
 }
 
@@ -271,6 +279,8 @@ function formatSourceKind(kind: CharacterBuilderGrantSummaryItemDto['source']['k
 
 function isRedundantDetailLabel(detailLabel: string, featureLabel: string): boolean {
   const normalizedDetailLabel = detailLabel.trim().toLocaleLowerCase()
-  return normalizedDetailLabel === 'detail'
-    || normalizedDetailLabel === featureLabel.trim().toLocaleLowerCase()
+  return (
+    normalizedDetailLabel === 'detail' ||
+    normalizedDetailLabel === featureLabel.trim().toLocaleLowerCase()
+  )
 }

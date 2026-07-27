@@ -1,8 +1,15 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createEquipmentRepository, upsertEquipment } from '@artificer-toolkit/db'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
-import type { EquipmentAuthored, EquipmentVariantAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { compileEquipment, type CompiledEquipment, type CompiledEquipmentVariant } from '@artificer-toolkit/shared/subjects/compilers'
+import type {
+  EquipmentAuthored,
+  EquipmentVariantAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
+import {
+  compileEquipment,
+  type CompiledEquipment,
+  type CompiledEquipmentVariant
+} from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 type AnyEquipmentAuthored = EquipmentAuthored | EquipmentVariantAuthored
@@ -11,7 +18,10 @@ type AnyCompiledEquipment = CompiledEquipment | CompiledEquipmentVariant
 export interface EquipmentSubjectAuthoringDeps {
   validate?: (input: unknown) => AnyEquipmentAuthored
   compile?: (authored: AnyEquipmentAuthored) => AnyCompiledEquipment
-  persist?: (payload: { authored: AnyEquipmentAuthored, compiled: AnyCompiledEquipment }) => Promise<void>
+  persist?: (payload: {
+    authored: AnyEquipmentAuthored
+    compiled: AnyCompiledEquipment
+  }) => Promise<void>
   findById?: (id: string) => Promise<AnyEquipmentAuthored | null>
   findAll?: (filter?: RepositoryFindAllOptions) => Promise<AnyEquipmentAuthored[]>
 }
@@ -23,11 +33,14 @@ export function createEquipmentSubjectAuthoringService(
   const repo = createEquipmentRepository(db)
 
   return createSubjectAuthoringService<unknown, AnyEquipmentAuthored, AnyCompiledEquipment, void>({
-    validate: deps.validate ?? ((input) => equipmentAuthoredDtoSchema.parse(input) as AnyEquipmentAuthored),
+    validate:
+      deps.validate ?? ((input) => equipmentAuthoredDtoSchema.parse(input) as AnyEquipmentAuthored),
     compile: deps.compile ?? compileEquipment,
-    persist: deps.persist ?? (async ({ authored }) => {
-      await upsertEquipment(db, authored, authored.systemId)
-    }),
+    persist:
+      deps.persist ??
+      (async ({ authored }) => {
+        await upsertEquipment(db, authored, authored.systemId)
+      }),
     findById: deps.findById ?? ((id) => repo.findById(id)),
     findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
   })

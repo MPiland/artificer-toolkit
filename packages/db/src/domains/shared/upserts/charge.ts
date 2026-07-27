@@ -6,20 +6,26 @@ import {
 import type { DBLike } from '#types'
 import { assertNever, withTransaction } from '../../../utils/index.js'
 
-type ChargeAuthoredWrite = ChargeAuthored | ({
-  limitKind: 'CLASS_LEVEL'
-  scalingKind: 'NONE'
-  classId: string
-  multiplier?: number
-  min?: number
-  max?: number
-} | {
-  limitKind: 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
-  scalingKind: 'NONE'
-  multiplier?: number
-  min?: number
-  max?: number
-}) & Pick<ChargeAuthored, 'id' | 'resetKind' | 'bonuses'>
+type ChargeAuthoredWrite =
+  | ChargeAuthored
+  | ((
+      | {
+          limitKind: 'CLASS_LEVEL'
+          scalingKind: 'NONE'
+          classId: string
+          multiplier?: number
+          min?: number
+          max?: number
+        }
+      | {
+          limitKind: 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
+          scalingKind: 'NONE'
+          multiplier?: number
+          min?: number
+          max?: number
+        }
+    ) &
+      Pick<ChargeAuthored, 'id' | 'resetKind' | 'bonuses'>)
 
 type ChargeBonusRow = {
   id: string
@@ -52,10 +58,7 @@ type ChargeScalingLevelRow = {
   amount: number
 }
 
-function requireChargeResetKind(
-  chargeId: string,
-  value: string
-): ChargeAuthored['resetKind'] {
+function requireChargeResetKind(chargeId: string, value: string): ChargeAuthored['resetKind'] {
   if (value !== 'LONG_REST' && value !== 'SHORT_REST' && value !== 'MANUAL') {
     throw new Error(`Charge "${chargeId}" has invalid resetKind "${value}".`)
   }
@@ -63,10 +66,7 @@ function requireChargeResetKind(
   return value
 }
 
-function requireChargeScalingKind(
-  chargeId: string,
-  value: string
-): ChargeAuthored['scalingKind'] {
+function requireChargeScalingKind(chargeId: string, value: string): ChargeAuthored['scalingKind'] {
   if (value !== 'NONE' && value !== 'PER_LEVEL') {
     throw new Error(`Charge "${chargeId}" has invalid scalingKind "${value}".`)
   }
@@ -74,26 +74,20 @@ function requireChargeScalingKind(
   return value
 }
 
-function requireChargeLimitKind(
-  chargeId: string,
-  value: string
-): void {
+function requireChargeLimitKind(chargeId: string, value: string): void {
   if (
-    value !== 'FIXED_AMOUNT'
-    && value !== 'CHARACTER_LEVEL'
-    && value !== 'CLASS_LEVEL'
-    && value !== 'PARENT_CLASS_LEVEL'
-    && value !== 'SPELL_CAST_LEVEL'
-    && value !== 'ABILITY_MODIFIER'
+    value !== 'FIXED_AMOUNT' &&
+    value !== 'CHARACTER_LEVEL' &&
+    value !== 'CLASS_LEVEL' &&
+    value !== 'PARENT_CLASS_LEVEL' &&
+    value !== 'SPELL_CAST_LEVEL' &&
+    value !== 'ABILITY_MODIFIER'
   ) {
     throw new Error(`Charge "${chargeId}" has invalid limitKind "${value}".`)
   }
 }
 
-function requireAbilityCode(
-  bonusId: string,
-  value: string
-): string {
+function requireAbilityCode(bonusId: string, value: string): string {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`Charge bonus "${bonusId}" has invalid ability "${value}".`)
   }
@@ -101,10 +95,7 @@ function requireAbilityCode(
   return value
 }
 
-function requireClassId(
-  chargeId: string,
-  classId: string | undefined
-): string {
+function requireClassId(chargeId: string, classId: string | undefined): string {
   if (!classId) {
     throw new Error(`Charge "${chargeId}" is missing classId for CLASS_LEVEL limit.`)
   }
@@ -112,10 +103,7 @@ function requireClassId(
   return classId
 }
 
-function requireFixedAmount(
-  chargeId: string,
-  amount: number | undefined
-): number {
+function requireFixedAmount(chargeId: string, amount: number | undefined): number {
   if (amount == null) {
     throw new Error(`Charge "${chargeId}" is missing amount for FIXED_AMOUNT limit.`)
   }
@@ -125,8 +113,8 @@ function requireFixedAmount(
 
 function requireScalingLevels(
   chargeId: string,
-  levels: { id: string, level: number, amount: number }[] | undefined
-): { id: string, level: number, amount: number }[] {
+  levels: { id: string; level: number; amount: number }[] | undefined
+): { id: string; level: number; amount: number }[] {
   if (!levels) {
     throw new Error(`Charge "${chargeId}" is missing levels for PER_LEVEL scaling.`)
   }
@@ -284,7 +272,8 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
   const resetKind = requireChargeResetKind(chargeData.id, chargeData.resetKind)
   const limit = mapChargeLimitToRow(chargeData, chargeData.id)
   const levels = mapChargeScalingToRow(chargeData, chargeData.id)
-  const bonuses = chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? []
+  const bonuses =
+    chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? []
   return withTransaction(db, async (trx) => {
     await trx
       .insertInto('charges')
@@ -293,10 +282,12 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         scaling_kind: scalingKind,
         reset_kind: resetKind
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        scaling_kind: eb.ref('excluded.scaling_kind'),
-        reset_kind: eb.ref('excluded.reset_kind')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          scaling_kind: eb.ref('excluded.scaling_kind'),
+          reset_kind: eb.ref('excluded.reset_kind')
+        }))
+      )
       .execute()
 
     switch (scalingKind) {
@@ -310,25 +301,24 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
           await trx
             .insertInto('charge_limits')
             .values(limit)
-            .onConflict((oc) => oc.column('charge_id').doUpdateSet((eb) => ({
-              limit_kind: eb.ref('excluded.limit_kind'),
-              class_id: eb.ref('excluded.class_id'),
-              ability_code: eb.ref('excluded.ability_code'),
-              amount: eb.ref('excluded.amount'),
-              multiplier: eb.ref('excluded.multiplier'),
-              min: eb.ref('excluded.min'),
-              max: eb.ref('excluded.max')
-            })))
+            .onConflict((oc) =>
+              oc.column('charge_id').doUpdateSet((eb) => ({
+                limit_kind: eb.ref('excluded.limit_kind'),
+                class_id: eb.ref('excluded.class_id'),
+                ability_code: eb.ref('excluded.ability_code'),
+                amount: eb.ref('excluded.amount'),
+                multiplier: eb.ref('excluded.multiplier'),
+                min: eb.ref('excluded.min'),
+                max: eb.ref('excluded.max')
+              }))
+            )
             .execute()
         }
         break
       }
 
       case 'PER_LEVEL': {
-        await trx
-          .deleteFrom('charge_limits')
-          .where('charge_id', '=', chargeData.id)
-          .execute()
+        await trx.deleteFrom('charge_limits').where('charge_id', '=', chargeData.id).execute()
 
         await trx
           .deleteFrom('charge_scaling_levels')
@@ -336,10 +326,7 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
           .execute()
 
         if (levels.length > 0) {
-          await trx
-            .insertInto('charge_scaling_levels')
-            .values(levels)
-            .execute()
+          await trx.insertInto('charge_scaling_levels').values(levels).execute()
         }
         break
       }
@@ -350,21 +337,11 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
     }
 
     if (bonuses.length) {
-      await trx
-        .deleteFrom('charge_bonuses')
-        .where('charge_id', '=', chargeData.id)
-        .execute()
+      await trx.deleteFrom('charge_bonuses').where('charge_id', '=', chargeData.id).execute()
 
-      await trx
-        .insertInto('charge_bonuses')
-        .values(bonuses)
-        .execute()
+      await trx.insertInto('charge_bonuses').values(bonuses).execute()
     } else {
-      await trx
-        .deleteFrom('charge_bonuses')
-        .where('charge_id', '=', chargeData.id)
-        .execute()
+      await trx.deleteFrom('charge_bonuses').where('charge_id', '=', chargeData.id).execute()
     }
-
   })
 }

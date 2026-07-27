@@ -78,6 +78,7 @@ const engine: EngineCharacterOutput = {
   spellSlots: { maxByLevel: {}, fusionStrategy: 'SINGLE_CLASS' },
   resources: [],
   spellMechanics: [],
+  spellAccess: [],
   itemMechanics: [],
   companions: [],
   activeItemContributions: []

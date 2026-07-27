@@ -74,12 +74,13 @@ export const invocationDtoSchema = z.union([
   })
 ])
 
-const createEffectDtoSchema = <TPathSchema extends z.ZodTypeAny>(pathSchema: TPathSchema) => z.object({
-  id: z.string(),
-  order: z.number().int(),
-  invocation: invocationDtoSchema,
-  paths: z.array(pathSchema).min(1)
-})
+const createEffectDtoSchema = <TPathSchema extends z.ZodTypeAny>(pathSchema: TPathSchema) =>
+  z.object({
+    id: z.string(),
+    order: z.number().int(),
+    invocation: invocationDtoSchema,
+    paths: z.array(pathSchema).min(1)
+  })
 
 export const effectDtoSchema = createEffectDtoSchema(pathDtoSchema)
 export const manifestNestedBehaviorDtoSchema = createEffectDtoSchema(manifestBehaviorPathDtoSchema)

@@ -8,7 +8,10 @@ export const greataxe: EquipmentAuthored = {
   description: 'A massive two-handed axe.',
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
-    S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.HEAVY, S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
+    S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
+    S.EQUIPMENT_PROPERTY_CODE.MELEE,
+    S.EQUIPMENT_PROPERTY_CODE.HEAVY,
+    S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
   effects: S.meleeWeaponEffects(S.equipId(18), 'SLASHING', '1d12'),
   cost: S.gp(30),
@@ -18,4 +21,3 @@ export const greataxe: EquipmentAuthored = {
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }
-

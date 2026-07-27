@@ -37,13 +37,13 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
   outcomes: TOutcome[]
 }
 
-export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored>
-  = PathEntryWithMetadata & {
+export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
+  PathEntryWithMetadata & {
     resultBlock: ResultBlockAuthored<TOutcome>
   }
 
-export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored>
-  = PathEntryBase & {
+export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
+  PathEntryBase & {
     rollRange?: [number, number]
     rollValue?: number
     resultBlock: ResultBlockAuthored<TOutcome>
@@ -63,19 +63,20 @@ export type EffectPathAuthored<
   TTrigger extends Trigger = Trigger,
   TOutcome extends OutcomeAuthored = OutcomeAuthored,
   K extends PathRollTableKind = PathRollTableKind
-> = EffectPathBaseAuthored<TTrigger> & (
-  | {
-    selectionKind: 'FIXED'
-    resultBlock: ResultBlockAuthored<TOutcome>
-  }
-  | {
-    selectionKind: 'CHOICE'
-    options: PathChoiceOptionAuthored<TOutcome>[]
-  }
-  | {
-    selectionKind: 'ROLL_TABLE'
-    dieConfig: string
-    rollTableKind: K
-    rows: PathRollTableRowAuthored<TOutcome>[]
-  }
-)
+> = EffectPathBaseAuthored<TTrigger> &
+  (
+    | {
+        selectionKind: 'FIXED'
+        resultBlock: ResultBlockAuthored<TOutcome>
+      }
+    | {
+        selectionKind: 'CHOICE'
+        options: PathChoiceOptionAuthored<TOutcome>[]
+      }
+    | {
+        selectionKind: 'ROLL_TABLE'
+        dieConfig: string
+        rollTableKind: K
+        rows: PathRollTableRowAuthored<TOutcome>[]
+      }
+  )

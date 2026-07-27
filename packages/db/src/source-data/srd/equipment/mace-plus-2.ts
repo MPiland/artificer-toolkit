@@ -14,5 +14,5 @@ export const macePlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(283), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

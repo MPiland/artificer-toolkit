@@ -55,9 +55,9 @@ describe('portable primitive values', () => {
     expect(Object.values(radiusScale).every((value) => typeof value === 'number')).toBe(true)
     expect(Object.values(breakpoints).every((value) => typeof value === 'number')).toBe(true)
     expect(Object.values(motionScale).every((value) => typeof value === 'number')).toBe(true)
-    expect(Object.values(typographyScale).every((value) => typeof value.fontSize === 'number')).toBe(
-      true
-    )
+    expect(
+      Object.values(typographyScale).every((value) => typeof value.fontSize === 'number')
+    ).toBe(true)
   })
 
   it('keeps portable primitive keys aligned to web foundation contracts', () => {
@@ -82,5 +82,21 @@ describe('semantic color tokens', () => {
   it('exports complete light and dark color token roots', () => {
     expect(lightColorTokens.color).toBeDefined()
     expect(darkColorTokens.color).toBeDefined()
+  })
+
+  it('keeps light primary actions filled and dark primary actions outlined', () => {
+    expect(lightColorTokens.color.button.primary).toMatchObject({
+      background: '#ec8c06',
+      text: '#241002'
+    })
+    expect(darkColorTokens.color.button.primary).toEqual({
+      background: 'transparent',
+      border: '#ec8c06',
+      hover: 'rgba(236, 106, 6, 0.18)',
+      active: '#262b2a',
+      text: '#ffb690'
+    })
+    expect(darkColorTokens.color.button.secondary.background).toBe('#12161c')
+    expect(darkColorTokens.color.status.danger).toBe('#e8795f')
   })
 })

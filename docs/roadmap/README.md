@@ -146,23 +146,23 @@ The numbered order is the default product sequence. Hard technical dependencies 
 
 ## Technology direction
 
-| Area | Direction |
-| --- | --- |
-| Shared language | TypeScript for clients, transport, orchestration, and pure domain logic |
-| Persistence | PostgreSQL, Supabase migrations/RLS, and Kysely repositories |
-| Web | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query |
-| Native | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler |
-| Contracts | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client` |
-| Identity | One Supabase user identity across web, iOS, and Android |
-| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections |
-| Realtime | Private Supabase Broadcast; Presence only for slow-changing connection state |
-| Notifications | `expo-notifications` and Expo Push Service, with API-authorized deep links |
-| Media and files | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
-| Dice | A restricted server-side adapter around `@dice-roller/rpg-dice-roller`, using server cryptographic randomness |
-| VTT | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails |
-| Web payments | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement |
-| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval |
-| Tests | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS |
+| Area                 | Direction                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                            |
+| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                       |
+| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                           |
+| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                       |
+| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                            |
+| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                            |
+| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                 |
+| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                       |
+| Notifications        | `expo-notifications` and Expo Push Service, with API-authorized deep links                                                                                         |
+| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
+| Dice                 | A restricted server-side adapter around `@dice-roller/rpg-dice-roller`, using server cryptographic randomness                                                      |
+| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                  |
+| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                          |
+| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                           |
+| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                            |
 
 Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 02 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 
@@ -170,31 +170,31 @@ Supabase currently supports private buckets with RLS or time-limited signed deli
 
 ## Payment-channel strategy
 
-| Product | Web | Native initial state | Native paid state |
-| --- | --- | --- | --- |
-| Artificer subscription | Stripe Billing | Consume the existing entitlement; no purchase CTA | StoreKit/Play Billing through RevenueCat |
-| Marketplace content | Stripe Connect | Browse, acquire free releases, and consume owned content | Enable paid acquisition only after store and creator-payout design |
-| Paid table/session | Stripe Connect | Join or manage an existing booking | Enable checkout only after service-payment policy review |
-| Creator/GM onboarding | Stripe Connect hosted onboarding | Open an authorized web flow | Remain web-hosted unless provider constraints require otherwise |
+| Product                | Web                              | Native initial state                                     | Native paid state                                                  |
+| ---------------------- | -------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Artificer subscription | Stripe Billing                   | Consume the existing entitlement; no purchase CTA        | StoreKit/Play Billing through RevenueCat                           |
+| Marketplace content    | Stripe Connect                   | Browse, acquire free releases, and consume owned content | Enable paid acquisition only after store and creator-payout design |
+| Paid table/session     | Stripe Connect                   | Join or manage an existing booking                       | Enable checkout only after service-payment policy review           |
+| Creator/GM onboarding  | Stripe Connect hosted onboarding | Open an authorized web flow                              | Remain web-hosted unless provider constraints require otherwise    |
 
 Apple Pay and Google Pay are wallet methods inside an allowed payment path; they do not override app-store billing rules. Venmo remains outside the initial design because it adds a second processor and reconciliation model. Before paid native controls are designed, re-check [Apple's review guidelines](https://developer.apple.com/app-store/review/guidelines/), [Google Play's payments policy](https://support.google.com/googleplay/android-developer/answer/9858738), [Stripe's React Native SDK](https://docs.stripe.com/sdks/react-native), and [RevenueCat's Expo integration](https://www.revenuecat.com/docs/getting-started/installation/expo).
 
 ## Phase documents
 
-| Phase | Document | Exit result |
-| --- | --- | --- |
-| 00 | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | Web Sheet controls, authoritative per-character adjustments, transparent breakdowns, and portable semantic panels are complete |
-| 01 | [Media and supporting-file pipeline](01-media-and-file-pipeline.md) | Authorized, private-by-default assets support portraits, authored artwork, Campaign branding, and later feature-specific files |
-| 02 | [Cross-platform foundation](02-cross-platform-foundation.md) | Expo shell proves authenticated, typed, read-only Sheet-panel access on iOS and Android |
-| 03 | [Campaign Core](03-campaign-core.md) | Campaign membership, roles, rules, content grants, audited GM authority, and read-only adjustment inspection work on web and native |
-| 04 | [Live Campaign play](04-live-campaign-play.md) | Shared inventory, vehicles, sessions, notes/files, clock, chat, rolls, Realtime, and native distribution work |
-| 05 | [Encounters](05-encounters.md) | Campaign and standalone Encounters provide authoritative manual play on web and native |
-| 06 | [Entitlements and subscriptions](06-entitlements-and-subscriptions.md) | Provider-neutral entitlements and Stripe web subscriptions are reliable |
-| 07 | [Free Social Hub](07-social-hub.md) | Adults can discover, apply to, moderate, and form free tables |
-| 08 | [Free Marketplace](08-free-marketplace.md) | Immutable releases, licenses, free acquisition, and content consumption work |
-| 09 | [Paid Marketplace and paid tables](09-paid-marketplace-and-tables.md) | Approved web commerce, payouts, refunds, and fee entitlements work |
-| 10 | [VTT](10-vtt.md) | One Encounter-backed VTT works across web, iOS, and Android |
-| 11 | [Store release and continuous validation](11-store-release-and-continuous-validation.md) | Store-ready binaries and repeatable cross-platform release gates exist |
+| Phase | Document                                                                                   | Exit result                                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | Web Sheet controls, authoritative per-character adjustments, transparent breakdowns, and portable semantic panels are complete      |
+| 01    | [Media and supporting-file pipeline](01-media-and-file-pipeline.md)                        | Authorized, private-by-default assets support portraits, authored artwork, Campaign branding, and later feature-specific files      |
+| 02    | [Cross-platform foundation](02-cross-platform-foundation.md)                               | Expo shell proves authenticated, typed, read-only Sheet-panel access on iOS and Android                                             |
+| 03    | [Campaign Core](03-campaign-core.md)                                                       | Campaign membership, roles, rules, content grants, audited GM authority, and read-only adjustment inspection work on web and native |
+| 04    | [Live Campaign play](04-live-campaign-play.md)                                             | Shared inventory, vehicles, sessions, notes/files, clock, chat, rolls, Realtime, and native distribution work                       |
+| 05    | [Encounters](05-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative manual play on web and native                                              |
+| 06    | [Entitlements and subscriptions](06-entitlements-and-subscriptions.md)                     | Provider-neutral entitlements and Stripe web subscriptions are reliable                                                             |
+| 07    | [Free Social Hub](07-social-hub.md)                                                        | Adults can discover, apply to, moderate, and form free tables                                                                       |
+| 08    | [Free Marketplace](08-free-marketplace.md)                                                 | Immutable releases, licenses, free acquisition, and content consumption work                                                        |
+| 09    | [Paid Marketplace and paid tables](09-paid-marketplace-and-tables.md)                      | Approved web commerce, payouts, refunds, and fee entitlements work                                                                  |
+| 10    | [VTT](10-vtt.md)                                                                           | One Encounter-backed VTT works across web, iOS, and Android                                                                         |
+| 11    | [Store release and continuous validation](11-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                              |
 
 ## Cross-phase acceptance gates
 

@@ -1,7 +1,13 @@
 import type { VehicleListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
-function mapPermissions(item: VehicleListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: VehicleListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -23,7 +29,9 @@ function summarizeDescription(description: string | null | undefined): string {
   return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
-export function mapVehicleListToAuthoredItems(response: VehicleListResponseDto): AuthoredListItem[] {
+export function mapVehicleListToAuthoredItems(
+  response: VehicleListResponseDto
+): AuthoredListItem[] {
   return response.items.map((item) => {
     const category = item.category ?? 'VEHICLE'
 
@@ -52,7 +60,9 @@ export function mapVehicleListToAuthoredItems(response: VehicleListResponseDto):
 }
 
 export function buildVehicleListFilters(response: VehicleListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'VEHICLE'))).sort()
+  const categories = Array.from(
+    new Set(response.items.map((item) => item.category ?? 'VEHICLE'))
+  ).sort()
 
   return [
     {
@@ -76,7 +86,9 @@ export function buildVehicleListFilters(response: VehicleListResponseDto): Autho
   ]
 }
 
-export const vehicleListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
+export const vehicleListAttributeColumns = [
+  { key: 'Category', label: 'Category', width: 180 }
+] satisfies AuthoredListAttributeColumn[]
 
 export const vehicleListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

@@ -7,9 +7,10 @@ export interface FeatureOptionChoice {
   replaceCount?: number | null // int
 }
 
-export type FeatureAuthored<N extends NodeSubjectCode = NodeSubjectCode> = FeatureBaseAuthored<N> & {
-  section?: FeatureSection
-  optionChoices?: FeatureOptionChoice[]
-  options?: OptionAuthored<N>[]
-  availableAtLevel?: number
-}
+export type FeatureAuthored<N extends NodeSubjectCode = NodeSubjectCode> =
+  FeatureBaseAuthored<N> & {
+    section?: FeatureSection
+    optionChoices?: FeatureOptionChoice[]
+    options?: OptionAuthored<N>[]
+    availableAtLevel?: number
+  }

@@ -276,9 +276,7 @@ export function resolveArrayAuthoringMeta(
       ...(collection?.showHeading === undefined ? {} : { showHeading: collection.showHeading }),
       ...(collection?.join === undefined ? {} : { join: collection.join }),
       ...(collection?.rowLayout === undefined ? {} : { rowLayout: collection.rowLayout }),
-      ...(collection?.rowExpansion === undefined
-        ? {}
-        : { rowExpansion: collection.rowExpansion }),
+      ...(collection?.rowExpansion === undefined ? {} : { rowExpansion: collection.rowExpansion }),
       ...((collection?.rowSummary ?? mapAuthoring?.collection?.rowSummary) === undefined
         ? {}
         : { rowSummary: collection?.rowSummary ?? mapAuthoring?.collection?.rowSummary })

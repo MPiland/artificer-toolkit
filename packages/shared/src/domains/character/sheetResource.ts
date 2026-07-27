@@ -86,6 +86,11 @@ export const CHARACTER_DEFINITION_SOURCE_KIND = {
 export type CharacterDefinitionSourceKind =
   (typeof CHARACTER_DEFINITION_SOURCE_KIND)[keyof typeof CHARACTER_DEFINITION_SOURCE_KIND]
 
+export type CharacterSpellSourceKind = Exclude<
+  CharacterDefinitionSourceKind,
+  'ANCESTRY' | 'SUBRACE'
+>
+
 /**
  * Produces the stable identity used when one definition is acquired from
  * multiple character-owned records. The record ID is persisted Builder intent,
@@ -100,7 +105,7 @@ export function createCharacterDefinitionSourceInstanceId(
 
 export interface CharacterSpellSourceRef {
   spellId: string
-  sourceKind: CharacterDefinitionSourceKind
+  sourceKind: CharacterSpellSourceKind
   sourceInstanceId: string
 }
 
@@ -137,6 +142,108 @@ export type CharacterResourceOwnerRef =
       companionInstanceId: string
       featureId: string
     }
+
+export type CharacterResourceOwnerKey =
+  | {
+      kind: 'AUTHORED_GRANT'
+      resourceGrantId: string
+    }
+  | {
+      kind: 'SPELL_SOURCE'
+      resourceGrantId: string
+      spellId: string
+      sourceKind: CharacterSpellSourceKind
+      sourceInstanceId: string
+    }
+  | {
+      kind: 'ITEM_INSTANCE'
+      chargeId: string
+      itemInstanceId: string
+    }
+  | {
+      kind: 'SENSE_GRANT'
+      senseGrantId: string
+    }
+  | {
+      kind: 'COMPANION_FEATURE'
+      chargeId: string
+      companionInstanceId: string
+      featureId: string
+    }
+
+export function toCharacterResourceOwnerKey(
+  owner: CharacterResourceOwnerRef
+): CharacterResourceOwnerKey {
+  switch (owner.kind) {
+    case 'AUTHORED_GRANT':
+      return {
+        kind: owner.kind,
+        resourceGrantId: owner.resourceGrantId
+      }
+    case 'SPELL_SOURCE':
+      return {
+        kind: owner.kind,
+        resourceGrantId: owner.resourceGrantId,
+        spellId: owner.source.spellId,
+        sourceKind: owner.source.sourceKind,
+        sourceInstanceId: owner.source.sourceInstanceId
+      }
+    case 'ITEM_INSTANCE':
+      return {
+        kind: owner.kind,
+        chargeId: owner.chargeId,
+        itemInstanceId: owner.itemInstanceId
+      }
+    case 'SENSE_GRANT':
+      return {
+        kind: owner.kind,
+        senseGrantId: owner.senseGrantId
+      }
+    case 'COMPANION_FEATURE':
+      return {
+        kind: owner.kind,
+        chargeId: owner.chargeId,
+        companionInstanceId: owner.companionInstanceId,
+        featureId: owner.featureId
+      }
+  }
+}
+
+export function createCharacterResourceOwnerKey(owner: CharacterResourceOwnerKey): string {
+  switch (owner.kind) {
+    case 'AUTHORED_GRANT':
+      return `${owner.kind}:${encodeURIComponent(owner.resourceGrantId)}`
+    case 'SPELL_SOURCE':
+      return [
+        owner.kind,
+        owner.resourceGrantId,
+        owner.spellId,
+        owner.sourceKind,
+        owner.sourceInstanceId
+      ]
+        .map(encodeURIComponent)
+        .join(':')
+    case 'ITEM_INSTANCE':
+      return [owner.kind, owner.itemInstanceId, owner.chargeId].map(encodeURIComponent).join(':')
+    case 'SENSE_GRANT':
+      return `${owner.kind}:${encodeURIComponent(owner.senseGrantId)}`
+    case 'COMPANION_FEATURE':
+      return [owner.kind, owner.companionInstanceId, owner.featureId, owner.chargeId]
+        .map(encodeURIComponent)
+        .join(':')
+  }
+}
+
+export interface CharacterResourceUsage {
+  id: string
+  characterId: string
+  owner: CharacterResourceOwnerKey
+  used: number
+  createdBy: string
+  updatedBy: string
+  createdAt: string
+  updatedAt: string
+}
 
 export const CHARACTER_REST_KIND = {
   LONG: 'LONG',

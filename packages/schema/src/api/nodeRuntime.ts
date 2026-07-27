@@ -119,7 +119,10 @@ const nodeRuntimeCollectionOrderingDtoSchema = z.discriminatedUnion('mode', [
   z.strictObject({
     mode: z.literal('manual'),
     identityPath: z.tuple([z.string().min(1)]).readonly(),
-    orderPath: z.tuple([z.string().min(1)]).readonly().optional()
+    orderPath: z
+      .tuple([z.string().min(1)])
+      .readonly()
+      .optional()
   })
 ])
 
@@ -172,7 +175,10 @@ const nodeRuntimeInputAuthoringDtoSchema = z.strictObject({
 
 const nodeRuntimeObjectAuthoringDtoSchema = z.strictObject({
   exposure: z.enum(['author', 'system']),
-  actions: z.array(nodeRuntimeObjectActionDtoSchema).superRefine(rejectDuplicateActionTypes).readonly(),
+  actions: z
+    .array(nodeRuntimeObjectActionDtoSchema)
+    .superRefine(rejectDuplicateActionTypes)
+    .readonly(),
   appearance: nodeRuntimeGroupAppearanceDtoSchema.optional(),
   emptyLabel: z.string().min(1).optional()
 })
@@ -193,12 +199,7 @@ const nodeRuntimeNodeBaseShape = {
   clearPaths: z.array(nodeRuntimePathDtoSchema)
 }
 
-const nodeRuntimeScalarInputDtoSchemas = [
-  'TEXT',
-  'NUMBER',
-  'RICH_TEXT',
-  'TOGGLE'
-] as const
+const nodeRuntimeScalarInputDtoSchemas = ['TEXT', 'NUMBER', 'RICH_TEXT', 'TOGGLE'] as const
 
 const scalarInputSchemas = nodeRuntimeScalarInputDtoSchemas.map((type) =>
   z.strictObject({
@@ -305,10 +306,7 @@ export type NodeRuntimeObjectGroupNodeDto = Extract<
   NodeRuntimeGroupNodeDto,
   { groupKind: 'OBJECT' }
 >
-export type NodeRuntimeArrayGroupNodeDto = Extract<
-  NodeRuntimeGroupNodeDto,
-  { groupKind: 'ARRAY' }
->
+export type NodeRuntimeArrayGroupNodeDto = Extract<NodeRuntimeGroupNodeDto, { groupKind: 'ARRAY' }>
 export type NodeRuntimeSectionDto = z.infer<typeof nodeRuntimeSectionDtoSchema>
 export type NodeRuntimeStepDto = z.infer<typeof nodeRuntimeStepDtoSchema>
 export type NodeRuntimeResolvedScopeDto = z.infer<typeof nodeRuntimeResolvedScopeDtoSchema>

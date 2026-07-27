@@ -1,286 +1,288 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
-import { conditionTypeId } from '../equipment/shared.js';
-import * as S from './shared.js';
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
+import * as S from './shared.js'
 export const couatl: CreatureAuthored = {
-    id: S.CREATURE_IDS.COUATL,
-    label: 'Couatl',
-    userId: S.SRD_USER_ID,
-    systemId: S.SRD_SYSTEM_ID,
-    category: S.CREATURE_CATEGORY_CODE.MONSTER,
-    creatureTypeId: S.CREATURE_TYPE.CELESTIAL,
-    size: S.SIZE_CODE.MEDIUM,
-    alignmentId: '00000000-0000-0000-0001-000100000000',
-    abilityScores: {
-        STRENGTH: 16,
-        DEXTERITY: 20,
-        CONSTITUTION: 17,
-        INTELLIGENCE: 18,
-        WISDOM: 20,
-        CHARISMA: 18,
+  id: S.CREATURE_IDS.COUATL,
+  label: 'Couatl',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  category: S.CREATURE_CATEGORY_CODE.MONSTER,
+  creatureTypeId: S.CREATURE_TYPE.CELESTIAL,
+  size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000100000000',
+  abilityScores: {
+    STRENGTH: 16,
+    DEXTERITY: 20,
+    CONSTITUTION: 17,
+    INTELLIGENCE: 18,
+    WISDOM: 20,
+    CHARISMA: 18
+  },
+  armorClass: 19,
+  armorClassNote: 'natural armor',
+  hitPoints: 97,
+  hitDice: {
+    count: 13,
+    die: 8,
+    modifier: 39
+  },
+  speeds: [...S.walk(30), ...S.fly(90)],
+  proficiencies: [S.grantedSaveProficiency(8048, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA')],
+  damageResistances: ['radiant'],
+  damageImmunities: ['psychic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
+  senses: ['truesight 120 ft.'],
+  passivePerception: 15,
+  challengeRatingId: S.CR.CR_4,
+  xp: 1100,
+  features: [
+    {
+      id: S.featureId(71, 1),
+      label: 'Innate Spellcasting',
+      description:
+        "Innate Spellcasting. The couatl's spellcasting ability is Charisma (spell save DC 14). It can innately cast the following spells, requiring only verbal components: At will: detect evil and good, detect magic, detect thoughts. 3/day each: bless, create food and water, cure wounds, lesser restoration, protection from poison, sanctuary, shield. 1/day each: dream, greater restoration, scrying.",
+      order: 1
     },
-    armorClass: 19,
-    armorClassNote: 'natural armor',
-    hitPoints: 97,
-    hitDice: {
-      count: 13,
-      die: 8,
-      modifier: 39,
+    {
+      id: S.featureId(71, 2),
+      label: 'Magic Weapons',
+      description: "Magic Weapons. The couatl's weapon attacks are magical.",
+      order: 2
     },
-    speeds: [...S.walk(30), ...S.fly(90)],
-    proficiencies: [
-        S.grantedSaveProficiency(8048, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA')
-    ],
-    damageResistances: ['radiant'],
-    damageImmunities: ['psychic', 'bludgeoning, piercing, and slashing from nonmagical attacks'],
-    senses: ['truesight 120 ft.'],
-    passivePerception: 15,
-    challengeRatingId: S.CR.CR_4,
-    xp: 1100,
-    features: [
+    {
+      id: S.featureId(71, 3),
+      label: 'Shielded Mind',
+      description:
+        'Shielded Mind. The couatl is immune to scrying and to any effect that would sense its emotions, read its thoughts, or detect its location.',
+      order: 3
+    },
+    {
+      id: S.featureId(71, 4),
+      label: 'Bite',
+      description:
+        'Melee Weapon Attack: +8 to hit, reach 5 ft., one creature. Hit: 8 (1d6 + 5) piercing damage, and the target must succeed on a DC 13 Constitution saving throw or be poisoned for 24 hours. Until this poison ends, the target is unconscious. Another creature can use an action to shake the target awake.',
+      effects: [
         {
-            id: S.featureId(71, 1),
-            label: 'Innate Spellcasting',
-            description: "Innate Spellcasting. The couatl's spellcasting ability is Charisma (spell save DC 14). It can innately cast the following spells, requiring only verbal components: At will: detect evil and good, detect magic, detect thoughts. 3/day each: bless, create food and water, cure wounds, lesser restoration, protection from poison, sanctuary, shield. 1/day each: dream, greater restoration, scrying.",
-            order: 1
-        },
-        {
-            id: S.featureId(71, 2),
-            label: 'Magic Weapons',
-            description: "Magic Weapons. The couatl's weapon attacks are magical.",
-            order: 2
-        },
-        {
-            id: S.featureId(71, 3),
-            label: 'Shielded Mind',
-            description: 'Shielded Mind. The couatl is immune to scrying and to any effect that would sense its emotions, read its thoughts, or detect its location.',
-            order: 3
-        },
-        {
-            id: S.featureId(71, 4),
-            label: 'Bite',
-            description: 'Melee Weapon Attack: +8 to hit, reach 5 ft., one creature. Hit: 8 (1d6 + 5) piercing damage, and the target must succeed on a DC 13 Constitution saving throw or be poisoned for 24 hours. Until this poison ends, the target is unconscious. Another creature can use an action to shake the target awake.',
-            effects: [
-                {
-                    id: S.actionId(8048, 1),
-                    order: 1,
-                    invocation: {
-                        kind: 'ACTION' as const,
-                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-                        activation: {
-                            code: S.ACTIVATION_CODE.ACTION,
-                            amount: 1
-                        },
-                        range: {
-                            id: S.actionId(8048, 2),
-                            rangeKind: S.RANGE_KIND.DISTANCE,
-                            amount: 5,
-                            unit: S.MEASUREMENT_UNIT_CODE.FEET
-                        },
-                        targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-                        }
-                    },
-                    paths: [
-                        {
-                            id: S.actionId(8048, 3),
-                            order: 1,
-                            pathCode: S.PATH_CODE.ON_HIT,
-                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: "FIXED" as const,
-                            resultBlock: {
-                                id: S.actionId(8048, 3) + "__result",
-                                resultKind: "SEQUENCE" as const,
-                                outcomes: [
-                                    {
-                                        id: S.actionId(8048, 3),
-                                        effectKind: S.EFFECT_KIND.DAMAGE,
-                                        damageTypeId: S.damageTypeId('PIERCING'),
-                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                                        scalingKind: S.SCALING.NONE,
-                                        diceConfig: '1d6',
-                                        bonuses: [
-                                            {
-                                                id: S.actionId(8048, 4),
-                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                                                ability: S.ABILITY_CODE.DEXTERITY,
-                                                order: 1
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }
-                        },
-                        {
-                            id: S.actionId(8048, 5),
-                            order: 2,
-                            pathCode: S.PATH_CODE.ON_HIT,
-                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: "FIXED" as const,
-                            resultBlock: {
-                                id: S.actionId(8048, 5) + "__result",
-                                resultKind: "SEQUENCE" as const,
-                                duration: {
-                                    id: S.actionId(8048, 6),
-                                    durationKind: DURATION_KIND.HOUR,
-                                    amount: 24
-                                },
-                                outcomes: [
-                                    {
-                                        id: S.actionId(8048, 5),
-                                        effectKind: S.EFFECT_KIND.CONDITION,
-                                        conditionId: conditionTypeId('POISONED')
-                                    }
-                                ]
-                            }
-                        }
-                    ]
-                }
-            ],
-            order: 4
-        },
-        {
-            id: S.featureId(71, 5),
-            label: 'Constrict',
-            description: "Melee Weapon Attack: +6 to hit, reach 10 ft., one Medium or smaller creature. Hit: 10 (2d6 + 3) bludgeoning damage, and the target is grappled (escape DC 15). Until this grapple ends, the target is restrained, and the couatl can't constrict another target.",
-            effects: [
-                {
-                    id: S.actionId(8048, 7),
-                    order: 1,
-                    invocation: {
-                        kind: 'ACTION' as const,
-                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-                        activation: {
-                            code: S.ACTIVATION_CODE.ACTION,
-                            amount: 1
-                        },
-                        range: {
-                            id: S.actionId(8048, 8),
-                            rangeKind: S.RANGE_KIND.DISTANCE,
-                            amount: 10,
-                            unit: S.MEASUREMENT_UNIT_CODE.FEET
-                        },
-                        targeting: {
-                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-                        }
-                    },
-                    paths: [
-                        {
-                            id: S.actionId(8048, 9),
-                            order: 1,
-                            pathCode: S.PATH_CODE.ON_HIT,
-                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: "FIXED" as const,
-                            resultBlock: {
-                                id: S.actionId(8048, 9) + "__result",
-                                resultKind: "SEQUENCE" as const,
-                                outcomes: [
-                                    {
-                                        id: S.actionId(8048, 9),
-                                        effectKind: S.EFFECT_KIND.DAMAGE,
-                                        damageTypeId: S.damageTypeId('BLUDGEONING'),
-                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                                        scalingKind: S.SCALING.NONE,
-                                        diceConfig: '2d6',
-                                        bonuses: [
-                                            {
-                                                id: S.actionId(8048, 10),
-                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                                                ability: S.ABILITY_CODE.STRENGTH,
-                                                order: 1
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }
-                        },
-                        {
-                            id: S.actionId(8048, 11),
-                            order: 2,
-                            pathCode: S.PATH_CODE.ON_HIT,
-                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: "FIXED" as const,
-                            resultBlock: {
-                                id: S.actionId(8048, 11) + "__result",
-                                resultKind: "SEQUENCE" as const,
-                                outcomes: [
-                                    {
-                                        id: S.actionId(8048, 11),
-                                        effectKind: S.EFFECT_KIND.CONDITION,
-                                        conditionId: conditionTypeId('GRAPPLED')
-                                    }
-                                ]
-                            }
-                        }
-                    ]
-                }
-            ],
-            order: 5
-        },
-        {
-            id: S.featureId(71, 6),
-            label: 'Change Shape',
-            description: 'Change Shape. The couatl magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the couatl\'s choice). In a new form, the couatl retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and other actions are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.',
-            order: 6
-        },
-        {
-            id: S.featureId(71, 7),
-            label: 'Divine Aid (2/Day)',
-            description: 'Divine Aid (2/Day). The couatl casts bless, lesser restoration, or sanctuary, requiring no spell components and using the same spellcasting ability as Innate Spellcasting.',
-            attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-            charges: {
-                id: S.actionId(8048, 12),
-                limitKind: 'FIXED_AMOUNT',
-                scalingKind: S.SCALING.NONE,
-                resetKind: S.CHARGE_RESET_KIND.MANUAL,
-                amount: 2
+          id: S.actionId(8048, 1),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
             },
-            effects: [
-                {
-                    id: S.actionId(8048, 13),
-                    order: 1,
-                    invocation: {
-                        kind: 'ACTION' as const,
-                        triggerCode: S.TRIGGER.ACTIVATED,
-                        activation: {
-                            code: S.ACTIVATION_CODE.BONUS_ACTION,
-                            amount: 1
-                        },
-                        range: {
-                            id: S.actionId(8048, 14),
-                            rangeKind: S.RANGE_KIND.SPECIAL
-                        }
-                    },
-                    paths: [
-                        {
-                            id: S.actionId(8048, 15),
-                            order: 1,
-                            pathCode: S.PATH_CODE.ON_USE,
-                            groupType: S.PATH_GROUP_TYPE.SINGLE,
-                            originKind: 'SOURCE' as const,
-                            selectionKind: "FIXED" as const,
-                            resultBlock: {
-                                id: S.actionId(8048, 15) + "__result",
-                                resultKind: "SINGLE" as const,
-                                outcomes: [
-                                    {
-                                        id: S.actionId(8048, 15),
-                                        effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
-                                    }
-                                ]
-                            }
-                        }
+            range: {
+              id: S.actionId(8048, 2),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(8048, 3),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(8048, 3) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(8048, 3),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d6',
+                    bonuses: [
+                      {
+                        id: S.actionId(8048, 4),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.DEXTERITY,
+                        order: 1
+                      }
                     ]
-                }
-            ],
-            order: 7
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(8048, 5),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(8048, 5) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(8048, 6),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 24
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(8048, 5),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('POISONED')
+                  }
+                ]
+              }
+            }
+          ]
         }
-    ]
-};
-
-
+      ],
+      order: 4
+    },
+    {
+      id: S.featureId(71, 5),
+      label: 'Constrict',
+      description:
+        "Melee Weapon Attack: +6 to hit, reach 10 ft., one Medium or smaller creature. Hit: 10 (2d6 + 3) bludgeoning damage, and the target is grappled (escape DC 15). Until this grapple ends, the target is restrained, and the couatl can't constrict another target.",
+      effects: [
+        {
+          id: S.actionId(8048, 7),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(8048, 8),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(8048, 9),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(8048, 9) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(8048, 9),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d6',
+                    bonuses: [
+                      {
+                        id: S.actionId(8048, 10),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(8048, 11),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(8048, 11) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(8048, 11),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('GRAPPLED')
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      order: 5
+    },
+    {
+      id: S.featureId(71, 6),
+      label: 'Change Shape',
+      description:
+        "Change Shape. The couatl magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the couatl's choice). In a new form, the couatl retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and other actions are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
+      order: 6
+    },
+    {
+      id: S.featureId(71, 7),
+      label: 'Divine Aid (2/Day)',
+      description:
+        'Divine Aid (2/Day). The couatl casts bless, lesser restoration, or sanctuary, requiring no spell components and using the same spellcasting ability as Innate Spellcasting.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(8048, 12),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        amount: 2
+      },
+      effects: [
+        {
+          id: S.actionId(8048, 13),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: {
+              code: S.ACTIVATION_CODE.BONUS_ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(8048, 14),
+              rangeKind: S.RANGE_KIND.SPECIAL
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(8048, 15),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(8048, 15) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(8048, 15),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      order: 7
+    }
+  ]
+}

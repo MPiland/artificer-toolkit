@@ -5,24 +5,29 @@ export function formatSigned(value: number): string {
 }
 
 export function isCharacterSheetTabId(value: string | null): value is CharacterSheetTabId {
-  return value === 'overview'
-    || value === 'actions'
-    || value === 'resources'
-    || value === 'spells'
-    || value === 'inventory'
-    || value === 'reference'
-    || value === 'notes'
+  return (
+    value === 'overview' ||
+    value === 'actions' ||
+    value === 'spells' ||
+    value === 'inventory' ||
+    value === 'reference' ||
+    value === 'notes'
+  )
 }
 
-export function isCharacterSheetMobilePageId(value: string | null): value is CharacterSheetMobilePageId {
-  return value === 'overview'
-    || value === 'actions'
-    || value === 'spells'
-    || value === 'equipment'
-    || value === 'features'
-    || value === 'notes'
-    || value === 'skills'
-    || value === 'proficiencies'
+export function isCharacterSheetMobilePageId(
+  value: string | null
+): value is CharacterSheetMobilePageId {
+  return (
+    value === 'overview' ||
+    value === 'actions' ||
+    value === 'spells' ||
+    value === 'equipment' ||
+    value === 'features' ||
+    value === 'notes' ||
+    value === 'skills' ||
+    value === 'proficiencies'
+  )
 }
 
 export function toNumber(value: string | number): number {

@@ -6,25 +6,26 @@ p1_count: 2
 timestamp: 2026-07-14T08-26-47Z
 slug: n-authoring-workspace-mvp-authoring-workspace-html
 ---
+
 Method: dual-agent (A: `/root/impeccable_assessment_a` · B: `/root/impeccable_assessment_b`)
 
 # Desktop authoring workspace critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-| --- | --- | ---: | --- |
-| 1 | Visibility of system status | 3 | Saved, warning, staged, and draft states are clear. |
-| 2 | Match system / real world | 3 | D&D terminology is appropriate; the initial outcome ownership was ambiguous. |
-| 3 | User control and freedom | 3 | Commit/cancel are explicit; the initial overlay left global navigation active. |
-| 4 | Consistency and standards | 4 | All three views share one coherent Forge shell and component vocabulary. |
-| 5 | Error prevention | 3 | Staging prevents accidental mutation; unsaved-exit behavior remains an implementation proof. |
-| 6 | Recognition rather than recall | 2 | The initial generic Outcomes label required remembering the selected option. |
-| 7 | Flexibility and efficiency | 3 | Rail branches and row edit actions support direct access. |
-| 8 | Aesthetic and minimalist design | 3 | The hierarchy is calm; the original instructional callout and broad simple-form slabs added noise. |
-| 9 | Error recovery | 2 | Static mocks cannot prove validation repair or exact staged cancellation. |
-| 10 | Help and documentation | 2 | Helper copy exists, but production contextual guidance is not yet demonstrated. |
-| **Total** |  | **28/40** | **Good foundation; correct the P1 interaction boundary before locking.** |
+| #         | Heuristic                       |     Score | Key issue                                                                                          |
+| --------- | ------------------------------- | --------: | -------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status     |         3 | Saved, warning, staged, and draft states are clear.                                                |
+| 2         | Match system / real world       |         3 | D&D terminology is appropriate; the initial outcome ownership was ambiguous.                       |
+| 3         | User control and freedom        |         3 | Commit/cancel are explicit; the initial overlay left global navigation active.                     |
+| 4         | Consistency and standards       |         4 | All three views share one coherent Forge shell and component vocabulary.                           |
+| 5         | Error prevention                |         3 | Staging prevents accidental mutation; unsaved-exit behavior remains an implementation proof.       |
+| 6         | Recognition rather than recall  |         2 | The initial generic Outcomes label required remembering the selected option.                       |
+| 7         | Flexibility and efficiency      |         3 | Rail branches and row edit actions support direct access.                                          |
+| 8         | Aesthetic and minimalist design |         3 | The hierarchy is calm; the original instructional callout and broad simple-form slabs added noise. |
+| 9         | Error recovery                  |         2 | Static mocks cannot prove validation repair or exact staged cancellation.                          |
+| 10        | Help and documentation          |         2 | Helper copy exists, but production contextual guidance is not yet demonstrated.                    |
+| **Total** |                                 | **28/40** | **Good foundation; correct the P1 interaction boundary before locking.**                           |
 
 ## Anti-patterns verdict
 

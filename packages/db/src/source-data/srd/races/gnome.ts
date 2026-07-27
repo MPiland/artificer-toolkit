@@ -18,7 +18,14 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_GNOMISH_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import {
+  SRD_GNOMISH_HERITAGE_ID,
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID,
+  SRD_DARKVISION_SENSE_ID
+} from '../vocabulary.js'
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -39,7 +46,8 @@ function raceFeatureId(raceIndex: number, group: number, entry: number): string 
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
-if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const gnomeWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_CODE.FEET }]
 
@@ -48,7 +56,8 @@ const gnomeWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_
 export const gnome: RaceAuthored = {
   id: RACE_IDS.GNOME,
   label: 'Gnome',
-  description: '<p>Your gnome character has certain characteristics in common with all other gnomes.</p>',
+  description:
+    '<p>Your gnome character has certain characteristics in common with all other gnomes.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.SMALL,
@@ -58,19 +67,22 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 0, 1),
       label: 'Age',
-      description: 'Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.',
+      description:
+        'Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.',
       order: 0
     },
     {
       id: raceFeatureId(6, 0, 2),
       label: 'Alignment',
-      description: 'Gnomes are most often good. Those who tend toward law are sages, engineers, researchers, scholars, investigators, or inventors. Those who tend toward chaos are minstrels, tricksters, wanderers, or fanciful jewelers.',
+      description:
+        'Gnomes are most often good. Those who tend toward law are sages, engineers, researchers, scholars, investigators, or inventors. Those who tend toward chaos are minstrels, tricksters, wanderers, or fanciful jewelers.',
       order: 1
     },
     {
       id: raceFeatureId(6, 0, 3),
       label: 'Size',
-      description: 'Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.',
+      description:
+        'Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.',
       order: 2
     },
     {
@@ -86,7 +98,8 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 1, 1),
       label: 'Darkvision',
-      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+      description:
+        'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -135,7 +148,8 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 3, 1),
       label: 'Gnome Cunning',
-      description: 'You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.',
+      description:
+        'You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.',
       availableAtLevel: 1,
       order: 2,
       grants: {
@@ -180,7 +194,8 @@ export const gnome: RaceAuthored = {
       id: raceFeatureId(6, 4, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common and Gnomish. The Gnomish language uses the Dwarvish script and is renowned for technical treatises and catalogs of knowledge.',
+      description:
+        'You can speak, read, and write Common and Gnomish. The Gnomish language uses the Dwarvish script and is renowned for technical treatises and catalogs of knowledge.',
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -207,7 +222,8 @@ export const gnome: RaceAuthored = {
 export const rockGnome: RaceAuthored = {
   id: SUBRACE_IDS.ROCK_GNOME,
   label: 'Rock Gnome',
-  description: '<p>As a rock gnome, you have a natural inventiveness and hardiness beyond that of other gnomes.</p>',
+  description:
+    '<p>As a rock gnome, you have a natural inventiveness and hardiness beyond that of other gnomes.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.GNOME,
   userId: SRD_USER_ID,
@@ -239,14 +255,16 @@ export const rockGnome: RaceAuthored = {
     {
       id: raceFeatureId(109, 2, 1),
       label: "Artificer's Lore",
-      description: 'Whenever you make an Intelligence (History) check related to magic items, alchemical objects, or technological devices, you can add twice your proficiency bonus, instead of any proficiency bonus you normally apply.',
+      description:
+        'Whenever you make an Intelligence (History) check related to magic items, alchemical objects, or technological devices, you can add twice your proficiency bonus, instead of any proficiency bonus you normally apply.',
       availableAtLevel: 1,
       order: 1
     },
     {
       id: raceFeatureId(109, 3, 1),
       label: 'Tinker',
-      description: 'You have proficiency with artisan\'s tools (tinker\'s tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp).',
+      description:
+        "You have proficiency with artisan's tools (tinker's tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp).",
       availableAtLevel: 1,
       order: 2,
       grants: {
@@ -267,5 +285,3 @@ export const rockGnome: RaceAuthored = {
     }
   ]
 }
-
-

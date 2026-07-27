@@ -124,9 +124,7 @@ function DisabledStory() {
 function StoryFrame({ children }: { children: ReactNode }) {
   return (
     <Paper p='lg' radius='lg' maw={520}>
-      <Stack gap='md'>
-        {children}
-      </Stack>
+      <Stack gap='md'>{children}</Stack>
     </Paper>
   )
 }

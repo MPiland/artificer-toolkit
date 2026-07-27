@@ -15,9 +15,7 @@ export function getFieldError(field: {
   const errors = field.state.meta.errors
   if (!errors?.length) return undefined
 
-  return errors
-    .map((error) => typeof error === 'string' ? error : String(error))
-    .join(', ')
+  return errors.map((error) => (typeof error === 'string' ? error : String(error))).join(', ')
 }
 
 export function toInputValue(value: string | null | undefined) {

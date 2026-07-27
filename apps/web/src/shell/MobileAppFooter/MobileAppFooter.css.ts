@@ -13,7 +13,7 @@ export const root = style({
       gridTemplateColumns: 'repeat(auto-fit, minmax(4rem, 1fr))',
       gap: foundationVars.space[1],
       marginBlockStart: 'auto',
-      padding: `${foundationVars.space[1]} ${foundationVars.space[2]}`,
+      padding: `${foundationVars.space[1]} ${foundationVars.space[2]} calc(${foundationVars.space[1]} + env(safe-area-inset-bottom, 0px))`,
       borderBlockStart: `1px solid ${foundationVars.color.border.strong}`,
       backgroundColor: foundationVars.color.surface.header,
       color: foundationVars.color.text.secondary

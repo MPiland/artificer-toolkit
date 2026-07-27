@@ -35,7 +35,7 @@ export const themeToggleButton = style({
       ].join(', ')
     }
   },
-  'selectors': {
+  selectors: {
     '&:hover': {
       borderColor: foundationVars.color.accent.border,
       color: foundationVars.color.text.primary,

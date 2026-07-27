@@ -59,9 +59,7 @@ describe('character hit point progression', () => {
       rows: [{ level: 1, classId: 'class-wizard', classLevel: 2, value: 5 }]
     })
 
-    expect(rows).toMatchObject([
-      { level: 1, classId: 'class-fighter', classLevel: 1 }
-    ])
+    expect(rows).toMatchObject([{ level: 1, classId: 'class-fighter', classLevel: 1 }])
   })
 
   it('derives fixed values instead of preserving submitted totals', () => {

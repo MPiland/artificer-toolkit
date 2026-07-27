@@ -14,9 +14,7 @@ export function renderWithAppProviders(
 
   return render(ui, {
     wrapper: ({ children }) => (
-      <TestRouterProvider initialPath={initialPath}>
-        {children}
-      </TestRouterProvider>
+      <TestRouterProvider initialPath={initialPath}>{children}</TestRouterProvider>
     ),
     ...renderOptions
   })

@@ -41,9 +41,9 @@ function getImportPath(tsFile: string, outFile: string): string {
 }
 
 async function run() {
-  const files = SOURCE_GROUPS
-    .flatMap((group) => walk(path.join(SHARED_ROOT, group)))
-    .filter((file) => file.endsWith('.ts'))
+  const files = SOURCE_GROUPS.flatMap((group) => walk(path.join(SHARED_ROOT, group))).filter(
+    (file) => file.endsWith('.ts')
+  )
 
   for (const tsFile of files) {
     const relative = path.relative(SHARED_ROOT, tsFile)

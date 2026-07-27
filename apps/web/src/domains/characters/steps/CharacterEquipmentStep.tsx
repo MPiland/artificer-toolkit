@@ -1,11 +1,17 @@
-import { ActionIcon, Button, Group, NumberInput, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import {
+  ActionIcon,
+  Button,
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip
+} from '@mantine/core'
 import { IconTrash } from '@tabler/icons-react'
 import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
-import {
-  choiceOptions,
-  createFallbackCharacterFormValues
-} from '../characterBuilder.utils'
+import { choiceOptions, createFallbackCharacterFormValues } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import { CharacterStartingEquipmentChoices } from './CharacterStartingEquipmentChoices'
 import type { CharacterFormValues } from '../characterBuilder.utils'
@@ -25,38 +31,34 @@ export const CharacterEquipmentStep = withForm({
 
     return (
       <div className={styles.section}>
-        {classStartingEquipment
-          ? (
-              <form.AppField name='intent.startingEquipment.class'>
-                {(field) => (
-                  <CharacterStartingEquipmentChoices
-                    view={classStartingEquipment}
-                    decision={field.state.value}
-                    equipmentOptions={payload.view.equipment.equipmentOptions}
-                    currencyOptions={payload.view.equipment.currencyOptions}
-                    readOnly={readOnly}
-                    onChange={field.handleChange}
-                  />
-                )}
-              </form.AppField>
-            )
-          : null}
-        {backgroundStartingEquipment
-          ? (
-              <form.AppField name='intent.startingEquipment.background'>
-                {(field) => (
-                  <CharacterStartingEquipmentChoices
-                    view={backgroundStartingEquipment}
-                    decision={field.state.value}
-                    equipmentOptions={payload.view.equipment.equipmentOptions}
-                    currencyOptions={payload.view.equipment.currencyOptions}
-                    readOnly={readOnly}
-                    onChange={field.handleChange}
-                  />
-                )}
-              </form.AppField>
-            )
-          : null}
+        {classStartingEquipment ? (
+          <form.AppField name='intent.startingEquipment.class'>
+            {(field) => (
+              <CharacterStartingEquipmentChoices
+                view={classStartingEquipment}
+                decision={field.state.value}
+                equipmentOptions={payload.view.equipment.equipmentOptions}
+                currencyOptions={payload.view.equipment.currencyOptions}
+                readOnly={readOnly}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+        ) : null}
+        {backgroundStartingEquipment ? (
+          <form.AppField name='intent.startingEquipment.background'>
+            {(field) => (
+              <CharacterStartingEquipmentChoices
+                view={backgroundStartingEquipment}
+                decision={field.state.value}
+                equipmentOptions={payload.view.equipment.equipmentOptions}
+                currencyOptions={payload.view.equipment.currencyOptions}
+                readOnly={readOnly}
+                onChange={field.handleChange}
+              />
+            )}
+          </form.AppField>
+        ) : null}
         <form.AppField name='state.equipment.inventory' mode='array'>
           {(field) => {
             const rows = field.state.value ?? []
@@ -65,76 +67,74 @@ export const CharacterEquipmentStep = withForm({
               <Stack gap='md' className={styles.inlinePanel}>
                 <Group className={styles.manualPanelHeader}>
                   <Text fw={700}>Manual inventory</Text>
-                  {!readOnly
-                    ? (
-                        <Button
-                          type='button'
-                          size='compact-sm'
-                          variant='default'
-                          onClick={() => field.pushValue(createInventoryItem())}
-                        >
-                          Add Item
-                        </Button>
-                      )
-                    : null}
+                  {!readOnly ? (
+                    <Button
+                      type='button'
+                      size='compact-sm'
+                      variant='default'
+                      onClick={() => field.pushValue(createInventoryItem())}
+                    >
+                      Add Item
+                    </Button>
+                  ) : null}
                 </Group>
-                {rows.length === 0
-                  ? <Text className={styles.mutedText}>No manual inventory has been added.</Text>
-                  : rows.map((row, index) => (
-                      <div key={row.id} className={styles.manualInventoryRow}>
-                        <AppSelect
-                          label='Equipment'
-                          data={equipmentOptions}
-                          value={row.equipmentId}
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            field.replaceValue(index, {
-                              ...row,
-                              equipmentId: value ?? ''
-                            })
-                          }}
-                        />
-                        <NumberInput
-                          hideControls
-                          label='Quantity'
-                          min={1}
-                          value={row.quantity}
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            field.replaceValue(index, {
-                              ...row,
-                              quantity: typeof value === 'number' ? value : 1
-                            })
-                          }}
-                        />
-                        <TextInput
-                          label='Custom Name'
-                          value={row.customName ?? ''}
-                          disabled={readOnly}
-                          onChange={(event) => {
-                            field.replaceValue(index, {
-                              ...row,
-                              customName: event.currentTarget.value || undefined
-                            })
-                          }}
-                        />
-                        {!readOnly
-                          ? (
-                              <Tooltip label='Remove item'>
-                                <ActionIcon
-                                  aria-label={`Remove inventory item ${index + 1}`}
-                                  type='button'
-                                  variant='subtle'
-                                  color='red'
-                                  onClick={() => field.removeValue(index)}
-                                >
-                                  <IconTrash aria-hidden size={17} />
-                                </ActionIcon>
-                              </Tooltip>
-                            )
-                          : null}
-                      </div>
-                    ))}
+                {rows.length === 0 ? (
+                  <Text className={styles.mutedText}>No manual inventory has been added.</Text>
+                ) : (
+                  rows.map((row, index) => (
+                    <div key={row.id} className={styles.manualInventoryRow}>
+                      <AppSelect
+                        label='Equipment'
+                        data={equipmentOptions}
+                        value={row.equipmentId}
+                        disabled={readOnly}
+                        onChange={(value) => {
+                          field.replaceValue(index, {
+                            ...row,
+                            equipmentId: value ?? ''
+                          })
+                        }}
+                      />
+                      <NumberInput
+                        hideControls
+                        label='Quantity'
+                        min={1}
+                        value={row.quantity}
+                        disabled={readOnly}
+                        onChange={(value) => {
+                          field.replaceValue(index, {
+                            ...row,
+                            quantity: typeof value === 'number' ? value : 1
+                          })
+                        }}
+                      />
+                      <TextInput
+                        label='Custom Name'
+                        value={row.customName ?? ''}
+                        disabled={readOnly}
+                        onChange={(event) => {
+                          field.replaceValue(index, {
+                            ...row,
+                            customName: event.currentTarget.value || undefined
+                          })
+                        }}
+                      />
+                      {!readOnly ? (
+                        <Tooltip label='Remove item'>
+                          <ActionIcon
+                            aria-label={`Remove inventory item ${index + 1}`}
+                            type='button'
+                            variant='subtle'
+                            color='red'
+                            onClick={() => field.removeValue(index)}
+                          >
+                            <IconTrash aria-hidden size={17} />
+                          </ActionIcon>
+                        </Tooltip>
+                      ) : null}
+                    </div>
+                  ))
+                )}
               </Stack>
             )
           }}
@@ -147,64 +147,68 @@ export const CharacterEquipmentStep = withForm({
               <Stack gap='md' className={styles.inlinePanel}>
                 <Group className={styles.manualPanelHeader}>
                   <Text fw={700}>Manual currency</Text>
-                  {!readOnly
-                    ? (
-                        <Button
-                          type='button'
-                          size='compact-sm'
-                          variant='default'
-                          onClick={() => field.pushValue(createCurrencyGroup())}
-                        >
-                          Add Currency Group
-                        </Button>
-                      )
-                    : null}
+                  {!readOnly ? (
+                    <Button
+                      type='button'
+                      size='compact-sm'
+                      variant='default'
+                      onClick={() => field.pushValue(createCurrencyGroup())}
+                    >
+                      Add Currency Group
+                    </Button>
+                  ) : null}
                 </Group>
-                {rows.length === 0
-                  ? <Text className={styles.mutedText}>No manual currency has been added.</Text>
-                  : rows.map((row, index) => (
-                      <div key={row.id} className={styles.manualCurrencyRow}>
-                        <AppSelect
-                          label='Currency'
-                          data={currencyOptions}
-                          value={row.currencies[0]?.currencyId ?? null}
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            field.replaceValue(index, setFirstCurrency(row, {
+                {rows.length === 0 ? (
+                  <Text className={styles.mutedText}>No manual currency has been added.</Text>
+                ) : (
+                  rows.map((row, index) => (
+                    <div key={row.id} className={styles.manualCurrencyRow}>
+                      <AppSelect
+                        label='Currency'
+                        data={currencyOptions}
+                        value={row.currencies[0]?.currencyId ?? null}
+                        disabled={readOnly}
+                        onChange={(value) => {
+                          field.replaceValue(
+                            index,
+                            setFirstCurrency(row, {
                               currencyId: value ?? '',
                               amount: row.currencies[0]?.amount ?? 0
-                            }))
-                          }}
-                        />
-                        <NumberInput
-                          hideControls
-                          label='Amount'
-                          value={row.currencies[0]?.amount ?? 0}
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            field.replaceValue(index, setFirstCurrency(row, {
+                            })
+                          )
+                        }}
+                      />
+                      <NumberInput
+                        hideControls
+                        label='Amount'
+                        value={row.currencies[0]?.amount ?? 0}
+                        disabled={readOnly}
+                        onChange={(value) => {
+                          field.replaceValue(
+                            index,
+                            setFirstCurrency(row, {
                               currencyId: row.currencies[0]?.currencyId ?? '',
                               amount: typeof value === 'number' ? value : 0
-                            }))
-                          }}
-                        />
-                        {!readOnly
-                          ? (
-                              <Tooltip label='Remove currency'>
-                                <ActionIcon
-                                  aria-label={`Remove currency group ${index + 1}`}
-                                  type='button'
-                                  variant='subtle'
-                                  color='red'
-                                  onClick={() => field.removeValue(index)}
-                                >
-                                  <IconTrash aria-hidden size={17} />
-                                </ActionIcon>
-                              </Tooltip>
-                            )
-                          : null}
-                      </div>
-                    ))}
+                            })
+                          )
+                        }}
+                      />
+                      {!readOnly ? (
+                        <Tooltip label='Remove currency'>
+                          <ActionIcon
+                            aria-label={`Remove currency group ${index + 1}`}
+                            type='button'
+                            variant='subtle'
+                            color='red'
+                            onClick={() => field.removeValue(index)}
+                          >
+                            <IconTrash aria-hidden size={17} />
+                          </ActionIcon>
+                        </Tooltip>
+                      ) : null}
+                    </div>
+                  ))
+                )}
               </Stack>
             )
           }}

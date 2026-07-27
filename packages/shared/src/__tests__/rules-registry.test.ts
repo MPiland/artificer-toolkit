@@ -12,9 +12,11 @@ describe('resolveRulesSystem', () => {
   })
 
   it('fails closed for unsupported systems and versions', () => {
-    expect(() => resolveRulesSystem({ code: 'dnd5e', version: '2024' }))
-      .toThrow(UnsupportedRulesSystemError)
-    expect(() => resolveRulesSystem({ code: 'pf2e', version: 'remaster' }))
-      .toThrow('Unsupported rules system')
+    expect(() => resolveRulesSystem({ code: 'dnd5e', version: '2024' })).toThrow(
+      UnsupportedRulesSystemError
+    )
+    expect(() => resolveRulesSystem({ code: 'pf2e', version: 'remaster' })).toThrow(
+      'Unsupported rules system'
+    )
   })
 })

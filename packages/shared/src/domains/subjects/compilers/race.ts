@@ -10,17 +10,8 @@ import type {
   SpeedAuthored,
   SubraceAuthored
 } from '#authored'
-import {
-  RACE_CATEGORY_CODE,
-  type RaceSelectionMode,
-  type SizeCode
-} from '#core'
-import {
-  compileFeature,
-  type CompiledFeature,
-  compileSpeed,
-  type CompiledSpeed
-} from '#compilers'
+import { RACE_CATEGORY_CODE, type RaceSelectionMode, type SizeCode } from '#core'
+import { compileFeature, type CompiledFeature, compileSpeed, type CompiledSpeed } from '#compilers'
 
 export interface CompiledRaceCharacteristics {
   sizeId: string
@@ -75,29 +66,24 @@ export type CompiledRaceBase = {
 
 export type CompiledRace = (
   | {
-    category: typeof RACE_CATEGORY_CODE.BASE
-    selectionMode: RaceSelectionMode
-    ancestry?: CompiledRaceAncestry
-    size: SizeCode
-    speeds: CompiledSpeed[]
-  }
+      category: typeof RACE_CATEGORY_CODE.BASE
+      selectionMode: RaceSelectionMode
+      ancestry?: CompiledRaceAncestry
+      size: SizeCode
+      speeds: CompiledSpeed[]
+    }
   | {
-    category: typeof RACE_CATEGORY_CODE.SUBRACE
-    parentRaceId: string
-    ancestry?: CompiledRaceAncestry
-    size: SizeCode
-    speeds: CompiledSpeed[]
-  }
-) & CompiledRaceBase
+      category: typeof RACE_CATEGORY_CODE.SUBRACE
+      parentRaceId: string
+      ancestry?: CompiledRaceAncestry
+      size: SizeCode
+      speeds: CompiledSpeed[]
+    }
+) &
+  CompiledRaceBase
 
-function mergeOrderedValues<T>(
-  parent?: readonly T[],
-  child?: readonly T[]
-): T[] | undefined {
-  const merged = [
-    ...(parent ?? []),
-    ...(child ?? [])
-  ]
+function mergeOrderedValues<T>(parent?: readonly T[], child?: readonly T[]): T[] | undefined {
+  const merged = [...(parent ?? []), ...(child ?? [])]
 
   return merged.length > 0 ? [...merged] : undefined
 }
@@ -106,17 +92,12 @@ function mergeUniqueValues<T extends string>(
   parent?: readonly T[],
   child?: readonly T[]
 ): T[] | undefined {
-  const merged = [
-    ...(parent ?? []),
-    ...(child ?? [])
-  ]
+  const merged = [...(parent ?? []), ...(child ?? [])]
 
   return merged.length > 0 ? [...new Set(merged)] : undefined
 }
 
-function cloneAncestryOption(
-  authored: RaceAncestryOptionAuthored
-): RaceAncestryOptionAuthored {
+function cloneAncestryOption(authored: RaceAncestryOptionAuthored): RaceAncestryOptionAuthored {
   return {
     id: authored.id,
     label: authored.label,
@@ -126,9 +107,7 @@ function cloneAncestryOption(
   }
 }
 
-function cloneAncestry(
-  authored: RaceAncestryAuthored
-): RaceAncestryAuthored {
+function cloneAncestry(authored: RaceAncestryAuthored): RaceAncestryAuthored {
   return {
     id: authored.id,
     label: authored.label,
@@ -140,8 +119,8 @@ function cloneAncestry(
 export function compileAncestryOption(
   authored: RaceAncestryOptionAuthored
 ): CompiledRaceAncestryOption {
-  const features
-    = authored.features && authored.features.length
+  const features =
+    authored.features && authored.features.length
       ? authored.features.map((feature) => compileFeature(feature))
       : undefined
 
@@ -152,9 +131,7 @@ export function compileAncestryOption(
   }
 }
 
-export function compileAncestry(
-  authored: RaceAncestryAuthored
-): CompiledRaceAncestry {
+export function compileAncestry(authored: RaceAncestryAuthored): CompiledRaceAncestry {
   return {
     id: authored.id,
     options: authored.options.map((option) => compileAncestryOption(option))
@@ -184,20 +161,13 @@ export function resolveRaceAuthored(
   const parent = lookupParent(authored.parentRaceId)
 
   if (!parent) {
-    throw new Error(
-      `Subrace "${authored.id}" is missing parent race "${authored.parentRaceId}".`
-    )
+    throw new Error(`Subrace "${authored.id}" is missing parent race "${authored.parentRaceId}".`)
   }
 
-  const resolvedParent = resolveRaceAuthored(parent, lookupParent, [
-    ...lineage,
-    authored.id
-  ])
+  const resolvedParent = resolveRaceAuthored(parent, lookupParent, [...lineage, authored.id])
 
   if (resolvedParent.category !== RACE_CATEGORY_CODE.BASE) {
-    throw new Error(
-      `Subrace "${authored.id}" resolved to non-base parent "${resolvedParent.id}".`
-    )
+    throw new Error(`Subrace "${authored.id}" resolved to non-base parent "${resolvedParent.id}".`)
   }
 
   return {
@@ -208,20 +178,10 @@ export function resolveRaceAuthored(
     status: authored.status,
     category: authored.category,
     parentRaceId: authored.parentRaceId,
-    heritageIds: resolvedParent.heritageIds?.length
-      ? [...resolvedParent.heritageIds]
-      : undefined,
-    details: mergeOrderedValues(
-      resolvedParent.details,
-      authored.details
-    ),
-    features: mergeOrderedValues(
-      resolvedParent.features,
-      authored.features
-    ),
-    ancestry: resolvedParent.ancestry
-      ? cloneAncestry(resolvedParent.ancestry)
-      : undefined,
+    heritageIds: resolvedParent.heritageIds?.length ? [...resolvedParent.heritageIds] : undefined,
+    details: mergeOrderedValues(resolvedParent.details, authored.details),
+    features: mergeOrderedValues(resolvedParent.features, authored.features),
+    ancestry: resolvedParent.ancestry ? cloneAncestry(resolvedParent.ancestry) : undefined,
     size: resolvedParent.size,
     speeds: [...resolvedParent.speeds],
     userId: authored.userId,
@@ -230,44 +190,34 @@ export function resolveRaceAuthored(
       parentRaceId: authored.parentRaceId,
       parentLabel: resolvedParent.label,
       inherited: {
-        ancestry: resolvedParent.ancestry
-          ? cloneAncestry(resolvedParent.ancestry)
-          : undefined,
+        ancestry: resolvedParent.ancestry ? cloneAncestry(resolvedParent.ancestry) : undefined,
         size: resolvedParent.size,
         speeds: [...resolvedParent.speeds],
         heritageIds: resolvedParent.heritageIds?.length
           ? [...resolvedParent.heritageIds]
           : undefined,
-        details: resolvedParent.details?.length
-          ? [...resolvedParent.details]
-          : undefined,
-        features: resolvedParent.features?.length
-          ? [...resolvedParent.features]
-          : undefined
+        details: resolvedParent.details?.length ? [...resolvedParent.details] : undefined,
+        features: resolvedParent.features?.length ? [...resolvedParent.features] : undefined
       }
     }
   }
 }
 
 export function compileRace(authored: ResolvedRace): CompiledRace {
-  const features
-    = authored.features && authored.features.length
+  const features =
+    authored.features && authored.features.length
       ? authored.features.map((feature) => compileFeature(feature))
       : undefined
 
   const base: CompiledRaceBase = {
     id: authored.id,
-    heritageIds: authored.heritageIds?.length
-      ? mergeUniqueValues(authored.heritageIds)
-      : undefined,
+    heritageIds: authored.heritageIds?.length ? mergeUniqueValues(authored.heritageIds) : undefined,
     features
   }
 
   switch (authored.category) {
     case RACE_CATEGORY_CODE.BASE: {
-      const ancestry = authored.ancestry
-        ? compileAncestry(authored.ancestry)
-        : undefined
+      const ancestry = authored.ancestry ? compileAncestry(authored.ancestry) : undefined
 
       return {
         ...base,
@@ -280,9 +230,7 @@ export function compileRace(authored: ResolvedRace): CompiledRace {
     }
 
     case RACE_CATEGORY_CODE.SUBRACE: {
-      const ancestry = authored.ancestry
-        ? compileAncestry(authored.ancestry)
-        : undefined
+      const ancestry = authored.ancestry ? compileAncestry(authored.ancestry) : undefined
 
       return {
         ...base,

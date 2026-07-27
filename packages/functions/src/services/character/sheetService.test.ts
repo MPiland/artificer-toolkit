@@ -8,6 +8,8 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  SCALING,
+  SPELL_GRANT_ATTRIBUTE,
   SPELLCASTING_ATTRIBUTE,
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared/core'
@@ -90,6 +92,52 @@ function createCharacter(): CharacterAuthored {
   }
 }
 
+type SheetResource = CharacterSheetResponseDto['resources']['items'][number]
+type SheetSpellSource = NonNullable<
+  CharacterSheetResponseDto['spells']['spells'][number]['sources']
+>[number]
+
+function createSheetResource(overrides: Partial<SheetResource> = {}): SheetResource {
+  return {
+    id: 'resource-1',
+    owner: {
+      kind: 'AUTHORED_GRANT',
+      resourceGrantId: 'resource-1',
+      source: {
+        kind: 'AUTHORED',
+        sourceKind: 'CLASS',
+        definitionId: 'class-1',
+        sourceInstanceId: 'CLASS:class-1'
+      }
+    },
+    label: 'Second Wind',
+    sourceLabel: 'Fighter',
+    used: 1,
+    max: 2,
+    remaining: 1,
+    recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }],
+    ...overrides
+  }
+}
+
+function createSheetSpellSource(
+  spellId: string,
+  overrides: Partial<SheetSpellSource> = {}
+): SheetSpellSource {
+  return {
+    source: {
+      spellId,
+      sourceKind: 'CLASS',
+      sourceInstanceId: 'CLASS:class-1'
+    },
+    classId: 'class-1',
+    label: 'Fighter',
+    canPrepare: true,
+    prepared: false,
+    ...overrides
+  }
+}
+
 function createSheet(
   overrides: Partial<CharacterSheetResponseDto> = {}
 ): CharacterSheetResponseDto {
@@ -123,17 +171,7 @@ function createSheet(
     },
     actions: { items: [] },
     resources: {
-      items: [
-        {
-          id: 'resource-1',
-          label: 'Second Wind',
-          sourceLabel: 'Fighter',
-          used: 1,
-          max: 2,
-          remaining: 1,
-          recovery: 'LONG_REST'
-        }
-      ],
+      items: [createSheetResource()],
       hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }]
     },
     spells: {
@@ -156,9 +194,10 @@ function createSheet(
           level: 1,
           prepared: false,
           known: true,
-          sources: [{ classId: 'class-1', label: 'Fighter', canPrepare: true, prepared: false }]
+          sources: [createSheetSpellSource('spell-1')]
         }
       ],
+      activeGroups: [],
       preparationSources: [{ classId: 'class-1', label: 'Fighter', preparedSpellIds: [] }]
     },
     inventory: {
@@ -187,7 +226,8 @@ function createSheet(
 }
 
 function createConditionDb(
-  rows: Array<{ id: string; label: string; description?: string | null }> = []
+  rows: Array<{ id: string; label: string; description?: string | null }> = [],
+  rowsByTable: Readonly<Record<string, unknown[]>> = {}
 ): DBLike {
   type TestQueryBuilder = {
     select: (...args: unknown[]) => TestQueryBuilder
@@ -211,7 +251,8 @@ function createConditionDb(
   }
 
   return {
-    selectFrom: (table: string) => createQueryBuilder(table === 'condition_types' ? rows : [])
+    selectFrom: (table: string) =>
+      createQueryBuilder(rowsByTable[table] ?? (table === 'condition_types' ? rows : []))
   } as unknown as DBLike
 }
 
@@ -594,7 +635,7 @@ describe('character sheet command application', () => {
     ])
   })
 
-  it('hydrates engine proficiencies into reference facts', async () => {
+  it('hydrates only displayable engine proficiencies into typed reference facts', async () => {
     const resolution = createResolution()
     const fighter = createSpellcastingClass({
       id: 'class-1',
@@ -624,6 +665,42 @@ describe('character sheet command application', () => {
         authoringModeKind: 'SELECTED',
         abilities: ['DEXTERITY'],
         level: 'DOUBLE'
+      },
+      {
+        id: 'prof-armor-1',
+        order: 3,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'EQUIPMENT_PROPERTY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        category: 'ARMOR',
+        properties: ['LIGHT'],
+        level: 'FULL'
+      },
+      {
+        id: 'prof-weapon-1',
+        order: 4,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'EQUIPMENT_PROPERTY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        category: 'WEAPON',
+        properties: ['MARTIAL', 'FINESSE'],
+        level: 'FULL'
+      },
+      {
+        id: 'prof-tool-1',
+        order: 5,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'EQUIPMENT_PROPERTY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        category: 'TOOL',
+        properties: ['MUSICAL_INSTRUMENT'],
+        level: 'FULL'
       }
     ]
     resolution.registry.classes = [fighter]
@@ -657,8 +734,9 @@ describe('character sheet command application', () => {
     })
 
     expect(sheet.reference.proficiencies).toEqual([
-      { label: 'Athletics', value: 'Skill · Proficient' },
-      { label: 'Dexterity saves', value: 'Saving throw · Expertise' }
+      expect.objectContaining({ kind: 'ARMOR', label: 'Light Armor' }),
+      expect.objectContaining({ kind: 'WEAPON', label: 'Martial Weapons' }),
+      expect.objectContaining({ kind: 'TOOL', label: 'Musical Instrument' })
     ])
   })
 
@@ -720,10 +798,10 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.reference.proficiencies).toContainEqual({
-      label: 'Athletics',
-      value: 'Skill · Proficient'
-    })
+    expect(sheet.reference.proficiencies).toEqual([])
+    expect(sheet.overview.skills).toContainEqual(
+      expect.objectContaining({ label: 'Athletics', proficiency: 'FULL' })
+    )
   })
 
   it('hydrates engine-derived saving throw overview rows with proficiency levels', async () => {
@@ -935,6 +1013,115 @@ describe('character sheet command application', () => {
     )
   })
 
+  it('links a recovery-only feature action to its resource row', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    const resolution = createResolution()
+    resolution.grants.features = [
+      {
+        id: 'subclass-1',
+        label: 'Superiority Dice',
+        description: '<p>Recover your expended superiority dice.</p>',
+        sourceLabel: 'Battle Master',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-1', classLevel: 3 }
+      }
+    ]
+    const rowsByTable = {
+      features: [
+        {
+          ownerId: 'subclass-1',
+          label: 'Superiority Dice',
+          description: 'Recover your expended superiority dice.',
+          sectionCode: 'ACTION',
+          availableAtLevel: 3,
+          chargeId: null,
+          effectId: 'recover-superiority-dice',
+          ownerEffectOrder: 1,
+          effectOrder: 1
+        }
+      ],
+      effect_invocations: [
+        {
+          effectId: 'recover-superiority-dice',
+          triggerCode: 'ACTIVATED',
+          activationType: 'OTHER',
+          activationValue: 1,
+          rangeCharacteristicId: null,
+          shapeCharacteristicId: null,
+          savingThrowId: null,
+          targetSelectionKind: null,
+          targetDispositionKind: null,
+          maxTargets: null,
+          maxTargetsScaling: null,
+          excludedCreatureTypeIds: null
+        }
+      ],
+      effect_paths: [
+        {
+          pathId: 'recover-superiority-dice-path',
+          effectId: 'recover-superiority-dice',
+          order: 1,
+          pathCode: 'ON_USE',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          originKind: null,
+          rangeOverrideCharacteristicId: null,
+          targetSelectionKind: null,
+          targetDispositionKind: null,
+          maxTargets: null,
+          maxTargetsScaling: null,
+          excludedCreatureTypeIds: null,
+          resultBlockId: 'recover-superiority-dice-result',
+          rollTableKind: null,
+          die: null
+        }
+      ],
+      effect_result_blocks: [
+        {
+          resultBlockId: 'recover-superiority-dice-result',
+          resultKind: 'SINGLE',
+          durationCharacteristicId: null,
+          lifecycleRecurringKind: null,
+          lifecycleConsumeOnFirstEvent: null,
+          lifecycleEndOnEvents: null
+        }
+      ],
+      effect_result_block_outcomes: [
+        {
+          resultBlockId: 'recover-superiority-dice-result',
+          outcomeId: 'recover-superiority-dice-outcome',
+          effectKind: 'RESOURCE_RECOVERY',
+          order: 1
+        }
+      ],
+      effect_generic_outcomes: [
+        {
+          outcomeId: 'recover-superiority-dice-outcome',
+          effectKind: 'RESOURCE_RECOVERY',
+          payload: { label: 'Recover expended superiority dice' }
+        }
+      ]
+    }
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb([], rowsByTable),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    const resource = sheet.resources.items.find(({ label }) => label === 'Superiority Dice')
+    expect(resource).toBeDefined()
+    expect(sheet.actions.items).toContainEqual(
+      expect.objectContaining({
+        label: 'Superiority Dice',
+        kind: 'OTHER',
+        resourceGrantId: resource?.id
+      })
+    )
+  })
+
   it('hydrates spell casting reference details into sheet spells', async () => {
     const resolution = createResolution()
     const spell = createSpell({
@@ -981,7 +1168,7 @@ describe('character sheet command application', () => {
     })
     equipment.description = '<p>A balanced knightly blade.</p>'
     equipment.cost = { amount: 15, currencyId: 'gp' }
-    equipment.properties = ['MARTIAL', 'MELEE']
+    equipment.properties = ['MARTIAL', 'ONE_HANDED']
     equipment.armorClass = 1
     resolution.registry.equipment = [equipment]
 
@@ -1002,7 +1189,10 @@ describe('character sheet command application', () => {
         cost: { amount: 15, currencyId: 'gp' },
         costLabel: 'Gold',
         weight: { amount: 0, unit: 'POUNDS' },
-        properties: ['MARTIAL', 'MELEE'],
+        properties: [
+          { code: 'MARTIAL', label: 'Martial' },
+          { code: 'ONE_HANDED', label: 'One-Handed' }
+        ],
         armorClass: 1
       })
     )
@@ -1135,16 +1325,17 @@ describe('character sheet command application', () => {
     ]
     const sheet = createSheet()
     sheet.resources.items = [
-      { ...sheet.resources.items[0], recovery: 'SHORT_REST' },
-      {
+      createSheetResource({
+        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
+      }),
+      createSheetResource({
         id: 'long-resource',
         label: 'Daily Resolve',
-        sourceLabel: 'Fighter',
         used: 1,
         max: 1,
         remaining: 0,
-        recovery: 'LONG_REST'
-      }
+        recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
+      })
     ]
     sheet.spells.slots = [
       ...sheet.spells.slots,
@@ -1181,33 +1372,31 @@ describe('character sheet command application', () => {
     ]
     const sheet = createSheet()
     sheet.resources.items = [
-      {
+      createSheetResource({
         id: 'short-resource',
         label: 'Action Surge',
-        sourceLabel: 'Fighter',
         used: 1,
         max: 1,
         remaining: 0,
-        recovery: 'SHORT_REST'
-      },
-      {
+        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
+      }),
+      createSheetResource({
         id: 'long-resource',
         label: 'Daily Resolve',
-        sourceLabel: 'Fighter',
         used: 1,
         max: 1,
         remaining: 0,
-        recovery: 'LONG_REST'
-      },
-      {
+        recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
+      }),
+      createSheetResource({
         id: 'manual-resource',
         label: 'Manual Charge',
         sourceLabel: 'Item',
         used: 2,
         max: 3,
         remaining: 1,
-        recovery: 'OTHER'
-      }
+        recoveries: [{ trigger: 'MANUAL', amount: { kind: 'ALL' } }]
+      })
     ]
 
     const next = applyCharacterSheetCommand(
@@ -2006,7 +2195,7 @@ describe('character sheet command application', () => {
         level: 1,
         prepared: false,
         known: true,
-        sources: [{ classId: 'class-1', label: 'Fighter', canPrepare: true, prepared: false }]
+        sources: [createSheetSpellSource('spell-2')]
       }
     ]
     sheet.spells.preparationSources = [
@@ -2051,15 +2240,14 @@ describe('character sheet command application', () => {
 
     const knownSheet = createSheet()
     knownSheet.spells.spells[0]!.sources = [
-      {
+      createSheetSpellSource('spell-1', {
         id: 'bard:spell-1',
-        classId: 'class-1',
         label: 'Bard',
         canPrepare: false,
         prepared: false,
         acquisition: 'KNOWN',
         castMode: 'SPELL_SLOT'
-      }
+      })
     ]
     const knownNext = applyCharacterSheetCommand(
       createCharacter(),
@@ -2079,7 +2267,7 @@ describe('character sheet command application', () => {
     const fixedCharacter = createCharacter()
     const fixedSheet = createSheet()
     fixedSheet.spells.spells[0]!.sources = [
-      {
+      createSheetSpellSource('spell-1', {
         id: 'feature:spell-1',
         label: 'Arcane Initiate',
         canPrepare: false,
@@ -2087,7 +2275,7 @@ describe('character sheet command application', () => {
         acquisition: 'GRANTED',
         castMode: 'FIXED_LEVEL',
         fixedLevel: 2
-      }
+      })
     ]
     const fixedNext = applyCharacterSheetCommand(
       fixedCharacter,
@@ -2129,7 +2317,7 @@ describe('character sheet command application', () => {
     resourceSheet.resources.items[0]!.used = 2
     resourceSheet.resources.items[0]!.remaining = 0
     resourceSheet.spells.spells[0]!.sources = [
-      {
+      createSheetSpellSource('spell-1', {
         id: 'feature:spell-1',
         label: 'Arcane Initiate',
         canPrepare: false,
@@ -2137,7 +2325,7 @@ describe('character sheet command application', () => {
         acquisition: 'GRANTED',
         castMode: 'LIMITED_USE',
         resourceGrantId: 'resource-1'
-      }
+      })
     ]
     const originalResourceState = structuredClone(resourceCharacter.state)
     expect(() =>
@@ -2384,32 +2572,32 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual([
-      expect.objectContaining({
-        id: 'spell-1',
-        sourceLabel: 'Wizard',
-        sources: [
-          expect.objectContaining({
-            classId: 'wizard',
-            label: 'Wizard',
-            canPrepare: true,
-            prepared: false
-          })
-        ]
-      }),
-      expect.objectContaining({
-        id: 'spell-2',
-        sourceLabel: 'Wizard',
-        sources: [
-          expect.objectContaining({
-            classId: 'wizard',
-            label: 'Wizard',
-            canPrepare: true,
-            prepared: true
-          })
-        ]
-      })
-    ])
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'spell-1',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              classId: 'wizard',
+              label: 'Wizard',
+              canPrepare: true,
+              prepared: false
+            })
+          ])
+        }),
+        expect.objectContaining({
+          id: 'spell-2',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              classId: 'wizard',
+              label: 'Wizard',
+              canPrepare: true,
+              prepared: true
+            })
+          ])
+        })
+      ])
+    )
     expect(sheet.spells.preparationSources).toEqual([
       {
         classId: 'wizard',
@@ -2418,6 +2606,654 @@ describe('character sheet command application', () => {
         preparedSpellIds: ['spell-2']
       }
     ])
+    expect(sheet.spells.activeGroups).toEqual([
+      expect.objectContaining({
+        level: 1,
+        entries: expect.arrayContaining([
+          expect.objectContaining({
+            spellId: 'spell-2',
+            sourceLabel: 'Wizard',
+            available: true
+          })
+        ])
+      })
+    ])
+    expect(sheet.spells.activeGroups.flatMap((group) => group.entries)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ spellId: 'spell-1' })])
+    )
+    expect(sheet.spells.activeGroups[0]?.entries[0]).not.toHaveProperty('sourceQualifier')
+  })
+
+  it('projects source-specific granted spell access and exhausted limited uses', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.spellSelections = []
+    character.state.classes = []
+    const resolution = createResolution()
+    const grantedFeatures = [
+      {
+        id: 'at-will-feature',
+        label: 'Arcane Gift',
+        description: '',
+        availableAtLevel: 1,
+        order: 0,
+        grants: {
+          spells: [
+            {
+              id: 'at-will-grant',
+              grantKind: GRANT_KIND.SPELL_GRANT,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              scalingKind: SCALING.NONE,
+              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+              spellIds: ['spell-1'],
+              attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+              order: 0
+            }
+          ]
+        }
+      },
+      {
+        id: 'duplicate-feature',
+        label: 'Magic Initiate',
+        description: '',
+        availableAtLevel: 1,
+        order: 1,
+        grants: {
+          spells: [
+            {
+              id: 'duplicate-grant',
+              grantKind: GRANT_KIND.SPELL_GRANT,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              scalingKind: SCALING.NONE,
+              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+              spellIds: ['spell-1'],
+              attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+              order: 0
+            }
+          ]
+        }
+      },
+      {
+        id: 'fixed-feature',
+        label: 'Fixed Magic',
+        description: '',
+        availableAtLevel: 1,
+        order: 2,
+        grants: {
+          spells: [
+            {
+              id: 'fixed-grant',
+              grantKind: GRANT_KIND.SPELL_GRANT,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              scalingKind: SCALING.NONE,
+              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+              spellIds: ['spell-2'],
+              attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+              castAtLevel: 2,
+              order: 0
+            }
+          ]
+        }
+      },
+      {
+        id: 'limited-feature',
+        label: 'Limited Magic',
+        description: '',
+        availableAtLevel: 1,
+        order: 3,
+        grants: {
+          spells: [
+            {
+              id: 'limited-grant',
+              grantKind: GRANT_KIND.SPELL_GRANT,
+              selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+              scalingKind: SCALING.NONE,
+              authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+              spellIds: ['spell-3'],
+              attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+              charges: {
+                id: 'limited-charge',
+                resetKind: 'LONG_REST',
+                limitKind: 'FIXED_AMOUNT',
+                scalingKind: 'NONE',
+                amount: 1
+              },
+              order: 0
+            }
+          ]
+        }
+      }
+    ] satisfies CharacterBuilderResolution['registry']['features']
+    resolution.registry.classes = [
+      {
+        ...createSpellcastingClass({
+          id: 'wizard',
+          label: 'Wizard',
+          resetKind: 'LONG_REST',
+          spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }] }]
+        }),
+        features: grantedFeatures
+      }
+    ]
+    resolution.grants.features = grantedFeatures.map((feature) => ({
+      id: feature.id,
+      label: feature.label,
+      sourceLabel: 'Wizard',
+      source: { kind: 'CLASS' as const, classId: 'wizard', classLevel: 3 }
+    }))
+    resolution.catalog.spells = [
+      createSpell({ classIds: ['wizard'], id: 'spell-1', label: 'Magic Missile', level: 1 }),
+      createSpell({ classIds: ['wizard'], id: 'spell-2', label: 'Misty Step', level: 2 }),
+      createSpell({ classIds: ['wizard'], id: 'spell-3', label: 'Shield', level: 1 })
+    ]
+    const limitedSourceInstanceId = 'CLASS:wizard:wizard:limited-feature:limited-grant'
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      resourceUsage: [
+        {
+          id: 'limited-spell-usage',
+          characterId: character.id,
+          owner: {
+            kind: 'SPELL_SOURCE',
+            resourceGrantId: `${limitedSourceInstanceId}:spell-3`,
+            spellId: 'spell-3',
+            sourceKind: 'FEATURE',
+            sourceInstanceId: limitedSourceInstanceId
+          },
+          used: 1,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-07-25T00:00:00.000Z',
+          updatedAt: '2026-07-25T00:00:00.000Z'
+        }
+      ],
+      streamVersion: 1
+    })
+
+    const entries = sheet.spells.activeGroups.flatMap((group) => group.entries)
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          spellId: 'spell-1',
+          available: true,
+          sourceQualifier: 'Arcane Gift'
+        }),
+        expect.objectContaining({
+          spellId: 'spell-1',
+          available: true,
+          sourceQualifier: 'Magic Initiate'
+        }),
+        expect.objectContaining({ spellId: 'spell-2', castLevel: 2, available: true }),
+        expect.objectContaining({
+          spellId: 'spell-3',
+          available: false,
+          unavailableReason: 'No uses remaining.'
+        })
+      ])
+    )
+    expect(sheet.resources.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          owner: expect.objectContaining({
+            kind: 'SPELL_SOURCE',
+            resourceGrantId: `${limitedSourceInstanceId}:spell-3`
+          }),
+          remaining: 0
+        })
+      ])
+    )
+  })
+
+  it('projects active-spell activation, range, and source-adjusted attack or save facts', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spell-selection',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-attack', 'spell-save', 'spell-utility']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: { learned: ['spell-attack', 'spell-save', 'spell-utility'] }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.summary.abilities = { INTELLIGENCE: 16 }
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        ability: 'INTELLIGENCE',
+        attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: [{ classLevel: 3, slots: [{ spellLevel: 1, slotCount: 3 }] }]
+      })
+    ]
+    resolution.catalog.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-attack',
+        label: 'Arcane Bolt',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-save',
+        label: 'Arcane Burst',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-utility',
+        label: 'Arcane Ward',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb([], {
+        spells: [
+          {
+            ownerId: 'spell-attack',
+            label: 'Arcane Bolt',
+            description: '',
+            level: 1,
+            magicSchoolId: 'school-1',
+            magicSchoolCode: 'EVOCATION',
+            magicSchoolLabel: 'Evocation',
+            castingTimeUnit: 'ACTION',
+            castingTimeAmount: 1,
+            materialDescription: null,
+            effectId: 'effect-attack',
+            ownerEffectOrder: 0,
+            effectOrder: 0
+          },
+          {
+            ownerId: 'spell-save',
+            label: 'Arcane Burst',
+            description: '',
+            level: 1,
+            magicSchoolId: 'school-1',
+            magicSchoolCode: 'EVOCATION',
+            magicSchoolLabel: 'Evocation',
+            castingTimeUnit: 'ACTION',
+            castingTimeAmount: 1,
+            materialDescription: null,
+            effectId: 'effect-save',
+            ownerEffectOrder: 0,
+            effectOrder: 0
+          },
+          {
+            ownerId: 'spell-utility',
+            label: 'Arcane Ward',
+            description: '',
+            level: 1,
+            magicSchoolId: 'school-1',
+            magicSchoolCode: 'ABJURATION',
+            magicSchoolLabel: 'Abjuration',
+            castingTimeUnit: 'REACTION',
+            castingTimeAmount: 1,
+            materialDescription: null,
+            effectId: 'effect-utility',
+            ownerEffectOrder: 0,
+            effectOrder: 0
+          }
+        ],
+        effect_invocations: [
+          {
+            effectId: 'effect-attack',
+            triggerCode: 'SPELL_ATTACK',
+            activationType: 'ACTION',
+            activationValue: 1,
+            rangeCharacteristicId: 'range-attack',
+            shapeCharacteristicId: null,
+            savingThrowId: null,
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null
+          },
+          {
+            effectId: 'effect-save',
+            triggerCode: 'SAVING_THROW',
+            activationType: 'BONUS_ACTION',
+            activationValue: 1,
+            rangeCharacteristicId: 'range-save',
+            shapeCharacteristicId: null,
+            savingThrowId: 'save-dexterity',
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null
+          },
+          {
+            effectId: 'effect-utility',
+            triggerCode: 'ACTIVATED',
+            activationType: 'REACTION',
+            activationValue: 1,
+            rangeCharacteristicId: 'range-utility',
+            shapeCharacteristicId: null,
+            savingThrowId: null,
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null
+          }
+        ],
+        characteristics: [
+          {
+            characteristicId: 'range-attack',
+            code: 'RANGE',
+            rangeKind: 'DISTANCE',
+            rangeMin: 120,
+            rangeMax: null,
+            rangeUnitCode: 'FEET',
+            rangeScaling: null,
+            shapeKind: null,
+            durationKind: null,
+            durationAmount: null,
+            durationScaling: null
+          },
+          {
+            characteristicId: 'range-save',
+            code: 'RANGE',
+            rangeKind: 'DISTANCE',
+            rangeMin: 150,
+            rangeMax: null,
+            rangeUnitCode: 'FEET',
+            rangeScaling: null,
+            shapeKind: null,
+            durationKind: null,
+            durationAmount: null,
+            durationScaling: null
+          },
+          {
+            characteristicId: 'range-utility',
+            code: 'RANGE',
+            rangeKind: 'DISTANCE',
+            rangeMin: 60,
+            rangeMax: null,
+            rangeUnitCode: 'FEET',
+            rangeScaling: null,
+            shapeKind: null,
+            durationKind: null,
+            durationAmount: null,
+            durationScaling: null
+          }
+        ],
+        saving_throws: [
+          {
+            savingThrowId: 'save-dexterity',
+            dcMethod: 'SOURCE_SAVE_DC',
+            abilityCode: 'DEXTERITY',
+            baseDc: null
+          }
+        ]
+      }),
+      hasBuilderDraft: false,
+      resolution,
+      adjustments: [
+        {
+          id: 'attack-bonus-1',
+          characterId: character.id,
+          family: 'SPELL',
+          source: {
+            spellId: 'spell-attack',
+            sourceKind: 'CLASS',
+            sourceInstanceId: 'CLASS:wizard-spell-selection'
+          },
+          field: 'ATTACK_BONUS',
+          value: 2,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-07-25T00:00:00.000Z',
+          updatedAt: '2026-07-25T00:00:00.000Z'
+        },
+        {
+          id: 'save-dc-bonus-1',
+          characterId: character.id,
+          family: 'SPELL',
+          source: {
+            spellId: 'spell-save',
+            sourceKind: 'CLASS',
+            sourceInstanceId: 'CLASS:wizard-spell-selection'
+          },
+          field: 'DC_BONUS',
+          value: 2,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-07-25T00:00:00.000Z',
+          updatedAt: '2026-07-25T00:00:00.000Z'
+        }
+      ],
+      streamVersion: 1
+    })
+
+    const entries = sheet.spells.activeGroups.flatMap((group) => group.entries)
+    expect(entries.find((entry) => entry.spellId === 'spell-attack')).toEqual(
+      expect.objectContaining({
+        activationType: 'ACTION',
+        activationLabel: 'Action',
+        rangeLabel: '120 ft',
+        hitOrDcLabel: '+7'
+      })
+    )
+    expect(entries.find((entry) => entry.spellId === 'spell-save')).toEqual(
+      expect.objectContaining({
+        activationType: 'BONUS_ACTION',
+        activationLabel: 'Bonus Action',
+        rangeLabel: '150 ft',
+        hitOrDcLabel: 'DEX 15'
+      })
+    )
+    const utilityEntry = entries.find((entry) => entry.spellId === 'spell-utility')
+    expect(utilityEntry).toEqual(
+      expect.objectContaining({
+        activationType: 'REACTION',
+        activationLabel: 'Reaction',
+        rangeLabel: '60 ft'
+      })
+    )
+    expect(utilityEntry).not.toHaveProperty('hitOrDcLabel')
+    expect(utilityEntry).not.toHaveProperty('primaryEffect')
+  })
+
+  it('projects only explicit upcast levels with source-specific damage bonuses', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spell-selection',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: { learned: ['spell-1'] }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: [
+          {
+            classLevel: 3,
+            slots: [
+              { spellLevel: 1, slotCount: 2 },
+              { spellLevel: 2, slotCount: 1 },
+              { spellLevel: 3, slotCount: 1 }
+            ]
+          }
+        ]
+      })
+    ]
+    resolution.catalog.spells = [
+      createSpell({ classIds: ['wizard'], id: 'spell-1', label: 'Arcane Burst', level: 1 })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb([], {
+        spells: [
+          {
+            ownerId: 'spell-1',
+            label: 'Arcane Burst',
+            description: '',
+            level: 1,
+            magicSchoolId: 'school-1',
+            magicSchoolCode: 'EVOCATION',
+            magicSchoolLabel: 'Evocation',
+            castingTimeUnit: 'ACTION',
+            castingTimeAmount: 1,
+            materialDescription: null,
+            effectId: 'effect-1',
+            ownerEffectOrder: 0,
+            effectOrder: 0
+          }
+        ],
+        effect_invocations: [
+          {
+            effectId: 'effect-1',
+            triggerCode: 'SPELL_ATTACK',
+            activationType: 'ACTION',
+            activationValue: 1,
+            rangeCharacteristicId: null,
+            shapeCharacteristicId: null,
+            savingThrowId: null,
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null
+          }
+        ],
+        effect_paths: [
+          {
+            pathId: 'path-1',
+            effectId: 'effect-1',
+            order: 0,
+            pathCode: 'DEFAULT',
+            groupType: 'SEQUENCE',
+            selectionKind: 'FIXED',
+            originKind: null,
+            rangeOverrideCharacteristicId: null,
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null,
+            resultBlockId: 'result-1',
+            rollTableKind: null,
+            die: null
+          }
+        ],
+        effect_result_blocks: [
+          {
+            resultBlockId: 'result-1',
+            resultKind: 'DAMAGE',
+            durationCharacteristicId: null,
+            lifecycleRecurringKind: null,
+            lifecycleConsumeOnFirstEvent: null,
+            lifecycleEndOnEvents: null
+          }
+        ],
+        effect_result_block_outcomes: [
+          {
+            resultBlockId: 'result-1',
+            outcomeId: 'damage-1',
+            effectKind: 'DAMAGE',
+            order: 0
+          }
+        ],
+        damages: [
+          {
+            damageId: 'damage-1',
+            damageTypeId: 'force',
+            damageTypeCode: 'FORCE',
+            damageTypeLabel: 'Force',
+            valueKind: 'DICE',
+            scalingKind: 'PER_LEVEL',
+            amountKind: null,
+            amountMultiplier: null,
+            scalingSource: 'SPELL_CAST_LEVEL',
+            classId: null,
+            order: 0,
+            valueId: null,
+            amount: null,
+            dice: null,
+            valueMultiplier: null,
+            valueMin: null,
+            valueMax: null
+          }
+        ],
+        damage_scaling_levels: [
+          {
+            scalingId: 'damage-1-1',
+            damageId: 'damage-1',
+            level: 1,
+            order: 0,
+            amount: null,
+            dice: '1d8'
+          },
+          {
+            scalingId: 'damage-1-3',
+            damageId: 'damage-1',
+            level: 3,
+            order: 1,
+            amount: null,
+            dice: '3d8'
+          }
+        ]
+      }),
+      hasBuilderDraft: false,
+      resolution,
+      adjustments: [
+        {
+          id: 'damage-bonus-1',
+          characterId: character.id,
+          family: 'SPELL',
+          source: {
+            spellId: 'spell-1',
+            sourceKind: 'CLASS',
+            sourceInstanceId: 'CLASS:wizard-spell-selection'
+          },
+          field: 'DAMAGE_BONUS',
+          value: 2,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-07-25T00:00:00.000Z',
+          updatedAt: '2026-07-25T00:00:00.000Z'
+        }
+      ],
+      streamVersion: 1
+    })
+
+    const entries = sheet.spells.activeGroups.flatMap((group) => group.entries)
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ castLevel: 1, primaryEffect: '1d8 + 2 Force' }),
+        expect.objectContaining({ castLevel: 3, primaryEffect: '3d8 + 2 Force' })
+      ])
+    )
+    expect(entries).not.toEqual(expect.arrayContaining([expect.objectContaining({ castLevel: 2 })]))
   })
 
   it('exposes only current-level class-list spells for prepared casters', async () => {
@@ -2462,19 +3298,21 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual([
-      expect.objectContaining({
-        id: 'cleric-first-level',
-        mechanics: undefined,
-        sources: [
-          expect.objectContaining({
-            canPrepare: true,
-            classId: 'cleric',
-            prepared: false
-          })
-        ]
-      })
-    ])
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'cleric-first-level',
+          mechanics: undefined,
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              canPrepare: true,
+              classId: 'cleric',
+              prepared: false
+            })
+          ])
+        })
+      ])
+    )
     expect(sheet.spells.preparationSources).toEqual([
       {
         classId: 'cleric',
@@ -2653,23 +3491,25 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual([
-      expect.objectContaining({
-        id: 'spell-1',
-        sources: [
-          expect.objectContaining({
-            classId: 'wizard',
-            label: 'Wizard',
-            canPrepare: true,
-            prepared: false
-          })
-        ]
-      }),
-      expect.objectContaining({
-        id: 'orphan-spell',
-        sources: undefined
-      })
-    ])
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'spell-1',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              classId: 'wizard',
+              label: 'Wizard',
+              canPrepare: true,
+              prepared: false
+            })
+          ])
+        }),
+        expect.objectContaining({
+          id: 'orphan-spell',
+          sources: undefined
+        })
+      ])
+    )
     expect(sheet.spells.preparationSources).toEqual([
       {
         classId: 'wizard',
@@ -2802,20 +3642,30 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual([
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'spell-1',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              classId: 'bard',
+              label: 'Bard',
+              canPrepare: false,
+              prepared: false
+            })
+          ])
+        })
+      ])
+    )
+    expect(sheet.spells.preparationSources).toBeUndefined()
+    expect(sheet.spells.activeGroups).toEqual([
       expect.objectContaining({
-        id: 'spell-1',
-        sources: [
-          expect.objectContaining({
-            classId: 'bard',
-            label: 'Bard',
-            canPrepare: false,
-            prepared: false
-          })
-        ]
+        level: 1,
+        entries: expect.arrayContaining([
+          expect.objectContaining({ spellId: 'spell-1', available: true })
+        ])
       })
     ])
-    expect(sheet.spells.preparationSources).toBeUndefined()
     expect(() =>
       applyCharacterSheetCommand(
         character,
@@ -2953,19 +3803,21 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.spells.spells).toEqual([
-      expect.objectContaining({
-        id: 'spell-1',
-        sources: [
-          expect.objectContaining({
-            classId: 'wizard',
-            label: 'Wizard',
-            canPrepare: true,
-            prepared: false
-          })
-        ]
-      })
-    ])
+    expect(sheet.spells.spells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'spell-1',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              classId: 'wizard',
+              label: 'Wizard',
+              canPrepare: true,
+              prepared: false
+            })
+          ])
+        })
+      ])
+    )
     expect(() =>
       applyCharacterSheetCommand(
         character,
@@ -3123,10 +3975,13 @@ describe('character sheet command application', () => {
 
     expect(sheet.resources.items).toEqual([
       expect.objectContaining({
-        id: 'resource-1',
+        owner: expect.objectContaining({
+          kind: 'AUTHORED_GRANT',
+          resourceGrantId: 'resource-1'
+        }),
         description: 'Spend a die to fuel combat maneuvers.',
         max: 4,
-        recovery: 'SHORT_REST',
+        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }],
         remaining: 3,
         used: 1
       })
@@ -3210,8 +4065,11 @@ describe('character sheet command application', () => {
 
     expect(sheet.resources.items).toEqual([
       expect.objectContaining({
-        id: 'resource-1',
-        recovery: 'SHORT_REST'
+        owner: expect.objectContaining({
+          kind: 'AUTHORED_GRANT',
+          resourceGrantId: 'resource-1'
+        }),
+        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
       })
     ])
   })
@@ -3239,7 +4097,10 @@ describe('character sheet command application', () => {
 
     expect(sheet.resources.items).toEqual([
       expect.objectContaining({
-        id: 'resource:subclass-1:resource-1',
+        owner: expect.objectContaining({
+          kind: 'AUTHORED_GRANT',
+          resourceGrantId: 'resource:subclass-1:resource-1'
+        }),
         max: 4,
         remaining: 2,
         used: 2
@@ -3268,9 +4129,12 @@ describe('character sheet command application', () => {
 
     expect(sheet.resources.items).toEqual([
       expect.objectContaining({
-        id: 'resource-1',
+        owner: expect.objectContaining({
+          kind: 'AUTHORED_GRANT',
+          resourceGrantId: 'resource-1'
+        }),
         max: 4,
-        recovery: 'SHORT_REST'
+        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
       })
     ])
   })

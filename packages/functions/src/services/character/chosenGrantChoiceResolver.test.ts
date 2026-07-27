@@ -15,10 +15,7 @@ import {
   SCALING_AMOUNT_KIND,
   SUBJECT
 } from '@artificer-toolkit/shared/core'
-import type {
-  CharacterAuthored,
-  SpellAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   ProficiencyGrantAuthored,
   SpellGrantAuthored
@@ -113,36 +110,40 @@ describe('resolveCharacterChosenGrantChoices', () => {
       authoringModeKind: AUTHORING_MODE_KIND.ALL,
       filters: {
         id: 'spell-filter',
-        groups: [{
-          id: 'spell-filter-group',
-          order: 1,
-          contexts: [{
-            id: 'spell-filter-context',
+        groups: [
+          {
+            id: 'spell-filter-group',
             order: 1,
-            subject: SUBJECT.SPELL,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
-            conditions: [
+            contexts: [
               {
-                id: 'school-filter',
+                id: 'spell-filter-context',
                 order: 1,
-                kind: 'PREDICATE',
-                constraint: 'INCLUDE',
-                predicateCode: 'MAGIC_SCHOOL',
-                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                magicSchoolIds: ['evocation']
-              },
-              {
-                id: 'level-filter',
-                order: 2,
-                kind: 'PREDICATE',
-                constraint: 'INCLUDE',
-                predicateCode: 'SPELL_LEVEL',
-                min: 1,
-                max: 2
+                subject: SUBJECT.SPELL,
+                authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                conditions: [
+                  {
+                    id: 'school-filter',
+                    order: 1,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'MAGIC_SCHOOL',
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    magicSchoolIds: ['evocation']
+                  },
+                  {
+                    id: 'level-filter',
+                    order: 2,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'SPELL_LEVEL',
+                    min: 1,
+                    max: 2
+                  }
+                ]
               }
             ]
-          }]
-        }]
+          }
+        ]
       }
     } satisfies SpellGrantAuthored<'FEATURE'>
 
@@ -188,9 +189,15 @@ describe('resolveCharacterChosenGrantChoices', () => {
         spells: [],
         feats: [],
         equipment: [
-          makeEquipment('longsword', 'Longsword', EQUIPMENT_CATEGORY_CODE.WEAPON, [EQUIPMENT_PROPERTY_CODE.MARTIAL]),
-          makeEquipment('club', 'Club', EQUIPMENT_CATEGORY_CODE.WEAPON, [EQUIPMENT_PROPERTY_CODE.SIMPLE]),
-          makeEquipment('shield', 'Shield', EQUIPMENT_CATEGORY_CODE.SHIELD, [EQUIPMENT_PROPERTY_CODE.MARTIAL])
+          makeEquipment('longsword', 'Longsword', EQUIPMENT_CATEGORY_CODE.WEAPON, [
+            EQUIPMENT_PROPERTY_CODE.MARTIAL
+          ]),
+          makeEquipment('club', 'Club', EQUIPMENT_CATEGORY_CODE.WEAPON, [
+            EQUIPMENT_PROPERTY_CODE.SIMPLE
+          ]),
+          makeEquipment('shield', 'Shield', EQUIPMENT_CATEGORY_CODE.SHIELD, [
+            EQUIPMENT_PROPERTY_CODE.MARTIAL
+          ])
         ]
       },
       [makeOwner({ proficiencies: [grant] })]
@@ -201,47 +208,97 @@ describe('resolveCharacterChosenGrantChoices', () => {
 
   it('disables a chosen full proficiency already granted at full rank', () => {
     const fixedGrant = {
-      id: 'fixed-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED, scalingKind: SCALING.NONE,
-      authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], level: SCALING_AMOUNT_KIND.FULL, order: 0
+      id: 'fixed-skill',
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      skillIds: ['arcana'],
+      level: SCALING_AMOUNT_KIND.FULL,
+      order: 0
     } satisfies ProficiencyGrantAuthored<'FEATURE'>
     const chosenGrant = {
-      id: 'chosen-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
-      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
-      level: SCALING_AMOUNT_KIND.FULL, order: 1
+      id: 'chosen-skill',
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      skillIds: ['arcana'],
+      count: 1,
+      level: SCALING_AMOUNT_KIND.FULL,
+      order: 1
     } satisfies ProficiencyGrantAuthored<'FEATURE'>
 
-    const choices = resolveCharacterChosenGrantChoices(makeCharacter(), {
-      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
-    }, [makeOwner({ proficiencies: [fixedGrant, chosenGrant] })])
+    const choices = resolveCharacterChosenGrantChoices(
+      makeCharacter(),
+      {
+        system: {
+          skills: [{ id: 'arcana', label: 'Arcana' }]
+        } as CharacterChosenGrantChoiceRegistry['system'],
+        equipment: [],
+        feats: [],
+        spells: []
+      },
+      [makeOwner({ proficiencies: [fixedGrant, chosenGrant] })]
+    )
 
-    expect(choices[0]?.options).toEqual([{
-      id: 'arcana', label: 'Arcana', disabled: true, disabledReason: 'Granted by Test feature'
-    }])
+    expect(choices[0]?.options).toEqual([
+      {
+        id: 'arcana',
+        label: 'Arcana',
+        disabled: true,
+        disabledReason: 'Granted by Test feature'
+      }
+    ])
   })
 
   it('requires full proficiency before a chosen expertise selection', () => {
     const grant = {
-      id: 'expertise-skill', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
-      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
-      level: SCALING_AMOUNT_KIND.DOUBLE, order: 0
+      id: 'expertise-skill',
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      skillIds: ['arcana'],
+      count: 1,
+      level: SCALING_AMOUNT_KIND.DOUBLE,
+      order: 0
     } satisfies ProficiencyGrantAuthored<'FEATURE'>
 
-    const choices = resolveCharacterChosenGrantChoices(makeCharacter(), {
-      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
-    }, [makeOwner({ proficiencies: [grant] })])
+    const choices = resolveCharacterChosenGrantChoices(
+      makeCharacter(),
+      {
+        system: {
+          skills: [{ id: 'arcana', label: 'Arcana' }]
+        } as CharacterChosenGrantChoiceRegistry['system'],
+        equipment: [],
+        feats: [],
+        spells: []
+      },
+      [makeOwner({ proficiencies: [grant] })]
+    )
 
     expect(choices[0]?.options[0]?.disabledReason).toBe('Requires full proficiency first.')
   })
 
   it('keeps a chosen full proficiency eligible when it supplies an expertise prerequisite', () => {
     const fullGrant = {
-      id: 'chosen-full', grantKind: GRANT_KIND.PROFICIENCY_GRANT, proficiencyKind: PROFICIENCY_KIND.SKILL,
-      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN, selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-      scalingKind: SCALING.NONE, authoringModeKind: AUTHORING_MODE_KIND.SELECTED, skillIds: ['arcana'], count: 1,
-      level: SCALING_AMOUNT_KIND.FULL, order: 0
+      id: 'chosen-full',
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SKILL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      skillIds: ['arcana'],
+      count: 1,
+      level: SCALING_AMOUNT_KIND.FULL,
+      order: 0
     } satisfies ProficiencyGrantAuthored<'FEATURE'>
     const expertiseGrant = {
       ...fullGrant,
@@ -267,14 +324,31 @@ describe('resolveCharacterChosenGrantChoices', () => {
       }
     ]
 
-    const choices = resolveCharacterChosenGrantChoices(character, {
-      system: { skills: [{ id: 'arcana', label: 'Arcana' }] } as CharacterChosenGrantChoiceRegistry['system'], equipment: [], feats: [], spells: []
-    }, [makeOwner({ proficiencies: [fullGrant, expertiseGrant] })])
+    const choices = resolveCharacterChosenGrantChoices(
+      character,
+      {
+        system: {
+          skills: [{ id: 'arcana', label: 'Arcana' }]
+        } as CharacterChosenGrantChoiceRegistry['system'],
+        equipment: [],
+        feats: [],
+        spells: []
+      },
+      [makeOwner({ proficiencies: [fullGrant, expertiseGrant] })]
+    )
 
-    expect(choices).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: expect.stringContaining(fullGrant.id), options: [{ id: 'arcana', label: 'Arcana' }] }),
-      expect.objectContaining({ id: expect.stringContaining(expertiseGrant.id), options: [{ id: 'arcana', label: 'Arcana' }] })
-    ]))
+    expect(choices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.stringContaining(fullGrant.id),
+          options: [{ id: 'arcana', label: 'Arcana' }]
+        }),
+        expect.objectContaining({
+          id: expect.stringContaining(expertiseGrant.id),
+          options: [{ id: 'arcana', label: 'Arcana' }]
+        })
+      ])
+    )
   })
 
   it('keeps a reused grant identity and selection scoped to its owner', () => {
@@ -325,8 +399,12 @@ describe('resolveCharacterChosenGrantChoices', () => {
         spells: [],
         feats: [],
         equipment: [
-          makeEquipment('longsword', 'Longsword', EQUIPMENT_CATEGORY_CODE.WEAPON, [EQUIPMENT_PROPERTY_CODE.MARTIAL]),
-          makeEquipment('club', 'Club', EQUIPMENT_CATEGORY_CODE.WEAPON, [EQUIPMENT_PROPERTY_CODE.SIMPLE])
+          makeEquipment('longsword', 'Longsword', EQUIPMENT_CATEGORY_CODE.WEAPON, [
+            EQUIPMENT_PROPERTY_CODE.MARTIAL
+          ]),
+          makeEquipment('club', 'Club', EQUIPMENT_CATEGORY_CODE.WEAPON, [
+            EQUIPMENT_PROPERTY_CODE.SIMPLE
+          ])
         ]
       },
       [ownerA, ownerB]
@@ -334,10 +412,7 @@ describe('resolveCharacterChosenGrantChoices', () => {
 
     expect(choices.map((choice) => choice.id)).toHaveLength(2)
     expect(new Set(choices.map((choice) => choice.id)).size).toBe(2)
-    expect(choices.map((choice) => choice.selectedTargetIds)).toEqual([
-      ['longsword'],
-      ['club']
-    ])
+    expect(choices.map((choice) => choice.selectedTargetIds)).toEqual([['longsword'], ['club']])
     expect(choices.map((choice) => choice.ownerFeatureId)).toEqual(['feature-a', undefined])
   })
 })

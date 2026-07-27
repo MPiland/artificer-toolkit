@@ -35,9 +35,9 @@ export interface CharacterRepository {
   upsertAuthored(
     character: CharacterAuthored,
     options?: {
-    expectedStreamVersion?: number
-    incrementStreamVersion?: boolean
-    afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+      expectedStreamVersion?: number
+      incrementStreamVersion?: boolean
+      afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>
   patchSheetState(
@@ -650,18 +650,18 @@ async function hydrateCharacterAuthoredById(
   ) as CharacterSourceRow
 
   const hitpointLevels = hitpointLevelRows.map((levelRow) => {
-      const levelNumber = Number(levelRow.char_level)
-      return {
-        level: levelNumber,
-        classId: String(levelRow.class_id),
-        classLevel: Number(levelRow.class_level),
-        value: Number(levelRow.value),
-        rolls: hitpointLevelRollRows
-          .filter((rollRow) => Number(rollRow.char_level) === levelNumber)
-          .map((rollRow) => ({ die: Number(rollRow.die), value: Number(rollRow.value) })),
-        overridden: levelRow.overridden == null ? undefined : Boolean(levelRow.overridden)
-      }
-    })
+    const levelNumber = Number(levelRow.char_level)
+    return {
+      level: levelNumber,
+      classId: String(levelRow.class_id),
+      classLevel: Number(levelRow.class_level),
+      value: Number(levelRow.value),
+      rolls: hitpointLevelRollRows
+        .filter((rollRow) => Number(rollRow.char_level) === levelNumber)
+        .map((rollRow) => ({ die: Number(rollRow.die), value: Number(rollRow.value) })),
+      overridden: levelRow.overridden == null ? undefined : Boolean(levelRow.overridden)
+    }
+  })
 
   const abilities: CharacterAuthored['intent']['abilities'] = (() => {
     switch (abilityData.method_code) {
@@ -742,18 +742,18 @@ async function hydrateCharacterAuthoredById(
 
     const selections =
       selectionRows.length > 0
-      ? selectionRows.map((selectionRow) => ({
-          selectionKey: String(selectionRow.selection_key),
-          values: featureSelectionValueRowsActual
+        ? selectionRows.map((selectionRow) => ({
+            selectionKey: String(selectionRow.selection_key),
+            values: featureSelectionValueRowsActual
               .filter(
                 (valueRow) =>
                   valueRow.feature_acquisition_id === featureRow.id &&
                   valueRow.selection_key === selectionRow.selection_key
               )
-            .sort((left, right) => Number(left.value_index) - Number(right.value_index))
-            .map(parseSelectionValue)
-        }))
-      : undefined
+              .sort((left, right) => Number(left.value_index) - Number(right.value_index))
+              .map(parseSelectionValue)
+          }))
+        : undefined
 
     return {
       id: String(featureRow.id),
@@ -766,44 +766,44 @@ async function hydrateCharacterAuthoredById(
 
   const chosenGrantSelections =
     chosenGrantSelectionRows.length > 0
-    ? chosenGrantSelectionRows.map((selectionRow) => ({
-        id: String(selectionRow.id),
-        grantId: String(selectionRow.grant_id),
-        source: hydrateChosenGrantSelectionSource(selectionRow as CharacterSourceRow),
-        timing: hydrateTiming(selectionRow as CharacterSourceRow),
+      ? chosenGrantSelectionRows.map((selectionRow) => ({
+          id: String(selectionRow.id),
+          grantId: String(selectionRow.grant_id),
+          source: hydrateChosenGrantSelectionSource(selectionRow as CharacterSourceRow),
+          timing: hydrateTiming(selectionRow as CharacterSourceRow),
           progressionLevel:
             selectionRow.progression_level == null
               ? undefined
               : Number(selectionRow.progression_level),
-        targetIds: chosenGrantSelectionTargetRows
-          .filter((targetRow) => targetRow.selection_id === selectionRow.id)
-          .sort((left, right) => Number(left.slot_index) - Number(right.slot_index))
-          .map((targetRow) => String(targetRow.target_id))
-      }))
-    : undefined
+          targetIds: chosenGrantSelectionTargetRows
+            .filter((targetRow) => targetRow.selection_id === selectionRow.id)
+            .sort((left, right) => Number(left.slot_index) - Number(right.slot_index))
+            .map((targetRow) => String(targetRow.target_id))
+        }))
+      : undefined
 
   const spellSelections =
     spellSelectionRows.length > 0
-    ? spellSelectionRows.map((selectionRow) => ({
-        id: String(selectionRow.id),
-        source: hydrateSpellSelectionSource(selectionRow as CharacterSourceRow),
-        timing: hydrateTiming(selectionRow as CharacterSourceRow),
-        spells: spellSelectionSpellRowsActual
-          .filter((spellRow) => spellRow.selection_id === selectionRow.id)
-          .map((spellRow) => String(spellRow.spell_id)),
-        replacedSelectionId: optionalText(selectionRow.replaced_selection_id)
-      }))
-    : undefined
+      ? spellSelectionRows.map((selectionRow) => ({
+          id: String(selectionRow.id),
+          source: hydrateSpellSelectionSource(selectionRow as CharacterSourceRow),
+          timing: hydrateTiming(selectionRow as CharacterSourceRow),
+          spells: spellSelectionSpellRowsActual
+            .filter((spellRow) => spellRow.selection_id === selectionRow.id)
+            .map((spellRow) => String(spellRow.spell_id)),
+          replacedSelectionId: optionalText(selectionRow.replaced_selection_id)
+        }))
+      : undefined
 
   const resourceGrants =
     resourceGrantRows.length > 0
-    ? resourceGrantRows.map((resourceGrantRow) => ({
-        id: String(resourceGrantRow.id),
-        resourceId: String(resourceGrantRow.resource_id),
-        source: hydrateResourceGrantSource(resourceGrantRow as CharacterSourceRow),
-        timing: hydrateTiming(resourceGrantRow as CharacterSourceRow)
-      }))
-    : undefined
+      ? resourceGrantRows.map((resourceGrantRow) => ({
+          id: String(resourceGrantRow.id),
+          resourceId: String(resourceGrantRow.resource_id),
+          source: hydrateResourceGrantSource(resourceGrantRow as CharacterSourceRow),
+          timing: hydrateTiming(resourceGrantRow as CharacterSourceRow)
+        }))
+      : undefined
 
   const classEquipmentDecision = classEquipmentSessionRow
     ? {
@@ -811,18 +811,18 @@ async function hydrateCharacterAuthoredById(
         tookGold: Boolean((classEquipmentSessionRow as CharacterSourceRow).gold_option),
         groups:
           classEquipmentGroupRows.length > 0
-          ? classEquipmentGroupRows.map((groupRow) => ({
-              groupId: String(groupRow.group_id),
-              optionId: String(groupRow.option_id),
-              selections: classEquipmentItemRows
-                .filter((itemRow) => itemRow.group_id === groupRow.group_id)
-                .map((itemRow) => ({
-                  selectionKey: String(itemRow.selection_item_id ?? itemRow.equipment_id),
-                  equipmentId: String(itemRow.equipment_id),
-                  quantity: Number(itemRow.quantity)
-                }))
-            }))
-          : undefined,
+            ? classEquipmentGroupRows.map((groupRow) => ({
+                groupId: String(groupRow.group_id),
+                optionId: String(groupRow.option_id),
+                selections: classEquipmentItemRows
+                  .filter((itemRow) => itemRow.group_id === groupRow.group_id)
+                  .map((itemRow) => ({
+                    selectionKey: String(itemRow.selection_item_id ?? itemRow.equipment_id),
+                    equipmentId: String(itemRow.equipment_id),
+                    quantity: Number(itemRow.quantity)
+                  }))
+              }))
+            : undefined,
         gold: (classEquipmentSessionRow as CharacterSourceRow).gold_option
           ? {
               goldOption: String((classEquipmentSessionRow as CharacterSourceRow).gold_option),
@@ -831,8 +831,8 @@ async function hydrateCharacterAuthoredById(
           : undefined,
         applied:
           (classEquipmentSessionRow as CharacterSourceRow).applied == null
-          ? undefined
-          : Boolean((classEquipmentSessionRow as CharacterSourceRow).applied)
+            ? undefined
+            : Boolean((classEquipmentSessionRow as CharacterSourceRow).applied)
       }
     : undefined
 
@@ -842,22 +842,22 @@ async function hydrateCharacterAuthoredById(
         tookGold: false,
         groups:
           backgroundEquipmentGroupRows.length > 0
-          ? backgroundEquipmentGroupRows.map((groupRow) => ({
-              groupId: String(groupRow.group_id),
-              optionId: String(groupRow.option_id),
-              selections: backgroundEquipmentItemRows
-                .filter((itemRow) => itemRow.group_id === groupRow.group_id)
-                .map((itemRow) => ({
-                  selectionKey: String(itemRow.selection_item_id ?? itemRow.equipment_id),
-                  equipmentId: String(itemRow.equipment_id),
-                  quantity: Number(itemRow.quantity)
-                }))
-            }))
-          : undefined,
+            ? backgroundEquipmentGroupRows.map((groupRow) => ({
+                groupId: String(groupRow.group_id),
+                optionId: String(groupRow.option_id),
+                selections: backgroundEquipmentItemRows
+                  .filter((itemRow) => itemRow.group_id === groupRow.group_id)
+                  .map((itemRow) => ({
+                    selectionKey: String(itemRow.selection_item_id ?? itemRow.equipment_id),
+                    equipmentId: String(itemRow.equipment_id),
+                    quantity: Number(itemRow.quantity)
+                  }))
+              }))
+            : undefined,
         applied:
           (backgroundEquipmentSessionRow as CharacterSourceRow).applied == null
-          ? undefined
-          : Boolean((backgroundEquipmentSessionRow as CharacterSourceRow).applied)
+            ? undefined
+            : Boolean((backgroundEquipmentSessionRow as CharacterSourceRow).applied)
       }
     : undefined
 
@@ -876,8 +876,8 @@ async function hydrateCharacterAuthoredById(
 
   const classesState =
     classStateMap.size > 0
-    ? [...classStateMap.entries()].map(([classId, spells]) => ({ classId, spells }))
-    : undefined
+      ? [...classStateMap.entries()].map(([classId, spells]) => ({ classId, spells }))
+      : undefined
 
   const creatureEquipment = creatureEquipmentRows.reduce<
     Record<string, { equipmentItemId: string }[]>
@@ -910,26 +910,26 @@ async function hydrateCharacterAuthoredById(
     intent: {
       advancement:
         advancementData.method_code === ADVANCEMENT_METHOD_CODE.EXPERIENCE
-        ? {
-            method: ADVANCEMENT_METHOD_CODE.EXPERIENCE,
+          ? {
+              method: ADVANCEMENT_METHOD_CODE.EXPERIENCE,
               experience:
                 advancementData.experience == null ? undefined : Number(advancementData.experience)
-          }
-        : { method: ADVANCEMENT_METHOD_CODE.MILESTONE },
+            }
+          : { method: ADVANCEMENT_METHOD_CODE.MILESTONE },
       race: {
         raceId: String(raceData.race_id),
         subraceId: optionalText(raceData.subrace_id)
       },
       ancestrySelections:
         ancestryRows.length > 0
-        ? ancestryRows.map((ancestryRow) => ({
-            id: String(ancestryRow.id),
-            ancestryId: String(ancestryRow.ancestry_id),
-            optionId: String(ancestryRow.option_id),
-            source: hydrateAncestrySelectionSource(ancestryRow),
-            timing: hydrateAncestrySelectionTiming(ancestryRow)
-          }))
-        : undefined,
+          ? ancestryRows.map((ancestryRow) => ({
+              id: String(ancestryRow.id),
+              ancestryId: String(ancestryRow.ancestry_id),
+              optionId: String(ancestryRow.option_id),
+              source: hydrateAncestrySelectionSource(ancestryRow),
+              timing: hydrateAncestrySelectionTiming(ancestryRow)
+            }))
+          : undefined,
       background: {
         backgroundId: String(backgroundData.background_id)
       },
@@ -948,11 +948,11 @@ async function hydrateCharacterAuthoredById(
       },
       startingEquipment:
         classEquipmentDecision || backgroundEquipmentDecision
-        ? {
-            class: classEquipmentDecision,
-            background: backgroundEquipmentDecision
-          }
-        : undefined,
+          ? {
+              class: classEquipmentDecision,
+              background: backgroundEquipmentDecision
+            }
+          : undefined,
       featureAcquisitions,
       spellSelections,
       chosenGrantSelections,
@@ -994,78 +994,78 @@ async function hydrateCharacterAuthoredById(
       classes: classesState,
       resources:
         resourceUsageRows.length > 0
-        ? resourceUsageRows.map((resourceRow) => ({
-            resourceGrantId: String(resourceRow.resource_grant_id),
-            used: Number(resourceRow.used)
-          }))
-        : undefined,
+          ? resourceUsageRows.map((resourceRow) => ({
+              resourceGrantId: String(resourceRow.resource_grant_id),
+              used: Number(resourceRow.used)
+            }))
+          : undefined,
       spellSlots:
         spellSlotRows.length > 0
-        ? spellSlotRows.map((slotRow) => ({
-            slotKey: String((slotRow as CharacterSourceRow).slot_key),
-            used: Number((slotRow as CharacterSourceRow).used)
-          }))
-        : undefined,
+          ? spellSlotRows.map((slotRow) => ({
+              slotKey: String((slotRow as CharacterSourceRow).slot_key),
+              used: Number((slotRow as CharacterSourceRow).used)
+            }))
+          : undefined,
       conditions:
         conditionRows.length > 0
-        ? conditionRows.map((conditionRow) => ({
-            conditionTypeId: String((conditionRow as CharacterSourceRow).condition_type_id),
-            notes: optionalText((conditionRow as CharacterSourceRow).notes)
-          }))
-        : undefined,
+          ? conditionRows.map((conditionRow) => ({
+              conditionTypeId: String((conditionRow as CharacterSourceRow).condition_type_id),
+              notes: optionalText((conditionRow as CharacterSourceRow).notes)
+            }))
+          : undefined,
       exhaustion:
         exhaustionRow && Number((exhaustionRow as CharacterSourceRow).level) > 0
-        ? {
-            level: Number((exhaustionRow as CharacterSourceRow).level),
-            notes: optionalText((exhaustionRow as CharacterSourceRow).notes)
-          }
-        : undefined,
+          ? {
+              level: Number((exhaustionRow as CharacterSourceRow).level),
+              notes: optionalText((exhaustionRow as CharacterSourceRow).notes)
+            }
+          : undefined,
       noteGroups:
         noteGroupRows.length > 0
-        ? noteGroupRows.map((groupRow) => ({
-            id: String(groupRow.id),
-            label: String(groupRow.label),
-            sortOrder: Number(groupRow.sort_order),
+          ? noteGroupRows.map((groupRow) => ({
+              id: String(groupRow.id),
+              label: String(groupRow.label),
+              sortOrder: Number(groupRow.sort_order),
               kind: String(groupRow.kind) as NonNullable<
                 CharacterAuthored['state']['noteGroups']
               >[number]['kind']
-          }))
-        : undefined,
+            }))
+          : undefined,
       notes:
         noteRows.length > 0
-        ? noteRows.map((noteRow) => ({
-            id: String(noteRow.id),
-            title: String(noteRow.title),
-            body: optionalText(noteRow.body),
-            groupId: String(noteRow.group_id),
-            pinned: Boolean(noteRow.pinned),
-            createdAt: isoTimestamp(noteRow.created_at),
-            updatedAt: isoTimestamp(noteRow.updated_at)
-          }))
-        : undefined,
+          ? noteRows.map((noteRow) => ({
+              id: String(noteRow.id),
+              title: String(noteRow.title),
+              body: optionalText(noteRow.body),
+              groupId: String(noteRow.group_id),
+              pinned: Boolean(noteRow.pinned),
+              createdAt: isoTimestamp(noteRow.created_at),
+              updatedAt: isoTimestamp(noteRow.updated_at)
+            }))
+          : undefined,
       creatures:
         creatureRows.length > 0
-        ? creatureRows.map((creatureRow) => ({
-            id: String(creatureRow.id),
-            creatureId: String(creatureRow.creature_id),
+          ? creatureRows.map((creatureRow) => ({
+              id: String(creatureRow.id),
+              creatureId: String(creatureRow.creature_id),
               relationshipKind: String(creatureRow.relationship_kind) as NonNullable<
                 CharacterAuthored['state']['creatures']
               >[number]['relationshipKind'],
-            customName: optionalText(creatureRow.custom_name),
-            notes: optionalText(creatureRow.notes),
-            isActive: creatureRow.is_active == null ? undefined : Boolean(creatureRow.is_active)
-          }))
-        : undefined,
+              customName: optionalText(creatureRow.custom_name),
+              notes: optionalText(creatureRow.notes),
+              isActive: creatureRow.is_active == null ? undefined : Boolean(creatureRow.is_active)
+            }))
+          : undefined,
       vehicles:
         vehicleRows.length > 0
-        ? vehicleRows.map((vehicleRow) => ({
-            id: String(vehicleRow.id),
-            vehicleId: String(vehicleRow.vehicle_id),
-            customName: optionalText(vehicleRow.custom_name),
-            notes: optionalText(vehicleRow.notes),
-            isActive: vehicleRow.is_active == null ? undefined : Boolean(vehicleRow.is_active)
-          }))
-        : undefined,
+          ? vehicleRows.map((vehicleRow) => ({
+              id: String(vehicleRow.id),
+              vehicleId: String(vehicleRow.vehicle_id),
+              customName: optionalText(vehicleRow.custom_name),
+              notes: optionalText(vehicleRow.notes),
+              isActive: vehicleRow.is_active == null ? undefined : Boolean(vehicleRow.is_active)
+            }))
+          : undefined,
       creatureEquipment: Object.keys(creatureEquipment).length > 0 ? creatureEquipment : undefined,
       vehicleEquipment: Object.keys(vehicleEquipment).length > 0 ? vehicleEquipment : undefined
     },
@@ -1095,9 +1095,9 @@ async function applyCharacterSheetStatePatch(
       await deleteCharacterRows(db, 'character_hitpoint_state', characterId)
       await insertRows(db, 'character_hitpoint_state', [
         {
-        character_id: characterId,
-        current: patch.value.current,
-        temp: patch.value.temp ?? null,
+          character_id: characterId,
+          current: patch.value.current,
+          temp: patch.value.temp ?? null,
           max_override: null
         }
       ])
@@ -1105,10 +1105,10 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_hit_dice_state',
         patch.value.hitDice.map((hitDie) => ({
-        character_id: characterId,
-        die: hitDie.die,
-        total: hitDie.total,
-        used: hitDie.used
+          character_id: characterId,
+          die: hitDie.die,
+          total: hitDie.total,
+          used: hitDie.used
         }))
       )
       return
@@ -1119,9 +1119,9 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_resources',
         (patch.value ?? []).map((resource) => ({
-        character_id: characterId,
-        resource_grant_id: resource.resourceGrantId,
-        used: resource.used
+          character_id: characterId,
+          resource_grant_id: resource.resourceGrantId,
+          used: resource.used
         }))
       )
       return
@@ -1132,9 +1132,9 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_spell_slot_state',
         (patch.value ?? []).map((slot) => ({
-        character_id: characterId,
-        slot_key: slot.slotKey,
-        used: slot.used
+          character_id: characterId,
+          slot_key: slot.slotKey,
+          used: slot.used
         }))
       )
       return
@@ -1145,18 +1145,18 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_class_spells',
         (patch.value ?? []).flatMap((classState) => [
-        ...(classState.spells?.learned ?? []).map((spellId) => ({
-          character_id: characterId,
-          class_id: classState.classId,
-          spell_id: spellId,
-          state: 'KNOWN'
-        })),
-        ...(classState.spells?.prepared ?? []).map((spellId) => ({
-          character_id: characterId,
-          class_id: classState.classId,
-          spell_id: spellId,
-          state: 'PREPARED'
-        }))
+          ...(classState.spells?.learned ?? []).map((spellId) => ({
+            character_id: characterId,
+            class_id: classState.classId,
+            spell_id: spellId,
+            state: 'KNOWN'
+          })),
+          ...(classState.spells?.prepared ?? []).map((spellId) => ({
+            character_id: characterId,
+            class_id: classState.classId,
+            spell_id: spellId,
+            state: 'PREPARED'
+          }))
         ])
       )
       return
@@ -1167,9 +1167,9 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_conditions',
         (patch.value ?? []).map((condition) => ({
-        character_id: characterId,
-        condition_type_id: condition.conditionTypeId,
-        notes: condition.notes ?? null
+          character_id: characterId,
+          condition_type_id: condition.conditionTypeId,
+          notes: condition.notes ?? null
         }))
       )
       return
@@ -1179,9 +1179,9 @@ async function applyCharacterSheetStatePatch(
       if (patch.value && patch.value.level > 0) {
         await insertRows(db, 'character_exhaustion', [
           {
-          character_id: characterId,
-          level: patch.value.level,
-          notes: patch.value.notes ?? null
+            character_id: characterId,
+            level: patch.value.level,
+            notes: patch.value.notes ?? null
           }
         ])
       }
@@ -1222,12 +1222,12 @@ async function applyCharacterSheetStatePatch(
           })
           .onConflict((oc) =>
             oc.column('id').doUpdateSet((eb) => ({
-            equipment_id: eb.ref('excluded.equipment_id'),
-            quantity: eb.ref('excluded.quantity'),
-            container_id: eb.ref('excluded.container_id'),
-            container_path: eb.ref('excluded.container_path'),
-            custom_name: eb.ref('excluded.custom_name'),
-            notes: eb.ref('excluded.notes')
+              equipment_id: eb.ref('excluded.equipment_id'),
+              quantity: eb.ref('excluded.quantity'),
+              container_id: eb.ref('excluded.container_id'),
+              container_path: eb.ref('excluded.container_path'),
+              custom_name: eb.ref('excluded.custom_name'),
+              notes: eb.ref('excluded.notes')
             }))
           )
           .execute()
@@ -1248,48 +1248,48 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_equipped',
         patch.value.equipped.map((equipmentId) => ({
-        character_id: characterId,
-        equipment_id: equipmentId
+          character_id: characterId,
+          equipment_id: equipmentId
         }))
       )
       await insertRows(
         db,
         'character_attuned',
         patch.value.attuned.map((equipmentId) => ({
-        character_id: characterId,
-        equipment_id: equipmentId
+          character_id: characterId,
+          equipment_id: equipmentId
         }))
       )
 
       const creatureAssignments = Object.entries(patch.creatureEquipment ?? {}).flatMap(
         ([creatureId, assignments]) =>
-        assignments.map((assignment) => {
-          if (!inventoryIds.has(assignment.equipmentItemId)) {
+          assignments.map((assignment) => {
+            if (!inventoryIds.has(assignment.equipmentItemId)) {
               throw new Error(
                 `Character ${characterId} creature equipment references missing inventory item ${assignment.equipmentItemId}.`
               )
-          }
-          return {
-            character_id: characterId,
-            character_creature_id: creatureId,
-            equipment_id: assignment.equipmentItemId
-          }
-        })
+            }
+            return {
+              character_id: characterId,
+              character_creature_id: creatureId,
+              equipment_id: assignment.equipmentItemId
+            }
+          })
       )
       const vehicleAssignments = Object.entries(patch.vehicleEquipment ?? {}).flatMap(
         ([vehicleId, assignments]) =>
-        assignments.map((assignment) => {
-          if (!inventoryIds.has(assignment.equipmentItemId)) {
+          assignments.map((assignment) => {
+            if (!inventoryIds.has(assignment.equipmentItemId)) {
               throw new Error(
                 `Character ${characterId} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`
               )
-          }
-          return {
-            character_id: characterId,
-            character_vehicle_id: vehicleId,
-            equipment_id: assignment.equipmentItemId
-          }
-        })
+            }
+            return {
+              character_id: characterId,
+              character_vehicle_id: vehicleId,
+              equipment_id: assignment.equipmentItemId
+            }
+          })
       )
       await insertRows(db, 'character_creature_equipment', creatureAssignments)
       await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
@@ -1312,9 +1312,9 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_currency_groups',
         patch.value.map((group) => ({
-        id: group.id,
-        character_id: characterId,
-        container_id: group.containerId ?? null
+          id: group.id,
+          character_id: characterId,
+          container_id: group.containerId ?? null
         }))
       )
       await insertRows(
@@ -1322,10 +1322,10 @@ async function applyCharacterSheetStatePatch(
         'character_currencies',
         patch.value.flatMap((group) =>
           group.currencies.map((currency) => ({
-        character_id: characterId,
-        group_id: group.id,
-        currency_id: currency.currencyId,
-        amount: currency.amount
+            character_id: characterId,
+            group_id: group.id,
+            currency_id: currency.currencyId,
+            amount: currency.amount
           }))
         )
       )
@@ -1356,25 +1356,25 @@ async function applyCharacterSheetStatePatch(
         db,
         'character_note_groups',
         groups.map((group) => ({
-        id: group.id,
-        character_id: characterId,
-        label: group.label,
-        sort_order: group.sortOrder,
-        kind: group.kind
+          id: group.id,
+          character_id: characterId,
+          label: group.label,
+          sort_order: group.sortOrder,
+          kind: group.kind
         }))
       )
       await insertRows(
         db,
         'character_notes',
         notes.map((note) => ({
-        id: note.id,
-        character_id: characterId,
-        group_id: note.groupId,
-        title: note.title,
-        body: note.body ?? null,
-        pinned: note.pinned ?? false,
-        created_at: note.createdAt,
-        updated_at: note.updatedAt
+          id: note.id,
+          character_id: characterId,
+          group_id: note.groupId,
+          title: note.title,
+          body: note.body ?? null,
+          pinned: note.pinned ?? false,
+          created_at: note.createdAt,
+          updated_at: note.updatedAt
         }))
       )
       return
@@ -1408,7 +1408,7 @@ async function patchCharacterSheetState(
 
     const inspirationPatch = patches.find(
       (patch): patch is Extract<CharacterSheetStatePatch, { kind: 'INSPIRATION' }> =>
-      patch.kind === 'INSPIRATION'
+        patch.kind === 'INSPIRATION'
     )
     const nextStreamVersion = row.stream_version + 1
     await trx
@@ -1425,8 +1425,8 @@ async function patchCharacterSheetState(
       })
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
-        inspiration: eb.ref('excluded.inspiration'),
-        stream_version: eb.ref('excluded.stream_version')
+          inspiration: eb.ref('excluded.inspiration'),
+          stream_version: eb.ref('excluded.stream_version')
         }))
       )
       .execute()

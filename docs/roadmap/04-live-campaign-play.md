@@ -25,6 +25,8 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 - Introduce a first-class inventory aggregate with `InventoryOwnerRef = CHARACTER | CAMPAIGN | VEHICLE`.
 - Backfill one inventory for each character while retaining existing Sheet DTO compatibility.
 - Transfer full items or partial stacks in one transaction after authorization and expected-version checks.
+- Keep denomination-specific balances per inventory owner and optional container. Owner-wide totals aggregate each balance exactly once, while container breakdowns preserve custody without double counting.
+- Apply Campaign exchange policy only through explicit, versioned conversion commands. Display, transfer, and container-placement changes never normalize currency implicitly.
 - Clear equipped, attuned, and container-placement state when custody changes.
 - Reject non-empty container transfers initially.
 - Append correlated custody/audit records and commit both sides or neither.
@@ -87,6 +89,7 @@ Realtime messages are hints containing scope, event identity, and cursor. Client
 ## Acceptance gates
 
 - Conflicting or retried transfers never duplicate, lose, or partially move an item or currency amount.
+- Container transfer and explicit conversion preserve exact denomination totals atomically; owner totals never double-count a container balance.
 - Non-empty container transfer is rejected without changing either inventory.
 - Builder save cannot delete or replace Campaign, vehicle, or shared inventory data.
 - Clock totals remain correct across repeated start/stop, reconnect, and concurrent GM commands.

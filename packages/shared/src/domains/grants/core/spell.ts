@@ -29,8 +29,7 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
     code: SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',
     tooltip: 'The spell has a limited number of uses.',
-    description:
-      'The spell may only be cast a limited number of times before requiring a reset.'
+    description: 'The spell may only be cast a limited number of times before requiring a reset.'
   },
 
   CONCENTRATION: {
@@ -53,8 +52,7 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
     code: SPELL_GRANT_ATTRIBUTE.PREPARED,
     label: 'Prepared Spell',
     tooltip: 'The spell is prepared.',
-    description:
-      'The spell must be prepared but does not need to be learned separately.'
+    description: 'The spell must be prepared but does not need to be learned separately.'
   },
 
   KNOWN: {
@@ -68,16 +66,14 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
     code: SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
     label: 'Cast at Will',
     tooltip: 'The spell can be cast without expending a spell slot.',
-    description:
-      'The spell may be cast an unlimited number of times without using spell slots.'
+    description: 'The spell may be cast an unlimited number of times without using spell slots.'
   },
 
   CAST_AT_LEVEL: {
     code: SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL,
     label: 'Cast at Level',
     tooltip: 'The spell is cast using a specific slot level.',
-    description:
-      'The spell is always cast using the specified spell slot level.'
+    description: 'The spell is always cast using the specified spell slot level.'
   },
 
   SELF_ONLY: {

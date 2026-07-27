@@ -26,6 +26,7 @@ Introduce the minimum Campaign aggregate and authorization model: invitations, m
 - Campaign content grants expose exact authored revisions for selection without copying them into a player's Library.
 - Removing a grant prevents future selection but does not invalidate already pinned character content.
 - Typed Campaign rules initially support attunement-slot limit and `EXPERIENCE | MILESTONE` progression, with a GM-approved milestone level per character.
+- Campaign currency policy may define a closed set of denominations, a base denomination, exact exchange ratios, and rounding behavior. Policy revisions are versioned so existing balances remain explainable and are never silently rewritten.
 - Switching to milestone never deletes stored experience; switching back restores experience-based behavior from retained data.
 - GM Sheet changes use existing typed Sheet commands. Structural changes use Builder preview/commit and must surface the proposed diff before persistence.
 - Authorized GMs may inspect effective Character values, adjustment indicators, source notes, and calculation breakdowns from Phase 00 without receiving adjustment-edit commands.
@@ -60,6 +61,7 @@ The subplan should define shared DTOs and persistence for these conceptual recor
 - Character assignment and active-Campaign constraint.
 - Exact-revision content grant and revocation.
 - Ruleset-discriminated Campaign rule overrides.
+- Typed Campaign currency definitions and versioned exchange policy.
 - Per-character milestone approval while retaining experience truth.
 - Campaign authority audit entries correlated to Sheet or Builder operations.
 - Campaign logo asset reference outside `CharacterAuthored`.
@@ -104,6 +106,7 @@ RLS and service authorization must agree. Direct database access, tRPC procedure
 - What happens to assignment and delegated access when a member leaves or is removed mid-session?
 - Which structural Builder fields may a GM change in alpha, and does every change require contemporaneous player approval or only audit visibility?
 - Are Campaign content grants Campaign-wide, role-scoped, or individually assigned in the first release?
+- May a Campaign define currency denominations and exchange rates, or only select from its system vocabulary? The subplan must settle the base denomination, ratio and rounding model, policy versioning, and existing-balance behavior.
 
 ## New-session instruction
 

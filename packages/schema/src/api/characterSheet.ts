@@ -3,27 +3,14 @@ import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
 const identifierSchema = z.string().trim().min(1)
-const uuidSchema = z.string().uuid()
+// PostgreSQL accepts UUID-shaped deterministic SRD IDs whose version bits are zero.
+const uuidSchema = z.guid()
 
 export const characterSheetSourceNoteDtoSchema = z
   .string()
   .trim()
   .max(240)
   .refine((value) => !/[\r\n]/u.test(value), 'Source notes must use one line.')
-
-export const characterSheetSourceLabelDtoSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(80)
-  .refine((value) => !/[\r\n]/u.test(value), 'Source labels must use one line.')
-
-export const characterSheetAdjustmentSourceCategoryDtoSchema = z.enum([
-  'MAGIC',
-  'MANUAL',
-  'MISCELLANEOUS',
-  'OTHER'
-])
 
 export const characterProficiencyLevelDtoSchema = z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
 
@@ -173,7 +160,7 @@ const spellAdjustmentDtoSchema = z.object({
 const itemNumericAdjustmentDtoSchema = z.object({
   family: z.literal('ITEM'),
   itemInstanceId: uuidSchema,
-  field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'DAMAGE_BONUS']),
+  field: z.enum(['ATTACK_BONUS', 'ATTACK_OVERRIDE', 'COST_OVERRIDE', 'DAMAGE_BONUS']),
   value: z.number()
 })
 
@@ -187,7 +174,7 @@ const itemWeightAdjustmentDtoSchema = z.object({
 const itemPropertyAdjustmentDtoSchema = z.object({
   family: z.literal('ITEM'),
   itemInstanceId: uuidSchema,
-  field: z.enum(['ADAMANTINE', 'DUAL_WIELD', 'SILVERED']),
+  field: z.enum(['ADAMANTINE', 'DISPLAY_AS_ATTACK', 'DUAL_WIELD', 'SILVERED']),
   value: z.literal(true)
 })
 
@@ -243,6 +230,13 @@ export const characterSheetCoreAdjustmentValueDtoSchema = z.union([
   proficiencyAdditionDtoSchema
 ])
 
+export const characterSheetContentAdjustmentValueDtoSchema = z.union([
+  spellAdjustmentDtoSchema,
+  itemNumericAdjustmentDtoSchema,
+  itemWeightAdjustmentDtoSchema,
+  itemPropertyAdjustmentDtoSchema
+])
+
 export const characterSheetAdjustmentValueDtoSchema = z.union([
   abilityOtherModifierAdjustmentDtoSchema,
   abilityScoreOverrideAdjustmentDtoSchema,
@@ -269,17 +263,33 @@ export const characterSheetAdjustmentValueDtoSchema = z.union([
 export const characterSheetCoreAdjustmentCommandDtoSchema = z
   .object({
     id: uuidSchema.optional(),
-    sourceCategory: characterSheetAdjustmentSourceCategoryDtoSchema.default('MANUAL'),
-    sourceLabel: characterSheetSourceLabelDtoSchema.optional(),
     sourceNote: characterSheetSourceNoteDtoSchema.optional()
   })
   .and(characterSheetCoreAdjustmentValueDtoSchema)
 
+export const characterSheetItemAdjustmentCommandDtoSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    sourceNote: characterSheetSourceNoteDtoSchema.optional()
+  })
+  .and(
+    z.union([
+      itemNumericAdjustmentDtoSchema,
+      itemWeightAdjustmentDtoSchema,
+      itemPropertyAdjustmentDtoSchema
+    ])
+  )
+
+export const characterSheetAdjustmentCommandDtoSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    sourceNote: characterSheetSourceNoteDtoSchema.optional()
+  })
+  .and(characterSheetAdjustmentValueDtoSchema)
+
 export const characterSheetAdjustmentMetadataDtoSchema = z.object({
   id: uuidSchema,
   characterId: uuidSchema,
-  sourceCategory: characterSheetAdjustmentSourceCategoryDtoSchema,
-  sourceLabel: characterSheetSourceLabelDtoSchema.optional(),
   sourceNote: characterSheetSourceNoteDtoSchema.optional(),
   createdBy: uuidSchema,
   updatedBy: uuidSchema,
@@ -295,8 +305,6 @@ export const characterSheetAdjustmentWriteDtoSchema = z
   .object({
     id: uuidSchema,
     characterId: uuidSchema,
-    sourceCategory: characterSheetAdjustmentSourceCategoryDtoSchema.optional(),
-    sourceLabel: characterSheetSourceLabelDtoSchema.optional(),
     sourceNote: characterSheetSourceNoteDtoSchema.optional(),
     actorId: uuidSchema
   })
@@ -388,6 +396,12 @@ export const characterResourceOwnerRefDtoSchema = z.union([
 export type CharacterSheetAdjustmentDto = z.infer<typeof characterSheetAdjustmentDtoSchema>
 export type CharacterSheetCoreAdjustmentCommandDto = z.infer<
   typeof characterSheetCoreAdjustmentCommandDtoSchema
+>
+export type CharacterSheetItemAdjustmentCommandDto = z.infer<
+  typeof characterSheetItemAdjustmentCommandDtoSchema
+>
+export type CharacterSheetAdjustmentCommandDto = z.infer<
+  typeof characterSheetAdjustmentCommandDtoSchema
 >
 export type CharacterSheetAdjustmentWriteDto = z.infer<
   typeof characterSheetAdjustmentWriteDtoSchema

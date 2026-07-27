@@ -9,31 +9,43 @@ describe('authoring node map visibility', () => {
     const categoryNode = PROFICIENCY_NODE_MAP.nodes.category
     const equipmentIdsNode = PROFICIENCY_NODE_MAP.nodes.equipmentIds
 
-    expect(isVisible(categoryNode, {
-      authoringModeKind: 'ALL',
-      proficiencyKind: 'EQUIPMENT'
-    })).toBe(true)
-    expect(isVisible(categoryNode, {
-      authoringModeKind: 'ALL',
-      proficiencyKind: 'EQUIPMENT_PROPERTY'
-    })).toBe(true)
-    expect(isVisible(categoryNode, {
-      authoringModeKind: 'SELECTED',
-      proficiencyKind: 'EQUIPMENT'
-    })).toBe(true)
-    expect(isVisible(categoryNode, {
-      authoringModeKind: 'ALL',
-      proficiencyKind: 'SKILL'
-    })).toBe(false)
+    expect(
+      isVisible(categoryNode, {
+        authoringModeKind: 'ALL',
+        proficiencyKind: 'EQUIPMENT'
+      })
+    ).toBe(true)
+    expect(
+      isVisible(categoryNode, {
+        authoringModeKind: 'ALL',
+        proficiencyKind: 'EQUIPMENT_PROPERTY'
+      })
+    ).toBe(true)
+    expect(
+      isVisible(categoryNode, {
+        authoringModeKind: 'SELECTED',
+        proficiencyKind: 'EQUIPMENT'
+      })
+    ).toBe(true)
+    expect(
+      isVisible(categoryNode, {
+        authoringModeKind: 'ALL',
+        proficiencyKind: 'SKILL'
+      })
+    ).toBe(false)
 
-    expect(isVisible(equipmentIdsNode, {
-      authoringModeKind: 'ALL',
-      proficiencyKind: 'EQUIPMENT'
-    })).toBe(false)
-    expect(isVisible(equipmentIdsNode, {
-      authoringModeKind: 'SELECTED',
-      proficiencyKind: 'EQUIPMENT'
-    })).toBe(true)
+    expect(
+      isVisible(equipmentIdsNode, {
+        authoringModeKind: 'ALL',
+        proficiencyKind: 'EQUIPMENT'
+      })
+    ).toBe(false)
+    expect(
+      isVisible(equipmentIdsNode, {
+        authoringModeKind: 'SELECTED',
+        proficiencyKind: 'EQUIPMENT'
+      })
+    ).toBe(true)
   })
 
   it('exposes charge bounds only for derived limits and levels only for fixed per-level scaling', () => {
@@ -54,18 +66,24 @@ describe('authoring node map visibility', () => {
 
     expect(isVisible(minNode, { limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT })).toBe(false)
     expect(isVisible(maxNode, { limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT })).toBe(false)
-    expect(isVisible(levelsNode, {
-      limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
-      scalingKind: 'PER_LEVEL'
-    })).toBe(true)
-    expect(isVisible(levelsNode, {
-      limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
-      scalingKind: 'NONE'
-    })).toBe(false)
-    expect(isVisible(levelsNode, {
-      limitKind: CHARGE_LIMIT_KIND.CHARACTER_LEVEL,
-      scalingKind: 'PER_LEVEL'
-    })).toBe(false)
+    expect(
+      isVisible(levelsNode, {
+        limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
+        scalingKind: 'PER_LEVEL'
+      })
+    ).toBe(true)
+    expect(
+      isVisible(levelsNode, {
+        limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
+        scalingKind: 'NONE'
+      })
+    ).toBe(false)
+    expect(
+      isVisible(levelsNode, {
+        limitKind: CHARGE_LIMIT_KIND.CHARACTER_LEVEL,
+        scalingKind: 'PER_LEVEL'
+      })
+    ).toBe(false)
   })
 
   it('exposes damage multipliers for every value kind and heal multipliers only for pools', () => {
@@ -75,40 +93,41 @@ describe('authoring node map visibility', () => {
       throw new Error('Expected resultBlock to be a group node')
     }
 
-    const resultBlockMap = typeof resultBlockNode.nodes === 'function'
-      ? resultBlockNode.nodes()
-      : resultBlockNode.nodes
+    const resultBlockMap =
+      typeof resultBlockNode.nodes === 'function' ? resultBlockNode.nodes() : resultBlockNode.nodes
     const outcomesNode = resultBlockMap.nodes.outcomes
 
     if (!outcomesNode || outcomesNode.kind !== 'GROUP') {
       throw new Error('Expected outcomes to be a group node')
     }
 
-    const outcomeMap = typeof outcomesNode.nodes === 'function'
-      ? outcomesNode.nodes()
-      : outcomesNode.nodes
+    const outcomeMap =
+      typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
     const multiplierNode = outcomeMap.nodes.multiplier
 
     for (const valueKind of ['FIXED', 'DICE', 'POOL']) {
-      expect(isVisible(multiplierNode, {
-        effectKind: EFFECT_KIND.DAMAGE,
-        valueKind
-      })).toBe(true)
+      expect(
+        isVisible(multiplierNode, {
+          effectKind: EFFECT_KIND.DAMAGE,
+          valueKind
+        })
+      ).toBe(true)
     }
-    expect(isVisible(multiplierNode, {
-      effectKind: EFFECT_KIND.HEAL,
-      valueKind: 'POOL'
-    })).toBe(true)
-    expect(isVisible(multiplierNode, {
-      effectKind: EFFECT_KIND.HEAL,
-      valueKind: 'FIXED'
-    })).toBe(false)
+    expect(
+      isVisible(multiplierNode, {
+        effectKind: EFFECT_KIND.HEAL,
+        valueKind: 'POOL'
+      })
+    ).toBe(true)
+    expect(
+      isVisible(multiplierNode, {
+        effectKind: EFFECT_KIND.HEAL,
+        valueKind: 'FIXED'
+      })
+    ).toBe(false)
   })
 })
 
-function isVisible(
-  node: { showIf?: ConditionIfExpr },
-  values: Record<string, unknown>
-) {
+function isVisible(node: { showIf?: ConditionIfExpr }, values: Record<string, unknown>) {
   return node.showIf ? evaluateConditionIf(node.showIf, { values }) : true
 }

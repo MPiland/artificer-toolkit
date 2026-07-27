@@ -40,11 +40,18 @@ describe('node map sections', () => {
       map.set('label', nodes.text(['label'], 'Name'))
     })
 
-    const parentMap = buildNodeMap<{ child?: { label?: string } }>().define('parent', ({ map, nodes }) => {
-      map.set('child', nodes.groupObject(['child'], 'Child', () => childMap, { presentation: 'inline',
-        section: { id: 'details', label: 'Details', order: 10 }
-      }))
-    })
+    const parentMap = buildNodeMap<{ child?: { label?: string } }>().define(
+      'parent',
+      ({ map, nodes }) => {
+        map.set(
+          'child',
+          nodes.groupObject(['child'], 'Child', () => childMap, {
+            presentation: 'inline',
+            section: { id: 'details', label: 'Details', order: 10 }
+          })
+        )
+      }
+    )
 
     const entries = resolveNestedNodeSections(parentMap)
 
@@ -58,12 +65,16 @@ describe('node map sections', () => {
     const materialNode = SPELL_NODE_MAP.nodes.materialDescription
 
     expect(materialNode.hiddenBehavior).toBe('CLEAR')
-    expect(evaluateConditionIf(materialNode.showIf, {
-      values: { components: ['MATERIAL'] }
-    })).toBe(true)
-    expect(evaluateConditionIf(materialNode.showIf, {
-      values: { components: ['VERBAL'] }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(materialNode.showIf, {
+        values: { components: ['MATERIAL'] }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(materialNode.showIf, {
+        values: { components: ['VERBAL'] }
+      })
+    ).toBe(false)
   })
 
   it('models creature category-specific profiles as conditional clearable groups', () => {
@@ -71,20 +82,28 @@ describe('node map sections', () => {
     const companionNode = CREATURE_NODE_MAP.nodes.companionProfile
 
     expect(mountNode.hiddenBehavior).toBe('CLEAR')
-    expect(evaluateConditionIf(mountNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.BEAST }
-    })).toBe(true)
-    expect(evaluateConditionIf(mountNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(mountNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.BEAST }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(mountNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+      })
+    ).toBe(false)
 
     expect(companionNode.hiddenBehavior).toBe('CLEAR')
-    expect(evaluateConditionIf(companionNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.COMPANION }
-    })).toBe(true)
-    expect(evaluateConditionIf(companionNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.SUMMON }
-    })).toBe(true)
+    expect(
+      evaluateConditionIf(companionNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.COMPANION }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(companionNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.SUMMON }
+      })
+    ).toBe(true)
   })
 
   it('authors creature presentation sections on the canonical feature model', () => {
@@ -104,18 +123,26 @@ describe('node map sections', () => {
     expect(costNode.hiddenBehavior).toBeUndefined()
     expect(capacityNode.hiddenBehavior).toBeUndefined()
     expect(notesNode.hiddenBehavior).toBeUndefined()
-    expect(evaluateConditionIf(costNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.BEAST }
-    })).toBe(true)
-    expect(evaluateConditionIf(costNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
-    })).toBe(false)
-    expect(evaluateConditionIf(capacityNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
-    })).toBe(false)
-    expect(evaluateConditionIf(notesNode.showIf, {
-      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(costNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.BEAST }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(costNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+      })
+    ).toBe(false)
+    expect(
+      evaluateConditionIf(capacityNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+      })
+    ).toBe(false)
+    expect(
+      evaluateConditionIf(notesNode.showIf, {
+        values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+      })
+    ).toBe(false)
   })
 
   it('models vehicle authoring as stable node-driven steps', () => {
@@ -170,27 +197,40 @@ describe('node map sections', () => {
       type: 'SELECT_SINGLE'
     })
     expect(nodes.find((entry) => entry.id === 'baseAttributes')?.node.path).toEqual(['attributes'])
-    expect(nodes.find((entry) => entry.id === 'subclassAttributes')?.node.path).toEqual(['attributes'])
-    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
-      values: { category: 'BASE' }
-    })).toBe(true)
-    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
-      values: { category: 'SUBCLASS' }
-    })).toBe(false)
-    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.parentClassId.showIf, {
-      values: { category: 'SUBCLASS' }
-    })).toBe(true)
+    expect(nodes.find((entry) => entry.id === 'subclassAttributes')?.node.path).toEqual([
+      'attributes'
+    ])
+    expect(
+      evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
+        values: { category: 'BASE' }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(CLASS_NODE_MAP.nodes.subclassSelectionLevel.showIf, {
+        values: { category: 'SUBCLASS' }
+      })
+    ).toBe(false)
+    expect(
+      evaluateConditionIf(CLASS_NODE_MAP.nodes.parentClassId.showIf, {
+        values: { category: 'SUBCLASS' }
+      })
+    ).toBe(true)
     expect(CLASS_NODE_MAP.nodes.parentClassId.kind).toBe('INPUT')
     if (CLASS_NODE_MAP.nodes.parentClassId.kind === 'INPUT') {
       const requiredIf = CLASS_NODE_MAP.nodes.parentClassId.requiredIf
 
-      expect(requiredIf === true || evaluateConditionIf(requiredIf, {
-        values: { category: 'SUBCLASS' }
-      })).toBe(true)
+      expect(
+        requiredIf === true ||
+          evaluateConditionIf(requiredIf, {
+            values: { category: 'SUBCLASS' }
+          })
+      ).toBe(true)
     }
-    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.startingEquipment.showIf, {
-      values: { category: 'SUBCLASS' }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(CLASS_NODE_MAP.nodes.startingEquipment.showIf, {
+        values: { category: 'SUBCLASS' }
+      })
+    ).toBe(false)
   })
 
   it('models feature and option child maps as stable node-driven editors', () => {
@@ -203,11 +243,7 @@ describe('node map sections', () => {
       'grants',
       'options'
     ])
-    expect(optionSteps.map((step) => step.id)).toEqual([
-      'basics',
-      'mechanics',
-      'grants'
-    ])
+    expect(optionSteps.map((step) => step.id)).toEqual(['basics', 'mechanics', 'grants'])
 
     expect(FEATURE_NODE_MAP.nodes.description.kind).toBe('INPUT')
     if (FEATURE_NODE_MAP.nodes.description.kind === 'INPUT') {
@@ -240,12 +276,16 @@ describe('node map sections', () => {
   it('requires parent equipment only for variants', () => {
     const parentNode = EQUIPMENT_NODE_MAP.nodes.parentEquipmentId
 
-    expect(evaluateConditionIf(parentNode.showIf, {
-      values: { category: 'VARIANT' }
-    })).toBe(true)
-    expect(evaluateConditionIf(parentNode.showIf, {
-      values: { category: 'ADVENTURING_GEAR' }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(parentNode.showIf, {
+        values: { category: 'VARIANT' }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(parentNode.showIf, {
+        values: { category: 'ADVENTURING_GEAR' }
+      })
+    ).toBe(false)
 
     expect(parentNode.kind).toBe('INPUT')
     if (parentNode.kind !== 'INPUT') return
@@ -256,12 +296,16 @@ describe('node map sections', () => {
     expect(requiredIf).not.toBe(true)
     if (requiredIf === true) return
 
-    expect(evaluateConditionIf(requiredIf, {
-      values: { category: 'VARIANT' }
-    })).toBe(true)
-    expect(evaluateConditionIf(requiredIf, {
-      values: { category: 'ADVENTURING_GEAR' }
-    })).toBe(false)
+    expect(
+      evaluateConditionIf(requiredIf, {
+        values: { category: 'VARIANT' }
+      })
+    ).toBe(true)
+    expect(
+      evaluateConditionIf(requiredIf, {
+        values: { category: 'ADVENTURING_GEAR' }
+      })
+    ).toBe(false)
   })
 
   it('authors equipment attunement as a boolean toggle', () => {
@@ -277,9 +321,10 @@ describe('node map sections', () => {
     expect(restrictionsNode.kind).toBe('GROUP')
     if (restrictionsNode.kind !== 'GROUP') return
 
-    const facetMap = typeof restrictionsNode.nodes === 'function'
-      ? restrictionsNode.nodes()
-      : restrictionsNode.nodes
+    const facetMap =
+      typeof restrictionsNode.nodes === 'function'
+        ? restrictionsNode.nodes()
+        : restrictionsNode.nodes
     expect(facetMap.mapId).toBe('characterFacet')
 
     const groupsNode = facetMap.nodes.groups
@@ -287,9 +332,8 @@ describe('node map sections', () => {
     const groupMap = typeof groupsNode.nodes === 'function' ? groupsNode.nodes() : groupsNode.nodes
     const contextsNode = groupMap.nodes.contexts
     if (contextsNode.kind !== 'GROUP') return
-    const contextMap = typeof contextsNode.nodes === 'function'
-      ? contextsNode.nodes()
-      : contextsNode.nodes
+    const contextMap =
+      typeof contextsNode.nodes === 'function' ? contextsNode.nodes() : contextsNode.nodes
     const subjectNode = contextMap.nodes.subject
     if (subjectNode.kind !== 'INPUT' || subjectNode.type !== 'SELECT_SINGLE') return
 

@@ -17,16 +17,16 @@ export const marketingRoot = style({
 export const marketingHeader = style({
   '@layer': {
     [app]: {
-      'position': 'sticky',
-      'top': 0,
-      'zIndex': 20,
-      'display': 'flex',
-      'alignItems': 'center',
-      'gap': foundationVars.space[6],
-      'minHeight': '56px',
-      'padding': `0 ${foundationVars.space[12]}`,
-      'borderBottom': `1px solid ${foundationVars.color.border.subtle}`,
-      'backgroundColor': foundationVars.color.surface.header,
+      position: 'sticky',
+      top: 0,
+      zIndex: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: foundationVars.space[6],
+      minHeight: '56px',
+      padding: `0 ${foundationVars.space[12]}`,
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.header,
       '@media': {
         'screen and (max-width: 760px)': {
           padding: `0 ${foundationVars.space[5]}`,
@@ -64,11 +64,11 @@ export const logoMark = style({
 export const desktopNav = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'justifyContent': 'flex-end',
-      'flex': 1,
-      'gap': foundationVars.space[6],
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      flex: 1,
+      gap: foundationVars.space[6],
       '@media': {
         'screen and (max-width: 760px)': {
           display: 'none'
@@ -81,9 +81,9 @@ export const desktopNav = style({
 export const headerActions = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'gap': foundationVars.space[3],
+      display: 'flex',
+      alignItems: 'center',
+      gap: foundationVars.space[3],
       '@media': {
         'screen and (max-width: 760px)': {
           marginLeft: 'auto'
@@ -96,15 +96,15 @@ export const headerActions = style({
 export const mobileSignInLink = style({
   '@layer': {
     [app]: {
-      'display': 'none',
-      'alignItems': 'center',
-      'minHeight': '44px',
-      'color': foundationVars.color.text.accent,
-      'fontSize': '0.875rem',
-      'fontWeight': 700,
-      'textDecoration': 'none',
-      'whiteSpace': 'nowrap',
-      'transition': `color ${foundationVars.motion.fast} ease`,
+      display: 'none',
+      alignItems: 'center',
+      minHeight: '44px',
+      color: foundationVars.color.text.accent,
+      fontSize: '0.875rem',
+      fontWeight: 700,
+      textDecoration: 'none',
+      whiteSpace: 'nowrap',
+      transition: `color ${foundationVars.motion.fast} ease`,
       '@media': {
         'screen and (max-width: 760px)': {
           display: 'inline-flex'
@@ -112,7 +112,7 @@ export const mobileSignInLink = style({
       }
     }
   },
-  'selectors': {
+  selectors: {
     '&:hover': {
       color: foundationVars.color.icon.hover
     },
@@ -153,7 +153,7 @@ export const navLink = style({
       transition: `color ${foundationVars.motion.fast} ease`
     }
   },
-  'selectors': {
+  selectors: {
     '&:hover': {
       color: foundationVars.color.text.primary
     }
@@ -178,7 +178,7 @@ export const primaryLink = style({
       transition: `background-color ${foundationVars.motion.fast} ease`
     }
   },
-  'selectors': {
+  selectors: {
     '&:hover': {
       backgroundColor: foundationVars.color.button.primary.hover
     }
@@ -201,7 +201,7 @@ export const secondaryLink = style({
       textDecoration: 'none'
     }
   },
-  'selectors': {
+  selectors: {
     '&:hover': {
       borderColor: foundationVars.color.border.strong,
       color: foundationVars.color.text.primary
@@ -212,13 +212,13 @@ export const secondaryLink = style({
 export const heroSection = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'minmax(0, 0.9fr) minmax(460px, 1.1fr)',
-      'alignItems': 'center',
-      'gap': foundationVars.space[12],
-      'padding': `${foundationVars.space[14]} ${foundationVars.space[8]} ${foundationVars.space[12]}`,
-      'maxWidth': '1320px',
-      'margin': '0 auto',
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 0.9fr) minmax(460px, 1.1fr)',
+      alignItems: 'center',
+      gap: foundationVars.space[12],
+      padding: `${foundationVars.space[14]} ${foundationVars.space[8]} ${foundationVars.space[12]}`,
+      maxWidth: '1320px',
+      margin: '0 auto',
       '@media': {
         'screen and (max-width: 1040px)': {
           gridTemplateColumns: '1fr',
@@ -238,11 +238,11 @@ export const heroSection = style({
 export const heroContent = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gap': foundationVars.space[5],
-      'justifyItems': 'start',
-      'alignContent': 'center',
-      'maxWidth': '690px',
+      display: 'grid',
+      gap: foundationVars.space[5],
+      justifyItems: 'start',
+      alignContent: 'center',
+      maxWidth: '690px',
       '@media': {
         'screen and (max-width: 1040px)': {
           justifyItems: 'center'
@@ -273,14 +273,14 @@ export const eyebrow = style({
 export const heroTitle = style({
   '@layer': {
     [app]: {
-      'maxWidth': '760px',
-      'margin': 0,
-      'color': foundationVars.color.text.primary,
-      'fontSize': 'clamp(3.25rem, 5vw, 4.125rem)',
-      'fontWeight': 800,
-      'letterSpacing': '-0.035em',
-      'lineHeight': 1.04,
-      'textWrap': 'balance',
+      maxWidth: '760px',
+      margin: 0,
+      color: foundationVars.color.text.primary,
+      fontSize: 'clamp(3.25rem, 5vw, 4.125rem)',
+      fontWeight: 800,
+      letterSpacing: '-0.035em',
+      lineHeight: 1.04,
+      textWrap: 'balance',
       '@media': {
         'screen and (max-width: 1040px)': {
           maxWidth: '680px',
@@ -310,10 +310,10 @@ export const heroCopy = style({
 export const ctaRow = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'flexWrap': 'wrap',
-      'gap': foundationVars.space[4],
+      display: 'flex',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: foundationVars.space[4],
       '@media': {
         'screen and (max-width: 1040px)': {
           justifyContent: 'center'
@@ -326,14 +326,14 @@ export const ctaRow = style({
 export const heroHighlightGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
-      'gap': foundationVars.space[2],
-      'width': '100%',
-      'maxWidth': '660px',
-      'marginTop': foundationVars.space[3],
-      'paddingTop': foundationVars.space[4],
-      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: foundationVars.space[2],
+      width: '100%',
+      maxWidth: '660px',
+      marginTop: foundationVars.space[3],
+      paddingTop: foundationVars.space[4],
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
       '@media': {
         'screen and (max-width: 1040px)': {
           maxWidth: '760px'
@@ -472,12 +472,12 @@ export const mockupSheetImage = style({
 export const section = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'justifyItems': 'center',
-      'gap': foundationVars.space[8],
-      'padding': `${foundationVars.space[13]} ${foundationVars.space[12]}`,
-      'backgroundColor': foundationVars.color.surface.raised,
-      'scrollMarginTop': '88px',
+      display: 'grid',
+      justifyItems: 'center',
+      gap: foundationVars.space[8],
+      padding: `${foundationVars.space[13]} ${foundationVars.space[12]}`,
+      backgroundColor: foundationVars.color.surface.raised,
+      scrollMarginTop: '88px',
       '@media': {
         'screen and (max-width: 760px)': {
           padding: `${foundationVars.space[10]} ${foundationVars.space[5]}`
@@ -498,12 +498,12 @@ export const sectionAlt = style({
 export const sectionHeader = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'justifyItems': 'start',
-      'gap': foundationVars.space[3],
-      'maxWidth': '840px',
-      'width': '100%',
-      'textAlign': 'left',
+      display: 'grid',
+      justifyItems: 'start',
+      gap: foundationVars.space[3],
+      maxWidth: '840px',
+      width: '100%',
+      textAlign: 'left',
       '@media': {
         'screen and (max-width: 900px)': {
           justifyItems: 'center',
@@ -529,13 +529,13 @@ export const sectionLabel = style({
 export const sectionTitle = style({
   '@layer': {
     [app]: {
-      'margin': 0,
-      'color': foundationVars.color.text.primary,
-      'fontSize': '2.5rem',
-      'fontWeight': 800,
-      'lineHeight': 1.2,
-      'letterSpacing': '-0.025em',
-      'textWrap': 'balance',
+      margin: 0,
+      color: foundationVars.color.text.primary,
+      fontSize: '2.5rem',
+      fontWeight: 800,
+      lineHeight: 1.2,
+      letterSpacing: '-0.025em',
+      textWrap: 'balance',
       '@media': {
         'screen and (max-width: 760px)': {
           fontSize: '2rem'
@@ -561,11 +561,11 @@ export const sectionCopy = style({
 export const featureGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(12, minmax(0, 1fr))',
-      'gap': foundationVars.space[5],
-      'width': '100%',
-      'maxWidth': '1112px',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+      gap: foundationVars.space[5],
+      width: '100%',
+      maxWidth: '1112px',
       '@media': {
         'screen and (max-width: 900px)': {
           gridTemplateColumns: '1fr'
@@ -592,8 +592,8 @@ export const featureCard = style({
 export const featureCardWide = style({
   '@layer': {
     [app]: {
-      'gridColumn': 'span 7',
-      'minHeight': '280px',
+      gridColumn: 'span 7',
+      minHeight: '280px',
       '@media': {
         'screen and (max-width: 900px)': {
           gridColumn: 'auto'
@@ -606,8 +606,8 @@ export const featureCardWide = style({
 export const featureCardNarrow = style({
   '@layer': {
     [app]: {
-      'gridColumn': 'span 5',
-      'minHeight': '260px',
+      gridColumn: 'span 5',
+      minHeight: '260px',
       '@media': {
         'screen and (max-width: 900px)': {
           gridColumn: 'auto'
@@ -719,10 +719,10 @@ export const featureBulletMarker = style({
 export const pricingGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(3, minmax(0, 320px))',
-      'gap': foundationVars.space[6],
-      'alignItems': 'stretch',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 320px))',
+      gap: foundationVars.space[6],
+      alignItems: 'stretch',
       '@media': {
         'screen and (max-width: 1100px)': {
           gridTemplateColumns: '1fr',
@@ -844,14 +844,14 @@ export const finalCta = style({
 export const finalCtaPanel = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'justifyItems': 'center',
-      'gap': foundationVars.space[5],
-      'width': 'min(920px, 100%)',
-      'padding': `${foundationVars.space[12]} ${foundationVars.space[8]}`,
-      'border': `1px solid ${foundationVars.color.accent.border}`,
-      'borderRadius': foundationVars.radius.xl,
-      'backgroundColor': foundationVars.color.surface.panel,
+      display: 'grid',
+      justifyItems: 'center',
+      gap: foundationVars.space[5],
+      width: 'min(920px, 100%)',
+      padding: `${foundationVars.space[12]} ${foundationVars.space[8]}`,
+      border: `1px solid ${foundationVars.color.accent.border}`,
+      borderRadius: foundationVars.radius.xl,
+      backgroundColor: foundationVars.color.surface.panel,
       '@media': {
         'screen and (max-width: 760px)': {
           padding: `${foundationVars.space[8]} ${foundationVars.space[5]}`
@@ -864,15 +864,15 @@ export const finalCtaPanel = style({
 export const marketingFooter = style({
   '@layer': {
     [app]: {
-      'display': 'flex',
-      'alignItems': 'center',
-      'justifyContent': 'flex-end',
-      'minHeight': '64px',
-      'padding': `0 ${foundationVars.space[12]}`,
-      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
-      'backgroundColor': foundationVars.color.surface.header,
-      'color': foundationVars.color.text.secondary,
-      'fontSize': '0.875rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      minHeight: '64px',
+      padding: `0 ${foundationVars.space[12]}`,
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.header,
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.875rem',
       '@media': {
         'screen and (max-width: 760px)': {
           justifyContent: 'center',

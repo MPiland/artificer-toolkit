@@ -6,25 +6,26 @@ p1_count: 3
 timestamp: 2026-07-12T18-04-52Z
 slug: apps-web-src-forms
 ---
+
 # Current Authoring Workspace Critique
 
 Method: dual-agent (A: current_forms_design_review · B: current_forms_detector)
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-| --- | --- | ---: | --- |
-| 1 | Visibility of System Status | 2 | Progress and Draft exist, but saved/dirty and nested commit state are unclear. |
-| 2 | Match System / Real World | 3 | Domain language is mostly sound; Overview, Details, Selection Model, and Starts From leak implementation language. |
-| 3 | User Control and Freedom | 2 | Back/reset exist, but complex Add/remove operations mutate the live form without a staged cancel boundary. |
-| 4 | Consistency and Standards | 3 | Controls are coherent; page titles and Add/action placement vary. |
-| 5 | Error Prevention | 1 | Conditional clearing and populated removal lack clear prevention/recovery. |
-| 6 | Recognition Rather Than Recall | 2 | Desktop rail helps; mobile loses object and branch identity. |
-| 7 | Flexibility and Efficiency | 1 | No compact comparison, duplicate, reorder, or expert path for nested effects. |
-| 8 | Aesthetic and Minimalist Design | 2 | Restrained shell, but simple states are vacant and deep states expose the schema at equal weight. |
-| 9 | Error Recovery | 1 | Warnings do not visibly diagnose or route to repair. |
-| 10 | Help and Documentation | 1 | Complex effect concepts and consequences lack contextual guidance. |
-| **Total** | | **18/40** | **Poor, with a strong shell worth preserving.** |
+| #         | Heuristic                       |     Score | Key issue                                                                                                          |
+| --------- | ------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------ |
+| 1         | Visibility of System Status     |         2 | Progress and Draft exist, but saved/dirty and nested commit state are unclear.                                     |
+| 2         | Match System / Real World       |         3 | Domain language is mostly sound; Overview, Details, Selection Model, and Starts From leak implementation language. |
+| 3         | User Control and Freedom        |         2 | Back/reset exist, but complex Add/remove operations mutate the live form without a staged cancel boundary.         |
+| 4         | Consistency and Standards       |         3 | Controls are coherent; page titles and Add/action placement vary.                                                  |
+| 5         | Error Prevention                |         1 | Conditional clearing and populated removal lack clear prevention/recovery.                                         |
+| 6         | Recognition Rather Than Recall  |         2 | Desktop rail helps; mobile loses object and branch identity.                                                       |
+| 7         | Flexibility and Efficiency      |         1 | No compact comparison, duplicate, reorder, or expert path for nested effects.                                      |
+| 8         | Aesthetic and Minimalist Design |         2 | Restrained shell, but simple states are vacant and deep states expose the schema at equal weight.                  |
+| 9         | Error Recovery                  |         1 | Warnings do not visibly diagnose or route to repair.                                                               |
+| 10        | Help and Documentation          |         1 | Complex effect concepts and consequences lack contextual guidance.                                                 |
+| **Total** |                                 | **18/40** | **Poor, with a strong shell worth preserving.**                                                                    |
 
 ## Anti-Patterns Verdict
 

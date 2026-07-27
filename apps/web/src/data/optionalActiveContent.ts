@@ -1,8 +1,4 @@
-import type {
-  EnsureQueryDataOptions,
-  QueryClient,
-  QueryKey
-} from '@tanstack/react-query'
+import type { EnsureQueryDataOptions, QueryClient, QueryKey } from '@tanstack/react-query'
 import { ApiError } from '#app/lib/api'
 
 export async function ensureOptionalActiveContent<

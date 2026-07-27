@@ -14,9 +14,11 @@ export const targetingDtoSchema = z.discriminatedUnion('selectionKind', [
     selectionKind: z.literal('CHOSEN_CREATURES'),
     dispositionKind: z.enum(['ANY', 'WILLING', 'HOSTILE']).optional(),
     maxTargets: z.number().int().positive().optional(),
-    maxTargetsScaling: createBreakpointScalingDtoSchema(z.object({
-      amount: z.number().int().positive()
-    })).optional(),
+    maxTargetsScaling: createBreakpointScalingDtoSchema(
+      z.object({
+        amount: z.number().int().positive()
+      })
+    ).optional(),
     excludedCreatureTypeIds: z.array(z.string()).optional()
   }),
   z.object({

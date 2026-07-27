@@ -299,10 +299,14 @@ const toFontWeightScale = <T extends Record<string, number>>(scale: T) =>
     [K in keyof T]: string
   }
 
-const toTypographyScale = <T extends Record<
-  string,
-  { fontSize: number; lineHeight: number; fontWeight: number; letterSpacing: number }
->>(scale: T) =>
+const toTypographyScale = <
+  T extends Record<
+    string,
+    { fontSize: number; lineHeight: number; fontWeight: number; letterSpacing: number }
+  >
+>(
+  scale: T
+) =>
   Object.fromEntries(
     Object.entries(scale).map(([key, token]) => [
       key,

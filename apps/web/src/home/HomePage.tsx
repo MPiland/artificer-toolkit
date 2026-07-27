@@ -37,10 +37,7 @@ export function HomePage() {
 
       <section className={homeGrid} aria-label='Home next steps'>
         {homePanels.map((panel) => (
-          <article
-            className={homePanel}
-            key={panel.title}
-          >
+          <article className={homePanel} key={panel.title}>
             <div className={homePanelCopy}>
               <span className={homeMeta}>{panel.meta}</span>
               <h2 className={homePanelTitle}>{panel.title}</h2>

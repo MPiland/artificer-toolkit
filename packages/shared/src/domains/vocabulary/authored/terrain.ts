@@ -17,21 +17,24 @@ export const terrains: TerrainOption[] = [
     id: '6b781ca1-2080-404d-964c-769f44641b63',
     code: TerrainCode.ARCTIC,
     label: 'Arctic',
-    description: 'Arctic terrain consists of frozen lands characterized by snow, ice, and extreme cold.',
+    description:
+      'Arctic terrain consists of frozen lands characterized by snow, ice, and extreme cold.',
     tooltip: 'Frozen, icy regions.'
   },
   {
     id: '399d5aab-5668-402e-847d-f8cbdc5713d1',
     code: TerrainCode.COAST,
     label: 'Coast',
-    description: 'Coastal terrain lies where land meets the sea, including beaches, cliffs, and shores.',
+    description:
+      'Coastal terrain lies where land meets the sea, including beaches, cliffs, and shores.',
     tooltip: 'Land near the sea.'
   },
   {
     id: 'f15f1f3a-03e0-4c54-af93-e5470f455b0b',
     code: TerrainCode.DESERT,
     label: 'Desert',
-    description: 'Desert terrain consists of arid lands with little rainfall and extreme temperatures.',
+    description:
+      'Desert terrain consists of arid lands with little rainfall and extreme temperatures.',
     tooltip: 'Dry, arid regions.'
   },
   {
@@ -52,7 +55,8 @@ export const terrains: TerrainOption[] = [
     id: '331da97a-36ca-401a-9e98-99d1c119aadb',
     code: TerrainCode.MOUNTAIN,
     label: 'Mountain',
-    description: 'Mountain terrain is defined by high elevation, steep slopes, and rocky environments.',
+    description:
+      'Mountain terrain is defined by high elevation, steep slopes, and rocky environments.',
     tooltip: 'High, rocky regions.'
   },
   {

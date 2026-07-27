@@ -17,20 +17,27 @@ const featGrantTargetDtoSchema = z.union([
     featIds: z.array(z.string())
   })
 ])
-const featGrantProgressionFieldsDtoSchema = createGrantProgressionFieldsDtoSchema(
-  featGrantTargetDtoSchema
-)
+const featGrantProgressionFieldsDtoSchema =
+  createGrantProgressionFieldsDtoSchema(featGrantTargetDtoSchema)
 
-export const featGrantDtoSchema = scalingGrantBaseDtoSchema.extend({
-  grantKind: z.literal('FEAT_GRANT'),
-  charges: chargeDtoSchema.optional()
-}).and(featGrantTargetDtoSchema).and(z.union([
-  z.object({
-    scalingKind: z.literal('NONE')
-  }),
-  z.object({
-    scalingKind: z.literal('PER_LEVEL')
-  }).and(featGrantProgressionFieldsDtoSchema)
-])).superRefine(validateGrantProgressionSelectionFields)
+export const featGrantDtoSchema = scalingGrantBaseDtoSchema
+  .extend({
+    grantKind: z.literal('FEAT_GRANT'),
+    charges: chargeDtoSchema.optional()
+  })
+  .and(featGrantTargetDtoSchema)
+  .and(
+    z.union([
+      z.object({
+        scalingKind: z.literal('NONE')
+      }),
+      z
+        .object({
+          scalingKind: z.literal('PER_LEVEL')
+        })
+        .and(featGrantProgressionFieldsDtoSchema)
+    ])
+  )
+  .superRefine(validateGrantProgressionSelectionFields)
 
 export type FeatGrantDto = z.infer<typeof featGrantDtoSchema>

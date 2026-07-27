@@ -1,8 +1,4 @@
-import {
-  PROFICIENCY_KIND,
-  type ProficiencyKind,
-  type RoundingCode
-} from '#core'
+import { PROFICIENCY_KIND, type ProficiencyKind, type RoundingCode } from '#core'
 import type { GrantBaseAuthored, GrantScalingNone } from '#authored'
 import type { AbilityCode, GRANT_KIND, NodeSubjectCode, SCALING_AMOUNT_KIND } from '#core'
 import type { Selectable } from '#utils'
@@ -13,7 +9,7 @@ export type ProficiencyKindPayload = {
   [PROFICIENCY_KIND.LANGUAGE]: Selectable<{ languageIds: string[] }, ProficiencyScaling>
   [PROFICIENCY_KIND.EQUIPMENT]: Selectable<
     { equipmentIds: string[] },
-    { category?: string, properties?: string[] } & ProficiencyScaling
+    { category?: string; properties?: string[] } & ProficiencyScaling
   >
   [PROFICIENCY_KIND.EQUIPMENT_PROPERTY]: Selectable<
     { properties: string[] },
@@ -21,26 +17,28 @@ export type ProficiencyKindPayload = {
   >
 }
 
-export type ProficiencyScaling
-  = | {
-    level: typeof SCALING_AMOUNT_KIND.HALF
-    rounding: RoundingCode
-  }
+export type ProficiencyScaling =
   | {
-    level: typeof SCALING_AMOUNT_KIND.DOUBLE | typeof SCALING_AMOUNT_KIND.FULL
-  }
+      level: typeof SCALING_AMOUNT_KIND.HALF
+      rounding: RoundingCode
+    }
+  | {
+      level: typeof SCALING_AMOUNT_KIND.DOUBLE | typeof SCALING_AMOUNT_KIND.FULL
+    }
 
 export type ProficiencyGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = {
   [K in ProficiencyKind]: {
     grantKind: typeof GRANT_KIND.PROFICIENCY_GRANT
     proficiencyKind: K
-  } & GrantScalingNone<ProficiencyKindPayload[K]>
-  & GrantBaseAuthored<N>
-  & ({
-    level: typeof SCALING_AMOUNT_KIND.HALF
-    rounding: RoundingCode
-  }
-  | {
-    level: typeof SCALING_AMOUNT_KIND.DOUBLE | typeof SCALING_AMOUNT_KIND.FULL
-  })
+  } & GrantScalingNone<ProficiencyKindPayload[K]> &
+    GrantBaseAuthored<N> &
+    (
+      | {
+          level: typeof SCALING_AMOUNT_KIND.HALF
+          rounding: RoundingCode
+        }
+      | {
+          level: typeof SCALING_AMOUNT_KIND.DOUBLE | typeof SCALING_AMOUNT_KIND.FULL
+        }
+    )
 }[ProficiencyKind]

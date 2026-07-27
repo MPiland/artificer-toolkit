@@ -8,12 +8,8 @@ describe('spell reference data', () => {
       items: [],
       drafts: [],
       meta: {
-        classes: [
-          { id: 'class-wizard', label: 'Wizard', spellIds: ['spell-acid-arrow'] }
-        ],
-        schools: [
-          { id: 'school-evocation', label: 'Evocation', spellIds: ['spell-acid-arrow'] }
-        ]
+        classes: [{ id: 'class-wizard', label: 'Wizard', spellIds: ['spell-acid-arrow'] }],
+        schools: [{ id: 'school-evocation', label: 'Evocation', spellIds: ['spell-acid-arrow'] }]
       }
     } satisfies SpellListResponseDto)
 
@@ -36,6 +32,9 @@ describe('spell reference data', () => {
     } satisfies SpellListResponseDto)
 
     expect(references.classes[0]).toEqual({ value: 'class-wizard', label: 'class-wizard' })
-    expect(references.magicSchools[0]).toEqual({ value: 'school-evocation', label: 'school-evocation' })
+    expect(references.magicSchools[0]).toEqual({
+      value: 'school-evocation',
+      label: 'school-evocation'
+    })
   })
 })

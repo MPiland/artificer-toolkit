@@ -24,10 +24,7 @@ export const authoredContentPermissionsDtoSchema = z.object({
 export function authoredResourceResponseDtoSchema<
   TSchema extends z.ZodTypeAny,
   TExtrasShape extends z.ZodRawShape
->(
-  itemSchema: TSchema,
-  extrasSchema: z.ZodObject<TExtrasShape>
-) {
+>(itemSchema: TSchema, extrasSchema: z.ZodObject<TExtrasShape>) {
   const base = z.object({
     item: itemSchema.nullable(),
     publicId: z.string(),
@@ -38,18 +35,14 @@ export function authoredResourceResponseDtoSchema<
   return base.merge(extrasSchema).nullable()
 }
 
-export function listResponseDtoSchema<TSchema extends z.ZodTypeAny>(
-  itemSchema: TSchema
-) {
+export function listResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
   return z.object({
     items: z.array(itemSchema),
     meta: z.record(z.string(), z.unknown())
   })
 }
 
-export function singleResourceResponseDtoSchema<TSchema extends z.ZodTypeAny>(
-  itemSchema: TSchema
-) {
+export function singleResourceResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
   return itemSchema.nullable()
 }
 

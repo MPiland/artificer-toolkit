@@ -34,7 +34,10 @@ export function toTypedAuthoringGroupFieldName<TValues, TGroupValues>(
   prefix: string | undefined,
   path: readonly (string | number)[]
 ): DeepKeysOfType<TValues, TGroupValues | null | undefined> {
-  return toAuthoringFieldName(prefix, path) as DeepKeysOfType<TValues, TGroupValues | null | undefined>
+  return toAuthoringFieldName(prefix, path) as DeepKeysOfType<
+    TValues,
+    TGroupValues | null | undefined
+  >
 }
 
 export function parseAuthoringFieldName(fieldName: string): readonly (string | number)[] {
@@ -61,7 +64,10 @@ export function areAuthoringFieldPathsRelated(left: string, right: string) {
   )
 }
 
-export function getAuthoringFieldValue(values: Record<string, unknown>, fieldName: string): unknown {
+export function getAuthoringFieldValue(
+  values: Record<string, unknown>,
+  fieldName: string
+): unknown {
   let current: unknown = values
 
   for (const segment of parseAuthoringFieldName(fieldName)) {

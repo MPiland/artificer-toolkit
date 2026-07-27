@@ -200,30 +200,62 @@ export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Properties',
           order: 20,
           nodes: [
-            selectNode('category', ['category'], 'Category', [
-              { value: 'WEAPON', label: 'Weapon' },
-              { value: 'ARMOR', label: 'Armor' },
-              { value: 'ADVENTURING_GEAR', label: 'Adventuring Gear' },
-              { value: 'TOOL', label: 'Tool' },
-              { value: 'SHIELD', label: 'Shield' },
-              { value: 'VARIANT', label: 'Variant' }
-            ], true),
-            selectNode('attributes', ['attributes'], 'Attributes', [
-              { value: 'LIMITED_USE', label: 'Limited Use' },
-              { value: 'STACKABLE', label: 'Stackable' }
-            ], false, 'SELECT_MULTI'),
-            selectNode('rarityId', ['rarityId'], 'Rarity', [
-              { value: 'common', label: 'Common' },
-              { value: 'uncommon', label: 'Uncommon' }
-            ], true),
-            selectNode('parentEquipmentId', ['parentEquipmentId'], 'Parent Equipment', [
-              { value: 'longsword', label: 'Longsword' },
-              { value: 'backpack', label: 'Backpack' }
-            ], true),
-            selectNode('properties', ['properties'], 'Properties', [
-              { value: 'CONTAINER', label: 'Container' },
-              { value: 'MAGIC', label: 'Magic' }
-            ], false, 'SELECT_MULTI')
+            selectNode(
+              'category',
+              ['category'],
+              'Category',
+              [
+                { value: 'WEAPON', label: 'Weapon' },
+                { value: 'ARMOR', label: 'Armor' },
+                { value: 'ADVENTURING_GEAR', label: 'Adventuring Gear' },
+                { value: 'TOOL', label: 'Tool' },
+                { value: 'SHIELD', label: 'Shield' },
+                { value: 'VARIANT', label: 'Variant' }
+              ],
+              true
+            ),
+            selectNode(
+              'attributes',
+              ['attributes'],
+              'Attributes',
+              [
+                { value: 'LIMITED_USE', label: 'Limited Use' },
+                { value: 'STACKABLE', label: 'Stackable' }
+              ],
+              false,
+              'SELECT_MULTI'
+            ),
+            selectNode(
+              'rarityId',
+              ['rarityId'],
+              'Rarity',
+              [
+                { value: 'common', label: 'Common' },
+                { value: 'uncommon', label: 'Uncommon' }
+              ],
+              true
+            ),
+            selectNode(
+              'parentEquipmentId',
+              ['parentEquipmentId'],
+              'Parent Equipment',
+              [
+                { value: 'longsword', label: 'Longsword' },
+                { value: 'backpack', label: 'Backpack' }
+              ],
+              true
+            ),
+            selectNode(
+              'properties',
+              ['properties'],
+              'Properties',
+              [
+                { value: 'CONTAINER', label: 'Container' },
+                { value: 'MAGIC', label: 'Magic' }
+              ],
+              false,
+              'SELECT_MULTI'
+            )
           ]
         }
       ]
@@ -238,14 +270,26 @@ export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Cost and Weight',
           order: 30,
           nodes: [
-            selectNode('currencyId', ['cost', 'currencyId'], 'Currency', [
-              { value: 'gp', label: 'Gold' },
-              { value: 'sp', label: 'Silver' }
-            ], false),
-            selectNode('unit', ['weight', 'unit'], 'Unit', [
-              { value: 'POUNDS', label: 'Pounds' },
-              { value: 'GALLONS', label: 'Gallons' }
-            ], true)
+            selectNode(
+              'currencyId',
+              ['cost', 'currencyId'],
+              'Currency',
+              [
+                { value: 'gp', label: 'Gold' },
+                { value: 'sp', label: 'Silver' }
+              ],
+              false
+            ),
+            selectNode(
+              'unit',
+              ['weight', 'unit'],
+              'Unit',
+              [
+                { value: 'POUNDS', label: 'Pounds' },
+                { value: 'GALLONS', label: 'Gallons' }
+              ],
+              true
+            )
           ]
         }
       ]
@@ -260,10 +304,16 @@ export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
           label: 'Contents',
           order: 50,
           nodes: [
-            selectNode('equipmentId', ['contains', 'equipmentId'], 'Equipment', [
-              { value: 'torch', label: 'Torch' },
-              { value: 'rations', label: 'Rations' }
-            ], true)
+            selectNode(
+              'equipmentId',
+              ['contains', 'equipmentId'],
+              'Equipment',
+              [
+                { value: 'torch', label: 'Torch' },
+                { value: 'rations', label: 'Rations' }
+              ],
+              true
+            )
           ]
         }
       ]

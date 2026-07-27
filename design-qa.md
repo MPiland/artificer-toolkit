@@ -21,14 +21,14 @@ Shared non-character authoring workspace for Backgrounds, Classes, Creatures, Eq
 
 ## Impeccable audit
 
-| Dimension | Score | Evidence |
-| --- | ---: | --- |
-| Accessibility | 4/4 | Semantic navigation and progress landmarks, explicit edit/remove labels, focus restoration after cancellation, keyboard-managed Mantine drawers, and 44 px staged actions. |
-| Performance | 3/4 | One shared renderer and form instance, staged subtree snapshots only while editing, no stacked overlays, and no layout resizing when drawers open. No profiler trace was required for this acceptance pass. |
-| Responsive design | 4/4 | Desktop, tablet portrait, and mobile interaction states were rendered and inspected; rails and leaf editors adapt structurally. |
-| Theming | 4/4 | Forge semantic tokens drive surfaces, borders, actions, focus, and elevation; the shadow source guard passes. |
-| Anti-patterns | 4/4 | Impeccable detector returned no findings across the shared form, renderer, and app-shell surfaces. |
-| **Total** | **19/20** | **Excellent** |
+| Dimension         |     Score | Evidence                                                                                                                                                                                                    |
+| ----------------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accessibility     |       4/4 | Semantic navigation and progress landmarks, explicit edit/remove labels, focus restoration after cancellation, keyboard-managed Mantine drawers, and 44 px staged actions.                                  |
+| Performance       |       3/4 | One shared renderer and form instance, staged subtree snapshots only while editing, no stacked overlays, and no layout resizing when drawers open. No profiler trace was required for this acceptance pass. |
+| Responsive design |       4/4 | Desktop, tablet portrait, and mobile interaction states were rendered and inspected; rails and leaf editors adapt structurally.                                                                             |
+| Theming           |       4/4 | Forge semantic tokens drive surfaces, borders, actions, focus, and elevation; the shadow source guard passes.                                                                                               |
+| Anti-patterns     |       4/4 | Impeccable detector returned no findings across the shared form, renderer, and app-shell surfaces.                                                                                                          |
+| **Total**         | **19/20** | **Excellent**                                                                                                                                                                                               |
 
 Anti-pattern verdict: passed. The implementation uses the existing Forge system, familiar form controls, restrained elevation, and meaningful overlays without decorative AI-pattern scaffolding.
 

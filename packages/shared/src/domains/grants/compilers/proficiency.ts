@@ -1,9 +1,4 @@
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 import type {
   ProficiencyGrantAuthored,
   ProficiencyScaling,
@@ -18,19 +13,15 @@ import {
   SCALING_AMOUNT_KIND,
   type ProficiencyKind
 } from '#core'
-import type {
-  CompiledStaticGrant,
-  CompiledGrantTarget
-} from '#compilers'
+import type { CompiledStaticGrant, CompiledGrantTarget } from '#compilers'
 
-export type CompiledProficiencyGrant<
-  T extends ProficiencyKind = ProficiencyKind
-> = CompiledStaticGrant<
-  typeof GRANT_KIND.PROFICIENCY_GRANT,
-  CompiledGrantTarget<ProficiencyKindPayload[T]>
-> & {
-  proficiencyKind: T
-} & ProficiencyScaling
+export type CompiledProficiencyGrant<T extends ProficiencyKind = ProficiencyKind> =
+  CompiledStaticGrant<
+    typeof GRANT_KIND.PROFICIENCY_GRANT,
+    CompiledGrantTarget<ProficiencyKindPayload[T]>
+  > & {
+    proficiencyKind: T
+  } & ProficiencyScaling
 
 function compileProficiencyLevel(authored: ProficiencyGrantAuthored) {
   switch (authored.level) {

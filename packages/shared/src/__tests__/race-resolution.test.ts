@@ -27,10 +27,7 @@ describe('resolveRaceAuthored', () => {
       systemId: 'system-1'
     }
 
-    const resolved = resolveRaceAuthored(
-      subrace,
-      (id) => id === parent.id ? parent : null
-    )
+    const resolved = resolveRaceAuthored(subrace, (id) => (id === parent.id ? parent : null))
 
     expect(resolved.status).toBe('DRAFT')
     expect(resolved.size).toBe(SIZE_CODE.MEDIUM)

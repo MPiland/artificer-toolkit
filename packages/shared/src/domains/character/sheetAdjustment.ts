@@ -58,13 +58,9 @@ export type CharacterMovementDisplayPreference =
   | { mode: 'AUTO' }
   | { mode: 'EXPLICIT'; speedId: string }
 
-export type CharacterSheetAdjustmentSourceCategory = 'MAGIC' | 'MANUAL' | 'MISCELLANEOUS' | 'OTHER'
-
 export interface CharacterSheetAdjustmentMetadata {
   id: string
   characterId: string
-  sourceCategory: CharacterSheetAdjustmentSourceCategory
-  sourceLabel?: string
   sourceNote?: string
   createdBy: string
   updatedBy: string
@@ -148,13 +144,18 @@ type ItemAdjustmentValue =
   | {
       family: 'ITEM'
       itemInstanceId: string
-      field: 'ATTACK_BONUS' | 'ATTACK_OVERRIDE' | 'DAMAGE_BONUS' | 'WEIGHT_OVERRIDE'
+      field:
+        | 'ATTACK_BONUS'
+        | 'ATTACK_OVERRIDE'
+        | 'COST_OVERRIDE'
+        | 'DAMAGE_BONUS'
+        | 'WEIGHT_OVERRIDE'
       value: number
     }
   | {
       family: 'ITEM'
       itemInstanceId: string
-      field: 'ADAMANTINE' | 'DUAL_WIELD' | 'SILVERED'
+      field: 'ADAMANTINE' | 'DISPLAY_AS_ATTACK' | 'DUAL_WIELD' | 'SILVERED'
       value: true
     }
 
@@ -384,8 +385,6 @@ export function toCharacterMechanicalAdjustment(
 export type CharacterSheetAdjustmentWrite = CharacterSheetAdjustmentValue & {
   id: string
   characterId: string
-  sourceCategory?: CharacterSheetAdjustmentSourceCategory
-  sourceLabel?: string
   sourceNote?: string
   actorId: string
 }

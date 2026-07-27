@@ -14,7 +14,11 @@ import {
 } from '../marketing.css'
 import { MarketingHashLink, MarketingNavLink, MarketingRouteLink } from './MarketingLinks'
 
-export function MarketingHeader({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
+export function MarketingHeader({
+  publicSignUpEnabled = false
+}: {
+  publicSignUpEnabled?: boolean
+}) {
   const navigation = getMarketingNavigation(publicSignUpEnabled)
 
   return (

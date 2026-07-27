@@ -37,11 +37,11 @@ type AbilityIntentCache = NonNullable<CharacterBuilderIntentCacheDto['abilities'
 export type CharacterAbilityGenerationMethod = CharacterFormValues['intent']['abilities']['method']
 type StandardArrayAbilities = Extract<
   CharacterFormValues['intent']['abilities'],
-  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY}
+  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY }
 >
 type PointBuyAbilities = Extract<
   CharacterFormValues['intent']['abilities'],
-  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY}
+  { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY }
 >
 type AbilityAssignment = (StandardArrayAbilities | PointBuyAbilities)['assignments'][number]
 type AbilityAssignmentCode = AbilityCode
@@ -53,27 +53,59 @@ export type CharacterAbilityDraftSlot = {
 }
 type CharacterClassRow = CharacterFormValues['intent']['classes'][number]
 type CharacterFeatureAcquisition = CharacterFormValues['intent']['featureAcquisitions'][number]
-export type CharacterBuilderStepId
-  = | 'BASICS'
-    | 'RACE'
-    | 'CLASSES'
-    | 'BACKGROUND'
-    | 'DETAILS'
-    | 'NOTES'
-    | 'ABILITIES'
-    | 'EQUIPMENT'
-    | 'REVIEW'
+export type CharacterBuilderStepId =
+  | 'BASICS'
+  | 'RACE'
+  | 'CLASSES'
+  | 'BACKGROUND'
+  | 'DETAILS'
+  | 'NOTES'
+  | 'ABILITIES'
+  | 'EQUIPMENT'
+  | 'REVIEW'
 
-export const characterBuilderSteps: { id: CharacterBuilderStepId, label: string, description: string }[] = [
-  { id: 'BASICS', label: 'Basics', description: 'Name the character and choose how advancement is tracked.' },
+export const characterBuilderSteps: {
+  id: CharacterBuilderStepId
+  label: string
+  description: string
+}[] = [
+  {
+    id: 'BASICS',
+    label: 'Basics',
+    description: 'Name the character and choose how advancement is tracked.'
+  },
   { id: 'RACE', label: 'Race', description: 'Choose your race and any race-specific options.' },
-  { id: 'CLASSES', label: 'Classes', description: 'Choose class levels and class-specific options.' },
-  { id: 'BACKGROUND', label: 'Background', description: 'Choose a background and any background options.' },
-  { id: 'ABILITIES', label: 'Abilities & HP', description: 'Assign abilities and starting hit point intent.' },
-  { id: 'EQUIPMENT', label: 'Equipment & Currency', description: 'Resolve starting equipment and manual starting inventory.' },
-  { id: 'DETAILS', label: 'Personality & Appearance', description: 'Set alignment, faith, appearance, and other profile details.' },
+  {
+    id: 'CLASSES',
+    label: 'Classes',
+    description: 'Choose class levels and class-specific options.'
+  },
+  {
+    id: 'BACKGROUND',
+    label: 'Background',
+    description: 'Choose a background and any background options.'
+  },
+  {
+    id: 'ABILITIES',
+    label: 'Abilities & HP',
+    description: 'Assign abilities and starting hit point intent.'
+  },
+  {
+    id: 'EQUIPMENT',
+    label: 'Equipment & Currency',
+    description: 'Resolve starting equipment and manual starting inventory.'
+  },
+  {
+    id: 'DETAILS',
+    label: 'Personality & Appearance',
+    description: 'Set alignment, faith, appearance, and other profile details.'
+  },
   { id: 'NOTES', label: 'Notes', description: 'Track backstory, relationships, and table notes.' },
-  { id: 'REVIEW', label: 'Review', description: 'Check concrete blockers before activating the character.' }
+  {
+    id: 'REVIEW',
+    label: 'Review',
+    description: 'Check concrete blockers before activating the character.'
+  }
 ]
 
 type CharacterBuilderIssue = CharacterBuilderPayloadDto['resolution']['outstandingChoices'][number]
@@ -88,9 +120,11 @@ export function getCharacterBuilderIssueStepId(
 export function getCharacterBuilderValidationStepId(
   validation: CharacterBuilderValidation
 ): CharacterBuilderStepId {
-  return validationStepByCode[validation.code]
-    ?? getCharacterBuilderSourceStepId(validation.source)
-    ?? 'REVIEW'
+  return (
+    validationStepByCode[validation.code] ??
+    getCharacterBuilderSourceStepId(validation.source) ??
+    'REVIEW'
+  )
 }
 
 const issueStepByCode: Partial<Record<string, CharacterBuilderStepId>> = {
@@ -157,7 +191,7 @@ function getCharacterBuilderSourceStepId(
 const abilityOptionDefinitions = ABILITY_OPTIONS.map((option) => ({
   value: option.code,
   label: option.label
-})) satisfies { value: AbilityAssignmentCode, label: string }[]
+})) satisfies { value: AbilityAssignmentCode; label: string }[]
 
 export const abilityOptions: SelectOption[] = abilityOptionDefinitions
 
@@ -176,20 +210,30 @@ export const abilityMethodOptions: SelectOption[] = CHARACTER_ABILITY_GENERATION
   (option) => ({ value: option.code, label: option.label })
 )
 
-const abilityMethodLabelByValue = new Map(abilityMethodOptions.map((option) => [option.value, option.label]))
-
-export const hitpointMethodOptions: SelectOption[] = HITPOINT_CALC_METHOD_OPTIONS.map(
-  (option) => ({ value: option.code, label: option.label })
+const abilityMethodLabelByValue = new Map(
+  abilityMethodOptions.map((option) => [option.value, option.label])
 )
 
-export const standardArrayOptions: SelectOption[] = STANDARD_ARRAY_SCORE_OPTIONS
-  .map((option): SelectOption => ({ value: option.code, label: option.label }))
-export const pointBuyOptions: SelectOption[] = POINT_BUY_SCORE_OPTIONS
-  .map((option): SelectOption => ({ value: option.code, label: option.label }))
+export const hitpointMethodOptions: SelectOption[] = HITPOINT_CALC_METHOD_OPTIONS.map((option) => ({
+  value: option.code,
+  label: option.label
+}))
 
-const standardArrayOptionValues = new Set<string>(STANDARD_ARRAY_SCORE_OPTIONS.map((option) => option.code))
+export const standardArrayOptions: SelectOption[] = STANDARD_ARRAY_SCORE_OPTIONS.map(
+  (option): SelectOption => ({ value: option.code, label: option.label })
+)
+export const pointBuyOptions: SelectOption[] = POINT_BUY_SCORE_OPTIONS.map(
+  (option): SelectOption => ({ value: option.code, label: option.label })
+)
+
+const standardArrayOptionValues = new Set<string>(
+  STANDARD_ARRAY_SCORE_OPTIONS.map((option) => option.code)
+)
 const pointBuyOptionValues = new Set<string>(POINT_BUY_SCORE_OPTIONS.map((option) => option.code))
-const allAbilityOptionValues = new Set<string>([...standardArrayOptionValues, ...pointBuyOptionValues])
+const allAbilityOptionValues = new Set<string>([
+  ...standardArrayOptionValues,
+  ...pointBuyOptionValues
+])
 
 export { POINT_BUY_TOTAL_POINTS }
 
@@ -209,11 +253,15 @@ export function getAllChosenGrantChoices(
   ]
 }
 
-export function isAbilityAssignmentOption(value: string): value is CharacterAbilityFormAssignments[number]['option'] {
+export function isAbilityAssignmentOption(
+  value: string
+): value is CharacterAbilityFormAssignments[number]['option'] {
   return allAbilityOptionValues.has(value)
 }
 
-export function createFallbackCharacterFormValues(systemId = 'pending-system'): CharacterFormValues {
+export function createFallbackCharacterFormValues(
+  systemId = 'pending-system'
+): CharacterFormValues {
   return {
     id: 'pending-character',
     label: '',
@@ -287,9 +335,7 @@ export function normalizeCharacterForCommit(character: CharacterFormValues): Cha
   })
 }
 
-export function getCharacterBuilderResolutionFingerprint(
-  character: CharacterFormValues
-): string {
+export function getCharacterBuilderResolutionFingerprint(character: CharacterFormValues): string {
   return JSON.stringify({
     immediate: getCharacterBuilderImmediateResolutionFingerprint(character),
     deferred: getCharacterBuilderDeferredResolutionFingerprint(character)
@@ -300,12 +346,13 @@ export function getCharacterBuilderImmediateResolutionFingerprint(
   character: CharacterFormValues
 ): string {
   const { abilities, hitpoints, ...immediateIntent } = character.intent
-  const immediateAbilities = abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-    ? {
-        method: abilities.method,
-        assignedAbilities: abilities.state.assignments.map((assignment) => assignment.ability)
-      }
-    : abilities
+  const immediateAbilities =
+    abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+      ? {
+          method: abilities.method,
+          assignedAbilities: abilities.state.assignments.map((assignment) => assignment.ability)
+        }
+      : abilities
 
   return JSON.stringify({
     hasCurrency: character.state.currency.length > 0,
@@ -344,9 +391,7 @@ export function buildCharacterDraftSaveInput(
     character: normalizeCharacterForDraft(character),
     builderIntent: normalizeBuilderIntent(character),
     mode,
-    baseActiveUpdatedAt: mode === 'edit'
-      ? options.baseActiveUpdatedAt ?? null
-      : null
+    baseActiveUpdatedAt: mode === 'edit' ? (options.baseActiveUpdatedAt ?? null) : null
   }
 }
 
@@ -362,7 +407,10 @@ export function getInactiveAbilityIntentMethodLabels(character: CharacterFormVal
 function normalizeBuilderIntent(character: CharacterFormValues): CharacterBuilderIntentCacheDto {
   return {
     ...character.builderIntent,
-    abilities: mergeAbilityIntentCache(character.builderIntent?.abilities, character.intent.abilities)
+    abilities: mergeAbilityIntentCache(
+      character.builderIntent?.abilities,
+      character.intent.abilities
+    )
   }
 }
 
@@ -388,7 +436,9 @@ export function getAbilityDraftSlots(
   const cachedDraft = cache?.drafts?.[method]
   if (cachedDraft) return toSixAbilitySlots(cachedDraft.slots)
 
-  const cachedIntent = cache?.methods[method] ?? (abilities.method === method ? abilities : createEmptyAbilityIntent(method))
+  const cachedIntent =
+    cache?.methods[method] ??
+    (abilities.method === method ? abilities : createEmptyAbilityIntent(method))
   if (cachedIntent.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return toSixAbilitySlots(cachedIntent.state.assignments)
   }
@@ -412,12 +462,15 @@ export function setAbilityDraftSlots(
     const abilities: CharacterFormValues['intent']['abilities'] = {
       method,
       state: {
-        assignments: normalizedSlots.flatMap((slot) => slot.ability !== undefined && slot.score !== undefined
-          ? [{ ability: slot.ability, score: slot.score }]
-          : []),
-        rollGroups: activeCache.methods[method]?.method === method
-          ? activeCache.methods[method].state.rollGroups
-          : []
+        assignments: normalizedSlots.flatMap((slot) =>
+          slot.ability !== undefined && slot.score !== undefined
+            ? [{ ability: slot.ability, score: slot.score }]
+            : []
+        ),
+        rollGroups:
+          activeCache.methods[method]?.method === method
+            ? activeCache.methods[method].state.rollGroups
+            : []
       }
     }
 
@@ -428,7 +481,10 @@ export function setAbilityDraftSlots(
         activeMethod: method,
         drafts: {
           ...activeCache.drafts,
-          [method]: { method, slots: normalizedSlots.map(({ ability, score }) => ({ ability, score })) }
+          [method]: {
+            method,
+            slots: normalizedSlots.map(({ ability, score }) => ({ ability, score }))
+          }
         },
         methods: { ...activeCache.methods, [method]: abilities }
       }
@@ -438,9 +494,18 @@ export function setAbilityDraftSlots(
   if (method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
     const abilities: CharacterFormValues['intent']['abilities'] = {
       method,
-      assignments: normalizedSlots.flatMap((slot) => slot.ability !== undefined && slot.option !== undefined && pointBuyOptionValues.has(slot.option)
-        ? [{ ability: slot.ability, option: slot.option as PointBuyAbilities['assignments'][number]['option'] }]
-        : [])
+      assignments: normalizedSlots.flatMap((slot) =>
+        slot.ability !== undefined &&
+        slot.option !== undefined &&
+        pointBuyOptionValues.has(slot.option)
+          ? [
+              {
+                ability: slot.ability,
+                option: slot.option as PointBuyAbilities['assignments'][number]['option']
+              }
+            ]
+          : []
+      )
     }
 
     return {
@@ -450,12 +515,16 @@ export function setAbilityDraftSlots(
         activeMethod: method,
         drafts: {
           ...activeCache.drafts,
-          [method]: { method, slots: normalizedSlots.map(({ ability, option }) => ({
-            ability,
-            option: option && pointBuyOptionValues.has(option)
-              ? option as PointBuyAbilities['assignments'][number]['option']
-              : undefined
-          })) }
+          [method]: {
+            method,
+            slots: normalizedSlots.map(({ ability, option }) => ({
+              ability,
+              option:
+                option && pointBuyOptionValues.has(option)
+                  ? (option as PointBuyAbilities['assignments'][number]['option'])
+                  : undefined
+            }))
+          }
         },
         methods: { ...activeCache.methods, [method]: abilities }
       }
@@ -464,9 +533,18 @@ export function setAbilityDraftSlots(
 
   const abilities: CharacterFormValues['intent']['abilities'] = {
     method,
-    assignments: normalizedSlots.flatMap((slot) => slot.ability !== undefined && slot.option !== undefined && standardArrayOptionValues.has(slot.option)
-      ? [{ ability: slot.ability, option: slot.option as StandardArrayAbilities['assignments'][number]['option'] }]
-      : [])
+    assignments: normalizedSlots.flatMap((slot) =>
+      slot.ability !== undefined &&
+      slot.option !== undefined &&
+      standardArrayOptionValues.has(slot.option)
+        ? [
+            {
+              ability: slot.ability,
+              option: slot.option as StandardArrayAbilities['assignments'][number]['option']
+            }
+          ]
+        : []
+    )
   }
 
   return {
@@ -476,12 +554,16 @@ export function setAbilityDraftSlots(
       activeMethod: method,
       drafts: {
         ...activeCache.drafts,
-        [method]: { method, slots: normalizedSlots.map(({ ability, option }) => ({
-          ability,
-          option: option && standardArrayOptionValues.has(option)
-            ? option as StandardArrayAbilities['assignments'][number]['option']
-            : undefined
-        })) }
+        [method]: {
+          method,
+          slots: normalizedSlots.map(({ ability, option }) => ({
+            ability,
+            option:
+              option && standardArrayOptionValues.has(option)
+                ? (option as StandardArrayAbilities['assignments'][number]['option'])
+                : undefined
+          }))
+        }
       },
       methods: { ...activeCache.methods, [method]: abilities }
     }
@@ -531,7 +613,9 @@ function toAbilityFormValues(
   return abilities
 }
 
-function createEmptyAbilityIntent(method: CharacterAbilityGenerationMethod): CharacterFormValues['intent']['abilities'] {
+function createEmptyAbilityIntent(
+  method: CharacterAbilityGenerationMethod
+): CharacterFormValues['intent']['abilities'] {
   if (method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return {
       method,
@@ -620,15 +704,16 @@ export function getAbilityGenerationMethod(
   value: string
 ): CharacterAbilityGenerationMethod | undefined {
   if (
-    value === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
-    || value === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
-    || value === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-  ) return value
+    value === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY ||
+    value === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY ||
+    value === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+  )
+    return value
 
   return undefined
 }
 
-export function selectOptions(items: { id: string, label: string }[]): SelectOption[] {
+export function selectOptions(items: { id: string; label: string }[]): SelectOption[] {
   return items
     .map((item) => ({
       value: item.id,
@@ -747,9 +832,18 @@ export function clearClassOwnedChoices(
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isClassOwnedFeatureSource(acquisition.source, previousRow)
       ),
-      chosenGrantSelections: filterOptionalIntentRows(character.intent.chosenGrantSelections, (selection) => !isClassOwnedSource(selection.source, previousRow)),
-      spellSelections: filterOptionalIntentRows(character.intent.spellSelections, (selection) => !isClassOwnedSource(selection.source, previousRow)),
-      resourceGrants: filterOptionalIntentRows(character.intent.resourceGrants, (grant) => !isClassOwnedSource(grant.source, previousRow))
+      chosenGrantSelections: filterOptionalIntentRows(
+        character.intent.chosenGrantSelections,
+        (selection) => !isClassOwnedSource(selection.source, previousRow)
+      ),
+      spellSelections: filterOptionalIntentRows(
+        character.intent.spellSelections,
+        (selection) => !isClassOwnedSource(selection.source, previousRow)
+      ),
+      resourceGrants: filterOptionalIntentRows(
+        character.intent.resourceGrants,
+        (grant) => !isClassOwnedSource(grant.source, previousRow)
+      )
     }
   }
 }
@@ -765,9 +859,18 @@ export function clearSubclassOwnedChoices(
       featureAcquisitions: character.intent.featureAcquisitions.filter(
         (acquisition) => !isSubclassOwnedSource(acquisition.source, previousRow)
       ),
-      chosenGrantSelections: filterOptionalIntentRows(character.intent.chosenGrantSelections, (selection) => !isSubclassOwnedSource(selection.source, previousRow)),
-      spellSelections: filterOptionalIntentRows(character.intent.spellSelections, (selection) => !isSubclassOwnedSource(selection.source, previousRow)),
-      resourceGrants: filterOptionalIntentRows(character.intent.resourceGrants, (grant) => !isSubclassOwnedSource(grant.source, previousRow))
+      chosenGrantSelections: filterOptionalIntentRows(
+        character.intent.chosenGrantSelections,
+        (selection) => !isSubclassOwnedSource(selection.source, previousRow)
+      ),
+      spellSelections: filterOptionalIntentRows(
+        character.intent.spellSelections,
+        (selection) => !isSubclassOwnedSource(selection.source, previousRow)
+      ),
+      resourceGrants: filterOptionalIntentRows(
+        character.intent.resourceGrants,
+        (grant) => !isSubclassOwnedSource(grant.source, previousRow)
+      )
     }
   }
 }
@@ -789,9 +892,10 @@ export function createStartingEquipmentDecision(
   source: 'CLASS' | 'BACKGROUND'
 ): CharacterStartingEquipmentDecision {
   return {
-    source: source === 'CLASS'
-      ? CharacterStartingEquipmentSource.CLASS
-      : CharacterStartingEquipmentSource.BACKGROUND,
+    source:
+      source === 'CLASS'
+        ? CharacterStartingEquipmentSource.CLASS
+        : CharacterStartingEquipmentSource.BACKGROUND,
     tookGold: false,
     groups: []
   }
@@ -800,9 +904,7 @@ export function createStartingEquipmentDecision(
 function omitEmptyStartingEquipment(
   startingEquipment: CharacterFormValues['intent']['startingEquipment']
 ): CharacterFormValues['intent']['startingEquipment'] {
-  return startingEquipment?.class || startingEquipment?.background
-    ? startingEquipment
-    : undefined
+  return startingEquipment?.class || startingEquipment?.background ? startingEquipment : undefined
 }
 
 function isRaceOwnedFeatureSource(source: CharacterFeatureAcquisition['source']): boolean {
@@ -824,10 +926,7 @@ function isClassOwnedFeatureSource(
   return isClassOwnedSource(source, previousRow)
 }
 
-function isClassOwnedSource(
-  source: unknown,
-  previousRow: CharacterClassRow
-): boolean {
+function isClassOwnedSource(source: unknown, previousRow: CharacterClassRow): boolean {
   const kind = getSourceKind(source)
   if (kind === 'CLASS') return getSourceString(source, 'classId') === previousRow.classId
   if (kind === 'SUBCLASS') return isSubclassOwnedSource(source, previousRow)
@@ -835,10 +934,7 @@ function isClassOwnedSource(
   return false
 }
 
-function isSubclassOwnedSource(
-  source: unknown,
-  previousRow: CharacterClassRow
-): boolean {
+function isSubclassOwnedSource(source: unknown, previousRow: CharacterClassRow): boolean {
   if (!previousRow.subclassId) return false
   if (getSourceKind(source) !== 'SUBCLASS') return false
 
@@ -872,25 +968,35 @@ export function baseRaceOptions(references: CharacterBuilderReferencesDto): Sele
   return selectOptions(references.races.filter((race) => race.category !== 'SUBRACE'))
 }
 
-export function subraceOptions(references: CharacterBuilderReferencesDto, raceId: string | undefined): SelectOption[] {
+export function subraceOptions(
+  references: CharacterBuilderReferencesDto,
+  raceId: string | undefined
+): SelectOption[] {
   if (!raceId) return []
   return selectOptions(references.races.filter((race) => race.parentRaceId === raceId))
 }
 
 export function baseClassOptions(references: CharacterBuilderReferencesDto): SelectOption[] {
-  return selectOptions(references.classes.filter((classRecord) => classRecord.category !== 'SUBCLASS'))
+  return selectOptions(
+    references.classes.filter((classRecord) => classRecord.category !== 'SUBCLASS')
+  )
 }
 
-export function subclassOptions(references: CharacterBuilderReferencesDto, classId: string | undefined): SelectOption[] {
+export function subclassOptions(
+  references: CharacterBuilderReferencesDto,
+  classId: string | undefined
+): SelectOption[] {
   if (!classId) return []
-  return selectOptions(references.classes.filter((classRecord) => classRecord.parentClassId === classId))
+  return selectOptions(
+    references.classes.filter((classRecord) => classRecord.parentClassId === classId)
+  )
 }
 
 export function selectedRaceAncestryOptions(
   references: CharacterBuilderReferencesDto,
   raceId: string | undefined,
   subraceId: string | undefined
-): { ancestryId: string, options: SelectOption[], label: string } | null {
+): { ancestryId: string; options: SelectOption[]; label: string } | null {
   const selectedRace = references.races.find((race) => race.id === (subraceId || raceId))
   if (!selectedRace?.ancestry) return null
 
@@ -906,7 +1012,9 @@ export function classSpecializationOptions(
   subclassId: string | undefined
 ): SelectOption[] {
   if (!subclassId) return []
-  return selectOptions(references.classes.find((classRecord) => classRecord.id === subclassId)?.specializations ?? [])
+  return selectOptions(
+    references.classes.find((classRecord) => classRecord.id === subclassId)?.specializations ?? []
+  )
 }
 
 export function totalClassLevel(character: CharacterFormValues): number {

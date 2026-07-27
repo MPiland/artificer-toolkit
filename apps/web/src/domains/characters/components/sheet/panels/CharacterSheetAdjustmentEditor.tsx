@@ -1,6 +1,8 @@
-import { Button, NumberInput, Select, TextInput } from '@mantine/core'
+import { Button, NumberInput, TextInput } from '@mantine/core'
 import { useEffect, useRef, useState } from 'react'
 
+import { AppSelect } from '#ui/primitives/Select'
+import * as inputStyles from '#ui/primitives/Select/Select.css'
 import type {
   CharacterSheetEditorCommit,
   CharacterSheetNumberEditorDto,
@@ -9,12 +11,13 @@ import type {
 import { cleanSheetEditorText } from './characterSheetInspector.model'
 import * as styles from './characterSheetInspector.css'
 
-const SOURCE_CATEGORY_OPTIONS = [
-  { value: 'MANUAL', label: 'Manual' },
-  { value: 'MAGIC', label: 'Magic' },
-  { value: 'MISCELLANEOUS', label: 'Miscellaneous' },
-  { value: 'OTHER', label: 'Other' }
-]
+const fieldClassNames = {
+  root: inputStyles.root,
+  label: inputStyles.label,
+  description: inputStyles.description,
+  required: inputStyles.required,
+  input: inputStyles.input
+}
 
 export function CharacterSheetAdjustmentEditor({
   editor,
@@ -28,31 +31,19 @@ export function CharacterSheetAdjustmentEditor({
   onCommit: (commit: CharacterSheetEditorCommit) => Promise<boolean>
 }) {
   const [value, setValue] = useState<string | number>(editor.value ?? '')
-  const [sourceCategory, setSourceCategory] = useState(editor.sourceCategory)
-  const [sourceLabel, setSourceLabel] = useState(editor.sourceLabel ?? '')
   const [sourceNote, setSourceNote] = useState(editor.sourceNote ?? '')
   const [error, setError] = useState<string | undefined>(undefined)
   const lastSubmitted = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     setValue(editor.value ?? '')
-    setSourceCategory(editor.sourceCategory)
-    setSourceLabel(editor.sourceLabel ?? '')
     setSourceNote(editor.sourceNote ?? '')
     setError(undefined)
     lastSubmitted.current = undefined
-  }, [
-    editor.adjustmentId,
-    editor.sourceCategory,
-    editor.sourceLabel,
-    editor.sourceNote,
-    editor.value
-  ])
+  }, [editor.adjustmentId, editor.sourceNote, editor.value])
 
   function restoreServerValue() {
     setValue(editor.value ?? '')
-    setSourceCategory(editor.sourceCategory)
-    setSourceLabel(editor.sourceLabel ?? '')
     setSourceNote(editor.sourceNote ?? '')
   }
 
@@ -68,29 +59,19 @@ export function CharacterSheetAdjustmentEditor({
     }
   }
 
-  async function commit(
-    nextValue: string | number = value,
-    nextSourceCategory = sourceCategory
-  ) {
+  async function commit(nextValue: string | number = value) {
     if (nextValue === '') {
       await clear()
       return
     }
-    const parsedValue =
-      editor.kind === 'NUMBER' ? Number(nextValue) : String(nextValue)
+    const parsedValue = editor.kind === 'NUMBER' ? Number(nextValue) : String(nextValue)
     if (editor.kind === 'NUMBER' && !Number.isFinite(parsedValue)) {
       setError('Enter a valid number.')
       return
     }
     const payload: CharacterSheetEditorCommit = {
       value: parsedValue,
-      sourceCategory: nextSourceCategory,
-      ...(cleanSheetEditorText(sourceLabel)
-        ? { sourceLabel: cleanSheetEditorText(sourceLabel) }
-        : {}),
-      ...(cleanSheetEditorText(sourceNote)
-        ? { sourceNote: cleanSheetEditorText(sourceNote) }
-        : {})
+      ...(cleanSheetEditorText(sourceNote) ? { sourceNote: cleanSheetEditorText(sourceNote) } : {})
     }
     const signature = JSON.stringify(payload)
     if (signature === lastSubmitted.current) return
@@ -107,84 +88,54 @@ export function CharacterSheetAdjustmentEditor({
   return (
     <div className={styles.editor}>
       <div className={styles.editorPrimary}>
-        {editor.kind === 'NUMBER'
-          ? (
-              <NumberInput
-                allowDecimal={!editor.validation.integer}
-                disabled={pending}
-                error={error}
-                label={editor.label}
-                max={editor.validation.maximum}
-                min={editor.validation.minimum}
-                value={value}
-                onBlur={() => void commit()}
-                onChange={setValue}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') event.currentTarget.blur()
-                }}
-              />
-            )
-          : (
-              <Select
-                clearable
-                data={editor.options}
-                disabled={pending}
-                error={error}
-                label={editor.label}
-                value={value === '' ? null : String(value)}
-                onChange={(nextValue) => {
-                  setValue(nextValue ?? '')
-                  if (nextValue == null) void clear()
-                  else void commit(nextValue)
-                }}
-              />
-            )}
-        {editor.adjustmentId
-          ? (
-              <Button
-                color='red'
-                disabled={pending}
-                size='xs'
-                variant='subtle'
-                onClick={() => void clear()}
-              >
-                Clear
-              </Button>
-            )
-          : null}
-      </div>
-      <div className={styles.editorMetadata}>
-        <Select
-          data={SOURCE_CATEGORY_OPTIONS}
-          disabled={pending}
-          label='Source category'
-          value={sourceCategory}
-          onChange={(nextValue) => {
-            if (!nextValue) return
-            setSourceCategory(nextValue as typeof sourceCategory)
-            if (value !== '') {
-              void commit(value, nextValue as typeof sourceCategory)
-            }
-          }}
-        />
-        <TextInput
-          disabled={pending}
-          label='Source label'
-          maxLength={80}
-          placeholder='Optional'
-          value={sourceLabel}
-          onBlur={() => {
-            if (value !== '') void commit()
-          }}
-          onChange={(event) => setSourceLabel(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur()
-          }}
-        />
+        {editor.kind === 'NUMBER' ? (
+          <NumberInput
+            allowDecimal={!editor.validation.integer}
+            classNames={fieldClassNames}
+            disabled={pending}
+            error={error}
+            hideControls
+            label={editor.label}
+            max={editor.validation.maximum}
+            min={editor.validation.minimum}
+            value={value}
+            onBlur={() => void commit()}
+            onChange={setValue}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+            }}
+          />
+        ) : (
+          <AppSelect
+            clearable
+            data={editor.options}
+            disabled={pending}
+            error={error}
+            label={editor.label}
+            value={value === '' ? null : String(value)}
+            onChange={(nextValue) => {
+              setValue(nextValue ?? '')
+              if (nextValue == null) void clear()
+              else void commit(nextValue)
+            }}
+          />
+        )}
+        {editor.adjustmentId ? (
+          <Button
+            color='red'
+            disabled={pending}
+            size='xs'
+            variant='subtle'
+            onClick={() => void clear()}
+          >
+            Clear
+          </Button>
+        ) : null}
       </div>
       <TextInput
+        classNames={fieldClassNames}
         disabled={pending}
-        label='Source note'
+        label='Source notes'
         maxLength={240}
         placeholder='Optional provenance or table ruling'
         value={sourceNote}

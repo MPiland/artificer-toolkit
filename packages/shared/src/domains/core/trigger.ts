@@ -40,7 +40,8 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
   UNARMED_ATTACK: {
     code: TRIGGER.UNARMED_ATTACK,
     label: 'Unarmed Attack',
-    description: 'Indicates an attack made without a weapon, using the creature’s body or natural weapons.',
+    description:
+      'Indicates an attack made without a weapon, using the creature’s body or natural weapons.',
     tooltip: 'Unarmed attack.'
   },
 
@@ -49,7 +50,6 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     label: 'Spell Attack',
     description: 'Indicates a spell attack roll made against a target.',
     tooltip: 'Spell attack roll.'
-
   },
 
   SAVING_THROW: {

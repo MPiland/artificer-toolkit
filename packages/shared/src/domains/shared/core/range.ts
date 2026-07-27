@@ -30,7 +30,7 @@ export const RANGE_REGISTRY: Record<RangeKind, RangeOption> = {
   [RANGE_KIND.SIGHT]: {
     code: RANGE_KIND.SIGHT,
     label: 'Sight',
-    description: 'The target must be within the source\'s line of sight.',
+    description: "The target must be within the source's line of sight.",
     tooltip: 'Within sight.'
   },
   [RANGE_KIND.SPECIAL]: {

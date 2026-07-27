@@ -10,16 +10,18 @@ export const featureOptionChoiceDtoSchema = z.object({
 })
 
 export const featureDtoSchema = featureBaseDtoObject.extend({
-  section: z.enum([
-    'TRAIT',
-    'ACTION',
-    'BONUS_ACTION',
-    'REACTION',
-    'LEGENDARY_ACTION',
-    'LAIR_ACTION',
-    'REGIONAL_EFFECT',
-    'OTHER'
-  ]).optional(),
+  section: z
+    .enum([
+      'TRAIT',
+      'ACTION',
+      'BONUS_ACTION',
+      'REACTION',
+      'LEGENDARY_ACTION',
+      'LAIR_ACTION',
+      'REGIONAL_EFFECT',
+      'OTHER'
+    ])
+    .optional(),
   optionChoices: z.array(featureOptionChoiceDtoSchema).optional(),
   options: z.array(featureOptionDtoSchema).optional(),
   availableAtLevel: z.number().int().optional()

@@ -63,5 +63,3 @@ export const manifestDtoSchema: z.ZodTypeAny = z.lazy(() => {
 })
 
 export type ManifestDto = z.infer<typeof manifestDtoSchema>
-
-

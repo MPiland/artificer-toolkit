@@ -15,20 +15,31 @@ export const airElemental: CreatureAuthored = {
     CONSTITUTION: 14,
     INTELLIGENCE: 6,
     WISDOM: 10,
-    CHARISMA: 6,
+    CHARISMA: 6
   },
   armorClass: 15,
   hitPoints: 90,
   hitDice: {
     count: 12,
     die: 10,
-    modifier: 24,
+    modifier: 24
   },
   speeds: [...S.walk(0), ...S.fly(90)],
   proficiencies: [S.grantedLanguageProficiency(6076, 1, 'AURAN')],
-  damageResistances: ['lightning; thunder; bludgeoning, piercing, and slashing from nonmagical attacks'],
+  damageResistances: [
+    'lightning; thunder; bludgeoning, piercing, and slashing from nonmagical attacks'
+  ],
   damageImmunities: ['poison'],
-  conditionImmunities: ['exhaustion', 'grappled', 'paralyzed', 'petrified', 'poisoned', 'prone', 'restrained', 'unconscious'],
+  conditionImmunities: [
+    'exhaustion',
+    'grappled',
+    'paralyzed',
+    'petrified',
+    'poisoned',
+    'prone',
+    'restrained',
+    'unconscious'
+  ],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_5,
@@ -37,13 +48,15 @@ export const airElemental: CreatureAuthored = {
     {
       id: S.featureId(13, 1),
       label: 'Air Form',
-      description: "Air Form. The elemental can enter a hostile creature's space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.",
+      description:
+        "Air Form. The elemental can enter a hostile creature's space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.",
       order: 1
     },
     {
       id: S.featureId(13, 2),
       label: 'Whirlwind (Recharge 4-6)',
-      description: 'Whirlwind (Recharge 4-6). Each creature in the elemental\'s space must make a Strength saving throw. On a failure, a target takes bludgeoning damage, is flung up to 20 feet away in a random direction, and is knocked prone. If a thrown target strikes an object, it takes additional bludgeoning damage. If the saving throw is successful, the target takes half damage and is not flung or knocked prone.',
+      description:
+        "Whirlwind (Recharge 4-6). Each creature in the elemental's space must make a Strength saving throw. On a failure, a target takes bludgeoning damage, is flung up to 20 feet away in a random direction, and is knocked prone. If a thrown target strikes an object, it takes additional bludgeoning damage. If the saving throw is successful, the target takes half damage and is not flung or knocked prone.",
       order: 2
     },
     {
@@ -55,9 +68,9 @@ export const airElemental: CreatureAuthored = {
     {
       id: S.featureId(13, 4),
       label: 'Slam',
-      description: 'Slam. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
+      description:
+        'Slam. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 14 (2d8 + 5) bludgeoning damage.',
       order: 4
     }
   ]
 }
-

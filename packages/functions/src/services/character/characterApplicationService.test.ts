@@ -44,16 +44,18 @@ function createResolution(
           parentClassId: 'class-wizard'
         }
       ],
-      backgrounds: [{
-        id: 'background-sage',
-        label: 'Sage',
-        description: 'A scholarly life.',
-        summary: 'A scholarly life.',
-        grantFacts: [],
-        featureLabels: ['Researcher'],
-        hiddenGrantFactCount: 0,
-        hiddenFeatureCount: 0
-      }],
+      backgrounds: [
+        {
+          id: 'background-sage',
+          label: 'Sage',
+          description: 'A scholarly life.',
+          summary: 'A scholarly life.',
+          grantFacts: [],
+          featureLabels: ['Researcher'],
+          hiddenGrantFactCount: 0,
+          hiddenFeatureCount: 0
+        }
+      ],
       equipment: [],
       feats: [],
       spells: []
@@ -140,13 +142,17 @@ function createResolution(
             { id: 'ideal', label: 'Ideal 1', description: 'Knowledge.', order: 2 },
             { id: 'trait', label: 'Personality Trait 1', description: 'Curious.', order: 1 }
           ],
-          features: [{
-            id: 'feature-researcher',
-            label: 'Researcher',
-            description: 'You know where to look.',
-            order: 0,
-            details: [{ id: 'benefit', label: 'Benefit', description: 'Research access.', order: 1 }]
-          }],
+          features: [
+            {
+              id: 'feature-researcher',
+              label: 'Researcher',
+              description: 'You know where to look.',
+              order: 0,
+              details: [
+                { id: 'benefit', label: 'Benefit', description: 'Research access.', order: 1 }
+              ]
+            }
+          ],
           startingEquipment: {
             id: 'sage-starting-equipment',
             sets: []
@@ -275,49 +281,62 @@ describe('buildCharacterBuilderView', () => {
     character.intent.classes = [{ classId: 'class-wizard', classLevel: 1 }]
     const baseResolution = createResolution()
 
-    const view = buildCharacterBuilderView(character, createResolution({
-      catalog: {
-        ...baseResolution.catalog,
-        classes: baseResolution.catalog.classes.map((classRecord) => classRecord.id === 'class-wizard'
-          ? {
-              ...classRecord,
-              proficiencyGroups: [{
-                label: 'Skills',
-                entries: ['Choose 2 from Arcana, History, and Insight.'],
-                grantedEntries: []
-              }]
-            }
-          : classRecord)
-      },
-      chosenGrantChoices: [{
-        id: 'choice-skills',
-        grantId: 'grant-skills',
-        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-        proficiencyKind: 'SKILL',
-        proficiencyLevel: 'FULL',
-        displayCategory: 'SKILLS',
-        label: 'Skill Proficiencies',
-        sourceLabel: 'Wizard',
-        source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
-        timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
-        requiredCount: 2,
-        duplicatePolicy: 'UNIQUE',
-        selectedTargetIds: [],
-        options: [
-          { id: 'skill-arcana', label: 'Arcana' },
-          { id: 'skill-history', label: 'History' },
-          { id: 'skill-insight', label: 'Insight' }
+    const view = buildCharacterBuilderView(
+      character,
+      createResolution({
+        catalog: {
+          ...baseResolution.catalog,
+          classes: baseResolution.catalog.classes.map((classRecord) =>
+            classRecord.id === 'class-wizard'
+              ? {
+                  ...classRecord,
+                  proficiencyGroups: [
+                    {
+                      label: 'Skills',
+                      entries: ['Choose 2 from Arcana, History, and Insight.'],
+                      grantedEntries: []
+                    }
+                  ]
+                }
+              : classRecord
+          )
+        },
+        chosenGrantChoices: [
+          {
+            id: 'choice-skills',
+            grantId: 'grant-skills',
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: 'SKILL',
+            proficiencyLevel: 'FULL',
+            displayCategory: 'SKILLS',
+            label: 'Skill Proficiencies',
+            sourceLabel: 'Wizard',
+            source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+            timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
+            requiredCount: 2,
+            duplicatePolicy: 'UNIQUE',
+            selectedTargetIds: [],
+            options: [
+              { id: 'skill-arcana', label: 'Arcana' },
+              { id: 'skill-history', label: 'History' },
+              { id: 'skill-insight', label: 'Insight' }
+            ]
+          }
         ]
-      }]
-    }))
+      })
+    )
 
-    expect(view.classes.selectedClasses[0]?.proficiencyGroups).toEqual([{
-      category: 'SKILLS',
-      label: 'Skills',
-      grantedEntries: [],
-      choiceInstructions: [{ label: 'Choose 2 from Arcana, History, and Insight.', required: true }],
-      choiceIds: ['choice-skills']
-    }])
+    expect(view.classes.selectedClasses[0]?.proficiencyGroups).toEqual([
+      {
+        category: 'SKILLS',
+        label: 'Skills',
+        grantedEntries: [],
+        choiceInstructions: [
+          { label: 'Choose 2 from Arcana, History, and Insight.', required: true }
+        ],
+        choiceIds: ['choice-skills']
+      }
+    ])
   })
 
   it('identifies the attributed class feature that owns subclass selection', () => {
@@ -582,13 +601,17 @@ describe('buildCharacterBuilderView', () => {
     const view = buildCharacterBuilderView(character, createSpellFilteringResolution())
 
     expect(view.race.grantChoices[0]?.options).toEqual([
-      { id: 'magic-missile', label: 'Magic Missile', disabled: true, disabledReason: 'Granted by Wizard' },
+      {
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        disabled: true,
+        disabledReason: 'Granted by Wizard'
+      },
       { id: 'shield', label: 'Shield' }
     ])
-    expect(view.classes.selectedClasses[0]?.spellChoices[0]?.spellOptions.map((option) => option.id)).toEqual([
-      'magic-missile',
-      'shield'
-    ])
+    expect(
+      view.classes.selectedClasses[0]?.spellChoices[0]?.spellOptions.map((option) => option.id)
+    ).toEqual(['magic-missile', 'shield'])
   })
 
   it('keeps class spell options selected by a race grant visible with their source', () => {
@@ -637,10 +660,9 @@ describe('buildCharacterBuilderView', () => {
       'magic-missile',
       'shield'
     ])
-    expect(view.classes.selectedClasses[0]?.spellChoices[0]?.spellOptions.map((option) => option.id)).toEqual([
-      'magic-missile',
-      'shield'
-    ])
+    expect(
+      view.classes.selectedClasses[0]?.spellChoices[0]?.spellOptions.map((option) => option.id)
+    ).toEqual(['magic-missile', 'shield'])
   })
 
   it('provides a player-facing label for property-based starting equipment choices', () => {
@@ -648,39 +670,50 @@ describe('buildCharacterBuilderView', () => {
     character.intent.classes = [{ classId: 'class-wizard', classLevel: 1 }]
     const resolution = createResolution()
     const wizard = resolution.registry.classes[0]
-    if (!wizard || wizard.category !== CLASS_CATEGORY.BASE) throw new Error('Wizard fixture is missing.')
+    if (!wizard || wizard.category !== CLASS_CATEGORY.BASE)
+      throw new Error('Wizard fixture is missing.')
     wizard.startingEquipment = {
       id: 'wizard-starting-equipment',
-      sets: [{
-        id: 'wizard-set',
-        order: 1,
-        groups: [{
-          id: 'instrument-group',
+      sets: [
+        {
+          id: 'wizard-set',
           order: 1,
-          options: [{
-            id: 'instrument-option',
-            order: 1,
-            items: [{
-              id: 'instrument-choice',
+          groups: [
+            {
+              id: 'instrument-group',
               order: 1,
-              startingEquipmentKind: 'EQUIPMENT',
-              selectionKind: 'CHOSEN',
-              count: 1,
-              authoringModeKind: 'ALL',
-              properties: ['MUSICAL_INSTRUMENT']
-            }]
-          }]
-        }]
-      }]
+              options: [
+                {
+                  id: 'instrument-option',
+                  order: 1,
+                  items: [
+                    {
+                      id: 'instrument-choice',
+                      order: 1,
+                      startingEquipmentKind: 'EQUIPMENT',
+                      selectionKind: 'CHOSEN',
+                      count: 1,
+                      authoringModeKind: 'ALL',
+                      properties: ['MUSICAL_INSTRUMENT']
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
-    resolution.catalog.equipment = [{
-      id: 'equipment-lute',
-      label: 'Lute',
-      category: 'TOOL',
-      properties: ['MUSICAL_INSTRUMENT'],
-      isContainer: false,
-      requiresAttunement: false
-    }]
+    resolution.catalog.equipment = [
+      {
+        id: 'equipment-lute',
+        label: 'Lute',
+        category: 'TOOL',
+        properties: ['MUSICAL_INSTRUMENT'],
+        isContainer: false,
+        requiresAttunement: false
+      }
+    ]
 
     const view = buildCharacterBuilderView(character, resolution)
 

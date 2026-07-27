@@ -1,9 +1,4 @@
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 
 import type { FacetAuthored, GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
 import {
@@ -12,13 +7,8 @@ import {
   GRANT_KIND,
   type NodeSubjectCode
 } from '#core'
-import {
-  compileScalingSource
-} from '#compilers'
-import type {
-  CompiledScalingGrant,
-  CompiledGrantTarget
-} from '#compilers'
+import { compileCharge, compileScalingSource } from '#compilers'
+import type { CompiledCharge, CompiledScalingGrant, CompiledGrantTarget } from '#compilers'
 import { SCALING } from '#core'
 import type { SpellGrantAttribute } from '#core'
 
@@ -27,6 +17,7 @@ export type CompiledSpellGrant = CompiledScalingGrant<
   CompiledGrantTarget<{ spellIds: string[] }>
 > & {
   castAtLevel?: number
+  charges?: CompiledCharge
   attributes?: SpellGrantAttribute[]
   filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
   restrictions?: FacetAuthored
@@ -54,8 +45,9 @@ export function compileSpellGrantResult(
   const base = {
     id: authored.id,
     castAtLevel: authored.castAtLevel,
-    attributes:
-      authored.attributes && authored.attributes.length ? authored.attributes : undefined,
+    charges:
+      'charges' in authored && authored.charges ? compileCharge(authored.charges) : undefined,
+    attributes: authored.attributes && authored.attributes.length ? authored.attributes : undefined,
     filters: authored.filters,
     restrictions: authored.restrictions,
     order: authored.order
@@ -135,8 +127,6 @@ export function compileSpellGrantResult(
   }
 }
 
-export function compileSpellGrant(
-  authored: SpellGrantAuthored
-): CompiledSpellGrant {
+export function compileSpellGrant(authored: SpellGrantAuthored): CompiledSpellGrant {
   return unwrapCompileResult(compileSpellGrantResult(authored))
 }

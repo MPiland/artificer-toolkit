@@ -25,16 +25,15 @@ describe('vehicle list mapper', () => {
   it('builds category and source filters', () => {
     const filters = buildVehicleListFilters(createVehicleListResponse())
 
-    expect(filters.map((filter) => filter.key)).toEqual([
-      'category',
-      'source'
-    ])
+    expect(filters.map((filter) => filter.key)).toEqual(['category', 'source'])
     expect(filters[0]?.options.map((option) => option.label)).toContain('Spelljammer')
   })
 
   it('formats category and summary copy', () => {
     expect(formatVehicleCategory('SPELLJAMMER')).toBe('Spelljammer')
-    expect(summarizeVehicleList(createVehicleListResponse())).toBe('2 vehicles / 1 SRD / 1 homebrew')
+    expect(summarizeVehicleList(createVehicleListResponse())).toBe(
+      '2 vehicles / 1 SRD / 1 homebrew'
+    )
   })
 })
 

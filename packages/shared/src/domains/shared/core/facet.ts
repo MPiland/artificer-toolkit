@@ -1,4 +1,5 @@
-import { SUBJECT_REGISTRY,
+import {
+  SUBJECT_REGISTRY,
   type AbilityCode,
   type ChargeLimitKind,
   type ChargeResetKind,
@@ -67,8 +68,7 @@ export const NODE_SUBJECT: NodeSubjectRegistry = {
     code: 'SUBCLASS',
     label: 'Subclass',
     tooltip: 'Narrows to a subclass.',
-    description:
-      'Narrows selection to a specific subclass for their class.'
+    description: 'Narrows selection to a specific subclass for their class.'
   },
 
   RESOURCE: {
@@ -83,8 +83,7 @@ export const NODE_SUBJECT: NodeSubjectRegistry = {
     code: 'SUBRACE',
     label: 'Subrace',
     tooltip: 'Narrows to a subrace.',
-    description:
-      'Narrows selections to a specific subrace within a race.'
+    description: 'Narrows selections to a specific subrace within a race.'
   },
 
   RACE_ANCESTRY_OPTION: {
@@ -99,17 +98,13 @@ export const NODE_SUBJECT: NodeSubjectRegistry = {
     code: 'PROFICIENCY_GRANT',
     label: 'Proficiency Grant',
     tooltip: 'Narrows select to proficiency grants',
-    description:
-      'Narrows one or more proficiency kinds, such as ability, equipment, etc'
-
+    description: 'Narrows one or more proficiency kinds, such as ability, equipment, etc'
   }
-
 } as const
 
 export const NODE_SUBJECT_OPTIONS = valuesOf(NODE_SUBJECT)
 
-export type SubjectSelectionPayload<S extends NodeSubjectCode>
-  = SubjectPayloadByCode[S]
+export type SubjectSelectionPayload<S extends NodeSubjectCode> = SubjectPayloadByCode[S]
 
 export const RELATIONS = {
   CLASS: {
@@ -162,9 +157,7 @@ export const RELATIONS = {
 export const RELATION_SUBJECTS = Object.keys(RELATIONS) as SubjectWithRelations[]
 
 export const RELATION_CODES = Array.from(
-  new Set(
-    valuesOf(RELATIONS).flatMap((m) => Object.keys(m))
-  )
+  new Set(valuesOf(RELATIONS).flatMap((m) => Object.keys(m)))
 ) as RelationCode<SubjectWithRelations>[]
 
 type RelationsMap = typeof RELATIONS
@@ -173,15 +166,13 @@ type RelationsMap = typeof RELATIONS
 export type SubjectWithRelations = keyof RelationsMap
 
 /** Relation codes for a given subject */
-export type RelationCode<S extends NodeSubjectCode>
-  = S extends SubjectWithRelations
-    ? (keyof RelationsMap[S] & string)
-    : never
+export type RelationCode<S extends NodeSubjectCode> = S extends SubjectWithRelations
+  ? keyof RelationsMap[S] & string
+  : never
 
-export type RelatedSubjectCodes<S extends NodeSubjectCode>
-  = S extends SubjectWithRelations
-    ? RelationSpec<S>['to'] & NodeSubjectCode
-    : never
+export type RelatedSubjectCodes<S extends NodeSubjectCode> = S extends SubjectWithRelations
+  ? RelationSpec<S>['to'] & NodeSubjectCode
+  : never
 
 /** Correlated { relationCode, to } union for a given subject S */
 type RelationSpec<S extends SubjectWithRelations> = {
@@ -195,10 +186,9 @@ type RelationSpec<S extends SubjectWithRelations> = {
 export type RelationTargetSubject<
   S extends NodeSubjectCode,
   R extends RelationCode<S>
->
-  = S extends SubjectWithRelations
-    ? Extract<RelationSpec<S>, { relationCode: R }>['to'] & NodeSubjectCode
-    : never
+> = S extends SubjectWithRelations
+  ? Extract<RelationSpec<S>, { relationCode: R }>['to'] & NodeSubjectCode
+  : never
 
 export const OWNER_KIND = {
   EQUIPMENT: 'EQUIPMENT',
@@ -213,27 +203,25 @@ export type PredicatePayloadByCode = {
   RANGE:
     | Selectable<{ rangeKind: Exclude<RangeKind, 'DISTANCE'>[] }>
     | Selectable<
-      { rangeKind: Extract<RangeKind, 'DISTANCE'>[] },
-      {
-        min: number
-        max?: number
-        unit: MeasurementUnitCode
-      }
-    >
+        { rangeKind: Extract<RangeKind, 'DISTANCE'>[] },
+        {
+          min: number
+          max?: number
+          unit: MeasurementUnitCode
+        }
+      >
   DURATION:
     | Selectable<{ durationKind: Extract<DurationKind, 'INSTANTANEOUS'>[] }>
     | Selectable<
-      { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>[] },
-      {
-        min: number
-        max?: number
-      }
-    >
+        { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>[] },
+        {
+          min: number
+          max?: number
+        }
+      >
   CONCENTRATION: EmptyObject
   RITUAL: EmptyObject
-  SIZE: Selectable<
-    { sizes: SizeCode[] }
-  >
+  SIZE: Selectable<{ sizes: SizeCode[] }>
   FEATURE_OBTAINED: {
     featureIds: string[]
   }
@@ -241,19 +229,13 @@ export type PredicatePayloadByCode = {
     featureIds?: string[]
     optionIds: string[]
   }
-  MAGIC_SCHOOL: Selectable<
-    { magicSchoolIds: string[] }
-  >
-  SPELLCASTING_ABILITY: Selectable<
-    { abilities: AbilityCode[] }
-  >
+  MAGIC_SCHOOL: Selectable<{ magicSchoolIds: string[] }>
+  SPELLCASTING_ABILITY: Selectable<{ abilities: AbilityCode[] }>
   SPELL_LEVEL: {
     min: number
     max?: number
   }
-  SAVING_THROW_ABILITY: Selectable<
-    { abilities: AbilityCode[] }
-  >
+  SAVING_THROW_ABILITY: Selectable<{ abilities: AbilityCode[] }>
   SAVING_THROW_DC: {
     min: number
     max?: number
@@ -277,14 +259,8 @@ export type PredicatePayloadByCode = {
     { properties: EquipmentPropertyCode[] },
     { category?: EquipmentCategoryCode }
   >
-  SAVE_ABILITY_PROFICIENCY: Selectable<
-    { abilities: AbilityCode },
-    { level: ScalingAmountKind }
-  >
-  LANGUAGE_PROFICIENCY: Selectable<
-    { languageIds: string[] },
-    { level: ScalingAmountKind }
-  >
+  SAVE_ABILITY_PROFICIENCY: Selectable<{ abilities: AbilityCode }, { level: ScalingAmountKind }>
+  LANGUAGE_PROFICIENCY: Selectable<{ languageIds: string[] }, { level: ScalingAmountKind }>
   EQUIPMENT_EQUIPPED: Selectable<
     { equipmentIds: string[] },
     {
@@ -296,18 +272,10 @@ export type PredicatePayloadByCode = {
     min: number
     max?: number
   }
-  DAMAGE_TYPE: Selectable<
-    { damageTypeIds: string[] }
-  >
-  CONDITION_TYPE: Selectable<
-    { conditionTypeIds: string[] }
-  >
-  CHARGE_LIMIT_KIND: Selectable<
-    { chargeLimitKind: ChargeLimitKind[] }
-  >
-  CHARGE_RESET_KIND: Selectable<
-    { chargeResetKind: ChargeResetKind[] }
-  >
+  DAMAGE_TYPE: Selectable<{ damageTypeIds: string[] }>
+  CONDITION_TYPE: Selectable<{ conditionTypeIds: string[] }>
+  CHARGE_LIMIT_KIND: Selectable<{ chargeLimitKind: ChargeLimitKind[] }>
+  CHARGE_RESET_KIND: Selectable<{ chargeResetKind: ChargeResetKind[] }>
   CAN_CAST_SPELL: EmptyObject
   CHARACTER_LEVEL: {
     min: number
@@ -327,46 +295,24 @@ export type PredicatePayloadByCode = {
   HERITAGE: Selectable<{
     heritageIds: string[]
   }>
-  SKILL_PROFICIENCY: Selectable<
-    { skillIds: string[] },
-    { level: ScalingAmountKind }
-  >
-  SKILL_SCORE: Selectable<
-    { skillIds: string[] }
-  >
-  ABILITY_SCORE: Selectable<
-    { abilities: AbilityCode },
-    { min: number, max?: number }
-  >
-  SAVING_THROW_ABILITY_BONUS: Selectable<
-    { abilities: AbilityCode },
-    { min: number, max?: number }
-  >
+  SKILL_PROFICIENCY: Selectable<{ skillIds: string[] }, { level: ScalingAmountKind }>
+  SKILL_SCORE: Selectable<{ skillIds: string[] }>
+  ABILITY_SCORE: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
+  SAVING_THROW_ABILITY_BONUS: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
   WHILE_SOURCE_CARRIED: EmptyObject
   WHILE_SOURCE_EQUIPPED: EmptyObject
   WHILE_SOURCE_ATTUNED: EmptyObject
-  CREATURE_CATEGORY: Selectable<
-    { categories: CreatureCategoryCode[] }
-  >
-  CREATURE_TYPE: Selectable<
-    { creatureTypeIds: string[] }
-  >
-  CREATURE_SIZE: Selectable<
-    { sizes: SizeCode[] }
-  >
+  CREATURE_CATEGORY: Selectable<{ categories: CreatureCategoryCode[] }>
+  CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
+  CREATURE_SIZE: Selectable<{ sizes: SizeCode[] }>
   CREATURE_IS_MOUNT: EmptyObject
   CREATURE_IS_COMPANION: EmptyObject
-  VEHICLE_CATEGORY: Selectable<
-    { categories: VehicleCategoryCode[] }
-  >
-  VEHICLE_SIZE: Selectable<
-    { sizes: SizeCode[] }
-  >
+  VEHICLE_CATEGORY: Selectable<{ categories: VehicleCategoryCode[] }>
+  VEHICLE_SIZE: Selectable<{ sizes: SizeCode[] }>
 }
 
 type SelectablePredicateCode = {
-  [C in PredicateCode]:
-  PredicatePayloadByCode[C] extends Selectable<infer _Base, infer _Extra>
+  [C in PredicateCode]: PredicatePayloadByCode[C] extends Selectable<infer _Base, infer _Extra>
     ? C
     : never
 }[PredicateCode]
@@ -417,7 +363,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Subclass Specialization',
     tooltip: 'Narrows selection to subclass-defined specialization choice.',
     description:
-          'Used for subclass specialization identities such as Druid Circle of the Land terrain.',
+      'Used for subclass specialization identities such as Druid Circle of the Land terrain.',
     subjects: ['SUBCLASS']
   },
 
@@ -425,8 +371,7 @@ export const PREDICATE_REGISTRY = {
     code: 'SPELLCASTING',
     label: 'Spellcasting',
     tooltip: 'Narrows to spellcasting classes.',
-    description:
-          'Narrows applicability to classes that have the spellcasting ability.',
+    description: 'Narrows applicability to classes that have the spellcasting ability.',
     subjects: ['CLASS', 'SUBCLASS']
   },
 
@@ -434,29 +379,24 @@ export const PREDICATE_REGISTRY = {
     code: 'RANGE',
     label: 'Range',
     tooltip: 'Narrows selection to range(s).',
-    description:
-          'Narrows the selection path to a specific range or ranges.',
-    subjects: [
-      'FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION'
-    ]
+    description: 'Narrows the selection path to a specific range or ranges.',
+    subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   DURATION: {
     code: 'DURATION',
     label: 'Duration',
     tooltip: 'Narrows selection to duration(s).',
-    description:
-          'Narrows the selection path to a specific duration or durations.',
-    subjects: [
-      'FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION'
-    ]
+    description: 'Narrows the selection path to a specific duration or durations.',
+    subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CONCENTRATION: {
     code: 'CONCENTRATION',
     label: 'Concentration',
     tooltip: 'Narrows selection to spells with concentration',
-    description: 'Narrows selections to spells that require the character to concentrate while casting.',
+    description:
+      'Narrows selections to spells that require the character to concentrate while casting.',
     subjects: ['SPELL']
   },
 
@@ -481,7 +421,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Magic School',
     tooltip: 'Narrows selection to spell school.',
     description:
-          'Narrows selection to spells belonging to a specific magic school, such as Evocation, Illusion, or Necromancy.',
+      'Narrows selection to spells belonging to a specific magic school, such as Evocation, Illusion, or Necromancy.',
     subjects: ['SPELL']
   },
 
@@ -490,7 +430,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Spellcasting ability',
     tooltip: 'Narrows selection to spellcastinga abilities.',
     description:
-          'Narrows selection to classes that can cast spells based on their spellcasting ability.',
+      'Narrows selection to classes that can cast spells based on their spellcasting ability.',
     subjects: ['CLASS', 'SUBCLASS']
   },
 
@@ -499,7 +439,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Spell Level',
     tooltip: 'Narrows selection to spell level.',
     description:
-          'Narrows selection to spells of a specific level (0–9), such as only cantrips or only 3rd-level spells.',
+      'Narrows selection to spells of a specific level (0–9), such as only cantrips or only 3rd-level spells.',
     subjects: ['SPELL']
   },
 
@@ -508,7 +448,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Saving Throw Ability',
     tooltip: 'Narrows selection to saving throw ability.',
     description:
-          'Narrows selection to spells or effects that require a saving throw using specific abilities, such as Strength, Dexterity, Constitution, Intelligence, Wisdom, or Charisma.',
+      'Narrows selection to spells or effects that require a saving throw using specific abilities, such as Strength, Dexterity, Constitution, Intelligence, Wisdom, or Charisma.',
     subjects: ['CHARACTER']
   },
 
@@ -517,7 +457,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Saving Throw DC',
     tooltip: 'Narrows selection to saving throw DC.',
     description:
-          'Narrows selection to spells or effects that require a saving throw with a specific DC.',
+      'Narrows selection to spells or effects that require a saving throw with a specific DC.',
     subjects: ['SPELL']
   },
 
@@ -526,7 +466,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Category',
     tooltip: 'Narrows selection to category.',
     description:
-          'Narrows selection to items of a specific category, such as Weapon, Armor, Tool, Shield, or Adventuring Gear.',
+      'Narrows selection to items of a specific category, such as Weapon, Armor, Tool, Shield, or Adventuring Gear.',
     subjects: ['EQUIPMENT']
   },
 
@@ -535,7 +475,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Property',
     tooltip: 'Narrows selection to property.',
     description:
-          'Narrows selection to entities with specific properties, such as weapon properties (Finesse, Heavy, Light) or item-specific attributes.',
+      'Narrows selection to entities with specific properties, such as weapon properties (Finesse, Heavy, Light) or item-specific attributes.',
     subjects: ['EQUIPMENT']
   },
 
@@ -552,10 +492,8 @@ export const PREDICATE_REGISTRY = {
     label: 'Damage Type',
     tooltip: 'Narrows selection to damage type.',
     description:
-          'Narrows selection to entities that deal or reference a specific damage type, such as Fire, Cold, Slashing, or Radiant.',
-    subjects: [
-      'FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION'
-    ]
+      'Narrows selection to entities that deal or reference a specific damage type, such as Fire, Cold, Slashing, or Radiant.',
+    subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CONDITION_TYPE: {
@@ -563,10 +501,8 @@ export const PREDICATE_REGISTRY = {
     label: 'Condition',
     tooltip: 'Narrows selection to condition type.',
     description:
-          'Narrows selection to effects, spells, or features that apply or reference one or more specific conditions, such as Blinded, Charmed, Frightened, or Poisoned.',
-    subjects: [
-      'FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION'
-    ]
+      'Narrows selection to effects, spells, or features that apply or reference one or more specific conditions, such as Blinded, Charmed, Frightened, or Poisoned.',
+    subjects: ['FEATURE', 'FEAT', 'SPELL', 'EQUIPMENT', 'OPTION']
   },
 
   CHARGE_LIMIT_KIND: {
@@ -574,10 +510,8 @@ export const PREDICATE_REGISTRY = {
     label: 'Charge Limit',
     tooltip: 'Narrows selection to charge limit kind.',
     description:
-          'Narrows selection to a specific charge limit kind, such as Ki, Rage, Channel Divinity, or a feature-specific resource.',
-    subjects: [
-      'FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE'
-    ]
+      'Narrows selection to a specific charge limit kind, such as Ki, Rage, Channel Divinity, or a feature-specific resource.',
+    subjects: ['FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE']
   },
 
   CHARGE_RESET_KIND: {
@@ -585,10 +519,8 @@ export const PREDICATE_REGISTRY = {
     label: 'Charge Reset',
     tooltip: 'Narrows selection to charge reset type.',
     description:
-          'Narrows selection to charge pools that reset on a specific condition, such as Short Rest, Long Rest, Dawn, or Custom resets.',
-    subjects: [
-      'FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE'
-    ]
+      'Narrows selection to charge pools that reset on a specific condition, such as Short Rest, Long Rest, Dawn, or Custom resets.',
+    subjects: ['FEATURE', 'FEAT', 'EQUIPMENT', 'OPTION', 'RESOURCE']
   },
 
   CAN_CAST_SPELL: {
@@ -636,7 +568,8 @@ export const PREDICATE_REGISTRY = {
     code: 'HERITAGE',
     label: 'Heritage',
     tooltip: 'Requires a character heritage membership.',
-    description: 'Requires the character to belong to one or more specific heritages such as Elven or Dwarven.',
+    description:
+      'Requires the character to belong to one or more specific heritages such as Elven or Dwarven.',
     subjects: ['CHARACTER']
   },
 
@@ -660,10 +593,9 @@ export const PREDICATE_REGISTRY = {
     code: 'EQUIPMENT_PROFICIENCY',
     label: 'Equipment Proficiency',
     tooltip: 'Narrows selection to proficiency with specific equipment.',
-    description: 'Narrows selection to proficiency with specific equipment and optionally the level.',
-    subjects: [
-      'CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION'
-    ]
+    description:
+      'Narrows selection to proficiency with specific equipment and optionally the level.',
+    subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   EQUIPMENT_PROPERTY_PROFICIENCY: {
@@ -671,9 +603,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Equipment Property Proficiency',
     tooltip: 'Narrows selection to proficiency with equipment that has certain properties.',
     description: 'Narrows selection to proficiency with equipment that has certain properties.',
-    subjects: [
-      'CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION'
-    ]
+    subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   LANGUAGE_PROFICIENCY: {
@@ -681,20 +611,17 @@ export const PREDICATE_REGISTRY = {
     label: 'Language Proficiency',
     tooltip: 'Narrows selection to proficiency in one or more languages.',
     description:
-          'Narrows selection to proficiency in one or more languages and optionally the level.',
-    subjects: [
-      'CHARACTER', 'FEAT', 'FEATURE', 'OPTION'
-    ]
+      'Narrows selection to proficiency in one or more languages and optionally the level.',
+    subjects: ['CHARACTER', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   SAVE_ABILITY_PROFICIENCY: {
     code: 'SAVE_ABILITY_PROFICIENCY',
     label: 'Save Ability Proficiency',
     tooltip: 'Narrows selection to proficiency in one or more save abilities.',
-    description: 'Narrows selection to proficiency in one or more save abilities and optionally the level.',
-    subjects: [
-      'CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION'
-    ]
+    description:
+      'Narrows selection to proficiency in one or more save abilities and optionally the level.',
+    subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   SKILL_PROFICIENCY: {
@@ -702,9 +629,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Skill Proficiency',
     tooltip: 'Narrows selection to proficiency in one or more skills.',
     description: 'Narrows selection to proficiency in one or more skills and optionally the level.',
-    subjects: [
-      'CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION'
-    ]
+    subjects: ['CHARACTER', 'CLASS', 'FEAT', 'FEATURE', 'OPTION']
   },
 
   EQUIPMENT_EQUIPPED: {
@@ -735,7 +660,7 @@ export const PREDICATE_REGISTRY = {
     code: 'SAVING_THROW_ABILITY_BONUS',
     label: 'Saving Throw Ability Bonus',
     tooltip: 'Ability bonus score of the character.',
-    description: 'Limits the targeting to the character\'s ability bonus score.',
+    description: "Limits the targeting to the character's ability bonus score.",
     subjects: ['CHARACTER']
   },
 
@@ -744,7 +669,7 @@ export const PREDICATE_REGISTRY = {
     label: 'While Carried',
     tooltip: 'Applies while the item is carried by the character.',
     description:
-          'The modifier applies as long as the item is in the character\'s possession, even if it is not equipped or attuned.',
+      "The modifier applies as long as the item is in the character's possession, even if it is not equipped or attuned.",
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -754,7 +679,7 @@ export const PREDICATE_REGISTRY = {
     label: 'While Equipped',
     tooltip: 'Applies only while the item is equipped.',
     description:
-          'The modifier applies only when the item is actively equipped or worn. This is the default behavior for most equipment.',
+      'The modifier applies only when the item is actively equipped or worn. This is the default behavior for most equipment.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -764,7 +689,7 @@ export const PREDICATE_REGISTRY = {
     label: 'While Attuned',
     tooltip: 'Applies only while the item is attuned.',
     description:
-          'The modifier applies only when the character is attuned to the item. Attunement is required in addition to equipping the item.',
+      'The modifier applies only when the character is attuned to the item. Attunement is required in addition to equipping the item.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
   },
@@ -773,7 +698,8 @@ export const PREDICATE_REGISTRY = {
     code: 'CREATURE_CATEGORY',
     label: 'Creature Category',
     tooltip: 'Narrows selection to creature categories.',
-    description: 'Narrows creature applicability to categories such as monster, beast, companion, or summon.',
+    description:
+      'Narrows creature applicability to categories such as monster, beast, companion, or summon.',
     subjects: ['CREATURE']
   },
 
@@ -781,7 +707,8 @@ export const PREDICATE_REGISTRY = {
     code: 'CREATURE_TYPE',
     label: 'Creature Type',
     tooltip: 'Narrows selection to creature types.',
-    description: 'Narrows creature applicability to one or more master creature types such as beast, humanoid, or undead.',
+    description:
+      'Narrows creature applicability to one or more master creature types such as beast, humanoid, or undead.',
     subjects: ['CREATURE']
   },
 
@@ -813,7 +740,8 @@ export const PREDICATE_REGISTRY = {
     code: 'VEHICLE_CATEGORY',
     label: 'Vehicle Category',
     tooltip: 'Narrows selection to vehicle categories.',
-    description: 'Narrows vehicle applicability to land, water, air, or similar vehicle categories.',
+    description:
+      'Narrows vehicle applicability to land, water, air, or similar vehicle categories.',
     subjects: ['VEHICLE']
   },
 
@@ -831,11 +759,11 @@ export const PREDICATE_OPTIONS = valuesOf(PREDICATE_REGISTRY)
 type PredicateRegistry = typeof PREDICATE_REGISTRY
 
 export type SubjectPredicateCode<S extends NodeSubjectCode> = {
-  [K in keyof PredicateRegistry]:
-  Extract<S, PredicateRegistry[K]['subjects'][number]> extends never
+  [K in keyof PredicateRegistry]: Extract<S, PredicateRegistry[K]['subjects'][number]> extends never
     ? never
     : K
-}[keyof PredicateRegistry] & PredicateCode
+}[keyof PredicateRegistry] &
+  PredicateCode
 
 function isAllowed<S extends NodeSubjectCode>(
   subject: S,

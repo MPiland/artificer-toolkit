@@ -1,4 +1,5 @@
 import type {
+  CharacterSheetCommandInputDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
@@ -9,32 +10,23 @@ import {
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   ABILITIES,
-  type AbilityCode,
   type CharacterCalculation,
   type CharacterMechanicSourceRef,
-  type EngineCharacterOutput,
-  type EngineProficiency
+  type EngineCharacterOutput
 } from '@artificer-toolkit/shared/core'
 import type {
   CharacterMovementDisplayPreference,
   CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
+import { createCharacterSpellSourceKey } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
-import {
-  resolveCharacterSheetEngine,
-  resolveCharacterSheetSkillKey
-} from './sheetService.js'
-import {
-  characterSheetAdjustmentMatchesPanelTarget
-} from './sheetPanelTarget.js'
+import { resolveCharacterSheetEngine, resolveCharacterSheetSkillKey } from './sheetService.js'
+import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
+import { getProficiencyTargetKind, type CharacterSheetProficiencyKind } from './sheetProficiency.js'
 
-const CORE_PANEL_COMMANDS = [
-  'UPSERT_ADJUSTMENT',
-  'REMOVE_ADJUSTMENT',
-  'RESET_ADJUSTMENTS'
-] as const
+const CORE_PANEL_COMMANDS = ['UPSERT_ADJUSTMENT', 'REMOVE_ADJUSTMENT', 'RESET_ADJUSTMENTS'] as const
 
 const PROFICIENCY_OPTIONS = [
   { value: 'NONE', label: 'Not proficient' },
@@ -94,8 +86,6 @@ function resolvePanelState(
 function adjustmentEditorMetadata(adjustment: CharacterSheetAdjustment | undefined) {
   return {
     ...(adjustment ? { adjustmentId: adjustment.id } : {}),
-    sourceCategory: adjustment?.sourceCategory ?? ('MANUAL' as const),
-    ...(adjustment?.sourceLabel ? { sourceLabel: adjustment.sourceLabel } : {}),
     ...(adjustment?.sourceNote ? { sourceNote: adjustment.sourceNote } : {})
   }
 }
@@ -114,9 +104,7 @@ function findSourceLabel(params: {
         (candidate) => candidate.id === source.adjustmentId
       )
       return {
-        label:
-          adjustment?.sourceLabel ??
-          (adjustment ? formatCode(adjustment.sourceCategory) : 'Manual adjustment'),
+        label: 'Manual adjustment',
         ...(adjustment?.sourceNote ? { note: adjustment.sourceNote } : {})
       }
     }
@@ -138,17 +126,13 @@ function findSourceLabel(params: {
         ...params.resolution.registry.features,
         ...(params.resolution.registry.feats ?? [])
       ]
-      const definition = authoredRecords.find(
-        (candidate) => candidate.id === source.definitionId
-      )
+      const definition = authoredRecords.find((candidate) => candidate.id === source.definitionId)
       const grantedFeature = params.resolution.grants.features.find(
         (candidate) => candidate.id === source.definitionId
       )
       return {
         label:
-          definition?.label ??
-          grantedFeature?.label ??
-          `${formatCode(source.sourceKind)} source`
+          definition?.label ?? grantedFeature?.label ?? `${formatCode(source.sourceKind)} source`
       }
     }
   }
@@ -164,9 +148,7 @@ function toPanelCalculation(
     effective: 0
   }
   const overrideAdjustment = resolved.override
-    ? context.adjustments.find(
-        (adjustment) => adjustment.id === resolved.override?.adjustmentId
-      )
+    ? context.adjustments.find((adjustment) => adjustment.id === resolved.override?.adjustmentId)
     : undefined
 
   return {
@@ -187,14 +169,8 @@ function toPanelCalculation(
           override: {
             adjustmentId: resolved.override.adjustmentId,
             value: resolved.override.value,
-            sourceLabel:
-              overrideAdjustment?.sourceLabel ??
-              (overrideAdjustment
-                ? formatCode(overrideAdjustment.sourceCategory)
-                : 'Manual override'),
-            ...(overrideAdjustment?.sourceNote
-              ? { sourceNote: overrideAdjustment.sourceNote }
-              : {})
+            sourceLabel: 'Manual override',
+            ...(overrideAdjustment?.sourceNote ? { sourceNote: overrideAdjustment.sourceNote } : {})
           }
         }
       : {}),
@@ -216,10 +192,7 @@ function findAdjustment<
   )
 }
 
-function findEngineSkillKey(
-  resolution: CharacterBuilderResolution,
-  skillId: string
-): string {
+function findEngineSkillKey(resolution: CharacterBuilderResolution, skillId: string): string {
   return resolveCharacterSheetSkillKey(resolution.registry.system?.skills, skillId)
 }
 
@@ -230,47 +203,34 @@ function findPassiveSkill(
   const passiveText = `${passive.code ?? ''} ${passive.label}`.toUpperCase()
   return sheet.overview.skills.find((skill) => {
     const skillText = `${skill.code} ${skill.label}`.toUpperCase()
-    return passiveText.includes(skill.code.toUpperCase()) || skillText.includes(passive.label.toUpperCase())
+    return (
+      passiveText.includes(skill.code.toUpperCase()) ||
+      skillText.includes(passive.label.toUpperCase())
+    )
   })
 }
 
-function getProficiencyTargetKind(
-  proficiency: EngineProficiency,
-  resolution: CharacterBuilderResolution
-): 'ARMOR' | 'LANGUAGE' | 'TOOL' | 'WEAPON' | undefined {
-  if (proficiency.kind === 'LANGUAGE') return 'LANGUAGE'
-  if (proficiency.kind !== 'EQUIPMENT') return undefined
-
-  const category = resolution.catalog.equipment.find(
-    (equipment) => equipment.id === proficiency.subjectId
-  )?.category
-  switch (category) {
-    case 'ARMOR':
-    case 'SHIELD':
-      return 'ARMOR'
-    case 'TOOL':
-      return 'TOOL'
-    case 'WEAPON':
-      return 'WEAPON'
-    default:
-      return undefined
-  }
-}
-
 function getProficiencyLabel(
-  targetId: string,
-  kind: 'ARMOR' | 'LANGUAGE' | 'TOOL' | 'WEAPON',
+  proficiency: EngineCharacterOutput['proficiencies'][number],
+  kind: CharacterSheetProficiencyKind,
   resolution: CharacterBuilderResolution
 ): string {
   if (kind === 'LANGUAGE') {
     return (
-      resolution.registry.system?.languages.find((language) => language.id === targetId)?.label ??
-      'Unknown language'
+      resolution.registry.system?.languages.find(
+        (language) => language.id === proficiency.subjectId
+      )?.label ?? 'Unknown language'
     )
   }
+  if (proficiency.kind === 'EQUIPMENT_PROPERTY') {
+    const propertyLabel = formatCode(proficiency.subjectId)
+    if (kind === 'ARMOR') return `${propertyLabel} Armor`
+    if (kind === 'WEAPON') return `${propertyLabel} Weapons`
+    return propertyLabel
+  }
   return (
-    resolution.catalog.equipment.find((equipment) => equipment.id === targetId)?.label ??
-    'Unknown equipment'
+    resolution.catalog.equipment.find((equipment) => equipment.id === proficiency.subjectId)
+      ?.label ?? 'Unknown equipment'
   )
 }
 
@@ -286,14 +246,12 @@ function buildAbilityPanel(
   const otherModifier = findAdjustment(
     matching,
     'ABILITY',
-    (adjustment) =>
-      adjustment.ability === target.ability && adjustment.field === 'OTHER_MODIFIER'
+    (adjustment) => adjustment.ability === target.ability && adjustment.field === 'OTHER_MODIFIER'
   )
   const scoreOverride = findAdjustment(
     matching,
     'ABILITY',
-    (adjustment) =>
-      adjustment.ability === target.ability && adjustment.field === 'SCORE_OVERRIDE'
+    (adjustment) => adjustment.ability === target.ability && adjustment.field === 'SCORE_OVERRIDE'
   )
   const calculation = toPanelCalculation(engine.calculations.abilityScores[target.ability], params)
 
@@ -316,8 +274,7 @@ function buildAbilityPanel(
         kind: 'NUMBER',
         field: 'OTHER_MODIFIER',
         label: 'Other modifier',
-        value:
-          otherModifier?.field === 'OTHER_MODIFIER' ? otherModifier.value : null,
+        value: otherModifier?.field === 'OTHER_MODIFIER' ? otherModifier.value : null,
         commitIntent: 'ON_BLUR_OR_ENTER',
         validation: { integer: true },
         ...adjustmentEditorMetadata(otherModifier)
@@ -373,9 +330,7 @@ function buildSavingThrowPanel(
       ['MISC_BONUS', 'Miscellaneous bonus'],
       ['TOTAL_OVERRIDE', 'Override total']
     ].map(([field, label]) => {
-      const adjustment = getNumeric(
-        field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE'
-      )
+      const adjustment = getNumeric(field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE')
       return {
         kind: 'NUMBER' as const,
         field: field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE',
@@ -390,8 +345,7 @@ function buildSavingThrowPanel(
       kind: 'SELECT',
       field: 'PROFICIENCY_OVERRIDE',
       label: 'Proficiency',
-      value:
-        proficiency?.field === 'PROFICIENCY_OVERRIDE' ? proficiency.value : null,
+      value: proficiency?.field === 'PROFICIENCY_OVERRIDE' ? proficiency.value : null,
       options: PROFICIENCY_OPTIONS,
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(proficiency)
@@ -423,8 +377,7 @@ function buildSkillPanel(
     params.adjustments,
     'SKILL',
     (adjustment) =>
-      adjustment.skillId === target.skillId &&
-      adjustment.field === 'GOVERNING_ABILITY_OVERRIDE'
+      adjustment.skillId === target.skillId && adjustment.field === 'GOVERNING_ABILITY_OVERRIDE'
   )
 
   return {
@@ -447,9 +400,7 @@ function buildSkillPanel(
       ['MISC_BONUS', 'Miscellaneous bonus'],
       ['TOTAL_OVERRIDE', 'Override total']
     ].map(([field, label]) => {
-      const adjustment = getNumeric(
-        field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE'
-      )
+      const adjustment = getNumeric(field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE')
       return {
         kind: 'NUMBER' as const,
         field: field as 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE',
@@ -464,8 +415,7 @@ function buildSkillPanel(
       kind: 'SELECT',
       field: 'PROFICIENCY_OVERRIDE',
       label: 'Proficiency',
-      value:
-        proficiency?.field === 'PROFICIENCY_OVERRIDE' ? proficiency.value : null,
+      value: proficiency?.field === 'PROFICIENCY_OVERRIDE' ? proficiency.value : null,
       options: PROFICIENCY_OPTIONS,
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(proficiency)
@@ -475,9 +425,7 @@ function buildSkillPanel(
       field: 'GOVERNING_ABILITY_OVERRIDE',
       label: 'Governing ability',
       value:
-        governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE'
-          ? governingAbility.value
-          : null,
+        governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE' ? governingAbility.value : null,
       options: ABILITY_OPTIONS,
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(governingAbility)
@@ -552,13 +500,11 @@ function buildSensesPanel(
       (candidate) => candidate.senseCode === sense.id || candidate.senseCode === sense.code
     )
     const calculation =
-      engine.calculations.senseRanges[sense.id] ??
-      engine.calculations.senseRanges[sense.code]
+      engine.calculations.senseRanges[sense.id] ?? engine.calculations.senseRanges[sense.code]
     const range =
       calculation?.effective ??
       (engineSense?.range?.rangeKind === 'DISTANCE' ? engineSense.range.amount : 0)
-    const unit =
-      engineSense?.range?.rangeKind === 'DISTANCE' ? engineSense.range.unit : 'FEET'
+    const unit = engineSense?.range?.rangeKind === 'DISTANCE' ? engineSense.range.unit : 'FEET'
     return {
       senseId: sense.id,
       label: sense.label,
@@ -607,8 +553,7 @@ function buildMovementPanel(
       (candidate) => candidate.speedId === speed.id || candidate.speedId === speed.code
     )
     const calculation =
-      engine.calculations.movementSpeeds[speed.id] ??
-      engine.calculations.movementSpeeds[speed.code]
+      engine.calculations.movementSpeeds[speed.id] ?? engine.calculations.movementSpeeds[speed.code]
     return {
       speedId: speed.id,
       label: speed.label,
@@ -672,9 +617,7 @@ function buildDefensePanel(
         : {})
     }
   })
-  const existing = new Set(
-    defenses.map((defense) => `${defense.kind}:${defense.damageTypeId}`)
-  )
+  const existing = new Set(defenses.map((defense) => `${defense.kind}:${defense.damageTypeId}`))
   return {
     kind: 'DEFENSES',
     panelId: 'defenses',
@@ -716,7 +659,7 @@ function buildProficiencyPanel(
       {
         kind,
         targetId: proficiency.subjectId,
-        label: getProficiencyLabel(proficiency.subjectId, kind, params.resolution),
+        label: getProficiencyLabel(proficiency, kind, params.resolution),
         sourceLabel: source.label,
         ...(proficiency.source?.kind === 'MANUAL_ADJUSTMENT'
           ? { adjustmentId: proficiency.source.adjustmentId }
@@ -735,11 +678,10 @@ function buildProficiencyPanel(
     if (!kind || existing.has(`${kind}:${equipment.id}`)) return []
     return [{ kind, targetId: equipment.id, label: equipment.label }]
   })
-  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap(
-    (language) =>
-      existing.has(`LANGUAGE:${language.id}`)
-        ? []
-        : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
+  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap((language) =>
+    existing.has(`LANGUAGE:${language.id}`)
+      ? []
+      : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
   )
 
   return {
@@ -755,6 +697,516 @@ function buildProficiencyPanel(
     additionOptions: [...languageOptions, ...equipmentOptions].sort((left, right) =>
       left.label.localeCompare(right.label)
     )
+  }
+}
+
+type SheetSpell = CharacterSheetResponseDto['spells']['spells'][number]
+type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
+
+function formatSpellLevel(level: number): string {
+  return level === 0 ? 'Cantrip' : `Level ${level}`
+}
+
+function formatSpellCastingTime(spell: SheetSpell): string | undefined {
+  if (!spell.castingTime) return undefined
+  return `${spell.castingTime.amount} ${formatCode(spell.castingTime.unit).toLowerCase()}`
+}
+
+function applySpellDamageBonus(expression: string, bonus: number): string {
+  if (bonus === 0) return expression
+  return `${expression} ${bonus > 0 ? '+' : '-'} ${Math.abs(bonus)}`
+}
+
+function resolveSpellOutcomeLabel(
+  outcome: NonNullable<SheetSpell['mechanics']>[number]['outcomes'][number],
+  castLevel: number,
+  damageBonus: number
+): string {
+  switch (outcome.kind) {
+    case 'DAMAGE': {
+      const expression =
+        outcome.scaling?.find((entry) => entry.level === castLevel)?.expression ??
+        outcome.expression
+      return `${applySpellDamageBonus(expression, damageBonus)} ${outcome.damageTypeLabel} damage`
+    }
+    case 'HEAL': {
+      const expression =
+        outcome.scaling?.find((entry) => entry.level === castLevel)?.expression ??
+        outcome.expression
+      return `${expression} ${outcome.temporary ? 'temporary hit points' : 'healing'}`
+    }
+    case 'CONDITION':
+      return outcome.label
+    case 'EFFECT':
+      return outcome.label ?? formatCode(outcome.effectKind)
+  }
+}
+
+function findSpellAdjustment(
+  params: BuildCharacterSheetPanelParams,
+  source: SheetSpellSource['source'],
+  field: Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['field']
+) {
+  const sourceKey = createCharacterSpellSourceKey(source)
+  return findAdjustment(
+    params.adjustments,
+    'SPELL',
+    (adjustment) =>
+      createCharacterSpellSourceKey(adjustment.source) === sourceKey && adjustment.field === field
+  )
+}
+
+function findItemAdjustment(
+  params: BuildCharacterSheetPanelParams,
+  itemInstanceId: string,
+  field: Extract<CharacterSheetAdjustment, { family: 'ITEM' }>['field']
+) {
+  return findAdjustment(
+    params.adjustments,
+    'ITEM',
+    (adjustment) => adjustment.itemInstanceId === itemInstanceId && adjustment.field === field
+  )
+}
+
+function formatItemMeasurement(
+  measurement: CharacterSheetResponseDto['inventory']['items'][number]['weight']
+): string | undefined {
+  if (!measurement) return undefined
+  return `${measurement.amount} ${formatCode(measurement.unit).toLowerCase()}`
+}
+
+function buildItemPanel(
+  params: BuildCharacterSheetPanelParams,
+  engine: EngineCharacterOutput,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'ITEM' }>
+): CharacterSheetPanelDto {
+  const item = params.sheet.inventory.items.find(
+    (candidate) => candidate.id === target.itemInstanceId
+  )
+  if (!item) {
+    throw new Error(
+      `Owned item "${target.itemInstanceId}" is not available on this character sheet.`
+    )
+  }
+
+  const mechanics = engine.itemMechanics.find(
+    (candidate) => candidate.itemInstanceId === target.itemInstanceId
+  )
+  const numericEditors = [
+    ['ATTACK_BONUS', 'Attack bonus', { integer: true }],
+    ['ATTACK_OVERRIDE', 'Attack override', { integer: true }],
+    ['DAMAGE_BONUS', 'Damage bonus', { integer: true }],
+    ['COST_OVERRIDE', 'Cost override', { integer: true, minimum: 0 }],
+    ['WEIGHT_OVERRIDE', 'Weight override', { integer: false, minimum: 0 }]
+  ] as const
+  const propertyEditors = [
+    ['SILVERED', 'Silvered'],
+    ['ADAMANTINE', 'Adamantine'],
+    ['DUAL_WIELD', 'Dual wield'],
+    ['DISPLAY_AS_ATTACK', 'Display in Actions']
+  ] as const
+  const manualPropertyLabels = mechanics
+    ? [
+        mechanics.properties.silvered ? 'Silvered' : undefined,
+        mechanics.properties.adamantine ? 'Adamantine' : undefined,
+        mechanics.properties.dualWield ? 'Dual wield' : undefined,
+        mechanics.displayAsAttack ? 'Display in Actions' : undefined
+      ].filter((label): label is string => Boolean(label))
+    : []
+  const facts = [
+    ...(item.category ? [{ label: 'Category', value: formatCode(item.category) }] : []),
+    { label: 'Quantity', value: String(item.quantity) },
+    ...(formatItemMeasurement(item.weight)
+      ? [{ label: 'Weight', value: formatItemMeasurement(item.weight)! }]
+      : []),
+    ...(item.cost
+      ? [
+          {
+            label: 'Cost',
+            value: `${item.cost.amount} ${item.costLabel ?? 'currency'}`
+          }
+        ]
+      : []),
+    ...(item.armorClass !== undefined
+      ? [{ label: 'Armor class', value: String(item.armorClass) }]
+      : []),
+    ...(item.properties?.length
+      ? [
+          {
+            label: 'Properties',
+            value: item.properties.map((property) => property.label).join(', ')
+          }
+        ]
+      : []),
+    ...(item.category === 'WEAPON' || mechanics?.displayAsAttack
+      ? [
+          {
+            label: 'Attack bonus',
+            value: `${mechanics?.attackBonus && mechanics.attackBonus > 0 ? '+' : ''}${mechanics?.attackBonus ?? 0}`
+          },
+          {
+            label: 'Damage bonus',
+            value: `${mechanics?.damageBonus && mechanics.damageBonus > 0 ? '+' : ''}${mechanics?.damageBonus ?? 0}`
+          }
+        ]
+      : []),
+    ...(manualPropertyLabels.length
+      ? [{ label: 'Manual properties', value: manualPropertyLabels.join(', ') }]
+      : [])
+  ]
+  const resources = params.sheet.resources.items.flatMap((resource) =>
+    resource.owner.kind === 'ITEM_INSTANCE' && resource.owner.itemInstanceId === item.id
+      ? [
+          {
+            target: { kind: 'RESOURCE' as const, owner: resource.owner },
+            label: resource.label,
+            remaining: resource.remaining,
+            maximum: resource.max
+          }
+        ]
+      : []
+  )
+
+  return {
+    kind: 'ITEM',
+    panelId: `item:${item.id}`,
+    characterId: params.character.id,
+    target,
+    title: item.label,
+    state: resolvePanelState(params.adjustments, target),
+    editable: params.editable,
+    allowedCommands: [
+      'UPSERT_ADJUSTMENT',
+      'REMOVE_ADJUSTMENT',
+      'RESET_ADJUSTMENTS',
+      'UPDATE_OWNED_ITEM',
+      'REMOVE_OWNED_ITEM',
+      'SET_ITEM_EQUIPPED',
+      'SET_ITEM_ATTUNED',
+      'USE_RESOURCE',
+      'RECOVER_RESOURCE'
+    ],
+    itemInstanceId: item.id,
+    equipmentId: item.equipmentId,
+    authoredName: item.equipmentLabel ?? item.label,
+    displayName: item.label,
+    ...(item.description ? { description: item.description } : {}),
+    facts,
+    equipped: item.equipped,
+    attuned: item.attuned,
+    requiresAttunement: item.requiresAttunement,
+    numericEditors: numericEditors.map(([field, label, validation]) => {
+      const adjustment = findItemAdjustment(params, item.id, field)
+      return {
+        kind: 'NUMBER' as const,
+        field,
+        label,
+        value: typeof adjustment?.value === 'number' ? adjustment.value : null,
+        commitIntent: 'ON_BLUR_OR_ENTER' as const,
+        validation,
+        ...adjustmentEditorMetadata(adjustment)
+      }
+    }),
+    propertyEditors: propertyEditors.map(([field, label]) => {
+      const adjustment = findItemAdjustment(params, item.id, field)
+      return {
+        kind: 'BOOLEAN' as const,
+        field,
+        label,
+        value: adjustment?.value === true,
+        commitIntent: 'IMMEDIATE' as const,
+        ...adjustmentEditorMetadata(adjustment)
+      }
+    }),
+    textEditors: [
+      {
+        kind: 'TEXT',
+        field: 'CUSTOM_NAME',
+        label: 'Custom name',
+        value: item.customName ?? null,
+        multiline: false,
+        maximumLength: 120,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      },
+      {
+        kind: 'TEXT',
+        field: 'NOTES',
+        label: 'Item notes',
+        value: item.notes ?? null,
+        multiline: true,
+        maximumLength: 2000,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      }
+    ],
+    resources
+  }
+}
+
+function buildSpellCustomizationOptions(
+  params: BuildCharacterSheetPanelParams,
+  spell: SheetSpell,
+  source: SheetSpellSource
+): Extract<CharacterSheetPanelDto, { kind: 'SPELL' }>['customizationOptions'] {
+  const mechanics = spell.mechanics ?? []
+  const hasAttack = mechanics.some((mechanic) => mechanic.attackBonus !== undefined)
+  const hasSave = mechanics.some((mechanic) => mechanic.save !== undefined)
+  const hasDamage = mechanics.some((mechanic) =>
+    mechanic.outcomes.some((outcome) => outcome.kind === 'DAMAGE')
+  )
+
+  const numericOption = (
+    category: 'TO_HIT' | 'SAVE_DC' | 'DAMAGE',
+    label: string,
+    supportedModes: readonly ('BONUS' | 'OVERRIDE')[],
+    bonusField: 'ATTACK_BONUS' | 'DC_BONUS' | 'DAMAGE_BONUS',
+    overrideField?: 'ATTACK_OVERRIDE' | 'DC_OVERRIDE'
+  ) => {
+    const override = overrideField
+      ? findSpellAdjustment(params, source.source, overrideField)
+      : undefined
+    const bonus = findSpellAdjustment(params, source.source, bonusField)
+    const configured = override ?? bonus
+    return {
+      category,
+      label,
+      supportedModes: [...supportedModes],
+      ...(configured
+        ? {
+            configured: {
+              adjustmentId: configured.id,
+              mode: override ? ('OVERRIDE' as const) : ('BONUS' as const),
+              value: configured.value,
+              ...(configured.sourceNote ? { sourceNote: configured.sourceNote } : {})
+            }
+          }
+        : {})
+    }
+  }
+
+  return [
+    ...(hasAttack
+      ? [
+          numericOption(
+            'TO_HIT',
+            'To Hit',
+            ['BONUS', 'OVERRIDE'],
+            'ATTACK_BONUS',
+            'ATTACK_OVERRIDE'
+          )
+        ]
+      : []),
+    ...(hasSave
+      ? [numericOption('SAVE_DC', 'Save DC', ['BONUS', 'OVERRIDE'], 'DC_BONUS', 'DC_OVERRIDE')]
+      : []),
+    ...(hasDamage ? [numericOption('DAMAGE', 'Damage', ['BONUS'], 'DAMAGE_BONUS')] : [])
+  ]
+}
+
+function buildSpellPanel(
+  params: BuildCharacterSheetPanelParams,
+  engine: EngineCharacterOutput,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'SPELL' }>
+): CharacterSheetPanelDto {
+  const spell = params.sheet.spells.spells.find(
+    (candidate) => candidate.id === target.source.spellId
+  )
+  const sourceKey = createCharacterSpellSourceKey(target.source)
+  const source = spell?.sources?.find(
+    (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+  )
+  if (!spell || !source) {
+    throw new Error(`Spell source "${sourceKey}" is not available on this character sheet.`)
+  }
+
+  const sourceMechanics = engine.spellMechanics.find(
+    (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+  )
+  const castLevel = target.castLevel ?? source.fixedLevel ?? spell.level
+  const effects = (spell.mechanics ?? []).flatMap((mechanic) =>
+    mechanic.outcomes.map((outcome) => ({
+      label: formatCode(outcome.kind),
+      value: resolveSpellOutcomeLabel(outcome, castLevel, sourceMechanics?.damageBonus ?? 0)
+    }))
+  )
+  const activeEntries = params.sheet.spells.activeGroups
+    .flatMap((group) => group.entries)
+    .filter((entry) => createCharacterSpellSourceKey(entry.source) === sourceKey)
+    .sort(
+      (left, right) =>
+        Number(right.castLevel === castLevel) - Number(left.castLevel === castLevel) ||
+        left.castLevel - right.castLevel
+    )
+  const facts = [
+    {
+      label: 'Level',
+      value: `${formatSpellLevel(spell.level)}${spell.school ? ` ${formatCode(spell.school).toLowerCase()}` : ''}`
+    },
+    ...(formatSpellCastingTime(spell)
+      ? [{ label: 'Casting time', value: formatSpellCastingTime(spell)! }]
+      : []),
+    ...((spell.mechanics ?? []).find((mechanic) => mechanic.rangeLabel)?.rangeLabel
+      ? [
+          {
+            label: 'Range',
+            value: (spell.mechanics ?? []).find((mechanic) => mechanic.rangeLabel)!.rangeLabel!
+          }
+        ]
+      : []),
+    ...(spell.components?.length
+      ? [{ label: 'Components', value: spell.components.map(formatCode).join(', ') }]
+      : []),
+    ...(spell.materialDescription
+      ? [{ label: 'Materials', value: spell.materialDescription }]
+      : []),
+    ...(sourceMechanics?.attackBonus !== undefined
+      ? [
+          {
+            label: 'Spell attack',
+            value:
+              sourceMechanics.attackBonus >= 0
+                ? `+${sourceMechanics.attackBonus}`
+                : String(sourceMechanics.attackBonus)
+          }
+        ]
+      : []),
+    ...(sourceMechanics?.saveDC !== undefined
+      ? [{ label: 'Save DC', value: String(sourceMechanics.saveDC) }]
+      : [])
+  ]
+
+  return {
+    kind: 'SPELL',
+    panelId: `spell:${sourceKey}:${castLevel}`,
+    characterId: params.character.id,
+    target,
+    title: source.customName ?? spell.label,
+    state: resolvePanelState(params.adjustments, target),
+    editable: params.editable,
+    allowedCommands: [
+      'CAST_SPELL',
+      'SET_SPELL_MECHANIC_CUSTOMIZATION',
+      'REMOVE_SPELL_MECHANIC_CUSTOMIZATION',
+      'UPDATE_SPELL_SOURCE_CUSTOMIZATION',
+      'RESET_ADJUSTMENTS'
+    ],
+    source: source.source,
+    sourceLabel: source.label,
+    spellId: spell.id,
+    displayName: source.customName ?? spell.label,
+    authoredName: spell.label,
+    ...(spell.description ? { description: spell.description } : {}),
+    facts,
+    effects,
+    references: [],
+    prepared: Boolean(source.prepared),
+    canPrepare: source.canPrepare,
+    ...(source.classId ? { preparationClassId: source.classId } : {}),
+    displayAsAttack: Boolean(source.displayAsAttack),
+    legalCastModes: activeEntries.map((entry) => ({
+      kind: source.castMode ?? (spell.level === 0 ? 'AT_WILL' : 'SPELL_SLOT'),
+      label: entry.castLevel === 0 ? 'Cast at will' : `Cast at level ${entry.castLevel}`,
+      ...(entry.cast.slotKey ? { slotKey: entry.cast.slotKey } : {}),
+      castLevel: entry.castLevel,
+      available: entry.available,
+      ...(entry.unavailableReason ? { unavailableReason: entry.unavailableReason } : {})
+    })),
+    calculations: {
+      ...(spell.mechanics?.some((mechanic) => mechanic.attackBonus !== undefined) &&
+      sourceMechanics?.calculations.attackBonus
+        ? {
+            attackBonus: toPanelCalculation(sourceMechanics.calculations.attackBonus, params)
+          }
+        : {}),
+      ...(spell.mechanics?.some((mechanic) => mechanic.save !== undefined) &&
+      sourceMechanics?.calculations.saveDC
+        ? { saveDC: toPanelCalculation(sourceMechanics.calculations.saveDC, params) }
+        : {}),
+      ...(spell.mechanics?.some((mechanic) =>
+        mechanic.outcomes.some((outcome) => outcome.kind === 'DAMAGE')
+      ) && sourceMechanics
+        ? {
+            damageBonus: toPanelCalculation(sourceMechanics.calculations.damageBonus, params)
+          }
+        : {})
+    },
+    customizationOptions: buildSpellCustomizationOptions(params, spell, source),
+    textEditors: [
+      {
+        kind: 'TEXT',
+        field: 'CUSTOM_NAME',
+        label: 'Custom name',
+        value: source.customName ?? null,
+        multiline: false,
+        maximumLength: 120,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      },
+      {
+        kind: 'TEXT',
+        field: 'NOTES',
+        label: 'Spell notes',
+        value: source.notes ?? null,
+        multiline: true,
+        maximumLength: 2000,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      }
+    ]
+  }
+}
+
+function buildSpellsPanel(
+  params: BuildCharacterSheetPanelParams,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'SPELLS' }>
+): CharacterSheetPanelDto {
+  const sources = params.sheet.spells.spells.flatMap((spell) =>
+    (spell.sources ?? []).map((source) => ({
+      target: { kind: 'SPELL' as const, source: source.source },
+      source: source.source,
+      spellId: spell.id,
+      label: source.customName ?? spell.label,
+      sourceLabel: source.label,
+      level: spell.level,
+      prepared: Boolean(source.prepared),
+      canPrepare: source.canPrepare,
+      ...(source.classId ? { preparationClassId: source.classId } : {}),
+      state: resolvePanelState(params.adjustments, {
+        kind: 'SPELL',
+        source: source.source
+      })
+    }))
+  )
+
+  return {
+    kind: 'SPELLS',
+    panelId: 'spells',
+    characterId: params.character.id,
+    target,
+    title: 'Manage Spells',
+    state: resolvePanelState(params.adjustments, target),
+    editable: params.editable,
+    allowedCommands: ['SET_PREPARED_SPELLS', 'USE_SPELL_SLOT', 'RESTORE_SPELL_SLOT'],
+    slots: params.sheet.spells.slots.map((slot) => ({
+      slotKey: slot.slotKey,
+      label: slot.label,
+      used: slot.used,
+      maximum: slot.max,
+      remaining: slot.remaining
+    })),
+    groups: [...new Set(sources.map((source) => source.level))]
+      .sort((left, right) => left - right)
+      .map((level) => ({
+        level,
+        label: formatSpellLevel(level),
+        sources: sources
+          .filter((source) => source.level === level)
+          .map(({ level: _level, ...source }) => source)
+          .sort(
+            (left, right) =>
+              left.label.localeCompare(right.label) ||
+              createCharacterSpellSourceKey(left.source).localeCompare(
+                createCharacterSpellSourceKey(right.source)
+              )
+          )
+      }))
   }
 }
 
@@ -803,31 +1255,79 @@ export function buildCharacterSheetPanel(
     case 'PROFICIENCIES':
       panel = buildProficiencyPanel(params, engine, params.target)
       break
+    case 'SPELL':
+      panel = buildSpellPanel(params, engine, params.target)
+      break
+    case 'SPELLS':
+      panel = buildSpellsPanel(params, params.target)
+      break
+    case 'ITEM':
+      panel = buildItemPanel(params, engine, params.target)
+      break
+    case 'FEATURE':
+    case 'BACKGROUND':
+    case 'RESOURCE':
+      throw new Error(`Character Sheet panel "${params.target.kind}" is not implemented yet.`)
   }
   return characterSheetPanelDtoSchema.parse(panel)
 }
 
 export function getAffectedCharacterSheetPanelTargets(
-  command:
-    | {
-        type: 'UPSERT_SHEET_ADJUSTMENT'
-        adjustment: {
-          family: 'ABILITY' | 'SAVING_THROW' | 'SKILL' | 'PASSIVE' | 'SENSE' | 'MOVEMENT' | 'DEFENSE' | 'PROFICIENCY'
-          ability?: AbilityCode
-          skillId?: string
-        }
-      }
-    | {
-        type: 'REMOVE_SHEET_ADJUSTMENT'
-        family: 'ABILITY' | 'SAVING_THROW' | 'SKILL' | 'PASSIVE' | 'SENSE' | 'MOVEMENT' | 'DEFENSE' | 'PROFICIENCY'
-        target: CharacterSheetPanelTargetDto
-      }
-    | { type: 'RESET_SHEET_PANEL_ADJUSTMENTS'; target: CharacterSheetPanelTargetDto }
-    | { type: 'SET_MOVEMENT_DISPLAY_PREFERENCE' }
+  command: Extract<
+    CharacterSheetCommandInputDto,
+    {
+      type:
+        | 'UPSERT_SHEET_ADJUSTMENT'
+        | 'REMOVE_SHEET_ADJUSTMENT'
+        | 'RESET_SHEET_PANEL_ADJUSTMENTS'
+        | 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+        | 'SET_SPELL_MECHANIC_CUSTOMIZATION'
+        | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+        | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+        | 'SET_PREPARED_SPELLS'
+        | 'USE_SPELL_SLOT'
+        | 'RESTORE_SPELL_SLOT'
+        | 'UPDATE_INVENTORY_ITEM'
+        | 'EQUIP_ITEM'
+        | 'UNEQUIP_ITEM'
+        | 'ATTUNE_ITEM'
+        | 'UNATTUNE_ITEM'
+        | 'USE_SHEET_RESOURCE'
+        | 'RECOVER_SHEET_RESOURCE'
+    }
+  >
 ): CharacterSheetPanelTargetDto[] {
   if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') return [command.target]
   if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') return [{ kind: 'MOVEMENT' }]
   if (command.type === 'REMOVE_SHEET_ADJUSTMENT') return [command.target]
+  if (
+    command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+  ) {
+    return [{ kind: 'SPELL', source: command.source }]
+  }
+  if (
+    command.type === 'SET_PREPARED_SPELLS' ||
+    command.type === 'USE_SPELL_SLOT' ||
+    command.type === 'RESTORE_SPELL_SLOT'
+  ) {
+    return [{ kind: 'SPELLS' }]
+  }
+  if (
+    command.type === 'UPDATE_INVENTORY_ITEM' ||
+    command.type === 'EQUIP_ITEM' ||
+    command.type === 'UNEQUIP_ITEM' ||
+    command.type === 'ATTUNE_ITEM' ||
+    command.type === 'UNATTUNE_ITEM'
+  ) {
+    return [{ kind: 'ITEM', itemInstanceId: command.itemId }]
+  }
+  if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+    return command.owner.kind === 'ITEM_INSTANCE'
+      ? [{ kind: 'ITEM', itemInstanceId: command.owner.itemInstanceId }]
+      : [{ kind: 'RESOURCE', owner: command.owner }]
+  }
 
   switch (command.adjustment.family) {
     case 'ABILITY':
@@ -845,5 +1345,7 @@ export function getAffectedCharacterSheetPanelTargets(
       return [{ kind: 'DEFENSES' }]
     case 'PROFICIENCY':
       return [{ kind: 'PROFICIENCIES' }]
+    case 'ITEM':
+      return [{ kind: 'ITEM', itemInstanceId: command.adjustment.itemInstanceId }]
   }
 }

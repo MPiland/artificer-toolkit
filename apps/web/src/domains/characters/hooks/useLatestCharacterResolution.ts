@@ -38,44 +38,43 @@ export function useLatestCharacterResolution({
     }
   }, [])
 
-  return useCallback((character: CharacterFormValues) => {
-    const fingerprint = `${mode}:${getCharacterBuilderResolutionFingerprint(character)}`
-    const currentRequest = inFlightRef.current
-    if (currentRequest?.fingerprint === fingerprint) return currentRequest.promise
+  return useCallback(
+    (character: CharacterFormValues) => {
+      const fingerprint = `${mode}:${getCharacterBuilderResolutionFingerprint(character)}`
+      const currentRequest = inFlightRef.current
+      if (currentRequest?.fingerprint === fingerprint) return currentRequest.promise
 
-    currentRequest?.controller.abort()
-    const requestId = latestRequestIdRef.current + 1
-    latestRequestIdRef.current = requestId
-    const controller = new AbortController()
-    const inFlight: InFlightCharacterResolution = {
-      controller,
-      fingerprint,
-      promise: Promise.resolve()
-    }
+      currentRequest?.controller.abort()
+      const requestId = latestRequestIdRef.current + 1
+      latestRequestIdRef.current = requestId
+      const controller = new AbortController()
+      const inFlight: InFlightCharacterResolution = {
+        controller,
+        fingerprint,
+        promise: Promise.resolve()
+      }
 
-    inFlight.promise = mutateAsync({
-      request: {
-        character: normalizeCharacterForDraft(character),
-        mode
-      },
-      signal: controller.signal
-    })
-      .then((nextPayload) => {
-        if (!mountedRef.current || requestId !== latestRequestIdRef.current) return
-        onResolved(nextPayload)
+      inFlight.promise = mutateAsync({
+        request: {
+          character: normalizeCharacterForDraft(character),
+          mode
+        },
+        signal: controller.signal
       })
-      .catch(() => {
-        // Resolver failures are surfaced on explicit save/finalize actions.
-      })
-      .finally(() => {
-        if (inFlightRef.current === inFlight) inFlightRef.current = null
-      })
+        .then((nextPayload) => {
+          if (!mountedRef.current || requestId !== latestRequestIdRef.current) return
+          onResolved(nextPayload)
+        })
+        .catch(() => {
+          // Resolver failures are surfaced on explicit save/finalize actions.
+        })
+        .finally(() => {
+          if (inFlightRef.current === inFlight) inFlightRef.current = null
+        })
 
-    inFlightRef.current = inFlight
-    return inFlight.promise
-  }, [
-    mode,
-    mutateAsync,
-    onResolved
-  ])
+      inFlightRef.current = inFlight
+      return inFlight.promise
+    },
+    [mode, mutateAsync, onResolved]
+  )
 }

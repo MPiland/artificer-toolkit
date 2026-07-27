@@ -62,9 +62,7 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [
-    mswLoader
-  ],
+  loaders: [mswLoader],
   async beforeEach() {
     MockDate.set('2024-04-01T12:00:00Z')
   },

@@ -6,23 +6,24 @@ p1_count: 2
 timestamp: 2026-07-19T13-42-10Z
 slug: apps-web-src-marketing-pages-marketingpage-tsx
 ---
+
 Method: dual-agent (A: /root/marketing_critique_design · B: /root/marketing_critique_evidence)
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of System Status | 2/4 | Static page offers little location or state feedback |
-| 2 | Match System / Real World | 3/4 | Strong RPG language, but SRD and play-state need context |
-| 3 | User Control and Freedom | 3/4 | Standard links and clear return paths |
-| 4 | Consistency and Standards | 2/4 | Fabricated mockup navigation conflicts with the real Library/Create shell |
-| 5 | Error Prevention | 2/4 | Copy does not separate shipped capability from roadmap claims |
-| 6 | Recognition Rather Than Recall | 3/4 | Main actions are visible and the story is linear |
-| 7 | Flexibility and Efficiency | 2/4 | No demo or deeper proof path for evaluating the product |
-| 8 | Aesthetic and Minimalist Design | 2/4 | Clean, but generic and card-heavy |
-| 9 | Error Recovery | 2/4 | Little page-local support or recovery guidance |
-| 10 | Help and Documentation | 1/4 | No visible help, FAQ, docs, or contact path |
-| **Total** | | **22/40** | **Acceptable; significant trust and differentiation work remains** |
+| #         | Heuristic                       |     Score | Key issue                                                                 |
+| --------- | ------------------------------- | --------: | ------------------------------------------------------------------------- |
+| 1         | Visibility of System Status     |       2/4 | Static page offers little location or state feedback                      |
+| 2         | Match System / Real World       |       3/4 | Strong RPG language, but SRD and play-state need context                  |
+| 3         | User Control and Freedom        |       3/4 | Standard links and clear return paths                                     |
+| 4         | Consistency and Standards       |       2/4 | Fabricated mockup navigation conflicts with the real Library/Create shell |
+| 5         | Error Prevention                |       2/4 | Copy does not separate shipped capability from roadmap claims             |
+| 6         | Recognition Rather Than Recall  |       3/4 | Main actions are visible and the story is linear                          |
+| 7         | Flexibility and Efficiency      |       2/4 | No demo or deeper proof path for evaluating the product                   |
+| 8         | Aesthetic and Minimalist Design |       2/4 | Clean, but generic and card-heavy                                         |
+| 9         | Error Recovery                  |       2/4 | Little page-local support or recovery guidance                            |
+| 10        | Help and Documentation          |       1/4 | No visible help, FAQ, docs, or contact path                               |
+| **Total** |                                 | **22/40** | **Acceptable; significant trust and differentiation work remains**        |
 
 ## Anti-Patterns Verdict
 

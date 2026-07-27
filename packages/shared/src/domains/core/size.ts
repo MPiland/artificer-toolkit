@@ -44,7 +44,8 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
     code: SIZE_CODE.LARGE,
     label: 'Large',
     short: 'L',
-    description: 'Large creatures are significantly bigger than humanoids and occupy substantial space.',
+    description:
+      'Large creatures are significantly bigger than humanoids and occupy substantial space.',
     tooltip: 'Larger than humanoid.'
   },
   [SIZE_CODE.HUGE]: {
@@ -64,7 +65,8 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
   [SIZE_CODE.GIANT]: {
     code: SIZE_CODE.GIANT,
     label: 'Giant',
-    description: 'Giant represents an exceptionally large size category beyond typical classifications.',
+    description:
+      'Giant represents an exceptionally large size category beyond typical classifications.',
     tooltip: 'Exceptionally large.'
   },
   [SIZE_CODE.FINE]: {
@@ -87,9 +89,6 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
   }
 } as const
 
-export type SizeRegistryValue
-  = (typeof SIZE_REGISTRY)[keyof typeof SIZE_REGISTRY]
+export type SizeRegistryValue = (typeof SIZE_REGISTRY)[keyof typeof SIZE_REGISTRY]
 
-export const SIZE_OPTIONS = valuesOf(
-  SIZE_REGISTRY
-) as readonly SizeRegistryValue[]
+export const SIZE_OPTIONS = valuesOf(SIZE_REGISTRY) as readonly SizeRegistryValue[]

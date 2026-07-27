@@ -64,10 +64,10 @@ const RACE_ANCESTRY_OPTION_NODE_MAP = ancestryOptionNode.define(
       .set(
         'features',
         groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
-        presentation: 'branch',
-        section: RACE_ANCESTRY_OPTION_SECTIONS.features,
-        order: 10
-      })
+          presentation: 'branch',
+          section: RACE_ANCESTRY_OPTION_SECTIONS.features,
+          order: 10
+        })
       )
   }
 )

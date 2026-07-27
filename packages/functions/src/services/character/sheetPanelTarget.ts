@@ -22,6 +22,21 @@ export function characterSheetAdjustmentMatchesPanelTarget(
       return adjustment.family === 'DEFENSE'
     case 'PROFICIENCIES':
       return adjustment.family === 'PROFICIENCY'
+    case 'SPELL':
+      return (
+        adjustment.family === 'SPELL' &&
+        adjustment.source.spellId === target.source.spellId &&
+        adjustment.source.sourceKind === target.source.sourceKind &&
+        adjustment.source.sourceInstanceId === target.source.sourceInstanceId
+      )
+    case 'SPELLS':
+      return adjustment.family === 'SPELL'
+    case 'ITEM':
+      return adjustment.family === 'ITEM' && adjustment.itemInstanceId === target.itemInstanceId
+    case 'FEATURE':
+    case 'BACKGROUND':
+    case 'RESOURCE':
+      return false
   }
 }
 

@@ -35,7 +35,9 @@ export function syncHitpointLevels({
   resolvedAbilityScores: Record<string, number>
   rows: HitpointLevel[]
 }): HitpointLevel[] {
-  const classReferencesById = new Map(classReferences.map((classReference) => [classReference.id, classReference]))
+  const classReferencesById = new Map(
+    classReferences.map((classReference) => [classReference.id, classReference])
+  )
   const orderedRows = getOrderedHitpointRows(character.intent.classes, rows)
 
   return orderedRows.map((orderedRow, index) => {
@@ -103,10 +105,11 @@ function getOrderedHitpointRows(
     const selectedClassLevel = selectedLevelsByClass.get(row.classId)
     const nextClassLevel = (acceptedLevelsByClass.get(row.classId) ?? 0) + 1
     if (
-      selectedClassLevel === undefined
-      || row.classLevel !== nextClassLevel
-      || row.classLevel > selectedClassLevel
-    ) continue
+      selectedClassLevel === undefined ||
+      row.classLevel !== nextClassLevel ||
+      row.classLevel > selectedClassLevel
+    )
+      continue
 
     acceptedLevelsByClass.set(row.classId, row.classLevel)
     orderedRows.push({ ...row, level: orderedRows.length + 1, existing: true })
@@ -136,7 +139,11 @@ function getOrderedHitpointRows(
   for (const classRow of classes) {
     const selectedClassLevel = selectedLevelsByClass.get(classRow.classId) ?? 0
     const acceptedClassLevel = acceptedLevelsByClass.get(classRow.classId) ?? 0
-    for (let classLevel = acceptedClassLevel + 1; classLevel <= selectedClassLevel; classLevel += 1) {
+    for (
+      let classLevel = acceptedClassLevel + 1;
+      classLevel <= selectedClassLevel;
+      classLevel += 1
+    ) {
       orderedRows.push({
         level: orderedRows.length + 1,
         classId: classRow.classId,
@@ -155,7 +162,9 @@ export function isHitpointProgressionComplete(
   classes: CharacterFormValues['intent']['classes'],
   rows: HitpointLevel[]
 ): boolean {
-  const classLevelsById = new Map(classes.map((row) => [row.classId, Math.max(Math.trunc(row.classLevel), 0)]))
+  const classLevelsById = new Map(
+    classes.map((row) => [row.classId, Math.max(Math.trunc(row.classLevel), 0)])
+  )
   const seenClassLevels = new Map<string, number>()
   const totalLevel = [...classLevelsById.values()].reduce((sum, level) => sum + level, 0)
 
@@ -166,10 +175,11 @@ export function isHitpointProgressionComplete(
     .every((row, index) => {
       const selectedClassLevel = classLevelsById.get(row.classId)
       const nextClassLevel = (seenClassLevels.get(row.classId) ?? 0) + 1
-      const valid = row.level === index + 1
-        && selectedClassLevel !== undefined
-        && row.classLevel === nextClassLevel
-        && row.classLevel <= selectedClassLevel
+      const valid =
+        row.level === index + 1 &&
+        selectedClassLevel !== undefined &&
+        row.classLevel === nextClassLevel &&
+        row.classLevel <= selectedClassLevel
 
       if (valid) seenClassLevels.set(row.classId, row.classLevel)
       return valid
@@ -185,9 +195,7 @@ function getDefaultHitpointValue({
   characterLevel: number
   dieSides: number
 }): number {
-  const dieValue = characterLevel === 1
-    ? dieSides
-    : Math.floor(dieSides / 2) + 1
+  const dieValue = characterLevel === 1 ? dieSides : Math.floor(dieSides / 2) + 1
 
   return Math.max(dieValue + abilityModifier, 1)
 }
@@ -203,9 +211,7 @@ export function getHitpointAbilityModifier({
 }): number {
   const score = resolvedAbilityScores[ability] ?? getIntentAbilityScore(character, ability)
 
-  return typeof score === 'number' && Number.isFinite(score)
-    ? Math.floor((score - 10) / 2)
-    : 0
+  return typeof score === 'number' && Number.isFinite(score) ? Math.floor((score - 10) / 2) : 0
 }
 
 function getIntentAbilityScore(
@@ -224,7 +230,9 @@ function getIntentAbilityScore(
   return Number.isFinite(score) ? score : undefined
 }
 
-export function getHitpointDieSides(classReference: CharacterClassReference | undefined): number | null {
+export function getHitpointDieSides(
+  classReference: CharacterClassReference | undefined
+): number | null {
   const match = /d(?<sides>\d+)/iu.exec(classReference?.hitpoint?.dieConfig ?? '')
   const sides = match?.groups?.sides ? Number(match.groups.sides) : Number.NaN
 

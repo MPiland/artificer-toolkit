@@ -82,7 +82,8 @@ describe('unlinked subject repository batch hydration', () => {
         spell_attributes: [],
         spell_classes: []
       }),
-      async (rows, onSelect) => createSpellRepository(createCountingDb(rows, onSelect) as never).findAll()
+      async (rows, onSelect) =>
+        createSpellRepository(createCountingDb(rows, onSelect) as never).findAll()
     )
   })
 
@@ -102,7 +103,8 @@ describe('unlinked subject repository batch hydration', () => {
         background_features: [],
         background_proficiency_grants: []
       }),
-      async (rows, onSelect) => createBackgroundRepository(createCountingDb(rows, onSelect) as never).findAll()
+      async (rows, onSelect) =>
+        createBackgroundRepository(createCountingDb(rows, onSelect) as never).findAll()
     )
   })
 
@@ -128,7 +130,8 @@ describe('unlinked subject repository batch hydration', () => {
         feat_spell_grants: [],
         feat_modifier_grants: []
       }),
-      async (rows, onSelect) => createFeatRepository(createCountingDb(rows, onSelect) as never).findAll()
+      async (rows, onSelect) =>
+        createFeatRepository(createCountingDb(rows, onSelect) as never).findAll()
     )
   })
 
@@ -158,7 +161,8 @@ describe('unlinked subject repository batch hydration', () => {
         class_resources: [],
         class_spellcasting: []
       }),
-      async (rows, onSelect) => createClassRepository(createCountingDb(rows, onSelect) as never).findAll()
+      async (rows, onSelect) =>
+        createClassRepository(createCountingDb(rows, onSelect) as never).findAll()
     )
   })
 
@@ -184,7 +188,8 @@ describe('unlinked subject repository batch hydration', () => {
         race_speeds: [],
         race_heritages: []
       }),
-      async (rows, onSelect) => createRaceRepository(createCountingDb(rows, onSelect) as never).findAll()
+      async (rows, onSelect) =>
+        createRaceRepository(createCountingDb(rows, onSelect) as never).findAll()
     )
   })
 
@@ -228,13 +233,15 @@ describe('unlinked subject repository batch hydration', () => {
     const resolved = await repository.findResolvedAll({ userId: 'child-owner' })
 
     expect(resolved).toHaveLength(5)
-    expect(resolved).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'subrace-0',
-        parentRaceId: 'race-parent',
-        size: 'MEDIUM',
-        speeds: [{ speedId: 'walk', amount: 30, unit: 'FEET' }]
-      })
-    ]))
+    expect(resolved).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'subrace-0',
+          parentRaceId: 'race-parent',
+          size: 'MEDIUM',
+          speeds: [{ speedId: 'walk', amount: 30, unit: 'FEET' }]
+        })
+      ])
+    )
   })
 })

@@ -1,16 +1,21 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
-import { expect, vi } from 'vitest'
+import { afterAll, beforeAll, expect, vi } from 'vitest'
 
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
 import { characterSheetFixture } from '../character.fixtures'
 import { CharacterSheetAdjustmentEditor } from '../components/sheet/panels/CharacterSheetAdjustmentEditor'
 import { CharacterSheetInspector } from '../components/sheet/panels/CharacterSheetInspector'
+import { CharacterSheetItemPanelContent } from '../components/sheet/panels/CharacterSheetItemPanel'
+import { CharacterSheetSpellCustomizationEditor } from '../components/sheet/panels/CharacterSheetSpellCustomizationEditor'
 import {
   abilityPanelFixture,
-  savingThrowPanelFixture
+  itemPanelFixture,
+  savingThrowPanelFixture,
+  spellPanelAttackDamageFixture,
+  spellPanelConfiguredCustomizationsFixture
 } from '../components/sheet/panels/characterSheetPanel.fixtures'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
@@ -18,11 +23,26 @@ function panelResponse(panel: unknown) {
   return HttpResponse.json([{ result: { data: panel } }])
 }
 
+const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'scrollIntoView'
+)
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
+
+afterAll(() => {
+  if (scrollIntoViewDescriptor) {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', scrollIntoViewDescriptor)
+  } else {
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+  }
+})
+
 describe('Character Sheet inspector', () => {
   it('opens as an overlay from the existing ability card', async () => {
-    server.use(
-      http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture))
-    )
+    server.use(http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture)))
     const user = userEvent.setup()
 
     renderWithAppProviders(
@@ -33,7 +53,7 @@ describe('Character Sheet inspector', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: 'Inspect STR ability' }))
+    await user.click(screen.getByRole('button', { name: 'Inspect Strength ability' }))
 
     const inspector = await screen.findByRole('dialog', { name: 'Strength' })
     expect(inspector).toBeVisible()
@@ -60,16 +80,13 @@ describe('Character Sheet inspector', () => {
 
     expect(onCommit).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourceCategory: 'MANUAL',
         value: 3
       })
     )
   })
 
   it('announces command failures inside the overlay', async () => {
-    server.use(
-      http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture))
-    )
+    server.use(http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture)))
 
     renderWithAppProviders(
       <CharacterSheetInspector
@@ -80,6 +97,7 @@ describe('Character Sheet inspector', () => {
         submitCommand={vi.fn().mockResolvedValue(false)}
         target={{ kind: 'ABILITY', ability: 'STRENGTH' }}
         onClose={vi.fn()}
+        onOpenBuilder={vi.fn()}
         onTargetChange={vi.fn()}
       />
     )
@@ -107,9 +125,7 @@ describe('Character Sheet inspector', () => {
 
     await user.click(screen.getByRole('combobox', { name: 'Proficiency' }))
     const option = await waitFor(() => {
-      const element = document.querySelector<HTMLElement>(
-        '[role="option"][value="FULL"]'
-      )
+      const element = document.querySelector<HTMLElement>('[role="option"][value="FULL"]')
       if (!element) throw new Error('Proficient option is not available')
       return element
     })
@@ -117,7 +133,6 @@ describe('Character Sheet inspector', () => {
 
     expect(onCommit).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourceCategory: 'MANUAL',
         value: 'FULL'
       })
     )
@@ -140,10 +155,110 @@ describe('Character Sheet inspector', () => {
     await user.tab()
 
     expect(
-      await screen.findByText(
-        'The adjustment could not be saved. The server value was restored.'
-      )
+      await screen.findByText('The adjustment could not be saved. The server value was restored.')
     ).toBeVisible()
     expect(input).toHaveValue('')
+  })
+
+  it('opens a contextual spell customization without persisting until its value commits', async () => {
+    const user = userEvent.setup()
+    const onSet = vi.fn().mockResolvedValue(true)
+
+    renderWithAppProviders(
+      <CharacterSheetSpellCustomizationEditor
+        options={spellPanelAttackDamageFixture.customizationOptions}
+        pending={false}
+        onRemove={vi.fn().mockResolvedValue(true)}
+        onSet={onSet}
+      />
+    )
+
+    await user.click(screen.getByRole('combobox', { name: 'Add customization' }))
+    await user.click(await screen.findByRole('option', { hidden: true, name: 'Spell attack' }))
+
+    expect(onSet).not.toHaveBeenCalled()
+    const value = screen.getByRole('textbox', { name: 'Value' })
+    await user.type(value, '7')
+    await user.tab()
+
+    expect(onSet).toHaveBeenCalledWith({
+      category: 'TO_HIT',
+      mode: 'BONUS',
+      value: 7
+    })
+  })
+
+  it('replaces an existing spell customization mode immediately with its value and note', async () => {
+    const user = userEvent.setup()
+    const onSet = vi.fn().mockResolvedValue(true)
+
+    renderWithAppProviders(
+      <CharacterSheetSpellCustomizationEditor
+        options={[spellPanelConfiguredCustomizationsFixture.customizationOptions[0]!]}
+        pending={false}
+        onRemove={vi.fn().mockResolvedValue(true)}
+        onSet={onSet}
+      />
+    )
+
+    await user.click(screen.getByRole('combobox', { name: 'Mode' }))
+    await user.click(await screen.findByRole('option', { hidden: true, name: 'Override' }))
+
+    expect(onSet).toHaveBeenCalledWith({
+      category: 'TO_HIT',
+      mode: 'OVERRIDE',
+      value: 2,
+      sourceNote: 'Wand of the War Mage'
+    })
+  })
+
+  it('commits owned-item resource, quantity, and removal commands immediately', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const onClose = vi.fn()
+    const panel = {
+      ...itemPanelFixture,
+      facts: itemPanelFixture.facts.map((fact) =>
+        fact.label === 'Quantity' ? { ...fact, value: '2' } : fact
+      )
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetItemPanelContent
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        submitCommand={submitCommand}
+        onClose={onClose}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Use' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_SHEET_RESOURCE',
+      expectedVersion: 4,
+      owner: itemPanelFixture.resources[0]!.target.owner
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Customize' }))
+    await user.click(await screen.findByRole('button', { name: '−' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_INVENTORY_ITEM',
+      expectedVersion: 4,
+      itemId: itemPanelFixture.itemInstanceId,
+      quantity: 1
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(
+      await screen.findByRole('dialog', { name: 'Remove Moon-Touched Longsword?' })
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Remove item' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'REMOVE_INVENTORY_ITEM',
+      expectedVersion: 4,
+      itemId: itemPanelFixture.itemInstanceId
+    })
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

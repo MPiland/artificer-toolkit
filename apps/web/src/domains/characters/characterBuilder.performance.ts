@@ -55,9 +55,11 @@ function canMeasureCharacterBuilderTiming(): boolean {
 }
 
 function isCharacterBuilderTimingDebugEnabled(): boolean {
-  return isDevelopmentBuild()
-    && typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).has('characterTiming')
+  return (
+    isDevelopmentBuild() &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('characterTiming')
+  )
 }
 
 function isDevelopmentBuild(): boolean {

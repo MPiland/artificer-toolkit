@@ -5,7 +5,9 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterFormValues } from '../characterBuilder.utils'
 
-type ChosenGrantSelection = NonNullable<CharacterFormValues['intent']['chosenGrantSelections']>[number]
+type ChosenGrantSelection = NonNullable<
+  CharacterFormValues['intent']['chosenGrantSelections']
+>[number]
 type ProficiencyLevel = NonNullable<CharacterBuilderChosenGrantChoiceViewDto['proficiencyLevel']>
 
 type ProficiencyLevels = {
@@ -25,10 +27,11 @@ export function applyLocalProficiencyEligibility(
   const levelsByTargetId = new Map<string, ProficiencyLevels>()
   for (const otherChoice of allChoices) {
     if (
-      otherChoice.id === choice.id
-      || otherChoice.proficiencyKind !== choice.proficiencyKind
-      || !otherChoice.proficiencyLevel
-    ) continue
+      otherChoice.id === choice.id ||
+      otherChoice.proficiencyKind !== choice.proficiencyKind ||
+      !otherChoice.proficiencyLevel
+    )
+      continue
 
     for (const targetId of getSelectedChosenGrantTargetIds(selections, otherChoice)) {
       addProficiencyLevel(levelsByTargetId, targetId, otherChoice.proficiencyLevel)
@@ -39,14 +42,9 @@ export function applyLocalProficiencyEligibility(
     ...choice,
     options: choice.options.map((option) => {
       if (option.disabled) return option
-      const reason = getProficiencyDisabledReason(
-        proficiencyLevel,
-        levelsByTargetId.get(option.id)
-      )
+      const reason = getProficiencyDisabledReason(proficiencyLevel, levelsByTargetId.get(option.id))
 
-      return reason
-        ? { ...option, disabled: true, disabledReason: reason }
-        : option
+      return reason ? { ...option, disabled: true, disabledReason: reason } : option
     })
   }
 }
@@ -90,10 +88,14 @@ export function setChosenGrantTargetIds(
 ): CharacterFormValues['intent']['chosenGrantSelections'] {
   const currentSelections = selections ?? []
   const compactTargetIds = targetIds.filter(Boolean).slice(0, choice.requiredCount)
-  const existingSelection = currentSelections.find((selection) => isSelectionForChoice(selection, choice))
+  const existingSelection = currentSelections.find((selection) =>
+    isSelectionForChoice(selection, choice)
+  )
 
   if (compactTargetIds.length === 0) {
-    const remainingSelections = currentSelections.filter((selection) => !isSelectionForChoice(selection, choice))
+    const remainingSelections = currentSelections.filter(
+      (selection) => !isSelectionForChoice(selection, choice)
+    )
     return remainingSelections.length > 0 ? remainingSelections : undefined
   }
 
@@ -107,7 +109,9 @@ export function setChosenGrantTargetIds(
   }
 
   return existingSelection
-    ? currentSelections.map((selection) => isSelectionForChoice(selection, choice) ? nextSelection : selection)
+    ? currentSelections.map((selection) =>
+        isSelectionForChoice(selection, choice) ? nextSelection : selection
+      )
     : [...currentSelections, nextSelection]
 }
 
@@ -122,9 +126,11 @@ function isSelectionForChoice(
   selection: ChosenGrantSelection,
   choice: CharacterBuilderChosenGrantChoiceViewDto
 ): boolean {
-  return selection.grantId === choice.grantId
-    && selection.progressionLevel === choice.progressionLevel
-    && isSameCharacterProvenanceIdentity(selection.source, choice.source)
+  return (
+    selection.grantId === choice.grantId &&
+    selection.progressionLevel === choice.progressionLevel &&
+    isSameCharacterProvenanceIdentity(selection.source, choice.source)
+  )
 }
 
 function addProficiencyLevel(

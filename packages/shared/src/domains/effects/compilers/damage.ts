@@ -12,25 +12,19 @@ import {
 } from '#core'
 import { assertNever } from '#utils'
 
-export type CompiledLevelScaledValue<
-  TPayload,
-  TSource extends ScalingSource
-> = {
+export type CompiledLevelScaledValue<TPayload, TSource extends ScalingSource> = {
   scalingKind: typeof SCALING.PER_LEVEL
   level: number
   order: number
-} & ScalingPayload<TSource>
-& TPayload
+} & ScalingPayload<TSource> &
+  TPayload
 
-export type CompiledBreakpointScaledValue<
-  TPayload,
-  TSource extends ScalingSource
-> = {
+export type CompiledBreakpointScaledValue<TPayload, TSource extends ScalingSource> = {
   scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
   level: number
   order: number
-} & ScalingPayload<TSource>
-& TPayload
+} & ScalingPayload<TSource> &
+  TPayload
 
 export type CompiledDamagePoolScaled<TSource extends ScalingSource> = {
   valueKind: typeof DAMAGE_VALUE_KIND.POOL
@@ -41,76 +35,74 @@ export type CompiledDamagePoolScaled<TSource extends ScalingSource> = {
   max?: number
 } & ScalingPayload<TSource>
 
-export type CompiledDamageBonus
-  = | {
-    bonusKind: typeof DAMAGE_BONUS_KIND.PROFICIENCY_BONUS
-    order: number
-    min?: number
-    max?: number
-    multiplier?: number
-  }
+export type CompiledDamageBonus =
   | {
-    bonusKind: typeof DAMAGE_BONUS_KIND.ABILITY_BONUS
-    ability: AbilityModifierReference
-    order: number
-    min?: number
-    max?: number
-    multiplier?: number
-  }
+      bonusKind: typeof DAMAGE_BONUS_KIND.PROFICIENCY_BONUS
+      order: number
+      min?: number
+      max?: number
+      multiplier?: number
+    }
   | {
-    bonusKind: typeof DAMAGE_BONUS_KIND.SKILL_BONUS
-    skillId: string
-    order: number
-    min?: number
-    max?: number
-    multiplier?: number
-  }
+      bonusKind: typeof DAMAGE_BONUS_KIND.ABILITY_BONUS
+      ability: AbilityModifierReference
+      order: number
+      min?: number
+      max?: number
+      multiplier?: number
+    }
+  | {
+      bonusKind: typeof DAMAGE_BONUS_KIND.SKILL_BONUS
+      skillId: string
+      order: number
+      min?: number
+      max?: number
+      multiplier?: number
+    }
 
-export type CompiledDamagePayloadByValue<
-  S extends ScalingSource = ScalingSource
-> = {
+export type CompiledDamagePayloadByValue<S extends ScalingSource = ScalingSource> = {
   [DAMAGE_VALUE_KIND.FIXED]:
     | {
-      amount: number
-      valueKind: typeof DAMAGE_VALUE_KIND.FIXED
-      scalingKind: typeof SCALING.NONE
-    }
+        amount: number
+        valueKind: typeof DAMAGE_VALUE_KIND.FIXED
+        scalingKind: typeof SCALING.NONE
+      }
     | ({
-      valueKind: typeof DAMAGE_VALUE_KIND.FIXED
-      scalingKind: typeof SCALING.PER_LEVEL
-    } & CompiledLevelScaledValue<{ amount: number }, S>)
+        valueKind: typeof DAMAGE_VALUE_KIND.FIXED
+        scalingKind: typeof SCALING.PER_LEVEL
+      } & CompiledLevelScaledValue<{ amount: number }, S>)
     | ({
-      valueKind: typeof DAMAGE_VALUE_KIND.FIXED
-      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
-    } & CompiledBreakpointScaledValue<{ amount: number }, S>)
+        valueKind: typeof DAMAGE_VALUE_KIND.FIXED
+        scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+      } & CompiledBreakpointScaledValue<{ amount: number }, S>)
   [DAMAGE_VALUE_KIND.DICE]:
     | {
-      dice: string
-      valueKind: typeof DAMAGE_VALUE_KIND.DICE
-      scalingKind: typeof SCALING.NONE
-    }
+        dice: string
+        valueKind: typeof DAMAGE_VALUE_KIND.DICE
+        scalingKind: typeof SCALING.NONE
+      }
     | ({
-      valueKind: typeof DAMAGE_VALUE_KIND.DICE
-      scalingKind: typeof SCALING.PER_LEVEL
-    } & CompiledLevelScaledValue<{ dice: string }, S>)
+        valueKind: typeof DAMAGE_VALUE_KIND.DICE
+        scalingKind: typeof SCALING.PER_LEVEL
+      } & CompiledLevelScaledValue<{ dice: string }, S>)
     | ({
-      valueKind: typeof DAMAGE_VALUE_KIND.DICE
-      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
-    } & CompiledBreakpointScaledValue<{ dice: string }, S>)
+        valueKind: typeof DAMAGE_VALUE_KIND.DICE
+        scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+      } & CompiledBreakpointScaledValue<{ dice: string }, S>)
   [DAMAGE_VALUE_KIND.POOL]:
     | {
-      amount: number
-      valueKind: typeof DAMAGE_VALUE_KIND.POOL
-      scalingKind: typeof SCALING.NONE
-    }
+        amount: number
+        valueKind: typeof DAMAGE_VALUE_KIND.POOL
+        scalingKind: typeof SCALING.NONE
+      }
     | ({
-      valueKind: typeof DAMAGE_VALUE_KIND.POOL
-      scalingKind: typeof SCALING.PER_LEVEL
-    } & CompiledDamagePoolScaled<S>)
+        valueKind: typeof DAMAGE_VALUE_KIND.POOL
+        scalingKind: typeof SCALING.PER_LEVEL
+      } & CompiledDamagePoolScaled<S>)
 }
 
-export type CompiledDamageValue<S extends ScalingSource>
-  = CompiledDamagePayloadByValue<S>[keyof CompiledDamagePayloadByValue<S>]
+export type CompiledDamageValue<S extends ScalingSource> =
+  CompiledDamagePayloadByValue<S>[keyof CompiledDamagePayloadByValue<S>]
 
 export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   id: string
@@ -121,9 +113,7 @@ export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   multiplier?: number
 } & CompiledDamageValue<S>
 
-export function compileDamageBonuses(
-  authored: DamageBonusAuthored
-): CompiledDamageBonus {
+export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDamageBonus {
   switch (authored.bonusKind) {
     case DAMAGE_BONUS_KIND.PROFICIENCY_BONUS:
       return {
@@ -159,11 +149,9 @@ export function compileDamageBonuses(
   }
 }
 
-export function compileDamageEffect(
-  authored: DamageAuthored
-): CompiledDamageEffect[] {
-  const bonuses
-    = authored.bonuses && authored.bonuses.length
+export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEffect[] {
+  const bonuses =
+    authored.bonuses && authored.bonuses.length
       ? authored.bonuses.map(compileDamageBonuses)
       : undefined
 
@@ -171,45 +159,51 @@ export function compileDamageEffect(
     case SCALING.NONE: {
       switch (authored.valueKind) {
         case DAMAGE_VALUE_KIND.FIXED: {
-          return [{
-            id: authored.id,
-            effectKind: EFFECT_KIND.DAMAGE,
-            damageTypeId: authored.damageTypeId,
-            valueKind: DAMAGE_VALUE_KIND.FIXED,
-            bonuses,
-            amountKind: authored.amountKind,
-            multiplier: authored.multiplier,
-            scalingKind: SCALING.NONE,
-            amount: authored.amount
-          }]
+          return [
+            {
+              id: authored.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: DAMAGE_VALUE_KIND.FIXED,
+              bonuses,
+              amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
+              scalingKind: SCALING.NONE,
+              amount: authored.amount
+            }
+          ]
         }
 
         case DAMAGE_VALUE_KIND.DICE: {
-          return [{
-            id: authored.id,
-            effectKind: EFFECT_KIND.DAMAGE,
-            damageTypeId: authored.damageTypeId,
-            valueKind: authored.valueKind,
-            dice: authored.diceConfig,
-            bonuses,
-            amountKind: authored.amountKind,
-            multiplier: authored.multiplier,
-            scalingKind: authored.scalingKind
-          }]
+          return [
+            {
+              id: authored.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: authored.valueKind,
+              dice: authored.diceConfig,
+              bonuses,
+              amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
+              scalingKind: authored.scalingKind
+            }
+          ]
         }
 
         case DAMAGE_VALUE_KIND.POOL: {
-          return [{
-            id: authored.id,
-            effectKind: EFFECT_KIND.DAMAGE,
-            damageTypeId: authored.damageTypeId,
-            valueKind: authored.valueKind,
-            amount: authored.amount,
-            bonuses,
-            amountKind: authored.amountKind,
-            multiplier: authored.multiplier,
-            scalingKind: authored.scalingKind
-          }]
+          return [
+            {
+              id: authored.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: authored.valueKind,
+              amount: authored.amount,
+              bonuses,
+              amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
+              scalingKind: authored.scalingKind
+            }
+          ]
         }
 
         default:
@@ -262,23 +256,25 @@ export function compileDamageEffect(
           })
         }
         case DAMAGE_VALUE_KIND.POOL: {
-          return [{
-            id: authored.id,
-            effectKind: EFFECT_KIND.DAMAGE,
-            damageTypeId: authored.damageTypeId,
-            valueKind: DAMAGE_VALUE_KIND.POOL,
-            min: authored.min,
-            max: authored.max,
-            amount: authored.amount,
-            multiplier: authored.multiplier,
-            bonuses,
-            amountKind: authored.amountKind,
-            scalingKind: SCALING.PER_LEVEL,
-            scalingSource: authored.scalingSource,
-            ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
-              ? { classId: authored.classId }
-              : {})
-          } as CompiledDamageEffect]
+          return [
+            {
+              id: authored.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: DAMAGE_VALUE_KIND.POOL,
+              min: authored.min,
+              max: authored.max,
+              amount: authored.amount,
+              multiplier: authored.multiplier,
+              bonuses,
+              amountKind: authored.amountKind,
+              scalingKind: SCALING.PER_LEVEL,
+              scalingSource: authored.scalingSource,
+              ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+                ? { classId: authored.classId }
+                : {})
+            } as CompiledDamageEffect
+          ]
         }
         default:
           return assertNever(authored)

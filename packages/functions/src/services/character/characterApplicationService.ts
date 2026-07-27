@@ -20,7 +20,8 @@ import {
   type CharacterBuilderDraft,
   createCharacterEventRepository,
   createCharacterRepository,
-  createCharacterSheetAdjustmentRepository
+  createCharacterSheetAdjustmentRepository,
+  createCharacterSheetPlayStateRepository
 } from '@artificer-toolkit/db'
 import {
   ABILITY_OPTIONS,
@@ -1716,10 +1717,14 @@ export async function getCharacterSheetForUser(
   })
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
-  const [adjustments, movementDisplayPreference] = await Promise.all([
-    adjustmentRepository.listByCharacter(character.id),
-    adjustmentRepository.getMovementPreference(character.id)
-  ])
+  const playStateRepository = createCharacterSheetPlayStateRepository(db)
+  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      adjustmentRepository.listByCharacter(character.id),
+      adjustmentRepository.getMovementPreference(character.id),
+      playStateRepository.listResourceUsage(character.id),
+      playStateRepository.listSpellCustomizations(character.id)
+    ])
 
   return {
     ...(await buildCharacterSheetResponse({
@@ -1729,7 +1734,9 @@ export async function getCharacterSheetForUser(
       streamVersion: row?.stream_version ?? 0,
       hasBuilderDraft: Boolean(draft),
       adjustments,
-      movementDisplayPreference
+      movementDisplayPreference,
+      resourceUsage,
+      spellCustomizations
     })),
     publicId: routeIdentity.publicId
   }
@@ -1766,18 +1773,24 @@ export async function getCharacterSheetPanelForUser(
   }
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
-  const [resolution, adjustments, movementDisplayPreference] = await Promise.all([
-    resolveCharacterBuilder(db, character, 'edit'),
-    adjustmentRepository.listByCharacter(resolvedCharacterId),
-    adjustmentRepository.getMovementPreference(resolvedCharacterId)
-  ])
+  const playStateRepository = createCharacterSheetPlayStateRepository(db)
+  const [resolution, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      resolveCharacterBuilder(db, character, 'edit'),
+      adjustmentRepository.listByCharacter(resolvedCharacterId),
+      adjustmentRepository.getMovementPreference(resolvedCharacterId),
+      playStateRepository.listResourceUsage(resolvedCharacterId),
+      playStateRepository.listSpellCustomizations(resolvedCharacterId)
+    ])
   const sheet = await buildCharacterSheetResponse({
     db,
     character,
     resolution,
     streamVersion: row.stream_version,
     adjustments,
-    movementDisplayPreference
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
   })
   return buildCharacterSheetPanel({
     character,
@@ -1891,6 +1904,19 @@ type CorePanelCommand = Extract<
       | 'REMOVE_SHEET_ADJUSTMENT'
       | 'RESET_SHEET_PANEL_ADJUSTMENTS'
       | 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+      | 'SET_SPELL_MECHANIC_CUSTOMIZATION'
+      | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+      | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+      | 'SET_PREPARED_SPELLS'
+      | 'USE_SPELL_SLOT'
+      | 'RESTORE_SPELL_SLOT'
+      | 'UPDATE_INVENTORY_ITEM'
+      | 'EQUIP_ITEM'
+      | 'UNEQUIP_ITEM'
+      | 'ATTUNE_ITEM'
+      | 'UNATTUNE_ITEM'
+      | 'USE_SHEET_RESOURCE'
+      | 'RECOVER_SHEET_RESOURCE'
   }
 >
 
@@ -1899,7 +1925,20 @@ function isCorePanelCommand(command: CharacterSheetCommandInputDto): command is 
     command.type === 'UPSERT_SHEET_ADJUSTMENT' ||
     command.type === 'REMOVE_SHEET_ADJUSTMENT' ||
     command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' ||
-    command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+    command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE' ||
+    command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION' ||
+    command.type === 'SET_PREPARED_SPELLS' ||
+    command.type === 'USE_SPELL_SLOT' ||
+    command.type === 'RESTORE_SPELL_SLOT' ||
+    command.type === 'UPDATE_INVENTORY_ITEM' ||
+    command.type === 'EQUIP_ITEM' ||
+    command.type === 'UNEQUIP_ITEM' ||
+    command.type === 'ATTUNE_ITEM' ||
+    command.type === 'UNATTUNE_ITEM' ||
+    command.type === 'USE_SHEET_RESOURCE' ||
+    command.type === 'RECOVER_SHEET_RESOURCE'
   )
 }
 

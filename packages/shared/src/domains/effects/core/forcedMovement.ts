@@ -55,7 +55,7 @@ export const FORCED_MOVEMENT_DISTANCE_MODE_REGISTRY: Record<
   [FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED]: {
     code: FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED,
     label: 'Up To Speed',
-    description: 'Move up to the target\'s current speed.',
+    description: "Move up to the target's current speed.",
     tooltip: 'Up to speed.'
   },
   [FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE]: {
@@ -103,10 +103,10 @@ export const FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS = valuesOf(
 
 export type ForcedMovementDistance =
   | {
-    distanceMode: typeof FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED
-  }
+      distanceMode: typeof FORCED_MOVEMENT_DISTANCE_MODE.UP_TO_SPEED
+    }
   | {
-    distanceMode: typeof FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE
-    amount: number
-    unit: MeasurementUnitCode
-  }
+      distanceMode: typeof FORCED_MOVEMENT_DISTANCE_MODE.FIXED_DISTANCE
+      amount: number
+      unit: MeasurementUnitCode
+    }

@@ -10,15 +10,11 @@ export type FeatureCategory = keyof typeof FEATURE_CATEGORY
 
 export type FeatureCategoryOption = CoreMeta<FeatureCategory>
 
-export const FEATURE_CATEGORY_REGISTRY: Record<
-  FeatureCategory,
-  FeatureCategoryOption
-> = {
+export const FEATURE_CATEGORY_REGISTRY: Record<FeatureCategory, FeatureCategoryOption> = {
   FEATURE: {
     code: FEATURE_CATEGORY.FEATURE,
     label: 'Feature',
-    description:
-      'A feature that adds effects, modifiers, or other grants to a character.',
+    description: 'A feature that adds effects, modifiers, or other grants to a character.',
     tooltip: 'Feature to add grants.'
   },
 
@@ -40,10 +36,7 @@ export type FeatureAttribute = keyof typeof FEATURE_ATTRIBUTE
 
 export type FeatureAttributeOption = CoreMeta<FeatureAttribute>
 
-export const FEATURE_ATTRIBUTE_REGISTRY: Record<
-  FeatureAttribute,
-  FeatureAttributeOption
-> = {
+export const FEATURE_ATTRIBUTE_REGISTRY: Record<FeatureAttribute, FeatureAttributeOption> = {
   LIMITED_USE: {
     code: FEATURE_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',
@@ -85,10 +78,7 @@ export type FeatureSection = keyof typeof FEATURE_SECTION
 
 export type FeatureSectionOption = CoreMeta<FeatureSection>
 
-export const FEATURE_SECTION_REGISTRY: Record<
-  FeatureSection,
-  FeatureSectionOption
-> = {
+export const FEATURE_SECTION_REGISTRY: Record<FeatureSection, FeatureSectionOption> = {
   TRAIT: { code: FEATURE_SECTION.TRAIT, label: 'Trait' },
   ACTION: { code: FEATURE_SECTION.ACTION, label: 'Action' },
   BONUS_ACTION: { code: FEATURE_SECTION.BONUS_ACTION, label: 'Bonus Action' },

@@ -16,40 +16,44 @@ const baseGroup = {
 
 describe('node runtime group presentation', () => {
   it('rejects the removed focused-drawer platform detail', () => {
-    expect(nodeRuntimeNodeDtoSchema.safeParse({
-      ...baseGroup,
-      groupKind: 'ARRAY',
-      presentation: 'focused-drawer',
-      authoring: {
-        exposure: 'author',
-        collection: { actions: [], ordering: { mode: 'derived' } }
-      }
-    }).success).toBe(false)
+    expect(
+      nodeRuntimeNodeDtoSchema.safeParse({
+        ...baseGroup,
+        groupKind: 'ARRAY',
+        presentation: 'focused-drawer',
+        authoring: {
+          exposure: 'author',
+          collection: { actions: [], ordering: { mode: 'derived' } }
+        }
+      }).success
+    ).toBe(false)
   })
 
   it('accepts semantic authoring metadata without web-specific styling', () => {
-    expect(nodeRuntimeNodeDtoSchema.parse({
-      ...baseGroup,
-      groupKind: 'ARRAY',
-      presentation: 'inline',
-      authoring: {
-        exposure: 'author',
-        collection: {
-          actions: [
-            {
-              type: 'collection.add',
-              label: 'Add option',
-              presentation: actionPresentationPresets.text
-            }
-          ],
-          ordering: { mode: 'derived' },
-          join: 'OR',
-          rowLayout: 'card',
-          rowExpansion: 'expanded',
-          rowSummary: 'modifier'
+    expect(
+      nodeRuntimeNodeDtoSchema.parse({
+        ...baseGroup,
+        groupKind: 'ARRAY',
+        presentation: 'inline',
+        authoring: {
+          exposure: 'author',
+          collection: {
+            actions: [
+              {
+                type: 'collection.add',
+                label: 'Add option',
+                presentation: actionPresentationPresets.text
+              }
+            ],
+            ordering: { mode: 'derived' },
+            join: 'OR',
+            rowLayout: 'card',
+            rowExpansion: 'expanded',
+            rowSummary: 'modifier'
+          }
         }
-      }
-    })).toMatchObject({
+      })
+    ).toMatchObject({
       authoring: {
         collection: {
           rowLayout: 'card',
@@ -77,21 +81,25 @@ describe('node runtime group presentation', () => {
 
   it('restricts object groups to inline or branch presentation', () => {
     for (const presentation of ['table', 'summary', 'focused']) {
-      expect(nodeRuntimeNodeDtoSchema.safeParse({
-        ...baseGroup,
-        groupKind: 'OBJECT',
-        presentation,
-        authoring: { exposure: 'author', actions: [] }
-      }).success).toBe(false)
+      expect(
+        nodeRuntimeNodeDtoSchema.safeParse({
+          ...baseGroup,
+          groupKind: 'OBJECT',
+          presentation,
+          authoring: { exposure: 'author', actions: [] }
+        }).success
+      ).toBe(false)
     }
 
     for (const presentation of ['inline', 'branch']) {
-      expect(nodeRuntimeNodeDtoSchema.safeParse({
-        ...baseGroup,
-        groupKind: 'OBJECT',
-        presentation,
-        authoring: { exposure: 'author', actions: [] }
-      }).success).toBe(true)
+      expect(
+        nodeRuntimeNodeDtoSchema.safeParse({
+          ...baseGroup,
+          groupKind: 'OBJECT',
+          presentation,
+          authoring: { exposure: 'author', actions: [] }
+        }).success
+      ).toBe(true)
     }
   })
 })

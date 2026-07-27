@@ -7,7 +7,9 @@ describe('Shell', () => {
     renderShell('/home')
 
     expect(screen.getByTestId('app-shell-main')).toContainElement(screen.getByTestId('normal-page'))
-    expect(screen.getByTestId('app-shell-content')).toContainElement(screen.getByTestId('normal-page'))
+    expect(screen.getByTestId('app-shell-content')).toContainElement(
+      screen.getByTestId('normal-page')
+    )
   })
 
   it('leaves authoring routes out of the padded page content wrapper', () => {
@@ -39,12 +41,7 @@ describe('Shell', () => {
 
 function renderShell(currentPath: string) {
   return renderWithAppProviders(
-    <Shell
-      currentPath={currentPath}
-      isAuthenticated
-      navigation={[]}
-      userEmail='test@example.com'
-    >
+    <Shell currentPath={currentPath} isAuthenticated navigation={[]} userEmail='test@example.com'>
       <div data-testid='normal-page'>Page content</div>
     </Shell>,
     { initialPath: currentPath }

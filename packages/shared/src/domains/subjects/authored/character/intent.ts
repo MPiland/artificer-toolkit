@@ -7,17 +7,17 @@ import {
   type HitpointCalculationMethodCode
 } from '#core'
 
-export type CharacterProvenance
-  = | { kind: 'CLASS', classId: string, classLevel?: number }
-    | { kind: 'SUBCLASS', subclassId: string, classLevel?: number }
-    | { kind: 'RACE', raceId: string }
-    | { kind: 'SUBRACE', subraceId: string }
-    | { kind: 'ANCESTRY', ancestryId: string, optionId: string }
-    | { kind: 'BACKGROUND', backgroundId: string }
-    | { kind: 'FEAT', featId: string }
-    | { kind: 'FEATURE', featureId: string }
-    | { kind: 'OPTION', acquiredParentId: string, optionId: string }
-    | { kind: 'MANUAL', reason?: string }
+export type CharacterProvenance =
+  | { kind: 'CLASS'; classId: string; classLevel?: number }
+  | { kind: 'SUBCLASS'; subclassId: string; classLevel?: number }
+  | { kind: 'RACE'; raceId: string }
+  | { kind: 'SUBRACE'; subraceId: string }
+  | { kind: 'ANCESTRY'; ancestryId: string; optionId: string }
+  | { kind: 'BACKGROUND'; backgroundId: string }
+  | { kind: 'FEAT'; featId: string }
+  | { kind: 'FEATURE'; featureId: string }
+  | { kind: 'OPTION'; acquiredParentId: string; optionId: string }
+  | { kind: 'MANUAL'; reason?: string }
 
 export function getCharacterProvenanceIdentityKey(source: CharacterProvenance): string {
   switch (source.kind) {
@@ -53,15 +53,14 @@ export function isSameCharacterProvenanceIdentity(
   return getCharacterProvenanceIdentityKey(left) === getCharacterProvenanceIdentityKey(right)
 }
 
-
 /* ──────────────────────────────────────────────
  * Timing
  * ────────────────────────────────────────────── */
 
-export type CharacterAcquisitionTiming
-  = | { kind: 'IMMEDIATE' }
-    | { kind: 'CHARACTER_LEVEL', level: number }
-    | { kind: 'CLASS_LEVEL', classId: string, classLevel: number }
+export type CharacterAcquisitionTiming =
+  | { kind: 'IMMEDIATE' }
+  | { kind: 'CHARACTER_LEVEL'; level: number }
+  | { kind: 'CLASS_LEVEL'; classId: string; classLevel: number }
 
 /* ──────────────────────────────────────────────
  * Feature acquisition provenance
@@ -69,11 +68,11 @@ export type CharacterAcquisitionTiming
 
 export type CharacterFeatureSource = CharacterProvenance
 
-export type CharacterFeatureSelectionValue
-  = | { kind: 'ID', id: string }
-    | { kind: 'IDS', ids: string[] }
-    | { kind: 'NUMBER', value: number }
-    | { kind: 'BOOLEAN', value: boolean }
+export type CharacterFeatureSelectionValue =
+  | { kind: 'ID'; id: string }
+  | { kind: 'IDS'; ids: string[] }
+  | { kind: 'NUMBER'; value: number }
+  | { kind: 'BOOLEAN'; value: boolean }
 
 export interface CharacterFeatureSelectionRecord {
   /** Stable key within the feature definition */
@@ -127,9 +126,9 @@ export interface CharacterChosenGrantSelectionRecord extends CharacterChosenGran
  * Advancement
  * ────────────────────────────────────────────── */
 
-export type CharacterAdvancementIntent
-  = | { method: typeof ADVANCEMENT_METHOD_CODE.EXPERIENCE, experience?: number }
-    | { method: typeof ADVANCEMENT_METHOD_CODE.MILESTONE }
+export type CharacterAdvancementIntent =
+  | { method: typeof ADVANCEMENT_METHOD_CODE.EXPERIENCE; experience?: number }
+  | { method: typeof ADVANCEMENT_METHOD_CODE.MILESTONE }
 
 /* ──────────────────────────────────────────────
  * Hitpoints (split intent vs state)
@@ -170,8 +169,8 @@ export interface CharacterAncestryAcquisition {
   id: string
   ancestryId: string
   optionId: string
-  source: { kind: 'RACE', raceId: string } | { kind: 'SUBRACE', subraceId: string }
-  timing: { kind: 'IMMEDIATE' } | { kind: 'CLASS_LEVEL', classId: string, classLevel: number }
+  source: { kind: 'RACE'; raceId: string } | { kind: 'SUBRACE'; subraceId: string }
+  timing: { kind: 'IMMEDIATE' } | { kind: 'CLASS_LEVEL'; classId: string; classLevel: number }
 }
 
 /* ──────────────────────────────────────────────
@@ -199,7 +198,10 @@ export interface CharacterAbilityRollGroupRecord {
   rolling?: boolean
 }
 
-export interface CharacterManualAbilityAssignment { ability: AbilityCode, score: number }
+export interface CharacterManualAbilityAssignment {
+  ability: AbilityCode
+  score: number
+}
 
 export interface CharacterManualRolledAbilityRecord {
   configuration?: string
@@ -217,19 +219,19 @@ export interface CharacterPointBuyAssignment {
   option: PointBuyScore
 }
 
-export type CharacterAbilityScoresIntent
-  = | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
-    assignments: CharacterStandardArrayAssignment[]
-  }
+export type CharacterAbilityScoresIntent =
   | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
-    assignments: CharacterPointBuyAssignment[]
-  }
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
+      assignments: CharacterStandardArrayAssignment[]
+    }
   | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-    state: CharacterManualRolledAbilityRecord
-  }
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
+      assignments: CharacterPointBuyAssignment[]
+    }
+  | {
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+      state: CharacterManualRolledAbilityRecord
+    }
 
 /* ──────────────────────────────────────────────
  * Starting equipment intent (UX record)
@@ -271,13 +273,10 @@ export interface CharacterStartingEquipmentDecision {
  * Spells intent (ONLY for feature/option-based picks)
  * ────────────────────────────────────────────── */
 
-export type CharacterSpellSelectionSource
-  = Extract<CharacterProvenance,
-  | { kind: 'CLASS' }
-  | { kind: 'SUBCLASS' }
-  | { kind: 'FEATURE' }
-  | { kind: 'OPTION' }
-  >
+export type CharacterSpellSelectionSource = Extract<
+  CharacterProvenance,
+  { kind: 'CLASS' } | { kind: 'SUBCLASS' } | { kind: 'FEATURE' } | { kind: 'OPTION' }
+>
 
 export interface CharacterSpellSelectionRecord {
   id: string
@@ -291,13 +290,10 @@ export interface CharacterSpellSelectionRecord {
  * Resources intent (grant provenance only)
  * ────────────────────────────────────────────── */
 
-export type CharacterResourceGrantSource
-  = Extract<CharacterProvenance,
-  | { kind: 'CLASS' }
-  | { kind: 'SUBCLASS' }
-  | { kind: 'FEATURE' }
-  | { kind: 'OPTION' }
-  >
+export type CharacterResourceGrantSource = Extract<
+  CharacterProvenance,
+  { kind: 'CLASS' } | { kind: 'SUBCLASS' } | { kind: 'FEATURE' } | { kind: 'OPTION' }
+>
 
 export interface CharacterResourceGrantRecord {
   id: string

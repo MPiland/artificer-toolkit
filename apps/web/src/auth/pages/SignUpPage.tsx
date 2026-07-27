@@ -29,7 +29,7 @@ export function SignUpPage({ publicSignUpEnabled = false }: { publicSignUpEnable
       description='Start with a character or homebrew draft, then keep it ready for play.'
     >
       <SignUpForm
-        onSuccess={(result) => result.session ? navigate({ to: '/home' }) : undefined}
+        onSuccess={(result) => (result.session ? navigate({ to: '/home' }) : undefined)}
       />
     </AuthPageShell>
   )

@@ -16,7 +16,7 @@ export const polarBear: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 2,
     WISDOM: 13,
-    CHARISMA: 7,
+    CHARISMA: 7
   },
   armorClass: 12,
   armorClassNote: 'natural armor',
@@ -24,12 +24,10 @@ export const polarBear: CreatureAuthored = {
   hitDice: {
     count: 5,
     die: 10,
-    modifier: 15,
+    modifier: 15
   },
   speeds: [...S.walk(40), ...S.swim(30)],
-  proficiencies: [
-    S.grantedSkillProficiency(223, 1, 'PERCEPTION')
-  ],
+  proficiencies: [S.grantedSkillProficiency(223, 1, 'PERCEPTION')],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_2,
   xp: 450,
@@ -37,27 +35,30 @@ export const polarBear: CreatureAuthored = {
     {
       id: S.featureId(223, 1),
       label: 'Keen Smell',
-      description: 'Keen Smell. The bear has advantage on Wisdom (Perception) checks that rely on smell.',
+      description:
+        'Keen Smell. The bear has advantage on Wisdom (Perception) checks that rely on smell.',
       order: 1
     },
     {
       id: S.featureId(223, 2),
       label: 'Multiattack',
-      description: 'Multiattack. The bear makes two attacks: one with its bite and one with its claws.',
+      description:
+        'Multiattack. The bear makes two attacks: one with its bite and one with its claws.',
       order: 2
     },
     {
       id: S.featureId(223, 3),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 9 (1d8 + 5) piercing damage.',
+      description:
+        'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 9 (1d8 + 5) piercing damage.',
       order: 3
     },
     {
       id: S.featureId(223, 4),
       label: 'Claws',
-      description: 'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 12 (2d6 + 5) slashing damage.',
+      description:
+        'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 12 (2d6 + 5) slashing damage.',
       order: 4
     }
   ]
 }
-

@@ -484,7 +484,13 @@ describe('character builder ability and hit point rules', () => {
       context
     )
 
-    expect(reconciled.intent.hitpoints.levels.map(({ level, classId, classLevel }) => ({ level, classId, classLevel }))).toEqual([
+    expect(
+      reconciled.intent.hitpoints.levels.map(({ level, classId, classLevel }) => ({
+        level,
+        classId,
+        classLevel
+      }))
+    ).toEqual([
       { level: 1, classId: 'fighter', classLevel: 1 },
       { level: 2, classId: 'wizard', classLevel: 1 },
       { level: 3, classId: 'fighter', classLevel: 2 }

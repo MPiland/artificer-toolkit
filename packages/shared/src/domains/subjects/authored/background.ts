@@ -1,5 +1,10 @@
 import type { SUBJECT, AuthoredRecordStatus } from '#core'
-import type { FeatureAuthored, ProficiencyGrantAuthored, DetailAuthored, StartingEquipmentAuthored } from '#authored'
+import type {
+  FeatureAuthored,
+  ProficiencyGrantAuthored,
+  DetailAuthored,
+  StartingEquipmentAuthored
+} from '#authored'
 
 export interface BackgroundAuthored {
   kind: typeof SUBJECT.BACKGROUND

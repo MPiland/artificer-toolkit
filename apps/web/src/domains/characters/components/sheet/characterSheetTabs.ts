@@ -26,7 +26,9 @@ export const CHARACTER_SHEET_MOBILE_PAGES: ReadonlyArray<{
   { id: 'proficiencies', label: 'Proficiencies' }
 ]
 
-export const CHARACTER_SHEET_TABLET_TABS = CHARACTER_SHEET_MOBILE_PAGES
+export const CHARACTER_SHEET_TABLET_TABS = CHARACTER_SHEET_MOBILE_PAGES.filter(
+  (page) => page.id !== 'skills' && page.id !== 'proficiencies'
+)
 
 export function getCharacterSheetPageIndex(pageId: CharacterSheetMobilePageId) {
   const index = CHARACTER_SHEET_MOBILE_PAGES.findIndex((page) => page.id === pageId)
@@ -34,7 +36,7 @@ export function getCharacterSheetPageIndex(pageId: CharacterSheetMobilePageId) {
 }
 
 export function getMobilePageForTab(tabId: CharacterSheetTabId): CharacterSheetMobilePageId {
-  if (tabId === 'actions' || tabId === 'resources') return 'actions'
+  if (tabId === 'actions') return tabId
   if (tabId === 'spells') return 'spells'
   if (tabId === 'inventory') return 'equipment'
   if (tabId === 'reference') return 'features'

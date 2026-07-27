@@ -356,7 +356,9 @@ function toRuntimeNode<TValues extends object>(
       kind: 'INPUT',
       type: node.type,
       options: visible
-        ? (getStaticInlineOptions(node, options) ?? getStaticRelationshipOptions(node, options) ?? [])
+        ? (getStaticInlineOptions(node, options) ??
+          getStaticRelationshipOptions(node, options) ??
+          [])
         : [],
       authoring
     }

@@ -8,7 +8,7 @@ import { createSubjectAuthoringService } from './pipeline.js'
 export interface ClassSubjectAuthoringDeps {
   validate?: (input: unknown) => ClassAuthored
   compile?: (authored: ClassAuthored) => CompiledClass
-  persist?: (payload: { authored: ClassAuthored, compiled: CompiledClass }) => Promise<void>
+  persist?: (payload: { authored: ClassAuthored; compiled: CompiledClass }) => Promise<void>
   findById?: (id: string) => Promise<ClassAuthored | null>
   findAll?: (filter?: RepositoryFindAllOptions) => Promise<ClassAuthored[]>
 }
@@ -22,9 +22,11 @@ export function createClassSubjectAuthoringService(
   return createSubjectAuthoringService<unknown, ClassAuthored, CompiledClass, void>({
     validate: deps.validate ?? ((input) => classAuthoredDtoSchema.parse(input) as ClassAuthored),
     compile: deps.compile ?? compileClass,
-    persist: deps.persist ?? (async ({ authored }) => {
-      await upsertClass(db, authored, authored.systemId)
-    }),
+    persist:
+      deps.persist ??
+      (async ({ authored }) => {
+        await upsertClass(db, authored, authored.systemId)
+      }),
     findById: deps.findById ?? ((id) => repo.findById(id)),
     findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
   })

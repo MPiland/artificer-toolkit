@@ -15,14 +15,14 @@ export const deathDog: CreatureAuthored = {
     CONSTITUTION: 14,
     INTELLIGENCE: 3,
     WISDOM: 13,
-    CHARISMA: 6,
+    CHARISMA: 6
   },
   armorClass: 12,
   hitPoints: 39,
   hitDice: {
     count: 6,
     die: 8,
-    modifier: 12,
+    modifier: 12
   },
   speeds: [...S.walk(40)],
   proficiencies: [S.grantedSkillProficiency(1389, 1, 'PERCEPTION', 'STEALTH')],
@@ -33,7 +33,8 @@ export const deathDog: CreatureAuthored = {
     {
       id: S.featureId(77, 1),
       label: 'Two-Headed',
-      description: 'Two-Headed. The dog has advantage on Wisdom (Perception) checks and on saving throws against being blinded, charmed, deafened, frightened, stunned, or knocked unconscious.',
+      description:
+        'Two-Headed. The dog has advantage on Wisdom (Perception) checks and on saving throws against being blinded, charmed, deafened, frightened, stunned, or knocked unconscious.',
       order: 1
     },
     {
@@ -45,9 +46,9 @@ export const deathDog: CreatureAuthored = {
     {
       id: S.featureId(77, 3),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage. If the target is a creature, it must succeed on a DC 12 Constitution saving throw against disease or become poisoned until the disease is cured. Every 24 hours that elapse, the target must repeat the saving throw, reducing its hit point maximum by 5 (1d10) on a failure. The target dies if this reduces its hit point maximum to 0.',
+      description:
+        'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage. If the target is a creature, it must succeed on a DC 12 Constitution saving throw against disease or become poisoned until the disease is cured. Every 24 hours that elapse, the target must repeat the saving throw, reducing its hit point maximum by 5 (1d10) on a failure. The target dies if this reduces its hit point maximum to 0.',
       order: 3
     }
   ]
 }
-

@@ -14,5 +14,5 @@ export const scimitarPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(214), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

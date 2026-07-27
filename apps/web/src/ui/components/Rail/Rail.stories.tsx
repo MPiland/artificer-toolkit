@@ -2,12 +2,7 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Rail } from './Rail'
 import * as storyStyles from './Rail.stories.css'
 
-const railItems = [
-  'Basics',
-  'Ancestry',
-  'Traits',
-  'Features'
-] as const
+const railItems = ['Basics', 'Ancestry', 'Traits', 'Features'] as const
 
 const meta = {
   title: 'Forms/Authoring/Rail/Container',

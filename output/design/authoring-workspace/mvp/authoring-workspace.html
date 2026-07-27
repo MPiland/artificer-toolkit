@@ -26,22 +26,42 @@
         --danger: #ff746f;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
 
       body {
         background: var(--canvas);
         color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif;
         font-size: 14px;
         line-height: 1.45;
       }
 
-      button, input, select, textarea { font: inherit; }
-      button { color: inherit; }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+      }
 
-      .app-shell { height: 100vh; display: grid; grid-template-rows: 56px 64px minmax(0, 1fr); }
+      .app-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: 56px 64px minmax(0, 1fr);
+      }
 
       .app-header {
         display: flex;
@@ -52,151 +72,760 @@
         background: #090d0c;
       }
 
-      .brand, .app-nav, .header-actions, .title-row, .row, .rail-item, .status, .field-inline,
-      .section-heading, .option-row, .summary-meta, .action-bar, .drawer-heading, .drawer-actions {
+      .brand,
+      .app-nav,
+      .header-actions,
+      .title-row,
+      .row,
+      .rail-item,
+      .status,
+      .field-inline,
+      .section-heading,
+      .option-row,
+      .summary-meta,
+      .action-bar,
+      .drawer-heading,
+      .drawer-actions {
         display: flex;
         align-items: center;
       }
 
-      .brand { gap: 11px; font-weight: 750; letter-spacing: .01em; }
-      .brand-mark {
-        width: 28px; height: 28px; display: grid; place-items: center;
-        border-radius: 8px; background: var(--orange); color: var(--orange-ink); font-weight: 900;
+      .brand {
+        gap: 11px;
+        font-weight: 750;
+        letter-spacing: 0.01em;
       }
-      .app-nav { gap: 8px; }
-      .nav-link { min-height: 44px; padding: 0 14px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--secondary); }
-      .nav-link.active { color: var(--orange); background: color-mix(in srgb, var(--orange) 14%, var(--sidebar)); }
-      .header-actions { gap: 10px; }
-      .search { width: 244px; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--sidebar); color: var(--secondary); }
-      .icon-button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--sidebar); }
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--orange);
+        color: var(--orange-ink);
+        font-weight: 900;
+      }
+      .app-nav {
+        gap: 8px;
+      }
+      .nav-link {
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--secondary);
+      }
+      .nav-link.active {
+        color: var(--orange);
+        background: color-mix(in srgb, var(--orange) 14%, var(--sidebar));
+      }
+      .header-actions {
+        gap: 10px;
+      }
+      .search {
+        width: 244px;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--sidebar);
+        color: var(--secondary);
+      }
+      .icon-button {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--sidebar);
+      }
 
       .document-header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 0 20px; border-bottom: 1px solid var(--line); background: var(--sidebar);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--sidebar);
       }
-      .document-header > div:first-child { min-width: 0; }
-      .document-title { min-width: 0; margin: 0; overflow: hidden; font-size: 21px; line-height: 1.2; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
-      .document-subtitle { max-width: min(68vw, 720px); margin-top: 4px; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-      .title-row { min-width: 0; gap: 10px; }
-      .title-row .document-title { flex: 0 1 auto; }
-      .status-pill { padding: 3px 8px; border: 1px solid var(--orange-deep); border-radius: 999px; color: var(--orange); background: color-mix(in srgb, var(--orange) 12%, var(--sidebar)); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-      .document-actions { display: flex; flex: none; gap: 8px; }
+      .document-header > div:first-child {
+        min-width: 0;
+      }
+      .document-title {
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        font-size: 21px;
+        line-height: 1.2;
+        font-weight: 750;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .document-subtitle {
+        max-width: min(68vw, 720px);
+        margin-top: 4px;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .title-row {
+        min-width: 0;
+        gap: 10px;
+      }
+      .title-row .document-title {
+        flex: 0 1 auto;
+      }
+      .status-pill {
+        padding: 3px 8px;
+        border: 1px solid var(--orange-deep);
+        border-radius: 999px;
+        color: var(--orange);
+        background: color-mix(in srgb, var(--orange) 12%, var(--sidebar));
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .document-actions {
+        display: flex;
+        flex: none;
+        gap: 8px;
+      }
 
-      .workspace { min-height: 0; display: grid; grid-template-columns: 276px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 58px; }
-      .structure-rail { grid-row: 1 / span 2; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--sidebar); }
-      .rail-header { padding: 16px 16px 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-      .rail-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 0 8px; scrollbar-gutter: stable; }
-      .rail-item { position: relative; width: 100%; min-height: 44px; gap: 9px; padding: 7px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; text-align: left; color: var(--secondary); }
-      .rail-item:hover { background: var(--subtle); color: var(--text); }
-      .rail-item.active { border-color: var(--orange-deep); background: color-mix(in srgb, var(--orange) 12%, var(--sidebar)); color: var(--orange); }
-      .rail-item.active::before { content: ""; position: absolute; left: -9px; top: 7px; bottom: 7px; width: 3px; border-radius: 999px; background: var(--orange); }
-      .rail-item.path { color: var(--text); font-weight: 650; }
-      .rail-item.path .rail-icon { color: var(--orange); }
-      .rail-item.branch { color: var(--text); font-weight: 650; }
-      .rail-icon { width: 18px; color: var(--muted); text-align: center; }
-      .rail-label { min-width: 0; flex: 1; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
-      .rail-count { min-width: 22px; padding: 2px 6px; border-radius: 999px; background: var(--raised); color: var(--secondary); font-size: 12px; text-align: center; }
-      .rail-check { color: var(--green); font-size: 12px; }
-      .rail-warning { min-width: 22px; color: var(--orange); font-size: 12px; font-weight: 800; text-align: center; }
-      .rail-group { margin: 2px 0 5px 14px; padding-left: 7px; border-left: 1px solid var(--line); }
-      .rail-group .rail-group { margin-left: 10px; }
-      .rail-group.depth-cap { margin-left: 8px; padding-left: 6px; }
-      .rail-group .rail-item { min-height: 44px; padding: 5px 8px; font-size: 13px; }
-      .rail-section-label { padding: 7px 9px 3px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-      .rail-footer { padding: 12px 14px; border-top: 1px solid var(--line); }
-      .rail-progress { height: 4px; overflow: hidden; border-radius: 999px; background: var(--raised); }
-      .rail-progress > span { display: block; width: 74%; height: 100%; background: var(--teal); }
-      .rail-footer-copy { margin-top: 8px; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 276px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) 58px;
+      }
+      .structure-rail {
+        grid-row: 1 / span 2;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: var(--sidebar);
+      }
+      .rail-header {
+        padding: 16px 16px 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .rail-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 0 8px;
+        scrollbar-gutter: stable;
+      }
+      .rail-item {
+        position: relative;
+        width: 100%;
+        min-height: 44px;
+        gap: 9px;
+        padding: 7px 10px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        text-align: left;
+        color: var(--secondary);
+      }
+      .rail-item:hover {
+        background: var(--subtle);
+        color: var(--text);
+      }
+      .rail-item.active {
+        border-color: var(--orange-deep);
+        background: color-mix(in srgb, var(--orange) 12%, var(--sidebar));
+        color: var(--orange);
+      }
+      .rail-item.active::before {
+        content: '';
+        position: absolute;
+        left: -9px;
+        top: 7px;
+        bottom: 7px;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--orange);
+      }
+      .rail-item.path {
+        color: var(--text);
+        font-weight: 650;
+      }
+      .rail-item.path .rail-icon {
+        color: var(--orange);
+      }
+      .rail-item.branch {
+        color: var(--text);
+        font-weight: 650;
+      }
+      .rail-icon {
+        width: 18px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .rail-label {
+        min-width: 0;
+        flex: 1;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+      }
+      .rail-count {
+        min-width: 22px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: var(--raised);
+        color: var(--secondary);
+        font-size: 12px;
+        text-align: center;
+      }
+      .rail-check {
+        color: var(--green);
+        font-size: 12px;
+      }
+      .rail-warning {
+        min-width: 22px;
+        color: var(--orange);
+        font-size: 12px;
+        font-weight: 800;
+        text-align: center;
+      }
+      .rail-group {
+        margin: 2px 0 5px 14px;
+        padding-left: 7px;
+        border-left: 1px solid var(--line);
+      }
+      .rail-group .rail-group {
+        margin-left: 10px;
+      }
+      .rail-group.depth-cap {
+        margin-left: 8px;
+        padding-left: 6px;
+      }
+      .rail-group .rail-item {
+        min-height: 44px;
+        padding: 5px 8px;
+        font-size: 13px;
+      }
+      .rail-section-label {
+        padding: 7px 9px 3px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .rail-footer {
+        padding: 12px 14px;
+        border-top: 1px solid var(--line);
+      }
+      .rail-progress {
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--raised);
+      }
+      .rail-progress > span {
+        display: block;
+        width: 74%;
+        height: 100%;
+        background: var(--teal);
+      }
+      .rail-footer-copy {
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 12px;
+      }
 
-      .canvas { min-width: 0; min-height: 0; overflow: hidden; background: var(--canvas); }
-      .canvas-scroll { height: 100%; overflow-x: hidden; overflow-y: auto; padding: 20px 28px 30px; scrollbar-gutter: stable; }
-      .canvas-inner { width: min(1040px, 100%); margin: 0 auto; }
-      .canvas-inner.simple-inner { width: min(1040px, 100%); }
-      .simple-inner .content-stack { max-width: 920px; }
-      .context-line { color: var(--orange); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-      .page-heading { margin: 3px 0 4px; font-size: 24px; line-height: 1.25; font-weight: 750; }
-      .page-description { margin: 0; max-width: 74ch; color: var(--secondary); }
-      .content-stack { display: grid; gap: 14px; margin-top: 18px; }
-      .surface { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-      .section-heading { justify-content: space-between; gap: 14px; margin-bottom: 14px; }
-      .section-title { margin: 0; font-size: 16px; font-weight: 720; }
-      .section-copy { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
-      .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-      .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-      .field { display: grid; gap: 6px; }
-      .field.wide { grid-column: 1 / -1; }
-      label { color: var(--secondary); font-size: 12px; font-weight: 650; }
-      .required { color: var(--orange-lift); }
-      .input, .select, .textarea, .rich-editor { width: 100%; border: 1px solid var(--line-strong); border-radius: 8px; background: #0f1514; color: var(--text); }
-      .input, .select { height: 40px; padding: 0 11px; }
-      .textarea { height: 82px; padding: 10px 11px; resize: none; }
-      .rich-editor { overflow: hidden; }
-      .rich-toolbar { height: 34px; display: flex; align-items: center; gap: 5px; padding: 0 8px; border-bottom: 1px solid var(--line); color: var(--muted); }
-      .tool { min-width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: var(--subtle); font-size: 12px; }
-      .rich-body { min-height: 76px; padding: 10px 12px; color: var(--secondary); }
-      .helper { color: var(--muted); font-size: 12px; }
+      .canvas {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--canvas);
+      }
+      .canvas-scroll {
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 20px 28px 30px;
+        scrollbar-gutter: stable;
+      }
+      .canvas-inner {
+        width: min(1040px, 100%);
+        margin: 0 auto;
+      }
+      .canvas-inner.simple-inner {
+        width: min(1040px, 100%);
+      }
+      .simple-inner .content-stack {
+        max-width: 920px;
+      }
+      .context-line {
+        color: var(--orange);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .page-heading {
+        margin: 3px 0 4px;
+        font-size: 24px;
+        line-height: 1.25;
+        font-weight: 750;
+      }
+      .page-description {
+        margin: 0;
+        max-width: 74ch;
+        color: var(--secondary);
+      }
+      .content-stack {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+      }
+      .surface {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+      }
+      .section-heading {
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .section-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 720;
+      }
+      .section-copy {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field.wide {
+        grid-column: 1 / -1;
+      }
+      label {
+        color: var(--secondary);
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .required {
+        color: var(--orange-lift);
+      }
+      .input,
+      .select,
+      .textarea,
+      .rich-editor {
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #0f1514;
+        color: var(--text);
+      }
+      .input,
+      .select {
+        height: 40px;
+        padding: 0 11px;
+      }
+      .textarea {
+        height: 82px;
+        padding: 10px 11px;
+        resize: none;
+      }
+      .rich-editor {
+        overflow: hidden;
+      }
+      .rich-toolbar {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0 8px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .tool {
+        min-width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--subtle);
+        font-size: 12px;
+      }
+      .rich-body {
+        min-height: 76px;
+        padding: 10px 12px;
+        color: var(--secondary);
+      }
+      .helper {
+        color: var(--muted);
+        font-size: 12px;
+      }
 
-      .btn { min-height: 44px; padding: 0 15px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--subtle); color: var(--text); font-weight: 650; }
-      .btn.primary { border-color: var(--orange-lift); background: var(--orange); color: var(--orange-ink); }
-      .btn.ghost { background: transparent; }
-      .btn.danger { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--sidebar)); }
-      .btn.compact { min-height: 44px; padding: 0 11px; font-size: 12px; }
-      .btn:disabled { cursor: not-allowed; opacity: .46; }
+      .btn {
+        min-height: 44px;
+        padding: 0 15px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--subtle);
+        color: var(--text);
+        font-weight: 650;
+      }
+      .btn.primary {
+        border-color: var(--orange-lift);
+        background: var(--orange);
+        color: var(--orange-ink);
+      }
+      .btn.ghost {
+        background: transparent;
+      }
+      .btn.danger {
+        border-color: var(--danger);
+        color: var(--danger);
+        background: color-mix(in srgb, var(--danger) 10%, var(--sidebar));
+      }
+      .btn.compact {
+        min-height: 44px;
+        padding: 0 11px;
+        font-size: 12px;
+      }
+      .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.46;
+      }
 
-      .summary-list { display: grid; gap: 8px; }
-      .summary-card { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 64px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--sidebar); }
-      .summary-card.selected { border-color: var(--orange-deep); background: color-mix(in srgb, var(--orange) 9%, var(--sidebar)); }
-      .summary-icon { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--teal); background: var(--subtle); font-size: 18px; }
-      .summary-title { color: var(--text); font-weight: 700; }
-      .summary-meta { gap: 8px; margin-top: 3px; color: var(--muted); font-size: 12px; }
-      .tag { padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--secondary); background: var(--subtle); }
-      .tag.teal { border-color: var(--teal); color: var(--teal); background: color-mix(in srgb, var(--teal) 9%, var(--sidebar)); }
-      .tag.type { color: var(--secondary); background: var(--raised); }
-      .card-actions { display: flex; align-items: center; gap: 8px; }
-      .text-action { min-width: 44px; min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--orange); font-weight: 700; font-size: 12px; }
+      .summary-list {
+        display: grid;
+        gap: 8px;
+      }
+      .summary-card {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 64px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--sidebar);
+      }
+      .summary-card.selected {
+        border-color: var(--orange-deep);
+        background: color-mix(in srgb, var(--orange) 9%, var(--sidebar));
+      }
+      .summary-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--teal);
+        background: var(--subtle);
+        font-size: 18px;
+      }
+      .summary-title {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .summary-meta {
+        gap: 8px;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .tag {
+        padding: 2px 7px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--secondary);
+        background: var(--subtle);
+      }
+      .tag.teal {
+        border-color: var(--teal);
+        color: var(--teal);
+        background: color-mix(in srgb, var(--teal) 9%, var(--sidebar));
+      }
+      .tag.type {
+        color: var(--secondary);
+        background: var(--raised);
+      }
+      .card-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .text-action {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0 8px;
+        border: 0;
+        background: transparent;
+        color: var(--orange);
+        font-weight: 700;
+        font-size: 12px;
+      }
 
-      .nested-overview { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
-      .option-stack { display: grid; gap: 9px; }
-      .option-row { gap: 10px; min-height: 46px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-      .option-row:last-child { border-bottom: 0; }
-      .option-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
-      .option-name { min-width: 0; flex: 1; }
-      .option-name strong { display: block; }
-      .option-name span { color: var(--muted); font-size: 12px; }
-      .count-box { min-width: 54px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 8px; color: var(--secondary); font-size: 12px; text-align: center; }
-      .action-bar { min-width: 0; justify-content: space-between; padding: 0 20px; border-top: 1px solid var(--line); background: var(--sidebar); }
-      .status { gap: 9px; color: var(--muted); font-size: 12px; }
-      .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
-      .status-dot.warning { background: var(--orange); }
-      .action-group { display: flex; gap: 8px; }
+      .nested-overview {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 14px;
+        align-items: start;
+      }
+      .option-stack {
+        display: grid;
+        gap: 9px;
+      }
+      .option-row {
+        gap: 10px;
+        min-height: 46px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      .option-row:last-child {
+        border-bottom: 0;
+      }
+      .option-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+      .option-name {
+        min-width: 0;
+        flex: 1;
+      }
+      .option-name strong {
+        display: block;
+      }
+      .option-name span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .count-box {
+        min-width: 54px;
+        padding: 4px 7px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--secondary);
+        font-size: 12px;
+        text-align: center;
+      }
+      .action-bar {
+        min-width: 0;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-top: 1px solid var(--line);
+        background: var(--sidebar);
+      }
+      .status {
+        gap: 9px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .status-dot.warning {
+        background: var(--orange);
+      }
+      .action-group {
+        display: flex;
+        gap: 8px;
+      }
 
-      .overlay { position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--canvas) 66%, transparent); }
-      .drawer { position: fixed; z-index: 21; inset: 0 0 0 auto; width: 410px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border-left: 1px solid var(--line-strong); background: var(--panel); box-shadow: -16px 0 34px color-mix(in srgb, var(--canvas) 82%, transparent); }
-      .drawer-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--line); }
-      .drawer-heading { justify-content: space-between; gap: 12px; }
-      .drawer-eyebrow { max-width: 300px; overflow: hidden; color: var(--orange); font-size: 12px; font-weight: 750; letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; }
-      .drawer-title { margin: 3px 0 0; font-size: 20px; }
-      .close-button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--subtle); font-size: 19px; }
-      .drawer-body { min-height: 0; overflow-y: auto; padding: 12px 18px 18px; scrollbar-gutter: stable; }
-      .drawer-stack { display: grid; gap: 10px; }
-      .drawer-section { display: grid; gap: 8px; padding-top: 10px; }
-      .drawer-section:first-child { padding-top: 0; border-top: 0; }
-      .drawer-section-title { color: var(--text); font-size: 13px; font-weight: 750; }
-      .segmented { display: grid; grid-template-columns: repeat(3, 1fr); padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--sidebar); }
-      .segment { min-height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); }
-      .segment.active { background: var(--raised); color: var(--text); }
-      .drawer .textarea { height: 64px; }
-      .progression-list { display: grid; gap: 6px; }
-      .progression-header, .progression-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; gap: 8px; align-items: center; }
-      .progression-header { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-      .progression-row .input { height: 36px; }
-      .remove-row { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); }
-      :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-      .drawer-actions { justify-content: flex-end; gap: 8px; padding: 10px 18px; border-top: 1px solid var(--line); background: var(--sidebar); }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        background: color-mix(in srgb, var(--canvas) 66%, transparent);
+      }
+      .drawer {
+        position: fixed;
+        z-index: 21;
+        inset: 0 0 0 auto;
+        width: 410px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        border-left: 1px solid var(--line-strong);
+        background: var(--panel);
+        box-shadow: -16px 0 34px color-mix(in srgb, var(--canvas) 82%, transparent);
+      }
+      .drawer-header {
+        padding: 14px 18px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .drawer-heading {
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .drawer-eyebrow {
+        max-width: 300px;
+        overflow: hidden;
+        color: var(--orange);
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .drawer-title {
+        margin: 3px 0 0;
+        font-size: 20px;
+      }
+      .close-button {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--subtle);
+        font-size: 19px;
+      }
+      .drawer-body {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 12px 18px 18px;
+        scrollbar-gutter: stable;
+      }
+      .drawer-stack {
+        display: grid;
+        gap: 10px;
+      }
+      .drawer-section {
+        display: grid;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .drawer-section:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .drawer-section-title {
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 750;
+      }
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--sidebar);
+      }
+      .segment {
+        min-height: 44px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+      }
+      .segment.active {
+        background: var(--raised);
+        color: var(--text);
+      }
+      .drawer .textarea {
+        height: 64px;
+      }
+      .progression-list {
+        display: grid;
+        gap: 6px;
+      }
+      .progression-header,
+      .progression-row {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) 44px;
+        gap: 8px;
+        align-items: center;
+      }
+      .progression-header {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .progression-row .input {
+        height: 36px;
+      }
+      .remove-row {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+      }
+      :is(button, input, select, textarea):focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
+      }
+      .drawer-actions {
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 10px 18px;
+        border-top: 1px solid var(--line);
+        background: var(--sidebar);
+      }
 
-      .screen { display: none; height: 100%; }
-      .screen.active { display: contents; }
-      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+      .screen {
+        display: none;
+        height: 100%;
+      }
+      .screen.active {
+        display: contents;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
     </style>
   </head>
   <body>
@@ -204,44 +833,138 @@
       <div class="app-shell">
         <header class="app-header">
           <div class="brand"><span class="brand-mark">A</span><span>Artificer Toolkit</span></div>
-          <nav class="app-nav" aria-label="Primary"><button class="nav-link">Library</button><button class="nav-link active">Create</button></nav>
-          <div class="header-actions"><input class="search" aria-label="Search" value="⌕  Search the toolkit…" readonly><button class="icon-button" aria-label="Account">TM</button></div>
+          <nav class="app-nav" aria-label="Primary">
+            <button class="nav-link">Library</button><button class="nav-link active">Create</button>
+          </nav>
+          <div class="header-actions">
+            <input
+              class="search"
+              aria-label="Search"
+              value="⌕  Search the toolkit…"
+              readonly
+            /><button class="icon-button" aria-label="Account">TM</button>
+          </div>
         </header>
         <header class="document-header">
-          <div><div class="title-row"><h1 class="document-title">Guild Artisan</h1><span class="status-pill">Draft</span></div><div class="document-subtitle">Background · Basics</div></div>
-          <div class="document-actions"><button class="icon-button" aria-label="Toggle structure rail">▤</button><button class="btn ghost compact">Preview</button><button class="btn compact" aria-label="More authoring actions">•••</button></div>
+          <div>
+            <div class="title-row">
+              <h1 class="document-title">Guild Artisan</h1>
+              <span class="status-pill">Draft</span>
+            </div>
+            <div class="document-subtitle">Background · Basics</div>
+          </div>
+          <div class="document-actions">
+            <button class="icon-button" aria-label="Toggle structure rail">▤</button
+            ><button class="btn ghost compact">Preview</button
+            ><button class="btn compact" aria-label="More authoring actions">•••</button>
+          </div>
         </header>
         <div class="workspace">
           <aside class="structure-rail" aria-label="Background structure">
             <div class="rail-header">Background structure</div>
             <div class="rail-scroll">
-              <button class="rail-item active" aria-current="step"><span class="rail-icon">▣</span><span class="rail-label">Basics</span><span class="rail-check">✓</span></button>
-              <button class="rail-item"><span class="rail-icon">◇</span><span class="rail-label">Proficiencies</span><span class="rail-check">✓</span></button>
-              <button class="rail-item"><span class="rail-icon">✦</span><span class="rail-label">Starting equipment</span><span class="rail-count">4</span></button>
-              <button class="rail-item"><span class="rail-icon">⌘</span><span class="rail-label">Features</span><span class="rail-count">1</span></button>
+              <button class="rail-item active" aria-current="step">
+                <span class="rail-icon">▣</span><span class="rail-label">Basics</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item">
+                <span class="rail-icon">◇</span><span class="rail-label">Proficiencies</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item">
+                <span class="rail-icon">✦</span><span class="rail-label">Starting equipment</span
+                ><span class="rail-count">4</span>
+              </button>
+              <button class="rail-item">
+                <span class="rail-icon">⌘</span><span class="rail-label">Features</span
+                ><span class="rail-count">1</span>
+              </button>
             </div>
-            <div class="rail-footer"><div class="rail-progress"><span></span></div><div class="rail-footer-copy"><span>4 sections</span><span>Draft synced</span></div></div>
+            <div class="rail-footer">
+              <div class="rail-progress"><span></span></div>
+              <div class="rail-footer-copy"><span>4 sections</span><span>Draft synced</span></div>
+            </div>
           </aside>
           <main class="canvas">
-            <div class="canvas-scroll"><div class="canvas-inner simple-inner">
-              <div class="context-line">Background</div><h2 class="page-heading">Basics</h2><p class="page-description">Set the identity and source details players see when they browse this background.</p>
-              <div class="content-stack">
-                <section class="surface">
-                  <div class="section-heading"><div><h3 class="section-title">Identity</h3><p class="section-copy">Core display information for this background.</p></div><span class="tag teal">Complete</span></div>
-                  <div class="grid-2">
-                    <div class="field"><label for="background-name">Name <span class="required">*</span></label><input class="input" id="background-name" value="Guild Artisan" readonly></div>
-                    <div class="field"><label for="background-category">Category <span class="required">*</span></label><select class="select" id="background-category"><option>Background</option></select></div>
-                    <div class="field wide"><label for="background-summary">Short description</label><textarea class="textarea" id="background-summary" readonly>A respected member of a guild, skilled in a particular field and closely connected to fellow artisans.</textarea><span class="helper">Shown in search results and character choices.</span></div>
-                  </div>
-                </section>
-                <section class="surface">
-                  <div class="section-heading"><div><h3 class="section-title">Description</h3><p class="section-copy">Explain the background, its place in the world, and what it gives a character.</p></div></div>
-                  <div class="rich-editor" role="textbox" aria-label="Background description" aria-multiline="true" tabindex="0"><div class="rich-toolbar" aria-hidden="true"><span class="tool">B</span><span class="tool">¶</span><span class="tool">＋</span><span class="tool">↶</span><span class="tool">↷</span></div><div class="rich-body">You served an apprenticeship under a master artisan and learned the practical skills of a trade. Your guild is an important part of your identity and offers connections wherever its members gather.</div></div>
-                </section>
+            <div class="canvas-scroll">
+              <div class="canvas-inner simple-inner">
+                <div class="context-line">Background</div>
+                <h2 class="page-heading">Basics</h2>
+                <p class="page-description">
+                  Set the identity and source details players see when they browse this background.
+                </p>
+                <div class="content-stack">
+                  <section class="surface">
+                    <div class="section-heading">
+                      <div>
+                        <h3 class="section-title">Identity</h3>
+                        <p class="section-copy">Core display information for this background.</p>
+                      </div>
+                      <span class="tag teal">Complete</span>
+                    </div>
+                    <div class="grid-2">
+                      <div class="field">
+                        <label for="background-name">Name <span class="required">*</span></label
+                        ><input class="input" id="background-name" value="Guild Artisan" readonly />
+                      </div>
+                      <div class="field">
+                        <label for="background-category"
+                          >Category <span class="required">*</span></label
+                        ><select class="select" id="background-category">
+                          <option>Background</option>
+                        </select>
+                      </div>
+                      <div class="field wide">
+                        <label for="background-summary">Short description</label
+                        ><textarea class="textarea" id="background-summary" readonly>
+A respected member of a guild, skilled in a particular field and closely connected to fellow artisans.</textarea
+                        ><span class="helper">Shown in search results and character choices.</span>
+                      </div>
+                    </div>
+                  </section>
+                  <section class="surface">
+                    <div class="section-heading">
+                      <div>
+                        <h3 class="section-title">Description</h3>
+                        <p class="section-copy">
+                          Explain the background, its place in the world, and what it gives a
+                          character.
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      class="rich-editor"
+                      role="textbox"
+                      aria-label="Background description"
+                      aria-multiline="true"
+                      tabindex="0"
+                    >
+                      <div class="rich-toolbar" aria-hidden="true">
+                        <span class="tool">B</span><span class="tool">¶</span
+                        ><span class="tool">＋</span><span class="tool">↶</span
+                        ><span class="tool">↷</span>
+                      </div>
+                      <div class="rich-body">
+                        You served an apprenticeship under a master artisan and learned the
+                        practical skills of a trade. Your guild is an important part of your
+                        identity and offers connections wherever its members gather.
+                      </div>
+                    </div>
+                  </section>
+                </div>
               </div>
-            </div></div>
+            </div>
           </main>
-          <footer class="action-bar"><div class="status"><span class="status-dot"></span><span>Draft synced just now</span></div><div class="action-group"><button class="btn ghost">Exit authoring</button><button class="btn" disabled title="No unsaved changes">Save draft</button><button class="btn primary">Publish background</button></div></footer>
+          <footer class="action-bar">
+            <div class="status">
+              <span class="status-dot"></span><span>Draft synced just now</span>
+            </div>
+            <div class="action-group">
+              <button class="btn ghost">Exit authoring</button
+              ><button class="btn" disabled title="No unsaved changes">Save draft</button
+              ><button class="btn primary">Publish background</button>
+            </div>
+          </footer>
         </div>
       </div>
     </div>
@@ -250,72 +973,231 @@
       <div class="app-shell">
         <header class="app-header">
           <div class="brand"><span class="brand-mark">A</span><span>Artificer Toolkit</span></div>
-          <nav class="app-nav" aria-label="Primary"><button class="nav-link">Library</button><button class="nav-link active">Create</button></nav>
-          <div class="header-actions"><input class="search" aria-label="Search" value="⌕  Search the toolkit…" readonly><button class="icon-button" aria-label="Account">TM</button></div>
+          <nav class="app-nav" aria-label="Primary">
+            <button class="nav-link">Library</button><button class="nav-link active">Create</button>
+          </nav>
+          <div class="header-actions">
+            <input
+              class="search"
+              aria-label="Search"
+              value="⌕  Search the toolkit…"
+              readonly
+            /><button class="icon-button" aria-label="Account">TM</button>
+          </div>
         </header>
         <header class="document-header">
-          <div><div class="title-row"><h1 class="document-title">Dragonborn</h1><span class="status-pill">Draft</span></div><div class="document-subtitle">Race · Ancestry · Black Dragon · Breath Weapon · Acid Breath · Outcomes</div></div>
-          <div class="document-actions"><button class="icon-button" aria-label="Toggle structure rail">▤</button><button class="btn ghost compact">Preview</button><button class="btn compact" aria-label="More authoring actions">•••</button></div>
+          <div>
+            <div class="title-row">
+              <h1 class="document-title">Dragonborn</h1>
+              <span class="status-pill">Draft</span>
+            </div>
+            <div class="document-subtitle">
+              Race · Ancestry · Black Dragon · Breath Weapon · Acid Breath · Outcomes
+            </div>
+          </div>
+          <div class="document-actions">
+            <button class="icon-button" aria-label="Toggle structure rail">▤</button
+            ><button class="btn ghost compact">Preview</button
+            ><button class="btn compact" aria-label="More authoring actions">•••</button>
+          </div>
         </header>
         <div class="workspace">
           <aside class="structure-rail" aria-label="Race structure">
             <div class="rail-header">Race structure</div>
             <div class="rail-scroll">
-              <button class="rail-item"><span class="rail-icon">▣</span><span class="rail-label">Basics</span><span class="rail-check">✓</span></button>
-              <button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">⌄</span><span class="rail-label">Ancestry</span><span class="rail-count">10</span></button>
+              <button class="rail-item">
+                <span class="rail-icon">▣</span><span class="rail-label">Basics</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item branch path" aria-expanded="true">
+                <span class="rail-icon">⌄</span><span class="rail-label">Ancestry</span
+                ><span class="rail-count">10</span>
+              </button>
               <div class="rail-group">
-                <button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">⌄</span><span class="rail-label">Ancestry options</span></button>
+                <button class="rail-item branch path" aria-expanded="true">
+                  <span class="rail-icon">⌄</span><span class="rail-label">Ancestry options</span>
+                </button>
                 <div class="rail-group">
-                  <button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">◆</span><span class="rail-label">Black Dragon</span><span class="rail-check">✓</span></button>
+                  <button class="rail-item branch path" aria-expanded="true">
+                    <span class="rail-icon">◆</span><span class="rail-label">Black Dragon</span
+                    ><span class="rail-check">✓</span>
+                  </button>
                   <div class="rail-group depth-cap">
                     <div class="rail-section-label">Features</div>
-                    <button class="rail-item path"><span class="rail-icon">✦</span><span class="rail-label">Breath Weapon</span><span class="rail-count">2</span></button>
-                    <button class="rail-item"><span class="rail-icon">◈</span><span class="rail-label">Damage Resistance</span><span class="rail-warning" aria-label="Warning">!</span></button>
+                    <button class="rail-item path">
+                      <span class="rail-icon">✦</span><span class="rail-label">Breath Weapon</span
+                      ><span class="rail-count">2</span>
+                    </button>
+                    <button class="rail-item">
+                      <span class="rail-icon">◈</span
+                      ><span class="rail-label">Damage Resistance</span
+                      ><span class="rail-warning" aria-label="Warning">!</span>
+                    </button>
                     <div class="rail-section-label">Feature options</div>
-                    <button class="rail-item path"><span class="rail-icon">◇</span><span class="rail-label">Acid Breath</span><span class="rail-count">3</span></button>
-                    <button class="rail-item"><span class="rail-icon">△</span><span class="rail-label">Acid Burst</span><span class="rail-warning" aria-label="Warning">!</span></button>
-                    <button class="rail-item active" aria-current="step"><span class="rail-icon">≋</span><span class="rail-label">Acid Breath outcomes</span><span class="rail-count">3</span></button>
+                    <button class="rail-item path">
+                      <span class="rail-icon">◇</span><span class="rail-label">Acid Breath</span
+                      ><span class="rail-count">3</span>
+                    </button>
+                    <button class="rail-item">
+                      <span class="rail-icon">△</span><span class="rail-label">Acid Burst</span
+                      ><span class="rail-warning" aria-label="Warning">!</span>
+                    </button>
+                    <button class="rail-item active" aria-current="step">
+                      <span class="rail-icon">≋</span
+                      ><span class="rail-label">Acid Breath outcomes</span
+                      ><span class="rail-count">3</span>
+                    </button>
                   </div>
                 </div>
               </div>
-              <button class="rail-item"><span class="rail-icon">▤</span><span class="rail-label">Traits</span><span class="rail-check">✓</span></button>
-              <button class="rail-item"><span class="rail-icon">✧</span><span class="rail-label">Features</span><span class="rail-count">3</span></button>
+              <button class="rail-item">
+                <span class="rail-icon">▤</span><span class="rail-label">Traits</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item">
+                <span class="rail-icon">✧</span><span class="rail-label">Features</span
+                ><span class="rail-count">3</span>
+              </button>
             </div>
-            <div class="rail-footer"><div class="rail-progress"><span style="width:88%"></span></div><div class="rail-footer-copy"><span>28 configured</span><span class="rail-warning">2 warnings</span></div></div>
+            <div class="rail-footer">
+              <div class="rail-progress"><span style="width: 88%"></span></div>
+              <div class="rail-footer-copy">
+                <span>28 configured</span><span class="rail-warning">2 warnings</span>
+              </div>
+            </div>
           </aside>
           <main class="canvas">
-            <div class="canvas-scroll"><div class="canvas-inner">
-              <div class="context-line">Black Dragon · Breath Weapon · Acid Breath</div><h2 class="page-heading">Outcomes</h2><p class="page-description">Review the selected option in context, then add or edit its ordered outcomes without creating more rail depth.</p>
-              <div class="content-stack">
-                <section class="surface">
-                  <div class="section-heading"><div><h3 class="section-title">Feature context</h3><p class="section-copy">Shared rules for every option granted by this ancestry feature.</p></div><span class="tag type">Race feature</span></div>
-                  <div class="grid-3">
-                    <div class="field"><label for="hierarchy-feature-name">Name</label><input class="input" id="hierarchy-feature-name" value="Breath Weapon" readonly></div>
-                    <div class="field"><label for="hierarchy-feature-activation">Activation</label><select class="select" id="hierarchy-feature-activation"><option>Action</option></select></div>
-                    <div class="field"><label for="hierarchy-feature-uses">Uses</label><input class="input" id="hierarchy-feature-uses" value="1 / Short Rest" readonly></div>
+            <div class="canvas-scroll">
+              <div class="canvas-inner">
+                <div class="context-line">Black Dragon · Breath Weapon · Acid Breath</div>
+                <h2 class="page-heading">Outcomes</h2>
+                <p class="page-description">
+                  Review the selected option in context, then add or edit its ordered outcomes
+                  without creating more rail depth.
+                </p>
+                <div class="content-stack">
+                  <section class="surface">
+                    <div class="section-heading">
+                      <div>
+                        <h3 class="section-title">Feature context</h3>
+                        <p class="section-copy">
+                          Shared rules for every option granted by this ancestry feature.
+                        </p>
+                      </div>
+                      <span class="tag type">Race feature</span>
+                    </div>
+                    <div class="grid-3">
+                      <div class="field">
+                        <label for="hierarchy-feature-name">Name</label
+                        ><input
+                          class="input"
+                          id="hierarchy-feature-name"
+                          value="Breath Weapon"
+                          readonly
+                        />
+                      </div>
+                      <div class="field">
+                        <label for="hierarchy-feature-activation">Activation</label
+                        ><select class="select" id="hierarchy-feature-activation">
+                          <option>Action</option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label for="hierarchy-feature-uses">Uses</label
+                        ><input
+                          class="input"
+                          id="hierarchy-feature-uses"
+                          value="1 / Short Rest"
+                          readonly
+                        />
+                      </div>
+                    </div>
+                  </section>
+                  <div class="nested-overview">
+                    <section class="surface">
+                      <div class="section-heading">
+                        <div>
+                          <h3 class="section-title">Feature options</h3>
+                          <p class="section-copy">Choice-specific shapes and save rules.</p>
+                        </div>
+                        <button class="btn compact">Add option</button>
+                      </div>
+                      <div class="summary-list">
+                        <article class="summary-card selected">
+                          <div class="summary-icon">⌁</div>
+                          <div>
+                            <div class="summary-title">Acid Breath</div>
+                            <div class="summary-meta">
+                              <span>5 × 30 ft. line</span><span class="tag">DEX save</span>
+                            </div>
+                          </div>
+                          <div class="card-actions"><button class="text-action">Edit</button></div>
+                        </article>
+                        <article class="summary-card">
+                          <div class="summary-icon">△</div>
+                          <div>
+                            <div class="summary-title">Acid Burst</div>
+                            <div class="summary-meta">
+                              <span>15 ft. cone</span><span class="tag">DEX save</span>
+                            </div>
+                          </div>
+                          <div class="card-actions"><button class="text-action">Edit</button></div>
+                        </article>
+                      </div>
+                    </section>
+                    <section class="surface">
+                      <div class="section-heading">
+                        <div>
+                          <h3 class="section-title">Acid Breath outcomes</h3>
+                          <p class="section-copy">
+                            Results owned by the selected feature option, ordered for resolution.
+                          </p>
+                        </div>
+                        <button class="btn compact">Add outcome</button>
+                      </div>
+                      <div class="option-stack">
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>Acid damage</strong><span>2d6 · scales by level</span>
+                          </div>
+                          <span class="count-box">Damage</span
+                          ><button class="text-action" id="acid-damage-edit">Edit</button>
+                        </div>
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>Saving throw</strong><span>DEX · class DC</span>
+                          </div>
+                          <span class="count-box">Save</span
+                          ><button class="text-action">Edit</button>
+                        </div>
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>On success</strong><span>Half damage</span>
+                          </div>
+                          <span class="count-box">Rule</span
+                          ><button class="text-action">Edit</button>
+                        </div>
+                      </div>
+                    </section>
                   </div>
-                </section>
-                <div class="nested-overview">
-                  <section class="surface">
-                    <div class="section-heading"><div><h3 class="section-title">Feature options</h3><p class="section-copy">Choice-specific shapes and save rules.</p></div><button class="btn compact">Add option</button></div>
-                    <div class="summary-list">
-                      <article class="summary-card selected"><div class="summary-icon">⌁</div><div><div class="summary-title">Acid Breath</div><div class="summary-meta"><span>5 × 30 ft. line</span><span class="tag">DEX save</span></div></div><div class="card-actions"><button class="text-action">Edit</button></div></article>
-                      <article class="summary-card"><div class="summary-icon">△</div><div><div class="summary-title">Acid Burst</div><div class="summary-meta"><span>15 ft. cone</span><span class="tag">DEX save</span></div></div><div class="card-actions"><button class="text-action">Edit</button></div></article>
-                    </div>
-                  </section>
-                  <section class="surface">
-                    <div class="section-heading"><div><h3 class="section-title">Acid Breath outcomes</h3><p class="section-copy">Results owned by the selected feature option, ordered for resolution.</p></div><button class="btn compact">Add outcome</button></div>
-                    <div class="option-stack">
-                      <div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>Acid damage</strong><span>2d6 · scales by level</span></div><span class="count-box">Damage</span><button class="text-action" id="acid-damage-edit">Edit</button></div>
-                      <div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>Saving throw</strong><span>DEX · class DC</span></div><span class="count-box">Save</span><button class="text-action">Edit</button></div>
-                      <div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>On success</strong><span>Half damage</span></div><span class="count-box">Rule</span><button class="text-action">Edit</button></div>
-                    </div>
-                  </section>
                 </div>
               </div>
-            </div></div>
+            </div>
           </main>
-          <footer class="action-bar"><div class="status"><span class="status-dot warning"></span><span>Draft synced · 2 authoring warnings remain</span></div><div class="action-group"><button class="btn ghost">Review 2 warnings</button><button class="btn" disabled title="No unsaved changes">Save draft</button><button class="btn primary">Continue to Damage Resistance</button></div></footer>
+          <footer class="action-bar">
+            <div class="status">
+              <span class="status-dot warning"></span
+              ><span>Draft synced · 2 authoring warnings remain</span>
+            </div>
+            <div class="action-group">
+              <button class="btn ghost">Review 2 warnings</button
+              ><button class="btn" disabled title="No unsaved changes">Save draft</button
+              ><button class="btn primary">Continue to Damage Resistance</button>
+            </div>
+          </footer>
         </div>
       </div>
     </div>
@@ -324,103 +1206,416 @@
       <div class="app-shell" inert aria-hidden="true">
         <header class="app-header">
           <div class="brand"><span class="brand-mark">A</span><span>Artificer Toolkit</span></div>
-          <nav class="app-nav" aria-label="Primary"><button class="nav-link">Library</button><button class="nav-link active">Create</button></nav>
-          <div class="header-actions"><input class="search" aria-label="Search" value="⌕  Search the toolkit…" readonly><button class="icon-button" aria-label="Account">TM</button></div>
+          <nav class="app-nav" aria-label="Primary">
+            <button class="nav-link">Library</button><button class="nav-link active">Create</button>
+          </nav>
+          <div class="header-actions">
+            <input
+              class="search"
+              aria-label="Search"
+              value="⌕  Search the toolkit…"
+              readonly
+            /><button class="icon-button" aria-label="Account">TM</button>
+          </div>
         </header>
         <header class="document-header">
-          <div><div class="title-row"><h1 class="document-title">Dragonborn</h1><span class="status-pill">Draft</span></div><div class="document-subtitle">Race · Ancestry · Black Dragon · Breath Weapon · Acid Breath · Outcomes</div></div>
-          <div class="document-actions"><button class="icon-button" aria-label="Toggle structure rail">▤</button><button class="btn ghost compact">Preview</button><button class="btn compact" aria-label="More authoring actions">•••</button></div>
+          <div>
+            <div class="title-row">
+              <h1 class="document-title">Dragonborn</h1>
+              <span class="status-pill">Draft</span>
+            </div>
+            <div class="document-subtitle">
+              Race · Ancestry · Black Dragon · Breath Weapon · Acid Breath · Outcomes
+            </div>
+          </div>
+          <div class="document-actions">
+            <button class="icon-button" aria-label="Toggle structure rail">▤</button
+            ><button class="btn ghost compact">Preview</button
+            ><button class="btn compact" aria-label="More authoring actions">•••</button>
+          </div>
         </header>
         <div class="workspace">
           <aside class="structure-rail" aria-label="Race structure">
             <div class="rail-header">Race structure</div>
             <div class="rail-scroll">
-              <button class="rail-item"><span class="rail-icon">▣</span><span class="rail-label">Basics</span><span class="rail-check">✓</span></button>
-              <button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">⌄</span><span class="rail-label">Ancestry</span><span class="rail-count">10</span></button>
-              <div class="rail-group"><button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">⌄</span><span class="rail-label">Ancestry options</span></button><div class="rail-group"><button class="rail-item branch path" aria-expanded="true"><span class="rail-icon">◆</span><span class="rail-label">Black Dragon</span><span class="rail-check">✓</span></button><div class="rail-group depth-cap"><div class="rail-section-label">Features</div><button class="rail-item path"><span class="rail-icon">✦</span><span class="rail-label">Breath Weapon</span><span class="rail-count">2</span></button><button class="rail-item"><span class="rail-icon">◈</span><span class="rail-label">Damage Resistance</span><span class="rail-warning" aria-label="Warning">!</span></button><div class="rail-section-label">Feature options</div><button class="rail-item path"><span class="rail-icon">◇</span><span class="rail-label">Acid Breath</span><span class="rail-count">3</span></button><button class="rail-item"><span class="rail-icon">△</span><span class="rail-label">Acid Burst</span><span class="rail-warning" aria-label="Warning">!</span></button><button class="rail-item active" aria-current="step"><span class="rail-icon">≋</span><span class="rail-label">Acid Breath outcomes</span><span class="rail-count">3</span></button></div></div></div>
-              <button class="rail-item"><span class="rail-icon">▤</span><span class="rail-label">Traits</span><span class="rail-check">✓</span></button>
-              <button class="rail-item"><span class="rail-icon">✧</span><span class="rail-label">Features</span><span class="rail-count">3</span></button>
+              <button class="rail-item">
+                <span class="rail-icon">▣</span><span class="rail-label">Basics</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item branch path" aria-expanded="true">
+                <span class="rail-icon">⌄</span><span class="rail-label">Ancestry</span
+                ><span class="rail-count">10</span>
+              </button>
+              <div class="rail-group">
+                <button class="rail-item branch path" aria-expanded="true">
+                  <span class="rail-icon">⌄</span><span class="rail-label">Ancestry options</span>
+                </button>
+                <div class="rail-group">
+                  <button class="rail-item branch path" aria-expanded="true">
+                    <span class="rail-icon">◆</span><span class="rail-label">Black Dragon</span
+                    ><span class="rail-check">✓</span>
+                  </button>
+                  <div class="rail-group depth-cap">
+                    <div class="rail-section-label">Features</div>
+                    <button class="rail-item path">
+                      <span class="rail-icon">✦</span><span class="rail-label">Breath Weapon</span
+                      ><span class="rail-count">2</span></button
+                    ><button class="rail-item">
+                      <span class="rail-icon">◈</span
+                      ><span class="rail-label">Damage Resistance</span
+                      ><span class="rail-warning" aria-label="Warning">!</span>
+                    </button>
+                    <div class="rail-section-label">Feature options</div>
+                    <button class="rail-item path">
+                      <span class="rail-icon">◇</span><span class="rail-label">Acid Breath</span
+                      ><span class="rail-count">3</span></button
+                    ><button class="rail-item">
+                      <span class="rail-icon">△</span><span class="rail-label">Acid Burst</span
+                      ><span class="rail-warning" aria-label="Warning">!</span></button
+                    ><button class="rail-item active" aria-current="step">
+                      <span class="rail-icon">≋</span
+                      ><span class="rail-label">Acid Breath outcomes</span
+                      ><span class="rail-count">3</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button class="rail-item">
+                <span class="rail-icon">▤</span><span class="rail-label">Traits</span
+                ><span class="rail-check">✓</span>
+              </button>
+              <button class="rail-item">
+                <span class="rail-icon">✧</span><span class="rail-label">Features</span
+                ><span class="rail-count">3</span>
+              </button>
             </div>
-            <div class="rail-footer"><div class="rail-progress"><span style="width:88%"></span></div><div class="rail-footer-copy"><span>28 configured</span><span>Editing outcome</span></div></div>
+            <div class="rail-footer">
+              <div class="rail-progress"><span style="width: 88%"></span></div>
+              <div class="rail-footer-copy">
+                <span>28 configured</span><span>Editing outcome</span>
+              </div>
+            </div>
           </aside>
           <main class="canvas">
-            <div class="canvas-scroll"><div class="canvas-inner">
-              <div class="context-line">Black Dragon · Breath Weapon · Acid Breath</div><h2 class="page-heading">Outcomes</h2><p class="page-description">Review the selected option in context, then add or edit its ordered outcomes without creating more rail depth.</p>
-              <div class="content-stack">
-                <section class="surface"><div class="section-heading"><div><h3 class="section-title">Feature context</h3><p class="section-copy">Shared rules for every option granted by this ancestry feature.</p></div><span class="tag type">Race feature</span></div><div class="grid-3"><div class="field"><label>Name</label><input class="input" value="Breath Weapon" readonly></div><div class="field"><label>Activation</label><input class="input" value="Action" readonly></div><div class="field"><label>Uses</label><input class="input" value="1 / Short Rest" readonly></div></div></section>
-                <div class="nested-overview"><section class="surface"><div class="section-heading"><div><h3 class="section-title">Feature options</h3><p class="section-copy">Choice-specific shapes and save rules.</p></div><button class="btn compact">Add option</button></div><div class="summary-list"><article class="summary-card selected"><div class="summary-icon">⌁</div><div><div class="summary-title">Acid Breath</div><div class="summary-meta"><span>5 × 30 ft. line</span><span class="tag">DEX save</span></div></div><div class="card-actions"><button class="text-action">Edit</button></div></article><article class="summary-card"><div class="summary-icon">△</div><div><div class="summary-title">Acid Burst</div><div class="summary-meta"><span>15 ft. cone</span><span class="tag">DEX save</span></div></div><div class="card-actions"><button class="text-action">Edit</button></div></article></div></section><section class="surface"><div class="section-heading"><div><h3 class="section-title">Acid Breath outcomes</h3><p class="section-copy">Results owned by the selected feature option, ordered for resolution.</p></div><button class="btn compact">Add outcome</button></div><div class="option-stack"><div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>Acid damage</strong><span>2d6 · scales by level</span></div><button class="text-action">Edit</button></div><div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>Saving throw</strong><span>DEX · class DC</span></div><button class="text-action">Edit</button></div><div class="option-row"><span class="option-dot"></span><div class="option-name"><strong>On success</strong><span>Half damage</span></div><button class="text-action">Edit</button></div></div></section></div>
+            <div class="canvas-scroll">
+              <div class="canvas-inner">
+                <div class="context-line">Black Dragon · Breath Weapon · Acid Breath</div>
+                <h2 class="page-heading">Outcomes</h2>
+                <p class="page-description">
+                  Review the selected option in context, then add or edit its ordered outcomes
+                  without creating more rail depth.
+                </p>
+                <div class="content-stack">
+                  <section class="surface">
+                    <div class="section-heading">
+                      <div>
+                        <h3 class="section-title">Feature context</h3>
+                        <p class="section-copy">
+                          Shared rules for every option granted by this ancestry feature.
+                        </p>
+                      </div>
+                      <span class="tag type">Race feature</span>
+                    </div>
+                    <div class="grid-3">
+                      <div class="field">
+                        <label>Name</label><input class="input" value="Breath Weapon" readonly />
+                      </div>
+                      <div class="field">
+                        <label>Activation</label><input class="input" value="Action" readonly />
+                      </div>
+                      <div class="field">
+                        <label>Uses</label><input class="input" value="1 / Short Rest" readonly />
+                      </div>
+                    </div>
+                  </section>
+                  <div class="nested-overview">
+                    <section class="surface">
+                      <div class="section-heading">
+                        <div>
+                          <h3 class="section-title">Feature options</h3>
+                          <p class="section-copy">Choice-specific shapes and save rules.</p>
+                        </div>
+                        <button class="btn compact">Add option</button>
+                      </div>
+                      <div class="summary-list">
+                        <article class="summary-card selected">
+                          <div class="summary-icon">⌁</div>
+                          <div>
+                            <div class="summary-title">Acid Breath</div>
+                            <div class="summary-meta">
+                              <span>5 × 30 ft. line</span><span class="tag">DEX save</span>
+                            </div>
+                          </div>
+                          <div class="card-actions"><button class="text-action">Edit</button></div>
+                        </article>
+                        <article class="summary-card">
+                          <div class="summary-icon">△</div>
+                          <div>
+                            <div class="summary-title">Acid Burst</div>
+                            <div class="summary-meta">
+                              <span>15 ft. cone</span><span class="tag">DEX save</span>
+                            </div>
+                          </div>
+                          <div class="card-actions"><button class="text-action">Edit</button></div>
+                        </article>
+                      </div>
+                    </section>
+                    <section class="surface">
+                      <div class="section-heading">
+                        <div>
+                          <h3 class="section-title">Acid Breath outcomes</h3>
+                          <p class="section-copy">
+                            Results owned by the selected feature option, ordered for resolution.
+                          </p>
+                        </div>
+                        <button class="btn compact">Add outcome</button>
+                      </div>
+                      <div class="option-stack">
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>Acid damage</strong><span>2d6 · scales by level</span>
+                          </div>
+                          <button class="text-action">Edit</button>
+                        </div>
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>Saving throw</strong><span>DEX · class DC</span>
+                          </div>
+                          <button class="text-action">Edit</button>
+                        </div>
+                        <div class="option-row">
+                          <span class="option-dot"></span>
+                          <div class="option-name">
+                            <strong>On success</strong><span>Half damage</span>
+                          </div>
+                          <button class="text-action">Edit</button>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
               </div>
-            </div></div>
+            </div>
           </main>
-          <footer class="action-bar"><div class="status"><span class="status-dot warning"></span><span>Draft synced · outcome edits are staged in the editor</span></div><div class="action-group"><button class="btn ghost" disabled>Review 2 warnings</button><button class="btn" disabled>Save draft</button><button class="btn primary" disabled>Continue</button></div></footer>
+          <footer class="action-bar">
+            <div class="status">
+              <span class="status-dot warning"></span
+              ><span>Draft synced · outcome edits are staged in the editor</span>
+            </div>
+            <div class="action-group">
+              <button class="btn ghost" disabled>Review 2 warnings</button
+              ><button class="btn" disabled>Save draft</button
+              ><button class="btn primary" disabled>Continue</button>
+            </div>
+          </footer>
         </div>
       </div>
       <div class="overlay" aria-hidden="true"></div>
       <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="outcome-editor-title">
-        <header class="drawer-header"><div class="drawer-heading"><div><div class="drawer-eyebrow" title="Black Dragon · Breath Weapon · Acid Breath · Outcome 1">Acid Breath · Outcome 1</div><h2 class="drawer-title" id="outcome-editor-title">Edit damage outcome</h2></div><button class="close-button" aria-label="Close editor">×</button></div></header>
-        <div class="drawer-body"><div class="drawer-stack">
-          <section class="drawer-section"><div class="drawer-section-title" id="outcome-type-label">Outcome type</div><div class="segmented" role="radiogroup" aria-labelledby="outcome-type-label"><button class="segment active" role="radio" aria-checked="true">Damage</button><button class="segment" role="radio" aria-checked="false">Healing</button><button class="segment" role="radio" aria-checked="false">Condition</button></div></section>
-          <section class="drawer-section"><div class="drawer-section-title">Damage</div><div class="grid-2"><div class="field"><label for="amount-kind">Amount kind</label><select class="select" id="amount-kind" autofocus><option>Dice</option></select></div><div class="field"><label for="damage-type">Damage type</label><select class="select" id="damage-type"><option>Acid</option></select></div><div class="field"><label for="dice-count">Dice count</label><input class="input" id="dice-count" value="2" readonly></div><div class="field"><label for="die-kind">Die</label><select class="select" id="die-kind"><option>d6</option></select></div></div></section>
-          <section class="drawer-section"><div class="drawer-section-title">Scaling</div><div class="field"><label for="scaling-method">Scaling method</label><select class="select" id="scaling-method"><option>Character level</option></select></div><div class="field"><label>Level progression</label><div class="progression-list"><div class="progression-header"><span>Level</span><span>Formula</span><span class="sr-only">Remove</span></div><div class="progression-row"><input class="input" aria-label="Progression level 1" value="1" readonly><input class="input" aria-label="Formula at level 1" value="2d6" readonly><button class="remove-row" aria-label="Remove level 1">×</button></div><div class="progression-row"><input class="input" aria-label="Progression level 6" value="6" readonly><input class="input" aria-label="Formula at level 6" value="3d6" readonly><button class="remove-row" aria-label="Remove level 6">×</button></div><div class="progression-row"><input class="input" aria-label="Progression level 11" value="11" readonly><input class="input" aria-label="Formula at level 11" value="4d6" readonly><button class="remove-row" aria-label="Remove level 11">×</button></div><div class="progression-row"><input class="input" aria-label="Progression level 16" value="16" readonly><input class="input" aria-label="Formula at level 16" value="5d6" readonly><button class="remove-row" aria-label="Remove level 16">×</button></div><button class="btn compact" type="button">Add level</button></div><span class="helper">Levels must be unique and ascending; formulas are validated as dice expressions.</span></div></section>
-          <section class="drawer-section"><div class="drawer-section-title">Resolution</div><div class="field"><label>On a successful save</label><select class="select"><option>Half damage</option></select></div><div class="field"><label>Author note</label><textarea class="textarea" readonly>Acid breath uses the ancestry option's Dexterity save DC.</textarea></div></section>
-        </div></div>
-        <footer class="drawer-actions"><button class="btn ghost">Cancel</button><button class="btn primary">Save outcome</button></footer>
+        <header class="drawer-header">
+          <div class="drawer-heading">
+            <div>
+              <div
+                class="drawer-eyebrow"
+                title="Black Dragon · Breath Weapon · Acid Breath · Outcome 1"
+              >
+                Acid Breath · Outcome 1
+              </div>
+              <h2 class="drawer-title" id="outcome-editor-title">Edit damage outcome</h2>
+            </div>
+            <button class="close-button" aria-label="Close editor">×</button>
+          </div>
+        </header>
+        <div class="drawer-body">
+          <div class="drawer-stack">
+            <section class="drawer-section">
+              <div class="drawer-section-title" id="outcome-type-label">Outcome type</div>
+              <div class="segmented" role="radiogroup" aria-labelledby="outcome-type-label">
+                <button class="segment active" role="radio" aria-checked="true">Damage</button
+                ><button class="segment" role="radio" aria-checked="false">Healing</button
+                ><button class="segment" role="radio" aria-checked="false">Condition</button>
+              </div>
+            </section>
+            <section class="drawer-section">
+              <div class="drawer-section-title">Damage</div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="amount-kind">Amount kind</label
+                  ><select class="select" id="amount-kind" autofocus>
+                    <option>Dice</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="damage-type">Damage type</label
+                  ><select class="select" id="damage-type">
+                    <option>Acid</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="dice-count">Dice count</label
+                  ><input class="input" id="dice-count" value="2" readonly />
+                </div>
+                <div class="field">
+                  <label for="die-kind">Die</label
+                  ><select class="select" id="die-kind">
+                    <option>d6</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            <section class="drawer-section">
+              <div class="drawer-section-title">Scaling</div>
+              <div class="field">
+                <label for="scaling-method">Scaling method</label
+                ><select class="select" id="scaling-method">
+                  <option>Character level</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Level progression</label>
+                <div class="progression-list">
+                  <div class="progression-header">
+                    <span>Level</span><span>Formula</span><span class="sr-only">Remove</span>
+                  </div>
+                  <div class="progression-row">
+                    <input
+                      class="input"
+                      aria-label="Progression level 1"
+                      value="1"
+                      readonly
+                    /><input
+                      class="input"
+                      aria-label="Formula at level 1"
+                      value="2d6"
+                      readonly
+                    /><button class="remove-row" aria-label="Remove level 1">×</button>
+                  </div>
+                  <div class="progression-row">
+                    <input
+                      class="input"
+                      aria-label="Progression level 6"
+                      value="6"
+                      readonly
+                    /><input
+                      class="input"
+                      aria-label="Formula at level 6"
+                      value="3d6"
+                      readonly
+                    /><button class="remove-row" aria-label="Remove level 6">×</button>
+                  </div>
+                  <div class="progression-row">
+                    <input
+                      class="input"
+                      aria-label="Progression level 11"
+                      value="11"
+                      readonly
+                    /><input
+                      class="input"
+                      aria-label="Formula at level 11"
+                      value="4d6"
+                      readonly
+                    /><button class="remove-row" aria-label="Remove level 11">×</button>
+                  </div>
+                  <div class="progression-row">
+                    <input
+                      class="input"
+                      aria-label="Progression level 16"
+                      value="16"
+                      readonly
+                    /><input
+                      class="input"
+                      aria-label="Formula at level 16"
+                      value="5d6"
+                      readonly
+                    /><button class="remove-row" aria-label="Remove level 16">×</button>
+                  </div>
+                  <button class="btn compact" type="button">Add level</button>
+                </div>
+                <span class="helper"
+                  >Levels must be unique and ascending; formulas are validated as dice
+                  expressions.</span
+                >
+              </div>
+            </section>
+            <section class="drawer-section">
+              <div class="drawer-section-title">Resolution</div>
+              <div class="field">
+                <label>On a successful save</label
+                ><select class="select">
+                  <option>Half damage</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Author note</label
+                ><textarea class="textarea" readonly>
+Acid breath uses the ancestry option's Dexterity save DC.</textarea
+                >
+              </div>
+            </section>
+          </div>
+        </div>
+        <footer class="drawer-actions">
+          <button class="btn ghost">Cancel</button><button class="btn primary">Save outcome</button>
+        </footer>
       </aside>
     </div>
 
     <script>
-      const requested = new URLSearchParams(location.search).get('view') || 'simple';
-      const active = document.getElementById(requested) || document.getElementById('simple');
-      active.classList.add('active');
+      const requested = new URLSearchParams(location.search).get('view') || 'simple'
+      const active = document.getElementById(requested) || document.getElementById('simple')
+      active.classList.add('active')
 
-      const hierarchy = document.getElementById('hierarchy');
-      const effect = document.getElementById('effect');
-      const drawer = effect.querySelector('[role="dialog"]');
-      const drawerTrigger = hierarchy.querySelector('#acid-damage-edit');
-      const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      const hierarchy = document.getElementById('hierarchy')
+      const effect = document.getElementById('effect')
+      const drawer = effect.querySelector('[role="dialog"]')
+      const drawerTrigger = hierarchy.querySelector('#acid-damage-edit')
+      const focusableSelector =
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
       function focusDrawer() {
-        requestAnimationFrame(() => drawer.querySelector('[autofocus]')?.focus());
+        requestAnimationFrame(() => drawer.querySelector('[autofocus]')?.focus())
       }
 
       function openDrawer() {
-        hierarchy.classList.remove('active');
-        effect.classList.add('active');
-        history.replaceState(null, '', '?view=effect');
-        focusDrawer();
+        hierarchy.classList.remove('active')
+        effect.classList.add('active')
+        history.replaceState(null, '', '?view=effect')
+        focusDrawer()
       }
 
       function closeDrawer() {
-        effect.classList.remove('active');
-        hierarchy.classList.add('active');
-        history.replaceState(null, '', '?view=hierarchy');
-        requestAnimationFrame(() => drawerTrigger.focus());
+        effect.classList.remove('active')
+        hierarchy.classList.add('active')
+        history.replaceState(null, '', '?view=hierarchy')
+        requestAnimationFrame(() => drawerTrigger.focus())
       }
 
-      drawerTrigger.addEventListener('click', openDrawer);
-      drawer.querySelector('.close-button').addEventListener('click', closeDrawer);
-      drawer.querySelector('.drawer-actions .ghost').addEventListener('click', closeDrawer);
+      drawerTrigger.addEventListener('click', openDrawer)
+      drawer.querySelector('.close-button').addEventListener('click', closeDrawer)
+      drawer.querySelector('.drawer-actions .ghost').addEventListener('click', closeDrawer)
       drawer.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-          event.preventDefault();
-          closeDrawer();
-          return;
+          event.preventDefault()
+          closeDrawer()
+          return
         }
 
-        if (event.key !== 'Tab') return;
-        const focusable = [...drawer.querySelectorAll(focusableSelector)];
-        const first = focusable[0];
-        const last = focusable.at(-1);
+        if (event.key !== 'Tab') return
+        const focusable = [...drawer.querySelectorAll(focusableSelector)]
+        const first = focusable[0]
+        const last = focusable.at(-1)
         if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
+          event.preventDefault()
+          last?.focus()
         } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
+          event.preventDefault()
+          first?.focus()
         }
-      });
+      })
 
-      if (active === effect) focusDrawer();
+      if (active === effect) focusDrawer()
     </script>
   </body>
 </html>

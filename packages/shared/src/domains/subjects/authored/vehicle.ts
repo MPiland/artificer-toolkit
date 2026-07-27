@@ -1,9 +1,5 @@
 import type { SizeCode, AuthoredRecordStatus } from '#core'
-import type {
-  CostAuthored,
-  DetailAuthored,
-  FeatureAuthored,
-} from '#authored'
+import type { CostAuthored, DetailAuthored, FeatureAuthored } from '#authored'
 
 export type VehicleCategory = 'LAND' | 'WATER' | 'AIR' | 'SPELLJAMMER'
 

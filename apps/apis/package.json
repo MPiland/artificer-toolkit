@@ -1,10 +1,24 @@
 {
   "name": "@artificer-toolkit/apis",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./trpc-handler": {
+      "types": "./dist/trpc/handler.d.ts",
+      "default": "./dist/trpc/handler.js"
+    },
+    "./application-config": {
+      "types": "./dist/applicationConfig.d.ts",
+      "default": "./dist/applicationConfig.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts apps/apis/src",
@@ -20,19 +34,5 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./trpc-handler": {
-      "types": "./dist/trpc/handler.d.ts",
-      "default": "./dist/trpc/handler.js"
-    },
-    "./application-config": {
-      "types": "./dist/applicationConfig.d.ts",
-      "default": "./dist/applicationConfig.js"
-    }
   }
 }

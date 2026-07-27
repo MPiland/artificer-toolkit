@@ -17,10 +17,7 @@ const proficiencyScalingDtoSchema = z.union([
     rounding: roundingCodeSchema
   }),
   z.object({
-    level: z.enum([
-      scalingAmountKindSchema.enum.DOUBLE,
-      scalingAmountKindSchema.enum.FULL
-    ])
+    level: z.enum([scalingAmountKindSchema.enum.DOUBLE, scalingAmountKindSchema.enum.FULL])
   })
 ])
 
@@ -76,28 +73,44 @@ const equipmentPropertyTargetDtoSchema = z.union([
   })
 ])
 
-export const proficiencyGrantDtoSchema = staticGrantBaseDtoSchema.extend({
-  grantKind: z.literal('PROFICIENCY_GRANT'),
-  selectionKind: authoringSelectionKindSchema,
-  scalingKind: z.literal(scalingKindSchema.enum.NONE),
-  count: z.number().int().optional(),
-  selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
-}).and(z.union([
-  z.object({
-    proficiencyKind: z.literal(proficiencyKindSchema.enum.SKILL)
-  }).and(skillTargetDtoSchema),
-  z.object({
-    proficiencyKind: z.literal(proficiencyKindSchema.enum.SAVE_ABILITY)
-  }).and(saveAbilityTargetDtoSchema),
-  z.object({
-    proficiencyKind: z.literal(proficiencyKindSchema.enum.LANGUAGE)
-  }).and(languageTargetDtoSchema),
-  z.object({
-    proficiencyKind: z.literal(proficiencyKindSchema.enum.EQUIPMENT)
-  }).and(equipmentTargetDtoSchema),
-  z.object({
-    proficiencyKind: z.literal(proficiencyKindSchema.enum.EQUIPMENT_PROPERTY)
-  }).and(equipmentPropertyTargetDtoSchema)
-])).and(proficiencyScalingDtoSchema).superRefine(validateChosenGrantSelectionFields)
+export const proficiencyGrantDtoSchema = staticGrantBaseDtoSchema
+  .extend({
+    grantKind: z.literal('PROFICIENCY_GRANT'),
+    selectionKind: authoringSelectionKindSchema,
+    scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    count: z.number().int().optional(),
+    selectionDuplicatePolicy: authoringSelectionDuplicatePolicySchema.optional()
+  })
+  .and(
+    z.union([
+      z
+        .object({
+          proficiencyKind: z.literal(proficiencyKindSchema.enum.SKILL)
+        })
+        .and(skillTargetDtoSchema),
+      z
+        .object({
+          proficiencyKind: z.literal(proficiencyKindSchema.enum.SAVE_ABILITY)
+        })
+        .and(saveAbilityTargetDtoSchema),
+      z
+        .object({
+          proficiencyKind: z.literal(proficiencyKindSchema.enum.LANGUAGE)
+        })
+        .and(languageTargetDtoSchema),
+      z
+        .object({
+          proficiencyKind: z.literal(proficiencyKindSchema.enum.EQUIPMENT)
+        })
+        .and(equipmentTargetDtoSchema),
+      z
+        .object({
+          proficiencyKind: z.literal(proficiencyKindSchema.enum.EQUIPMENT_PROPERTY)
+        })
+        .and(equipmentPropertyTargetDtoSchema)
+    ])
+  )
+  .and(proficiencyScalingDtoSchema)
+  .superRefine(validateChosenGrantSelectionFields)
 
 export type ProficiencyGrantDto = z.infer<typeof proficiencyGrantDtoSchema>

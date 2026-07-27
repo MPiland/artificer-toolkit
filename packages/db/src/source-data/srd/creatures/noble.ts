@@ -4,7 +4,8 @@ import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } fro
 export const noble: CreatureAuthored = {
   id: CREATURE_IDS.NOBLE,
   label: 'Noble',
-  description: 'A person of wealth and standing who wields political influence and expects deference.',
+  description:
+    'A person of wealth and standing who wields political influence and expects deference.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   category: 'NPC',
@@ -16,7 +17,7 @@ export const noble: CreatureAuthored = {
     CONSTITUTION: 11,
     INTELLIGENCE: 12,
     WISDOM: 14,
-    CHARISMA: 16,
+    CHARISMA: 16
   },
   armorClass: 15,
   armorClassNote: 'breastplate',
@@ -24,10 +25,9 @@ export const noble: CreatureAuthored = {
   hitDice: {
     count: 2,
     die: 8,
-    modifier: 0,
+    modifier: 0
   },
   speeds: walk(30),
   challengeRatingId: CR.CR_1_8,
   xp: 25
 }
-

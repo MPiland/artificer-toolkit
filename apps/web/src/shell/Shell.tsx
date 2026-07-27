@@ -97,7 +97,13 @@ export function Shell({
     <ShellHeaderSupplementContext value={headerSupplementContext}>
       <div className={styles.canvas} data-testid='app-shell'>
         <Header
-          accountControl={isSignedIn ? <UserMenu /> : <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />}
+          accountControl={
+            isSignedIn ? (
+              <UserMenu />
+            ) : (
+              <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />
+            )
+          }
           accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
           actions={headerSupplement?.actions}
           navigationActions={appNavigationActions}

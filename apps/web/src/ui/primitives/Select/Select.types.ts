@@ -13,10 +13,7 @@ export type AppSelectOptionGroup = {
 
 export type AppSelectData = AppSelectOption[] | AppSelectOptionGroup[]
 
-export type AppSelectProps = Omit<
-  SelectProps,
-  'data' | 'styles' | 'value' | 'onChange'
-> & {
+export type AppSelectProps = Omit<SelectProps, 'data' | 'styles' | 'value' | 'onChange'> & {
   data: AppSelectData
   value: string | null | undefined
   onChange: (value: string | null) => void

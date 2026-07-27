@@ -33,17 +33,24 @@ async function waitForSuccessfulTrpcRequest(
   const response = await page.waitForResponse(
     (candidate) => {
       const request = candidate.request()
-      return new URL(candidate.url()).pathname === expectedPathname
-        && (!options.method || request.method() === options.method)
+      return (
+        new URL(candidate.url()).pathname === expectedPathname &&
+        (!options.method || request.method() === options.method)
+      )
     },
     { timeout: options.timeout ?? 30_000 }
   )
 
-  expect(response.status(), `${procedureLabel} should return a 2xx response`).toBeGreaterThanOrEqual(200)
+  expect(
+    response.status(),
+    `${procedureLabel} should return a 2xx response`
+  ).toBeGreaterThanOrEqual(200)
   expect(response.status(), `${procedureLabel} should return a 2xx response`).toBeLessThan(300)
 
   const payload: unknown = await response.json().catch(() => undefined)
-  expect(hasTopLevelTrpcError(payload), `${procedureLabel} returned a tRPC error payload`).toBe(false)
+  expect(hasTopLevelTrpcError(payload), `${procedureLabel} returned a tRPC error payload`).toBe(
+    false
+  )
   return response
 }
 

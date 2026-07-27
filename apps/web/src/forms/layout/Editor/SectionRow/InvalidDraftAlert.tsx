@@ -18,12 +18,7 @@ export function InvalidDraftAlert({
         Discard the stale draft to continue editing from the active version.`}
       </Text>
       <Group mt='sm'>
-        <Button
-          loading={isDiscarding}
-          type='button'
-          variant='default'
-          onClick={onDiscard}
-        >
+        <Button loading={isDiscarding} type='button' variant='default' onClick={onDiscard}>
           Discard stale draft
         </Button>
       </Group>

@@ -1,7 +1,11 @@
 import { finalCta, finalCtaPanel, primaryLink, sectionCopy, sectionTitle } from '../marketing.css'
 import { MarketingRouteLink } from './MarketingLinks'
 
-export function MarketingFinalCta({ publicSignUpEnabled = false }: { publicSignUpEnabled?: boolean }) {
+export function MarketingFinalCta({
+  publicSignUpEnabled = false
+}: {
+  publicSignUpEnabled?: boolean
+}) {
   if (!publicSignUpEnabled) return null
 
   return (

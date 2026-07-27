@@ -16,19 +16,17 @@ export const frog: CreatureAuthored = {
     CONSTITUTION: 8,
     INTELLIGENCE: 1,
     WISDOM: 8,
-    CHARISMA: 3,
+    CHARISMA: 3
   },
   armorClass: 11,
   hitPoints: 1,
   hitDice: {
     count: 1,
     die: 4,
-    modifier: -1,
+    modifier: -1
   },
   speeds: [...S.walk(20), ...S.swim(20)],
-  proficiencies: [
-    S.grantedSkillProficiency(106, 1, 'PERCEPTION', 'STEALTH')
-  ],
+  proficiencies: [S.grantedSkillProficiency(106, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 30 ft.'],
   passivePerception: 11,
   challengeRatingId: S.CR.CR_0,
@@ -43,9 +41,9 @@ export const frog: CreatureAuthored = {
     {
       id: S.featureId(106, 2),
       label: 'Standing Leap',
-      description: "Standing Leap. The frog's long jump is up to 10 feet and its high jump is up to 5 feet, with or without a running start. A frog has no effective attacks. It feeds on small insects and typically dwells near water, in trees, or underground. The frog's statistics can also be used to represent a toad.",
+      description:
+        "Standing Leap. The frog's long jump is up to 10 feet and its high jump is up to 5 feet, with or without a running start. A frog has no effective attacks. It feeds on small insects and typically dwells near water, in trees, or underground. The frog's statistics can also be used to represent a toad.",
       order: 2
     }
   ]
 }
-

@@ -5,7 +5,8 @@ import { normalizeGeneratedSupabaseTypes } from '../scripts/normalizeGeneratedSu
 const redundantConstraint = `  PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },`
-const normalizedConstraint = '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
+const normalizedConstraint =
+  '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
 
 function generatedTypes(compositeTypes: string, constraint = redundantConstraint): string {
   return `export type Database = {
@@ -26,9 +27,7 @@ ${constraint}
 
 describe('normalizeGeneratedSupabaseTypes', () => {
   it('removes the impossible default-schema branch when public composite types are empty', () => {
-    const normalized = normalizeGeneratedSupabaseTypes(
-      generatedTypes('Record<never, never>')
-    )
+    const normalized = normalizeGeneratedSupabaseTypes(generatedTypes('Record<never, never>'))
 
     expect(normalized).toContain(normalizedConstraint)
     expect(normalized).not.toContain(redundantConstraint)
@@ -47,7 +46,10 @@ describe('normalizeGeneratedSupabaseTypes', () => {
   })
 
   it('fails when empty composite output no longer matches the known generator shape', () => {
-    const source = generatedTypes('Record<never, never>', '  PublicCompositeTypeNameOrOptions extends unknown,')
+    const source = generatedTypes(
+      'Record<never, never>',
+      '  PublicCompositeTypeNameOrOptions extends unknown,'
+    )
 
     expect(() => normalizeGeneratedSupabaseTypes(source)).toThrow(
       'Supabase changed its empty CompositeTypes output'

@@ -1,7 +1,13 @@
 import type { RaceListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
-function mapPermissions(item: RaceListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: RaceListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -64,7 +70,9 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
 }
 
 export function buildRaceListFilters(response: RaceListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'BASE'))).sort()
+  const categories = Array.from(
+    new Set(response.items.map((item) => item.category ?? 'BASE'))
+  ).sort()
 
   return [
     {
@@ -88,8 +96,7 @@ export function buildRaceListFilters(response: RaceListResponseDto): AuthoredLis
   ]
 }
 
-export const raceListAttributeColumns = [
-] satisfies AuthoredListAttributeColumn[]
+export const raceListAttributeColumns = [] satisfies AuthoredListAttributeColumn[]
 
 export const raceListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

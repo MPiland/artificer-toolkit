@@ -8,7 +8,8 @@ export const ownedBackgroundFixture: BackgroundAuthoredDto = {
   kind: 'BACKGROUND',
   id: 'urban-investigator',
   label: 'Urban Investigator',
-  description: 'You know how to read a city, follow a rumor, and turn a locked door into a conversation.',
+  description:
+    'You know how to read a city, follow a rumor, and turn a locked door into a conversation.',
   status: 'DRAFT',
   details: [
     {
@@ -66,7 +67,8 @@ export const masterBackgroundFixture: BackgroundAuthoredDto = {
   ...ownedBackgroundFixture,
   id: 'acolyte',
   label: 'Acolyte',
-  description: 'You have spent your life in service to a temple, learning sacred rites and local customs.',
+  description:
+    'You have spent your life in service to a temple, learning sacred rites and local customs.',
   status: 'ACTIVE',
   userId: 'master'
 }

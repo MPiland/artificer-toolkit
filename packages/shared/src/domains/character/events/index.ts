@@ -158,19 +158,19 @@ export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelop
  * Full event union
  * ────────────────────────────────────────────── */
 
-export type CharacterEvent
-  = | CharacterCreatedEvent
-    | RaceAssignedEvent
-    | BackgroundAssignedEvent
-    | AbilityScoresGeneratedEvent
-    | AbilityScoresReplacedEvent
-    | ClassLevelGainedEvent
-    | HitPointsAppliedEvent
-    | FeatureSelectionMadeEvent
-    | FeatChosenEvent
-    | SpellSelectionUpdatedEvent
-    | EquipmentAcquiredEvent
-    | EquipmentRemovedEvent
-    | ItemEquippedEvent
-    | ItemUnequippedEvent
-    | CharacterSheetCommandAppliedEvent
+export type CharacterEvent =
+  | CharacterCreatedEvent
+  | RaceAssignedEvent
+  | BackgroundAssignedEvent
+  | AbilityScoresGeneratedEvent
+  | AbilityScoresReplacedEvent
+  | ClassLevelGainedEvent
+  | HitPointsAppliedEvent
+  | FeatureSelectionMadeEvent
+  | FeatChosenEvent
+  | SpellSelectionUpdatedEvent
+  | EquipmentAcquiredEvent
+  | EquipmentRemovedEvent
+  | ItemEquippedEvent
+  | ItemUnequippedEvent
+  | CharacterSheetCommandAppliedEvent

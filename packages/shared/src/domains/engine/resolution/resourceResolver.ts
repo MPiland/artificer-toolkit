@@ -120,6 +120,12 @@ function targetsResource(grant: ChargeResetModifierGrant, resourceId: string): b
 
 function mapResetKind(resetKind: string): EngineResource['rechargeOn'] {
   switch (resetKind) {
+    case 'DAILY':
+      return 'DAILY'
+    case 'DAWN':
+      return 'DAWN'
+    case 'DUSK':
+      return 'DUSK'
     case 'SHORT_REST':
       return 'SHORT_REST'
     case 'LONG_REST':

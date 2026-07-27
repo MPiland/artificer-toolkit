@@ -1,5 +1,5 @@
 alter table public.creature_speeds
-  add column sort_order integer;
+  add column if not exists sort_order integer;
 
 with authored_speed_order as (
   select
@@ -38,6 +38,9 @@ set sort_order = fallback_speed.sort_order
 from fallback_speed_order fallback_speed
 where fallback_speed.creature_id = persisted_speed.creature_id
   and fallback_speed.speed_id = persisted_speed.speed_id;
+
+alter table public.creature_speeds
+  drop constraint if exists creature_speeds_creature_sort_order_unique;
 
 alter table public.creature_speeds
   alter column sort_order set not null,

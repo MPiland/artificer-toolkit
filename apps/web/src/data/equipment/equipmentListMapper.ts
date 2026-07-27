@@ -1,7 +1,13 @@
 import type { EquipmentListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
-function mapPermissions(item: EquipmentListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: EquipmentListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -23,7 +29,9 @@ function summarizeDescription(description: string | null | undefined): string {
   return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
-export function mapEquipmentListToAuthoredItems(response: EquipmentListResponseDto): AuthoredListItem[] {
+export function mapEquipmentListToAuthoredItems(
+  response: EquipmentListResponseDto
+): AuthoredListItem[] {
   return response.items.map((item) => {
     const category = item.category ?? 'EQUIPMENT'
 
@@ -51,8 +59,12 @@ export function mapEquipmentListToAuthoredItems(response: EquipmentListResponseD
   })
 }
 
-export function buildEquipmentListFilters(response: EquipmentListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'EQUIPMENT'))).sort()
+export function buildEquipmentListFilters(
+  response: EquipmentListResponseDto
+): AuthoredListFilter[] {
+  const categories = Array.from(
+    new Set(response.items.map((item) => item.category ?? 'EQUIPMENT'))
+  ).sort()
 
   return [
     {
@@ -76,7 +88,9 @@ export function buildEquipmentListFilters(response: EquipmentListResponseDto): A
   ]
 }
 
-export const equipmentListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
+export const equipmentListAttributeColumns = [
+  { key: 'Category', label: 'Category', width: 180 }
+] satisfies AuthoredListAttributeColumn[]
 
 export const equipmentListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

@@ -7,11 +7,9 @@ export const CHARACTER_ABILITY_GENERATION_METHOD = {
   MANUAL_ROLLED: 'MANUAL_ROLLED'
 } as const
 
-export type CharacterAbilityGenerationMethod
-  = keyof typeof CHARACTER_ABILITY_GENERATION_METHOD
+export type CharacterAbilityGenerationMethod = keyof typeof CHARACTER_ABILITY_GENERATION_METHOD
 
-export type CharacterAbilityGenerationMethodOption
-  = CoreMeta<CharacterAbilityGenerationMethod>
+export type CharacterAbilityGenerationMethodOption = CoreMeta<CharacterAbilityGenerationMethod>
 
 export const ABILITY_GENERATION_METHOD_REGISTRY: Record<
   CharacterAbilityGenerationMethod,
@@ -37,23 +35,13 @@ export const CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS = valuesOf(
   ABILITY_GENERATION_METHOD_REGISTRY
 ) as readonly CharacterAbilityGenerationMethodOption[]
 
-export const STANDARD_ARRAY_SCORES = [
-  '8',
-  '10',
-  '12',
-  '13',
-  '14',
-  '15'
-] as const
+export const STANDARD_ARRAY_SCORES = ['8', '10', '12', '13', '14', '15'] as const
 
 export type StandardArrayScore = (typeof STANDARD_ARRAY_SCORES)[number]
 
 export type StandardArrayScoreOption = CoreMeta<StandardArrayScore>
 
-export const STANDARD_ARRAY_SCORE_REGISTRY: Record<
-  StandardArrayScore,
-  StandardArrayScoreOption
-> = {
+export const STANDARD_ARRAY_SCORE_REGISTRY: Record<StandardArrayScore, StandardArrayScoreOption> = {
   ['8']: {
     code: '8',
     label: '8'
@@ -85,29 +73,17 @@ export const STANDARD_ARRAY_SCORE_REGISTRY: Record<
   }
 } as const
 
-export const STANDARD_ARRAY_SCORE_OPTIONS = [...valuesOf(
-  STANDARD_ARRAY_SCORE_REGISTRY
-)].sort((a, b) => Number(a.code) - Number(b.code)) as readonly StandardArrayScoreOption[]
+export const STANDARD_ARRAY_SCORE_OPTIONS = [...valuesOf(STANDARD_ARRAY_SCORE_REGISTRY)].sort(
+  (a, b) => Number(a.code) - Number(b.code)
+) as readonly StandardArrayScoreOption[]
 
-export const POINT_BUY_SCORES = [
-  '8',
-  '9',
-  '10',
-  '11',
-  '12',
-  '13',
-  '14',
-  '15'
-] as const
+export const POINT_BUY_SCORES = ['8', '9', '10', '11', '12', '13', '14', '15'] as const
 
 export type PointBuyScore = (typeof POINT_BUY_SCORES)[number]
 
 export type PointBuyScoreOption = CoreMeta<PointBuyScore> & { cost: number }
 
-export const POINT_BUY_SCORE_REGISTRY: Record<
-  PointBuyScore,
-  PointBuyScoreOption
-> = {
+export const POINT_BUY_SCORE_REGISTRY: Record<PointBuyScore, PointBuyScoreOption> = {
   ['8']: {
     code: '8',
     label: '8',
@@ -157,9 +133,9 @@ export const POINT_BUY_SCORE_REGISTRY: Record<
   }
 } as const
 
-export const POINT_BUY_SCORE_OPTIONS = [...valuesOf(
-  POINT_BUY_SCORE_REGISTRY
-)].sort((a, b) => Number(a.code) - Number(b.code)) as readonly PointBuyScoreOption[]
+export const POINT_BUY_SCORE_OPTIONS = [...valuesOf(POINT_BUY_SCORE_REGISTRY)].sort(
+  (a, b) => Number(a.code) - Number(b.code)
+) as readonly PointBuyScoreOption[]
 
 export const POINT_BUY_TOTAL_POINTS = 27 as const
 
@@ -172,10 +148,7 @@ export type AdvancementMethodCode = keyof typeof ADVANCEMENT_METHOD_CODE
 
 export type AdvancementMethodOption = CoreMeta<AdvancementMethodCode>
 
-export const ADVANCEMENT_METHOD_REGISTRY: Record<
-  AdvancementMethodCode,
-  AdvancementMethodOption
-> = {
+export const ADVANCEMENT_METHOD_REGISTRY: Record<AdvancementMethodCode, AdvancementMethodOption> = {
   [ADVANCEMENT_METHOD_CODE.MILESTONE]: {
     code: ADVANCEMENT_METHOD_CODE.MILESTONE,
     label: 'Milestone'
@@ -196,11 +169,9 @@ export const HITPOINT_CALCULATION_METHOD_CODE = {
   MANUAL: 'MANUAL'
 } as const
 
-export type HitpointCalculationMethodCode
-  = keyof typeof HITPOINT_CALCULATION_METHOD_CODE
+export type HitpointCalculationMethodCode = keyof typeof HITPOINT_CALCULATION_METHOD_CODE
 
-export type HitpointCalculationMethodOption
-  = CoreMeta<HitpointCalculationMethodCode>
+export type HitpointCalculationMethodOption = CoreMeta<HitpointCalculationMethodCode>
 
 export const HITPOINT_CALC_METHOD_REGISTRY: Record<
   HitpointCalculationMethodCode,

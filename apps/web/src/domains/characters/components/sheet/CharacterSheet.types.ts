@@ -11,24 +11,23 @@ export type CharacterSheetCommandDraft = CharacterSheetCommandInputDto extends i
     : never
   : never
 export type SubmitSheetCommand = (command: CharacterSheetCommandDraft) => Promise<boolean>
-export type CharacterSheetTabId
-  = | 'overview'
-    | 'actions'
-    | 'resources'
-    | 'spells'
-    | 'inventory'
-    | 'reference'
-    | 'notes'
+export type CharacterSheetTabId =
+  | 'overview'
+  | 'actions'
+  | 'spells'
+  | 'inventory'
+  | 'reference'
+  | 'notes'
 
-export type CharacterSheetMobilePageId
-  = | 'overview'
-    | 'actions'
-    | 'spells'
-    | 'equipment'
-    | 'features'
-    | 'notes'
-    | 'skills'
-    | 'proficiencies'
+export type CharacterSheetMobilePageId =
+  | 'overview'
+  | 'actions'
+  | 'spells'
+  | 'equipment'
+  | 'features'
+  | 'notes'
+  | 'skills'
+  | 'proficiencies'
 
 export type CharacterSheetPageId = CharacterSheetTabId | CharacterSheetMobilePageId
 

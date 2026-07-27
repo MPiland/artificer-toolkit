@@ -15,11 +15,12 @@ export function AuthoredDeleteConfirmModal({
   target: AuthoredDeleteTarget | null
 }) {
   const lowerDomain = domainLabel.toLowerCase()
-  const body = target?.kind === 'draft'
-    ? `Delete the draft for ${target.label}? The active ${lowerDomain} will stay unchanged if one exists.`
-    : target
-      ? `Delete ${target.label}? Any draft for this ${lowerDomain} will stay available.`
-      : ''
+  const body =
+    target?.kind === 'draft'
+      ? `Delete the draft for ${target.label}? The active ${lowerDomain} will stay unchanged if one exists.`
+      : target
+        ? `Delete ${target.label}? Any draft for this ${lowerDomain} will stay available.`
+        : ''
 
   return (
     <Modal

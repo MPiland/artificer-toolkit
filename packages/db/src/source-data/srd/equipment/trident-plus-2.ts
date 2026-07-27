@@ -14,5 +14,5 @@ export const tridentPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(220), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

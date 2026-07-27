@@ -4,10 +4,7 @@ import type {
 } from '#app/routes/-routeLoaderData'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterBuilderRouteMode } from '#forms/layout/authoredFormRouteContext'
-import {
-  toCharacterFormValues,
-  type CharacterFormValues
-} from './characterBuilder.utils'
+import { toCharacterFormValues, type CharacterFormValues } from './characterBuilder.utils'
 import {
   getCharacterBuilderAuthoringState,
   type CharacterBuilderAuthoringState
@@ -43,9 +40,7 @@ export function createCharacterBuilderAuthoringSession({
   data: unknown
   mode: CharacterBuilderRouteMode
 }): CharacterBuilderAuthoringSession {
-  return mode === 'create'
-    ? createCharacterCreateSession(data)
-    : createCharacterEditSession(data)
+  return mode === 'create' ? createCharacterCreateSession(data) : createCharacterEditSession(data)
 }
 
 function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringSession {
@@ -58,12 +53,15 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
     baseActiveUpdatedAt: null,
     draft: null,
     fallbackLabel: 'Untitled Character',
-    formKey: payload ? `character:create:${payload.character.id}` : 'character:create:system-required',
+    formKey: payload
+      ? `character:create:${payload.character.id}`
+      : 'character:create:system-required',
     hasActiveDraft: false,
     hasInvalidDraft: false,
-    initialAuthoringState: payload && initialValues
-      ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
-      : undefined,
+    initialAuthoringState:
+      payload && initialValues
+        ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
+        : undefined,
     initialValues,
     invalidDraftOnly: false,
     isDraft: true,
@@ -82,7 +80,8 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
 function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSession {
   const loaderData = data as CharacterEditAuthoringData
   const payload = loaderData.draftPayload ?? loaderData.response
-  const invalidDraftOnly = !loaderData.response && !loaderData.draftPayload && Boolean(loaderData.draft)
+  const invalidDraftOnly =
+    !loaderData.response && !loaderData.draftPayload && Boolean(loaderData.draft)
   const notFound = !loaderData.response && !loaderData.draftPayload && !loaderData.draft
   const baseActiveUpdatedAt = loaderData.draftPayload
     ? (loaderData.draft?.baseActiveUpdatedAt ?? loaderData.response?.baseActiveUpdatedAt ?? null)
@@ -99,9 +98,10 @@ function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSes
     formKey: `character:${loaderData.characterId}:${loaderData.draft?.updatedAt ?? payload?.character.id ?? 'missing'}`,
     hasActiveDraft: Boolean(loaderData.response && loaderData.draftPayload),
     hasInvalidDraft: Boolean(loaderData.draft && !loaderData.draftPayload),
-    initialAuthoringState: payload && initialValues
-      ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
-      : undefined,
+    initialAuthoringState:
+      payload && initialValues
+        ? getCharacterBuilderAuthoringState({ payload, values: initialValues })
+        : undefined,
     initialValues,
     invalidDraftOnly,
     isDraft: Boolean(loaderData.draftPayload),

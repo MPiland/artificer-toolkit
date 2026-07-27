@@ -1,6 +1,4 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { equipmentAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import {
@@ -63,10 +61,11 @@ export function EquipmentDetailPage({
     duplicate: api.content.equipment.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: equipmentId,
-    navigateEdit: async (subject) => navigate({
-      params: buildEquipmentRouteParams(subject.publicId, subject.label),
-      to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildEquipmentRouteParams(subject.publicId, subject.label),
+        to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/equipment' })
   })
 
@@ -74,15 +73,19 @@ export function EquipmentDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This equipment draft cannot be previewed. Delete it to return to the equipment list.</Alert>
+          <Alert color='yellow'>
+            This equipment draft cannot be previewed. Delete it to return to the equipment list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: equipmentId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'equipment draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: equipmentId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'equipment draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -102,18 +105,52 @@ export function EquipmentDetailPage({
   }
 
   const item = detailState.item
-  const equipmentParams = buildEquipmentRouteParams(draft?.publicId ?? response?.publicId ?? equipmentId, item.label)
+  const equipmentParams = buildEquipmentRouteParams(
+    draft?.publicId ?? response?.publicId ?? equipmentId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug/edit', params: equipmentParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () =>
+            navigate({
+              to: '/equipment/$equipmentPublicId/$equipmentSlug/edit',
+              params: equipmentParams
+            })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug/edit', params: equipmentParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({
+                to: '/equipment/$equipmentPublicId/$equipmentSlug/edit',
+                params: equipmentParams
+              })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/equipment/$equipmentPublicId/$equipmentSlug',
+              params: equipmentParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -121,11 +158,12 @@ export function EquipmentDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: equipmentId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: equipmentId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/equipment/new' }) }
@@ -145,8 +183,17 @@ export function EquipmentDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams }),
-          onViewDraft: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({
+              to: '/equipment/$equipmentPublicId/$equipmentSlug',
+              params: equipmentParams
+            }),
+          onViewDraft: () =>
+            navigate({
+              to: '/equipment/$equipmentPublicId/$equipmentSlug',
+              params: equipmentParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getEquipmentSections(item, references)}
@@ -170,21 +217,34 @@ function getEquipmentFacts(
 ): AuthoredDetailFact[] {
   const baseFacts: AuthoredDetailFact[] = [
     { label: 'Category', value: formatEnumLabel(equipment.category) },
-    { label: 'Rarity', value: formatReferenceLabel(equipment.rarityId, 'Rarity selected', references.rarities) },
+    {
+      label: 'Rarity',
+      value: formatReferenceLabel(equipment.rarityId, 'Rarity selected', references.rarities)
+    },
     { label: 'Properties', value: formatReferenceList(equipment.properties, 'property') }
   ]
 
   if (equipment.category === 'VARIANT') {
     return [
       ...baseFacts,
-      { label: 'Parent', value: formatReferenceLabel(equipment.parentEquipmentId, 'Parent equipment selected', references.equipment) }
+      {
+        label: 'Parent',
+        value: formatReferenceLabel(
+          equipment.parentEquipmentId,
+          'Parent equipment selected',
+          references.equipment
+        )
+      }
     ]
   }
 
   return [
     ...baseFacts,
     { label: 'Cost', value: equipment.cost ? `${equipment.cost.amount} currency` : 'Not set' },
-    { label: 'Weight', value: `${formatNumber(equipment.weight.amount)} ${formatEnumLabel(equipment.weight.unit)}` }
+    {
+      label: 'Weight',
+      value: `${formatNumber(equipment.weight.amount)} ${formatEnumLabel(equipment.weight.unit)}`
+    }
   ]
 }
 
@@ -192,13 +252,14 @@ function getEquipmentSections(
   equipment: EquipmentAuthoringInputDto,
   references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
 ): AuthoredDetailSectionModel[] {
-  const containedItems = equipment.category !== 'VARIANT'
-    ? (equipment.contains ?? []).map((contained, index) => ({
-        id: `${contained.equipmentId}-${index}`,
-        title: formatReferenceLabel(contained.equipmentId, 'Equipment', references.equipment),
-        meta: `Quantity ${contained.quantity}`
-      }))
-    : []
+  const containedItems =
+    equipment.category !== 'VARIANT'
+      ? (equipment.contains ?? []).map((contained, index) => ({
+          id: `${contained.equipmentId}-${index}`,
+          title: formatReferenceLabel(contained.equipmentId, 'Equipment', references.equipment),
+          meta: `Quantity ${contained.quantity}`
+        }))
+      : []
   const mechanicItems = [
     ...(equipment.charges
       ? [
@@ -217,25 +278,45 @@ function getEquipmentSections(
   }))
 
   return compactAuthoredDetailSections([
-    hasDetailText(equipment.description) ? {
-      id: 'description',
-      title: 'Description',
-      content: <AuthoredDetailProse html={equipment.description} />
-    } : null,
-    equipment.category !== 'VARIANT' && containedItems.length ? {
-      id: 'contents',
-      title: 'Contents',
-      content: <AuthoredDetailItemList empty='No contained equipment has been added.' items={containedItems} />
-    } : null,
-    mechanicItems.length ? {
-      id: 'mechanics',
-      title: 'Mechanics',
-      content: <AuthoredDetailItemList empty='No mechanics have been added.' items={mechanicItems} />
-    } : null,
-    featureItems.length ? {
-      id: 'features',
-      title: 'Features',
-      content: <AuthoredDetailItemList empty='No equipment features have been added.' items={featureItems} />
-    } : null
+    hasDetailText(equipment.description)
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: <AuthoredDetailProse html={equipment.description} />
+        }
+      : null,
+    equipment.category !== 'VARIANT' && containedItems.length
+      ? {
+          id: 'contents',
+          title: 'Contents',
+          content: (
+            <AuthoredDetailItemList
+              empty='No contained equipment has been added.'
+              items={containedItems}
+            />
+          )
+        }
+      : null,
+    mechanicItems.length
+      ? {
+          id: 'mechanics',
+          title: 'Mechanics',
+          content: (
+            <AuthoredDetailItemList empty='No mechanics have been added.' items={mechanicItems} />
+          )
+        }
+      : null,
+    featureItems.length
+      ? {
+          id: 'features',
+          title: 'Features',
+          content: (
+            <AuthoredDetailItemList
+              empty='No equipment features have been added.'
+              items={featureItems}
+            />
+          )
+        }
+      : null
   ])
 }

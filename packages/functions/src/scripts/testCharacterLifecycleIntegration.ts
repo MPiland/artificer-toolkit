@@ -210,12 +210,14 @@ async function measureBuilderResolution<T>(
   stage: BuilderResolutionTiming['stage'],
   resolve: () => Promise<T>
 ): Promise<T> {
-  console.info(JSON.stringify({
-    builderResolutionStart: {
-      fixture: fixture.label,
-      stage
-    }
-  }))
+  console.info(
+    JSON.stringify({
+      builderResolutionStart: {
+        fixture: fixture.label,
+        stage
+      }
+    })
+  )
   const startedAt = Date.now()
   const result = await resolve()
   const timing: BuilderResolutionTiming = {
@@ -788,11 +790,8 @@ async function proveFixtureLifecycle(
 ): Promise<CharacterSheetResponseDto> {
   const initialCharacter = createFixtureCharacter(fixture)
   assertCharacterProgression(initialCharacter, fixture, 'create input', false)
-  const initialPayload = await measureBuilderResolution(
-    resolutionTimings,
-    fixture,
-    'initial',
-    () => resolveCharacterForUser(
+  const initialPayload = await measureBuilderResolution(resolutionTimings, fixture, 'initial', () =>
+    resolveCharacterForUser(
       db,
       {
         character: initialCharacter,
@@ -833,14 +832,15 @@ async function proveFixtureLifecycle(
     resolutionTimings,
     fixture,
     'structural',
-    () => resolveCharacterForUser(
-      db,
-      {
-        character: structuralCharacter,
-        mode: 'create'
-      },
-      fixture.userId
-    )
+    () =>
+      resolveCharacterForUser(
+        db,
+        {
+          character: structuralCharacter,
+          mode: 'create'
+        },
+        fixture.userId
+      )
   )
   assertCharacterProgression(structuralPayload.character, fixture, 'structural resolution')
   if (fixture.preparedCasterClassId) {
@@ -857,14 +857,15 @@ async function proveFixtureLifecycle(
     resolutionTimings,
     fixture,
     'completed',
-    () => resolveCharacterForUser(
-      db,
-      {
-        character: completedCharacter,
-        mode: 'create'
-      },
-      fixture.userId
-    )
+    () =>
+      resolveCharacterForUser(
+        db,
+        {
+          character: completedCharacter,
+          mode: 'create'
+        },
+        fixture.userId
+      )
   )
   assert.deepEqual(resolvedPayload.resolution.validations, [])
   assert.deepEqual(resolvedPayload.resolution.outstandingChoices, [])
@@ -905,14 +906,15 @@ async function proveFixtureLifecycle(
     resolutionTimings,
     fixture,
     'reloaded',
-    () => resolveCharacterForUser(
-      db,
-      {
-        character: reloadedPayload.character,
-        mode: 'create'
-      },
-      fixture.userId
-    )
+    () =>
+      resolveCharacterForUser(
+        db,
+        {
+          character: reloadedPayload.character,
+          mode: 'create'
+        },
+        fixture.userId
+      )
   )
   assert.equal(reloadedResolution.resolution.readiness.ready, true)
   assertCharacterProgression(reloadedResolution.character, fixture, 'reloaded resolution')

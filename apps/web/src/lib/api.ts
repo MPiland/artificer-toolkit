@@ -1,9 +1,5 @@
 import { z } from 'zod'
-import {
-  createTRPCUntypedClient,
-  httpBatchLink,
-  isTRPCClientError
-} from '@trpc/client'
+import { createTRPCUntypedClient, httpBatchLink, isTRPCClientError } from '@trpc/client'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AnyRouter } from '@trpc/server'
 import {
@@ -281,32 +277,67 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
 
 interface TrpcClient {
   characters: {
-    command: MutationProcedure<{ id: string, input: CharacterSheetCommandInputDto }, CharacterSheetCommandResponseDto>
+    command: MutationProcedure<
+      { id: string; input: CharacterSheetCommandInputDto },
+      CharacterSheetCommandResponseDto
+    >
     discardDraft: MutationProcedure<IdProcedureInput, { ok: true }>
     draft: MutationProcedure<CharacterDraftRequestDto, CharacterBuilderPayloadDto>
     get: QueryProcedure<IdProcedureInput, CharacterBuilderPayloadDto | null>
     getDraft: QueryProcedure<IdProcedureInput, CharacterBuilderDraftDto | null>
     history: QueryProcedure<IdProcedureInput, CharacterHistoryResponseDto>
     list: EmptyQueryProcedure<CharacterListResponseDto>
-    panel: QueryProcedure<{ id: string, target: CharacterSheetPanelTargetDto }, CharacterSheetPanelDto>
-    previewSave: MutationProcedure<CharacterBuilderSaveRequestDto, CharacterBuilderPreviewPayloadDto>
+    panel: QueryProcedure<
+      { id: string; target: CharacterSheetPanelTargetDto },
+      CharacterSheetPanelDto
+    >
+    previewSave: MutationProcedure<
+      CharacterBuilderSaveRequestDto,
+      CharacterBuilderPreviewPayloadDto
+    >
     resolve: MutationProcedure<CharacterBuilderResolveRequestDto, CharacterBuilderPayloadDto>
-    saveDraft: MutationProcedure<{ id: string, input: CharacterBuilderDraftSaveRequestDto }, CharacterBuilderDraftDto>
+    saveDraft: MutationProcedure<
+      { id: string; input: CharacterBuilderDraftSaveRequestDto },
+      CharacterBuilderDraftDto
+    >
     sheet: QueryProcedure<IdProcedureInput, CharacterSheetResponseDto | null>
     upsert: MutationProcedure<CharacterBuilderCommitRequestDto, CharacterBuilderPayloadDto>
   }
   content: {
-    backgrounds: AuthoredDomainProcedures<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>
-    classes: AuthoredDomainProcedures<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>
-    creatures: AuthoredDomainProcedures<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>
-    equipment: AuthoredDomainProcedures<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>
+    backgrounds: AuthoredDomainProcedures<
+      BackgroundListResponseDto,
+      BackgroundResponseDto,
+      BackgroundAuthoringInputDto
+    >
+    classes: AuthoredDomainProcedures<
+      ClassListResponseDto,
+      ClassResponseDto,
+      ClassAuthoringInputDto
+    >
+    creatures: AuthoredDomainProcedures<
+      CreatureListResponseDto,
+      CreatureResponseDto,
+      CreatureAuthoringInputDto
+    >
+    equipment: AuthoredDomainProcedures<
+      EquipmentListResponseDto,
+      EquipmentResponseDto,
+      EquipmentAuthoringInputDto
+    >
     feats: AuthoredDomainProcedures<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>
     races: AuthoredDomainProcedures<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>
     spells: AuthoredDomainProcedures<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>
-    vehicles: AuthoredDomainProcedures<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>
+    vehicles: AuthoredDomainProcedures<
+      VehicleListResponseDto,
+      VehicleResponseDto,
+      VehicleAuthoringInputDto
+    >
   }
   nodeRuntime: {
-    normalizeValues: MutationProcedure<NodeRuntimeNormalizeValuesRequestDto, NodeRuntimeNormalizeValuesResponseDto>
+    normalizeValues: MutationProcedure<
+      NodeRuntimeNormalizeValuesRequestDto,
+      NodeRuntimeNormalizeValuesResponseDto
+    >
     resolve: MutationProcedure<NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto>
   }
   routeIds: {
@@ -332,21 +363,26 @@ function createTrpcClient(): TrpcClient {
   return createProcedureProxy(rawClient) as TrpcClient
 }
 
-function createProcedureProxy(rawClient: ReturnType<typeof createTRPCUntypedClient<AnyRouter>>, path: string[] = []): unknown {
-  return new Proxy<Record<PropertyKey, unknown>>({}, {
-    get(_target, property) {
-      if (property === 'query') {
-        return (input?: unknown) => rawClient.query(path.join('.'), input)
-      }
-      if (property === 'mutate') {
-        return (input?: unknown, options?: ProcedureRequestOptions) => (
-          rawClient.mutation(path.join('.'), input, options)
-        )
-      }
+function createProcedureProxy(
+  rawClient: ReturnType<typeof createTRPCUntypedClient<AnyRouter>>,
+  path: string[] = []
+): unknown {
+  return new Proxy<Record<PropertyKey, unknown>>(
+    {},
+    {
+      get(_target, property) {
+        if (property === 'query') {
+          return (input?: unknown) => rawClient.query(path.join('.'), input)
+        }
+        if (property === 'mutate') {
+          return (input?: unknown, options?: ProcedureRequestOptions) =>
+            rawClient.mutation(path.join('.'), input, options)
+        }
 
-      return createProcedureProxy(rawClient, [...path, String(property)])
+        return createProcedureProxy(rawClient, [...path, String(property)])
+      }
     }
-  })
+  )
 }
 
 const getServerRequestInfo = createIsomorphicFn()
@@ -370,9 +406,8 @@ async function trpcFetch(input: FetchInput, init?: FetchInit): Promise<Response>
       headers.set('cookie', serverRequestInfo.cookie)
     }
 
-    const resolvedInput = input instanceof Request
-      ? input
-      : new URL(input.toString(), serverRequestInfo.url).toString()
+    const resolvedInput =
+      input instanceof Request ? input : new URL(input.toString(), serverRequestInfo.url).toString()
     return fetch(resolvedInput, {
       ...init,
       headers
@@ -388,23 +423,13 @@ async function trpcFetch(input: FetchInput, init?: FetchInit): Promise<Response>
 
 function mapTrpcError(error: unknown): never {
   if (isTRPCClientError<AnyRouter>(error)) {
-    const status = typeof error.data?.httpStatus === 'number'
-      ? error.data.httpStatus
-      : 500
+    const status = typeof error.data?.httpStatus === 'number' ? error.data.httpStatus : 500
     const rawValidationIssues =
-      error.data &&
-      typeof error.data === 'object' &&
-      'validationIssues' in error.data
+      error.data && typeof error.data === 'object' && 'validationIssues' in error.data
         ? error.data.validationIssues
         : undefined
-    const validationIssues = authoredValidationIssueDtoSchema.array().safeParse(
-      rawValidationIssues
-    )
-    throw new ApiError(
-      status,
-      error.message,
-      validationIssues.success ? validationIssues.data : []
-    )
+    const validationIssues = authoredValidationIssueDtoSchema.array().safeParse(rawValidationIssues)
+    throw new ApiError(status, error.message, validationIssues.success ? validationIssues.data : [])
   }
 
   throw error
@@ -433,43 +458,93 @@ function buildApi(client: TrpcClient) {
     const nullableDraftSchema = authoredDraftDtoSchema.nullable()
 
     return {
-      activate: (input: TInput) => request(`${path}.activate`, responseSchema, () => transport.activate(input)),
-      activateDraft: (id: string) => request(`${path}.activateDraft`, responseSchema, () => transport.activateDraft(id)),
+      activate: (input: TInput) =>
+        request(`${path}.activate`, responseSchema, () => transport.activate(input)),
+      activateDraft: (id: string) =>
+        request(`${path}.activateDraft`, responseSchema, () => transport.activateDraft(id)),
       deleteActive: async (id: string) => {
         await request(`${path}.deleteActive`, okResponseSchema, () => transport.deleteActive(id))
       },
       discardDraft: async (id: string) => {
         await request(`${path}.discardDraft`, okResponseSchema, () => transport.discardDraft(id))
       },
-      duplicate: (id: string) => request(`${path}.duplicate`, nullableDraftSchema, () => transport.duplicate(id)),
-      get: (input: AuthoredDetailInput) => request(`${path}.get`, responseSchema, () => transport.get(normalizeAuthoredDetailInput(input))),
-      getDraft: (id: string) => request(`${path}.getDraft`, nullableDraftSchema, () => transport.getDraft(id)),
+      duplicate: (id: string) =>
+        request(`${path}.duplicate`, nullableDraftSchema, () => transport.duplicate(id)),
+      get: (input: AuthoredDetailInput) =>
+        request(`${path}.get`, responseSchema, () =>
+          transport.get(normalizeAuthoredDetailInput(input))
+        ),
+      getDraft: (id: string) =>
+        request(`${path}.getDraft`, nullableDraftSchema, () => transport.getDraft(id)),
       list: () => request(`${path}.list`, listSchema, () => transport.list()),
-      saveDraft: (input: TInput) => request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input))
+      saveDraft: (input: TInput) =>
+        request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input))
     }
   }
 
   return {
     characters: {
-      command: (id: string, input: CharacterSheetCommandInputDto) => request('characters.command', characterSheetCommandResponseDtoSchema, () => client.characters.command.mutate({ id, input })),
+      command: (id: string, input: CharacterSheetCommandInputDto) =>
+        request('characters.command', characterSheetCommandResponseDtoSchema, () =>
+          client.characters.command.mutate({ id, input })
+        ),
       discardDraft: async (id: string) => {
-        await request('characters.discardDraft', okResponseSchema, () => client.characters.discardDraft.mutate({ id }))
+        await request('characters.discardDraft', okResponseSchema, () =>
+          client.characters.discardDraft.mutate({ id })
+        )
       },
-      draft: (input: CharacterDraftRequestDto) => request('characters.draft', characterBuilderPayloadDtoSchema, () => client.characters.draft.mutate(input)),
-      get: (id: string) => request('characters.get', characterBuilderPayloadDtoSchema.nullable(), () => client.characters.get.query({ id })),
-      getDraft: (id: string) => request('characters.getDraft', characterBuilderDraftDtoSchema.nullable(), () => client.characters.getDraft.query({ id })),
-      history: (id: string) => request('characters.history', characterHistoryResponseDtoSchema, () => client.characters.history.query({ id })),
-      list: () => request('characters.list', characterListResponseDtoSchema, () => client.characters.list.query()),
-      panel: (id: string, target: CharacterSheetPanelTargetDto) => request('characters.panel', characterSheetPanelDtoSchema, () => client.characters.panel.query({ id, target })),
-      previewSave: (input: CharacterBuilderSaveRequestDto) => request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () => client.characters.previewSave.mutate(input)),
-      resolve: (input: CharacterBuilderResolveRequestDto, options?: ProcedureRequestOptions) => request('characters.resolve', characterBuilderPayloadDtoSchema, () => client.characters.resolve.mutate(input, options)),
-      saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => request('characters.saveDraft', characterBuilderDraftDtoSchema, () => client.characters.saveDraft.mutate({ id, input })),
-      sheet: (id: string) => request('characters.sheet', characterSheetResponseDtoSchema.nullable(), () => client.characters.sheet.query({ id })),
-      upsert: (input: CharacterBuilderCommitRequestDto) => request('characters.upsert', characterBuilderPayloadDtoSchema, () => client.characters.upsert.mutate(input))
+      draft: (input: CharacterDraftRequestDto) =>
+        request('characters.draft', characterBuilderPayloadDtoSchema, () =>
+          client.characters.draft.mutate(input)
+        ),
+      get: (id: string) =>
+        request('characters.get', characterBuilderPayloadDtoSchema.nullable(), () =>
+          client.characters.get.query({ id })
+        ),
+      getDraft: (id: string) =>
+        request('characters.getDraft', characterBuilderDraftDtoSchema.nullable(), () =>
+          client.characters.getDraft.query({ id })
+        ),
+      history: (id: string) =>
+        request('characters.history', characterHistoryResponseDtoSchema, () =>
+          client.characters.history.query({ id })
+        ),
+      list: () =>
+        request('characters.list', characterListResponseDtoSchema, () =>
+          client.characters.list.query()
+        ),
+      panel: (id: string, target: CharacterSheetPanelTargetDto) =>
+        request('characters.panel', characterSheetPanelDtoSchema, () =>
+          client.characters.panel.query({ id, target })
+        ),
+      previewSave: (input: CharacterBuilderSaveRequestDto) =>
+        request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () =>
+          client.characters.previewSave.mutate(input)
+        ),
+      resolve: (input: CharacterBuilderResolveRequestDto, options?: ProcedureRequestOptions) =>
+        request('characters.resolve', characterBuilderPayloadDtoSchema, () =>
+          client.characters.resolve.mutate(input, options)
+        ),
+      saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) =>
+        request('characters.saveDraft', characterBuilderDraftDtoSchema, () =>
+          client.characters.saveDraft.mutate({ id, input })
+        ),
+      sheet: (id: string) =>
+        request('characters.sheet', characterSheetResponseDtoSchema.nullable(), () =>
+          client.characters.sheet.query({ id })
+        ),
+      upsert: (input: CharacterBuilderCommitRequestDto) =>
+        request('characters.upsert', characterBuilderPayloadDtoSchema, () =>
+          client.characters.upsert.mutate(input)
+        )
     },
 
     content: {
-      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>('content.backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema, {
+      backgrounds: contentDomain<
+        BackgroundListResponseDto,
+        BackgroundResponseDto,
+        BackgroundAuthoringInputDto
+      >('content.backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema, {
         activate: (input) => client.content.backgrounds.activate.mutate(input),
         activateDraft: (id) => client.content.backgrounds.activateDraft.mutate({ id }),
         deleteActive: (id) => client.content.backgrounds.deleteActive.mutate({ id }),
@@ -480,18 +555,27 @@ function buildApi(client: TrpcClient) {
         list: () => client.content.backgrounds.list.query(),
         saveDraft: (input) => client.content.backgrounds.saveDraft.mutate(input)
       }),
-      classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('content.classes', classListResponseDtoSchema, classResponseDtoSchema, {
-        activate: (input) => client.content.classes.activate.mutate(input),
-        activateDraft: (id) => client.content.classes.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.classes.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.classes.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.classes.duplicate.mutate({ id }),
-        get: (input) => client.content.classes.get.query(input),
-        getDraft: (id) => client.content.classes.getDraft.query({ id }),
-        list: () => client.content.classes.list.query(),
-        saveDraft: (input) => client.content.classes.saveDraft.mutate(input)
-      }),
-      equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('content.equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema, {
+      classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>(
+        'content.classes',
+        classListResponseDtoSchema,
+        classResponseDtoSchema,
+        {
+          activate: (input) => client.content.classes.activate.mutate(input),
+          activateDraft: (id) => client.content.classes.activateDraft.mutate({ id }),
+          deleteActive: (id) => client.content.classes.deleteActive.mutate({ id }),
+          discardDraft: (id) => client.content.classes.discardDraft.mutate({ id }),
+          duplicate: (id) => client.content.classes.duplicate.mutate({ id }),
+          get: (input) => client.content.classes.get.query(input),
+          getDraft: (id) => client.content.classes.getDraft.query({ id }),
+          list: () => client.content.classes.list.query(),
+          saveDraft: (input) => client.content.classes.saveDraft.mutate(input)
+        }
+      ),
+      equipment: contentDomain<
+        EquipmentListResponseDto,
+        EquipmentResponseDto,
+        EquipmentAuthoringInputDto
+      >('content.equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema, {
         activate: (input) => client.content.equipment.activate.mutate(input),
         activateDraft: (id) => client.content.equipment.activateDraft.mutate({ id }),
         deleteActive: (id) => client.content.equipment.deleteActive.mutate({ id }),
@@ -502,40 +586,59 @@ function buildApi(client: TrpcClient) {
         list: () => client.content.equipment.list.query(),
         saveDraft: (input) => client.content.equipment.saveDraft.mutate(input)
       }),
-      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('content.feats', featListResponseDtoSchema, featResponseDtoSchema, {
-        activate: (input) => client.content.feats.activate.mutate(input),
-        activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.feats.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
-        get: (input) => client.content.feats.get.query(input),
-        getDraft: (id) => client.content.feats.getDraft.query({ id }),
-        list: () => client.content.feats.list.query(),
-        saveDraft: (input) => client.content.feats.saveDraft.mutate(input)
-      }),
-      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('content.races', raceListResponseDtoSchema, raceResponseDtoSchema, {
-        activate: (input) => client.content.races.activate.mutate(input),
-        activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.races.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.races.duplicate.mutate({ id }),
-        get: (input) => client.content.races.get.query(input),
-        getDraft: (id) => client.content.races.getDraft.query({ id }),
-        list: () => client.content.races.list.query(),
-        saveDraft: (input) => client.content.races.saveDraft.mutate(input)
-      }),
-      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('content.spells', spellListResponseDtoSchema, spellResponseDtoSchema, {
-        activate: (input) => client.content.spells.activate.mutate(input),
-        activateDraft: (id) => client.content.spells.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.spells.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.spells.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.spells.duplicate.mutate({ id }),
-        get: (input) => client.content.spells.get.query(input),
-        getDraft: (id) => client.content.spells.getDraft.query({ id }),
-        list: () => client.content.spells.list.query(),
-        saveDraft: (input) => client.content.spells.saveDraft.mutate(input)
-      }),
-      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('content.creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema, {
+      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>(
+        'content.feats',
+        featListResponseDtoSchema,
+        featResponseDtoSchema,
+        {
+          activate: (input) => client.content.feats.activate.mutate(input),
+          activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
+          deleteActive: (id) => client.content.feats.deleteActive.mutate({ id }),
+          discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
+          duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
+          get: (input) => client.content.feats.get.query(input),
+          getDraft: (id) => client.content.feats.getDraft.query({ id }),
+          list: () => client.content.feats.list.query(),
+          saveDraft: (input) => client.content.feats.saveDraft.mutate(input)
+        }
+      ),
+      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>(
+        'content.races',
+        raceListResponseDtoSchema,
+        raceResponseDtoSchema,
+        {
+          activate: (input) => client.content.races.activate.mutate(input),
+          activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
+          deleteActive: (id) => client.content.races.deleteActive.mutate({ id }),
+          discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
+          duplicate: (id) => client.content.races.duplicate.mutate({ id }),
+          get: (input) => client.content.races.get.query(input),
+          getDraft: (id) => client.content.races.getDraft.query({ id }),
+          list: () => client.content.races.list.query(),
+          saveDraft: (input) => client.content.races.saveDraft.mutate(input)
+        }
+      ),
+      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>(
+        'content.spells',
+        spellListResponseDtoSchema,
+        spellResponseDtoSchema,
+        {
+          activate: (input) => client.content.spells.activate.mutate(input),
+          activateDraft: (id) => client.content.spells.activateDraft.mutate({ id }),
+          deleteActive: (id) => client.content.spells.deleteActive.mutate({ id }),
+          discardDraft: (id) => client.content.spells.discardDraft.mutate({ id }),
+          duplicate: (id) => client.content.spells.duplicate.mutate({ id }),
+          get: (input) => client.content.spells.get.query(input),
+          getDraft: (id) => client.content.spells.getDraft.query({ id }),
+          list: () => client.content.spells.list.query(),
+          saveDraft: (input) => client.content.spells.saveDraft.mutate(input)
+        }
+      ),
+      creatures: contentDomain<
+        CreatureListResponseDto,
+        CreatureResponseDto,
+        CreatureAuthoringInputDto
+      >('content.creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema, {
         activate: (input) => client.content.creatures.activate.mutate(input),
         activateDraft: (id) => client.content.creatures.activateDraft.mutate({ id }),
         deleteActive: (id) => client.content.creatures.deleteActive.mutate({ id }),
@@ -546,32 +649,51 @@ function buildApi(client: TrpcClient) {
         list: () => client.content.creatures.list.query(),
         saveDraft: (input) => client.content.creatures.saveDraft.mutate(input)
       }),
-      vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('content.vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema, {
-        activate: (input) => client.content.vehicles.activate.mutate(input),
-        activateDraft: (id) => client.content.vehicles.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.vehicles.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.vehicles.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.vehicles.duplicate.mutate({ id }),
-        get: (input) => client.content.vehicles.get.query(input),
-        getDraft: (id) => client.content.vehicles.getDraft.query({ id }),
-        list: () => client.content.vehicles.list.query(),
-        saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input)
-      }),
+      vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>(
+        'content.vehicles',
+        vehicleListResponseDtoSchema,
+        vehicleResponseDtoSchema,
+        {
+          activate: (input) => client.content.vehicles.activate.mutate(input),
+          activateDraft: (id) => client.content.vehicles.activateDraft.mutate({ id }),
+          deleteActive: (id) => client.content.vehicles.deleteActive.mutate({ id }),
+          discardDraft: (id) => client.content.vehicles.discardDraft.mutate({ id }),
+          duplicate: (id) => client.content.vehicles.duplicate.mutate({ id }),
+          get: (input) => client.content.vehicles.get.query(input),
+          getDraft: (id) => client.content.vehicles.getDraft.query({ id }),
+          list: () => client.content.vehicles.list.query(),
+          saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input)
+        }
+      )
     },
 
     systems: {
-      get: (id: string) => request('systems.get', systemResponseDtoSchema, () => client.systems.get.query({ id })),
-      list: () => request('systems.list', systemListResponseDtoSchema, () => client.systems.list.query())
+      get: (id: string) =>
+        request('systems.get', systemResponseDtoSchema, () => client.systems.get.query({ id })),
+      list: () =>
+        request('systems.list', systemListResponseDtoSchema, () => client.systems.list.query())
     },
 
     nodeRuntime: {
-      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) => request('nodeRuntime.normalizeValues', nodeRuntimeNormalizeValuesResponseDtoSchema, () => client.nodeRuntime.normalizeValues.mutate(input)),
-      resolve: (input: NodeRuntimeResolveRequestDto) => request('nodeRuntime.resolve', nodeRuntimeResolveResponseDtoSchema, () => client.nodeRuntime.resolve.mutate(input))
+      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) =>
+        request('nodeRuntime.normalizeValues', nodeRuntimeNormalizeValuesResponseDtoSchema, () =>
+          client.nodeRuntime.normalizeValues.mutate(input)
+        ),
+      resolve: (input: NodeRuntimeResolveRequestDto) =>
+        request('nodeRuntime.resolve', nodeRuntimeResolveResponseDtoSchema, () =>
+          client.nodeRuntime.resolve.mutate(input)
+        )
     },
 
     routeIds: {
-      bySubject: (input: RouteIdentityBySubjectRequestDto) => request('routeIds.bySubject', routeIdentityDtoSchema.nullable(), () => client.routeIds.bySubject.query(input)),
-      resolve: (input: RouteIdentityResolveRequestDto) => request('routeIds.resolve', routeIdentityDtoSchema.nullable(), () => client.routeIds.resolve.query(input))
+      bySubject: (input: RouteIdentityBySubjectRequestDto) =>
+        request('routeIds.bySubject', routeIdentityDtoSchema.nullable(), () =>
+          client.routeIds.bySubject.query(input)
+        ),
+      resolve: (input: RouteIdentityResolveRequestDto) =>
+        request('routeIds.resolve', routeIdentityDtoSchema.nullable(), () =>
+          client.routeIds.resolve.query(input)
+        )
     }
   }
 }

@@ -155,11 +155,7 @@ export async function getCharacterAssemblyStructureQuery(
 
   const ancestryOptionQuery = db
     .selectFrom('race_ancestries')
-    .innerJoin(
-      'race_ancestry_options',
-      'race_ancestry_options.ancestry_id',
-      'race_ancestries.id'
-    )
+    .innerJoin('race_ancestry_options', 'race_ancestry_options.ancestry_id', 'race_ancestries.id')
     .leftJoin(
       'race_ancestry_option_features',
       'race_ancestry_option_features.ancestry_option_id',
@@ -188,22 +184,28 @@ export async function getCharacterAssemblyStructureQuery(
   ] = await Promise.all([
     (raceIds.length > 0
       ? raceFeatureQuery.where('race_features.race_id', 'in', raceIds)
-      : raceFeatureQuery.where(sql<boolean>`false`)).execute(),
+      : raceFeatureQuery.where(sql<boolean>`false`)
+    ).execute(),
     (classIds.length > 0
       ? classFeatureQuery.where('class_features.class_id', 'in', classIds)
-      : classFeatureQuery.where(sql<boolean>`false`)).execute(),
+      : classFeatureQuery.where(sql<boolean>`false`)
+    ).execute(),
     (backgroundIds.length > 0
       ? backgroundFeatureQuery.where('background_features.background_id', 'in', backgroundIds)
-      : backgroundFeatureQuery.where(sql<boolean>`false`)).execute(),
+      : backgroundFeatureQuery.where(sql<boolean>`false`)
+    ).execute(),
     (featIds.length > 0
       ? featFeatureQuery.where('feat_features.feat_id', 'in', featIds)
-      : featFeatureQuery.where(sql<boolean>`false`)).execute(),
+      : featFeatureQuery.where(sql<boolean>`false`)
+    ).execute(),
     (equipmentIds.length > 0
       ? equipmentFeatureQuery.where('equipment_features.equipment_id', 'in', equipmentIds)
-      : equipmentFeatureQuery.where(sql<boolean>`false`)).execute(),
+      : equipmentFeatureQuery.where(sql<boolean>`false`)
+    ).execute(),
     (raceIds.length > 0
       ? ancestryOptionQuery.where('race_ancestries.race_id', 'in', raceIds)
-      : ancestryOptionQuery.where(sql<boolean>`false`)).execute()
+      : ancestryOptionQuery.where(sql<boolean>`false`)
+    ).execute()
   ])
 
   const rootFeatureLinks = [
@@ -241,32 +243,25 @@ export async function getCharacterAssemblyStructureQuery(
 
   const featureOptionQuery = db
     .selectFrom('feature_options')
-    .select([
-      'feature_id as featureId',
-      'option_id as optionId',
-      'sort_order as order'
-    ])
+    .select(['feature_id as featureId', 'option_id as optionId', 'sort_order as order'])
     .orderBy('feature_id')
     .orderBy('sort_order')
 
   const featureOptionChoiceQuery = db
     .selectFrom('feature_option_levels')
-    .select([
-      'feature_id as featureId',
-      'level',
-      'count',
-      'sort_order as order'
-    ])
+    .select(['feature_id as featureId', 'level', 'count', 'sort_order as order'])
     .orderBy('feature_id')
     .orderBy('sort_order')
 
   const [featureOptions, featureOptionChoices] = await Promise.all([
     (featureIds.length > 0
       ? featureOptionQuery.where('feature_id', 'in', featureIds)
-      : featureOptionQuery.where(sql<boolean>`false`)).execute(),
+      : featureOptionQuery.where(sql<boolean>`false`)
+    ).execute(),
     (featureIds.length > 0
       ? featureOptionChoiceQuery.where('feature_id', 'in', featureIds)
-      : featureOptionChoiceQuery.where(sql<boolean>`false`)).execute()
+      : featureOptionChoiceQuery.where(sql<boolean>`false`)
+    ).execute()
   ])
 
   return {

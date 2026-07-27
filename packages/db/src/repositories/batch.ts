@@ -19,7 +19,10 @@ export async function hydrateByIds<T>(
   return result
 }
 
-export function orderedHydratedRecords<T>(ids: readonly string[], recordsById: Map<string, T>): T[] {
+export function orderedHydratedRecords<T>(
+  ids: readonly string[],
+  recordsById: Map<string, T>
+): T[] {
   return ids.flatMap((id) => {
     const record = recordsById.get(id)
     return record ? [record] : []

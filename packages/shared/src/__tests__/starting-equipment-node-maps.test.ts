@@ -16,50 +16,57 @@ describe('starting equipment node maps', () => {
       throw new Error('Expected eligibility to be an object group')
     }
 
-    const childMap = typeof eligibilityNode.nodes === 'function'
-      ? eligibilityNode.nodes()
-      : eligibilityNode.nodes
+    const childMap =
+      typeof eligibilityNode.nodes === 'function' ? eligibilityNode.nodes() : eligibilityNode.nodes
     expect(childMap.mapId).toBe('characterFacet')
 
     const eligibility = {
       id: 'eligibility-1',
-      groups: [{
-        id: 'eligibility-group-1',
-        order: 1,
-        contexts: [{
-          id: 'eligibility-context-1',
+      groups: [
+        {
+          id: 'eligibility-group-1',
           order: 1,
-          subject: 'CHARACTER' as const,
-          conditions: [{
-            id: 'eligibility-condition-1',
-            order: 1,
-            kind: 'PREDICATE' as const,
-            constraint: 'INCLUDE' as const,
-            predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY' as const,
-            authoringModeKind: 'SELECTED' as const,
-            category: 'ARMOR' as const,
-            properties: ['HEAVY' as const]
-          }]
-        }]
-      }]
+          contexts: [
+            {
+              id: 'eligibility-context-1',
+              order: 1,
+              subject: 'CHARACTER' as const,
+              conditions: [
+                {
+                  id: 'eligibility-condition-1',
+                  order: 1,
+                  kind: 'PREDICATE' as const,
+                  constraint: 'INCLUDE' as const,
+                  predicateCode: 'EQUIPMENT_PROPERTY_PROFICIENCY' as const,
+                  authoringModeKind: 'SELECTED' as const,
+                  category: 'ARMOR' as const,
+                  properties: ['HEAVY' as const]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
 
-    expect(compileStartingEquipmentOption({
-      id: 'option-1',
-      order: 1,
-      eligibility,
-      items: []
-    }).eligibility).toEqual(eligibility)
+    expect(
+      compileStartingEquipmentOption({
+        id: 'option-1',
+        order: 1,
+        eligibility,
+        items: []
+      }).eligibility
+    ).toEqual(eligibility)
   })
 
   it('filters category options from selected properties', () => {
     const categoryNode = STARTING_EQUIPMENT_ITEM_NODE_MAP.nodes.category
 
     if (
-      !categoryNode
-      || categoryNode.kind !== 'INPUT'
-      || categoryNode.type !== 'SELECT_SINGLE'
-      || categoryNode.source.kind !== 'INLINE_OPTIONS'
+      !categoryNode ||
+      categoryNode.kind !== 'INPUT' ||
+      categoryNode.type !== 'SELECT_SINGLE' ||
+      categoryNode.source.kind !== 'INLINE_OPTIONS'
     ) {
       throw new Error('Expected category to be an inline select input')
     }
@@ -87,10 +94,10 @@ describe('starting equipment node maps', () => {
     const equipmentNode = STARTING_EQUIPMENT_ITEM_NODE_MAP.nodes.equipmentIds
 
     if (
-      !equipmentNode
-      || equipmentNode.kind !== 'INPUT'
-      || equipmentNode.type !== 'SELECT_MULTI'
-      || equipmentNode.source.kind !== 'DATA'
+      !equipmentNode ||
+      equipmentNode.kind !== 'INPUT' ||
+      equipmentNode.type !== 'SELECT_MULTI' ||
+      equipmentNode.source.kind !== 'DATA'
     ) {
       throw new Error('Expected equipmentIds to be a data-backed multi select')
     }

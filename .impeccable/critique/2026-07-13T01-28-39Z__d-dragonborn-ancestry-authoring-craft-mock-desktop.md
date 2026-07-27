@@ -6,23 +6,24 @@ p1_count: 3
 timestamp: 2026-07-13T01-28-39Z
 slug: d-dragonborn-ancestry-authoring-craft-mock-desktop
 ---
+
 # Dragonborn Ancestry Authoring Craft Mock Critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-| --- | --- | ---: | --- |
-| 1 | Visibility of System Status | 2 | Saved and unsaved states appear simultaneously without clear aggregate versus staged scope. |
-| 2 | Match System / Real World | 3 | RPG language is strong, but Activated and On Use are elevated into implementation-like navigation. |
-| 3 | User Control and Freedom | 2 | Cancel, close, Save Changes, and Save Draft do not communicate their boundaries. |
-| 4 | Consistency and Standards | 2 | Components are coherent, but several competing orientation systems are active at once. |
-| 5 | Error Prevention | 2 | Staging is promising; commit and destructive scopes remain ambiguous. |
-| 6 | Recognition Rather Than Recall | 3 | Context is visible, but users must infer which surface owns each edit. |
-| 7 | Flexibility and Efficiency | 2 | Direct selection exists, but the extra path/navigation chrome does not prove a faster workflow. |
-| 8 | Aesthetic and Minimalist Design | 1 | Four work zones, tabs, accordions, pills, toolbars, and the bottom trail create a high noise floor. |
-| 9 | Error Recovery | 1 | Validation and preservation behavior cannot be inferred. |
-| 10 | Help and Documentation | 1 | Nested editing and save scope lack contextual explanation. |
-| **Total** | | **19/40** | **Poor: coherent visual language, structurally over-instrumented.** |
+| #         | Heuristic                       |     Score | Key issue                                                                                           |
+| --------- | ------------------------------- | --------: | --------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of System Status     |         2 | Saved and unsaved states appear simultaneously without clear aggregate versus staged scope.         |
+| 2         | Match System / Real World       |         3 | RPG language is strong, but Activated and On Use are elevated into implementation-like navigation.  |
+| 3         | User Control and Freedom        |         2 | Cancel, close, Save Changes, and Save Draft do not communicate their boundaries.                    |
+| 4         | Consistency and Standards       |         2 | Components are coherent, but several competing orientation systems are active at once.              |
+| 5         | Error Prevention                |         2 | Staging is promising; commit and destructive scopes remain ambiguous.                               |
+| 6         | Recognition Rather Than Recall  |         3 | Context is visible, but users must infer which surface owns each edit.                              |
+| 7         | Flexibility and Efficiency      |         2 | Direct selection exists, but the extra path/navigation chrome does not prove a faster workflow.     |
+| 8         | Aesthetic and Minimalist Design |         1 | Four work zones, tabs, accordions, pills, toolbars, and the bottom trail create a high noise floor. |
+| 9         | Error Recovery                  |         1 | Validation and preservation behavior cannot be inferred.                                            |
+| 10        | Help and Documentation          |         1 | Nested editing and save scope lack contextual explanation.                                          |
+| **Total** |                                 | **19/40** | **Poor: coherent visual language, structurally over-instrumented.**                                 |
 
 ## Anti-Patterns Verdict
 

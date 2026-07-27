@@ -13,15 +13,26 @@ export const MEASUREMENT_NODE_MAP = measurement.define('measurement', ({ map, no
   const { selectSingle, number } = nodes
 
   map
-    .set('amount', number(['amount'], 'Amount', {
-      order: 1,
-      requiredIf: true
-    }))
-    .set('unit', selectSingle(['unit'], 'Unit', {
-      kind: 'INLINE_OPTIONS',
-      options: MEASUREMENT_UNIT_OPTIONS
-    }, {
-      order: 2,
-      requiredIf: true
-    }))
+    .set(
+      'amount',
+      number(['amount'], 'Amount', {
+        order: 1,
+        requiredIf: true
+      })
+    )
+    .set(
+      'unit',
+      selectSingle(
+        ['unit'],
+        'Unit',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: MEASUREMENT_UNIT_OPTIONS
+        },
+        {
+          order: 2,
+          requiredIf: true
+        }
+      )
+    )
 })

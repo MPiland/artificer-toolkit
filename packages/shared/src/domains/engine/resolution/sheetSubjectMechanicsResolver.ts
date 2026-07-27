@@ -148,6 +148,9 @@ function resolveItemMechanics(snapshot: CharacterBuildSnapshot): EngineItemMecha
     const attackOverride = numericAdjustments.find(
       (adjustment) => adjustment.field === 'ATTACK_OVERRIDE'
     )
+    const costOverride = numericAdjustments.find(
+      (adjustment) => adjustment.field === 'COST_OVERRIDE'
+    )
     const damageBonus = numericAdjustments.find((adjustment) => adjustment.field === 'DAMAGE_BONUS')
     const weightOverride = numericAdjustments.find(
       (adjustment) => adjustment.field === 'WEIGHT_OVERRIDE'
@@ -161,6 +164,14 @@ function resolveItemMechanics(snapshot: CharacterBuildSnapshot): EngineItemMecha
       0,
       damageBonus ? [manualContribution(damageBonus)] : []
     )
+    const costCalculation =
+      item.compiledItem.cost || costOverride
+        ? resolveNumericCalculation(
+            item.compiledItem.cost?.amount ?? 0,
+            [],
+            numericOverride(costOverride)
+          )
+        : undefined
     const weightCalculation =
       item.compiledItem.weight || weightOverride
         ? resolveNumericCalculation(
@@ -173,7 +184,11 @@ function resolveItemMechanics(snapshot: CharacterBuildSnapshot): EngineItemMecha
     return {
       itemInstanceId: item.instanceId,
       attackBonus: attackCalculation.effective,
+      ...(costCalculation ? { cost: costCalculation.effective } : {}),
       damageBonus: damageCalculation.effective,
+      displayAsAttack: targetAdjustments.some(
+        (adjustment) => adjustment.field === 'DISPLAY_AS_ATTACK'
+      ),
       properties: {
         adamantine: targetAdjustments.some((adjustment) => adjustment.field === 'ADAMANTINE'),
         dualWield: targetAdjustments.some((adjustment) => adjustment.field === 'DUAL_WIELD'),
@@ -189,6 +204,7 @@ function resolveItemMechanics(snapshot: CharacterBuildSnapshot): EngineItemMecha
         : {}),
       calculations: {
         attackBonus: attackCalculation,
+        ...(costCalculation ? { cost: costCalculation } : {}),
         damageBonus: damageCalculation,
         ...(weightCalculation ? { weight: weightCalculation } : {})
       }

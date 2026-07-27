@@ -6,23 +6,24 @@ p1_count: 4
 timestamp: 2026-07-12T23-09-46Z
 slug: g-workspace-2026-07-12-md-nested-editor-navigation
 ---
+
 # Nested Editor Navigation Critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-| --- | --- | ---: | --- |
-| 1 | Visibility of System Status | 3 | A path helps, but transaction root, dirty state, and commit scope need persistent status. |
-| 2 | Match System / Real World | 3 | Breadcrumbs are familiar only when segments use authored names rather than schema terms. |
-| 3 | User Control and Freedom | 2 | Back, jump, close, cancel, and commit semantics are not yet distinct. |
-| 4 | Consistency and Standards | 3 | One overlay is conventional; a drawer acting like a sequential wizard is not. |
-| 5 | Error Prevention | 2 | Ambiguous nested save scope risks accidental loss or unintended root commits. |
-| 6 | Recognition Rather Than Recall | 2 | Breadcrumbs expose ancestors but not known descendants or siblings. |
-| 7 | Flexibility and Efficiency | 2 | Sequential drill-in penalizes expert re-entry into deep effects and grants. |
-| 8 | Aesthetic and Minimalist Design | 3 | One drawer is clean, but arbitrary depth can overfill its header and body. |
-| 9 | Error Recovery | 2 | Validation paths are structured but are not yet mapped to stable direct navigation targets. |
-| 10 | Help and Documentation | 2 | Deep domain choices still need contextual labels and consequences. |
-| **Total** | | **24/40** | **Acceptable foundation; breadcrumb-only navigation is not sufficient.** |
+| #         | Heuristic                       |     Score | Key issue                                                                                   |
+| --------- | ------------------------------- | --------: | ------------------------------------------------------------------------------------------- |
+| 1         | Visibility of System Status     |         3 | A path helps, but transaction root, dirty state, and commit scope need persistent status.   |
+| 2         | Match System / Real World       |         3 | Breadcrumbs are familiar only when segments use authored names rather than schema terms.    |
+| 3         | User Control and Freedom        |         2 | Back, jump, close, cancel, and commit semantics are not yet distinct.                       |
+| 4         | Consistency and Standards       |         3 | One overlay is conventional; a drawer acting like a sequential wizard is not.               |
+| 5         | Error Prevention                |         2 | Ambiguous nested save scope risks accidental loss or unintended root commits.               |
+| 6         | Recognition Rather Than Recall  |         2 | Breadcrumbs expose ancestors but not known descendants or siblings.                         |
+| 7         | Flexibility and Efficiency      |         2 | Sequential drill-in penalizes expert re-entry into deep effects and grants.                 |
+| 8         | Aesthetic and Minimalist Design |         3 | One drawer is clean, but arbitrary depth can overfill its header and body.                  |
+| 9         | Error Recovery                  |         2 | Validation paths are structured but are not yet mapped to stable direct navigation targets. |
+| 10        | Help and Documentation          |         2 | Deep domain choices still need contextual labels and consequences.                          |
+| **Total** |                                 | **24/40** | **Acceptable foundation; breadcrumb-only navigation is not sufficient.**                    |
 
 ## Anti-Patterns Verdict
 
