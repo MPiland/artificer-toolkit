@@ -1,6 +1,6 @@
 ---
 name: Artificer Toolkit
-description: Playful tabletop RPG authoring and reliable play support across desktop and mobile.
+description: Playful tabletop RPG creation and reliable play across web, iOS, and Android.
 colors:
   primary: '#ec8c06'
   primary-hover: '#f97316'
@@ -119,7 +119,9 @@ Artificer Toolkit is a product UI first, but it should not feel like office soft
 
 The canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.
 
-The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
+The Character Sheet is the runtime counterpart: modern, compact, and play-first. Its default view exposes current state and the facts needed to choose and resolve an action. Long descriptions, source provenance, customization, and management remain immediately available through focused overlays without competing for permanent space.
+
+The visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. On native clients, Forge identity maps through platform-native color roles, typography, navigation, controls, materials, and motion rather than recreating web components. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.
 
 This system explicitly rejects the anti-references captured in [PRODUCT.md](PRODUCT.md): Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.
 
@@ -130,6 +132,7 @@ This system explicitly rejects the anti-references captured in [PRODUCT.md](PROD
 - Familiar, not generic
 - Creative, not ornamental
 - Dense when needed, but always navigable
+- Modern, compact, and play-first
 - Dual-theme by design, not as an afterthought
 - Modular content authoring, not admin CRUD
 - Form-backed, but not form-shaped
@@ -137,6 +140,8 @@ This system explicitly rejects the anti-references captured in [PRODUCT.md](PROD
 ## Colors
 
 The palette is identity-led and task-aware. Black Forge uses near-black canvas and charcoal panels; White Forge uses white, cool gray, and crisp ink. Forge Orange is the main brand/action color for primary CTAs, active creation states, draft/progress moments, and dice/data highlights. Teal is secondary and functional: focus rings, technical selection, and supportive navigation. Purple stays rare for arcane emphasis. The app should not become blue-on-blue or monochrome by habit: use controlled accent moments to make creation feel alive, especially in onboarding, empty states, progress cues, domain headers, and playful feedback.
+
+The frontmatter records current web primitives. Native implementations preserve the roles, not the raw hex application: iOS uses semantic system colors and one Forge tint; Android maps Forge identity through Material 3 color roles with a tested static fallback when Dynamic Color is enabled.
 
 ### Primary
 
@@ -182,6 +187,8 @@ The palette is identity-led and task-aware. Black Forge uses near-black canvas a
 
 **Character:** The system uses a native-feeling sans stack rather than a decorative voice. That is deliberate. The personality comes from hierarchy, copy, icons, motion, and interaction feedback, not from a loud typeface.
 
+Web uses the recorded SF Pro/Segoe UI system stack. Native clients use platform type roles and user scaling: Dynamic Type and San Francisco on iOS/iPadOS, and the Material type scale with Roboto on Android. Do not hard-code web sizes into native screens.
+
 ### Hierarchy
 
 - **Display** (`800`, `4rem`, `1.12`): Reserved for hero-auth surfaces such as logged-out auth or marketing moments. Never use display scale inside dense product panels.
@@ -198,7 +205,34 @@ The palette is identity-led and task-aware. Black Forge uses near-black canvas a
 
 **The Cheer Without Shouting Rule.** Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.
 
-## Elevation
+## Layout
+
+Artificer Toolkit uses responsive composition and deliberate density rather than one universal grid. Authoring surfaces make structure and progression legible; play surfaces optimize recognition and action speed. Space is a functional resource: a region, wrapper, or persistent control must improve hierarchy, comparison, navigation, or interaction to earn its footprint.
+
+### Character Sheet Play Surfaces
+
+- **Play-first hierarchy:** Keep current state, legal actions, availability, and the facts needed to resolve those actions visible. Move long descriptions, source references, provenance, customization, and infrequent management into a focused inspector, popover, or drawer.
+- **Compact repeated data:** Prefer aligned, repeatable columns and divider-separated rows when players compare the same facts across actions, spells, equipment, or other collections. Use cards for meaningful group boundaries or standalone interactions, not for every list item.
+- **Minimal supporting copy:** Do not repeat self-evident panel descriptions or metadata. Quiet subtext may disambiguate a source or state when it materially changes a play decision.
+- **Consistent parsing:** Comparable facts keep the same order, alignment, label treatment, and unit presentation within a collection. Compact does not mean cramped; hit targets, focus treatment, and text remain accessible.
+- **One scroll owner:** Each visible region has one deliberate same-axis scroll owner. Do not nest a scrolling list inside a page or panel already intended to scroll that list.
+
+### Responsive Composition
+
+- Desktop, tablet landscape, tablet portrait, and phone layouts are composed for their available space rather than mechanically collapsed from desktop.
+- Focused Sheet inspectors overlay the play surface. Desktop and tablet normally use a right-side inspector; phones use a bottom or full-height sheet. A small, local management task may use a popover where space and input behavior support it.
+- Opening an inspector must not resize the underlying Sheet or create a second competing content column. Preserve the user's visual position and return focus to the invoking control when the overlay closes.
+- Native clients preserve the same information hierarchy while using platform navigation and modality. iOS keeps safe areas, system navigation stacks, edge-swipe Back, sheets, and `44pt` touch targets; Android uses size-aware Material navigation, predictive Back, window insets, and `48dp` touch targets.
+
+### Named Rules
+
+**The Play-First Rule.** If information does not help the player understand current state, choose an action, or resolve it now, keep it one interaction away instead of permanently occupying the play surface.
+
+**The Space Must Earn Itself Rule.** Extra wrappers, repeated headings, decorative containers, and explanatory copy are not neutral; remove them unless they clarify structure or interaction.
+
+**The One-Scroll-Owner Rule.** A user should never have to discover which of two nested regions will move for the same gesture.
+
+## Elevation & Depth
 
 Elevation is restrained, structural, and stateful. Repeated cards and working panels remain flat at rest; borders and tonal layering establish their hierarchy in both Forge themes. Compact shadows are reserved for controls that physically float above the workspace, while the focus halo communicates keyboard and selected-input state.
 
@@ -212,6 +246,12 @@ Elevation is restrained, structural, and stateful. Repeated cards and working pa
 ### Named Rules
 
 **The Flat-at-Rest Rule.** Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.
+
+## Shapes
+
+The Forge form language uses gently rounded working geometry, crisp dividers, and restrained borders. Standard controls use medium corners (`8px`), grouped working surfaces use larger corners (`12px`), major framed surfaces may use extra-large corners (`16px`–`24px`), and circular controls use the pill radius. Repeated data rows normally rely on rules and alignment rather than individually rounded containers.
+
+Web shapes come from the shared radius scale. Native implementations map the same restrained character through platform components and shape systems: do not force web radii onto iOS sheets, Android Material surfaces, switches, dialogs, or navigation.
 
 ## Components
 
@@ -271,6 +311,13 @@ Elevation is restrained, structural, and stateful. Repeated cards and working pa
 - **Staged Drawer:** Drawers stage add/edit changes and require explicit commit actions such as `Add tier` or `Save tier`. Cancel closes the drawer and discards the staged draft. Mobile portrait uses a minimal-height bottom drawer; mobile landscape and tablet can use the drawer pattern that best preserves reach and readable fields.
 - **Context / Preview:** Preview cards should render the authored output users will see after activation, including rich prose. Avoid generic "outcome context" cards unless the active step genuinely has an outcome to summarize.
 
+### Character Sheet Inspectors
+
+- **Purpose:** Inspectors reveal Sheet detail, calculation provenance, customization, and focused management while preserving the compact play surface underneath.
+- **Geometry:** Use one overlay inspector at a time. Desktop and tablet use the right edge by default; phone uses a bottom or full-height sheet. The client owns geometry and responsive composition.
+- **Interaction:** Sheet toggles, additions, removals, resource use, and discrete state changes persist immediately. Text and numeric edits commit on blur or Enter. Do not add a general Sheet Save action; staged rest configuration remains an explicit exception.
+- **Separation from authoring:** A Sheet inspector is immediate play-state interaction, not an Authoring Workspace staged drawer. Reuse accessible overlay infrastructure without merging their commit semantics.
+
 ### Storybook Review Surface
 
 - **Component Stories:** Small reusable components use inline minimal data and decorators for visual framing.
@@ -290,6 +337,13 @@ Elevation is restrained, structural, and stateful. Repeated cards and working pa
 - **Styling:** Keep vanilla-extract and the existing CSS layer strategy as the product styling layer. Mantine supplies behavior and accessible structure; app CSS supplies the Artificer visual system.
 - **Exception:** Use semantic HTML directly when the element is static, simpler than a Mantine abstraction, or when Mantine would make the structure less faithful to Figma.
 
+### Native-First Implementation
+
+- **iOS / iPadOS:** Use native navigation stacks, tab bars, sheets, action sheets, pickers, switches, steppers, context menus, Dynamic Type, SF Symbols, and system materials. Preserve the edge-swipe Back gesture and safe areas.
+- **Android:** Use Material 3 navigation appropriate to window size, top app bars, sheets, dialogs, switches, chips, snackbars, predictive Back, edge-to-edge insets, and Material motion.
+- **Shared boundary:** Reuse backend semantics, rules, authorization, command contracts, and information hierarchy. Do not share web component geometry or substitute a WebView for a native product surface.
+- **Accessibility:** Respect Reduce Motion on Apple platforms, Remove animations on Android, system font scaling, contrast preferences, and platform minimum touch targets.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -299,6 +353,9 @@ Elevation is restrained, structural, and stateful. Repeated cards and working pa
 - **Do** preserve the same information hierarchy across light and dark themes.
 - **Do** use framed surfaces only when they clarify structure or interaction.
 - **Do** make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.
+- **Do** preserve Forge identity on native through platform roles and interaction patterns rather than copied web controls.
+- **Do** make Character Sheet collections compact, consistently aligned, and optimized for at-a-glance play.
+- **Do** keep ancillary descriptions, references, provenance, and customization available through focused overlays.
 - **Do** keep long-form authoring surfaces strongly sectioned, with obvious location and next-action cues.
 - **Do** add delight through copy, icons, feedback states, and small motion moments.
 - **Do** describe the creation experience as an Authoring Workspace or modular content authoring, not as "just forms" in product-facing design language.
@@ -312,8 +369,11 @@ Elevation is restrained, structural, and stateful. Repeated cards and working pa
 - **Don't** recreate Azure DevOps forms: avoid cluttered pages, weak hierarchy, and outdated organization patterns for dense authoring flows.
 - **Don't** recreate D&D Beyond content creation: avoid brittle creation flows, weak data structure, and poor conditional disclosure.
 - **Don't** treat responsive support as secondary: desktop and mobile both need intentional layouts rather than desktop-first leftovers.
+- **Don't** ship native clients that feel like the website inside a wrapper or like one mobile platform wearing the other's controls.
 - **Don't** use decorative gradients, glassmorphism, or side-stripe card accents as default styling moves.
 - **Don't** turn every repeated surface into an identical card grid. Density needs hierarchy, not repetition.
+- **Don't** make play surfaces compete with long descriptions, redundant summaries, or infrequent management controls.
+- **Don't** nest same-axis scrolling regions or resize the Sheet when a focused inspector opens.
 - **Don't** let the app feel like monotonous office software, an admin dashboard, or a chore list.
 - **Don't** fake fantasy flavor with parchment, distressed textures, medieval fonts, or novelty controls.
 - **Don't** build domain-specific authoring UI unless the domain requires a genuinely distinct interaction that reusable workspace components cannot support.
