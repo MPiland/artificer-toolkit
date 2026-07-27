@@ -19,15 +19,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `ACTIVE`     | `3492e0bdea49` | pending        | running     | running        | running     |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                      | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | -------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED`    | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `HANDOFF_READY` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
+| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`       | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -244,10 +244,10 @@ All evidence is captured from the route-backed Character Sheet story with the pr
 - The route-backed `CharacterSheetView` Storybook fixture remains the visual baseline. D&D Beyond captures remain a capability inventory only.
 - Zustand is neither installed nor referenced. Sheet DTOs and panels remain TanStack Query server state; local React state is limited to transient interaction state and pre-commit field drafts. TanStack Form remains confined to Builder and authored-content forms.
 
-### Active scope
+### Delivered scope
 
-- Typed spell, spell-management, feature, owned-item, background, and resource panel contracts are in progress.
-- Spell and resource persistence is being extended around stable spell-source and resource-owner identities.
+- Typed spell, spell-management, feature, owned-item, background, and resource panel contracts are delivered.
+- Spell and resource persistence uses stable spell-source and resource-owner identities.
 - Backend Sheet projection emits ordered active spell groups only. Authored `SPELL_CAST_LEVEL` scaling is the intersection of each spell's legal cast levels and its source's owned slot levels; `TO_HIT` and `SAVE_DC` adjustments are contextual and mutually exclusive, while `DAMAGE` adjustments are bonus-only.
 - Route-backed Spell detail and Manage Spells Storybook fixtures compose the production Character Sheet with the existing inspector as a portal overlay.
 - Optimistic Sheet commands snapshot the affected Query cache, apply only safe command-specific direct-value projections, roll back immediately on failure, refetch server truth after failure, and reconcile from the authoritative Sheet and affected-panel response on success.
@@ -278,7 +278,7 @@ All evidence is captured from the route-backed Character Sheet story with the pr
   visible 18px inset on both sides. The mobile pager preserves touch/wheel scrolling while
   hiding the platform scrollbar, allowing every page panel to fill the Sheet's equal outer
   gutters.
-- Owned-item detail will include authored description in its own collapsible section; instance customization remains separate and cannot suppress authored traits or properties.
+- Owned-item detail includes authored description in its own collapsible section; instance customization remains separate and cannot suppress authored traits or properties.
 - Actions, active spells, and inventory now share a compact play-list grammar: ordered groups, aligned facts, divider-separated rows, quiet source text, and no row cards or redundant panel descriptions.
 - Active spell rows expose damage expressions and damage type only when the backend has typed damage mechanics. Rich effect categories remain deferred until a closed backend taxonomy is approved; clients do not infer tags from prose.
 - Attack is the only tabular action group and uses Name, Range, Hit/DC, and Damage.
@@ -423,11 +423,16 @@ Current-state and in-progress route-backed captures live under `docs/mockups/cha
 
 ### Status
 
-**Status:** `ACTIVE`
+**Status:** `HANDOFF_READY`
 
 **Integration base SHA:** `3492e0bdea49`
 
-The spell and ability corrective tranche is current and green, but Branch 04 has not reached handoff and has no delivery SHA. Feature, item, background, and remaining resource scope must still satisfy the branch exit gate before this status can advance.
+**Delivery SHA:** `e61821775834bd976dcdf292111a99c0cfe85387`
+
+Spell, feature, owned-item, background, resource, optimistic-command, and responsive
+play-surface scope has reached the Branch 04 handoff gate. Branch 05 may consume the
+resource-owner and inspector contracts without redefining source identity, recovery
+semantics, or Sheet-versus-Builder ownership.
 
 Current corrective validation:
 
@@ -516,6 +521,85 @@ Current corrective validation:
   in both Overview and the Senses inspector. Their earlier visual omission was fixture-only;
   the engine-backed Sheet projection and generic passive-fact renderer already supported all
   three standard checks.
+
+### Handoff
+
+**Status:** `HANDOFF_READY`
+
+**Delivery SHA:** `e61821775834bd976dcdf292111a99c0cfe85387`
+
+#### Contract and ownership decisions
+
+- Panel discriminators added in this branch are `SPELL`, `SPELLS`, `FEATURE`, `ITEM`,
+  `BACKGROUND`, and `RESOURCE`. They extend the Branch 03 semantic inspector contract and
+  do not introduce layout nodes, platform identifiers, CSS, callbacks, or a general UI DSL.
+- Resource owners remain closed and typed: `AUTHORED_GRANT`, `SPELL_SOURCE`,
+  `ITEM_INSTANCE`, `SENSE_GRANT`, and the prepared `COMPANION_FEATURE` owner. Persisted
+  resource state stores used amount; maximum, remaining, and recovery behavior are resolved
+  from authored and engine state.
+- Recovery triggers are `SHORT_REST`, `LONG_REST`, `DAWN`, `DUSK`, `DAILY`, and `MANUAL`.
+  Recovery supports all, fixed, and dice-based amounts. Dawn, dusk, daily, and manual
+  recovery remain explicit player commands; no scheduled recovery service was added.
+- Spell customization is isolated by exact spell-source identity. To Hit and Save DC use
+  mutually exclusive bonus/override modes; Damage is bonus-only. Custom name, general notes,
+  and Display in Actions remain independent per-source customizations.
+- Owned-item state and customization are isolated by owned-item instance UUID. Authored item
+  properties and descriptions remain inspectable and cannot be suppressed by Sheet changes.
+- Manage Spells owns legal prepare/unprepare play actions. Structural spell acquisition and
+  known-spell changes remain Builder-owned. The Sheet provides a Builder handoff instead of
+  duplicating acquisition.
+- PostgreSQL UUID-shaped deterministic authored IDs are validated with the database-compatible
+  GUID contract. Generated command IDs remain strict RFC UUIDs.
+- Manual adjustment provenance is note-only. Source category and source label were removed
+  from commands, DTOs, persistence, fixtures, history payloads, and manual UI.
+
+#### Persistence and migration order
+
+1. `20260720190535_add_creature_speed_order.sql` is idempotent when replayed against an
+   already-partially-migrated database.
+2. `20260724230000_character_sheet_content_resources.sql` adds source customization,
+   resource, owned-item state, and command-event persistence. Deterministic
+   `resource_grant_id` values are stored as text; owned instances remain UUIDs.
+3. `20260725010000_character_sheet_adjustment_note_only.sql` preserves existing manual
+   provenance in Source notes, removes source-category/source-label persistence, and leaves
+   new databases on the same note-only baseline.
+
+The migrations were replayed from a local reset, followed by the local SRD seed. The
+Character Sheet integration script then verified adjustment clear/round-trip, HP backfill,
+class-spell state, event atomicity, movement preference, note lifecycle, RLS, rollback,
+stale-version rejection, and touched play state.
+
+#### Validation evidence
+
+- Local Supabase reset and migration replay: green.
+- Local SRD seed: green.
+- DB package tests: green — 46 files, 395 tests.
+- Character Sheet database integration: green, including all 15 owner-only RLS policies.
+- Schema package tests: green — 11 files, 119 tests.
+- Focused optimistic Sheet projection: green — 4 tests.
+- `yarn turbo:affected:test`: green — 8 tasks; Web reports 105 files and 633 tests.
+- `yarn test:web:storybook`: green — Chromium reports 30 files and 114 tests.
+- `yarn turbo:affected:typecheck`: green — 8 tasks.
+- `yarn lint:ox:type-aware`: green.
+- `yarn format:check`: green — 2,460 matched files.
+- `git diff --check`: green.
+
+Full command output is retained locally under the ignored `tmp/verification/` directory.
+The locked visual evidence is indexed in the preceding section, including desktop, mobile,
+tablet portrait/landscape, narrow overflow, inspector, HP, action, spell, inventory, and
+limited-use states.
+
+#### Deferred scope and Branch 05 prerequisites
+
+- Companion creation, lifecycle, state persistence, equipment assignment, and companion
+  play panels remain Branch 05. Branch 05 must use the prepared `COMPANION_FEATURE`
+  resource-owner contract and the existing right-inspector/mobile-drawer seam.
+- Complete HP, condition, exhaustion, and atomic short/long-rest workflows remain Branch 06.
+  Branch 04 includes their locked layout direction and reusable recovery primitives only.
+- Custom-skill CRUD, campaign currency/exchange policy, scheduled time recovery, automatic
+  spell action classification, and a generic Resources destination remain deferred.
+- Safe removal of the deprecated HP compatibility column remains an integration follow-up
+  after the complete Phase 00 migration and rollback window is validated.
 
 ## Branch 05 — Companions
 
