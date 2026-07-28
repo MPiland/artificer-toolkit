@@ -88,6 +88,72 @@ describe('optimistic Character Sheet projections', () => {
     })
   })
 
+  it('projects resource recovery and HP changes without duplicating engine rules', () => {
+    const resource = characterSheetFixture.resources.items[1]
+    const recovered = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'RECOVER_SHEET_RESOURCE',
+      owner: resource.owner,
+      trigger: 'MANUAL'
+    })
+    expect(recovered.resources.items[1]).toMatchObject({
+      used: 0,
+      remaining: resource.max
+    })
+
+    const damaged = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'DAMAGE',
+      amount: 6
+    })
+    expect(damaged.overview).toMatchObject({
+      currentHitPoints: 12,
+      tempHitPoints: 0
+    })
+
+    const healed = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'HEAL',
+      amount: 10
+    })
+    expect(healed.overview.currentHitPoints).toBe(characterSheetFixture.overview.maxHitPoints)
+
+    const set = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'SET_HIT_POINTS',
+      current: 4,
+      temp: 2
+    })
+    expect(set.overview).toMatchObject({ currentHitPoints: 4, tempHitPoints: 2 })
+  })
+
+  it('projects condition changes and preserves exhaustion notes on level-only updates', () => {
+    const condition = characterSheetFixture.reference.conditionOptions[0]
+    const conditioned = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'ADD_CONDITION',
+      conditionTypeId: condition.id,
+      notes: 'Until the next save.'
+    })
+    expect(conditioned.overview.conditions.at(-1)).toMatchObject({
+      conditionTypeId: condition.id,
+      label: condition.label,
+      notes: 'Until the next save.'
+    })
+
+    const exhausted = projectOptimisticCharacterSheet(characterSheetFixture, {
+      ...commandBase,
+      type: 'SET_EXHAUSTION',
+      level: 2
+    })
+    expect(exhausted.overview.exhaustion).toMatchObject({
+      level: 2,
+      notes: characterSheetFixture.overview.exhaustion.notes
+    })
+  })
+
   it('does not reproduce engine-owned adjustment calculations', () => {
     const command = {
       ...commandBase,
@@ -102,6 +168,19 @@ describe('optimistic Character Sheet projections', () => {
     expect(projectOptimisticCharacterSheet(characterSheetFixture, command)).toBe(
       characterSheetFixture
     )
+    expect(
+      projectOptimisticCharacterSheet(characterSheetFixture, {
+        ...commandBase,
+        type: 'COMPLETE_REST',
+        restKind: 'LONG',
+        previewFingerprint: 'authoritative-preview',
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: []
+      })
+    ).toBe(characterSheetFixture)
     expect(projectOptimisticCharacterSheetPanel(spellPanelFixture, command)).toMatchObject({
       state: 'ADJUSTED',
       customizationOptions: [

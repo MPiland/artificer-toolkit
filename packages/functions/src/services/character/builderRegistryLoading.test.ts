@@ -49,6 +49,24 @@ const repositoryCalls = vi.hoisted(() => ({
 vi.mock('@artificer-toolkit/db', () => ({
   createSystemRepository: () => ({
     findById: async () => ({
+      id: 'system-1',
+      label: 'D&D 5e 2014',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
+      userId: 'user-1',
+      alignments: [],
+      challengeRatings: [],
+      conditionTypes: [],
+      creatureTypes: [],
+      currencies: [],
+      damageTypes: [],
+      heritages: [],
+      lifestyles: [],
+      magicSchools: [],
+      passives: [],
+      rarities: [],
+      senses: [],
+      terrains: [],
       skills: [
         { id: 'religion', label: 'Religion' },
         { id: 'medicine', label: 'Medicine' },

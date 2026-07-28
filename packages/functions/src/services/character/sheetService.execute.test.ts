@@ -46,8 +46,25 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
-    createCreatureRepository: () => ({ findAll: mocks.findAllCreatures }),
-    createVehicleRepository: () => ({ findAll: mocks.findAllVehicles }),
+    createCreatureRepository: () => ({
+      findByIds: async () =>
+        new Map(
+          ((await mocks.findAllCreatures()) as CreatureAuthored[]).map((creature) => [
+            creature.id,
+            creature
+          ])
+        )
+    }),
+    createVehicleRepository: () => ({
+      findByIds: async () => {
+        const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+        return new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]))
+      }
+    }),
+    getCharacterSheetExtraCatalogQuery: async () => ({
+      creatures: await mocks.findAllCreatures(),
+      vehicles: await mocks.findAllVehicles()
+    }),
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments,
@@ -237,6 +254,31 @@ describe('executeCharacterSheetCommand', () => {
       await options.afterPersist?.(db, 2)
       return 2
     })
+  })
+
+  it('persists clearing inspiration as an explicit false patch', async () => {
+    const character = createCharacter()
+    character.state.inspiration = true
+    mocks.findAuthoredById.mockResolvedValue(character)
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'SET_INSPIRATION',
+        commandId: '00000000-0000-4000-8000-000000000098',
+        expectedVersion: 1,
+        inspired: false
+      }
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [{ kind: 'INSPIRATION', value: false }],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(response.sheet.overview.inspiration).toBe(false)
   })
 
   it('previews and atomically completes a short rest with exact backend roll evidence', async () => {

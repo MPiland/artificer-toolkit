@@ -614,6 +614,52 @@ describe('buildCharacterBuilderView', () => {
     ).toEqual(['magic-missile', 'shield'])
   })
 
+  it('preserves disabled proficiency options supplied by the Builder resolver', () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-wizard', classLevel: 1 }]
+
+    const view = buildCharacterBuilderView(
+      character,
+      createResolution({
+        chosenGrantChoices: [
+          {
+            id: 'wizard-skill-choice',
+            grantId: 'wizard-skill-grant',
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: 'SKILL',
+            proficiencyLevel: 'FULL',
+            label: 'Skill Proficiencies',
+            sourceLabel: 'Wizard',
+            source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+            timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
+            requiredCount: 1,
+            duplicatePolicy: 'UNIQUE',
+            selectedTargetIds: [],
+            options: [
+              {
+                id: 'skill-insight',
+                label: 'Insight',
+                disabled: true,
+                disabledReason: 'Granted by Sage'
+              },
+              { id: 'skill-arcana', label: 'Arcana' }
+            ]
+          }
+        ]
+      })
+    )
+
+    expect(view.classes.selectedClasses[0]?.grantChoices[0]?.options).toEqual([
+      expect.objectContaining({
+        id: 'skill-insight',
+        label: 'Insight',
+        disabled: true,
+        disabledReason: 'Granted by Sage'
+      }),
+      expect.objectContaining({ id: 'skill-arcana', label: 'Arcana' })
+    ])
+  })
+
   it('keeps class spell options selected by a race grant visible with their source', () => {
     const character = createCharacter()
     character.intent.race = { raceId: 'race-dragonborn' }

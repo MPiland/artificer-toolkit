@@ -464,18 +464,22 @@ function getChosenGrantChoiceViews(params: {
           : new Map<string, string>()
       return {
         ...choice,
-        options: choice.options.map((option) =>
-          toChoiceOption({
-            ...option,
-            disabledReason:
-              choice.selectedTargetIds.includes(option.id) ||
-              choice.grantKind !== GRANT_KIND.SPELL_GRANT
+        options: choice.options.map((option) => {
+          const disabledReason =
+            choice.grantKind !== GRANT_KIND.SPELL_GRANT
+              ? option.disabledReason
+              : choice.selectedTargetIds.includes(option.id)
                 ? undefined
-                : spellIdsSelectedElsewhere.has(option.id)
-                  ? `Granted by ${spellIdsSelectedElsewhere.get(option.id)}`
-                  : undefined
+                : (option.disabledReason ??
+                  (spellIdsSelectedElsewhere.has(option.id)
+                    ? `Granted by ${spellIdsSelectedElsewhere.get(option.id)}`
+                    : undefined))
+
+          return toChoiceOption({
+            ...option,
+            disabledReason
           })
-        )
+        })
       }
     })
 }
@@ -1967,8 +1971,6 @@ type CorePanelCommand = Extract<
       | 'UNEQUIP_ITEM'
       | 'ATTUNE_ITEM'
       | 'UNATTUNE_ITEM'
-      | 'USE_SHEET_RESOURCE'
-      | 'RECOVER_SHEET_RESOURCE'
   }
 >
 
@@ -1991,9 +1993,7 @@ function isCorePanelCommand(command: CharacterSheetCommandInputDto): command is 
     command.type === 'EQUIP_ITEM' ||
     command.type === 'UNEQUIP_ITEM' ||
     command.type === 'ATTUNE_ITEM' ||
-    command.type === 'UNATTUNE_ITEM' ||
-    command.type === 'USE_SHEET_RESOURCE' ||
-    command.type === 'RECOVER_SHEET_RESOURCE'
+    command.type === 'UNATTUNE_ITEM'
   )
 }
 

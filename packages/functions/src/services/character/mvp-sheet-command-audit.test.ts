@@ -48,7 +48,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       listSpellCustomizations: mocks.listSpellCustomizations,
       setResourceUsage: mocks.setResourceUsage,
       setSpellCustomization: mocks.setSpellCustomization
-    })
+    }),
+    getCharacterSheetExtraCatalogQuery: async () => ({ creatures: [], vehicles: [] })
   }
 })
 

@@ -364,13 +364,20 @@ function preferredGrantLabels(choice: CharacterBuilderChosenGrantChoiceViewDto):
   return []
 }
 
-function chooseGrantTargets(choice: CharacterBuilderChosenGrantChoiceViewDto): string[] {
+function chooseGrantTargets(
+  choice: CharacterBuilderChosenGrantChoiceViewDto,
+  unavailableTargetIds: ReadonlySet<string> = new Set()
+): string[] {
   const preferredLabels = preferredGrantLabels(choice)
   const preferredIds = preferredLabels.flatMap((label) => {
-    const option = choice.options.find((candidate) => candidate.label === label)
+    const option = choice.options.find(
+      (candidate) =>
+        candidate.label === label && !candidate.disabled && !unavailableTargetIds.has(candidate.id)
+    )
     return option ? [option.id] : []
   })
   const fallbackIds = choice.options
+    .filter((option) => !option.disabled && !unavailableTargetIds.has(option.id))
     .map((option) => option.id)
     .filter((id) => !preferredIds.includes(id))
   const targetIds = [...preferredIds, ...fallbackIds].slice(0, choice.requiredCount)
@@ -599,6 +606,27 @@ function completeBuilderChoices(
   const classStartingEquipment = payload.view.equipment.classStartingEquipment
   const backgroundStartingEquipment = payload.view.equipment.backgroundStartingEquipment
   assert.ok(backgroundStartingEquipment, 'Seeded Acolyte should expose starting equipment choices.')
+  const selectedFullProficiencies = new Map<string, Set<string>>()
+  const chosenGrantSelections = grantChoices.map((choice) => {
+    const selectedForKind =
+      choice.proficiencyLevel === 'FULL' && choice.proficiencyKind
+        ? (selectedFullProficiencies.get(choice.proficiencyKind) ?? new Set<string>())
+        : new Set<string>()
+    const targetIds = chooseGrantTargets(choice, selectedForKind)
+    if (choice.proficiencyLevel === 'FULL' && choice.proficiencyKind) {
+      for (const targetId of targetIds) selectedForKind.add(targetId)
+      selectedFullProficiencies.set(choice.proficiencyKind, selectedForKind)
+    }
+
+    return {
+      id: randomUUID(),
+      grantId: choice.grantId,
+      source: choice.source,
+      timing: choice.timing,
+      progressionLevel: choice.progressionLevel,
+      targetIds
+    }
+  })
   const startingEquipment: NonNullable<CharacterAuthored['intent']['startingEquipment']> = {
     class: classStartingEquipment
       ? buildStartingEquipmentDecision(
@@ -616,14 +644,7 @@ function completeBuilderChoices(
     ...character,
     intent: {
       ...character.intent,
-      chosenGrantSelections: grantChoices.map((choice) => ({
-        id: randomUUID(),
-        grantId: choice.grantId,
-        source: choice.source,
-        timing: choice.timing,
-        progressionLevel: choice.progressionLevel,
-        targetIds: chooseGrantTargets(choice)
-      })),
+      chosenGrantSelections,
       featureAcquisitions: featureChoices.map((choice) => {
         const optionIds = chooseFeatureOption(choice)
         return {
@@ -1754,11 +1775,11 @@ async function main(): Promise<void> {
                 subclassLabel: 'Champion'
               }
             ],
-            expectedMaxHitPoints: 28,
+            expectedMaxHitPoints: 25,
             hitpointLevels: [
-              { level: 1, classId: catalog.fighterId, classLevel: 1, value: 12 },
-              { level: 2, classId: catalog.fighterId, classLevel: 2, value: 8 },
-              { level: 3, classId: catalog.fighterId, classLevel: 3, value: 8 }
+              { level: 1, classId: catalog.fighterId, classLevel: 1, value: 11 },
+              { level: 2, classId: catalog.fighterId, classLevel: 2, value: 7 },
+              { level: 3, classId: catalog.fighterId, classLevel: 3, value: 7 }
             ],
             label: 'MVP Choice-Heavy Lifecycle Proof',
             raceId: catalog.dragonbornId,

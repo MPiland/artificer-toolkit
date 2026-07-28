@@ -6,6 +6,7 @@ import {
   createCharacterSheetPlayStateRepository,
   createCreatureRepository,
   createEquipmentRepository,
+  getCharacterSheetExtraCatalogQuery,
   getCharacterSheetMechanicsQuery,
   createVehicleRepository,
   type CharacterSheetStatePatch,
@@ -66,7 +67,9 @@ import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/
 import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/engine/resolution'
 import type {
   CharacterAuthored,
-  CharacterProvenance
+  CharacterProvenance,
+  CreatureAuthored,
+  VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import { getCharacterProvenanceIdentityKey } from '@artificer-toolkit/shared/subjects/authored'
 import type {
@@ -1889,20 +1892,29 @@ export async function buildCharacterSheetResponse(params: {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
   const spellCustomizations = params.spellCustomizations ?? []
-  const [availableCreatures, availableVehicles] = await Promise.all([
-    createCreatureRepository(params.db).findAll({
+  const selectedCreatureIds = [
+    ...new Set((character.state.creatures ?? []).map((instance) => instance.creatureId))
+  ]
+  const selectedVehicleIds = [
+    ...new Set((character.state.vehicles ?? []).map((instance) => instance.vehicleId))
+  ]
+  const extraCatalogFilter = {
+    systemId: character.systemId,
+    userId: character.userId,
+    includeMaster: true
+  }
+  const [extraCatalog, creaturesById, vehiclesById] = await Promise.all([
+    getCharacterSheetExtraCatalogQuery(params.db, {
       systemId: character.systemId,
-      userId: character.userId,
-      includeMaster: true
+      userId: character.userId
     }),
-    createVehicleRepository(params.db).findAll({
-      systemId: character.systemId,
-      userId: character.userId,
-      includeMaster: true
-    })
+    selectedCreatureIds.length > 0
+      ? createCreatureRepository(params.db).findByIds(selectedCreatureIds, extraCatalogFilter)
+      : Promise.resolve(new Map<string, CreatureAuthored>()),
+    selectedVehicleIds.length > 0
+      ? createVehicleRepository(params.db).findByIds(selectedVehicleIds, extraCatalogFilter)
+      : Promise.resolve(new Map<string, VehicleAuthored>())
   ])
-  const creaturesById = new Map(availableCreatures.map((creature) => [creature.id, creature]))
-  const vehiclesById = new Map(availableVehicles.map((vehicle) => [vehicle.id, vehicle]))
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
   const engineOutput = resolveCharacterSheetEngine({
     character,
@@ -1995,11 +2007,11 @@ export async function buildCharacterSheetResponse(params: {
       creatureType.label
     ]) ?? []
   )
-  const activeCreatures = availableCreatures.filter(
+  const activeCreatures = extraCatalog.creatures.filter(
     (creature) =>
       (creature.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
   )
-  const activeVehicles = availableVehicles.filter(
+  const activeVehicles = extraCatalog.vehicles.filter(
     (vehicle) => (vehicle.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
   )
   const companionMechanicsByInstanceId = new Map(
@@ -4447,7 +4459,7 @@ function createCharacterSheetStatePatches(
   const patches: CharacterSheetStatePatch[] = []
 
   if (!stateValuesEqual(current.state.inspiration, next.state.inspiration)) {
-    patches.push({ kind: 'INSPIRATION', value: next.state.inspiration })
+    patches.push({ kind: 'INSPIRATION', value: next.state.inspiration ?? false })
   }
   if (!stateValuesEqual(current.state.hitpoints, next.state.hitpoints)) {
     patches.push({ kind: 'HITPOINTS', value: next.state.hitpoints })

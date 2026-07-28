@@ -15,6 +15,7 @@ import {
   RACE_CATEGORY_CODE,
   resolveRulesSystem,
   resolveSpellGrantState,
+  runEngine,
   type AbilityCode,
   type AuthoredRecordStatus,
   type CharacterBuildSnapshot,
@@ -845,7 +846,8 @@ type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number
 function normalizeCharacterHitpointLevels(
   character: CharacterAuthored,
   authoredClasses: CharacterBuilderRegistry['classes'],
-  existingCharacter: CharacterAuthored | null
+  existingCharacter: CharacterAuthored | null,
+  abilityScores: Partial<Record<AbilityCode, number>>
 ): CharacterHitpointLevelEntry[] {
   const submittedLevels = character.intent.hitpoints.levels
   const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
@@ -855,7 +857,6 @@ function normalizeCharacterHitpointLevels(
   const existingLevelsByClass = new Map(
     persistedLevels.map((level) => [`${level.classId}:${level.classLevel}`, level])
   )
-  const abilityScores = deriveAbilityScores(character.intent.abilities)
   const persistedKeys = new Set(existingLevelsByClass.keys())
   const preferredLevels = existingCharacter
     ? [
@@ -1873,7 +1874,7 @@ function getChosenGrantOwnerTiming(
   return { kind: 'IMMEDIATE' }
 }
 
-function createStartingEquipmentEligibilitySnapshot(
+function createCharacterBuilderEvaluationSnapshot(
   character: CharacterAuthored,
   grantedFeatures: readonly GrantedFeatureRecord[],
   abilityScores: Partial<Record<AbilityCode, number>>
@@ -1937,6 +1938,31 @@ function createStartingEquipmentEligibilitySnapshot(
   }
 }
 
+function resolveCharacterBuilderEffectiveAbilityScores(
+  character: CharacterAuthored,
+  registry: CharacterBuilderRegistry,
+  grantedFeatures: readonly GrantedFeatureRecord[]
+): Partial<Record<AbilityCode, number>> {
+  const assignedAbilityScores = deriveAbilityScores(character.intent.abilities)
+  if (!registry.system) return assignedAbilityScores
+
+  const engineOutput = runEngine(
+    createCharacterBuilderEvaluationSnapshot(character, grantedFeatures, assignedAbilityScores),
+    createCharacterAssemblyRegistry(registry),
+    resolveRulesSystem({
+      code: registry.system.rulesetCode,
+      version: registry.system.rulesetVersion
+    })
+  )
+  const effectiveAbilityScores: Partial<Record<AbilityCode, number>> = {}
+  for (const ability of abilityOrder) {
+    const score = engineOutput.derivedStats.abilityScores[ability]
+    if (typeof score === 'number') effectiveAbilityScores[ability] = score
+  }
+
+  return effectiveAbilityScores
+}
+
 function createStartingEquipmentEligibilityContext(params: {
   character: CharacterAuthored
   registry: CharacterBuilderRegistry
@@ -1947,7 +1973,7 @@ function createStartingEquipmentEligibilityContext(params: {
   registry: ReturnType<typeof createCharacterAssemblyRegistry>
 } {
   const registry = createCharacterAssemblyRegistry(params.registry)
-  const snapshot = createStartingEquipmentEligibilitySnapshot(
+  const snapshot = createCharacterBuilderEvaluationSnapshot(
     params.character,
     params.grantedFeatures,
     params.abilityScores
@@ -2236,25 +2262,6 @@ export async function reconcileCharacterBuilderCharacter(
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
   const nextCharacter = clearObsoleteStartingEquipmentSelections(character, existingCharacter)
-  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
-    nextCharacter,
-    registry.classes,
-    existingCharacter
-  )
-  nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
-    nextCharacter.intent.classes,
-    registry.classes,
-    nextCharacter.state.hitpoints.hitDice
-  )
-  if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
-    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
-      (total, level) => total + level.value,
-      0
-    )
-    if (startingHitPoints > 0) {
-      nextCharacter.state.hitpoints.current = startingHitPoints
-    }
-  }
 
   const ancestrySelections = (nextCharacter.intent.ancestrySelections ?? []).filter((selection) => {
     const race = nextCharacter.intent.race.subraceId
@@ -2332,6 +2339,32 @@ export async function reconcileCharacterBuilderCharacter(
     isProvenanceStillValid(selection.source, filteredCharacter, registry, grantedFeatures)
   )
   nextCharacter.intent.spellSelections = spellSelections.length > 0 ? spellSelections : undefined
+
+  const effectiveAbilityScores = resolveCharacterBuilderEffectiveAbilityScores(
+    nextCharacter,
+    registry,
+    grantedFeatures
+  )
+  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
+    nextCharacter,
+    registry.classes,
+    existingCharacter,
+    effectiveAbilityScores
+  )
+  nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
+    nextCharacter.intent.classes,
+    registry.classes,
+    nextCharacter.state.hitpoints.hitDice
+  )
+  if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
+      (total, level) => total + level.value,
+      0
+    )
+    if (startingHitPoints > 0) {
+      nextCharacter.state.hitpoints.current = startingHitPoints
+    }
+  }
 
   const requiredResourceGrants = getRequiredClassResourceGrants(classSelections)
   const validResourceGrants = (nextCharacter.intent.resourceGrants ?? [])

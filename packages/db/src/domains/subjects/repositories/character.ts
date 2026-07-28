@@ -60,7 +60,7 @@ type CharacterState = CharacterAuthored['state']
  * to replace the authored aggregate through upsertAuthored.
  */
 export type CharacterSheetStatePatch =
-  | { kind: 'INSPIRATION'; value: CharacterState['inspiration'] }
+  | { kind: 'INSPIRATION'; value: NonNullable<CharacterState['inspiration']> }
   | { kind: 'HITPOINTS'; value: CharacterState['hitpoints'] }
   | { kind: 'RESOURCES'; value: CharacterState['resources'] }
   | { kind: 'SPELL_SLOTS'; value: CharacterState['spellSlots'] }

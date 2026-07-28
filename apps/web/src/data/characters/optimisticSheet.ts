@@ -44,14 +44,17 @@ function projectResources(
   sheet: CharacterSheetResponseDto,
   command: CharacterSheetCommandInputDto
 ): CharacterSheetResponseDto {
-  if (command.type === 'USE_SHEET_RESOURCE') {
+  if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
     return {
       ...sheet,
       resources: {
         ...sheet.resources,
         items: sheet.resources.items.map((resource) =>
           sameResourceOwner(resource.owner, command.owner)
-            ? updateResource(resource, resource.used + (command.amount ?? 1))
+            ? updateResource(
+                resource,
+                command.type === 'USE_SHEET_RESOURCE' ? resource.used + (command.amount ?? 1) : 0
+              )
             : resource
         )
       }
@@ -75,6 +78,51 @@ function projectResources(
   }
 
   return sheet
+}
+
+function projectHitPoints(
+  sheet: CharacterSheetResponseDto,
+  command: Extract<CharacterSheetCommandInputDto, { type: 'SET_HIT_POINTS' | 'ADJUST_HIT_POINTS' }>
+): CharacterSheetResponseDto {
+  if (command.type === 'SET_HIT_POINTS') {
+    if (command.maxOverride !== undefined) return sheet
+
+    return {
+      ...sheet,
+      overview: {
+        ...sheet.overview,
+        currentHitPoints:
+          command.current === undefined
+            ? sheet.overview.currentHitPoints
+            : Math.min(sheet.overview.maxHitPoints, Math.max(0, command.current)),
+        tempHitPoints:
+          command.temp === undefined ? sheet.overview.tempHitPoints : Math.max(0, command.temp)
+      }
+    }
+  }
+
+  if (command.mode === 'HEAL') {
+    return {
+      ...sheet,
+      overview: {
+        ...sheet.overview,
+        currentHitPoints: Math.min(
+          sheet.overview.maxHitPoints,
+          sheet.overview.currentHitPoints + command.amount
+        )
+      }
+    }
+  }
+
+  const absorbed = Math.min(sheet.overview.tempHitPoints, command.amount)
+  return {
+    ...sheet,
+    overview: {
+      ...sheet.overview,
+      currentHitPoints: Math.max(0, sheet.overview.currentHitPoints - (command.amount - absorbed)),
+      tempHitPoints: sheet.overview.tempHitPoints - absorbed
+    }
+  }
 }
 
 function projectSpellSlots(
@@ -362,10 +410,37 @@ export function projectOptimisticCharacterSheet(
           exhaustion: {
             ...sheet.overview.exhaustion,
             level: command.level,
-            notes: command.notes
+            notes:
+              command.notes === undefined
+                ? sheet.overview.exhaustion.notes
+                : command.notes || undefined
           }
         }
       }
+    case 'ADD_CONDITION': {
+      const condition = sheet.reference.conditionOptions.find(
+        (option) => option.id === command.conditionTypeId
+      )
+      if (!condition) return sheet
+
+      return {
+        ...sheet,
+        overview: {
+          ...sheet.overview,
+          conditions: [
+            ...sheet.overview.conditions.filter(
+              (existing) => existing.conditionTypeId !== command.conditionTypeId
+            ),
+            {
+              conditionTypeId: condition.id,
+              label: condition.label,
+              ...(condition.description ? { description: condition.description } : {}),
+              ...(command.notes ? { notes: command.notes } : {})
+            }
+          ]
+        }
+      }
+    }
     case 'REMOVE_CONDITION':
       return {
         ...sheet,
@@ -377,9 +452,13 @@ export function projectOptimisticCharacterSheet(
         }
       }
     case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
     case 'USE_RESOURCE':
     case 'RESTORE_RESOURCE':
       return projectResources(sheet, command)
+    case 'SET_HIT_POINTS':
+    case 'ADJUST_HIT_POINTS':
+      return projectHitPoints(sheet, command)
     case 'USE_SPELL_SLOT':
     case 'RESTORE_SPELL_SLOT':
     case 'CAST_SPELL':
