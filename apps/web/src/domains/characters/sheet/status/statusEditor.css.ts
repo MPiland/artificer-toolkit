@@ -11,7 +11,7 @@ export const statusControlPanel = style({
       display: 'grid',
       gap: '8px',
       minWidth: 0,
-      padding: '10px'
+      padding: '10px 10px 6px'
     }
   }
 })
@@ -60,7 +60,7 @@ export const statusEditorSectionDivided = style({
     [app]: {
       borderTop: `1px solid ${foundationVars.color.border.subtle}`,
       gap: 0,
-      paddingTop: foundationVars.space[3]
+      paddingTop: foundationVars.space[1]
     }
   }
 })
@@ -137,9 +137,14 @@ export const exhaustionAccordionItem = style({
 export const exhaustionAccordionHeader = style({
   '@layer': {
     [app]: {
-      minHeight: '44px',
+      minHeight: '40px',
       minWidth: 0,
-      position: 'relative'
+      position: 'relative',
+      '@media': {
+        '(max-width: 620px), (pointer: coarse)': {
+          minHeight: '44px'
+        }
+      }
     }
   }
 })
@@ -155,7 +160,7 @@ export const exhaustionAccordionControl = style({
       color: foundationVars.color.text.primary,
       cursor: 'pointer',
       display: 'flex',
-      minHeight: '44px',
+      minHeight: '40px',
       minWidth: 0,
       padding: 0,
       textAlign: 'left',
@@ -164,6 +169,11 @@ export const exhaustionAccordionControl = style({
         '&:focus-visible': {
           boxShadow: foundationVars.shadow.focus,
           outline: 'none'
+        }
+      },
+      '@media': {
+        '(max-width: 620px), (pointer: coarse)': {
+          minHeight: '44px'
         }
       }
     }
