@@ -738,13 +738,13 @@ Mockup evidence:
 
 ### Checkpoints
 
-| Checkpoint      | Required evidence                                                                                                                    | Status   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN`  |
-| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN`  |
-| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN`  |
-| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN`  |
-| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `ACTIVE` |
+| Checkpoint      | Required evidence                                                                                                                    | Status  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN` |
+| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN` |
+| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN` |
+| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN` |
+| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `GREEN` |
 
 ### Progress log
 
@@ -757,12 +757,13 @@ Mockup evidence:
 - `2026-07-28`: The seeded lifecycle correction is green at `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`. Builder HP normalization now uses rules-engine effective abilities; disabled grant options survive application-view projection; seeded choices avoid disabled and duplicate full-proficiency targets; the Dragonborn fixture uses its canonical Constitution result; inspiration clearing persists `false`; resource commands no longer request a nonexistent panel; and Sheet extra options use one bounded catalog query instead of fully hydrating every creature and vehicle. The Prepared Caster lifecycle fell from 307 seconds to 25 seconds, and the unfiltered runner now passes all four Martial, Prepared Caster, Choice-Heavy, and Multiclass HP fixtures through completed-rest retry, stale-write, persistence-reload, and rollback assertions.
 - `2026-07-28`: Deterministic Sheet commands now project optimistically for HP damage/healing, direct HP/temp changes without a maximum override, condition add/remove, exhaustion levels/notes, inspiration, spell slots, and typed resource use/recovery. Maximum-HP adjustment calculations and `COMPLETE_REST` remain authoritative because they depend on engine policy or backend roll evidence. The shared mutation boundary still snapshots, rolls back on failure, and reconciles every success with the returned authoritative Sheet.
 - `2026-07-28`: Checkpoint 5 reopened for the approved pre-Branch-07 Character frontend structural cleanup. The prior delivery SHA is superseded while Builder, Sheet, page, fixture, story, test, and style ownership move into feature-owned modules and the Exhaustion disclosure adopts Mantine Accordion. This cleanup preserves the existing optimistic Sheet boundary and introduces no transport contract, migration, RLS, or backend integration change.
+- `2026-07-28`: The structural cleanup is green at `d0d569b3488f512f6b4a4055c1e7470539cc14c7`. Builder, Sheet, pages, fixtures, stories, tests, and styles now live with their feature owners; the legacy root pockets and mega-stylesheets are removed; no Character Sheet context/provider or bundled section controller was introduced. Exhaustion uses a controlled Mantine Accordion with persistent sibling level controls and a trailing chevron. The character-domain suite passed 152/152 tests, Storybook passed 123/123 interactions, Web app/tests and story typechecks passed, and type-aware lint, repository formatting, and diff checks passed. The final opaque mobile status surface correction was validated with the focused 10-test status suite and direct 390px/320px browser checks rather than rerunning unrelated suites.
 
 ### Handoff
 
-**Status:** `ACTIVE`
+**Status:** `HANDOFF_READY`
 
-**Delivery SHA:** `PENDING` — supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
+**Delivery SHA:** `d0d569b3488f512f6b4a4055c1e7470539cc14c7` — supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
 
 #### Delivered contracts and ownership
 
@@ -771,6 +772,7 @@ Mockup evidence:
 - `RulesSystem` owns the closed rest/exhaustion policy. The D&D 5e 2014 implementation recovers half total hit dice with a minimum of one, reduces exhaustion by one, and exposes the active exhaustion definition and limits.
 - Builder save, Sheet adjustment changes, rest-selected modifier removal, and Sheet projection share the effective-maximum HP floor and current-HP clamp. Reset Maximum HP targets only `HIT_POINTS/MAXIMUM_MODIFIER`.
 - Deterministic Sheet commands project optimistically through the existing command mutation with rollback and authoritative success reconciliation. Engine-derived maximum-HP changes and completed rests intentionally wait for the backend response.
+- Character frontend ownership is feature-local under `builder`, `sheet`, and `pages`; `characters/index.ts` remains the only public domain seam. TanStack Query remains the authoritative and optimistic Sheet-state owner, while local React state is limited to transient interaction state.
 
 #### Transaction and roll contract
 
@@ -798,9 +800,11 @@ Mockup evidence:
 - Post-review focused Schema/Functions policy, contract, and service tests: green — 116 tests.
 - Focused production Sheet tests: green — 50 tests.
 - Focused Storybook interactions: green — 46 tests across the production Sheet and reused marketing capture.
+- Structural cleanup validation: green — 21 character-domain files and 152 tests; 34 Storybook files and 123 interactions; Web app/tests and story typechecks; type-aware Oxlint; repository Oxfmt; and clean static import, context, CSS-size, and diff checks.
+- Final status/Accordion correction: green — 1 focused file and 10 tests; Vite-compiled browser verification at desktop, 820px tablet, 390px, and 320px with opaque Sheet surfaces, trailing chevron alignment, 44px coarse-pointer controls, reduced motion, both Forge themes, and zero horizontal overflow.
 - `yarn test:character-sheet:integration`: green — event atomicity, rollback, stale-version protection, touched-state isolation, and owner RLS verified against local Postgres.
 - Repository type-aware Oxlint, repository Oxfmt, and `git diff --check`: green.
-- Browser evidence: desktop, tablet portrait/landscape, exact 48rem boundary, 390px, and 320px; both Forge themes; keyboard/focus, reduced motion, increased text, touch targets, overflow, staged healing, roll invalidation, and Long Rest verified. Captures remain in ignored `output/playwright/branch06-short-rest-*.png`.
+- Browser evidence: desktop, tablet portrait/landscape, exact 48rem boundary, 390px, and 320px; both Forge themes; keyboard/focus, reduced motion, increased text, touch targets, overflow, staged healing, roll invalidation, and Long Rest verified. Structural-cleanup captures remain in ignored `output/playwright/character-cleanup/`.
 
 #### Deferred scope and residual risk
 
