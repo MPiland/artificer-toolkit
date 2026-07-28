@@ -9,15 +9,19 @@ import { characterSheetFixture } from '../character.fixtures'
 import { CharacterSheetAdjustmentEditor } from '../components/sheet/panels/CharacterSheetAdjustmentEditor'
 import { CharacterSheetInspector } from '../components/sheet/panels/CharacterSheetInspector'
 import { CharacterSheetItemPanelContent } from '../components/sheet/panels/CharacterSheetItemPanel'
+import { CharacterSheetExtraPanel } from '../components/sheet/panels/CharacterSheetExtraPanel'
 import { CharacterSheetSpellCustomizationEditor } from '../components/sheet/panels/CharacterSheetSpellCustomizationEditor'
 import {
   abilityPanelFixture,
+  companionPanelFixture,
   itemPanelFixture,
   savingThrowPanelFixture,
   spellPanelAttackDamageFixture,
   spellPanelConfiguredCustomizationsFixture
 } from '../components/sheet/panels/characterSheetPanel.fixtures'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
+import { CharacterSheetExtras } from '../components/sheet/CharacterSheetExtras'
+import type { CharacterSheet } from '../components/sheet/CharacterSheet.types'
 
 function panelResponse(panel: unknown) {
   return HttpResponse.json([{ result: { data: panel } }])
@@ -260,5 +264,154 @@ describe('Character Sheet inspector', () => {
       itemId: itemPanelFixture.itemInstanceId
     })
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('dispatches companion adjustments and resource commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+
+    renderWithAppProviders(
+      <CharacterSheetExtraPanel
+        equipmentItems={[]}
+        expectedVersion={4}
+        panel={companionPanelFixture}
+        pending={false}
+        submitCommand={submitCommand}
+        onClose={vi.fn()}
+      />
+    )
+
+    const armorClass = screen.getByRole('textbox', { name: 'Override armor class' })
+    await user.clear(armorClass)
+    await user.type(armorClass, '13')
+    await user.tab()
+    expect(submitCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        adjustment: expect.objectContaining({
+          family: 'COMPANION',
+          companionInstanceId: companionPanelFixture.companionInstanceId,
+          field: 'ARMOR_CLASS_OVERRIDE',
+          value: 13
+        })
+      })
+    )
+
+    const resourceControls = screen.getByText('Keen Sight').parentElement!.parentElement!
+    await user.click(within(resourceControls).getByRole('button', { name: 'Use' }))
+    await user.click(within(resourceControls).getByRole('button', { name: 'Restore' }))
+    const hitDiceControls = screen.getByText('d8 hit dice').parentElement!.parentElement!
+    await user.click(within(hitDiceControls).getByRole('button', { name: 'Use' }))
+    await user.click(within(hitDiceControls).getByRole('button', { name: 'Restore' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_SHEET_RESOURCE',
+      expectedVersion: 4,
+      owner: companionPanelFixture.resources[0]!.target.owner
+    })
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'RECOVER_SHEET_RESOURCE',
+      expectedVersion: 4,
+      owner: companionPanelFixture.resources[0]!.target.owner,
+      trigger: 'MANUAL'
+    })
+    expect(submitCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'UPDATE_SHEET_EXTRA',
+        extra: expect.objectContaining({ hitDice: [{ die: 8, total: 2, used: 2 }] })
+      })
+    )
+    expect(submitCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'UPDATE_SHEET_EXTRA',
+        extra: expect.objectContaining({ hitDice: [{ die: 8, total: 2, used: 0 }] })
+      })
+    )
+  })
+
+  it('does not render companion mutations without the matching permissions', () => {
+    renderWithAppProviders(
+      <CharacterSheetExtraPanel
+        equipmentItems={[]}
+        expectedVersion={4}
+        panel={{ ...companionPanelFixture, editable: false, allowedCommands: [] }}
+        pending={false}
+        submitCommand={vi.fn()}
+        onClose={vi.fn()}
+      />
+    )
+
+    expect(screen.getByLabelText('Active on sheet')).toBeDisabled()
+    expect(screen.getByLabelText('Current hit points')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Remove extra' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Override armor class' })).not.toBeInTheDocument()
+    const resourceControls = screen.getByText('Keen Sight').parentElement!.parentElement!
+    expect(within(resourceControls).getByRole('button', { name: 'Use' })).toBeDisabled()
+    expect(within(resourceControls).getByRole('button', { name: 'Restore' })).toBeDisabled()
+  })
+
+  it('disables companion restore when manual recovery is unavailable', () => {
+    renderWithAppProviders(
+      <CharacterSheetExtraPanel
+        equipmentItems={[]}
+        expectedVersion={4}
+        panel={{
+          ...companionPanelFixture,
+          resources: [
+            {
+              ...companionPanelFixture.resources[0]!,
+              recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
+            }
+          ]
+        }}
+        pending={false}
+        submitCommand={vi.fn()}
+        onClose={vi.fn()}
+      />
+    )
+
+    const resourceControls = screen.getByText('Keen Sight').parentElement!.parentElement!
+    expect(within(resourceControls).getByRole('button', { name: 'Restore' })).toBeDisabled()
+  })
+
+  it('uses backend extra labels without a misleading shared header', () => {
+    const sheet: CharacterSheet = structuredClone(characterSheetFixture)
+    sheet.extras = {
+      kindOptions: [{ code: 'COMPANION', label: 'Companion' }],
+      originOptions: [{ code: 'WORLD', label: 'World' }],
+      creatureOptions: [{ id: companionPanelFixture.creatureId, label: 'Owl' }],
+      vehicleOptions: [],
+      items: [
+        {
+          id: companionPanelFixture.companionInstanceId,
+          kind: 'COMPANION',
+          kindLabel: 'Companion',
+          creatureId: companionPanelFixture.creatureId,
+          relationshipKind: 'COMPANION',
+          relationshipLabel: 'Companion',
+          originKind: 'WORLD',
+          originLabel: 'World',
+          authoredName: 'Owl',
+          displayName: 'Ferdinand',
+          customName: 'Ferdinand',
+          isActive: true,
+          armorClass: 11,
+          speedLabel: 'Flying 60 feet',
+          hitPoints: { current: 1, temp: 0, maximum: 1 },
+          hitDice: [],
+          actions: [],
+          features: [],
+          equipmentItemIds: []
+        }
+      ]
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetExtras pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    expect(screen.getByText('Ferdinand (Owl)')).toBeInTheDocument()
+    expect(screen.getByText('Flying 60 feet')).toBeInTheDocument()
+    expect(screen.queryByText('Companion')).not.toBeInTheDocument()
+    expect(screen.queryByText('Capacity')).not.toBeInTheDocument()
   })
 })

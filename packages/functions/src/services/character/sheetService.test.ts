@@ -221,7 +221,14 @@ function createSheet(
       currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
     },
     notes: {},
-    ...overrides
+    ...overrides,
+    extras: overrides.extras ?? {
+      kindOptions: [],
+      originOptions: [],
+      creatureOptions: [],
+      vehicleOptions: [],
+      items: []
+    }
   }
 }
 
@@ -4255,5 +4262,101 @@ describe('character sheet command application', () => {
         remaining: 0
       })
     ])
+  })
+
+  it('adds, updates, and removes creature extras with their equipment assignments', () => {
+    const character = createCharacter()
+    const sheet = createSheet({
+      extras: {
+        kindOptions: [],
+        originOptions: [],
+        creatureOptions: [
+          {
+            id: 'creature-1',
+            label: 'Owl',
+            armorClass: 11,
+            maximumHitPoints: 3
+          }
+        ],
+        vehicleOptions: [],
+        items: []
+      }
+    })
+
+    const added = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'ADD_SHEET_EXTRA',
+        expectedVersion: 1,
+        extra: { kind: 'COMPANION', creatureId: 'creature-1', originKind: 'WORLD' }
+      },
+      sheet,
+      {
+        createId: () => 'companion-1',
+        extraDefaults: {
+          creatures: new Map([['creature-1', { hitPoints: 3 }]]),
+          vehicles: new Map()
+        }
+      }
+    )
+    const updatedSheet = createSheet({
+      extras: {
+        ...sheet.extras,
+        items: [
+          {
+            kind: 'COMPANION',
+            kindLabel: 'Companion',
+            id: 'companion-1',
+            creatureId: 'creature-1',
+            relationshipKind: 'COMPANION',
+            relationshipLabel: 'Companion',
+            originKind: 'WORLD',
+            originLabel: 'World',
+            authoredName: 'Owl',
+            displayName: 'Owl',
+            isActive: true,
+            armorClass: 11,
+            hitPoints: { current: 3, maximum: 3, temp: 0 },
+            hitDice: [],
+            actions: [],
+            features: [],
+            equipmentItemIds: []
+          }
+        ]
+      }
+    })
+    const updated = applyCharacterSheetCommand(
+      added,
+      {
+        type: 'UPDATE_SHEET_EXTRA',
+        expectedVersion: 1,
+        extra: {
+          kind: 'COMPANION',
+          extraId: 'companion-1',
+          customName: 'Scout',
+          tempHitPoints: 0,
+          equipmentItemIds: ['item-1']
+        }
+      },
+      updatedSheet
+    )
+    const removed = applyCharacterSheetCommand(
+      updated,
+      {
+        type: 'REMOVE_SHEET_EXTRA',
+        expectedVersion: 1,
+        extra: { kind: 'COMPANION', extraId: 'companion-1' }
+      },
+      updatedSheet
+    )
+
+    expect(updated.state.creatures).toEqual([
+      expect.objectContaining({ id: 'companion-1', customName: 'Scout' })
+    ])
+    expect(updated.state.creatureEquipment).toEqual({
+      'companion-1': [{ equipmentItemId: 'item-1' }]
+    })
+    expect(removed.state.creatures).toEqual([])
+    expect(removed.state.creatureEquipment).toEqual({})
   })
 })

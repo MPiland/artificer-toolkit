@@ -73,6 +73,13 @@ export type CharacterSheetStatePatch =
       creatureEquipment: CharacterState['creatureEquipment']
       vehicleEquipment: CharacterState['vehicleEquipment']
     }
+  | {
+      kind: 'EXTRAS'
+      creatures: NonNullable<CharacterState['creatures']>
+      vehicles: NonNullable<CharacterState['vehicles']>
+      creatureEquipment: NonNullable<CharacterState['creatureEquipment']>
+      vehicleEquipment: NonNullable<CharacterState['vehicleEquipment']>
+    }
   | { kind: 'CURRENCY'; value: CharacterState['currency'] }
   | {
       kind: 'NOTES'
@@ -400,6 +407,7 @@ async function hydrateCharacterAuthoredById(
     currencyRows,
     creatureRows,
     vehicleRows,
+    creatureHitDiceRows,
     creatureEquipmentRows,
     vehicleEquipmentRows,
     classEquipmentSessionRow,
@@ -540,6 +548,11 @@ async function hydrateCharacterAuthoredById(
     db.selectFrom('character_currencies').selectAll().where('character_id', '=', id).execute(),
     db.selectFrom('character_creatures').selectAll().where('character_id', '=', id).execute(),
     db.selectFrom('character_vehicles').selectAll().where('character_id', '=', id).execute(),
+    db
+      .selectFrom('character_creature_hit_dice_state')
+      .selectAll()
+      .where('character_id', '=', id)
+      .execute(),
     db
       .selectFrom('character_creature_equipment')
       .selectAll()
@@ -890,6 +903,21 @@ async function hydrateCharacterAuthoredById(
     return acc
   }, {})
 
+  const creatureHitDice = creatureHitDiceRows.reduce<
+    Record<string, { die: number; total: number; used: number }[]>
+  >((acc, hitDieRow) => {
+    const creatureId = String(hitDieRow.character_creature_id)
+    acc[creatureId] = [
+      ...(acc[creatureId] ?? []),
+      {
+        die: Number(hitDieRow.die),
+        total: Number(hitDieRow.total),
+        used: Number(hitDieRow.used)
+      }
+    ]
+    return acc
+  }, {})
+
   const vehicleEquipment = vehicleEquipmentRows.reduce<
     Record<string, { equipmentItemId: string }[]>
   >((acc, assignmentRow) => {
@@ -1051,6 +1079,18 @@ async function hydrateCharacterAuthoredById(
               relationshipKind: String(creatureRow.relationship_kind) as NonNullable<
                 CharacterAuthored['state']['creatures']
               >[number]['relationshipKind'],
+              originKind: String(creatureRow.origin_kind) as NonNullable<
+                CharacterAuthored['state']['creatures']
+              >[number]['originKind'],
+              currentHitPoints:
+                creatureRow.current_hit_points == null
+                  ? undefined
+                  : Number(creatureRow.current_hit_points),
+              tempHitPoints:
+                creatureRow.temp_hit_points == null
+                  ? undefined
+                  : Number(creatureRow.temp_hit_points),
+              hitDice: creatureHitDice[String(creatureRow.id)],
               customName: optionalText(creatureRow.custom_name),
               notes: optionalText(creatureRow.notes),
               isActive: creatureRow.is_active == null ? undefined : Boolean(creatureRow.is_active)
@@ -1061,6 +1101,10 @@ async function hydrateCharacterAuthoredById(
           ? vehicleRows.map((vehicleRow) => ({
               id: String(vehicleRow.id),
               vehicleId: String(vehicleRow.vehicle_id),
+              currentHitPoints:
+                vehicleRow.current_hit_points == null
+                  ? undefined
+                  : Number(vehicleRow.current_hit_points),
               customName: optionalText(vehicleRow.custom_name),
               notes: optionalText(vehicleRow.notes),
               isActive: vehicleRow.is_active == null ? undefined : Boolean(vehicleRow.is_active)
@@ -1293,6 +1337,177 @@ async function applyCharacterSheetStatePatch(
       )
       await insertRows(db, 'character_creature_equipment', creatureAssignments)
       await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
+      return
+    }
+
+    case 'EXTRAS': {
+      const creatureIds = new Set<string>()
+      for (const creature of patch.creatures) {
+        if (creatureIds.has(creature.id)) {
+          throw new Error(
+            `Character ${characterId} has duplicate creature instance ${creature.id}.`
+          )
+        }
+        creatureIds.add(creature.id)
+      }
+
+      const vehicleIds = new Set<string>()
+      for (const vehicle of patch.vehicles) {
+        if (vehicleIds.has(vehicle.id)) {
+          throw new Error(`Character ${characterId} has duplicate vehicle instance ${vehicle.id}.`)
+        }
+        vehicleIds.add(vehicle.id)
+      }
+
+      const inventoryRows = await db
+        .selectFrom('character_equipment')
+        .select('id')
+        .where('character_id', '=', characterId)
+        .execute()
+      const inventoryIds = new Set(inventoryRows.map((row) => row.id))
+
+      const creatureAssignments = Object.entries(patch.creatureEquipment).flatMap(
+        ([creatureId, assignments]) => {
+          if (!creatureIds.has(creatureId)) {
+            throw new Error(
+              `Character ${characterId} creature equipment references missing creature instance ${creatureId}.`
+            )
+          }
+          return assignments.map((assignment) => {
+            if (!inventoryIds.has(assignment.equipmentItemId)) {
+              throw new Error(
+                `Character ${characterId} creature equipment references missing inventory item ${assignment.equipmentItemId}.`
+              )
+            }
+            return {
+              character_id: characterId,
+              character_creature_id: creatureId,
+              equipment_id: assignment.equipmentItemId
+            }
+          })
+        }
+      )
+      const vehicleAssignments = Object.entries(patch.vehicleEquipment).flatMap(
+        ([vehicleId, assignments]) => {
+          if (!vehicleIds.has(vehicleId)) {
+            throw new Error(
+              `Character ${characterId} vehicle equipment references missing vehicle instance ${vehicleId}.`
+            )
+          }
+          return assignments.map((assignment) => {
+            if (!inventoryIds.has(assignment.equipmentItemId)) {
+              throw new Error(
+                `Character ${characterId} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`
+              )
+            }
+            return {
+              character_id: characterId,
+              character_vehicle_id: vehicleId,
+              equipment_id: assignment.equipmentItemId
+            }
+          })
+        }
+      )
+
+      const existingCreatureRows = await db
+        .selectFrom('character_creatures')
+        .select('id')
+        .where('character_id', '=', characterId)
+        .execute()
+      const existingCreatureIds = new Set(existingCreatureRows.map((row) => row.id))
+      const existingVehicleRows = await db
+        .selectFrom('character_vehicles')
+        .select('id')
+        .where('character_id', '=', characterId)
+        .execute()
+      const existingVehicleIds = new Set(existingVehicleRows.map((row) => row.id))
+
+      await deleteCharacterRows(db, 'character_creature_equipment', characterId)
+      await deleteCharacterRows(db, 'character_vehicle_equipment', characterId)
+      await deleteCharacterRows(db, 'character_creature_hit_dice_state', characterId)
+
+      for (const creatureId of existingCreatureIds) {
+        if (!creatureIds.has(creatureId)) {
+          await db
+            .deleteFrom('character_creatures')
+            .where('character_id', '=', characterId)
+            .where('id', '=', creatureId)
+            .execute()
+        }
+      }
+      for (const vehicleId of existingVehicleIds) {
+        if (!vehicleIds.has(vehicleId)) {
+          await db
+            .deleteFrom('character_vehicles')
+            .where('character_id', '=', characterId)
+            .where('id', '=', vehicleId)
+            .execute()
+        }
+      }
+
+      for (const creature of patch.creatures) {
+        const values = {
+          creature_id: creature.creatureId,
+          relationship_kind: creature.relationshipKind,
+          origin_kind: creature.originKind,
+          current_hit_points: creature.currentHitPoints ?? null,
+          temp_hit_points: creature.tempHitPoints ?? null,
+          custom_name: creature.customName ?? null,
+          notes: creature.notes ?? null,
+          is_active: creature.isActive ?? null
+        }
+        if (existingCreatureIds.has(creature.id)) {
+          await db
+            .updateTable('character_creatures')
+            .set(values)
+            .where('character_id', '=', characterId)
+            .where('id', '=', creature.id)
+            .execute()
+        } else {
+          await db
+            .insertInto('character_creatures')
+            .values({ id: creature.id, character_id: characterId, ...values })
+            .execute()
+        }
+      }
+      for (const vehicle of patch.vehicles) {
+        const values = {
+          vehicle_id: vehicle.vehicleId,
+          current_hit_points: vehicle.currentHitPoints ?? null,
+          custom_name: vehicle.customName ?? null,
+          notes: vehicle.notes ?? null,
+          is_active: vehicle.isActive ?? null
+        }
+        if (existingVehicleIds.has(vehicle.id)) {
+          await db
+            .updateTable('character_vehicles')
+            .set(values)
+            .where('character_id', '=', characterId)
+            .where('id', '=', vehicle.id)
+            .execute()
+        } else {
+          await db
+            .insertInto('character_vehicles')
+            .values({ id: vehicle.id, character_id: characterId, ...values })
+            .execute()
+        }
+      }
+
+      await insertRows(db, 'character_creature_equipment', creatureAssignments)
+      await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
+      await insertRows(
+        db,
+        'character_creature_hit_dice_state',
+        patch.creatures.flatMap((creature) =>
+          (creature.hitDice ?? []).map((hitDie) => ({
+            character_id: characterId,
+            character_creature_id: creature.id,
+            die: hitDie.die,
+            total: hitDie.total,
+            used: hitDie.used
+          }))
+        )
+      )
       return
     }
 

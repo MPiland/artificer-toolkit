@@ -636,6 +636,10 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
     .deleteFrom('character_vehicle_equipment')
     .where('character_id', '=', characterId)
     .execute()
+  await db
+    .deleteFrom('character_creature_hit_dice_state')
+    .where('character_id', '=', characterId)
+    .execute()
   await db.deleteFrom('character_creatures').where('character_id', '=', characterId).execute()
   await db.deleteFrom('character_vehicles').where('character_id', '=', characterId).execute()
   await db.deleteFrom('character_currency_groups').where('character_id', '=', characterId).execute()

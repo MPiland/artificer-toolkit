@@ -251,6 +251,99 @@ function projectInventory(
   }
 }
 
+function projectExtras(
+  sheet: CharacterSheetResponseDto,
+  command: CharacterSheetCommandInputDto
+): CharacterSheetResponseDto {
+  if (command.type === 'REMOVE_SHEET_EXTRA') {
+    return {
+      ...sheet,
+      extras: {
+        ...sheet.extras,
+        items: sheet.extras.items.filter((extra) => extra.id !== command.extra.extraId)
+      }
+    }
+  }
+
+  if (command.type !== 'UPDATE_SHEET_EXTRA') return sheet
+
+  return {
+    ...sheet,
+    extras: {
+      ...sheet.extras,
+      items: sheet.extras.items.map((item) => {
+        if (item.id !== command.extra.extraId) return item
+        const displayName =
+          command.extra.customName === undefined
+            ? item.displayName
+            : (command.extra.customName ?? item.authoredName)
+        if (item.kind === 'VEHICLE') {
+          if (command.extra.kind !== 'VEHICLE') return item
+          return {
+            ...item,
+            ...(command.extra.customName !== undefined
+              ? { customName: command.extra.customName ?? undefined, displayName }
+              : {}),
+            ...(command.extra.notes !== undefined
+              ? { notes: command.extra.notes ?? undefined }
+              : {}),
+            ...(command.extra.isActive !== undefined ? { isActive: command.extra.isActive } : {}),
+            ...(command.extra.currentHitPoints !== undefined
+              ? { hitPoints: { ...item.hitPoints, current: command.extra.currentHitPoints } }
+              : {}),
+            ...(command.extra.equipmentItemIds !== undefined
+              ? { equipmentItemIds: command.extra.equipmentItemIds }
+              : {})
+          }
+        }
+        if (command.extra.kind === 'VEHICLE') return item
+        const creatureExtra = command.extra
+        const hitDice = creatureExtra.hitDice
+        return {
+          ...item,
+          ...(command.extra.customName !== undefined
+            ? { customName: command.extra.customName ?? undefined, displayName }
+            : {}),
+          ...(command.extra.notes !== undefined ? { notes: command.extra.notes ?? undefined } : {}),
+          ...(command.extra.isActive !== undefined ? { isActive: command.extra.isActive } : {}),
+          ...(command.extra.currentHitPoints !== undefined ||
+          command.extra.tempHitPoints !== undefined
+            ? {
+                hitPoints: {
+                  ...item.hitPoints,
+                  ...(command.extra.currentHitPoints !== undefined
+                    ? { current: command.extra.currentHitPoints }
+                    : {}),
+                  ...(command.extra.tempHitPoints !== undefined
+                    ? { temp: command.extra.tempHitPoints }
+                    : {})
+                }
+              }
+            : {}),
+          ...(hitDice !== undefined
+            ? {
+                hitDice: item.hitDice.map((die) => {
+                  const next = hitDice.find((candidate) => candidate.die === die.die)
+                  return next
+                    ? {
+                        ...die,
+                        total: next.total,
+                        used: next.used,
+                        remaining: next.total - next.used
+                      }
+                    : die
+                })
+              }
+            : {}),
+          ...(command.extra.equipmentItemIds !== undefined
+            ? { equipmentItemIds: command.extra.equipmentItemIds }
+            : {})
+        }
+      })
+    }
+  }
+}
+
 export function projectOptimisticCharacterSheet(
   sheet: CharacterSheetResponseDto,
   command: CharacterSheetCommandInputDto
@@ -298,6 +391,10 @@ export function projectOptimisticCharacterSheet(
     case 'ATTUNE_ITEM':
     case 'UNATTUNE_ITEM':
       return projectInventory(sheet, command)
+    case 'ADD_SHEET_EXTRA':
+    case 'UPDATE_SHEET_EXTRA':
+    case 'REMOVE_SHEET_EXTRA':
+      return projectExtras(sheet, command)
     default:
       return sheet
   }

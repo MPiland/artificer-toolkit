@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   ABILITIES,
+  SIZE_OPTIONS,
   type CharacterCalculation,
   type CharacterMechanicSourceRef,
   type EngineCharacterOutput
@@ -88,6 +89,19 @@ function adjustmentEditorMetadata(adjustment: CharacterSheetAdjustment | undefin
     ...(adjustment ? { adjustmentId: adjustment.id } : {}),
     ...(adjustment?.sourceNote ? { sourceNote: adjustment.sourceNote } : {})
   }
+}
+
+function findCompanionAdjustment(
+  params: BuildCharacterSheetPanelParams,
+  companionInstanceId: string,
+  field: Extract<CharacterSheetAdjustment, { family: 'COMPANION' }>['field']
+) {
+  return params.adjustments.find(
+    (adjustment) =>
+      adjustment.family === 'COMPANION' &&
+      adjustment.companionInstanceId === companionInstanceId &&
+      adjustment.field === field
+  )
 }
 
 function findSourceLabel(params: {
@@ -1210,6 +1224,254 @@ function buildSpellsPanel(
   }
 }
 
+function buildExtrasPanel(
+  params: BuildCharacterSheetPanelParams,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'EXTRAS' }>
+): CharacterSheetPanelDto {
+  const items = params.sheet.extras.items
+  return {
+    kind: 'EXTRAS',
+    panelId: 'extras',
+    characterId: params.character.id,
+    target,
+    title: 'Extras',
+    state: 'DEFAULT',
+    editable: params.editable,
+    allowedCommands: ['ADD_EXTRA'],
+    companionCount: items.filter((item) => item.kind === 'COMPANION').length,
+    mountCount: items.filter((item) => item.kind === 'MOUNT').length,
+    ownedCreatureCount: items.filter((item) => item.kind === 'OWNED').length,
+    vehicleCount: items.filter((item) => item.kind === 'VEHICLE').length
+  }
+}
+
+function buildCompanionPanel(
+  params: BuildCharacterSheetPanelParams,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'COMPANION' }>
+): CharacterSheetPanelDto {
+  const companion = params.sheet.extras.items.find(
+    (item) => item.kind !== 'VEHICLE' && item.id === target.companionInstanceId
+  )
+  if (!companion || companion.kind === 'VEHICLE') {
+    throw new Error(
+      `Creature "${target.companionInstanceId}" is not available on this character sheet.`
+    )
+  }
+  const resources = params.sheet.resources.items.flatMap((resource) =>
+    resource.owner.kind === 'COMPANION_FEATURE' &&
+    resource.owner.companionInstanceId === companion.id
+      ? [
+          {
+            target: { kind: 'RESOURCE' as const, owner: resource.owner },
+            label: resource.label,
+            remaining: resource.remaining,
+            maximum: resource.max,
+            recoveries: resource.recoveries
+          }
+        ]
+      : []
+  )
+  const facts = [
+    { label: 'Stat block', value: companion.authoredName },
+    { label: 'Origin', value: companion.originLabel },
+    { label: 'Armor class', value: String(companion.armorClass) },
+    ...(companion.speedLabel ? [{ label: 'Speed', value: companion.speedLabel }] : []),
+    ...(companion.carryingCapacityLabel
+      ? [{ label: 'Carrying capacity', value: companion.carryingCapacityLabel }]
+      : []),
+    ...(companion.riderCapacity === undefined
+      ? []
+      : [{ label: 'Rider capacity', value: String(companion.riderCapacity) }])
+  ]
+  const armorClass = findCompanionAdjustment(params, companion.id, 'ARMOR_CLASS_OVERRIDE')
+  const maximumHitPoints = findCompanionAdjustment(
+    params,
+    companion.id,
+    'MAXIMUM_HIT_POINTS_OVERRIDE'
+  )
+  const size = findCompanionAdjustment(params, companion.id, 'SIZE_OVERRIDE')
+  const alignment = findCompanionAdjustment(params, companion.id, 'ALIGNMENT_OVERRIDE')
+  const creatureType = findCompanionAdjustment(params, companion.id, 'CREATURE_TYPE_OVERRIDE')
+  return {
+    kind: 'COMPANION',
+    panelId: `companion:${companion.id}`,
+    characterId: params.character.id,
+    target,
+    title: companion.displayName,
+    state: resolvePanelState(params.adjustments, target),
+    editable: params.editable,
+    allowedCommands: [
+      ...CORE_PANEL_COMMANDS,
+      'USE_RESOURCE',
+      'RECOVER_RESOURCE',
+      'UPDATE_EXTRA',
+      'REMOVE_EXTRA'
+    ],
+    companionInstanceId: companion.id,
+    creatureId: companion.creatureId,
+    relationshipKind: companion.relationshipKind,
+    relationshipLabel: companion.relationshipLabel,
+    originKind: companion.originKind,
+    originLabel: companion.originLabel,
+    authoredName: companion.authoredName,
+    displayName: companion.displayName,
+    isActive: companion.isActive,
+    armorClass: companion.armorClass,
+    ...(companion.size ? { size: companion.size } : {}),
+    ...(companion.alignmentId ? { alignmentId: companion.alignmentId } : {}),
+    ...(companion.creatureTypeId ? { creatureTypeId: companion.creatureTypeId } : {}),
+    hitPoints: companion.hitPoints,
+    hitDice: companion.hitDice,
+    facts,
+    actions: companion.actions,
+    features: companion.features,
+    equipmentItemIds: companion.equipmentItemIds,
+    resources,
+    numericEditors: [
+      {
+        kind: 'NUMBER' as const,
+        field: 'ARMOR_CLASS_OVERRIDE',
+        label: 'Override armor class',
+        value: typeof armorClass?.value === 'number' ? armorClass.value : null,
+        commitIntent: 'ON_BLUR_OR_ENTER' as const,
+        validation: { integer: true, minimum: 0 },
+        ...adjustmentEditorMetadata(armorClass)
+      },
+      {
+        kind: 'NUMBER' as const,
+        field: 'MAXIMUM_HIT_POINTS_OVERRIDE',
+        label: 'Override maximum hit points',
+        value: typeof maximumHitPoints?.value === 'number' ? maximumHitPoints.value : null,
+        commitIntent: 'ON_BLUR_OR_ENTER' as const,
+        validation: { integer: true, minimum: 0 },
+        ...adjustmentEditorMetadata(maximumHitPoints)
+      }
+    ],
+    selectEditors: [
+      {
+        kind: 'SELECT' as const,
+        field: 'SIZE_OVERRIDE',
+        label: 'Override size',
+        value: size?.field === 'SIZE_OVERRIDE' ? size.value : null,
+        options: SIZE_OPTIONS.map((option) => ({ value: option.code, label: option.label })),
+        commitIntent: 'IMMEDIATE' as const,
+        ...adjustmentEditorMetadata(size)
+      },
+      {
+        kind: 'SELECT' as const,
+        field: 'ALIGNMENT_OVERRIDE',
+        label: 'Override alignment',
+        value: alignment?.field === 'ALIGNMENT_OVERRIDE' ? alignment.value : null,
+        options:
+          params.resolution.registry.system?.alignments.map((option) => ({
+            value: option.id,
+            label: option.label
+          })) ?? [],
+        commitIntent: 'IMMEDIATE' as const,
+        ...adjustmentEditorMetadata(alignment)
+      },
+      {
+        kind: 'SELECT' as const,
+        field: 'CREATURE_TYPE_OVERRIDE',
+        label: 'Override creature type',
+        value: creatureType?.field === 'CREATURE_TYPE_OVERRIDE' ? creatureType.value : null,
+        options:
+          params.resolution.registry.system?.creatureTypes.map((option) => ({
+            value: option.id,
+            label: option.label
+          })) ?? [],
+        commitIntent: 'IMMEDIATE' as const,
+        ...adjustmentEditorMetadata(creatureType)
+      }
+    ],
+    textEditors: [
+      {
+        kind: 'TEXT',
+        field: 'CUSTOM_NAME',
+        label: 'Custom name',
+        value: companion.customName ?? null,
+        multiline: false,
+        maximumLength: 120,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      },
+      {
+        kind: 'TEXT',
+        field: 'NOTES',
+        label: 'Notes',
+        value: companion.notes ?? null,
+        multiline: true,
+        maximumLength: 2000,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      }
+    ]
+  }
+}
+
+function buildVehiclePanel(
+  params: BuildCharacterSheetPanelParams,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'VEHICLE' }>
+): CharacterSheetPanelDto {
+  const vehicle = params.sheet.extras.items.find(
+    (item) => item.kind === 'VEHICLE' && item.id === target.vehicleInstanceId
+  )
+  if (!vehicle || vehicle.kind !== 'VEHICLE') {
+    throw new Error(
+      `Vehicle "${target.vehicleInstanceId}" is not available on this character sheet.`
+    )
+  }
+  const facts = [
+    { label: 'Vehicle type', value: vehicle.authoredName },
+    { label: 'Category', value: vehicle.categoryLabel },
+    ...(vehicle.speedLabel ? [{ label: 'Speed', value: vehicle.speedLabel }] : []),
+    ...(vehicle.crewLabel ? [{ label: 'Crew', value: vehicle.crewLabel }] : []),
+    ...(vehicle.passengerCapacity === undefined
+      ? []
+      : [{ label: 'Passengers', value: String(vehicle.passengerCapacity) }]),
+    ...(vehicle.cargoCapacityLabel ? [{ label: 'Cargo', value: vehicle.cargoCapacityLabel }] : [])
+  ]
+  return {
+    kind: 'VEHICLE',
+    panelId: `vehicle:${vehicle.id}`,
+    characterId: params.character.id,
+    target,
+    title: vehicle.displayName,
+    state: 'DEFAULT',
+    editable: params.editable,
+    allowedCommands: ['UPDATE_EXTRA', 'REMOVE_EXTRA'],
+    vehicleInstanceId: vehicle.id,
+    vehicleId: vehicle.vehicleId,
+    authoredName: vehicle.authoredName,
+    displayName: vehicle.displayName,
+    categoryLabel: vehicle.categoryLabel,
+    isActive: vehicle.isActive,
+    hitPoints: vehicle.hitPoints,
+    facts,
+    actions: vehicle.actions,
+    features: vehicle.features,
+    equipmentItemIds: vehicle.equipmentItemIds,
+    textEditors: [
+      {
+        kind: 'TEXT',
+        field: 'CUSTOM_NAME',
+        label: 'Custom name',
+        value: vehicle.customName ?? null,
+        multiline: false,
+        maximumLength: 120,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      },
+      {
+        kind: 'TEXT',
+        field: 'NOTES',
+        label: 'Notes',
+        value: vehicle.notes ?? null,
+        multiline: true,
+        maximumLength: 2000,
+        commitIntent: 'ON_BLUR_OR_ENTER'
+      }
+    ]
+  }
+}
+
 export interface BuildCharacterSheetPanelParams {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
@@ -1264,6 +1526,15 @@ export function buildCharacterSheetPanel(
     case 'ITEM':
       panel = buildItemPanel(params, engine, params.target)
       break
+    case 'EXTRAS':
+      panel = buildExtrasPanel(params, params.target)
+      break
+    case 'COMPANION':
+      panel = buildCompanionPanel(params, params.target)
+      break
+    case 'VEHICLE':
+      panel = buildVehiclePanel(params, params.target)
+      break
     case 'FEATURE':
     case 'BACKGROUND':
     case 'RESOURCE':
@@ -1285,6 +1556,9 @@ export function getAffectedCharacterSheetPanelTargets(
         | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
         | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
         | 'SET_PREPARED_SPELLS'
+        | 'ADD_SHEET_EXTRA'
+        | 'UPDATE_SHEET_EXTRA'
+        | 'REMOVE_SHEET_EXTRA'
         | 'USE_SPELL_SLOT'
         | 'RESTORE_SPELL_SLOT'
         | 'UPDATE_INVENTORY_ITEM'
@@ -1298,6 +1572,13 @@ export function getAffectedCharacterSheetPanelTargets(
   >
 ): CharacterSheetPanelTargetDto[] {
   if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') return [command.target]
+  if (command.type === 'ADD_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
+  if (command.type === 'UPDATE_SHEET_EXTRA') {
+    return command.extra.kind === 'VEHICLE'
+      ? [{ kind: 'VEHICLE', vehicleInstanceId: command.extra.extraId }]
+      : [{ kind: 'COMPANION', companionInstanceId: command.extra.extraId }]
+  }
+  if (command.type === 'REMOVE_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
   if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') return [{ kind: 'MOVEMENT' }]
   if (command.type === 'REMOVE_SHEET_ADJUSTMENT') return [command.target]
   if (
@@ -1324,6 +1605,9 @@ export function getAffectedCharacterSheetPanelTargets(
     return [{ kind: 'ITEM', itemInstanceId: command.itemId }]
   }
   if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+    if (command.owner.kind === 'COMPANION_FEATURE') {
+      return [{ kind: 'COMPANION', companionInstanceId: command.owner.companionInstanceId }]
+    }
     return command.owner.kind === 'ITEM_INSTANCE'
       ? [{ kind: 'ITEM', itemInstanceId: command.owner.itemInstanceId }]
       : [{ kind: 'RESOURCE', owner: command.owner }]
@@ -1347,5 +1631,7 @@ export function getAffectedCharacterSheetPanelTargets(
       return [{ kind: 'PROFICIENCIES' }]
     case 'ITEM':
       return [{ kind: 'ITEM', itemInstanceId: command.adjustment.itemInstanceId }]
+    case 'COMPANION':
+      return [{ kind: 'COMPANION', companionInstanceId: command.adjustment.companionInstanceId }]
   }
 }

@@ -1678,33 +1678,42 @@ export type Database = {
           character_id: string
           created_at: string
           creature_id: string
+          current_hit_points: number | null
           custom_name: string | null
           id: string
           is_active: boolean | null
           notes: string | null
+          origin_kind: string
           relationship_kind: string
+          temp_hit_points: number | null
           updated_at: string
         }
         Insert: {
           character_id: string
           created_at?: string
           creature_id: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          origin_kind?: string
           relationship_kind: string
+          temp_hit_points?: number | null
           updated_at?: string
         }
         Update: {
           character_id?: string
           created_at?: string
           creature_id?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          origin_kind?: string
           relationship_kind?: string
+          temp_hit_points?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1721,6 +1730,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'creatures'
             referencedColumns: ['id']
+          }
+        ]
+      }
+      character_creature_hit_dice_state: {
+        Row: {
+          character_creature_id: string
+          character_id: string
+          created_at: string
+          die: number
+          total: number
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_creature_id: string
+          character_id: string
+          created_at?: string
+          die: number
+          total: number
+          updated_at?: string
+          used: number
+        }
+        Update: {
+          character_creature_id?: string
+          character_id?: string
+          created_at?: string
+          die?: number
+          total?: number
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_creature_owner_fkey'
+            columns: ['character_id', 'character_creature_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
           }
         ]
       }
@@ -3680,6 +3734,7 @@ export type Database = {
         Row: {
           character_id: string
           created_at: string
+          current_hit_points: number | null
           custom_name: string | null
           id: string
           is_active: boolean | null
@@ -3690,6 +3745,7 @@ export type Database = {
         Insert: {
           character_id: string
           created_at?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -3700,6 +3756,7 @@ export type Database = {
         Update: {
           character_id?: string
           created_at?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null

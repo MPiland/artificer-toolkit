@@ -19,15 +19,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                      | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG    | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                       | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                            | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
-| `codex/character-overrides-05-companions`        | Companion lifecycle and play panels                                        | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                    | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test             | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                           | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs      | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG         | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
+| `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `ACTIVE`     | `3485aef1`     | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -605,11 +605,50 @@ limited-use states.
 - Safe removal of the deprecated HP compatibility column remains an integration follow-up
   after the complete Phase 00 migration and rollback window is validated.
 
-## Branch 05 — Companions
+## Branch 05 — Extras
 
-**Entry:** Generic resource owners and companion calculation context are available.
+> **Status:** active. This branch starts from `3485aef1`; no technical or visual gate is claimed green until its evidence is recorded below.
 
-**Exit:** Authorized add/remove, independent instances, typed adjustments, HP/hit dice/resources/equipment, inspection-only attacks, transactional cascade/history, rest policy, visual states, and focused tests are green. Handoff records relationship/state/cascade contracts and evidence.
+**Entry:** Generic resource owners, the `COMPANION_FEATURE` owner, companion calculation context, persisted creature/vehicle instances, and the existing right-inspector/mobile-drawer seam are available.
+
+**Exit:** Authorized add/remove for companions, mounts, owned creatures, and vehicles; independent instance state; typed creature adjustments; creature HP/temp HP/hit dice/resources/equipment; vehicle current HP/equipment; inspection-only authored actions/features; transactional cascade/history; responsive Extras surfaces; and focused validation are green. Handoff records the exact contracts, migration, evidence, and deferred work.
+
+### Locked delivery contract
+
+- **Extra kind** is a shared core option with `{ code, label }`: `COMPANION`, `MOUNT`, `OWNED`, and `VEHICLE`. UI renders backend-provided labels, never enum-derived presentation.
+- A creature instance has exactly one relationship role: `COMPANION`, `MOUNT`, or `OWNED`. `originKind` is a separate character-instance property with the shared core options `WORLD` and `SUMMONED`; it is not authored creature metadata and does not bind lifecycle to a spell or feature.
+- Existing persisted `SUMMONED` relationships migrate to `relationshipKind = COMPANION`, `originKind = SUMMONED`; all other existing creature instances receive `originKind = WORLD`.
+- `customName` remains the persisted player name. Responses expose `displayName = customName ?? authoredName` alongside immutable `authoredName`; a custom-name row renders, for example, `Ferdinand (Owl)`.
+- Creature instances expose active state, name/notes, current and temporary HP, structured hit dice, equipment, `COMPANION_FEATURE` resources, typed companion adjustments, and authored actions/features for inspection only. Vehicle instances expose active state, name/notes, current HP, authored operational data, equipment assignment, and inspection-only actions/features; vehicles do not gain temp HP, hit dice, adjustments, or resources in this branch.
+- The Sheet owns versioned, retry-idempotent immediate commands. Add/remove and mutations authorize the character, use the existing command/event transaction, and removal cascades instance state, resources, adjustments, and assignments while preserving inventory and history.
+- The Sheet adds one responsive **Extras** destination. The Add Extra flow selects kind, an authorized creature or vehicle, and creature origin before immediate creation and inspector opening. Rows are explicit companion, mount, owned-creature, and vehicle presentations; the existing inspector handles detailed management.
+
+### Explicitly deferred
+
+- Source bindings, spell/feature enforcement, dismiss/re-summon flows, and automatic removal when a summoning source changes.
+- Automated creature/vehicle attack, damage, saving throw, or action resolution.
+- Vehicle temporary HP, hit dice, typed adjustments, and feature resources.
+- Rest recovery policy beyond the existing prepared resource contracts; complete rests remain Branch 06.
+
+### Checkpoints
+
+| Checkpoint      | Required evidence                                                                                                                              | Status    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1. Contract     | Core option registries; role/origin migration; DTO, command, and panel contracts; character/persistence guide review                           | `GREEN`   |
+| 2. Persistence  | Migration, RLS, hydration, instance isolation, vehicle current-HP, removal/history coverage                                                    | `GREEN`   |
+| 3. Service      | Authorization, calculation context, panel resolution, immediate commands, concurrency/idempotency, optimistic boundaries                       | `GREEN`   |
+| 4. Play surface | Add Extra flow; rows and inspectors; custom naming; desktop/mobile/tablet/theme/a11y/overflow evidence                                         | `GREEN`   |
+| 5. Handoff      | Green validation; ledger delivery SHA; delivered/deferred, migration/contracts/commands/panels/visual evidence, risks, Branch 06 prerequisites | `PENDING` |
+
+### Progress log
+
+- `2026-07-27`: Branch activated from `3485aef1`; contract and documentation checkpoint opened.
+- `2026-07-27`: Checkpoints 1–3 are green. Shared core registries, subject/API contracts, the role-to-origin migration, atomic Extras persistence, sheet command/event integration, and semantic panel resolution are delivered. `yarn build:shared`, `yarn build:schema`, and `yarn build:db` passed; DB tests passed (46 files, 398 tests) and functions tests passed (23 files, 226 tests).
+- `2026-07-27`: The responsive Extras code path is green: Turbo web typecheck passed (2 tasks), focused Sheet sections passed (45 tests), scoped type-aware Oxlint passed for shared/schema/db/functions/web, Oxfmt and `git diff --check` passed, and the Storybook build passed (7 tasks). Checkpoint 4 still needs interactive desktop/tablet/mobile visual and accessibility evidence; checkpoint 5 cannot be marked handoff-ready until that evidence and the delivery SHA are recorded.
+- `2026-07-28`: Persistence and source-data validation are green. A clean local Supabase reset replayed the canonical migration bundle; rollback-only Postgres probes rejected every invalid HP/hit-die case and confirmed the explicit hit-die RLS deny policy. The repository-native `yarn seed:srd:local` completed with 1 system and 1,032 domain roots, and `yarn audit:srd` reported no differences or validation failures. SRD seeding is intentionally command-driven rather than sourced from `supabase/seed.sql`.
+- `2026-07-28`: Final technical validation is green: focused schema (37), functions (86), and Extras inspector (12) tests passed; affected typecheck passed 8/8 tasks; affected tests passed 8/8 tasks, including 105 web files and 637 tests; the browser-backed Storybook suite passed 116/116 stories and interactions; type-aware Oxlint, Oxfmt, `git diff --check`, and the seven-task Storybook production build passed. One unrelated form test reached its five-second timeout only while test, typecheck, and lint graphs competed in parallel; the isolated repository-native affected-test rerun passed cleanly.
+- `2026-07-28`: Checkpoint 4 is green. Live Storybook inspection covered 1440×1000 desktop, 1180×820 landscape tablet, 820×1180 portrait tablet, 390×844 phone, and 320×700 narrow phone in dark mode plus desktop light mode. All viewports had zero horizontal overflow; the narrow phone retained complete content through its intended internal scroll area. Companion and vehicle rows/panels, custom/authored naming, high-level per-kind metrics, Add success/pending/error states, retained selections after failure, semantic dialog controls, and trigger-focus restoration were verified. Checkpoint 5 remains pending only until the delivery SHA and final handoff ledger entry are recorded.
+- `2026-07-28`: Extras presentation was distilled to the Sheet's established flat-row language: title-first rows, divider-separated stat blocks, no redundant kind badge, and creature Origin hidden at the mobile breakpoint. Creature summaries now show the first authored non-walking movement mode and fall back to walking only when no other mode exists. Replacement evidence is green: focused functions tests passed 17/17, focused Extras/inspector tests passed 12/12, functions and both web TypeScript projects passed, scoped type-aware lint and formatting passed, and a clean Storybook interaction completed without console warnings. Live 1440×1000, 820×1180, 390×844, and 320×700 checks showed flat 0px-radius rows, the intended Origin breakpoint behavior, one `Flying 60 feet` summary, and zero horizontal overflow.
 
 ## Branch 06 — Vitals and complete rests
 

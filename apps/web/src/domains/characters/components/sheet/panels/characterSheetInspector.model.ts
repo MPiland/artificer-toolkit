@@ -6,6 +6,7 @@ type SkillPanel = Extract<CharacterSheetPanelDto, { kind: 'SKILL' }>
 type SensesPanel = Extract<CharacterSheetPanelDto, { kind: 'SENSES' }>
 type MovementPanel = Extract<CharacterSheetPanelDto, { kind: 'MOVEMENT' }>
 type ItemPanel = Extract<CharacterSheetPanelDto, { kind: 'ITEM' }>
+type CompanionPanel = Extract<CharacterSheetPanelDto, { kind: 'COMPANION' }>
 
 export type CharacterSheetNumberEditorDto =
   | AbilityPanel['editors'][number]
@@ -15,11 +16,13 @@ export type CharacterSheetNumberEditorDto =
   | SensesPanel['senses'][number]['editor']
   | MovementPanel['speeds'][number]['editor']
   | ItemPanel['numericEditors'][number]
+  | CompanionPanel['numericEditors'][number]
 
 export type CharacterSheetSelectEditorDto =
   | SavingThrowPanel['proficiencyEditor']
   | SkillPanel['proficiencyEditor']
   | SkillPanel['abilityEditor']
+  | CompanionPanel['selectEditors'][number]
 
 export interface CharacterSheetEditorCommit {
   value: number | string

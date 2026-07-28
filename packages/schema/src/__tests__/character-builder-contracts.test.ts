@@ -95,6 +95,85 @@ describe('character builder contracts', () => {
     ).toThrow()
   })
 
+  it.each([
+    ['creature current HP', { currentHitPoints: -1 }],
+    ['creature temporary HP', { tempHitPoints: -1 }]
+  ])('rejects negative persisted %s', (_label, creatureState) => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          creatures: [
+            {
+              id: 'creature-1',
+              creatureId: 'creature-definition-1',
+              relationshipKind: 'COMPANION',
+              originKind: 'WORLD',
+              ...creatureState
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
+  })
+
+  it('rejects negative persisted vehicle current HP', () => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          vehicles: [
+            {
+              id: 'vehicle-1',
+              vehicleId: 'vehicle-definition-1',
+              currentHitPoints: -1
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
+  })
+
+  it('rejects duplicate and overused persisted creature hit dice', () => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          creatures: [
+            {
+              id: 'creature-1',
+              creatureId: 'creature-definition-1',
+              relationshipKind: 'COMPANION',
+              originKind: 'WORLD',
+              hitDice: [
+                { die: 8, total: 1, used: 2 },
+                { die: 8, total: 1, used: 0 }
+              ]
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
+  })
+
   it('rejects legacy direct-character draft payloads', () => {
     expect(characterBuilderDraftPayloadDtoSchema.safeParse(baseRequest.character).success).toBe(
       false

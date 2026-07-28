@@ -38,7 +38,10 @@ export const characterSheetPanelTargetDtoSchema = z.discriminatedUnion('kind', [
   }),
   z.object({ kind: z.literal('ITEM'), itemInstanceId: uuidSchema }),
   z.object({ kind: z.literal('BACKGROUND') }),
-  z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema })
+  z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
+  z.object({ kind: z.literal('EXTRAS') }),
+  z.object({ kind: z.literal('COMPANION'), companionInstanceId: uuidSchema }),
+  z.object({ kind: z.literal('VEHICLE'), vehicleInstanceId: uuidSchema })
 ])
 
 export const characterSheetPanelAllowedCommandDtoSchema = z.enum([
@@ -58,7 +61,10 @@ export const characterSheetPanelAllowedCommandDtoSchema = z.enum([
   'SET_ITEM_EQUIPPED',
   'SET_ITEM_ATTUNED',
   'USE_RESOURCE',
-  'RECOVER_RESOURCE'
+  'RECOVER_RESOURCE',
+  'ADD_EXTRA',
+  'UPDATE_EXTRA',
+  'REMOVE_EXTRA'
 ])
 
 const adjustmentEditorMetadataDtoSchema = z.object({
@@ -491,6 +497,123 @@ const resourcePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   recoveries: z.array(characterResourceRecoveryDtoSchema)
 })
 
+const extraActionDtoSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional()
+})
+
+const extraFeatureDtoSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional()
+})
+
+const companionHitDiceDtoSchema = z
+  .array(
+    z
+      .object({
+        die: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        used: z.number().int().nonnegative(),
+        remaining: z.number().int().nonnegative()
+      })
+      .refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
+        message: 'Hit dice usage and remaining count must be consistent.'
+      })
+  )
+  .superRefine((hitDice, context) => {
+    const seen = new Set<number>()
+
+    hitDice.forEach(({ die }, index) => {
+      if (seen.has(die)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'die'],
+          message: 'Hit dice denominations must be unique.'
+        })
+      }
+      seen.add(die)
+    })
+  })
+
+const extrasPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+  kind: z.literal('EXTRAS'),
+  target: z.object({ kind: z.literal('EXTRAS') }),
+  companionCount: z.number().int().nonnegative(),
+  mountCount: z.number().int().nonnegative(),
+  ownedCreatureCount: z.number().int().nonnegative(),
+  vehicleCount: z.number().int().nonnegative()
+})
+
+const companionPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+  kind: z.literal('COMPANION'),
+  target: z.object({ kind: z.literal('COMPANION'), companionInstanceId: uuidSchema }),
+  companionInstanceId: uuidSchema,
+  creatureId: uuidSchema,
+  relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
+  relationshipLabel: z.string().min(1),
+  originKind: z.enum(['WORLD', 'SUMMONED']),
+  originLabel: z.string().min(1),
+  size: z.string().min(1).optional(),
+  alignmentId: uuidSchema.optional(),
+  creatureTypeId: uuidSchema.optional(),
+  authoredName: z.string().min(1),
+  displayName: z.string().min(1),
+  isActive: z.boolean(),
+  armorClass: z.number().int().nonnegative(),
+  hitPoints: z.object({
+    current: z.number().int().nonnegative(),
+    temp: z.number().int().nonnegative(),
+    maximum: z.number().int().nonnegative()
+  }),
+  hitDice: companionHitDiceDtoSchema,
+  facts: z.array(panelFactDtoSchema),
+  actions: z.array(extraActionDtoSchema),
+  features: z.array(extraFeatureDtoSchema),
+  equipmentItemIds: z.array(uuidSchema),
+  resources: z.array(
+    z.object({
+      target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
+      label: z.string().min(1),
+      remaining: z.number().int().nonnegative(),
+      maximum: z.number().int().nonnegative(),
+      recoveries: z.array(characterResourceRecoveryDtoSchema)
+    })
+  ),
+  numericEditors: z.array(
+    numericAdjustmentEditorBaseDtoSchema.extend({
+      field: z.enum(['ARMOR_CLASS_OVERRIDE', 'MAXIMUM_HIT_POINTS_OVERRIDE'])
+    })
+  ),
+  selectEditors: z.array(
+    selectAdjustmentEditorBaseDtoSchema.extend({
+      field: z.enum(['ALIGNMENT_OVERRIDE', 'CREATURE_TYPE_OVERRIDE', 'SIZE_OVERRIDE'])
+    })
+  ),
+  textEditors: z.array(textEditorDtoSchema)
+})
+
+const vehiclePanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
+  kind: z.literal('VEHICLE'),
+  target: z.object({ kind: z.literal('VEHICLE'), vehicleInstanceId: uuidSchema }),
+  vehicleInstanceId: uuidSchema,
+  vehicleId: uuidSchema,
+  authoredName: z.string().min(1),
+  displayName: z.string().min(1),
+  categoryLabel: z.string().min(1),
+  isActive: z.boolean(),
+  hitPoints: z.object({
+    current: z.number().int().nonnegative(),
+    maximum: z.number().int().nonnegative()
+  }),
+  facts: z.array(panelFactDtoSchema),
+  actions: z.array(extraActionDtoSchema),
+  features: z.array(extraFeatureDtoSchema),
+  equipmentItemIds: z.array(uuidSchema),
+  textEditors: z.array(textEditorDtoSchema)
+})
+
 export const characterSheetPanelDtoSchema = z.discriminatedUnion('kind', [
   abilityPanelDtoSchema,
   savingThrowPanelDtoSchema,
@@ -505,7 +628,10 @@ export const characterSheetPanelDtoSchema = z.discriminatedUnion('kind', [
   featurePanelDtoSchema,
   itemPanelDtoSchema,
   backgroundPanelDtoSchema,
-  resourcePanelDtoSchema
+  resourcePanelDtoSchema,
+  extrasPanelDtoSchema,
+  companionPanelDtoSchema,
+  vehiclePanelDtoSchema
 ])
 
 export type CharacterSheetPanelTargetDto = z.infer<typeof characterSheetPanelTargetDtoSchema>

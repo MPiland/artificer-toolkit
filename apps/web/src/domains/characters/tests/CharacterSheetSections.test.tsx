@@ -176,7 +176,14 @@ function createSheet(): CharacterSheetResponseDto {
       ],
       currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
     },
-    notes: {}
+    notes: {},
+    extras: {
+      kindOptions: [],
+      originOptions: [],
+      creatureOptions: [],
+      vehicleOptions: [],
+      items: []
+    }
   }
 }
 

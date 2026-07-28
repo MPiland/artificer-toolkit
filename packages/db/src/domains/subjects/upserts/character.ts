@@ -393,6 +393,9 @@ export async function upsertCharacter(
         character_id: json_data.id,
         creature_id: creature.creatureId,
         relationship_kind: creature.relationshipKind,
+        origin_kind: creature.originKind,
+        current_hit_points: creature.currentHitPoints ?? null,
+        temp_hit_points: creature.tempHitPoints ?? null,
         custom_name: creature.customName ?? null,
         notes: creature.notes ?? null,
         is_active: creature.isActive ?? null
@@ -404,6 +407,7 @@ export async function upsertCharacter(
         id: vehicle.id,
         character_id: json_data.id,
         vehicle_id: vehicle.vehicleId,
+        current_hit_points: vehicle.currentHitPoints ?? null,
         custom_name: vehicle.customName ?? null,
         notes: vehicle.notes ?? null,
         is_active: vehicle.isActive ?? null
@@ -412,6 +416,16 @@ export async function upsertCharacter(
 
     const creatureIds = new Set(creatureRows.map((row) => row.id))
     const vehicleIds = new Set(vehicleRows.map((row) => row.id))
+
+    const creatureHitDiceRows = (json_data.state.creatures ?? []).flatMap((creature) =>
+      (creature.hitDice ?? []).map((hitDie) => ({
+        character_id: json_data.id,
+        character_creature_id: creature.id,
+        die: hitDie.die,
+        total: hitDie.total,
+        used: hitDie.used
+      }))
+    )
 
     const creatureEquipmentRows = Object.entries(json_data.state.creatureEquipment ?? {}).flatMap(
       ([creatureInstanceId, assignments]) => {
@@ -467,6 +481,7 @@ export async function upsertCharacter(
 
     await insertRows(trx, 'character_creatures', creatureRows)
     await insertRows(trx, 'character_vehicles', vehicleRows)
+    await insertRows(trx, 'character_creature_hit_dice_state', creatureHitDiceRows)
     await insertRows(trx, 'character_creature_equipment', creatureEquipmentRows)
     await insertRows(trx, 'character_vehicle_equipment', vehicleEquipmentRows)
 

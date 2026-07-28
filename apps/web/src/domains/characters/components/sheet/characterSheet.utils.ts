@@ -9,6 +9,7 @@ export function isCharacterSheetTabId(value: string | null): value is CharacterS
     value === 'overview' ||
     value === 'actions' ||
     value === 'spells' ||
+    value === 'extras' ||
     value === 'inventory' ||
     value === 'reference' ||
     value === 'notes'
@@ -22,6 +23,7 @@ export function isCharacterSheetMobilePageId(
     value === 'overview' ||
     value === 'actions' ||
     value === 'spells' ||
+    value === 'extras' ||
     value === 'equipment' ||
     value === 'features' ||
     value === 'notes' ||

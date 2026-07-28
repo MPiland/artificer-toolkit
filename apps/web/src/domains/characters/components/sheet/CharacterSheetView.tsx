@@ -1,6 +1,6 @@
 import { Alert, Tabs } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
@@ -47,6 +47,7 @@ export function CharacterSheetView({
     getMobilePageForTab(initialTab)
   )
   const [inspectorTarget, setInspectorTarget] = useState<CharacterSheetPanelTargetDto>()
+  const inspectorTriggerRef = useRef<HTMLElement | null>(null)
   const isMobileSheet = useMediaQuery('(max-width: 760px)', false)
   const isDesktopSheet = useMediaQuery('(min-width: 1200px)', false)
   const isTabletLandscape = useMediaQuery(
@@ -56,8 +57,22 @@ export function CharacterSheetView({
   const navigate = useNavigate()
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
   const pending = commandMutation.isPending
+  function openInspector(target: CharacterSheetPanelTargetDto) {
+    inspectorTriggerRef.current =
+      document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+        ? document.activeElement
+        : null
+    setInspectorTarget(target)
+  }
+
+  function closeInspector() {
+    const trigger = inspectorTriggerRef.current
+    setInspectorTarget(undefined)
+    requestAnimationFrame(() => trigger?.focus())
+  }
+
   const sectionProps = {
-    openPanel: setInspectorTarget,
+    openPanel: openInspector,
     pending,
     sheet,
     submitCommand: async (command: CharacterSheetCommandDraft) => {
@@ -147,7 +162,7 @@ export function CharacterSheetView({
           <div className={styles.sheetAbilityStatusGrid}>
             <CharacterSheetOverviewAbilities
               abilities={sheet.overview.abilities}
-              openPanel={setInspectorTarget}
+              openPanel={openInspector}
             />
             <CharacterSheetOverviewStatusStrip {...sectionProps} />
           </div>
@@ -203,7 +218,7 @@ export function CharacterSheetView({
           <div className={styles.tabletLandscapeCanvas}>
             <CharacterSheetSkillsPanel
               abilities={sheet.overview.abilities}
-              openPanel={setInspectorTarget}
+              openPanel={openInspector}
               skills={sheet.overview.skills}
             />
             <section className={styles.desktopWorkspace} aria-label='Character workspace'>
@@ -222,7 +237,8 @@ export function CharacterSheetView({
           pending={pending}
           submitCommand={sectionProps.submitCommand}
           target={inspectorTarget}
-          onClose={() => setInspectorTarget(undefined)}
+          equipmentItems={sheet.inventory.items}
+          onClose={closeInspector}
           onOpenBuilder={() =>
             navigate({
               to: '/characters/$characterPublicId/$characterSlug/edit',

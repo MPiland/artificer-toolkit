@@ -744,13 +744,23 @@ CREATE TABLE IF NOT EXISTS public.character_creatures (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   creature_id uuid NOT NULL REFERENCES public.creatures (id) ON DELETE CASCADE DEFERRABLE,
   relationship_kind text NOT NULL,
+  origin_kind text NOT NULL DEFAULT 'WORLD',
+  current_hit_points integer,
+  temp_hit_points integer,
   custom_name text,
   notes text,
   is_active boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_creatures_relationship_kind_chk CHECK (
-    relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED', 'SUMMONED')
+    relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED')
+  ),
+  CONSTRAINT character_creatures_origin_kind_chk CHECK (
+    origin_kind IN ('WORLD', 'SUMMONED')
+  ),
+  CONSTRAINT character_creatures_hit_points_nonnegative_chk CHECK (
+    (current_hit_points IS NULL OR current_hit_points >= 0)
+    AND (temp_hit_points IS NULL OR temp_hit_points >= 0)
   ),
   CONSTRAINT character_creatures_character_id_id_key UNIQUE (character_id, id)
 );
@@ -763,15 +773,63 @@ CREATE INDEX IF NOT EXISTS idx_character_creatures_creature_id
 
 ALTER TABLE IF EXISTS public.character_creatures ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.character_creature_hit_dice_state (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  character_creature_id uuid NOT NULL,
+  die integer NOT NULL,
+  total integer NOT NULL,
+  used integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, character_creature_id, die),
+  CONSTRAINT character_creature_hit_dice_state_creature_owner_fkey
+    FOREIGN KEY (character_id, character_creature_id)
+    REFERENCES public.character_creatures (character_id, id)
+    ON DELETE CASCADE DEFERRABLE,
+  CONSTRAINT character_creature_hit_dice_state_values_chk CHECK (
+    die > 0
+    AND total >= 0
+    AND used >= 0
+    AND used <= total
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_creature_hit_dice_state_character_id
+  ON public.character_creature_hit_dice_state (character_id, character_creature_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT
+      1
+    FROM
+      pg_trigger
+    WHERE
+      tgname = 'trg_character_creature_hit_dice_state_updated_at'
+      AND tgrelid = 'public.character_creature_hit_dice_state'::regclass) THEN
+  CREATE TRIGGER trg_character_creature_hit_dice_state_updated_at
+    BEFORE UPDATE ON public.character_creature_hit_dice_state
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at ( );
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_creature_hit_dice_state ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE IF NOT EXISTS public.character_vehicles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   vehicle_id uuid NOT NULL REFERENCES public.vehicles (id) ON DELETE CASCADE DEFERRABLE,
+  current_hit_points integer,
   custom_name text,
   notes text,
   is_active boolean,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_vehicles_current_hit_points_nonnegative_chk CHECK (
+    current_hit_points IS NULL OR current_hit_points >= 0
+  ),
   CONSTRAINT character_vehicles_character_id_id_key UNIQUE (character_id, id)
 );
 

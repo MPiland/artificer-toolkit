@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode, type TouchEvent } from 'react'
 import {
   BookOpen,
   BadgeCheck,
+  PawPrint,
   Grid3X3,
   Package,
   Shield,
@@ -21,6 +22,7 @@ const mobilePageIcons = {
   overview: Shield,
   actions: Swords,
   spells: Sparkles,
+  extras: PawPrint,
   equipment: Package,
   features: BookOpen,
   notes: StickyNote,

@@ -1,4 +1,5 @@
 import { CharacterSheetActions } from './CharacterSheetActions'
+import { CharacterSheetExtras } from './CharacterSheetExtras'
 import { CharacterSheetInventory } from './CharacterSheetInventory'
 import { CharacterSheetMobileActions } from './CharacterSheetMobileActions'
 import { CharacterSheetMobileNotes } from './CharacterSheetMobileNotes'
@@ -35,6 +36,8 @@ export function CharacterSheetPanelContent({
       )
     case 'spells':
       return <CharacterSheetSpells {...sectionProps} hideTitle={mobile} />
+    case 'extras':
+      return <CharacterSheetExtras {...sectionProps} hideTitle={mobile} />
     case 'equipment':
       return <CharacterSheetInventory {...sectionProps} />
     case 'features':

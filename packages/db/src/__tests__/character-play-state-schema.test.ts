@@ -26,6 +26,9 @@ describe('character play-state persistence schema', () => {
   const adjustmentNoteOnlyMigration = read(
     'supabase/migrations/20260725010000_character_sheet_adjustment_note_only.sql'
   )
+  const creatureOriginMigration = read(
+    'supabase/migrations/20260727090000_character_creature_origin_kind.sql'
+  )
 
   it.each([
     ['canonical character tables', characterTables],
@@ -77,6 +80,32 @@ describe('character play-state persistence schema', () => {
     expect(characterAdjustmentTables).toContain('source_note text')
     expect(characterAdjustmentTables).not.toContain('source_category')
     expect(characterAdjustmentTables).not.toContain('source_label')
+  })
+
+  it.each([
+    ['canonical character tables', characterTables],
+    ['generated bootstrap bundle', generatedBundle]
+  ])('stores creature origin and instance hit point state in %s', (_label, sql) => {
+    expect(sql).toContain("origin_kind text NOT NULL DEFAULT 'WORLD'")
+    expect(sql).toContain("relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED')")
+    expect(sql).toContain('current_hit_points integer')
+    expect(sql).toContain('temp_hit_points integer')
+    expect(sql).toContain('character_creatures_hit_points_nonnegative_chk')
+    expect(sql).toContain('character_vehicles_current_hit_points_nonnegative_chk')
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.character_creature_hit_dice_state')
+    expect(sql).toContain('character_creature_hit_dice_state_creature_owner_fkey')
+  })
+
+  it('migrates legacy summoned creatures to a companion role with summoned origin', () => {
+    expect(creatureOriginMigration).toContain('ADD COLUMN IF NOT EXISTS origin_kind text')
+    expect(creatureOriginMigration).toContain("WHEN relationship_kind = 'SUMMONED' THEN 'SUMMONED'")
+    expect(creatureOriginMigration).toContain("SET relationship_kind = 'COMPANION'")
+    expect(creatureOriginMigration).toContain("origin_kind IN ('WORLD', 'SUMMONED')")
+    expect(creatureOriginMigration).toContain('character_creatures_hit_points_nonnegative_chk')
+    expect(creatureOriginMigration).toContain(
+      'character_vehicles_current_hit_points_nonnegative_chk'
+    )
+    expect(creatureOriginMigration).toContain('No direct browser API access')
   })
 
   it('migrates adjustment labels into capped notes before removing legacy provenance fields', () => {

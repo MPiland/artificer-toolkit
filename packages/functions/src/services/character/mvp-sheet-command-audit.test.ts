@@ -58,13 +58,14 @@ vi.mock('./builderService.js', async (importOriginal) => {
 })
 
 const db = {
-  selectFrom: () => ({
-    select: () => ({
-      where: () => ({
-        orderBy: () => ({ execute: async () => [] })
-      })
-    })
-  })
+  selectFrom: () => {
+    const query = {
+      orderBy: () => query,
+      where: () => query,
+      execute: async () => []
+    }
+    return { select: () => query }
+  }
 }
 
 function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterAuthored {
@@ -303,6 +304,13 @@ describe('MVP character Sheet command audit', () => {
       },
       identity: { label: character.label, classSummary: 'Fighter 1', totalLevel: 1 },
       actions: { items: [] },
+      extras: {
+        kindOptions: [],
+        originOptions: [],
+        creatureOptions: [],
+        vehicleOptions: [],
+        items: []
+      },
       resources: { items: [], hitDice: [] },
       spells: { saveDc: null, attackBonus: null, spells: [], slots: [], activeGroups: [] },
       inventory: { items: [], currencies: [] },

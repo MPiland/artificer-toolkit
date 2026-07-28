@@ -4,8 +4,10 @@ import {
   createCharacterRepository,
   createCharacterSheetAdjustmentRepository,
   createCharacterSheetPlayStateRepository,
+  createCreatureRepository,
   createEquipmentRepository,
   getCharacterSheetMechanicsQuery,
+  createVehicleRepository,
   type CharacterSheetStatePatch,
   type CharacterSpellCustomization,
   type DBLike
@@ -14,12 +16,20 @@ import {
   ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  CHARACTER_EXTRA_KIND_REGISTRY,
   EQUIPMENT_PROPERTY_REGISTRY,
   FEATURE_ATTRIBUTE,
+  MEASUREMENT_UNIT_REGISTRY,
+  CHARACTER_EXTRA_KIND_OPTIONS,
+  CREATURE_ORIGIN_KIND_REGISTRY,
+  CREATURE_ORIGIN_KIND_OPTIONS,
+  CREATURE_RELATIONSHIP_KIND_REGISTRY,
   PREPARE_LIMIT_METHOD_KIND,
   ROUNDING_CODE,
   SCALING_AMOUNT_KIND,
+  SIZE_OPTIONS,
   SPELLCASTING_ATTRIBUTE,
+  VEHICLE_CATEGORY_REGISTRY,
   resolveRulesSystem,
   runEngine,
   type CharacterBuildSnapshot,
@@ -29,6 +39,7 @@ import {
   type EngineResource,
   type EngineSense,
   type EngineSpellSlots,
+  type MeasurementUnitCode,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
 import {
@@ -57,11 +68,11 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type {
   CharacterSheetCoreAdjustmentCommandDto,
   CharacterSheetItemAdjustmentCommandDto
 } from '@artificer-toolkit/schema/api/characterSheet'
-import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { resolveCharacterBuilder, type CharacterBuilderResolution } from './builderService.js'
 import {
   createCharacterAssemblyRegistry,
@@ -601,7 +612,8 @@ function createCharacterEngineInput(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution,
   adjustments: readonly CharacterSheetAdjustment[] = [],
-  movementDisplayPreference: CharacterMovementDisplayPreference = { mode: 'AUTO' }
+  movementDisplayPreference: CharacterMovementDisplayPreference = { mode: 'AUTO' },
+  companions: CharacterBuildSnapshot['companions'] = []
 ): {
   registry: ReturnType<typeof createCharacterAssemblyRegistry>
   snapshot: CharacterBuildSnapshot
@@ -656,6 +668,7 @@ function createCharacterEngineInput(
       features: createCharacterEngineFeatures(character, resolution),
       equipmentItems,
       spellSources: createEngineSpellSources(character),
+      companions,
       adjustments: adjustments.map(toCharacterMechanicalAdjustment),
       movementDisplayPreference
     }
@@ -667,12 +680,14 @@ export function resolveCharacterSheetEngine(params: {
   resolution: CharacterBuilderResolution
   adjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
+  companions?: CharacterBuildSnapshot['companions']
 }): EngineCharacterOutput {
   const engineInput = createCharacterEngineInput(
     params.character,
     params.resolution,
     params.adjustments,
-    params.movementDisplayPreference
+    params.movementDisplayPreference,
+    params.companions
   )
   const rulesSystem = resolveRulesSystem({
     code: params.resolution.registry.system?.rulesetCode ?? '',
@@ -1740,6 +1755,115 @@ async function getConditionOptions(
   }))
 }
 
+function formatExtraMeasurement(amount: number, unit: MeasurementUnitCode): string {
+  return `${amount} ${MEASUREMENT_UNIT_REGISTRY[unit].label.toLowerCase()}`
+}
+
+function formatExtraSpeedLabel(
+  speeds: ReadonlyArray<{ speedId: string; amount: number; unit: MeasurementUnitCode }> | undefined,
+  speedDefinitions: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
+): string | undefined {
+  if (!speeds?.length) return undefined
+  const resolvedSpeeds = speeds.map((speed) => {
+    const definition = speedDefinitions?.find(
+      (candidate) => candidate.id === speed.speedId || candidate.code === speed.speedId
+    )
+    const normalizedCode = definition?.code?.toUpperCase() ?? speed.speedId.toUpperCase()
+    const normalizedLabel = definition?.label.trim().toLowerCase()
+    const isWalking =
+      normalizedCode === 'WALK' ||
+      normalizedCode === 'WALKING' ||
+      normalizedLabel === 'walk' ||
+      normalizedLabel === 'walking' ||
+      normalizedLabel === 'walking speed'
+    return { definition, isWalking, speed }
+  })
+  const selected = resolvedSpeeds.find(({ isWalking }) => !isWalking) ?? resolvedSpeeds[0]
+  if (!selected) return undefined
+
+  const measurement = formatExtraMeasurement(selected.speed.amount, selected.speed.unit)
+  if (selected.isWalking) return measurement
+  const movementLabel = selected.definition?.label.replace(/\s+speed$/i, '')
+  return movementLabel ? `${movementLabel} ${measurement}` : measurement
+}
+
+function toExtraFeatures(
+  features:
+    | ReadonlyArray<{ id: string; label: string; description: string; section?: string }>
+    | undefined
+) {
+  return (features ?? [])
+    .filter((feature) => feature.section === undefined || feature.section === 'TRAIT')
+    .map((feature) => ({
+      id: feature.id,
+      label: feature.label,
+      ...(feature.description ? { description: feature.description } : {})
+    }))
+}
+
+function toExtraActions(
+  features:
+    | ReadonlyArray<{ id: string; label: string; description: string; section?: string }>
+    | undefined
+) {
+  return (features ?? [])
+    .filter((feature) => feature.section !== undefined && feature.section !== 'TRAIT')
+    .map((feature) => ({
+      id: feature.id,
+      label: feature.label,
+      ...(feature.description ? { description: feature.description } : {})
+    }))
+}
+
+function toCreatureHitDice(
+  state: NonNullable<CharacterAuthored['state']['creatures']>[number]['hitDice'] | undefined,
+  authored: { hitDice?: { count: number; die: number } }
+) {
+  const hitDice =
+    state ??
+    (authored.hitDice
+      ? [{ die: authored.hitDice.die, total: authored.hitDice.count, used: 0 }]
+      : [])
+  return hitDice.map((die) => ({
+    ...die,
+    used: Math.min(die.used, die.total),
+    remaining: Math.max(die.total - die.used, 0)
+  }))
+}
+
+function createCompanionInputs(
+  character: CharacterAuthored,
+  creaturesById: ReadonlyMap<
+    string,
+    {
+      id: string
+      abilityScores: Record<string, number>
+      armorClass: number
+      hitPoints: number
+      size?: NonNullable<CharacterBuildSnapshot['companions']>[number]['size']
+      alignmentId?: string
+      creatureTypeId?: string
+    }
+  >
+): NonNullable<CharacterBuildSnapshot['companions']> {
+  return (character.state.creatures ?? []).flatMap((instance) => {
+    const creature = creaturesById.get(instance.creatureId)
+    if (!creature) return []
+    return [
+      {
+        companionInstanceId: instance.id,
+        creatureId: creature.id,
+        abilityScores: creature.abilityScores,
+        armorClass: creature.armorClass,
+        maxHitPoints: creature.hitPoints,
+        ...(creature.size ? { size: creature.size } : {}),
+        ...(creature.alignmentId ? { alignmentId: creature.alignmentId } : {}),
+        ...(creature.creatureTypeId ? { creatureTypeId: creature.creatureTypeId } : {})
+      }
+    ]
+  })
+}
+
 export async function buildCharacterSheetResponse(params: {
   db: DBLike
   character: CharacterAuthored
@@ -1754,12 +1878,27 @@ export async function buildCharacterSheetResponse(params: {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
   const spellCustomizations = params.spellCustomizations ?? []
+  const [availableCreatures, availableVehicles] = await Promise.all([
+    createCreatureRepository(params.db).findAll({
+      systemId: character.systemId,
+      userId: character.userId,
+      includeMaster: true
+    }),
+    createVehicleRepository(params.db).findAll({
+      systemId: character.systemId,
+      userId: character.userId,
+      includeMaster: true
+    })
+  ])
+  const creaturesById = new Map(availableCreatures.map((creature) => [creature.id, creature]))
+  const vehiclesById = new Map(availableVehicles.map((vehicle) => [vehicle.id, vehicle]))
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
   const engineOutput = resolveCharacterSheetEngine({
     character,
     resolution,
     adjustments,
-    movementDisplayPreference: params.movementDisplayPreference
+    movementDisplayPreference: params.movementDisplayPreference,
+    companions: createCompanionInputs(character, creaturesById)
   })
   const itemMechanicsByInstanceId = new Map(
     engineOutput.itemMechanics.map((item) => [item.itemInstanceId, item])
@@ -1833,6 +1972,162 @@ export async function buildCharacterSheetResponse(params: {
   const featureLabels = new Map(
     resolution.grants.features.map((feature) => [feature.id, feature.label])
   )
+  const creatureTypeLabels = new Map(
+    resolution.registry.system?.creatureTypes?.map((creatureType) => [
+      creatureType.id,
+      creatureType.label
+    ]) ?? []
+  )
+  const activeCreatures = availableCreatures.filter(
+    (creature) =>
+      (creature.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
+  )
+  const activeVehicles = availableVehicles.filter(
+    (vehicle) => (vehicle.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
+  )
+  const companionMechanicsByInstanceId = new Map(
+    engineOutput.companions.map((companion) => [companion.companionInstanceId, companion])
+  )
+  const creatureExtras: CharacterSheetResponseDto['extras']['items'] = (
+    character.state.creatures ?? []
+  ).flatMap((instance) => {
+    const creature = creaturesById.get(instance.creatureId)
+    if (!creature) return []
+    const mechanics = companionMechanicsByInstanceId.get(instance.id)
+    const maximumHitPoints = Math.max(mechanics?.maxHitPoints ?? creature.hitPoints, 0)
+    const currentHitPoints = clamp(
+      instance.currentHitPoints ?? maximumHitPoints,
+      0,
+      maximumHitPoints
+    )
+    const hitDice = toCreatureHitDice(instance.hitDice, creature)
+    return [
+      {
+        kind: instance.relationshipKind,
+        kindLabel: CHARACTER_EXTRA_KIND_REGISTRY[instance.relationshipKind].label,
+        id: instance.id,
+        creatureId: creature.id,
+        relationshipKind: instance.relationshipKind,
+        relationshipLabel: CREATURE_RELATIONSHIP_KIND_REGISTRY[instance.relationshipKind].label,
+        originKind: instance.originKind,
+        originLabel: CREATURE_ORIGIN_KIND_REGISTRY[instance.originKind].label,
+        authoredName: creature.label,
+        displayName: instance.customName ?? creature.label,
+        ...(instance.customName ? { customName: instance.customName } : {}),
+        ...(instance.notes ? { notes: instance.notes } : {}),
+        isActive: instance.isActive ?? true,
+        armorClass: Math.max(mechanics?.armorClass ?? creature.armorClass, 0),
+        ...(mechanics?.size ? { size: mechanics.size } : {}),
+        ...(mechanics?.alignmentId ? { alignmentId: mechanics.alignmentId } : {}),
+        ...(mechanics?.creatureTypeId ? { creatureTypeId: mechanics.creatureTypeId } : {}),
+        ...(formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+          ? {
+              speedLabel: formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+            }
+          : {}),
+        ...(creature.carryingCapacity
+          ? {
+              carryingCapacityLabel: formatExtraMeasurement(
+                creature.carryingCapacity.amount,
+                creature.carryingCapacity.unit
+              )
+            }
+          : {}),
+        ...(creature.mountProfile?.riderCount === undefined
+          ? {}
+          : { riderCapacity: creature.mountProfile.riderCount }),
+        hitPoints: {
+          current: currentHitPoints,
+          maximum: maximumHitPoints,
+          temp: Math.max(instance.tempHitPoints ?? 0, 0)
+        },
+        hitDice,
+        actions: toExtraActions(creature.features),
+        features: toExtraFeatures(creature.features),
+        equipmentItemIds: (character.state.creatureEquipment?.[instance.id] ?? []).map(
+          (assignment) => assignment.equipmentItemId
+        )
+      }
+    ]
+  })
+  const vehicleExtras: CharacterSheetResponseDto['extras']['items'] = (
+    character.state.vehicles ?? []
+  ).flatMap((instance) => {
+    const vehicle = vehiclesById.get(instance.vehicleId)
+    if (!vehicle) return []
+    const maximumHitPoints = Math.max(vehicle.hitPoints ?? 0, 0)
+    return [
+      {
+        kind: 'VEHICLE' as const,
+        kindLabel: CHARACTER_EXTRA_KIND_REGISTRY.VEHICLE.label,
+        id: instance.id,
+        vehicleId: vehicle.id,
+        categoryLabel: VEHICLE_CATEGORY_REGISTRY[vehicle.category].label,
+        authoredName: vehicle.label,
+        displayName: instance.customName ?? vehicle.label,
+        ...(instance.customName ? { customName: instance.customName } : {}),
+        ...(instance.notes ? { notes: instance.notes } : {}),
+        isActive: instance.isActive ?? true,
+        ...(vehicle.speed === undefined
+          ? {}
+          : {
+              speedLabel: `${vehicle.speed}${vehicle.speedNote ? ` (${vehicle.speedNote})` : ''}`
+            }),
+        ...(vehicle.crewMin === undefined && vehicle.crewMax === undefined
+          ? {}
+          : {
+              crewLabel:
+                vehicle.crewMin === vehicle.crewMax || vehicle.crewMax === undefined
+                  ? String(vehicle.crewMin ?? vehicle.crewMax)
+                  : `${vehicle.crewMin ?? 0}-${vehicle.crewMax}`
+            }),
+        ...(vehicle.passengerCapacity === undefined
+          ? {}
+          : { passengerCapacity: vehicle.passengerCapacity }),
+        ...(vehicle.cargoCapacity ? { cargoCapacityLabel: vehicle.cargoCapacity } : {}),
+        hitPoints: {
+          current: clamp(instance.currentHitPoints ?? maximumHitPoints, 0, maximumHitPoints),
+          maximum: maximumHitPoints
+        },
+        actions: toExtraActions(vehicle.features),
+        features: toExtraFeatures(vehicle.features),
+        equipmentItemIds: (character.state.vehicleEquipment?.[instance.id] ?? []).map(
+          (assignment) => assignment.equipmentItemId
+        )
+      }
+    ]
+  })
+  const sheetExtras = {
+    kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
+    originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],
+    creatureOptions: activeCreatures.map((creature) => ({
+      id: creature.id,
+      label: creature.label,
+      ...(creature.description ? { description: creature.description } : {}),
+      ...(creature.creatureTypeId && creatureTypeLabels.get(creature.creatureTypeId)
+        ? { creatureTypeLabel: creatureTypeLabels.get(creature.creatureTypeId) }
+        : {}),
+      ...(creature.size
+        ? { sizeLabel: SIZE_OPTIONS.find((size) => size.code === creature.size)?.label }
+        : {}),
+      armorClass: creature.armorClass,
+      maximumHitPoints: creature.hitPoints,
+      ...(formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+        ? {
+            speedLabel: formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+          }
+        : {})
+    })),
+    vehicleOptions: activeVehicles.map((vehicle) => ({
+      id: vehicle.id,
+      label: vehicle.label,
+      ...(vehicle.description ? { description: vehicle.description } : {}),
+      categoryLabel: VEHICLE_CATEGORY_REGISTRY[vehicle.category].label,
+      ...(vehicle.hitPoints === undefined ? {} : { maximumHitPoints: vehicle.hitPoints }),
+      ...(vehicle.speed === undefined ? {} : { speedLabel: String(vehicle.speed) })
+    })),
+    items: [...creatureExtras, ...vehicleExtras]
+  } satisfies CharacterSheetResponseDto['extras']
   const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(
     character,
@@ -2077,6 +2372,48 @@ export async function buildCharacterSheetResponse(params: {
       ]
     }
   )
+  const companionResourceItems: CharacterSheetResponseDto['resources']['items'] = (
+    character.state.creatures ?? []
+  ).flatMap((instance) => {
+    const creature = creaturesById.get(instance.creatureId)
+    if (!creature) return []
+    return (creature.features ?? []).flatMap((feature) => {
+      if (!feature.charges) return []
+      const charge = compileCharge(feature.charges)
+      const owner: CharacterResourceOwnerRef = {
+        kind: 'COMPANION_FEATURE',
+        companionInstanceId: instance.id,
+        featureId: feature.id,
+        chargeId: charge.id
+      }
+      const max = resolveCompiledChargeMaximum(charge, {
+        abilities: resolution.summary.abilities,
+        classLevels: Object.fromEntries(
+          character.intent.classes.map((entry) => [entry.classId, entry.classLevel])
+        ),
+        proficiencyBonus,
+        sourceClassLevel: totalLevel,
+        totalLevel
+      })
+      const used = Math.min(
+        resourceUsage.get(createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))) ?? 0,
+        max
+      )
+      return [
+        {
+          id: createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner)),
+          owner,
+          label: feature.label,
+          description: feature.description || undefined,
+          sourceLabel: creature.label,
+          used,
+          max,
+          remaining: Math.max(max - used, 0),
+          recoveries: [getResourceRecovery(charge.resetKind)]
+        }
+      ]
+    })
+  })
   const spellResourceItems: CharacterSheetResponseDto['resources']['items'] =
     engineOutput.spellAccess.flatMap((access) => {
       if (!access.charges) return []
@@ -2163,7 +2500,12 @@ export async function buildCharacterSheetResponse(params: {
     ...slot,
     level: slot.level ?? parseSlotLevel(slot.slotKey)
   }))
-  const sheetResources = [...authoredResourceItems, ...itemResourceItems, ...spellResourceItems]
+  const sheetResources = [
+    ...authoredResourceItems,
+    ...itemResourceItems,
+    ...companionResourceItems,
+    ...spellResourceItems
+  ]
   const actionIdsByFeatureId = new Map<string, string[]>()
   for (const [actionId, featureId] of actionSourceFeatureIds) {
     const actionIds = actionIdsByFeatureId.get(featureId) ?? []
@@ -2277,6 +2619,7 @@ export async function buildCharacterSheetResponse(params: {
     actions: {
       items: visibleActionItems
     },
+    extras: sheetExtras,
     resources: {
       items: sheetResources,
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
@@ -2564,6 +2907,13 @@ export function applyCharacterSheetCommand(
     adjustments?: readonly CharacterSheetAdjustment[]
     createId?: () => string
     now?: () => string
+    extraDefaults?: {
+      creatures: ReadonlyMap<
+        string,
+        { hitPoints: number; hitDice?: { count: number; die: number } }
+      >
+      vehicles: ReadonlyMap<string, { hitPoints?: number }>
+    }
   } = {}
 ): CharacterAuthored {
   const next = structuredClone(character)
@@ -2654,6 +3004,191 @@ export function applyCharacterSheetCommand(
 
     case 'SET_INSPIRATION':
       next.state.inspiration = command.inspired || undefined
+      return clearEmptyStateArrays(next)
+
+    case 'ADD_SHEET_EXTRA': {
+      if ('vehicleId' in command.extra) {
+        const vehicle = context.extraDefaults?.vehicles.get(command.extra.vehicleId)
+        const maximumHitPoints = Math.max(vehicle?.hitPoints ?? 0, 0)
+        next.state.vehicles = [
+          ...(next.state.vehicles ?? []),
+          {
+            id: createId(),
+            vehicleId: command.extra.vehicleId,
+            isActive: true,
+            currentHitPoints: maximumHitPoints
+          }
+        ]
+        return clearEmptyStateArrays(next)
+      }
+
+      const creature = context.extraDefaults?.creatures.get(command.extra.creatureId)
+      const maximumHitPoints = Math.max(creature?.hitPoints ?? 0, 0)
+      next.state.creatures = [
+        ...(next.state.creatures ?? []),
+        {
+          id: createId(),
+          creatureId: command.extra.creatureId,
+          relationshipKind: command.extra.kind,
+          originKind: command.extra.originKind,
+          isActive: true,
+          currentHitPoints: maximumHitPoints,
+          hitDice: creature?.hitDice
+            ? [{ die: creature.hitDice.die, total: creature.hitDice.count, used: 0 }]
+            : undefined
+        }
+      ]
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'UPDATE_SHEET_EXTRA': {
+      const inventoryIds = new Set(next.state.equipment.inventory.map((item) => item.id))
+      const ensureEquipmentAssignments = (itemIds: readonly string[] | undefined) => {
+        if (!itemIds) return undefined
+        const uniqueItemIds = [...new Set(itemIds)]
+        for (const itemId of uniqueItemIds) {
+          if (!inventoryIds.has(itemId)) {
+            throw new CharacterSheetCommandError(
+              `Inventory item "${itemId}" is not available on this character.`
+            )
+          }
+        }
+        return uniqueItemIds.map((equipmentItemId) => ({ equipmentItemId }))
+      }
+      if (command.extra.kind === 'VEHICLE') {
+        const instance = next.state.vehicles?.find(
+          (vehicle) => vehicle.id === command.extra.extraId
+        )
+        if (!instance) {
+          throw new CharacterSheetCommandError(
+            `Vehicle "${command.extra.extraId}" is not available.`
+          )
+        }
+        const maximumHitPoints =
+          sheet.extras.items.find(
+            (item) => item.kind === 'VEHICLE' && item.id === command.extra.extraId
+          )?.hitPoints.maximum ?? 0
+        next.state.vehicles = next.state.vehicles?.map((vehicle) =>
+          vehicle.id !== command.extra.extraId
+            ? vehicle
+            : {
+                ...vehicle,
+                customName:
+                  command.extra.customName === null
+                    ? undefined
+                    : (command.extra.customName ?? vehicle.customName),
+                notes:
+                  command.extra.notes === null ? undefined : (command.extra.notes ?? vehicle.notes),
+                isActive: command.extra.isActive ?? vehicle.isActive,
+                currentHitPoints:
+                  command.extra.currentHitPoints === undefined
+                    ? vehicle.currentHitPoints
+                    : clamp(command.extra.currentHitPoints, 0, maximumHitPoints)
+              }
+        )
+        const assignments = ensureEquipmentAssignments(command.extra.equipmentItemIds)
+        if (assignments) {
+          next.state.vehicleEquipment = {
+            ...next.state.vehicleEquipment,
+            [command.extra.extraId]: assignments
+          }
+        }
+        return clearEmptyStateArrays(next)
+      }
+
+      const creatureExtra = command.extra
+      if (!('tempHitPoints' in creatureExtra)) {
+        throw new CharacterSheetCommandError(
+          `Creature "${creatureExtra.extraId}" is not available.`
+        )
+      }
+      const instance = next.state.creatures?.find(
+        (creature) => creature.id === creatureExtra.extraId
+      )
+      if (!instance || instance.relationshipKind !== creatureExtra.kind) {
+        throw new CharacterSheetCommandError(
+          `Creature "${creatureExtra.extraId}" is not available.`
+        )
+      }
+      const sheetExtra = sheet.extras.items.find(
+        (item) => item.kind === creatureExtra.kind && item.id === creatureExtra.extraId
+      )
+      const maximumHitPoints =
+        sheetExtra?.kind === 'VEHICLE' ? 0 : (sheetExtra?.hitPoints.maximum ?? 0)
+      next.state.creatures = next.state.creatures?.map((creature) =>
+        creature.id !== creatureExtra.extraId
+          ? creature
+          : {
+              ...creature,
+              customName:
+                creatureExtra.customName === null
+                  ? undefined
+                  : (creatureExtra.customName ?? creature.customName),
+              notes:
+                creatureExtra.notes === null ? undefined : (creatureExtra.notes ?? creature.notes),
+              isActive: creatureExtra.isActive ?? creature.isActive,
+              currentHitPoints:
+                creatureExtra.currentHitPoints === undefined
+                  ? creature.currentHitPoints
+                  : clamp(creatureExtra.currentHitPoints, 0, maximumHitPoints),
+              tempHitPoints:
+                creatureExtra.tempHitPoints === undefined
+                  ? creature.tempHitPoints
+                  : Math.max(creatureExtra.tempHitPoints, 0),
+              hitDice:
+                creatureExtra.hitDice === undefined
+                  ? creature.hitDice
+                  : creatureExtra.hitDice.map((die) => ({
+                      die: die.die,
+                      total: die.total,
+                      used: Math.min(die.used, die.total)
+                    }))
+            }
+      )
+      const assignments = ensureEquipmentAssignments(creatureExtra.equipmentItemIds)
+      if (assignments) {
+        next.state.creatureEquipment = {
+          ...next.state.creatureEquipment,
+          [creatureExtra.extraId]: assignments
+        }
+      }
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'REMOVE_SHEET_EXTRA':
+      if (command.extra.kind === 'VEHICLE') {
+        const existing = next.state.vehicles?.some(
+          (vehicle) => vehicle.id === command.extra.extraId
+        )
+        if (!existing) {
+          throw new CharacterSheetCommandError(
+            `Vehicle "${command.extra.extraId}" is not available.`
+          )
+        }
+        next.state.vehicles = next.state.vehicles?.filter(
+          (vehicle) => vehicle.id !== command.extra.extraId
+        )
+        if (next.state.vehicleEquipment) {
+          const { [command.extra.extraId]: _, ...vehicleEquipment } = next.state.vehicleEquipment
+          next.state.vehicleEquipment = vehicleEquipment
+        }
+        return clearEmptyStateArrays(next)
+      }
+      const existing = next.state.creatures?.find(
+        (creature) => creature.id === command.extra.extraId
+      )
+      if (!existing || existing.relationshipKind !== command.extra.kind) {
+        throw new CharacterSheetCommandError(
+          `Creature "${command.extra.extraId}" is not available.`
+        )
+      }
+      next.state.creatures = next.state.creatures?.filter(
+        (creature) => creature.id !== command.extra.extraId
+      )
+      if (next.state.creatureEquipment) {
+        const { [command.extra.extraId]: _, ...creatureEquipment } = next.state.creatureEquipment
+        next.state.creatureEquipment = creatureEquipment
+      }
       return clearEmptyStateArrays(next)
 
     case 'SET_HIT_POINTS': {
@@ -3292,6 +3827,12 @@ export function summarizeCharacterSheetCommand(
       return 'Spell mechanic customization cleared'
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
       return 'Spell source customization updated'
+    case 'ADD_SHEET_EXTRA':
+      return command.extra.kind === 'VEHICLE' ? 'Vehicle added' : 'Creature added'
+    case 'UPDATE_SHEET_EXTRA':
+      return command.extra.kind === 'VEHICLE' ? 'Vehicle updated' : 'Creature updated'
+    case 'REMOVE_SHEET_EXTRA':
+      return command.extra.kind === 'VEHICLE' ? 'Vehicle removed' : 'Creature removed'
 
     case 'SET_INSPIRATION':
       return command.inspired ? 'Inspiration granted' : 'Inspiration cleared'
@@ -3412,6 +3953,20 @@ function createCharacterSheetStatePatches(
       vehicleEquipment: next.state.vehicleEquipment
     })
   }
+  if (
+    !stateValuesEqual(current.state.creatures, next.state.creatures) ||
+    !stateValuesEqual(current.state.vehicles, next.state.vehicles) ||
+    !stateValuesEqual(current.state.creatureEquipment, next.state.creatureEquipment) ||
+    !stateValuesEqual(current.state.vehicleEquipment, next.state.vehicleEquipment)
+  ) {
+    patches.push({
+      kind: 'EXTRAS',
+      creatures: next.state.creatures ?? [],
+      vehicles: next.state.vehicles ?? [],
+      creatureEquipment: next.state.creatureEquipment ?? {},
+      vehicleEquipment: next.state.vehicleEquipment ?? {}
+    })
+  }
   if (!stateValuesEqual(current.state.currency, next.state.currency)) {
     patches.push({ kind: 'CURRENCY', value: next.state.currency })
   }
@@ -3429,9 +3984,24 @@ function createCharacterSheetStatePatches(
   return patches
 }
 
+type SheetAdjustmentCommandValue<T> = T extends unknown
+  ? Omit<
+      T,
+      'id' | 'characterId' | 'actorId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt'
+    >
+  : never
+
+type CharacterSheetAdjustmentCommand =
+  | CharacterSheetCoreAdjustmentCommandDto
+  | CharacterSheetItemAdjustmentCommandDto
+  | (SheetAdjustmentCommandValue<Extract<CharacterSheetAdjustment, { family: 'COMPANION' }>> & {
+      id?: string
+      sourceNote?: string
+    })
+
 function sameAdjustmentSlot(
   adjustment: CharacterSheetAdjustment,
-  input: CharacterSheetCoreAdjustmentCommandDto | CharacterSheetItemAdjustmentCommandDto
+  input: CharacterSheetAdjustmentCommand
 ): boolean {
   if (adjustment.family !== input.family) return false
   switch (input.family) {
@@ -3477,11 +4047,18 @@ function sameAdjustmentSlot(
         adjustment.itemInstanceId === input.itemInstanceId &&
         adjustment.field === input.field
       )
+    case 'COMPANION':
+      return (
+        adjustment.family === 'COMPANION' &&
+        adjustment.companionInstanceId === input.companionInstanceId &&
+        adjustment.field === input.field
+      )
   }
+  throw new CharacterSheetCommandError('Unsupported sheet adjustment.')
 }
 
 function validateSheetAdjustmentTarget(
-  input: CharacterSheetCoreAdjustmentCommandDto | CharacterSheetItemAdjustmentCommandDto,
+  input: CharacterSheetAdjustmentCommand,
   resolution: CharacterBuilderResolution,
   character: CharacterAuthored
 ): void {
@@ -3540,12 +4117,34 @@ function validateSheetAdjustmentTarget(
         )
       }
       return
+    case 'COMPANION':
+      if (
+        !character.state.creatures?.some((creature) => creature.id === input.companionInstanceId)
+      ) {
+        throw new CharacterSheetCommandError(
+          `Companion "${input.companionInstanceId}" is not available on this character.`
+        )
+      }
+      if (input.field === 'ALIGNMENT_OVERRIDE') {
+        ensureVocabularyTarget(system?.alignments, input.value, 'Alignment')
+      }
+      if (input.field === 'CREATURE_TYPE_OVERRIDE') {
+        ensureVocabularyTarget(system?.creatureTypes, input.value, 'Creature type')
+      }
+      if (
+        input.field === 'SIZE_OVERRIDE' &&
+        !SIZE_OPTIONS.some((size) => size.code === input.value)
+      ) {
+        throw new CharacterSheetCommandError(`Size "${input.value}" is not available.`)
+      }
+      return
   }
 }
 
 function validatePanelTarget(
   target: CharacterSheetPanelTargetDto,
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  character: CharacterAuthored
 ): void {
   if (
     target.kind === 'SKILL' &&
@@ -3553,6 +4152,14 @@ function validatePanelTarget(
   ) {
     throw new CharacterSheetCommandError(
       `Skill "${target.skillId}" is not available in this rules system.`
+    )
+  }
+  if (
+    target.kind === 'COMPANION' &&
+    !character.state.creatures?.some((creature) => creature.id === target.companionInstanceId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Companion "${target.companionInstanceId}" is not available on this character.`
     )
   }
 }
@@ -3746,7 +4353,7 @@ export async function executeCharacterSheetCommand(params: {
     validateSheetAdjustmentTarget(command.adjustment, resolution, character)
   }
   if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
-    validatePanelTarget(command.target, resolution)
+    validatePanelTarget(command.target, resolution, character)
     const existing = adjustments.find(
       (adjustment) => adjustment.id === command.adjustmentId && adjustment.family === command.family
     )
@@ -3757,7 +4364,7 @@ export async function executeCharacterSheetCommand(params: {
     }
   }
   if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
-    validatePanelTarget(command.target, resolution)
+    validatePanelTarget(command.target, resolution, character)
   }
   if (
     command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE' &&
@@ -3802,8 +4409,83 @@ export async function executeCharacterSheetCommand(params: {
   if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
     validateSpellSource(command.source, currentSheet)
   }
+  if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+    const resourceOwnerKey = createCharacterResourceOwnerKey(
+      toCharacterResourceOwnerKey(command.owner)
+    )
+    const resource = currentSheet.resources.items.find(
+      (candidate) =>
+        createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
+        resourceOwnerKey
+    )
+    if (!resource) {
+      throw new CharacterSheetCommandError('Resource is not available on this character.')
+    }
+    if (
+      command.type === 'RECOVER_SHEET_RESOURCE' &&
+      !resource.recoveries.some((recovery) => recovery.trigger === command.trigger)
+    ) {
+      throw new CharacterSheetCommandError(
+        `Resource cannot be recovered by ${formatCodeLabel(command.trigger)}.`
+      )
+    }
+  }
+  const extraDefaults = {
+    creatures: new Map<string, { hitPoints: number; hitDice?: { count: number; die: number } }>(),
+    vehicles: new Map<string, { hitPoints?: number }>()
+  }
+  if (command.type === 'ADD_SHEET_EXTRA') {
+    const extra = command.extra
+    if ('vehicleId' in extra) {
+      if (!currentSheet.extras.vehicleOptions.some((vehicle) => vehicle.id === extra.vehicleId)) {
+        throw new CharacterSheetCommandError(
+          `Vehicle "${extra.vehicleId}" is not available for this character.`
+        )
+      }
+      const vehicle = await createVehicleRepository(params.db).findById(extra.vehicleId, {
+        systemId: character.systemId,
+        userId: character.userId,
+        includeMaster: true
+      })
+      if (!vehicle) {
+        throw new CharacterSheetCommandError(`Vehicle "${extra.vehicleId}" was not found.`)
+      }
+      if ((vehicle.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+        throw new CharacterSheetCommandError(
+          `Vehicle "${extra.vehicleId}" is not available for this character.`
+        )
+      }
+      extraDefaults.vehicles.set(vehicle.id, { hitPoints: vehicle.hitPoints })
+    } else {
+      if (
+        !currentSheet.extras.creatureOptions.some((creature) => creature.id === extra.creatureId)
+      ) {
+        throw new CharacterSheetCommandError(
+          `Creature "${extra.creatureId}" is not available for this character.`
+        )
+      }
+      const creature = await createCreatureRepository(params.db).findById(extra.creatureId, {
+        systemId: character.systemId,
+        userId: character.userId,
+        includeMaster: true
+      })
+      if (!creature) {
+        throw new CharacterSheetCommandError(`Creature "${extra.creatureId}" was not found.`)
+      }
+      if ((creature.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+        throw new CharacterSheetCommandError(
+          `Creature "${extra.creatureId}" is not available for this character.`
+        )
+      }
+      extraDefaults.creatures.set(creature.id, {
+        hitPoints: creature.hitPoints,
+        ...(creature.hitDice ? { hitDice: creature.hitDice } : {})
+      })
+    }
+  }
   const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet, {
-    adjustments
+    adjustments,
+    extraDefaults
   })
   const statePatches = createCharacterSheetStatePatches(character, nextCharacter)
   const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
@@ -3848,6 +4530,35 @@ export async function executeCharacterSheetCommand(params: {
             characterId: params.characterId,
             adjustmentId: adjustment.id,
             family: adjustment.family
+          })
+        }
+      }
+      if (command.type === 'REMOVE_SHEET_EXTRA' && command.extra.kind !== 'VEHICLE') {
+        const target = {
+          kind: 'COMPANION' as const,
+          companionInstanceId: command.extra.extraId
+        }
+        for (const adjustment of adjustments) {
+          if (!characterSheetAdjustmentMatchesPanelTarget(adjustment, target)) continue
+          await typedAdjustmentRepository.remove({
+            characterId: params.characterId,
+            adjustmentId: adjustment.id,
+            family: adjustment.family
+          })
+        }
+        for (const usage of resourceUsage) {
+          if (
+            usage.owner.kind !== 'COMPANION_FEATURE' ||
+            usage.owner.companionInstanceId !== command.extra.extraId
+          ) {
+            continue
+          }
+          await typedPlayStateRepository.setResourceUsage({
+            id: usage.id,
+            characterId: params.characterId,
+            actorId: params.userId,
+            owner: usage.owner,
+            used: 0
           })
         }
       }
@@ -3917,6 +4628,32 @@ export async function executeCharacterSheetCommand(params: {
               : (command.customName ?? undefined),
           notes: command.notes === undefined ? existing?.notes : (command.notes ?? undefined),
           displayAsAttack: command.displayAsAttack ?? existing?.displayAsAttack ?? false
+        })
+      }
+      if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+        const resourceOwnerKey = createCharacterResourceOwnerKey(
+          toCharacterResourceOwnerKey(command.owner)
+        )
+        const resource = currentSheet.resources.items.find(
+          (candidate) =>
+            createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
+            resourceOwnerKey
+        )
+        if (!resource)
+          throw new CharacterSheetCommandError('Resource is not available on this character.')
+        const existing = resourceUsage.find(
+          (usage) => createCharacterResourceOwnerKey(usage.owner) === resourceOwnerKey
+        )
+        const used =
+          command.type === 'USE_SHEET_RESOURCE'
+            ? Math.min(resource.used + (command.amount ?? 1), resource.max)
+            : 0
+        await typedPlayStateRepository.setResourceUsage({
+          id: existing?.id ?? crypto.randomUUID(),
+          characterId: params.characterId,
+          actorId: params.userId,
+          owner: toCharacterResourceOwnerKey(command.owner),
+          used
         })
       }
       if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {

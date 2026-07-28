@@ -3,6 +3,8 @@ import { z } from 'zod'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD,
+  CREATURE_ORIGIN_KIND_CODE,
+  CREATURE_RELATIONSHIP_KIND_CODE,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
 import {
@@ -378,13 +380,48 @@ const characterEquipmentStateDtoSchemaRaw = z.object({
   attuned: z.array(z.string())
 })
 
+const characterHitDiceUsageStateDtoSchemaRaw = z
+  .object({
+    die: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    used: z.number().int().nonnegative()
+  })
+  .refine(({ total, used }) => used <= total, {
+    message: 'Used hit dice cannot exceed the total.'
+  })
+
+const characterHitDiceUsageStateDtoSchema = z
+  .array(characterHitDiceUsageStateDtoSchemaRaw)
+  .superRefine((hitDice, context) => {
+    const seen = new Set<number>()
+
+    hitDice.forEach(({ die }, index) => {
+      if (seen.has(die)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'die'],
+          message: 'Hit dice denominations must be unique.'
+        })
+      }
+      seen.add(die)
+    })
+  })
+
 const characterOwnedCreatureStateDtoSchemaRaw = z.object({
   id: z.string(),
   creatureId: z.string(),
-  relationshipKind: z.enum(['MOUNT', 'COMPANION', 'OWNED', 'SUMMONED']),
+  relationshipKind: z.enum([
+    CREATURE_RELATIONSHIP_KIND_CODE.COMPANION,
+    CREATURE_RELATIONSHIP_KIND_CODE.MOUNT,
+    CREATURE_RELATIONSHIP_KIND_CODE.OWNED
+  ]),
+  originKind: z.enum([CREATURE_ORIGIN_KIND_CODE.WORLD, CREATURE_ORIGIN_KIND_CODE.SUMMONED]),
   customName: z.string().optional(),
   notes: z.string().optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  currentHitPoints: z.number().int().nonnegative().optional(),
+  tempHitPoints: z.number().int().nonnegative().optional(),
+  hitDice: characterHitDiceUsageStateDtoSchema.optional()
 })
 
 const characterOwnedVehicleStateDtoSchemaRaw = z.object({
@@ -392,7 +429,8 @@ const characterOwnedVehicleStateDtoSchemaRaw = z.object({
   vehicleId: z.string(),
   customName: z.string().optional(),
   notes: z.string().optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  currentHitPoints: z.number().int().nonnegative().optional()
 })
 
 const characterRosterEquipmentAssignmentStateDtoSchemaRaw = z.object({
@@ -457,16 +495,10 @@ const characterNoteStateDtoSchemaRaw = z.object({
   updatedAt: z.string()
 })
 
-const characterHitDiceUsageStateDtoSchemaRaw = z.object({
-  die: z.number().int(),
-  total: z.number().int(),
-  used: z.number().int()
-})
-
 const characterHitpointsStateDtoSchemaRaw = z.object({
   current: z.number().int(),
   temp: z.number().int().optional(),
-  hitDice: z.array(characterHitDiceUsageStateDtoSchemaRaw)
+  hitDice: characterHitDiceUsageStateDtoSchema
 })
 
 const characterStateDtoSchemaRaw = z.object({

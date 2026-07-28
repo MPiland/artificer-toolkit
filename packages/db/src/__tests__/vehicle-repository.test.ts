@@ -47,7 +47,124 @@ function createFakeDb(rowsByTable: RowMap) {
   }
 }
 
+function createFindAllProbeDb(rows: Array<Record<string, unknown>>, executedIds: string[][]) {
+  return {
+    selectFrom() {
+      let filtered = [...rows]
+      const applyFilter = (column: string, op: string, value: unknown) => {
+        filtered = filtered.filter((row) =>
+          op === '='
+            ? row[column] === value
+            : op === 'in' && Array.isArray(value) && value.includes(row[column])
+        )
+      }
+      const builder = {
+        select() {
+          return builder
+        },
+        where(
+          column:
+            | string
+            | ((eb: typeof expressionBuilder) => ReturnType<typeof expressionBuilder.or>),
+          op?: string,
+          value?: unknown
+        ) {
+          if (typeof column === 'function') {
+            const expression = column(expressionBuilder)
+            filtered = filtered.filter((row) =>
+              expression.values.some((value) => row[value.column] === value.value)
+            )
+          } else if (op) {
+            applyFilter(column, op, value)
+          }
+          return builder
+        },
+        orderBy() {
+          return builder
+        },
+        async execute() {
+          executedIds.push(filtered.map((row) => String(row.id)))
+          return []
+        },
+        async executeTakeFirst() {
+          executedIds.push(filtered.map((row) => String(row.id)))
+          return undefined
+        }
+      }
+      return builder
+    }
+  }
+}
+
+const expressionBuilder = Object.assign(
+  (column: string, _op: string, value: unknown) => ({ column, value }),
+  { or: (values: Array<{ column: string; value: unknown }>) => ({ values }) }
+)
+
 describe('createVehicleRepository', () => {
+  it('returns system-scoped owned and master vehicles when requested', async () => {
+    const executedIds: string[][] = []
+    const repository = createVehicleRepository(
+      createFindAllProbeDb(
+        [
+          {
+            id: 'owned',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            is_master: false,
+            label: 'Owned'
+          },
+          {
+            id: 'master',
+            system_id: 'system-1',
+            user_id: 'seed-user',
+            is_master: true,
+            label: 'Master'
+          },
+          {
+            id: 'other-user',
+            system_id: 'system-1',
+            user_id: 'user-2',
+            is_master: false,
+            label: 'Other'
+          },
+          {
+            id: 'other-system',
+            system_id: 'system-2',
+            user_id: 'user-1',
+            is_master: true,
+            label: 'Other'
+          }
+        ],
+        executedIds
+      ) as never
+    )
+
+    await repository.findAll({ systemId: 'system-1', userId: 'user-1', includeMaster: true })
+    await repository.findAll({ systemId: 'system-1', includeMaster: true })
+    await repository.findById('owned', { systemId: 'system-1', userId: 'user-1' })
+    await repository.findById('master', {
+      systemId: 'system-1',
+      userId: 'user-1',
+      includeMaster: true
+    })
+    await repository.findById('master', { systemId: 'system-1', userId: 'user-1' })
+    await repository.findByIds(['owned', 'master'], {
+      systemId: 'system-1',
+      userId: 'user-1',
+      includeMaster: true
+    })
+
+    expect(executedIds).toEqual([
+      ['owned', 'master'],
+      ['master'],
+      ['owned'],
+      ['master'],
+      [],
+      ['owned', 'master']
+    ])
+  })
+
   it('hydrates a minimal vehicle with optional fields omitted', async () => {
     const repo = createVehicleRepository(
       createFakeDb({

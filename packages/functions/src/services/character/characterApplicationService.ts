@@ -1907,6 +1907,9 @@ type CorePanelCommand = Extract<
       | 'SET_SPELL_MECHANIC_CUSTOMIZATION'
       | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
       | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+      | 'ADD_SHEET_EXTRA'
+      | 'UPDATE_SHEET_EXTRA'
+      | 'REMOVE_SHEET_EXTRA'
       | 'SET_PREPARED_SPELLS'
       | 'USE_SPELL_SLOT'
       | 'RESTORE_SPELL_SLOT'
@@ -1929,6 +1932,9 @@ function isCorePanelCommand(command: CharacterSheetCommandInputDto): command is 
     command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
     command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
     command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION' ||
+    command.type === 'ADD_SHEET_EXTRA' ||
+    command.type === 'UPDATE_SHEET_EXTRA' ||
+    command.type === 'REMOVE_SHEET_EXTRA' ||
     command.type === 'SET_PREPARED_SPELLS' ||
     command.type === 'USE_SPELL_SLOT' ||
     command.type === 'RESTORE_SPELL_SLOT' ||

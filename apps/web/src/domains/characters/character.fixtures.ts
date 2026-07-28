@@ -1623,6 +1623,13 @@ export const characterSheetFixture = {
     backstory:
       '<p>Astra left the reef libraries to find a mentor who vanished while researching planar tides.</p>',
     notes: '<p>Next session: ask the harbor master about the black-lacquered crate.</p>'
+  },
+  extras: {
+    kindOptions: [],
+    originOptions: [],
+    creatureOptions: [],
+    vehicleOptions: [],
+    items: []
   }
 } satisfies CharacterSheetResponseDto
 

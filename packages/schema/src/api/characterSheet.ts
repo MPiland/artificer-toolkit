@@ -280,6 +280,19 @@ export const characterSheetItemAdjustmentCommandDtoSchema = z
     ])
   )
 
+export const characterSheetCompanionAdjustmentCommandDtoSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    sourceNote: characterSheetSourceNoteDtoSchema.optional()
+  })
+  .and(
+    z.union([
+      companionNumericAdjustmentDtoSchema,
+      companionReferenceAdjustmentDtoSchema,
+      companionSizeAdjustmentDtoSchema
+    ])
+  )
+
 export const characterSheetAdjustmentCommandDtoSchema = z
   .object({
     id: uuidSchema.optional(),
@@ -399,6 +412,9 @@ export type CharacterSheetCoreAdjustmentCommandDto = z.infer<
 >
 export type CharacterSheetItemAdjustmentCommandDto = z.infer<
   typeof characterSheetItemAdjustmentCommandDtoSchema
+>
+export type CharacterSheetCompanionAdjustmentCommandDto = z.infer<
+  typeof characterSheetCompanionAdjustmentCommandDtoSchema
 >
 export type CharacterSheetAdjustmentCommandDto = z.infer<
   typeof characterSheetAdjustmentCommandDtoSchema

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   characterSheetCommandInputDtoSchema,
+  characterSheetExtrasDtoSchema,
   characterSheetInventoryItemDtoSchema,
   characterSheetProficiencyFactDtoSchema,
   characterSheetResponseDtoSchema
@@ -161,6 +162,13 @@ describe('character sheet command contracts', () => {
           items: [],
           currencies: []
         },
+        extras: {
+          kindOptions: [],
+          originOptions: [],
+          creatureOptions: [],
+          vehicleOptions: [],
+          items: []
+        },
         reference: {
           features: [
             {
@@ -239,6 +247,13 @@ describe('character sheet command contracts', () => {
           items: [],
           currencies: []
         },
+        extras: {
+          kindOptions: [],
+          originOptions: [],
+          creatureOptions: [],
+          vehicleOptions: [],
+          items: []
+        },
         reference: {
           features: [],
           proficiencies: [],
@@ -275,6 +290,113 @@ describe('character sheet command contracts', () => {
         amount: -5
       }).success
     ).toBe(true)
+  })
+
+  it('keeps effective creature adjustment fields in Sheet extras', () => {
+    expect(
+      characterSheetExtrasDtoSchema.safeParse({
+        kindOptions: [],
+        originOptions: [],
+        creatureOptions: [],
+        vehicleOptions: [],
+        items: [
+          {
+            id: '00000000-0000-4000-8000-000000000002',
+            kind: 'COMPANION',
+            kindLabel: 'Companion',
+            authoredName: 'Owl',
+            displayName: 'Owl',
+            isActive: true,
+            actions: [],
+            features: [],
+            equipmentItemIds: [],
+            creatureId: '00000000-0000-4000-8000-000000000003',
+            relationshipKind: 'COMPANION',
+            relationshipLabel: 'Companion',
+            originKind: 'WORLD',
+            originLabel: 'World',
+            size: 'SMALL',
+            alignmentId: '00000000-0000-4000-8000-000000000004',
+            creatureTypeId: '00000000-0000-4000-8000-000000000005',
+            armorClass: 11,
+            hitPoints: { current: 1, temp: 0, maximum: 1 },
+            hitDice: []
+          }
+        ]
+      }).success
+    ).toBe(true)
+  })
+
+  it.each([
+    ['used hit dice above total', [{ die: 8, total: 1, used: 2, remaining: 0 }]],
+    [
+      'duplicate hit-die denominations',
+      [
+        { die: 8, total: 1, used: 0, remaining: 1 },
+        { die: 8, total: 2, used: 0, remaining: 2 }
+      ]
+    ],
+    ['inconsistent remaining hit dice', [{ die: 8, total: 2, used: 1, remaining: 2 }]]
+  ])('rejects Sheet extras with %s', (_label, hitDice) => {
+    expect(
+      characterSheetExtrasDtoSchema.safeParse({
+        kindOptions: [],
+        originOptions: [],
+        creatureOptions: [],
+        vehicleOptions: [],
+        items: [
+          {
+            id: '00000000-0000-4000-8000-000000000002',
+            kind: 'COMPANION',
+            kindLabel: 'Companion',
+            authoredName: 'Owl',
+            displayName: 'Owl',
+            isActive: true,
+            actions: [],
+            features: [],
+            equipmentItemIds: [],
+            creatureId: '00000000-0000-4000-8000-000000000003',
+            relationshipKind: 'COMPANION',
+            relationshipLabel: 'Companion',
+            originKind: 'WORLD',
+            originLabel: 'World',
+            armorClass: 11,
+            hitPoints: { current: 1, temp: 0, maximum: 1 },
+            hitDice
+          }
+        ]
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects invalid creature hit dice updates', () => {
+    const baseExtra = {
+      kind: 'COMPANION',
+      extraId: '00000000-0000-4000-8000-000000000002'
+    } as const
+
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'UPDATE_SHEET_EXTRA',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 1,
+        extra: { ...baseExtra, hitDice: [{ die: 8, total: 1, used: 2 }] }
+      }).success
+    ).toBe(false)
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'UPDATE_SHEET_EXTRA',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 1,
+        extra: {
+          ...baseExtra,
+          hitDice: [
+            { die: 8, total: 1, used: 0 },
+            { die: 8, total: 2, used: 0 }
+          ]
+        }
+      }).success
+    ).toBe(false)
   })
 
   it('accepts inspiration play-state commands', () => {

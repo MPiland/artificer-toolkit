@@ -3,8 +3,10 @@ import { Accordion, Alert, Badge, Button, Select, Text } from '@mantine/core'
 import type { CharacterSheetPanelDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { formatSigned } from '../characterSheet.utils'
 import type { SubmitSheetCommand } from '../CharacterSheet.types'
+import type { CharacterSheet } from '../CharacterSheet.types'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
+import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
 import {
   CharacterSheetSpellPanelContent,
@@ -15,6 +17,7 @@ import * as styles from './characterSheetInspector.css'
 
 export function CharacterSheetInspectorContent({
   expectedVersion,
+  equipmentItems,
   panel,
   pending,
   submitCommand,
@@ -23,6 +26,7 @@ export function CharacterSheetInspectorContent({
   onOpenBuilder
 }: {
   expectedVersion: number
+  equipmentItems: CharacterSheet['inventory']['items']
   panel: CharacterSheetPanelDto
   pending: boolean
   submitCommand: SubmitSheetCommand
@@ -30,6 +34,19 @@ export function CharacterSheetInspectorContent({
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
   onOpenBuilder: () => void
 }) {
+  if (panel.kind === 'COMPANION' || panel.kind === 'VEHICLE') {
+    return (
+      <CharacterSheetExtraPanel
+        expectedVersion={expectedVersion}
+        equipmentItems={equipmentItems}
+        panel={panel}
+        pending={pending}
+        submitCommand={submitCommand}
+        onClose={onClose}
+      />
+    )
+  }
+
   if (panel.kind === 'SPELL') {
     return (
       <CharacterSheetSpellPanelContent
@@ -150,6 +167,8 @@ export function CharacterSheetInspectorContent({
         return { label: 'Background features', value: String(panel.features.length) }
       case 'RESOURCE':
         return { label: 'Remaining uses', value: `${panel.remaining} / ${panel.maximum}` }
+      default:
+        return { label: 'Details', value: 'â€”' }
     }
   }
 

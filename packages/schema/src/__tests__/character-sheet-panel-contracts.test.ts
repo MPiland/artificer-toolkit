@@ -106,6 +106,120 @@ describe('character sheet panel contracts', () => {
     ).toBe(true)
   })
 
+  it('accepts companion panels with numeric and select adjustment editors', () => {
+    expect(
+      characterSheetPanelDtoSchema.safeParse({
+        kind: 'COMPANION',
+        panelId: 'companion:owl',
+        characterId,
+        target: { kind: 'COMPANION', companionInstanceId: adjustmentId },
+        title: 'Owl',
+        state: 'DEFAULT',
+        editable: true,
+        allowedCommands: ['UPSERT_ADJUSTMENT'],
+        companionInstanceId: adjustmentId,
+        creatureId: deterministicSrdSpellId,
+        relationshipKind: 'COMPANION',
+        relationshipLabel: 'Companion',
+        originKind: 'WORLD',
+        originLabel: 'World',
+        authoredName: 'Owl',
+        displayName: 'Owl',
+        isActive: true,
+        armorClass: 11,
+        hitPoints: { current: 1, temp: 0, maximum: 1 },
+        hitDice: [],
+        facts: [],
+        actions: [],
+        features: [],
+        equipmentItemIds: [],
+        resources: [
+          {
+            target: {
+              kind: 'RESOURCE',
+              owner: {
+                kind: 'COMPANION_FEATURE',
+                chargeId: 'charge-owl',
+                companionInstanceId: adjustmentId,
+                featureId: deterministicSrdSpellId
+              }
+            },
+            label: 'Keen Senses',
+            remaining: 0,
+            maximum: 1,
+            recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
+          }
+        ],
+        numericEditors: [
+          {
+            kind: 'NUMBER',
+            field: 'ARMOR_CLASS_OVERRIDE',
+            label: 'Armor Class',
+            value: null,
+            commitIntent: 'ON_BLUR_OR_ENTER',
+            validation: { integer: true, minimum: 0 }
+          }
+        ],
+        selectEditors: [
+          {
+            kind: 'SELECT',
+            field: 'SIZE_OVERRIDE',
+            label: 'Size',
+            value: null,
+            options: [{ value: 'SMALL', label: 'Small' }],
+            commitIntent: 'IMMEDIATE'
+          }
+        ],
+        textEditors: []
+      }).success
+    ).toBe(true)
+  })
+
+  it.each([
+    ['used hit dice above total', [{ die: 8, total: 1, used: 2, remaining: 0 }]],
+    [
+      'duplicate hit-die denominations',
+      [
+        { die: 8, total: 1, used: 0, remaining: 1 },
+        { die: 8, total: 2, used: 0, remaining: 2 }
+      ]
+    ],
+    ['inconsistent remaining hit dice', [{ die: 8, total: 2, used: 1, remaining: 2 }]]
+  ])('rejects companion panels with %s', (_label, hitDice) => {
+    expect(
+      characterSheetPanelDtoSchema.safeParse({
+        kind: 'COMPANION',
+        panelId: 'companion:owl',
+        characterId,
+        target: { kind: 'COMPANION', companionInstanceId: adjustmentId },
+        title: 'Owl',
+        state: 'DEFAULT',
+        editable: true,
+        allowedCommands: ['UPSERT_ADJUSTMENT'],
+        companionInstanceId: adjustmentId,
+        creatureId: deterministicSrdSpellId,
+        relationshipKind: 'COMPANION',
+        relationshipLabel: 'Companion',
+        originKind: 'WORLD',
+        originLabel: 'World',
+        authoredName: 'Owl',
+        displayName: 'Owl',
+        isActive: true,
+        armorClass: 11,
+        hitPoints: { current: 1, temp: 0, maximum: 1 },
+        hitDice,
+        facts: [],
+        actions: [],
+        features: [],
+        equipmentItemIds: [],
+        resources: [],
+        numericEditors: [],
+        selectEditors: [],
+        textEditors: []
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects a negative absolute ability score', () => {
     expect(
       characterSheetCommandInputDtoSchema.safeParse({

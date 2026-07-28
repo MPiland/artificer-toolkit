@@ -48,6 +48,25 @@ function hydrateCost(vehicleId: string, value: unknown): VehicleAuthored['cost']
   return parsed.data
 }
 
+function selectVehicleIds(db: DBLike, filter?: RepositoryFindAllOptions) {
+  let query = db.selectFrom('vehicles').select('id')
+
+  if (filter?.systemId) {
+    query = query.where('system_id', '=', filter.systemId)
+  }
+  if (filter?.userId && filter.includeMaster) {
+    query = query.where((eb) =>
+      eb.or([eb('user_id', '=', filter.userId!), eb('is_master', '=', true)])
+    )
+  } else if (filter?.userId) {
+    query = query.where('user_id', '=', filter.userId)
+  } else if (filter?.includeMaster) {
+    query = query.where('is_master', '=', true)
+  }
+
+  return query
+}
+
 async function hydrateVehicleById(db: DBLike, id: string): Promise<VehicleAuthored | null> {
   const row = await db
     .selectFrom('vehicles')
@@ -143,26 +162,21 @@ export function createVehicleRepository(db: DBLike): VehicleRepository {
       await upsertVehicle(db, entity, entity.systemId)
     },
 
-    async findById(id) {
-      return hydrateVehicleById(db, id)
+    async findById(id, filter) {
+      const row = await selectVehicleIds(db, filter).where('id', '=', id).executeTakeFirst()
+      return row ? hydrateVehicleById(db, row.id) : null
     },
 
-    async findByIds(ids) {
-      return hydrateByIds(ids, (id) => hydrateVehicleById(db, id))
+    async findByIds(ids, filter) {
+      const rows = await selectVehicleIds(db, filter).where('id', 'in', ids).execute()
+      return hydrateByIds(
+        rows.map((row) => row.id),
+        (id) => hydrateVehicleById(db, id)
+      )
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db.selectFrom('vehicles').select('id').orderBy('label')
-
-      if (filter?.systemId) {
-        query = query.where('system_id', '=', filter.systemId)
-      }
-
-      if (filter?.userId) {
-        query = query.where('user_id', '=', filter.userId)
-      }
-
-      const rows = await query.execute()
+      const rows = await selectVehicleIds(db, filter).orderBy('label').execute()
       return orderedHydratedRecords(
         rows.map((row) => row.id),
         await hydrateByIds(

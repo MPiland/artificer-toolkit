@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { getCharacterSheetPanel } from '#app/data/characters/queries'
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { SubmitSheetCommand } from '../CharacterSheet.types'
+import type { CharacterSheet } from '../CharacterSheet.types'
 import { CharacterSheetInspectorContent } from './CharacterSheetInspectorContent'
 import * as styles from './characterSheetInspector.css'
 
 export function CharacterSheetInspector({
   characterId,
+  equipmentItems,
   commandError,
   expectedVersion,
   pending,
@@ -20,6 +22,7 @@ export function CharacterSheetInspector({
   onOpenBuilder
 }: {
   characterId: string
+  equipmentItems?: CharacterSheet['inventory']['items']
   commandError?: string
   expectedVersion: number
   pending: boolean
@@ -76,6 +79,7 @@ export function CharacterSheetInspector({
       ) : panelQuery.data ? (
         <CharacterSheetInspectorContent
           expectedVersion={expectedVersion}
+          equipmentItems={equipmentItems ?? []}
           panel={panelQuery.data}
           pending={pending}
           submitCommand={submitCommand}

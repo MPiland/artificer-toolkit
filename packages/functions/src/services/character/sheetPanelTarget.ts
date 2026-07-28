@@ -33,6 +33,13 @@ export function characterSheetAdjustmentMatchesPanelTarget(
       return adjustment.family === 'SPELL'
     case 'ITEM':
       return adjustment.family === 'ITEM' && adjustment.itemInstanceId === target.itemInstanceId
+    case 'COMPANION':
+      return (
+        adjustment.family === 'COMPANION' &&
+        adjustment.companionInstanceId === target.companionInstanceId
+      )
+    case 'EXTRAS':
+    case 'VEHICLE':
     case 'FEATURE':
     case 'BACKGROUND':
     case 'RESOURCE':

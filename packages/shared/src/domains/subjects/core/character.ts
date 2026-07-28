@@ -191,3 +191,99 @@ export const HITPOINT_CALC_METHOD_REGISTRY: Record<
 export const HITPOINT_CALC_METHOD_OPTIONS = valuesOf(
   HITPOINT_CALC_METHOD_REGISTRY
 ) as readonly HitpointCalculationMethodOption[]
+
+export const CHARACTER_EXTRA_KIND_CODE = {
+  COMPANION: 'COMPANION',
+  MOUNT: 'MOUNT',
+  OWNED: 'OWNED',
+  VEHICLE: 'VEHICLE'
+} as const
+
+export type CharacterExtraKindCode = keyof typeof CHARACTER_EXTRA_KIND_CODE
+
+export type CharacterExtraKindOption = CoreMeta<CharacterExtraKindCode>
+
+export const CHARACTER_EXTRA_KIND_REGISTRY: Record<
+  CharacterExtraKindCode,
+  CharacterExtraKindOption
+> = {
+  [CHARACTER_EXTRA_KIND_CODE.COMPANION]: {
+    code: CHARACTER_EXTRA_KIND_CODE.COMPANION,
+    label: 'Companion'
+  },
+  [CHARACTER_EXTRA_KIND_CODE.MOUNT]: {
+    code: CHARACTER_EXTRA_KIND_CODE.MOUNT,
+    label: 'Mount'
+  },
+  [CHARACTER_EXTRA_KIND_CODE.OWNED]: {
+    code: CHARACTER_EXTRA_KIND_CODE.OWNED,
+    label: 'Owned Creature'
+  },
+  [CHARACTER_EXTRA_KIND_CODE.VEHICLE]: {
+    code: CHARACTER_EXTRA_KIND_CODE.VEHICLE,
+    label: 'Vehicle'
+  }
+} as const
+
+export const CHARACTER_EXTRA_KIND_OPTIONS = valuesOf(
+  CHARACTER_EXTRA_KIND_REGISTRY
+) as readonly CharacterExtraKindOption[]
+
+export const CREATURE_RELATIONSHIP_KIND_CODE = {
+  COMPANION: 'COMPANION',
+  MOUNT: 'MOUNT',
+  OWNED: 'OWNED'
+} as const
+
+export type CreatureRelationshipKindCode = keyof typeof CREATURE_RELATIONSHIP_KIND_CODE
+
+export type CreatureRelationshipKindOption = CoreMeta<CreatureRelationshipKindCode>
+
+export const CREATURE_RELATIONSHIP_KIND_REGISTRY: Record<
+  CreatureRelationshipKindCode,
+  CreatureRelationshipKindOption
+> = {
+  [CREATURE_RELATIONSHIP_KIND_CODE.COMPANION]: {
+    code: CREATURE_RELATIONSHIP_KIND_CODE.COMPANION,
+    label: 'Companion'
+  },
+  [CREATURE_RELATIONSHIP_KIND_CODE.MOUNT]: {
+    code: CREATURE_RELATIONSHIP_KIND_CODE.MOUNT,
+    label: 'Mount'
+  },
+  [CREATURE_RELATIONSHIP_KIND_CODE.OWNED]: {
+    code: CREATURE_RELATIONSHIP_KIND_CODE.OWNED,
+    label: 'Owned Creature'
+  }
+} as const
+
+export const CREATURE_RELATIONSHIP_KIND_OPTIONS = valuesOf(
+  CREATURE_RELATIONSHIP_KIND_REGISTRY
+) as readonly CreatureRelationshipKindOption[]
+
+export const CREATURE_ORIGIN_KIND_CODE = {
+  WORLD: 'WORLD',
+  SUMMONED: 'SUMMONED'
+} as const
+
+export type CreatureOriginKindCode = keyof typeof CREATURE_ORIGIN_KIND_CODE
+
+export type CreatureOriginKindOption = CoreMeta<CreatureOriginKindCode>
+
+export const CREATURE_ORIGIN_KIND_REGISTRY: Record<
+  CreatureOriginKindCode,
+  CreatureOriginKindOption
+> = {
+  [CREATURE_ORIGIN_KIND_CODE.WORLD]: {
+    code: CREATURE_ORIGIN_KIND_CODE.WORLD,
+    label: 'World'
+  },
+  [CREATURE_ORIGIN_KIND_CODE.SUMMONED]: {
+    code: CREATURE_ORIGIN_KIND_CODE.SUMMONED,
+    label: 'Summoned'
+  }
+} as const
+
+export const CREATURE_ORIGIN_KIND_OPTIONS = valuesOf(
+  CREATURE_ORIGIN_KIND_REGISTRY
+) as readonly CreatureOriginKindOption[]

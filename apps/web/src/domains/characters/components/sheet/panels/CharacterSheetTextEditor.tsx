@@ -5,7 +5,10 @@ import type { CharacterSheetPanelDto } from '#app/lib/api'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import * as styles from './characterSheetInspector.css'
 
-type TextEditor = Extract<CharacterSheetPanelDto, { kind: 'SPELL' | 'ITEM' }>['textEditors'][number]
+type TextEditor = Extract<
+  CharacterSheetPanelDto,
+  { kind: 'SPELL' | 'ITEM' | 'COMPANION' | 'VEHICLE' }
+>['textEditors'][number]
 const fieldClassNames = {
   root: inputStyles.root,
   label: inputStyles.label,

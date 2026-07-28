@@ -324,6 +324,7 @@ function buildCharacter(): CharacterAuthored {
           id: 'character-creature-1',
           creatureId: 'creature-1',
           relationshipKind: 'MOUNT',
+          originKind: 'WORLD',
           customName: 'Storm',
           isActive: true
         }
@@ -432,6 +433,9 @@ describe('upsertCharacter', () => {
         character_id: 'character-1',
         creature_id: 'creature-1',
         relationship_kind: 'MOUNT',
+        origin_kind: 'WORLD',
+        current_hit_points: null,
+        temp_hit_points: null,
         custom_name: 'Storm',
         notes: null,
         is_active: true
@@ -442,6 +446,7 @@ describe('upsertCharacter', () => {
         id: 'character-vehicle-1',
         character_id: 'character-1',
         vehicle_id: 'vehicle-1',
+        current_hit_points: null,
         custom_name: 'Dawnrunner',
         notes: null,
         is_active: null

@@ -7,6 +7,7 @@ import {
   authoringSelectionDuplicatePolicySchema,
   authoredRecordStatusSchema,
   equipmentPropertyCodeSchema,
+  sizeCodeSchema,
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
@@ -32,6 +33,7 @@ import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
   characterSheetCoreAdjustmentCommandDtoSchema,
+  characterSheetCompanionAdjustmentCommandDtoSchema,
   characterSheetItemAdjustmentCommandDtoSchema,
   characterMovementDisplayPreferenceDtoSchema,
   characterSheetSourceNoteDtoSchema,
@@ -723,6 +725,164 @@ export const characterSheetActionDtoSchema = z.object({
   resourceGrantId: z.string().optional()
 })
 
+const characterSheetExtraKindOptionDtoSchema = z.object({
+  code: z.enum(['COMPANION', 'MOUNT', 'OWNED', 'VEHICLE']),
+  label: z.string().min(1)
+})
+
+const characterSheetCreatureOriginOptionDtoSchema = z.object({
+  code: z.enum(['WORLD', 'SUMMONED']),
+  label: z.string().min(1)
+})
+
+const characterSheetExtraActionDtoSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional()
+})
+
+const characterSheetExtraFeatureDtoSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional()
+})
+
+const characterSheetExtraHitPointsDtoSchema = z.object({
+  current: z.number().int().nonnegative(),
+  maximum: z.number().int().nonnegative()
+})
+
+const characterSheetExtraCreatureHitPointsDtoSchema = characterSheetExtraHitPointsDtoSchema.extend({
+  temp: z.number().int().nonnegative()
+})
+
+const characterSheetExtraHitDiceDtoSchema = z
+  .array(
+    z
+      .object({
+        die: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        used: z.number().int().nonnegative(),
+        remaining: z.number().int().nonnegative()
+      })
+      .refine(({ remaining, total, used }) => used <= total && remaining === total - used, {
+        message: 'Hit dice usage and remaining count must be consistent.'
+      })
+  )
+  .superRefine((hitDice, context) => {
+    const seen = new Set<number>()
+
+    hitDice.forEach(({ die }, index) => {
+      if (seen.has(die)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'die'],
+          message: 'Hit dice denominations must be unique.'
+        })
+      }
+      seen.add(die)
+    })
+  })
+
+const characterSheetExtraHitDiceUpdateDtoSchema = z
+  .array(
+    z
+      .object({
+        die: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        used: z.number().int().nonnegative()
+      })
+      .refine(({ total, used }) => used <= total, {
+        message: 'Used hit dice cannot exceed the total.'
+      })
+  )
+  .superRefine((hitDice, context) => {
+    const seen = new Set<number>()
+
+    hitDice.forEach(({ die }, index) => {
+      if (seen.has(die)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'die'],
+          message: 'Hit dice denominations must be unique.'
+        })
+      }
+      seen.add(die)
+    })
+  })
+
+const characterSheetExtraCommonDtoSchema = z.object({
+  id: z.guid(),
+  kindLabel: z.string().min(1),
+  authoredName: z.string().min(1),
+  displayName: z.string().min(1),
+  customName: z.string().optional(),
+  notes: z.string().optional(),
+  isActive: z.boolean(),
+  actions: z.array(characterSheetExtraActionDtoSchema),
+  features: z.array(characterSheetExtraFeatureDtoSchema),
+  equipmentItemIds: z.array(z.guid())
+})
+
+const characterSheetCreatureExtraDtoSchema = characterSheetExtraCommonDtoSchema.extend({
+  kind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
+  creatureId: z.guid(),
+  relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
+  relationshipLabel: z.string().min(1),
+  size: sizeCodeSchema.optional(),
+  alignmentId: z.guid().optional(),
+  creatureTypeId: z.guid().optional(),
+  originKind: z.enum(['WORLD', 'SUMMONED']),
+  originLabel: z.string().min(1),
+  armorClass: z.number().int().nonnegative(),
+  speedLabel: z.string().min(1).optional(),
+  carryingCapacityLabel: z.string().min(1).optional(),
+  riderCapacity: z.number().int().nonnegative().optional(),
+  hitPoints: characterSheetExtraCreatureHitPointsDtoSchema,
+  hitDice: characterSheetExtraHitDiceDtoSchema
+})
+
+const characterSheetVehicleExtraDtoSchema = characterSheetExtraCommonDtoSchema.extend({
+  kind: z.literal('VEHICLE'),
+  vehicleId: z.guid(),
+  categoryLabel: z.string().min(1),
+  speedLabel: z.string().min(1).optional(),
+  crewLabel: z.string().min(1).optional(),
+  passengerCapacity: z.number().int().nonnegative().optional(),
+  cargoCapacityLabel: z.string().min(1).optional(),
+  hitPoints: characterSheetExtraHitPointsDtoSchema
+})
+
+const characterSheetCreatureExtraOptionDtoSchema = z.object({
+  id: z.guid(),
+  label: z.string().min(1),
+  description: z.string().optional(),
+  creatureTypeLabel: z.string().min(1).optional(),
+  sizeLabel: z.string().min(1).optional(),
+  armorClass: z.number().int().nonnegative().optional(),
+  maximumHitPoints: z.number().int().nonnegative().optional(),
+  speedLabel: z.string().min(1).optional()
+})
+
+const characterSheetVehicleExtraOptionDtoSchema = z.object({
+  id: z.guid(),
+  label: z.string().min(1),
+  description: z.string().optional(),
+  categoryLabel: z.string().min(1).optional(),
+  maximumHitPoints: z.number().int().nonnegative().optional(),
+  speedLabel: z.string().min(1).optional()
+})
+
+export const characterSheetExtrasDtoSchema = z.object({
+  kindOptions: z.array(characterSheetExtraKindOptionDtoSchema),
+  originOptions: z.array(characterSheetCreatureOriginOptionDtoSchema),
+  creatureOptions: z.array(characterSheetCreatureExtraOptionDtoSchema),
+  vehicleOptions: z.array(characterSheetVehicleExtraOptionDtoSchema),
+  items: z.array(
+    z.union([characterSheetCreatureExtraDtoSchema, characterSheetVehicleExtraDtoSchema])
+  )
+})
+
 export const characterSheetResourceDtoSchema = z.object({
   id: z.string(),
   owner: characterResourceOwnerRefDtoSchema,
@@ -960,6 +1120,7 @@ export const characterSheetResponseDtoSchema = z.object({
       )
       .optional()
   }),
+  extras: characterSheetExtrasDtoSchema,
   reference: characterSheetReferenceDtoSchema,
   notes: characterSheetNotesDtoSchema
 })
@@ -975,7 +1136,8 @@ export const characterSheetCommandInputDtoSchema = z
       type: z.literal('UPSERT_SHEET_ADJUSTMENT'),
       adjustment: z.union([
         characterSheetCoreAdjustmentCommandDtoSchema,
-        characterSheetItemAdjustmentCommandDtoSchema
+        characterSheetItemAdjustmentCommandDtoSchema,
+        characterSheetCompanionAdjustmentCommandDtoSchema
       ])
     }),
     characterSheetCommandBaseDtoSchema.extend({
@@ -989,6 +1151,7 @@ export const characterSheetCommandInputDtoSchema = z
         'PASSIVE',
         'SENSE',
         'MOVEMENT',
+        'COMPANION',
         'SPELL',
         'ITEM',
         'DEFENSE',
@@ -1009,6 +1172,49 @@ export const characterSheetCommandInputDtoSchema = z
       customName: z.string().trim().max(120).nullable().optional(),
       notes: z.string().trim().max(2000).nullable().optional(),
       displayAsAttack: z.boolean().optional()
+    }),
+    characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('ADD_SHEET_EXTRA'),
+      extra: z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
+          creatureId: z.guid(),
+          originKind: z.enum(['WORLD', 'SUMMONED'])
+        }),
+        z.object({ kind: z.literal('VEHICLE'), vehicleId: z.guid() })
+      ])
+    }),
+    characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('UPDATE_SHEET_EXTRA'),
+      extra: z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
+          extraId: z.guid(),
+          customName: z.string().trim().max(120).nullable().optional(),
+          notes: z.string().trim().max(2000).nullable().optional(),
+          isActive: z.boolean().optional(),
+          currentHitPoints: z.number().int().nonnegative().optional(),
+          tempHitPoints: z.number().int().nonnegative().optional(),
+          hitDice: characterSheetExtraHitDiceUpdateDtoSchema.optional(),
+          equipmentItemIds: z.array(z.guid()).optional()
+        }),
+        z.object({
+          kind: z.literal('VEHICLE'),
+          extraId: z.guid(),
+          customName: z.string().trim().max(120).nullable().optional(),
+          notes: z.string().trim().max(2000).nullable().optional(),
+          isActive: z.boolean().optional(),
+          currentHitPoints: z.number().int().nonnegative().optional(),
+          equipmentItemIds: z.array(z.guid()).optional()
+        })
+      ])
+    }),
+    characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('REMOVE_SHEET_EXTRA'),
+      extra: z.object({
+        kind: z.enum(['COMPANION', 'MOUNT', 'OWNED', 'VEHICLE']),
+        extraId: z.guid()
+      })
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('SET_SPELL_MECHANIC_CUSTOMIZATION'),
@@ -1328,6 +1534,7 @@ export type CharacterBuilderCommitRequestDto = z.infer<
   typeof characterBuilderCommitRequestDtoSchema
 >
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>
+export type CharacterSheetExtrasDto = z.infer<typeof characterSheetExtrasDtoSchema>
 export type CharacterHistoryEntryDto = z.infer<typeof characterHistoryEntryDtoSchema>
 export type CharacterHistoryResponseDto = z.infer<typeof characterHistoryResponseDtoSchema>
 export type CharacterSheetCommandInputDto = z.infer<typeof characterSheetCommandInputDtoSchema>

@@ -70,6 +70,25 @@ function hydrateAbilityScores(
   }
 }
 
+function selectCreatureIds(db: DBLike, filter?: RepositoryFindAllOptions) {
+  let query = db.selectFrom('creatures').select('id')
+
+  if (filter?.systemId) {
+    query = query.where('system_id', '=', filter.systemId)
+  }
+  if (filter?.userId && filter.includeMaster) {
+    query = query.where((eb) =>
+      eb.or([eb('user_id', '=', filter.userId!), eb('is_master', '=', true)])
+    )
+  } else if (filter?.userId) {
+    query = query.where('user_id', '=', filter.userId)
+  } else if (filter?.includeMaster) {
+    query = query.where('is_master', '=', true)
+  }
+
+  return query
+}
+
 function requireMeasurementUnit(
   creatureId: string,
   speedId: string,
@@ -305,25 +324,21 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
       await upsertCreature(db, entity, entity.systemId)
     },
 
-    async findById(id) {
-      return hydrateCreatureById(db, id)
+    async findById(id, filter) {
+      const row = await selectCreatureIds(db, filter).where('id', '=', id).executeTakeFirst()
+      return row ? hydrateCreatureById(db, row.id) : null
     },
 
-    async findByIds(ids) {
-      return hydrateByIds(ids, (id) => hydrateCreatureById(db, id))
+    async findByIds(ids, filter) {
+      const rows = await selectCreatureIds(db, filter).where('id', 'in', ids).execute()
+      return hydrateByIds(
+        rows.map((row) => row.id),
+        (id) => hydrateCreatureById(db, id)
+      )
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db.selectFrom('creatures').select('id').orderBy('label')
-
-      if (filter?.systemId) {
-        query = query.where('system_id', '=', filter.systemId)
-      }
-      if (filter?.userId) {
-        query = query.where('user_id', '=', filter.userId)
-      }
-
-      const rows = await query.execute()
+      const rows = await selectCreatureIds(db, filter).orderBy('label').execute()
       return orderedHydratedRecords(
         rows.map((row) => row.id),
         await hydrateByIds(

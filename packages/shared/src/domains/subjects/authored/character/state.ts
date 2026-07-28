@@ -1,3 +1,5 @@
+import type { CreatureOriginKindCode, CreatureRelationshipKindCode } from '#core'
+
 export interface CharacterEquipmentItemState {
   /** Character-owned item id */
   id: string
@@ -15,13 +17,23 @@ export interface CharacterEquipmentState {
   attuned: string[] // character item IDs
 }
 
+export interface CharacterOwnedCreatureHitDiceState {
+  die: number
+  total: number
+  used: number
+}
+
 export interface CharacterOwnedCreatureState {
   id: string
   creatureId: string
-  relationshipKind: 'MOUNT' | 'COMPANION' | 'OWNED' | 'SUMMONED'
+  relationshipKind: CreatureRelationshipKindCode
+  originKind: CreatureOriginKindCode
   customName?: string
   notes?: string
   isActive?: boolean
+  currentHitPoints?: number
+  tempHitPoints?: number
+  hitDice?: CharacterOwnedCreatureHitDiceState[]
 }
 
 export interface CharacterOwnedVehicleState {
@@ -30,6 +42,7 @@ export interface CharacterOwnedVehicleState {
   customName?: string
   notes?: string
   isActive?: boolean
+  currentHitPoints?: number
 }
 
 export interface CharacterRosterEquipmentAssignmentState {

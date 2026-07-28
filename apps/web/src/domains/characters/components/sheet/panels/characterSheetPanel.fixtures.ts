@@ -757,6 +757,127 @@ export const spellsPanelFixture = {
   ]
 } satisfies CharacterSheetPanelDto
 
+export const companionPanelFixture = {
+  kind: 'COMPANION',
+  panelId: 'companion:00000000-0000-4000-8000-000000000501',
+  characterId,
+  target: { kind: 'COMPANION', companionInstanceId: '00000000-0000-4000-8000-000000000501' },
+  title: 'Ferdinand',
+  state: 'ADJUSTED',
+  editable: true,
+  allowedCommands: [
+    'UPSERT_ADJUSTMENT',
+    'REMOVE_ADJUSTMENT',
+    'RESET_ADJUSTMENTS',
+    'USE_RESOURCE',
+    'RECOVER_RESOURCE',
+    'UPDATE_EXTRA',
+    'REMOVE_EXTRA'
+  ],
+  companionInstanceId: '00000000-0000-4000-8000-000000000501',
+  creatureId: '00000000-0000-4000-8000-000000000502',
+  relationshipKind: 'COMPANION',
+  relationshipLabel: 'Companion',
+  originKind: 'SUMMONED',
+  originLabel: 'Summoned',
+  authoredName: 'Owl',
+  displayName: 'Ferdinand',
+  isActive: true,
+  armorClass: 11,
+  hitPoints: { current: 1, temp: 0, maximum: 1 },
+  hitDice: [{ die: 8, total: 2, used: 1, remaining: 1 }],
+  facts: [{ label: 'Speed', value: 'Flying 60 feet' }],
+  actions: [],
+  features: [],
+  equipmentItemIds: [],
+  resources: [
+    {
+      target: {
+        kind: 'RESOURCE',
+        owner: {
+          kind: 'COMPANION_FEATURE',
+          chargeId: '00000000-0000-4000-8000-000000000508',
+          companionInstanceId: '00000000-0000-4000-8000-000000000501',
+          featureId: '00000000-0000-4000-8000-000000000503'
+        }
+      },
+      label: 'Keen Sight',
+      remaining: 1,
+      maximum: 2,
+      recoveries: [{ trigger: 'MANUAL', amount: { kind: 'ALL' } }]
+    }
+  ],
+  numericEditors: [
+    {
+      kind: 'NUMBER',
+      field: 'ARMOR_CLASS_OVERRIDE',
+      label: 'Override armor class',
+      value: 12,
+      adjustmentId,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true, minimum: 0 }
+    },
+    {
+      kind: 'NUMBER',
+      field: 'MAXIMUM_HIT_POINTS_OVERRIDE',
+      label: 'Override maximum hit points',
+      value: null,
+      commitIntent: 'ON_BLUR_OR_ENTER',
+      validation: { integer: true, minimum: 0 }
+    }
+  ],
+  selectEditors: [
+    {
+      kind: 'SELECT',
+      field: 'SIZE_OVERRIDE',
+      label: 'Override size',
+      value: null,
+      options: [{ value: 'SMALL', label: 'Small' }],
+      commitIntent: 'IMMEDIATE'
+    },
+    {
+      kind: 'SELECT',
+      field: 'ALIGNMENT_OVERRIDE',
+      label: 'Override alignment',
+      value: null,
+      options: [{ value: '00000000-0000-4000-8000-000000000504', label: 'Neutral' }],
+      commitIntent: 'IMMEDIATE'
+    },
+    {
+      kind: 'SELECT',
+      field: 'CREATURE_TYPE_OVERRIDE',
+      label: 'Override creature type',
+      value: null,
+      options: [{ value: '00000000-0000-4000-8000-000000000505', label: 'Beast' }],
+      commitIntent: 'IMMEDIATE'
+    }
+  ],
+  textEditors: []
+} satisfies CharacterSheetPanelDto
+
+export const vehiclePanelFixture = {
+  kind: 'VEHICLE',
+  panelId: 'vehicle:00000000-0000-4000-8000-000000000506',
+  characterId,
+  target: { kind: 'VEHICLE', vehicleInstanceId: '00000000-0000-4000-8000-000000000506' },
+  title: 'Sailing Ship',
+  state: 'DEFAULT',
+  editable: true,
+  allowedCommands: ['UPDATE_EXTRA', 'REMOVE_EXTRA'],
+  vehicleInstanceId: '00000000-0000-4000-8000-000000000506',
+  vehicleId: '00000000-0000-4000-8000-000000000507',
+  authoredName: 'Sailing Ship',
+  displayName: 'Sailing Ship',
+  categoryLabel: 'Water vehicle',
+  isActive: true,
+  hitPoints: { current: 300, maximum: 300 },
+  facts: [],
+  actions: [],
+  features: [],
+  equipmentItemIds: [],
+  textEditors: []
+} satisfies CharacterSheetPanelDto
+
 export const itemPanelFixture = {
   kind: 'ITEM',
   panelId: 'item:00000000-0000-4000-8000-000000000130',
