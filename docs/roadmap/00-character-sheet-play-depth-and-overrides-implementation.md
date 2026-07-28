@@ -26,7 +26,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
 | `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED` | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `INTEGRATED` | `0b9d37574ae7` | `f5f2ef24c2e4` | green       | green          | green       |
 | `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
@@ -696,7 +696,7 @@ limited-use states.
 
 ## Branch 06 — Vitals and complete rests
 
-> **Status:** active on `codex/character-overrides-06-vitals-rests` from integration SHA `0b9d37574ae7a1da35c699a1fd5c37cfcc9054f4`.
+> **Status:** integrated into `feature/character-overrides`. Delivery remains locked at `f5f2ef24c2e4`; the ledger-only child head is `f61f6abb03c2`.
 
 **Entry:** Character/companion resources share recovery contracts and deterministic dice results.
 
@@ -759,12 +759,15 @@ Mockup evidence:
 - `2026-07-28`: Checkpoint 5 reopened for the approved pre-Branch-07 Character frontend structural cleanup. The prior delivery SHA is superseded while Builder, Sheet, page, fixture, story, test, and style ownership move into feature-owned modules and the Exhaustion disclosure adopts Mantine Accordion. This cleanup preserves the existing optimistic Sheet boundary and introduces no transport contract, migration, RLS, or backend integration change.
 - `2026-07-28`: The structural cleanup is green at `d0d569b3488f512f6b4a4055c1e7470539cc14c7`. Builder, Sheet, pages, fixtures, stories, tests, and styles now live with their feature owners; the legacy root pockets and mega-stylesheets are removed; no Character Sheet context/provider or bundled section controller was introduced. Exhaustion uses a controlled Mantine Accordion with persistent sibling level controls and a trailing chevron. The character-domain suite passed 152/152 tests, Storybook passed 123/123 interactions, Web app/tests and story typechecks passed, and type-aware lint, repository formatting, and diff checks passed. The final opaque mobile status surface correction was validated with the focused 10-test status suite and direct 390px/320px browser checks rather than rerunning unrelated suites.
 - `2026-07-28`: Final visual approval is recorded at `f5f2ef24c2e4e7fb890cbcaebbf3964187adb1ab`. The collapsed Exhaustion row now removes excess divider and panel spacing, uses a 40px desktop header, and retains 44px mobile/coarse-pointer targets through its existing media query. Per explicit approval, this presentation-only adjustment was committed without another test or typecheck run.
+- `2026-07-28`: Branch 06 child head `f61f6abb03c2` was fast-forwarded into `feature/character-overrides`. Branch 06 is integrated and Branch 07 is next.
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Delivery SHA:** `f5f2ef24c2e4e7fb890cbcaebbf3964187adb1ab` — includes structural cleanup commit `d0d569b3488f512f6b4a4055c1e7470539cc14c7` and supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
+
+**Integrated child head SHA:** `f61f6abb03c225e3475922b7b621c596eea5c279`
 
 #### Delivered contracts and ownership
 
