@@ -46,14 +46,21 @@ import {
   createCharacterDefinitionSourceInstanceId,
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey,
+  clampCharacterCurrentHitPoints,
+  formatCharacterHitDiceRollExpression,
+  resolveCharacterEffectiveMaximumHitPoints,
+  rollCharacterHitDice,
   toCharacterMechanicalAdjustment,
   toCharacterResourceOwnerKey,
+  validateCharacterHitDiceRollEvidence,
+  type CharacterDiceRandomSource,
   type CharacterMovementDisplayPreference,
   type CharacterResourceOwnerRef,
   type CharacterResourceUsage,
-  type CharacterSheetAdjustment
+  type CharacterSheetAdjustment,
+  type CharacterSheetAdjustmentWrite
 } from '@artificer-toolkit/shared/character'
-import { createHash } from 'node:crypto'
+import { createHash, randomInt } from 'node:crypto'
 
 import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
 import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/engine/resolution'
@@ -64,12 +71,15 @@ import type {
 import { getCharacterProvenanceIdentityKey } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type {
+  CharacterCompletedRestResultDto,
   CharacterSheetCoreAdjustmentCommandDto,
   CharacterSheetItemAdjustmentCommandDto
 } from '@artificer-toolkit/schema/api/characterSheet'
@@ -1740,16 +1750,17 @@ function getResourceSheetConfig(params: {
 async function getConditionOptions(
   db: DBLike,
   systemId: string
-): Promise<Array<{ id: string; label: string; description?: string }>> {
+): Promise<Array<{ id: string; code: string; label: string; description?: string }>> {
   const rows = await db
     .selectFrom('condition_types')
-    .select(['id', 'label', 'description'])
+    .select(['id', 'code', 'label', 'description'])
     .where('system_id', '=', systemId)
     .orderBy('label', 'asc')
     .execute()
 
   return rows.map((row) => ({
     id: String(row.id),
+    code: String(row.code),
     label: String(row.label),
     description: row.description ? String(row.description) : undefined
   }))
@@ -1900,6 +1911,10 @@ export async function buildCharacterSheetResponse(params: {
     movementDisplayPreference: params.movementDisplayPreference,
     companions: createCompanionInputs(character, creaturesById)
   })
+  const rulesSystem = resolveRulesSystem({
+    code: resolution.registry.system?.rulesetCode ?? '',
+    version: resolution.registry.system?.rulesetVersion ?? ''
+  })
   const itemMechanicsByInstanceId = new Map(
     engineOutput.itemMechanics.map((item) => [item.itemInstanceId, item])
   )
@@ -1910,7 +1925,9 @@ export async function buildCharacterSheetResponse(params: {
     ])
   )
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
-  const maxHitPoints = engineOutput.derivedStats.maxHitPoints
+  const maxHitPoints = resolveCharacterEffectiveMaximumHitPoints(
+    engineOutput.derivedStats.maxHitPoints
+  )
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
@@ -2597,12 +2614,27 @@ export async function buildCharacterSheetResponse(params: {
       initiative: engineOutput.derivedStats.initiative,
       proficiencyBonus,
       inspiration: character.state.inspiration ?? false,
-      currentHitPoints: character.state.hitpoints.current,
+      currentHitPoints: clampCharacterCurrentHitPoints(
+        character.state.hitpoints.current,
+        maxHitPoints
+      ),
       maxHitPoints,
       tempHitPoints: character.state.hitpoints.temp ?? 0,
       maxHitPointsOverride: getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? null,
-      exhaustionLevel: character.state.exhaustion?.level ?? 0,
-      exhaustionNotes: character.state.exhaustion?.notes,
+      maxHitPointsModifier: getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0,
+      maxHitPointsModifierAdjustmentId:
+        adjustments.find(
+          (adjustment) =>
+            adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
+        )?.id ?? null,
+      exhaustion: {
+        label: rulesSystem.exhaustion.label,
+        description: rulesSystem.exhaustion.description,
+        level: character.state.exhaustion?.level ?? rulesSystem.exhaustion.minimumLevel,
+        minimumLevel: rulesSystem.exhaustion.minimumLevel,
+        maximumLevel: rulesSystem.exhaustion.maximumLevel,
+        ...(character.state.exhaustion?.notes ? { notes: character.state.exhaustion.notes } : {})
+      },
       conditions: (character.state.conditions ?? []).map((condition) => ({
         conditionTypeId: condition.conditionTypeId,
         label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
@@ -2730,6 +2762,481 @@ export async function buildCharacterSheetResponse(params: {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
+}
+
+const secureCharacterDiceRandomSource: CharacterDiceRandomSource = {
+  nextInt: (maxExclusive) => randomInt(maxExclusive)
+}
+
+function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
+  const match = dieConfig?.trim().match(/^(?:1)?d(\d+)$/i)
+  if (!match) return undefined
+  const die = Number(match[1])
+  return Number.isSafeInteger(die) && die >= 2 ? die : undefined
+}
+
+function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
+  return restKind === 'LONG'
+    ? new Set(['SHORT_REST', 'LONG_REST'] as const)
+    : new Set(['SHORT_REST'] as const)
+}
+
+function recoverCharacterHitDice(
+  hitDice: CharacterAuthored['state']['hitpoints']['hitDice'],
+  recoveryCount: number
+): {
+  hitDice: CharacterAuthored['state']['hitpoints']['hitDice']
+  recovered: Array<{ die: number; count: number }>
+} {
+  let remaining = recoveryCount
+  const recoveredByDie = new Map<number, number>()
+  for (const pool of [...hitDice].sort((left, right) => right.die - left.die)) {
+    const recovered = Math.min(pool.used, remaining)
+    if (recovered > 0) recoveredByDie.set(pool.die, recovered)
+    remaining -= recovered
+  }
+
+  return {
+    hitDice: hitDice.map((pool) => ({
+      ...pool,
+      used: pool.used - (recoveredByDie.get(pool.die) ?? 0)
+    })),
+    recovered: [...recoveredByDie]
+      .map(([die, count]) => ({ die, count }))
+      .sort((left, right) => right.die - left.die)
+  }
+}
+
+function sameHitDiceRollTerms(
+  evidence: NonNullable<CharacterRestPreviewRequestDto['rollEvidence']>,
+  expected: ReadonlyArray<{ die: number; count: number; modifierPerDie: number }>
+): boolean {
+  if (evidence.terms.length !== expected.length) return false
+  const terms = [...evidence.terms].sort((left, right) => right.die - left.die)
+  const normalizedExpected = [...expected].sort((left, right) => right.die - left.die)
+  return terms.every((term, index) => {
+    const candidate = normalizedExpected[index]
+    return (
+      candidate !== undefined &&
+      term.die === candidate.die &&
+      term.count === candidate.count &&
+      term.modifierPerDie === candidate.modifierPerDie
+    )
+  })
+}
+
+function buildCharacterRestPreview(params: {
+  character: CharacterAuthored
+  resolution: CharacterBuilderResolution
+  adjustments: readonly CharacterSheetAdjustment[]
+  sheet: CharacterSheetResponseDto
+  input: CharacterRestPreviewRequestDto
+  random: CharacterDiceRandomSource
+}): CharacterRestPreviewResponseDto {
+  const { character, resolution, adjustments, sheet, input } = params
+  const rulesSystem = resolveRulesSystem({
+    code: resolution.registry.system?.rulesetCode ?? '',
+    version: resolution.registry.system?.rulesetVersion ?? ''
+  })
+  const maximumModifier = getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0
+  const canResetMaximumModifier = maximumModifier !== 0
+  const effectiveAdjustments =
+    input.resetMaximumHitPointModifier && canResetMaximumModifier
+      ? adjustments.filter(
+          (adjustment) =>
+            adjustment.family !== 'HIT_POINTS' || adjustment.field !== 'MAXIMUM_MODIFIER'
+        )
+      : adjustments
+  const effectiveMaximum = resolveCharacterEffectiveMaximumHitPoints(
+    resolveCharacterSheetEngine({
+      character,
+      resolution,
+      adjustments: effectiveAdjustments
+    }).derivedStats.maxHitPoints
+  )
+  const currentMaximum = resolveCharacterEffectiveMaximumHitPoints(sheet.overview.maxHitPoints)
+  const currentHitPoints = clampCharacterCurrentHitPoints(
+    sheet.overview.currentHitPoints,
+    input.resetMaximumHitPointModifier ? effectiveMaximum : currentMaximum
+  )
+  const constitutionModifier = rulesSystem.abilityModifier(
+    resolution.summary.abilities.CONSTITUTION ?? 10
+  )
+
+  const classLabelsByDie = new Map<number, string[]>()
+  for (const classSummary of resolution.summary.classes) {
+    const authoredClass = resolution.registry.classes.find(
+      (candidate) =>
+        candidate.id === classSummary.classId && candidate.category === CLASS_CATEGORY.BASE
+    )
+    const die = parseCharacterClassHitDie(
+      authoredClass && 'hitpoint' in authoredClass ? authoredClass.hitpoint?.dieConfig : undefined
+    )
+    if (!die) continue
+    const labels = classLabelsByDie.get(die) ?? []
+    labels.push(classSummary.classLabel)
+    classLabelsByDie.set(die, labels)
+  }
+
+  if (input.restKind === 'LONG' && input.selectedHitDice.length > 0) {
+    throw new CharacterSheetCommandError('Long rests do not spend hit dice.')
+  }
+  const selectionsByDie = new Map(
+    input.selectedHitDice.map((selection) => [selection.die, selection.count])
+  )
+  for (const selection of input.selectedHitDice) {
+    const pool = sheet.overview.hitDice.find((candidate) => candidate.die === selection.die)
+    if (!pool) {
+      throw new CharacterSheetCommandError(`No d${selection.die} hit dice are available.`)
+    }
+    if (selection.count > pool.remaining) {
+      throw new CharacterSheetCommandError(
+        `Only ${pool.remaining} d${selection.die} hit dice are available.`
+      )
+    }
+  }
+
+  const rollTerms = input.selectedHitDice.map((selection) => ({
+    ...selection,
+    modifierPerDie: constitutionModifier
+  }))
+  if (input.requestRoll && rollTerms.length === 0) {
+    throw new CharacterSheetCommandError('Select at least one hit die before rolling.')
+  }
+  if (input.restKind === 'LONG' && (input.requestRoll || input.rollEvidence)) {
+    throw new CharacterSheetCommandError('Long rests do not accept hit-die roll evidence.')
+  }
+
+  let rollEvidence = input.rollEvidence
+  if (rollEvidence) {
+    try {
+      validateCharacterHitDiceRollEvidence(rollEvidence)
+    } catch (error) {
+      throw new CharacterSheetCommandError(
+        error instanceof Error ? error.message : 'Invalid hit-die roll evidence.'
+      )
+    }
+    if (!sameHitDiceRollTerms(rollEvidence, rollTerms)) {
+      throw new CharacterSheetCommandError(
+        'Hit-die roll evidence does not match the selected hit dice.'
+      )
+    }
+  } else if (input.requestRoll) {
+    rollEvidence = rollCharacterHitDice(rollTerms, params.random)
+  }
+
+  const triggers = getRestRecoveryTriggers(input.restKind)
+  const characterResources = sheet.resources.items
+    .filter(
+      (resource) =>
+        resource.owner.kind !== 'COMPANION_FEATURE' &&
+        resource.used > 0 &&
+        resource.recoveries.some((recovery) =>
+          triggers.has(recovery.trigger as 'SHORT_REST' | 'LONG_REST')
+        )
+    )
+    .map((resource) => ({ id: resource.id, label: resource.label, recovered: resource.used }))
+    .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
+  const spellSlots = sheet.spells.slots
+    .filter((slot) => slot.used > 0 && (input.restKind === 'LONG' || slot.slotKey === 'PACT'))
+    .map((slot) => ({ id: slot.slotKey, label: slot.label, recovered: slot.used }))
+    .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
+
+  const selectedCompanionIds = new Set(input.selectedCompanionInstanceIds)
+  const eligibleCompanions = sheet.extras.items
+    .filter((extra) => extra.kind !== 'VEHICLE' && extra.isActive)
+    .flatMap((extra) => {
+      if (extra.kind === 'VEHICLE') return []
+      const hitDiceRecovery =
+        input.restKind === 'LONG'
+          ? recoverCharacterHitDice(
+              extra.hitDice,
+              rulesSystem.rest.hitDiceRecoveredAfterLongRest(
+                extra.hitDice.reduce((total, pool) => total + pool.total, 0)
+              )
+            ).recovered
+          : []
+      const resources = sheet.resources.items
+        .filter(
+          (resource) =>
+            resource.owner.kind === 'COMPANION_FEATURE' &&
+            resource.owner.companionInstanceId === extra.id &&
+            resource.used > 0 &&
+            resource.recoveries.some((recovery) =>
+              triggers.has(recovery.trigger as 'SHORT_REST' | 'LONG_REST')
+            )
+        )
+        .map((resource) => ({ id: resource.id, label: resource.label, recovered: resource.used }))
+        .sort(
+          (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
+        )
+      if (hitDiceRecovery.length === 0 && resources.length === 0) return []
+      const recoveryByDie = new Map(hitDiceRecovery.map((pool) => [pool.die, pool.count]))
+      return [
+        {
+          companionInstanceId: extra.id,
+          label: extra.displayName,
+          selected: selectedCompanionIds.has(extra.id),
+          hitDice: extra.hitDice.map((pool) => ({
+            die: pool.die,
+            total: pool.total,
+            used: pool.used,
+            remaining: pool.remaining,
+            recovered: recoveryByDie.get(pool.die) ?? 0
+          })),
+          resources
+        }
+      ]
+    })
+    .sort(
+      (left, right) =>
+        left.label.localeCompare(right.label) ||
+        left.companionInstanceId.localeCompare(right.companionInstanceId)
+    )
+  const eligibleCompanionIds = new Set(
+    eligibleCompanions.map((companion) => companion.companionInstanceId)
+  )
+  for (const companionId of selectedCompanionIds) {
+    if (!eligibleCompanionIds.has(companionId)) {
+      throw new CharacterSheetCommandError(
+        `Companion "${companionId}" has no eligible recovery for this rest.`
+      )
+    }
+  }
+
+  const missingHitPoints = Math.max(effectiveMaximum - currentHitPoints, 0)
+  const stagedHealing = Math.min(Math.max(rollEvidence?.total ?? 0, 0), missingHitPoints)
+  const canonicalExpression =
+    rollTerms.length > 0 ? formatCharacterHitDiceRollExpression(rollTerms) : undefined
+  const selectedCompanionRecoveries = eligibleCompanions.filter((companion) => companion.selected)
+  const hasSelectedDice = input.selectedHitDice.length > 0
+  const healingDecisionResolved =
+    !hasSelectedDice ||
+    (rollEvidence !== undefined &&
+      (input.healingMode === 'AUTOMATIC' || input.manualHealingAccepted))
+  const hasMeaningfulRecovery =
+    hasSelectedDice ||
+    characterResources.length > 0 ||
+    spellSlots.length > 0 ||
+    selectedCompanionRecoveries.length > 0 ||
+    (input.resetMaximumHitPointModifier && canResetMaximumModifier) ||
+    (input.restKind === 'LONG' &&
+      (currentHitPoints !== effectiveMaximum ||
+        sheet.overview.tempHitPoints > 0 ||
+        sheet.overview.exhaustion.level > sheet.overview.exhaustion.minimumLevel ||
+        sheet.overview.hitDice.some((pool) => pool.used > 0)))
+  const longRestPolicy =
+    input.restKind === 'LONG'
+      ? (() => {
+          const hitDiceRecoveryCount = rulesSystem.rest.hitDiceRecoveredAfterLongRest(
+            character.state.hitpoints.hitDice.reduce((total, pool) => total + pool.total, 0)
+          )
+          return {
+            exhaustionAfter: rulesSystem.exhaustion.levelAfterLongRest(
+              sheet.overview.exhaustion.level
+            ),
+            hitDiceRecoveryCount,
+            recoveredHitDice: recoverCharacterHitDice(
+              character.state.hitpoints.hitDice,
+              hitDiceRecoveryCount
+            ).recovered
+          }
+        })()
+      : undefined
+
+  const fingerprintInput = {
+    restKind: input.restKind,
+    streamVersion: sheet.meta.streamVersion,
+    rulesPolicy: {
+      identity: rulesSystem.identity,
+      exhaustion: {
+        minimumLevel: rulesSystem.exhaustion.minimumLevel,
+        maximumLevel: rulesSystem.exhaustion.maximumLevel
+      },
+      longRest: longRestPolicy
+    },
+    hitPoints: {
+      current: currentHitPoints,
+      maximum: effectiveMaximum,
+      temporary: sheet.overview.tempHitPoints,
+      maximumModifier
+    },
+    selectedHitDice: [...input.selectedHitDice].sort((left, right) => right.die - left.die),
+    resetMaximumHitPointModifier: input.resetMaximumHitPointModifier,
+    healingMode: input.healingMode,
+    manualHealingAccepted: input.manualHealingAccepted,
+    selectedCompanionInstanceIds: [...selectedCompanionIds].sort(),
+    rollEvidence,
+    automaticRecoveries: { resources: characterResources, spellSlots },
+    eligibleCompanions
+  }
+  const previewFingerprint = createHash('sha256')
+    .update(JSON.stringify(sortFingerprintValue(fingerprintInput)))
+    .digest('hex')
+
+  return {
+    restKind: input.restKind,
+    streamVersion: sheet.meta.streamVersion,
+    previewFingerprint,
+    hitPoints: {
+      current: currentHitPoints,
+      maximum: effectiveMaximum,
+      temporary: sheet.overview.tempHitPoints,
+      missing: missingHitPoints,
+      maximumHitPointModifier: maximumModifier,
+      canResetMaximumHitPointModifier: canResetMaximumModifier
+    },
+    hitDice: sheet.overview.hitDice.map((pool) => ({
+      ...pool,
+      classLabels: classLabelsByDie.get(pool.die) ?? [`d${pool.die} Hit Dice`],
+      selected: selectionsByDie.get(pool.die) ?? 0,
+      constitutionModifier
+    })),
+    healingMode: input.healingMode,
+    manualHealingAccepted: input.manualHealingAccepted,
+    ...(canonicalExpression ? { canonicalExpression } : {}),
+    ...(rollEvidence ? { rollEvidence } : {}),
+    stagedHealing,
+    automaticRecoveries: {
+      resources: characterResources,
+      spellSlots
+    },
+    eligibleCompanions,
+    canApply: healingDecisionResolved && hasMeaningfulRecovery
+  }
+}
+
+function applyCompletedCharacterRest(params: {
+  character: CharacterAuthored
+  command: Extract<CharacterSheetCommandInputDto, { type: 'COMPLETE_REST' }>
+  preview: CharacterRestPreviewResponseDto
+  resolution: CharacterBuilderResolution
+  sheet: CharacterSheetResponseDto
+}): {
+  character: CharacterAuthored
+  result: CharacterCompletedRestResultDto
+  allRecoveredResourceIds: string[]
+} {
+  const { character, command, preview, resolution, sheet } = params
+  const next = structuredClone(character)
+  const rulesSystem = resolveRulesSystem({
+    code: resolution.registry.system?.rulesetCode ?? '',
+    version: resolution.registry.system?.rulesetVersion ?? ''
+  })
+  const currentBefore = clampCharacterCurrentHitPoints(
+    sheet.overview.currentHitPoints,
+    sheet.overview.maxHitPoints
+  )
+  const temporaryBefore = Math.max(sheet.overview.tempHitPoints, 0)
+  const exhaustionBefore = sheet.overview.exhaustion.level
+  let recoveredHitDice: Array<{ die: number; count: number }> = []
+
+  if (command.restKind === 'SHORT') {
+    const spentByDie = new Map(
+      command.selectedHitDice.map((selection) => [selection.die, selection.count])
+    )
+    next.state.hitpoints.hitDice = next.state.hitpoints.hitDice.map((pool) => ({
+      ...pool,
+      used: pool.used + (spentByDie.get(pool.die) ?? 0)
+    }))
+    next.state.hitpoints.current = clampCharacterCurrentHitPoints(
+      preview.hitPoints.current + preview.stagedHealing,
+      preview.hitPoints.maximum
+    )
+    const recoveredSlotKeys = new Set(preview.automaticRecoveries.spellSlots.map((slot) => slot.id))
+    next.state.spellSlots = next.state.spellSlots?.filter(
+      (slot) => !recoveredSlotKeys.has(slot.slotKey)
+    )
+  } else {
+    const characterHitDice = recoverCharacterHitDice(
+      next.state.hitpoints.hitDice,
+      rulesSystem.rest.hitDiceRecoveredAfterLongRest(
+        next.state.hitpoints.hitDice.reduce((total, pool) => total + pool.total, 0)
+      )
+    )
+    next.state.hitpoints.current = preview.hitPoints.maximum
+    next.state.hitpoints.temp = 0
+    next.state.hitpoints.hitDice = characterHitDice.hitDice
+    next.state.spellSlots = undefined
+    recoveredHitDice = characterHitDice.recovered
+    const exhaustionAfter = rulesSystem.exhaustion.levelAfterLongRest(exhaustionBefore)
+    next.state.exhaustion =
+      exhaustionAfter > 0
+        ? {
+            level: exhaustionAfter,
+            ...(next.state.exhaustion?.notes ? { notes: next.state.exhaustion.notes } : {})
+          }
+        : undefined
+  }
+
+  const selectedCompanions = new Map(
+    preview.eligibleCompanions
+      .filter((companion) => companion.selected)
+      .map((companion) => [companion.companionInstanceId, companion])
+  )
+  next.state.creatures = next.state.creatures?.map((creature) => {
+    const recovery = selectedCompanions.get(creature.id)
+    if (!recovery || command.restKind !== 'LONG' || !creature.hitDice) return creature
+    const recoveredByDie = new Map(
+      recovery.hitDice
+        .filter((pool) => pool.recovered > 0)
+        .map((pool) => [pool.die, pool.recovered])
+    )
+    return {
+      ...creature,
+      hitDice: creature.hitDice.map((pool) => ({
+        ...pool,
+        used: pool.used - (recoveredByDie.get(pool.die) ?? 0)
+      }))
+    }
+  })
+
+  const companionRecoveries = preview.eligibleCompanions
+    .filter((companion) => companion.selected)
+    .map((companion) => ({
+      companionInstanceId: companion.companionInstanceId,
+      recoveredHitDice: companion.hitDice
+        .filter((pool) => pool.recovered > 0)
+        .map((pool) => ({ die: pool.die, count: pool.recovered })),
+      recoveredResourceIds: companion.resources.map((resource) => resource.id)
+    }))
+  const allRecoveredResourceIds = [
+    ...preview.automaticRecoveries.resources.map((resource) => resource.id),
+    ...companionRecoveries.flatMap((companion) => companion.recoveredResourceIds)
+  ]
+  const currentAfter = clampCharacterCurrentHitPoints(
+    next.state.hitpoints.current,
+    preview.hitPoints.maximum
+  )
+  next.state.hitpoints.current = currentAfter
+
+  return {
+    character: clearEmptyStateArrays(next),
+    allRecoveredResourceIds,
+    result: {
+      restKind: command.restKind,
+      previewFingerprint: preview.previewFingerprint,
+      hitPoints: {
+        currentBefore,
+        currentAfter,
+        temporaryBefore,
+        temporaryAfter: Math.max(next.state.hitpoints.temp ?? 0, 0),
+        healingApplied: Math.max(currentAfter - preview.hitPoints.current, 0)
+      },
+      exhaustion: {
+        before: exhaustionBefore,
+        after: next.state.exhaustion?.level ?? 0
+      },
+      spentHitDice: command.restKind === 'SHORT' ? command.selectedHitDice : [],
+      recoveredHitDice,
+      ...(preview.rollEvidence ? { rollEvidence: preview.rollEvidence } : {}),
+      resetMaximumHitPointModifier:
+        command.resetMaximumHitPointModifier && preview.hitPoints.canResetMaximumHitPointModifier,
+      recoveredResourceIds: preview.automaticRecoveries.resources.map((resource) => resource.id),
+      recoveredSpellSlotKeys: preview.automaticRecoveries.spellSlots.map((slot) => slot.id),
+      companionRecoveries
+    }
+  }
 }
 
 function restoreHitDiceForLongRest(
@@ -3270,7 +3777,20 @@ export function applyCharacterSheetCommand(
       }
       return clearEmptyStateArrays(next)
 
+    case 'COMPLETE_REST':
+      throw new CharacterSheetCommandError(
+        'Complete rest commands must be resolved against an authoritative rest preview.'
+      )
+
     case 'SET_EXHAUSTION': {
+      if (
+        command.level < sheet.overview.exhaustion.minimumLevel ||
+        command.level > sheet.overview.exhaustion.maximumLevel
+      ) {
+        throw new CharacterSheetCommandError(
+          `Exhaustion level must be between ${sheet.overview.exhaustion.minimumLevel} and ${sheet.overview.exhaustion.maximumLevel}.`
+        )
+      }
       const notes = command.notes === undefined ? next.state.exhaustion?.notes : command.notes
       next.state.exhaustion =
         command.level > 0 ? { level: command.level, notes: notes || undefined } : undefined
@@ -3847,6 +4367,8 @@ export function summarizeCharacterSheetCommand(
       return `Used one d${command.die} hit die`
     case 'APPLY_REST':
       return command.restKind === 'LONG' ? 'Long rest applied' : 'Short rest applied'
+    case 'COMPLETE_REST':
+      return command.restKind === 'LONG' ? 'Long rest completed' : 'Short rest completed'
     case 'SET_EXHAUSTION':
       return command.level > 0 ? `Exhaustion set to level ${command.level}` : 'Exhaustion cleared'
     case 'ADD_CONDITION':
@@ -4029,6 +4551,8 @@ function sameAdjustmentSlot(
       return adjustment.family === 'SENSE' && adjustment.senseId === input.senseId
     case 'MOVEMENT':
       return adjustment.family === 'MOVEMENT' && adjustment.speedId === input.speedId
+    case 'HIT_POINTS':
+      return adjustment.family === 'HIT_POINTS' && adjustment.field === input.field
     case 'DEFENSE':
       return (
         adjustment.family === 'DEFENSE' &&
@@ -4057,6 +4581,84 @@ function sameAdjustmentSlot(
   throw new CharacterSheetCommandError('Unsupported sheet adjustment.')
 }
 
+function toProspectiveSheetAdjustment(
+  write: CharacterSheetAdjustmentWrite,
+  existing?: CharacterSheetAdjustment
+): CharacterSheetAdjustment {
+  const timestamp = existing?.updatedAt ?? new Date(0).toISOString()
+  const { actorId, ...value } = write
+  return {
+    ...value,
+    createdBy: existing?.createdBy ?? actorId,
+    updatedBy: actorId,
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp
+  }
+}
+
+function getProspectiveSheetAdjustments(params: {
+  adjustments: readonly CharacterSheetAdjustment[]
+  characterId: string
+  command: CharacterSheetCommandInputDto
+  userId: string
+}): readonly CharacterSheetAdjustment[] {
+  const { adjustments, command } = params
+  if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
+    const existing = adjustments.find((adjustment) =>
+      sameAdjustmentSlot(adjustment, command.adjustment)
+    )
+    const next = toProspectiveSheetAdjustment(
+      {
+        ...command.adjustment,
+        id: existing?.id ?? command.adjustment.id ?? crypto.randomUUID(),
+        characterId: params.characterId,
+        actorId: params.userId
+      },
+      existing
+    )
+    return [
+      ...adjustments.filter((adjustment) => !sameAdjustmentSlot(adjustment, command.adjustment)),
+      next
+    ]
+  }
+  if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
+    return adjustments.filter((adjustment) => adjustment.id !== command.adjustmentId)
+  }
+  if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
+    const removedIds = new Set(
+      getCharacterSheetPanelAdjustmentIds(adjustments, command.target).map(
+        (adjustment) => adjustment.id
+      )
+    )
+    return adjustments.filter((adjustment) => !removedIds.has(adjustment.id))
+  }
+  if (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined) {
+    const existing = adjustments.find(
+      (adjustment) => adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
+    )
+    const withoutOverride = adjustments.filter(
+      (adjustment) => adjustment.family !== 'HIT_POINTS' || adjustment.field !== 'MAXIMUM_OVERRIDE'
+    )
+    if (command.maxOverride === null) return withoutOverride
+    return [
+      ...withoutOverride,
+      toProspectiveSheetAdjustment(
+        {
+          id: existing?.id ?? crypto.randomUUID(),
+          characterId: params.characterId,
+          actorId: params.userId,
+          family: 'HIT_POINTS',
+          field: 'MAXIMUM_OVERRIDE',
+          value: command.maxOverride,
+          ...(existing?.sourceNote ? { sourceNote: existing.sourceNote } : {})
+        },
+        existing
+      )
+    ]
+  }
+  return adjustments
+}
+
 function validateSheetAdjustmentTarget(
   input: CharacterSheetAdjustmentCommand,
   resolution: CharacterBuilderResolution,
@@ -4078,6 +4680,7 @@ function validateSheetAdjustmentTarget(
   switch (input.family) {
     case 'ABILITY':
     case 'SAVING_THROW':
+    case 'HIT_POINTS':
       return
     case 'SKILL':
     case 'PASSIVE':
@@ -4262,6 +4865,65 @@ function validateSpellSource(
   }
 }
 
+export async function previewCharacterRest(params: {
+  db: DBLike
+  characterId: string
+  input: CharacterRestPreviewRequestDto
+  userId: string
+  random?: CharacterDiceRandomSource
+}): Promise<CharacterRestPreviewResponseDto> {
+  const repository = createCharacterRepository(params.db)
+  const [row, character] = await Promise.all([
+    repository.findById(params.characterId),
+    repository.findAuthoredById(params.characterId)
+  ])
+  if (!character || !row) {
+    throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
+  }
+  if (character.userId !== params.userId) {
+    throw createNamedError(
+      'AuthoredContentOwnershipError',
+      `Character "${params.characterId}" cannot be read by the current user.`
+    )
+  }
+  if ((character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
+  }
+  if (row.stream_version !== params.input.expectedVersion) {
+    throw new ConcurrencyError(params.characterId, params.input.expectedVersion)
+  }
+
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
+  const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
+  const [resolution, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      resolveCharacterBuilder(params.db, character, 'edit'),
+      adjustmentRepository.listByCharacter(params.characterId),
+      adjustmentRepository.getMovementPreference(params.characterId),
+      playStateRepository.listResourceUsage(params.characterId),
+      playStateRepository.listSpellCustomizations(params.characterId)
+    ])
+  const sheet = await buildCharacterSheetResponse({
+    db: params.db,
+    character,
+    resolution,
+    streamVersion: row.stream_version,
+    adjustments,
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
+  })
+
+  return buildCharacterRestPreview({
+    character,
+    resolution,
+    adjustments,
+    sheet,
+    input: params.input,
+    random: params.random ?? secureCharacterDiceRandomSource
+  })
+}
+
 export async function executeCharacterSheetCommand(params: {
   db: DBLike
   characterId: string
@@ -4339,8 +5001,10 @@ export async function executeCharacterSheetCommand(params: {
         occurredAt: priorEvent.occurredAt,
         actorId: priorEvent.actorId,
         eventType: priorEvent.type,
-        summary: priorEvent.summary
-      }
+        summary: priorEvent.summary,
+        ...(priorEvent.result ? { result: priorEvent.result } : {})
+      },
+      ...(priorEvent.result ? { result: priorEvent.result } : {})
     }
   }
 
@@ -4430,6 +5094,17 @@ export async function executeCharacterSheetCommand(params: {
       )
     }
   }
+  const prospectiveAdjustments = getProspectiveSheetAdjustments({
+    adjustments,
+    characterId: params.characterId,
+    command,
+    userId: params.userId
+  })
+  const shouldPersistHitPointClamp =
+    (command.type === 'UPSERT_SHEET_ADJUSTMENT' && command.adjustment.family === 'HIT_POINTS') ||
+    (command.type === 'REMOVE_SHEET_ADJUSTMENT' && command.family === 'HIT_POINTS') ||
+    (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' && command.target.kind === 'HIT_POINTS') ||
+    (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined)
   const extraDefaults = {
     creatures: new Map<string, { hitPoints: number; hitDice?: { count: number; die: number } }>(),
     vehicles: new Map<string, { hitPoints?: number }>()
@@ -4483,12 +5158,80 @@ export async function executeCharacterSheetCommand(params: {
       })
     }
   }
-  const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet, {
-    adjustments,
-    extraDefaults
-  })
+  const restPreview =
+    command.type === 'COMPLETE_REST'
+      ? buildCharacterRestPreview({
+          character,
+          resolution,
+          adjustments,
+          sheet: currentSheet,
+          input: {
+            restKind: command.restKind,
+            expectedVersion: command.expectedVersion,
+            selectedHitDice: command.selectedHitDice,
+            resetMaximumHitPointModifier: command.resetMaximumHitPointModifier,
+            healingMode: command.healingMode,
+            manualHealingAccepted: command.manualHealingAccepted,
+            selectedCompanionInstanceIds: command.selectedCompanionInstanceIds,
+            ...(command.rollEvidence ? { rollEvidence: command.rollEvidence } : {}),
+            requestRoll: false
+          },
+          random: secureCharacterDiceRandomSource
+        })
+      : undefined
+  if (
+    command.type === 'COMPLETE_REST' &&
+    restPreview &&
+    restPreview.previewFingerprint !== command.previewFingerprint
+  ) {
+    throw new ConcurrencyError(params.characterId, command.expectedVersion)
+  }
+  if (restPreview && !restPreview.canApply) {
+    throw new CharacterSheetCommandError('This rest has no completed recovery to apply.')
+  }
+  const completedRest =
+    command.type === 'COMPLETE_REST' && restPreview
+      ? applyCompletedCharacterRest({
+          character,
+          command,
+          preview: restPreview,
+          resolution,
+          sheet: currentSheet
+        })
+      : undefined
+  let nextCharacter =
+    completedRest?.character ??
+    applyCharacterSheetCommand(character, params.command, currentSheet, {
+      adjustments,
+      extraDefaults
+    })
+  if (shouldPersistHitPointClamp) {
+    const maximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
+      resolveCharacterSheetEngine({
+        character: nextCharacter,
+        resolution,
+        adjustments: prospectiveAdjustments
+      }).derivedStats.maxHitPoints
+    )
+    nextCharacter = {
+      ...nextCharacter,
+      state: {
+        ...nextCharacter.state,
+        hitpoints: {
+          ...nextCharacter.state.hitpoints,
+          current: clampCharacterCurrentHitPoints(
+            nextCharacter.state.hitpoints.current,
+            maximumHitPoints
+          )
+        }
+      }
+    }
+  }
   const statePatches = createCharacterSheetStatePatches(character, nextCharacter)
   const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
+  const commandResult = completedRest
+    ? ({ type: 'COMPLETE_REST', rest: completedRest.result } as const)
+    : undefined
   const event = {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
     eventId: crypto.randomUUID(),
@@ -4499,191 +5242,243 @@ export async function executeCharacterSheetCommand(params: {
     schemaVersion: 1,
     commandType: params.command.type,
     commandFingerprint,
-    summary
+    summary,
+    ...(commandResult ? { result: commandResult } : {})
   } satisfies CharacterEvent
-  const nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
-    expectedStreamVersion: params.command.expectedVersion,
-    afterPersist: async (trx) => {
-      const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
-      const typedPlayStateRepository = createCharacterSheetPlayStateRepository(trx)
-      if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
-        const existing = adjustments.find((adjustment) =>
-          sameAdjustmentSlot(adjustment, command.adjustment)
-        )
-        await typedAdjustmentRepository.upsert({
-          ...command.adjustment,
-          id: existing?.id ?? command.adjustment.id ?? crypto.randomUUID(),
-          characterId: params.characterId,
-          actorId: params.userId
-        })
-      }
-      if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
-        await typedAdjustmentRepository.remove({
-          characterId: params.characterId,
-          adjustmentId: command.adjustmentId,
-          family: command.family
-        })
-      }
-      if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
-        for (const adjustment of getCharacterSheetPanelAdjustmentIds(adjustments, command.target)) {
-          await typedAdjustmentRepository.remove({
+  let nextStreamVersion: number
+  try {
+    nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
+      expectedStreamVersion: params.command.expectedVersion,
+      afterPersist: async (trx) => {
+        const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
+        const typedPlayStateRepository = createCharacterSheetPlayStateRepository(trx)
+        if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
+          const existing = adjustments.find((adjustment) =>
+            sameAdjustmentSlot(adjustment, command.adjustment)
+          )
+          await typedAdjustmentRepository.upsert({
+            ...command.adjustment,
+            id: existing?.id ?? command.adjustment.id ?? crypto.randomUUID(),
             characterId: params.characterId,
-            adjustmentId: adjustment.id,
-            family: adjustment.family
+            actorId: params.userId
           })
         }
-      }
-      if (command.type === 'REMOVE_SHEET_EXTRA' && command.extra.kind !== 'VEHICLE') {
-        const target = {
-          kind: 'COMPANION' as const,
-          companionInstanceId: command.extra.extraId
-        }
-        for (const adjustment of adjustments) {
-          if (!characterSheetAdjustmentMatchesPanelTarget(adjustment, target)) continue
+        if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
           await typedAdjustmentRepository.remove({
             characterId: params.characterId,
-            adjustmentId: adjustment.id,
-            family: adjustment.family
+            adjustmentId: command.adjustmentId,
+            family: command.family
           })
         }
-        for (const usage of resourceUsage) {
-          if (
-            usage.owner.kind !== 'COMPANION_FEATURE' ||
-            usage.owner.companionInstanceId !== command.extra.extraId
-          ) {
-            continue
+        if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
+          for (const adjustment of getCharacterSheetPanelAdjustmentIds(
+            adjustments,
+            command.target
+          )) {
+            await typedAdjustmentRepository.remove({
+              characterId: params.characterId,
+              adjustmentId: adjustment.id,
+              family: adjustment.family
+            })
           }
-          await typedPlayStateRepository.setResourceUsage({
-            id: usage.id,
+        }
+        if (command.type === 'REMOVE_SHEET_EXTRA' && command.extra.kind !== 'VEHICLE') {
+          const target = {
+            kind: 'COMPANION' as const,
+            companionInstanceId: command.extra.extraId
+          }
+          for (const adjustment of adjustments) {
+            if (!characterSheetAdjustmentMatchesPanelTarget(adjustment, target)) continue
+            await typedAdjustmentRepository.remove({
+              characterId: params.characterId,
+              adjustmentId: adjustment.id,
+              family: adjustment.family
+            })
+          }
+          for (const usage of resourceUsage) {
+            if (
+              usage.owner.kind !== 'COMPANION_FEATURE' ||
+              usage.owner.companionInstanceId !== command.extra.extraId
+            ) {
+              continue
+            }
+            await typedPlayStateRepository.setResourceUsage({
+              id: usage.id,
+              characterId: params.characterId,
+              actorId: params.userId,
+              owner: usage.owner,
+              used: 0
+            })
+          }
+        }
+        if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') {
+          await typedAdjustmentRepository.setMovementPreference({
             characterId: params.characterId,
             actorId: params.userId,
-            owner: usage.owner,
-            used: 0
+            preference: command.preference
           })
         }
-      }
-      if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') {
-        await typedAdjustmentRepository.setMovementPreference({
-          characterId: params.characterId,
-          actorId: params.userId,
-          preference: command.preference
-        })
-      }
-      if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
-        const fields = getSpellCustomizationFields(command.category)
-        for (const adjustment of adjustments) {
-          if (
-            adjustment.family === 'SPELL' &&
-            sameSpellSource(adjustment.source, command.source) &&
-            fields.includes(adjustment.field)
-          ) {
-            await typedAdjustmentRepository.remove({
-              characterId: params.characterId,
-              adjustmentId: adjustment.id,
-              family: 'SPELL'
-            })
+        if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
+          const fields = getSpellCustomizationFields(command.category)
+          for (const adjustment of adjustments) {
+            if (
+              adjustment.family === 'SPELL' &&
+              sameSpellSource(adjustment.source, command.source) &&
+              fields.includes(adjustment.field)
+            ) {
+              await typedAdjustmentRepository.remove({
+                characterId: params.characterId,
+                adjustmentId: adjustment.id,
+                family: 'SPELL'
+              })
+            }
           }
-        }
-        await typedAdjustmentRepository.upsert({
-          id: crypto.randomUUID(),
-          characterId: params.characterId,
-          actorId: params.userId,
-          family: 'SPELL',
-          source: command.source,
-          field: getSpellCustomizationField(command),
-          value: command.value,
-          ...(command.sourceNote ? { sourceNote: command.sourceNote } : {})
-        })
-      }
-      if (command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION') {
-        const fields = getSpellCustomizationFields(command.category)
-        for (const adjustment of adjustments) {
-          if (
-            adjustment.family === 'SPELL' &&
-            sameSpellSource(adjustment.source, command.source) &&
-            fields.includes(adjustment.field)
-          ) {
-            await typedAdjustmentRepository.remove({
-              characterId: params.characterId,
-              adjustmentId: adjustment.id,
-              family: 'SPELL'
-            })
-          }
-        }
-      }
-      if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
-        const existing = spellCustomizations.find(
-          (customization) =>
-            createCharacterSpellSourceKey(customization.source) ===
-            createCharacterSpellSourceKey(command.source)
-        )
-        await typedPlayStateRepository.setSpellCustomization({
-          id: existing?.id ?? crypto.randomUUID(),
-          characterId: params.characterId,
-          actorId: params.userId,
-          source: command.source,
-          customName:
-            command.customName === undefined
-              ? existing?.customName
-              : (command.customName ?? undefined),
-          notes: command.notes === undefined ? existing?.notes : (command.notes ?? undefined),
-          displayAsAttack: command.displayAsAttack ?? existing?.displayAsAttack ?? false
-        })
-      }
-      if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
-        const resourceOwnerKey = createCharacterResourceOwnerKey(
-          toCharacterResourceOwnerKey(command.owner)
-        )
-        const resource = currentSheet.resources.items.find(
-          (candidate) =>
-            createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
-            resourceOwnerKey
-        )
-        if (!resource)
-          throw new CharacterSheetCommandError('Resource is not available on this character.')
-        const existing = resourceUsage.find(
-          (usage) => createCharacterResourceOwnerKey(usage.owner) === resourceOwnerKey
-        )
-        const used =
-          command.type === 'USE_SHEET_RESOURCE'
-            ? Math.min(resource.used + (command.amount ?? 1), resource.max)
-            : 0
-        await typedPlayStateRepository.setResourceUsage({
-          id: existing?.id ?? crypto.randomUUID(),
-          characterId: params.characterId,
-          actorId: params.userId,
-          owner: toCharacterResourceOwnerKey(command.owner),
-          used
-        })
-      }
-      if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
-        const existing = adjustments.find(
-          (adjustment) =>
-            adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
-        )
-        if (params.command.maxOverride === null) {
-          if (existing) {
-            await typedAdjustmentRepository.remove({
-              characterId: params.characterId,
-              adjustmentId: existing.id,
-              family: 'HIT_POINTS'
-            })
-          }
-        } else {
           await typedAdjustmentRepository.upsert({
+            id: crypto.randomUUID(),
+            characterId: params.characterId,
+            actorId: params.userId,
+            family: 'SPELL',
+            source: command.source,
+            field: getSpellCustomizationField(command),
+            value: command.value,
+            ...(command.sourceNote ? { sourceNote: command.sourceNote } : {})
+          })
+        }
+        if (command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION') {
+          const fields = getSpellCustomizationFields(command.category)
+          for (const adjustment of adjustments) {
+            if (
+              adjustment.family === 'SPELL' &&
+              sameSpellSource(adjustment.source, command.source) &&
+              fields.includes(adjustment.field)
+            ) {
+              await typedAdjustmentRepository.remove({
+                characterId: params.characterId,
+                adjustmentId: adjustment.id,
+                family: 'SPELL'
+              })
+            }
+          }
+        }
+        if (command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION') {
+          const existing = spellCustomizations.find(
+            (customization) =>
+              createCharacterSpellSourceKey(customization.source) ===
+              createCharacterSpellSourceKey(command.source)
+          )
+          await typedPlayStateRepository.setSpellCustomization({
             id: existing?.id ?? crypto.randomUUID(),
             characterId: params.characterId,
             actorId: params.userId,
-            family: 'HIT_POINTS',
-            field: 'MAXIMUM_OVERRIDE',
-            value: params.command.maxOverride,
-            ...(existing?.sourceNote == null ? {} : { sourceNote: existing.sourceNote })
+            source: command.source,
+            customName:
+              command.customName === undefined
+                ? existing?.customName
+                : (command.customName ?? undefined),
+            notes: command.notes === undefined ? existing?.notes : (command.notes ?? undefined),
+            displayAsAttack: command.displayAsAttack ?? existing?.displayAsAttack ?? false
           })
         }
+        if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+          const resourceOwnerKey = createCharacterResourceOwnerKey(
+            toCharacterResourceOwnerKey(command.owner)
+          )
+          const resource = currentSheet.resources.items.find(
+            (candidate) =>
+              createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
+              resourceOwnerKey
+          )
+          if (!resource)
+            throw new CharacterSheetCommandError('Resource is not available on this character.')
+          const existing = resourceUsage.find(
+            (usage) => createCharacterResourceOwnerKey(usage.owner) === resourceOwnerKey
+          )
+          const used =
+            command.type === 'USE_SHEET_RESOURCE'
+              ? Math.min(resource.used + (command.amount ?? 1), resource.max)
+              : 0
+          await typedPlayStateRepository.setResourceUsage({
+            id: existing?.id ?? crypto.randomUUID(),
+            characterId: params.characterId,
+            actorId: params.userId,
+            owner: toCharacterResourceOwnerKey(command.owner),
+            used
+          })
+        }
+        if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
+          const existing = adjustments.find(
+            (adjustment) =>
+              adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
+          )
+          if (params.command.maxOverride === null) {
+            if (existing) {
+              await typedAdjustmentRepository.remove({
+                characterId: params.characterId,
+                adjustmentId: existing.id,
+                family: 'HIT_POINTS'
+              })
+            }
+          } else {
+            await typedAdjustmentRepository.upsert({
+              id: existing?.id ?? crypto.randomUUID(),
+              characterId: params.characterId,
+              actorId: params.userId,
+              family: 'HIT_POINTS',
+              field: 'MAXIMUM_OVERRIDE',
+              value: params.command.maxOverride,
+              ...(existing?.sourceNote == null ? {} : { sourceNote: existing.sourceNote })
+            })
+          }
+        }
+        if (command.type === 'COMPLETE_REST' && completedRest) {
+          if (
+            command.resetMaximumHitPointModifier &&
+            restPreview?.hitPoints.canResetMaximumHitPointModifier
+          ) {
+            const modifier = adjustments.find(
+              (adjustment) =>
+                adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
+            )
+            if (modifier) {
+              await typedAdjustmentRepository.remove({
+                characterId: params.characterId,
+                adjustmentId: modifier.id,
+                family: 'HIT_POINTS'
+              })
+            }
+          }
+          const recoveredResourceIds = new Set(completedRest.allRecoveredResourceIds)
+          for (const resource of currentSheet.resources.items) {
+            if (!recoveredResourceIds.has(resource.id)) continue
+            const owner = toCharacterResourceOwnerKey(resource.owner)
+            const ownerKey = createCharacterResourceOwnerKey(owner)
+            const existing = resourceUsage.find(
+              (usage) => createCharacterResourceOwnerKey(usage.owner) === ownerKey
+            )
+            await typedPlayStateRepository.setResourceUsage({
+              id: existing?.id ?? crypto.randomUUID(),
+              characterId: params.characterId,
+              actorId: params.userId,
+              owner,
+              used: 0
+            })
+          }
+        }
+        await createCharacterEventRepository(trx).append(event)
       }
-      await createCharacterEventRepository(trx).append(event)
+    })
+  } catch (error) {
+    if (error instanceof ConcurrencyError) {
+      const concurrentEvent = await eventRepository.findByCommandId(
+        params.characterId,
+        params.command.commandId
+      )
+      if (concurrentEvent) {
+        return executeCharacterSheetCommand(params)
+      }
     }
-  })
+    throw error
+  }
 
   const [
     persistedAdjustments,
@@ -4711,14 +5506,16 @@ export async function executeCharacterSheetCommand(params: {
     occurredAt: event.occurredAt,
     actorId: event.actorId,
     eventType: event.type,
-    summary
+    summary,
+    ...(commandResult ? { result: commandResult } : {})
   }
 
   return {
     characterId: params.characterId,
     streamVersion: nextStreamVersion,
     sheet,
-    historyEntry
+    historyEntry,
+    ...(commandResult ? { result: commandResult } : {})
   }
 }
 

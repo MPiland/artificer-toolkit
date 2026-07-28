@@ -7,7 +7,8 @@ import type {
   CharacterDraftRequestDto,
   CharacterSheetCommandInputDto,
   CharacterSheetPanelDto,
-  CharacterSheetResponseDto
+  CharacterSheetResponseDto,
+  CharacterRestPreviewRequestDto
 } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -157,5 +158,13 @@ export function useCharacterSheetCommandMutation(characterId: string) {
         queryClient.refetchQueries({ queryKey: panelsKey })
       ])
     }
+  })
+}
+
+export function useCharacterRestPreviewMutation(characterId: string) {
+  return useMutation({
+    mutationKey: ['characters', 'sheet', 'rest-preview', characterId],
+    mutationFn: (input: CharacterRestPreviewRequestDto) =>
+      api.characters.restPreview(characterId, input)
   })
 }

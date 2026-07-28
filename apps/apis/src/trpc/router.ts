@@ -25,6 +25,7 @@ import {
   listAuthoredDomain,
   listCharactersForUser,
   normalizeNodeRuntimeValues,
+  previewCharacterRestForUser,
   previewCharacterSaveForUser,
   resolveCharacterForUser,
   resolveNodeRuntime,
@@ -98,6 +99,8 @@ import {
   characterDraftRequestDtoSchema,
   characterHistoryResponseDtoSchema,
   characterListResponseDtoSchema,
+  characterRestPreviewRequestDtoSchema,
+  characterRestPreviewResponseDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
@@ -212,6 +215,11 @@ const characterDraftProcedureInputSchema = z.object({
 const characterCommandProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterSheetCommandInputDtoSchema
+})
+
+const characterRestPreviewProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  input: characterRestPreviewRequestDtoSchema
 })
 
 const characterSheetPanelProcedureInputSchema = z.object({
@@ -511,6 +519,17 @@ export const appRouter = createTRPCRouter({
           characterSheetResponseDtoSchema
             .nullable()
             .parse(await getCharacterSheetForUser(db, input.id))
+        )
+      ),
+
+    restPreview: authenticatedProcedure
+      .input(characterRestPreviewProcedureInputSchema)
+      .output(characterRestPreviewResponseDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterRestPreviewResponseDtoSchema.parse(
+            await previewCharacterRestForUser(db, input.id, input.input, userId)
+          )
         )
       ),
 

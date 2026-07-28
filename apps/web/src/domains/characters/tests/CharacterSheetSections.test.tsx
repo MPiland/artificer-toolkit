@@ -2,7 +2,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { vi } from 'vitest'
-import type { CharacterSheetResponseDto } from '#app/lib/api'
+import type {
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto,
+  CharacterSheetResponseDto
+} from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
 import { characterSheetFixture } from '../character.fixtures'
@@ -56,7 +60,15 @@ function createSheet(): CharacterSheetResponseDto {
       maxHitPoints: 12,
       tempHitPoints: 3,
       maxHitPointsOverride: null,
-      exhaustionLevel: 0,
+      maxHitPointsModifier: 0,
+      maxHitPointsModifierAdjustmentId: null,
+      exhaustion: {
+        label: 'Exhaustion',
+        description: 'Exhaustion measures cumulative fatigue.',
+        level: 0,
+        minimumLevel: 0,
+        maximumLevel: 6
+      },
       conditions: [],
       hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }],
       savingThrows: [
@@ -162,6 +174,7 @@ function createSheet(): CharacterSheetResponseDto {
       conditionOptions: [
         {
           id: 'condition-1',
+          code: 'POISONED',
           label: 'Poisoned',
           description: 'A poisoned creature suffers from toxins affecting its body.'
         }
@@ -189,6 +202,68 @@ function createSheet(): CharacterSheetResponseDto {
 
 function trpcJson(data: unknown) {
   return HttpResponse.json([{ result: { data } }])
+}
+
+function createRestPreview(
+  request: CharacterRestPreviewRequestDto
+): CharacterRestPreviewResponseDto {
+  const selected = request.selectedHitDice.find((selection) => selection.die === 8)?.count ?? 0
+  const rollEvidence =
+    request.requestRoll || request.rollEvidence
+      ? {
+          expression: '1d8 + 1',
+          terms: [{ die: 8, count: 1, modifierPerDie: 1, rolls: [5] }],
+          total: 6
+        }
+      : undefined
+  const manualReady = request.healingMode === 'AUTOMATIC' || request.manualHealingAccepted
+
+  return {
+    restKind: request.restKind,
+    streamVersion: request.expectedVersion,
+    previewFingerprint: `rest-preview-${request.restKind.toLowerCase()}`,
+    hitPoints: {
+      current: 10,
+      maximum: 12,
+      temporary: 3,
+      missing: 2,
+      maximumHitPointModifier: -2,
+      canResetMaximumHitPointModifier: true
+    },
+    hitDice: [
+      {
+        die: 8,
+        classLabels: ['Fighter'],
+        total: 1,
+        used: 0,
+        remaining: 1,
+        selected,
+        constitutionModifier: 1
+      }
+    ],
+    healingMode: request.healingMode,
+    manualHealingAccepted: request.manualHealingAccepted,
+    ...(selected > 0 ? { canonicalExpression: '1d8 + 1' } : {}),
+    ...(rollEvidence ? { rollEvidence } : {}),
+    stagedHealing: rollEvidence ? 2 : request.restKind === 'LONG' ? 2 : 0,
+    automaticRecoveries: {
+      resources: [{ id: 'resource-1', label: 'Second Wind', recovered: 1 }],
+      spellSlots: []
+    },
+    eligibleCompanions: [
+      {
+        companionInstanceId: '11111111-1111-4111-8111-111111111111',
+        label: 'Clockwork Hound',
+        selected: request.selectedCompanionInstanceIds.includes(
+          '11111111-1111-4111-8111-111111111111'
+        ),
+        hitDice: [{ die: 8, total: 2, used: 1, remaining: 1, recovered: 1 }],
+        resources: [{ id: 'companion-resource-1', label: 'Pounce', recovered: 1 }]
+      }
+    ],
+    canApply:
+      request.restKind === 'LONG' || selected === 0 || (rollEvidence !== undefined && manualReady)
+  }
 }
 
 function trpcErrorJson(message: string, status: number) {
@@ -243,7 +318,7 @@ function mockMobileSheetViewport() {
     configurable: true,
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes('max-width: 760px'),
+      matches: query.includes('max-width: 760px') || query.includes('max-width: 48rem'),
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -899,6 +974,93 @@ describe('Character Sheet sections', () => {
     )
   })
 
+  it('previews and completes a short rest with backend-owned roll evidence', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+
+    server.use(
+      http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
+        const body = await request.json()
+        const input = readBatchedInput<{ id: string; input: CharacterRestPreviewRequestDto }>(
+          body
+        ).input
+        return trpcJson(createRestPreview(input))
+      })
+    )
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewVitals
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^short rest$/i }))
+    const dialog = await screen.findByRole('dialog', { name: /^short rest$/i })
+    expect(within(dialog).getByText(/fighter d8/i)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
+    expect(within(dialog).getByRole('button', { name: /1d8 \+ 1/i })).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: /1d8 \+ 1/i }))
+    expect((await within(dialog).findAllByText(/6 rolled/i)).length).toBeGreaterThan(0)
+    expect(within(dialog).getByText(/2 hp staged/i)).toBeInTheDocument()
+
+    await user.click(within(dialog).getByLabelText(/clockwork hound/i))
+    await user.click(within(dialog).getByRole('button', { name: /take short rest/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'COMPLETE_REST',
+      restKind: 'SHORT',
+      previewFingerprint: 'rest-preview-short',
+      selectedHitDice: [{ die: 8, count: 1 }],
+      resetMaximumHitPointModifier: false,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: ['11111111-1111-4111-8111-111111111111'],
+      rollEvidence: {
+        expression: '1d8 + 1',
+        terms: [{ die: 8, count: 1, modifierPerDie: 1, rolls: [5] }],
+        total: 6
+      },
+      expectedVersion: 4
+    })
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: /^short rest$/i })).not.toBeInTheDocument()
+    )
+  })
+
+  it('allows a meaningful zero-die short rest when another recovery applies', async () => {
+    const user = userEvent.setup()
+
+    server.use(
+      http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
+        const body = await request.json()
+        const input = readBatchedInput<{ id: string; input: CharacterRestPreviewRequestDto }>(
+          body
+        ).input
+        return trpcJson(createRestPreview(input))
+      })
+    )
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewVitals
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^short rest$/i }))
+    const dialog = await screen.findByRole('dialog', { name: /^short rest$/i })
+
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: /take short rest/i })).toBeEnabled()
+    )
+    expect(within(dialog).getByText(/no hit dice selected/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/second wind/i)).toBeInTheDocument()
+  })
+
   it('renders the overview as a dense digital sheet scan path', () => {
     const sheet = createSheet()
     sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]
@@ -930,7 +1092,7 @@ describe('Character Sheet sections', () => {
     expect(within(combatSection as HTMLElement).getByText(/^hp$/i)).toBeInTheDocument()
 
     const statusSummary = screen.getByRole('region', { name: /status summary/i })
-    expect(within(statusSummary).getByText(/exhaustion/i)).toBeInTheDocument()
+    expect(within(statusSummary).getByText(/^exhaustion$/i)).toBeInTheDocument()
     expect(within(statusSummary).getAllByText(/poisoned/i).length).toBeGreaterThan(0)
 
     const savesSection = screen.getByRole('heading', { name: /saving throws/i }).closest('section')
@@ -1144,7 +1306,7 @@ describe('Character Sheet sections', () => {
 
   it('locks overview health and status controls while a sheet command is pending', () => {
     const sheet = createSheet()
-    sheet.overview.exhaustionLevel = 1
+    sheet.overview.exhaustion.level = 1
 
     renderWithAppProviders(
       <>
@@ -1186,6 +1348,28 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('keeps condition drafts when saving fails', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(false)
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /add condition/i }))
+    await user.click(await screen.findByPlaceholderText(/add condition/i))
+    await user.click(await screen.findByText(/poisoned/i))
+    await user.type(screen.getByLabelText(/condition notes/i), 'Spider venom')
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+
+    expect(screen.getByLabelText(/condition notes/i)).toHaveValue('Spider venom')
+    expect(screen.getByRole('alert')).toHaveTextContent(/condition could not be saved/i)
+  })
+
   it('locks condition controls while a sheet command is pending', () => {
     renderWithAppProviders(
       <CharacterSheetOverviewStatusStrip pending sheet={createSheet()} submitCommand={vi.fn()} />
@@ -1213,6 +1397,37 @@ describe('Character Sheet sections', () => {
       level: 2,
       expectedVersion: 4
     })
+  })
+
+  it('commits exhaustion notes on blur and preserves them when saving fails', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(false)
+    const sheet = createSheet()
+    sheet.overview.exhaustion.level = 2
+    sheet.overview.exhaustion.notes = 'Forced march'
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip
+        conditionsOnly
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    const notes = screen.getByLabelText(/exhaustion notes/i)
+    await user.clear(notes)
+    await user.type(notes, 'Drowned road')
+    await user.tab()
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_EXHAUSTION',
+      level: 2,
+      notes: 'Drowned road',
+      expectedVersion: 4
+    })
+    expect(notes).toHaveValue('Drowned road')
+    expect(screen.getByRole('alert')).toHaveTextContent(/exhaustion could not be updated/i)
   })
 
   it('updates active condition notes through the compact status strip', async () => {
@@ -1491,6 +1706,58 @@ describe('Character Sheet sections', () => {
         expectedVersion: 4
       })
     )
+  })
+
+  it('upserts and removes the separate maximum HP adjustment', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetOverviewVitals pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    await openHpControls(user)
+    const adjustment = screen.getByLabelText(/max hp adjustment/i)
+    await user.clear(adjustment)
+    await user.type(adjustment, '3')
+    await user.tab()
+
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'UPSERT_SHEET_ADJUSTMENT',
+      adjustment: {
+        family: 'HIT_POINTS',
+        field: 'MAXIMUM_MODIFIER',
+        value: 3
+      },
+      expectedVersion: 4
+    })
+
+    const adjustedSheet = createSheet()
+    adjustedSheet.meta.streamVersion = 5
+    adjustedSheet.overview.maxHitPointsModifier = 3
+    adjustedSheet.overview.maxHitPointsModifierAdjustmentId = '11111111-1111-4111-8111-111111111112'
+    rerender(
+      <CharacterSheetOverviewVitals
+        pending={false}
+        sheet={adjustedSheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await openHpControls(user)
+    const adjustedInput = screen.getByLabelText(/max hp adjustment/i)
+    await user.clear(adjustedInput)
+    await user.type(adjustedInput, '0')
+    await user.tab()
+
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'REMOVE_SHEET_ADJUSTMENT',
+      adjustmentId: '11111111-1111-4111-8111-111111111112',
+      target: { kind: 'HIT_POINTS' },
+      family: 'HIT_POINTS',
+      expectedVersion: 5
+    })
   })
 
   it('does not submit no-op hit point adjustments', async () => {

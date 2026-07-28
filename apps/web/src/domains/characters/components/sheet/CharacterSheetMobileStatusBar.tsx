@@ -17,8 +17,8 @@ export function CharacterSheetMobileStatusBar({
     ? conditions.map((condition) => condition.label).join(', ')
     : 'None'
   const conditionSummary =
-    sheet.overview.exhaustionLevel > 0
-      ? `${activeConditionSummary} · Exhaustion ${sheet.overview.exhaustionLevel}`
+    sheet.overview.exhaustion.level > 0
+      ? `${activeConditionSummary} · Exhaustion ${sheet.overview.exhaustion.level}`
       : activeConditionSummary
   const defenseSummary = sheet.reference.defenses.length
     ? `${sheet.reference.defenses.length} active`

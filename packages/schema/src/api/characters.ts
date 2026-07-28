@@ -32,6 +32,11 @@ import { listResponseDtoSchema } from './common.js'
 import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
+  characterRestHealingModeDtoSchema,
+  characterRestHitDiceRollEvidenceDtoSchema,
+  characterRestHitDieSelectionsDtoSchema,
+  characterRestKindDtoSchema,
+  characterSheetCommandResultDtoSchema,
   characterSheetCoreAdjustmentCommandDtoSchema,
   characterSheetCompanionAdjustmentCommandDtoSchema,
   characterSheetItemAdjustmentCommandDtoSchema,
@@ -624,6 +629,29 @@ export const characterSheetConditionDtoSchema = z.object({
   notes: z.string().optional()
 })
 
+export const characterSheetExhaustionDtoSchema = z
+  .strictObject({
+    label: z.string().trim().min(1),
+    description: z.string().trim().min(1),
+    level: z.number().int().nonnegative(),
+    minimumLevel: z.number().int().nonnegative(),
+    maximumLevel: z.number().int().positive(),
+    notes: z.string().optional()
+  })
+  .superRefine((exhaustion, context) => {
+    if (
+      exhaustion.minimumLevel > exhaustion.maximumLevel ||
+      exhaustion.level < exhaustion.minimumLevel ||
+      exhaustion.level > exhaustion.maximumLevel
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['level'],
+        message: 'Exhaustion level must be within the rules-system range.'
+      })
+    }
+  })
+
 export const characterSheetOverviewDtoSchema = z.object({
   abilities: z.array(characterSheetAbilityDtoSchema),
   facts: z.array(characterSheetFactDtoSchema),
@@ -634,6 +662,8 @@ export const characterSheetOverviewDtoSchema = z.object({
   currentHitPoints: z.number().int(),
   maxHitPoints: z.number().int(),
   tempHitPoints: z.number().int(),
+  maxHitPointsModifier: z.number().int(),
+  maxHitPointsModifierAdjustmentId: z.guid().nullable(),
   maxHitPointsOverride: z.number().int().nullable(),
   savingThrows: z.array(
     z.object({
@@ -653,8 +683,7 @@ export const characterSheetOverviewDtoSchema = z.object({
       proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
     })
   ),
-  exhaustionLevel: z.number().int().min(0).max(6),
-  exhaustionNotes: z.string().optional(),
+  exhaustion: characterSheetExhaustionDtoSchema,
   conditions: z.array(characterSheetConditionDtoSchema),
   hitDice: z.array(characterSheetHitDiceDtoSchema)
 })
@@ -1034,7 +1063,11 @@ export const characterSheetReferenceDtoSchema = z.object({
       range: rangeDtoSchema.optional()
     })
   ),
-  conditionOptions: z.array(characterSheetOptionDtoSchema),
+  conditionOptions: z.array(
+    characterSheetOptionDtoSchema.extend({
+      code: z.string().trim().min(1)
+    })
+  ),
   equipmentOptions: z.array(
     characterSheetOptionDtoSchema.extend({
       isContainer: z.boolean(),
@@ -1130,6 +1163,96 @@ const characterSheetCommandBaseDtoSchema = z.object({
   expectedVersion: z.number().int()
 })
 
+export const characterRestPreviewRequestDtoSchema = z
+  .strictObject({
+    restKind: characterRestKindDtoSchema,
+    expectedVersion: z.number().int().nonnegative(),
+    selectedHitDice: characterRestHitDieSelectionsDtoSchema,
+    resetMaximumHitPointModifier: z.boolean(),
+    healingMode: characterRestHealingModeDtoSchema,
+    manualHealingAccepted: z.boolean(),
+    selectedCompanionInstanceIds: z.array(z.guid()),
+    rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional(),
+    requestRoll: z.boolean()
+  })
+  .superRefine((request, context) => {
+    if (
+      new Set(request.selectedCompanionInstanceIds).size !==
+      request.selectedCompanionInstanceIds.length
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['selectedCompanionInstanceIds'],
+        message: 'A companion may be selected only once.'
+      })
+    }
+    if (request.requestRoll && request.rollEvidence) {
+      context.addIssue({
+        code: 'custom',
+        path: ['requestRoll'],
+        message: 'A new roll request cannot also provide prior roll evidence.'
+      })
+    }
+  })
+
+const characterRestRecoveryPreviewDtoSchema = z.strictObject({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  recovered: z.number().int().nonnegative()
+})
+
+export const characterRestPreviewResponseDtoSchema = z.strictObject({
+  restKind: characterRestKindDtoSchema,
+  streamVersion: z.number().int().nonnegative(),
+  previewFingerprint: z.string().trim().min(1),
+  hitPoints: z.strictObject({
+    current: z.number().int().nonnegative(),
+    maximum: z.number().int().nonnegative(),
+    temporary: z.number().int().nonnegative(),
+    missing: z.number().int().nonnegative(),
+    maximumHitPointModifier: z.number().int(),
+    canResetMaximumHitPointModifier: z.boolean()
+  }),
+  hitDice: z.array(
+    z.strictObject({
+      die: z.number().int().min(2),
+      classLabels: z.array(z.string().trim().min(1)).min(1),
+      total: z.number().int().nonnegative(),
+      used: z.number().int().nonnegative(),
+      remaining: z.number().int().nonnegative(),
+      selected: z.number().int().nonnegative(),
+      constitutionModifier: z.number().int()
+    })
+  ),
+  healingMode: characterRestHealingModeDtoSchema,
+  manualHealingAccepted: z.boolean(),
+  canonicalExpression: z.string().trim().min(1).optional(),
+  rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional(),
+  stagedHealing: z.number().int().nonnegative(),
+  automaticRecoveries: z.strictObject({
+    resources: z.array(characterRestRecoveryPreviewDtoSchema),
+    spellSlots: z.array(characterRestRecoveryPreviewDtoSchema)
+  }),
+  eligibleCompanions: z.array(
+    z.strictObject({
+      companionInstanceId: z.guid(),
+      label: z.string().trim().min(1),
+      selected: z.boolean(),
+      hitDice: z.array(
+        z.strictObject({
+          die: z.number().int().min(2),
+          total: z.number().int().nonnegative(),
+          used: z.number().int().nonnegative(),
+          remaining: z.number().int().nonnegative(),
+          recovered: z.number().int().nonnegative()
+        })
+      ),
+      resources: z.array(characterRestRecoveryPreviewDtoSchema)
+    })
+  ),
+  canApply: z.boolean()
+})
+
 export const characterSheetCommandInputDtoSchema = z
   .discriminatedUnion('type', [
     characterSheetCommandBaseDtoSchema.extend({
@@ -1151,6 +1274,7 @@ export const characterSheetCommandInputDtoSchema = z
         'PASSIVE',
         'SENSE',
         'MOVEMENT',
+        'HIT_POINTS',
         'COMPANION',
         'SPELL',
         'ITEM',
@@ -1263,8 +1387,19 @@ export const characterSheetCommandInputDtoSchema = z
       restKind: z.enum(['SHORT', 'LONG'])
     }),
     characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('COMPLETE_REST'),
+      restKind: characterRestKindDtoSchema,
+      previewFingerprint: z.string().trim().min(1),
+      selectedHitDice: characterRestHitDieSelectionsDtoSchema,
+      resetMaximumHitPointModifier: z.boolean(),
+      healingMode: characterRestHealingModeDtoSchema,
+      manualHealingAccepted: z.boolean(),
+      selectedCompanionInstanceIds: z.array(z.guid()),
+      rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional()
+    }),
+    characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('SET_EXHAUSTION'),
-      level: z.number().int().min(0).max(6),
+      level: z.number().int().min(0),
       notes: z.string().optional()
     }),
     characterSheetCommandBaseDtoSchema.extend({
@@ -1410,7 +1545,8 @@ export const characterHistoryEntryDtoSchema = z.object({
   occurredAt: z.string(),
   actorId: z.string(),
   eventType: z.string(),
-  summary: z.string()
+  summary: z.string(),
+  result: characterSheetCommandResultDtoSchema.optional()
 })
 
 export const characterHistoryResponseDtoSchema = z.object({
@@ -1423,7 +1559,8 @@ export const characterSheetCommandResponseDtoSchema = z.object({
   streamVersion: z.number().int(),
   sheet: characterSheetResponseDtoSchema,
   panels: z.array(characterSheetPanelDtoSchema).optional(),
-  historyEntry: characterHistoryEntryDtoSchema.optional()
+  historyEntry: characterHistoryEntryDtoSchema.optional(),
+  result: characterSheetCommandResultDtoSchema.optional()
 })
 
 export type CharacterBuilderModeDto = z.infer<typeof characterBuilderModeDtoSchema>
@@ -1534,6 +1671,8 @@ export type CharacterBuilderCommitRequestDto = z.infer<
   typeof characterBuilderCommitRequestDtoSchema
 >
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>
+export type CharacterRestPreviewRequestDto = z.infer<typeof characterRestPreviewRequestDtoSchema>
+export type CharacterRestPreviewResponseDto = z.infer<typeof characterRestPreviewResponseDtoSchema>
 export type CharacterSheetExtrasDto = z.infer<typeof characterSheetExtrasDtoSchema>
 export type CharacterHistoryEntryDto = z.infer<typeof characterHistoryEntryDtoSchema>
 export type CharacterHistoryResponseDto = z.infer<typeof characterHistoryResponseDtoSchema>

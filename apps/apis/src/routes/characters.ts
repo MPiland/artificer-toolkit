@@ -10,6 +10,7 @@ import {
   handleAuthoringRequest,
   handleRequest,
   listCharactersForUser,
+  previewCharacterRestForUser,
   previewCharacterSaveForUser,
   resolveCharacterForUser,
   saveCharacterBuilderDraftForUser,
@@ -22,6 +23,7 @@ import {
   characterBuilderResolveRequestDtoSchema,
   characterBuilderSaveRequestDtoSchema,
   characterDraftRequestDtoSchema,
+  characterRestPreviewRequestDtoSchema,
   characterSheetCommandInputDtoSchema
 } from '@artificer-toolkit/schema/api/characters'
 
@@ -86,6 +88,17 @@ export const getCharacter = handleRequest(
 export const getCharacterSheet = handleRequest(
   getCharacterSheetForUser,
   (request: Request) => [extractCharacterIdBeforeSegment(request, 'sheet')] as [string]
+)
+
+export const previewCharacterRest = handleAuthoringRequest(
+  characterRestPreviewRequestDtoSchema,
+  (db, input, userId, request) =>
+    previewCharacterRestForUser(
+      db,
+      extractCharacterIdBeforeSegment(request, 'rest-preview'),
+      input,
+      userId
+    )
 )
 
 export const resolveCharacter = handleAuthoringRequest(

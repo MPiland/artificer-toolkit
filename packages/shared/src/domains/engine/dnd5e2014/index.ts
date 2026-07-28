@@ -25,6 +25,26 @@ export const dnd5e2014RulesSystem: RulesSystem = {
     version: '2014'
   },
   label: 'D&D 5e 2014 SRD',
+  rest: {
+    hitDiceRecoveredAfterLongRest(totalHitDice: number): number {
+      if (!Number.isInteger(totalHitDice) || totalHitDice < 0) {
+        throw new RangeError('Total hit dice must be a non-negative integer.')
+      }
+      return totalHitDice === 0 ? 0 : Math.max(1, Math.floor(totalHitDice / 2))
+    }
+  },
+  exhaustion: {
+    label: 'Exhaustion',
+    description: 'Exhaustion measures cumulative physical and mental fatigue.',
+    minimumLevel: 0,
+    maximumLevel: 6,
+    levelAfterLongRest(currentLevel: number): number {
+      if (!Number.isInteger(currentLevel) || currentLevel < 0 || currentLevel > 6) {
+        throw new RangeError('Exhaustion level must be an integer from 0 through 6.')
+      }
+      return Math.max(0, currentLevel - 1)
+    }
+  },
 
   proficiencyBonus: dnd5e2014ProficiencyBonus,
 

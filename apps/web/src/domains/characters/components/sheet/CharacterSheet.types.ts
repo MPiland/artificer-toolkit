@@ -38,4 +38,6 @@ export type CharacterSheetSectionProps = {
   pending: boolean
   submitCommand: SubmitSheetCommand
   openPanel?: (target: CharacterSheetPanelTargetDto) => void
+  closePanel?: () => void
+  overlayEpoch?: number
 }

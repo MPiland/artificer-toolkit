@@ -10,6 +10,18 @@ export interface ModifierStackingConfig {
   rule: ModifierStackingRule
 }
 
+export interface RestRulesPolicy {
+  hitDiceRecoveredAfterLongRest(totalHitDice: number): number
+}
+
+export interface ExhaustionRulesPolicy {
+  label: string
+  description: string
+  minimumLevel: number
+  maximumLevel: number
+  levelAfterLongRest(currentLevel: number): number
+}
+
 /**
  * System-agnostic rules contract.
  *
@@ -23,6 +35,8 @@ export interface RulesSystem {
     version: string
   }
   label: string
+  rest: RestRulesPolicy
+  exhaustion: ExhaustionRulesPolicy
 
   /**
    * Returns the proficiency bonus for a given total character level.

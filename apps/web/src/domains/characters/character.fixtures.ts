@@ -9,6 +9,8 @@ import type {
   CharacterBuilderPreviewPayloadDto,
   CharacterHistoryResponseDto,
   CharacterListResponseDto,
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
@@ -574,8 +576,16 @@ export const characterSheetFixture = {
     maxHitPoints: 17,
     tempHitPoints: 4,
     maxHitPointsOverride: null,
-    exhaustionLevel: 1,
-    exhaustionNotes: 'Forced march through the drowned road.',
+    maxHitPointsModifier: 0,
+    maxHitPointsModifierAdjustmentId: null,
+    exhaustion: {
+      label: 'Exhaustion',
+      description: 'Exhaustion measures the cumulative effects of fatigue and deprivation.',
+      level: 1,
+      minimumLevel: 0,
+      maximumLevel: 6,
+      notes: 'Forced march through the drowned road.'
+    },
     conditions: [
       {
         conditionTypeId: 'condition-poisoned',
@@ -1565,17 +1575,20 @@ export const characterSheetFixture = {
     conditionOptions: [
       {
         id: 'condition-blinded',
+        code: 'BLINDED',
         label: 'Blinded',
         description:
           'A blinded creature cannot see and automatically fails ability checks that require sight.'
       },
       {
         id: 'condition-poisoned',
+        code: 'POISONED',
         label: 'Poisoned',
         description: 'A poisoned creature has disadvantage on attack rolls and ability checks.'
       },
       {
         id: 'condition-prone',
+        code: 'PRONE',
         label: 'Prone',
         description: 'A prone creature moves by crawling unless it stands up.'
       }
@@ -1670,8 +1683,15 @@ export const characterSheetMulticlassFixture = {
     currentHitPoints: 20,
     maxHitPoints: 26,
     tempHitPoints: 0,
-    exhaustionLevel: 0,
-    exhaustionNotes: undefined,
+    maxHitPointsModifier: -2,
+    maxHitPointsModifierAdjustmentId: '11111111-1111-4111-8111-111111111112',
+    exhaustion: {
+      label: 'Exhaustion',
+      description: 'Exhaustion measures the cumulative effects of fatigue and deprivation.',
+      level: 0,
+      minimumLevel: 0,
+      maximumLevel: 6
+    },
     conditions: [],
     hitDice: [
       { die: 10, total: 2, used: 1, remaining: 1 },
@@ -1905,6 +1925,77 @@ export const characterSheetMulticlassFixture = {
       '<p>Rook guarded a temple archive before learning that discretion could protect knowledge as effectively as steel.</p>'
   }
 } satisfies CharacterSheetResponseDto
+
+export function createCharacterRestPreviewFixture(
+  request: CharacterRestPreviewRequestDto
+): CharacterRestPreviewResponseDto {
+  const selectedByDie = new Map(
+    request.selectedHitDice.map((selection) => [selection.die, selection.count])
+  )
+  const rollEvidence =
+    request.requestRoll || request.rollEvidence
+      ? {
+          expression: '1d10 + 1d8 + 4',
+          terms: [
+            { die: 10, count: 1, modifierPerDie: 2, rolls: [8] },
+            { die: 8, count: 1, modifierPerDie: 2, rolls: [3] }
+          ],
+          total: 15
+        }
+      : undefined
+
+  return {
+    restKind: request.restKind,
+    streamVersion: request.expectedVersion,
+    previewFingerprint: `multiclass-${request.restKind.toLowerCase()}-rest`,
+    hitPoints: {
+      current: 20,
+      maximum: 26,
+      temporary: 0,
+      missing: 6,
+      maximumHitPointModifier: -2,
+      canResetMaximumHitPointModifier: true
+    },
+    hitDice: [
+      {
+        die: 10,
+        classLabels: ['Fighter'],
+        total: 2,
+        used: 1,
+        remaining: 1,
+        selected: selectedByDie.get(10) ?? 0,
+        constitutionModifier: 2
+      },
+      {
+        die: 8,
+        classLabels: ['Rogue'],
+        total: 1,
+        used: 0,
+        remaining: 1,
+        selected: selectedByDie.get(8) ?? 0,
+        constitutionModifier: 2
+      }
+    ],
+    healingMode: request.healingMode,
+    manualHealingAccepted: request.manualHealingAccepted,
+    ...(request.selectedHitDice.length ? { canonicalExpression: '1d10 + 1d8 + 4' } : {}),
+    ...(rollEvidence ? { rollEvidence } : {}),
+    stagedHealing: rollEvidence ? 6 : 0,
+    automaticRecoveries: {
+      resources: [
+        { id: 'resource-second-wind', label: 'Second Wind', recovered: 1 },
+        { id: 'resource-action-surge', label: 'Action Surge', recovered: 1 }
+      ],
+      spellSlots: []
+    },
+    eligibleCompanions: [],
+    canApply:
+      request.restKind === 'LONG' ||
+      request.selectedHitDice.length === 0 ||
+      (rollEvidence !== undefined &&
+        (request.healingMode === 'AUTOMATIC' || request.manualHealingAccepted))
+  }
+}
 
 export const characterSheetSpellStatesFixture = {
   ...characterSheetFixture,

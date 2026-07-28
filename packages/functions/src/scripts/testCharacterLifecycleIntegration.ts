@@ -33,6 +33,7 @@ import {
   getCharacterSheetForUser,
   dispatchCommandForUser,
   getCharacterHistoryForUser,
+  previewCharacterRestForUser,
   previewCharacterSaveForUser,
   resolveCharacterForUser,
   saveCharacterBuilderDraftForUser,
@@ -1069,8 +1070,8 @@ async function proveConditionCommands(
     level: 2,
     notes: 'Lifecycle exhaustion'
   })
-  assert.equal(current.overview.exhaustionLevel, 2)
-  assert.equal(current.overview.exhaustionNotes, 'Lifecycle exhaustion')
+  assert.equal(current.overview.exhaustion.level, 2)
+  assert.equal(current.overview.exhaustion.notes, 'Lifecycle exhaustion')
 
   const condition = requireRecordByLabel(
     current.reference.conditionOptions,
@@ -1138,45 +1139,86 @@ async function proveHitPointRestAndResourceCommands(
   })
   assert.equal(current.overview.currentHitPoints, setCurrentHitPoints + 1)
 
-  const usedBefore = hitDie.used
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'USE_HIT_DIE',
-    die: hitDie.die
+    type: 'UPSERT_SHEET_ADJUSTMENT',
+    adjustment: {
+      family: 'HIT_POINTS',
+      field: 'MAXIMUM_MODIFIER',
+      value: 2,
+      sourceNote: 'Lifecycle rest reset'
+    }
   })
-  assert.equal(current.overview.hitDice.find(({ die }) => die === hitDie.die)?.used, usedBefore + 1)
+  assert.equal(current.overview.maxHitPointsModifier, 2)
+  assert.ok(current.overview.maxHitPointsModifierAdjustmentId)
 
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'USE_RESOURCE',
-    resourceGrantId: resource.id,
-    amount: 1
+    type: 'USE_SHEET_RESOURCE',
+    owner: resource.owner
   })
   assert.equal(current.resources.items.find(({ id }) => id === resource.id)?.used, 1)
-
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'RESTORE_RESOURCE',
-    resourceGrantId: resource.id,
-    all: true
+    type: 'SET_HIT_POINTS',
+    current: current.overview.currentHitPoints,
+    temp: 4
   })
-  assert.equal(current.resources.items.find(({ id }) => id === resource.id)?.used, 0)
 
-  current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'USE_RESOURCE',
-    resourceGrantId: resource.id
-  })
-  const hitDiceUsedBeforeShortRest = current.overview.hitDice.reduce(
-    (sum, die) => sum + die.used,
-    0
+  const shortRestPreview = await previewCharacterRestForUser(
+    db,
+    fixture.characterId,
+    {
+      restKind: 'SHORT',
+      expectedVersion: current.meta.streamVersion,
+      selectedHitDice: [{ die: hitDie.die, count: 1 }],
+      resetMaximumHitPointModifier: true,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      requestRoll: true
+    },
+    fixture.userId
   )
-  const hitPointsBeforeShortRest = current.overview.currentHitPoints
-  current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'APPLY_REST',
-    restKind: 'SHORT'
-  })
+  assert.ok(shortRestPreview.rollEvidence, 'Short-rest preview did not return exact roll evidence.')
+  assert.equal(shortRestPreview.canApply, true)
+  const shortRestCommandId = randomUUID()
+  const shortRestResult = await dispatchCommandForUser(
+    db,
+    fixture.characterId,
+    {
+      type: 'COMPLETE_REST',
+      commandId: shortRestCommandId,
+      expectedVersion: current.meta.streamVersion,
+      restKind: 'SHORT',
+      previewFingerprint: shortRestPreview.previewFingerprint,
+      selectedHitDice: [{ die: hitDie.die, count: 1 }],
+      resetMaximumHitPointModifier: true,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      rollEvidence: shortRestPreview.rollEvidence
+    },
+    fixture.userId
+  )
+  assert.equal(shortRestResult.streamVersion, current.meta.streamVersion + 1)
+  assert.equal(shortRestResult.result?.type, 'COMPLETE_REST')
+  assert.deepEqual(
+    shortRestResult.result?.rest.rollEvidence,
+    shortRestPreview.rollEvidence,
+    'Completed rest did not preserve the exact accepted dice evidence.'
+  )
+  current = shortRestResult.sheet
+  assert.equal(current.overview.tempHitPoints, 4)
+  assert.equal(current.overview.maxHitPointsModifier, 0)
+  assert.equal(current.overview.maxHitPointsModifierAdjustmentId, null)
   assert.equal(current.resources.items.find(({ id }) => id === resource.id)?.used, 0)
-  assert.equal(current.overview.currentHitPoints, hitPointsBeforeShortRest)
   assert.equal(
-    current.overview.hitDice.reduce((sum, die) => sum + die.used, 0),
-    hitDiceUsedBeforeShortRest
+    current.overview.hitDice.find(({ die }) => die === hitDie.die)?.used,
+    hitDie.used + 1
+  )
+  const shortRestHistory = await getCharacterHistoryForUser(db, fixture.characterId, fixture.userId)
+  assert.deepEqual(
+    shortRestHistory.entries.at(-1)?.result,
+    shortRestResult.result,
+    'Completed-rest event did not round-trip its exact result.'
   )
 
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
@@ -1185,17 +1227,101 @@ async function proveHitPointRestAndResourceCommands(
     temp: 4
   })
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'USE_RESOURCE',
-    resourceGrantId: resource.id
+    type: 'USE_SHEET_RESOURCE',
+    owner: resource.owner
   })
+  const recoverableSlot = current.spells.slots.find((slot) => slot.remaining > 0)
+  if (recoverableSlot) {
+    current = await dispatchAndReloadSheetCommand(db, fixture, current, {
+      type: 'USE_SPELL_SLOT',
+      slotKey: recoverableSlot.slotKey
+    })
+  }
+  const staleLongRestPreview = await previewCharacterRestForUser(
+    db,
+    fixture.characterId,
+    {
+      restKind: 'LONG',
+      expectedVersion: current.meta.streamVersion,
+      selectedHitDice: [],
+      resetMaximumHitPointModifier: false,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      requestRoll: false
+    },
+    fixture.userId
+  )
+  const staleVersion = current.meta.streamVersion
+  current = await dispatchAndReloadSheetCommand(db, fixture, current, {
+    type: 'SET_INSPIRATION',
+    inspired: !current.overview.inspiration
+  })
+  const beforeStaleRest = canonicalize(current)
+  const historyBeforeStaleRest = await getCharacterHistoryForUser(
+    db,
+    fixture.characterId,
+    fixture.userId
+  )
+  await assert.rejects(
+    dispatchCommandForUser(
+      db,
+      fixture.characterId,
+      {
+        type: 'COMPLETE_REST',
+        commandId: randomUUID(),
+        expectedVersion: staleVersion,
+        restKind: 'LONG',
+        previewFingerprint: staleLongRestPreview.previewFingerprint,
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: []
+      },
+      fixture.userId
+    ),
+    /stream_version conflict/u
+  )
+  assert.deepEqual(
+    canonicalize(await getCharacterSheetForUser(db, fixture.characterId)),
+    beforeStaleRest
+  )
+  assert.deepEqual(
+    await getCharacterHistoryForUser(db, fixture.characterId, fixture.userId),
+    historyBeforeStaleRest,
+    'A stale completed rest appended an event.'
+  )
+
+  const longRestPreview = await previewCharacterRestForUser(
+    db,
+    fixture.characterId,
+    {
+      restKind: 'LONG',
+      expectedVersion: current.meta.streamVersion,
+      selectedHitDice: [],
+      resetMaximumHitPointModifier: false,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      requestRoll: false
+    },
+    fixture.userId
+  )
   const hitDiceUsedBeforeLongRest = current.overview.hitDice.reduce((sum, die) => sum + die.used, 0)
   current = await dispatchAndReloadSheetCommand(db, fixture, current, {
-    type: 'APPLY_REST',
-    restKind: 'LONG'
+    type: 'COMPLETE_REST',
+    restKind: 'LONG',
+    previewFingerprint: longRestPreview.previewFingerprint,
+    selectedHitDice: [],
+    resetMaximumHitPointModifier: false,
+    healingMode: 'AUTOMATIC',
+    manualHealingAccepted: false,
+    selectedCompanionInstanceIds: []
   })
   assert.equal(current.overview.currentHitPoints, current.overview.maxHitPoints)
   assert.equal(current.overview.tempHitPoints, 0)
-  assert.equal(current.overview.exhaustionLevel, 1)
+  assert.equal(current.overview.exhaustion.level, 1)
   assert.equal(current.resources.items.find(({ id }) => id === resource.id)?.used, 0)
   assert.ok(
     current.overview.hitDice.reduce((sum, die) => sum + die.used, 0) < hitDiceUsedBeforeLongRest,
@@ -1735,10 +1861,10 @@ async function main(): Promise<void> {
           hitPointsAndRest: [
             'SET_HIT_POINTS',
             'ADJUST_HIT_POINTS',
-            'USE_HIT_DIE',
-            'APPLY_REST',
-            'USE_RESOURCE',
-            'RESTORE_RESOURCE'
+            'USE_SHEET_RESOURCE',
+            'COMPLETE_REST',
+            'exact rest result replay',
+            'stale rest no-write rejection'
           ],
           inspirationAndConcurrency: [
             'SET_INSPIRATION',

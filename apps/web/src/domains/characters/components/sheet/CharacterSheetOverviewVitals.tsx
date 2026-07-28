@@ -1,8 +1,9 @@
 import { Button, CloseButton, Drawer, NumberInput, Popover, Text } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { ChevronRight, Coffee, Moon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
+import { CharacterSheetRestControl } from './CharacterSheetRestControl'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 import { formatSigned, toNumber } from './characterSheet.utils'
@@ -28,11 +29,16 @@ function CharacterSheetHpControls({
   const [maxOverride, setMaxOverride] = useState<string | number>(
     sheet.overview.maxHitPointsOverride ?? ''
   )
+  const [maxModifier, setMaxModifier] = useState<string | number>(
+    sheet.overview.maxHitPointsModifier
+  )
   const [settingsError, setSettingsError] = useState(false)
+  const [modifierError, setModifierError] = useState(false)
   const lastSubmittedSettings = useRef({
     temp: sheet.overview.tempHitPoints,
     maxOverride: sheet.overview.maxHitPointsOverride
   })
+  const lastSubmittedModifier = useRef(sheet.overview.maxHitPointsModifier)
 
   const normalizedMaxOverride = maxOverride === '' ? null : toNumber(maxOverride)
   const commitSettings = async () => {
@@ -62,6 +68,40 @@ function CharacterSheetHpControls({
     setTempHitPoints(sheet.overview.tempHitPoints)
     setMaxOverride(sheet.overview.maxHitPointsOverride ?? '')
     setSettingsError(true)
+  }
+
+  const commitMaxModifier = async () => {
+    const normalizedModifier = toNumber(maxModifier)
+    if (normalizedModifier === lastSubmittedModifier.current) return
+
+    setModifierError(false)
+    const adjustmentId = sheet.overview.maxHitPointsModifierAdjustmentId
+    const succeeded =
+      normalizedModifier === 0 && adjustmentId
+        ? await submitCommand({
+            type: 'REMOVE_SHEET_ADJUSTMENT',
+            adjustmentId,
+            target: { kind: 'HIT_POINTS' },
+            family: 'HIT_POINTS',
+            expectedVersion: version
+          })
+        : await submitCommand({
+            type: 'UPSERT_SHEET_ADJUSTMENT',
+            adjustment: {
+              ...(adjustmentId ? { id: adjustmentId } : {}),
+              family: 'HIT_POINTS',
+              field: 'MAXIMUM_MODIFIER',
+              value: normalizedModifier
+            },
+            expectedVersion: version
+          })
+
+    if (succeeded) {
+      lastSubmittedModifier.current = normalizedModifier
+      return
+    }
+
+    setModifierError(true)
   }
 
   return (
@@ -125,6 +165,19 @@ function CharacterSheetHpControls({
           classNames={hpFieldClassNames}
           disabled={pending}
           hideControls
+          label='Max HP adjustment'
+          placeholder='0'
+          value={maxModifier}
+          onBlur={commitMaxModifier}
+          onChange={setMaxModifier}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+          }}
+        />
+        <NumberInput
+          classNames={hpFieldClassNames}
+          disabled={pending}
+          hideControls
           label='Max HP override'
           min={0}
           placeholder={String(sheet.overview.maxHitPoints)}
@@ -141,12 +194,19 @@ function CharacterSheetHpControls({
           Hit point settings could not be updated. The sheet was refreshed; try again.
         </Text>
       ) : null}
+      {modifierError ? (
+        <Text className={styles.commandInlineError} role='alert'>
+          Maximum HP adjustment could not be updated. The Sheet was refreshed; try again.
+        </Text>
+      ) : null}
     </div>
   )
 }
 
 export function CharacterSheetOverviewVitals({
+  closePanel,
   openPanel,
+  overlayEpoch,
   pending,
   sheet,
   showDefenses = false,
@@ -154,8 +214,8 @@ export function CharacterSheetOverviewVitals({
 }: CharacterSheetSectionProps & { showDefenses?: boolean }) {
   const version = sheet.meta.streamVersion
   const [hpControlsOpen, setHpControlsOpen] = useState(false)
-  const [restError, setRestError] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 760px)', false)
+  const [activeRestKind, setActiveRestKind] = useState<'SHORT' | 'LONG'>()
+  const isMobile = useMediaQuery('(max-width: 48rem)', false)
   const speedFact = sheet.overview.facts.find((fact) => fact.label.toLowerCase() === 'speed')
   const primaryFacts = [
     { label: 'Armor Class', mobileLabel: 'AC', value: String(sheet.overview.armorClass) },
@@ -174,52 +234,31 @@ export function CharacterSheetOverviewVitals({
   ] as const
   const restActions = (
     <div className={styles.restActionDock} aria-label='Recovery actions'>
-      <Button
-        className={`${styles.compactActionControl} ${styles.restActionButton}`}
-        disabled={pending}
-        leftSection={
-          <span className={styles.restActionIcon}>
-            <Coffee aria-hidden='true' size={14} />
-          </span>
-        }
-        size='xs'
-        variant='default'
-        onClick={async () => {
-          setRestError(false)
-          const succeeded = await submitCommand({
-            type: 'APPLY_REST',
-            restKind: 'SHORT',
-            expectedVersion: version
-          })
-          if (!succeeded) setRestError(true)
-        }}
-      >
-        Short Rest
-      </Button>
-      <Button
-        className={`${styles.compactActionControl} ${styles.restActionButton}`}
-        disabled={pending}
-        leftSection={
-          <span className={styles.restActionIcon}>
-            <Moon aria-hidden='true' size={14} />
-          </span>
-        }
-        size='xs'
-        variant='default'
-        onClick={async () => {
-          setRestError(false)
-          const succeeded = await submitCommand({
-            type: 'APPLY_REST',
-            restKind: 'LONG',
-            expectedVersion: version
-          })
-          if (!succeeded) setRestError(true)
-        }}
-      >
-        Long Rest
-      </Button>
+      {(['SHORT', 'LONG'] as const).map((restKind) => (
+        <CharacterSheetRestControl
+          closePanel={closePanel}
+          key={restKind}
+          opened={activeRestKind === restKind}
+          overlayEpoch={overlayEpoch}
+          pending={pending}
+          restKind={restKind}
+          sheet={sheet}
+          submitCommand={submitCommand}
+          onClose={() => setActiveRestKind(undefined)}
+          onOpen={() => {
+            setHpControlsOpen(false)
+            closePanel?.()
+            setActiveRestKind(restKind)
+          }}
+        />
+      ))}
     </div>
   )
+
+  useEffect(() => {
+    setHpControlsOpen(false)
+    setActiveRestKind(undefined)
+  }, [overlayEpoch])
 
   return (
     <>
@@ -320,7 +359,11 @@ export function CharacterSheetOverviewVitals({
                 disabled={pending}
                 size='xs'
                 variant='default'
-                onClick={() => setHpControlsOpen(true)}
+                onClick={() => {
+                  setActiveRestKind(undefined)
+                  closePanel?.()
+                  setHpControlsOpen(true)
+                }}
               >
                 <span className={styles.hpManageLabel}>Manage HP</span>
               </Button>
@@ -343,7 +386,11 @@ export function CharacterSheetOverviewVitals({
                     disabled={pending}
                     size='xs'
                     variant='default'
-                    onClick={() => setHpControlsOpen((current) => !current)}
+                    onClick={() => {
+                      setActiveRestKind(undefined)
+                      closePanel?.()
+                      setHpControlsOpen((current) => !current)
+                    }}
                   >
                     <span className={styles.hpManageLabel}>Manage HP</span>
                   </Button>
@@ -375,13 +422,8 @@ export function CharacterSheetOverviewVitals({
                 </Popover.Dropdown>
               </Popover>
             )}
-            {isMobile ? null : restActions}
+            {restActions}
           </div>
-          {!isMobile && restError ? (
-            <Text className={styles.commandInlineError} role='alert'>
-              Rest could not be applied. The sheet was refreshed; try again.
-            </Text>
-          ) : null}
         </div>
       </section>
       {isMobile ? (
@@ -401,12 +443,6 @@ export function CharacterSheetOverviewVitals({
           onClose={() => setHpControlsOpen(false)}
         >
           <div className={styles.hpManagementDrawerBody}>
-            {restActions}
-            {restError ? (
-              <Text className={styles.commandInlineError} role='alert'>
-                Rest could not be applied. The sheet was refreshed; try again.
-              </Text>
-            ) : null}
             <CharacterSheetHpControls
               key={version}
               pending={pending}

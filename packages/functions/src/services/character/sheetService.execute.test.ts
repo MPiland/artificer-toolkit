@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
+import { dnd5e2014RulesSystem } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
@@ -71,7 +72,7 @@ vi.mock('./builderService.js', async (importOriginal) => {
   }
 })
 
-const { buildCharacterSheetResponse, executeCharacterSheetCommand } =
+const { buildCharacterSheetResponse, executeCharacterSheetCommand, previewCharacterRest } =
   await import('./sheetService.js')
 
 const emptyQuery = {
@@ -238,6 +239,266 @@ describe('executeCharacterSheetCommand', () => {
     })
   })
 
+  it('previews and atomically completes a short rest with exact backend roll evidence', async () => {
+    const character = createCharacter()
+    character.state.hitpoints = {
+      current: 4,
+      temp: 3,
+      hitDice: [{ die: 10, total: 1, used: 0 }]
+    }
+    const resolution = createResolution()
+    resolution.summary.abilities.CONSTITUTION = 16
+    mocks.findAuthoredById.mockResolvedValue(character)
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+
+    const preview = await previewCharacterRest({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      input: {
+        restKind: 'SHORT',
+        expectedVersion: 1,
+        selectedHitDice: [{ die: 10, count: 1 }],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [],
+        requestRoll: true
+      },
+      random: { nextInt: () => 0 }
+    })
+
+    expect(preview).toMatchObject({
+      canonicalExpression: '1d10 + 3',
+      stagedHealing: 4,
+      canApply: true,
+      rollEvidence: {
+        expression: '1d10 + 3',
+        terms: [{ die: 10, count: 1, modifierPerDie: 3, rolls: [1] }],
+        total: 4
+      }
+    })
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'COMPLETE_REST',
+        commandId: '00000000-0000-4000-8000-000000000099',
+        expectedVersion: 1,
+        restKind: 'SHORT',
+        previewFingerprint: preview.previewFingerprint,
+        selectedHitDice: [{ die: 10, count: 1 }],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [],
+        rollEvidence: preview.rollEvidence
+      }
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [
+        {
+          kind: 'HITPOINTS',
+          value: expect.objectContaining({
+            current: 8,
+            temp: 3,
+            hitDice: [{ die: 10, total: 1, used: 1 }]
+          })
+        }
+      ],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commandType: 'COMPLETE_REST',
+        result: {
+          type: 'COMPLETE_REST',
+          rest: expect.objectContaining({
+            restKind: 'SHORT',
+            rollEvidence: preview.rollEvidence
+          })
+        }
+      })
+    )
+    expect(response.result).toEqual(
+      expect.objectContaining({
+        type: 'COMPLETE_REST',
+        rest: expect.objectContaining({ rollEvidence: preview.rollEvidence })
+      })
+    )
+  })
+
+  it('rejects a rest preview when the resolved rules policy changes before completion', async () => {
+    const character = createCharacter()
+    character.state.hitpoints = {
+      current: 4,
+      hitDice: [{ die: 10, total: 2, used: 2 }]
+    }
+    character.state.exhaustion = { level: 2 }
+    mocks.findAuthoredById.mockResolvedValue(character)
+
+    const preview = await previewCharacterRest({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      input: {
+        restKind: 'LONG',
+        expectedVersion: 1,
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [],
+        requestRoll: false
+      }
+    })
+
+    const changedPolicy = vi
+      .spyOn(dnd5e2014RulesSystem.rest, 'hitDiceRecoveredAfterLongRest')
+      .mockReturnValue(0)
+    try {
+      await expect(
+        executeCharacterSheetCommand({
+          db: db as unknown as DBLike,
+          characterId: 'character-1',
+          userId: 'user-1',
+          command: {
+            type: 'COMPLETE_REST',
+            commandId: '00000000-0000-4000-8000-000000000139',
+            expectedVersion: 1,
+            restKind: 'LONG',
+            previewFingerprint: preview.previewFingerprint,
+            selectedHitDice: [],
+            resetMaximumHitPointModifier: false,
+            healingMode: 'AUTOMATIC',
+            manualHealingAccepted: false,
+            selectedCompanionInstanceIds: []
+          }
+        })
+      ).rejects.toBeInstanceOf(MockConcurrencyError)
+      expect(mocks.patchSheetState).not.toHaveBeenCalled()
+      expect(mocks.appendEvent).not.toHaveBeenCalled()
+    } finally {
+      changedPolicy.mockRestore()
+    }
+  })
+
+  it('clamps current HP when a maximum modifier adjustment lowers the effective maximum', async () => {
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: '00000000-0000-4000-8000-000000000101',
+        expectedVersion: 1,
+        adjustment: {
+          id: '00000000-0000-4000-8000-000000000102',
+          family: 'HIT_POINTS',
+          field: 'MAXIMUM_MODIFIER',
+          value: -6
+        }
+      }
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [
+        {
+          kind: 'HITPOINTS',
+          value: expect.objectContaining({ current: 4 })
+        }
+      ],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.upsertAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        family: 'HIT_POINTS',
+        field: 'MAXIMUM_MODIFIER',
+        value: -6
+      })
+    )
+  })
+
+  it.each([
+    {
+      label: 'removing',
+      command: {
+        type: 'REMOVE_SHEET_ADJUSTMENT' as const,
+        commandId: '00000000-0000-4000-8000-000000000103',
+        expectedVersion: 1,
+        adjustmentId: '00000000-0000-4000-8000-000000000104',
+        target: { kind: 'HIT_POINTS' as const },
+        family: 'HIT_POINTS' as const
+      }
+    },
+    {
+      label: 'resetting',
+      command: {
+        type: 'RESET_SHEET_PANEL_ADJUSTMENTS' as const,
+        commandId: '00000000-0000-4000-8000-000000000105',
+        expectedVersion: 1,
+        target: { kind: 'HIT_POINTS' as const }
+      }
+    }
+  ])('clamps current HP when $label a positive maximum modifier', async ({ command }) => {
+    const character = createCharacter()
+    character.state.hitpoints.current = 15
+    mocks.findAuthoredById.mockResolvedValue(character)
+    mocks.listAdjustments.mockResolvedValue([
+      {
+        id: '00000000-0000-4000-8000-000000000104',
+        characterId: 'character-1',
+        family: 'HIT_POINTS',
+        field: 'MAXIMUM_MODIFIER',
+        value: 5,
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000106',
+        characterId: 'character-1',
+        family: 'HIT_POINTS',
+        field: 'MAXIMUM_OVERRIDE',
+        value: 10,
+        createdBy: 'user-1',
+        updatedBy: 'user-1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z'
+      }
+    ])
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [
+        {
+          kind: 'HITPOINTS',
+          value: expect.objectContaining({ current: 10 })
+        }
+      ],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.removeAdjustment).toHaveBeenCalledWith({
+      characterId: 'character-1',
+      adjustmentId: '00000000-0000-4000-8000-000000000104',
+      family: 'HIT_POINTS'
+    })
+    expect(mocks.removeAdjustment).toHaveBeenCalledTimes(1)
+  })
+
   it('persists sheet commands with expected version and appends history in the same write callback', async () => {
     const response = await executeCharacterSheetCommand({
       db: db as unknown as DBLike,
@@ -335,6 +596,49 @@ describe('executeCharacterSheetCommand', () => {
     expect(response.historyEntry?.eventId).toBe(persistedEvent.eventId)
     expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
     expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('converges a lock-time concurrent duplicate on the stored command event', async () => {
+    const command = {
+      type: 'ADJUST_HIT_POINTS' as const,
+      mode: 'DAMAGE' as const,
+      amount: 3,
+      expectedVersion: 1,
+      commandId: '00000000-0000-4000-8000-000000000138'
+    }
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command
+    })
+    const persistedEvent = mocks.appendEvent.mock.calls[0]?.[0]
+    expect(persistedEvent).toBeDefined()
+
+    mocks.patchSheetState.mockReset()
+    mocks.patchSheetState.mockRejectedValueOnce(
+      new MockConcurrencyError('character-1', command.expectedVersion)
+    )
+    mocks.findById
+      .mockReset()
+      .mockResolvedValueOnce({ id: 'character-1', stream_version: 1 })
+      .mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findByCommandId
+      .mockReset()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(persistedEvent)
+      .mockResolvedValue(persistedEvent)
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
+    expect(response.streamVersion).toBe(2)
+    expect(response.historyEntry?.eventId).toBe(persistedEvent.eventId)
   })
 
   it('rejects reusing a command id with different input', async () => {
@@ -984,6 +1288,118 @@ describe('executeCharacterSheetCommand', () => {
     expect(recovered.sheet.resources.items).toContainEqual(
       expect.objectContaining({ owner, used: 0 })
     )
+  })
+
+  it('recovers only explicitly selected companion resources during a rest', async () => {
+    const selectedCompanionId = '00000000-0000-4000-8000-000000000131'
+    const unselectedCompanionId = '00000000-0000-4000-8000-000000000132'
+    const featureId = '00000000-0000-4000-8000-000000000133'
+    const chargeId = '00000000-0000-4000-8000-000000000134'
+    const character = createCharacter()
+    character.state.creatures = [selectedCompanionId, unselectedCompanionId].map((id) => ({
+      id,
+      creatureId: 'creature-1',
+      relationshipKind: 'COMPANION' as const,
+      originKind: 'WORLD' as const,
+      isActive: true,
+      currentHitPoints: 3
+    }))
+    mocks.findAuthoredById.mockResolvedValue(character)
+    mocks.findAllCreatures.mockResolvedValue([
+      createCreature({
+        features: [
+          {
+            id: featureId,
+            label: 'Companion Focus',
+            description: 'Regain focus after a short rest.',
+            order: 1,
+            charges: {
+              id: chargeId,
+              resetKind: 'SHORT_REST',
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: 'NONE',
+              amount: 1
+            }
+          }
+        ]
+      })
+    ])
+    const selectedOwner = {
+      kind: 'COMPANION_FEATURE' as const,
+      companionInstanceId: selectedCompanionId,
+      featureId,
+      chargeId
+    }
+    const unselectedOwner = {
+      ...selectedOwner,
+      companionInstanceId: unselectedCompanionId
+    }
+    mocks.listResourceUsage.mockResolvedValue([
+      {
+        id: '00000000-0000-4000-8000-000000000135',
+        owner: selectedOwner,
+        used: 1
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000136',
+        owner: unselectedOwner,
+        used: 1
+      }
+    ])
+
+    const preview = await previewCharacterRest({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      input: {
+        restKind: 'SHORT',
+        expectedVersion: 1,
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [selectedCompanionId],
+        requestRoll: false
+      }
+    })
+    expect(preview.canApply).toBe(true)
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'COMPLETE_REST',
+        commandId: '00000000-0000-4000-8000-000000000137',
+        expectedVersion: 1,
+        restKind: 'SHORT',
+        previewFingerprint: preview.previewFingerprint,
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [selectedCompanionId]
+      }
+    })
+
+    expect(mocks.setResourceUsage).toHaveBeenCalledTimes(1)
+    expect(mocks.setResourceUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: selectedOwner, used: 0 })
+    )
+    expect(mocks.setResourceUsage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ owner: unselectedOwner })
+    )
+    expect(response.result).toMatchObject({
+      type: 'COMPLETE_REST',
+      rest: {
+        companionRecoveries: [
+          expect.objectContaining({
+            companionInstanceId: selectedCompanionId,
+            recoveredResourceIds: [expect.any(String)]
+          })
+        ]
+      }
+    })
   })
 
   it('removes companion adjustments, resource usage, and equipment assignments', async () => {

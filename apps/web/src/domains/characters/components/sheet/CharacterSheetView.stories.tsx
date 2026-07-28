@@ -2,8 +2,9 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Box } from '@mantine/core'
 import { HttpResponse, delay, http } from 'msw'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
-import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { CharacterRestPreviewRequestDto, CharacterSheetPanelDto } from '#app/lib/api'
 import {
+  createCharacterRestPreviewFixture,
   characterSheetFixture,
   characterSheetMulticlassFixture,
   characterSheetSpellStatesFixture
@@ -138,6 +139,24 @@ function extrasCommandErrorHandler() {
   return http.post('*/api/trpc/characters.command', async () => {
     await delay(1_500)
     return new HttpResponse(null, { status: 500 })
+  })
+}
+
+function restPreviewHandler() {
+  return http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
+    const body: unknown = await request.json()
+    if (typeof body !== 'object' || body === null || !('0' in body)) {
+      return new HttpResponse(null, { status: 400 })
+    }
+
+    const input = (body as { 0: { id: string; input: CharacterRestPreviewRequestDto } })[0].input
+    return HttpResponse.json([
+      {
+        result: {
+          data: createCharacterRestPreviewFixture(input)
+        }
+      }
+    ])
   })
 }
 
@@ -278,6 +297,74 @@ export const TabletLandscape: Story = {
     viewport: {
       options: characterSheetTabletViewports
     }
+  }
+}
+
+export const ShortRestPreview: Story = {
+  args: {
+    initialTab: 'actions',
+    sheet: characterSheetMulticlassFixture
+  },
+  parameters: {
+    msw: { handlers: [restPreviewHandler()] }
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Short Rest' }))
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', {
+      name: 'Short Rest'
+    })
+    await userEvent.click(
+      await within(dialog).findByRole('button', { name: 'Add one d10 hit die' })
+    )
+    const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
+    await waitFor(() => expect(addD8).toBeEnabled())
+    await userEvent.click(addD8)
+    await expect(within(dialog).getByText('1d10 + 1d8 + 4')).toBeVisible()
+    await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeVisible()
+  }
+}
+
+export const ShortRestRolled: Story = {
+  ...ShortRestPreview,
+  play: async (context) => {
+    await ShortRestPreview.play?.(context)
+    const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
+      name: 'Short Rest'
+    })
+    await userEvent.click(within(dialog).getByRole('button', { name: '1d10 + 1d8 + 4' }))
+    const rollLabels = await within(dialog).findAllByText('15 rolled')
+    await expect(rollLabels[0]).toBeVisible()
+    await expect(within(dialog).getByText('6 HP staged')).toBeVisible()
+  }
+}
+
+export const ShortRestPreviewMobile: Story = {
+  ...ShortRestPreview,
+  parameters: {
+    ...ShortRestPreview.parameters,
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
+export const LongRestPreview: Story = {
+  args: {
+    initialTab: 'actions',
+    sheet: characterSheetMulticlassFixture
+  },
+  parameters: {
+    msw: { handlers: [restPreviewHandler()] }
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Long Rest' }))
+    const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', {
+      name: 'Long Rest'
+    })
+    await expect(await within(dialog).findByText('No roll needed')).toBeVisible()
+    await expect(
+      await within(dialog).findByRole('button', { name: 'Take Long Rest' })
+    ).toBeEnabled()
   }
 }
 

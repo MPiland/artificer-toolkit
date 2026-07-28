@@ -696,6 +696,8 @@ limited-use states.
 
 ## Branch 06 — Vitals and complete rests
 
+> **Status:** active on `codex/character-overrides-06-vitals-rests` from integration SHA `0b9d37574ae7a1da35c699a1fd5c37cfcc9054f4`.
+
 **Entry:** Character/companion resources share recovery contracts and deterministic dice results.
 
 **Locked short-rest direction:** Short Rest uses a 420px anchored popover on desktop/tablet and a
@@ -725,6 +727,31 @@ Mockup evidence:
 - `docs/mockups/character-sheet-overrides/06-multiclass-hit-dice-sheet-mobile.png`
 
 **Exit:** HP clamping, conditions/exhaustion, backend previews, atomic short/long rest, stale-preview safety, exact result evidence, selected eligible companion recovery, mockup parity, and focused tests are green. Handoff records transaction/order/roll contracts and evidence.
+
+### Locked delivery contract
+
+- The backend owns hit-die randomization. The frontend only animates and reveals the returned faces; completed-rest history stores the accepted expression, faces, total, healing, and recoveries.
+- Rest preview is read-only and ephemeral. `COMPLETE_REST` re-resolves the preview and commits through the existing Sheet command/event transaction; no rest table, preview table, migration, or new RLS policy is planned.
+- A zero-die short rest is valid only when another authoritative recovery changes state. Classes sharing a hit-die denomination use the existing aggregated pool with combined class labels.
+- Companion participation is explicit and initially unselected. Selected eligible companions reuse the Branch 05 hit-die and `COMPANION_FEATURE` owner seams.
+- Long Rest reuses the Short Rest responsive shell. The existing immediate `USE_HIT_DIE` and `APPLY_REST` commands remain transitional and do not power production rest UI.
+
+### Checkpoints
+
+| Checkpoint      | Required evidence                                                                                                                    | Status   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN`  |
+| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN`  |
+| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN`  |
+| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN`  |
+| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `ACTIVE` |
+
+### Progress log
+
+- `2026-07-27`: Branch activated from clean integration SHA `0b9d37574ae7a1da35c699a1fd5c37cfcc9054f4`. Checkpoint 1 opened. Existing persistence was audited as sufficient, so migration and new-RLS work are explicitly N/A unless implementation proves a material conflict.
+- `2026-07-27`: Checkpoint 1 is green. Strict rest preview/result and `COMPLETE_REST` contracts, mixed-die roll validation, effective-maximum HP clamping primitives, D&D 5e 2014 rest/exhaustion policy, and typed event/history results are delivered. Shared and Schema typechecks passed; focused Shared rest tests passed 5/5 and Schema command-contract tests passed 20/20. Checkpoint 2 opened on the existing Sheet transaction.
+- `2026-07-28`: Checkpoints 2 and 3 are green. Rest preview uses the backend random source and deterministic fingerprints; `COMPLETE_REST` re-resolves inside the existing locked Sheet transaction and atomically persists HP, character and selected-companion hit dice, slots, exhaustion, typed resources, selected maximum-HP modifier removal, and the exact completed-rest event. Sequential and concurrent duplicate commands replay that stored result. Focused Functions tests passed 93/93, the final execute suite passed 23/23, Functions/API typechecks passed, and API routing tests passed 5/5.
+- `2026-07-28`: Checkpoint 4 is green. The production Sheet now owns the shared Short/Long Rest control, condition and exhaustion definitions/notes, and corrected HP reset semantics; the marketing capture reuses that production component. Storybook and browser review covered desktop, tablet portrait/landscape, the exact 48rem boundary, 390px, and 320px in both Forge themes with keyboard Escape/focus return, reduced motion, increased text, coarse-pointer targets, manual-healing staging, roll invalidation, and zero horizontal overflow. The focused Sheet suite passed 50/50 and the two rest-bearing Storybook files passed 46/46 browser tests.
 
 ## Branch 07 — Integration and completion
 

@@ -298,7 +298,15 @@ describe('MVP character Sheet command audit', () => {
         maxHitPoints: 10,
         tempHitPoints: 0,
         maxHitPointsOverride: null,
-        exhaustionLevel: 0,
+        maxHitPointsModifier: 0,
+        maxHitPointsModifierAdjustmentId: null,
+        exhaustion: {
+          label: 'Exhaustion',
+          description: 'Exhaustion measures cumulative physical and mental fatigue.',
+          level: 0,
+          minimumLevel: 0,
+          maximumLevel: 6
+        },
         conditions: [],
         hitDice: []
       },

@@ -1538,6 +1538,7 @@ export function buildCharacterSheetPanel(
     case 'FEATURE':
     case 'BACKGROUND':
     case 'RESOURCE':
+    case 'HIT_POINTS':
       throw new Error(`Character Sheet panel "${params.target.kind}" is not implemented yet.`)
   }
   return characterSheetPanelDtoSchema.parse(panel)
@@ -1571,7 +1572,9 @@ export function getAffectedCharacterSheetPanelTargets(
     }
   >
 ): CharacterSheetPanelTargetDto[] {
-  if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') return [command.target]
+  if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
+    return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
+  }
   if (command.type === 'ADD_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
   if (command.type === 'UPDATE_SHEET_EXTRA') {
     return command.extra.kind === 'VEHICLE'
@@ -1580,7 +1583,9 @@ export function getAffectedCharacterSheetPanelTargets(
   }
   if (command.type === 'REMOVE_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
   if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') return [{ kind: 'MOVEMENT' }]
-  if (command.type === 'REMOVE_SHEET_ADJUSTMENT') return [command.target]
+  if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
+    return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
+  }
   if (
     command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
     command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
@@ -1625,6 +1630,8 @@ export function getAffectedCharacterSheetPanelTargets(
       return [{ kind: 'SENSES' }]
     case 'MOVEMENT':
       return [{ kind: 'MOVEMENT' }]
+    case 'HIT_POINTS':
+      return []
     case 'DEFENSE':
       return [{ kind: 'DEFENSES' }]
     case 'PROFICIENCY':

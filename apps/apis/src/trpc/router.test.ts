@@ -52,6 +52,21 @@ describe('tRPC router auth', () => {
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
+      caller.characters.restPreview({
+        id: 'character-1',
+        input: {
+          restKind: 'SHORT',
+          expectedVersion: 1,
+          selectedHitDice: [],
+          resetMaximumHitPointModifier: false,
+          healingMode: 'AUTOMATIC',
+          manualHealingAccepted: false,
+          selectedCompanionInstanceIds: [],
+          requestRoll: false
+        }
+      })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
       caller.routeIds.resolve({ subjectKind: 'SPELL', publicId: '1' })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(

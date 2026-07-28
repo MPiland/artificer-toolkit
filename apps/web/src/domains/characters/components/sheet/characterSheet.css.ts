@@ -938,16 +938,16 @@ export const hpReadout = style({
       padding: '4px 0',
       rowGap: '10px',
       '@media': {
-        '(max-width: 700px)': {
+        '(max-width: 48rem)': {
           alignItems: 'center',
           columnGap: '8px',
-          gridTemplateAreas: '"top minor actions"',
-          gridTemplateColumns: 'minmax(76px, 0.82fr) minmax(118px, 1.38fr) minmax(74px, 0.8fr)',
+          gridTemplateAreas: '"top minor" "actions actions"',
+          gridTemplateColumns: 'minmax(76px, 0.82fr) minmax(118px, 1.38fr)',
           padding: '2px 0'
         },
         '(max-width: 340px)': {
           columnGap: '4px',
-          gridTemplateColumns: 'minmax(68px, 0.78fr) minmax(108px, 1.34fr) minmax(68px, 0.74fr)'
+          gridTemplateColumns: 'minmax(68px, 0.78fr) minmax(108px, 1.34fr)'
         }
       }
     }
@@ -1085,9 +1085,12 @@ export const hpActionCluster = style({
       gridTemplateColumns: 'minmax(86px, 0.8fr) minmax(164px, 1.4fr)',
       minWidth: 0,
       '@media': {
-        '(max-width: 520px)': {
+        '(max-width: 48rem)': {
           alignSelf: 'center',
           gridArea: 'actions',
+          gridTemplateColumns: 'minmax(86px, 0.8fr) minmax(164px, 1.4fr)'
+        },
+        '(max-width: 22rem)': {
           gridTemplateColumns: '1fr'
         }
       }
@@ -1375,7 +1378,12 @@ export const hpSettingsRow = style({
     [app]: {
       display: 'grid',
       gap: '12px',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      '@media': {
+        '(max-width: 48rem)': {
+          gridTemplateColumns: '1fr'
+        }
+      },
       width: '100%'
     }
   }
@@ -2083,7 +2091,7 @@ export const exhaustionPips = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      gap: '5px'
+      gap: 0
     }
   }
 })
@@ -2091,22 +2099,45 @@ export const exhaustionPips = style({
 export const exhaustionPip = style({
   '@layer': {
     [app]: {
+      alignItems: 'center',
       appearance: 'none',
+      background: 'transparent',
+      border: 0,
+      cursor: 'pointer',
+      display: 'inline-flex',
+      height: '24px',
+      justifyContent: 'center',
+      padding: 0,
+      width: '24px',
+      selectors: {
+        '&:disabled': {
+          cursor: 'not-allowed',
+          opacity: 0.55
+        }
+      },
+      '@media': {
+        '(pointer: coarse)': {
+          height: '44px',
+          width: '44px'
+        }
+      }
+    }
+  }
+})
+
+export const exhaustionPipVisual = style({
+  '@layer': {
+    [app]: {
       background: 'transparent',
       border: `1px solid ${foundationVars.color.border.strong}`,
       borderRadius: foundationVars.radius.pill,
-      cursor: 'pointer',
       height: '10px',
-      padding: 0,
+      pointerEvents: 'none',
       width: '10px',
       selectors: {
         '&[data-active="true"]': {
           background: foundationVars.color.status.warning,
           borderColor: foundationVars.color.status.warning
-        },
-        '&:disabled': {
-          cursor: 'not-allowed',
-          opacity: 0.55
         }
       }
     }

@@ -8,7 +8,12 @@ import {
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderResolution
 } from './builderService.js'
-import { buildCharacterSheetResponse, executeCharacterSheetCommand } from './sheetService.js'
+import {
+  buildCharacterSheetResponse,
+  executeCharacterSheetCommand,
+  previewCharacterRest,
+  resolveCharacterSheetEngine
+} from './sheetService.js'
 import {
   buildCharacterSheetPanel,
   getAffectedCharacterSheetPanelTargets
@@ -75,6 +80,8 @@ import {
   type CharacterBuilderSpellOptionDto,
   type CharacterBuilderSpellChoiceViewDto,
   type CharacterListResponseDto,
+  type CharacterRestPreviewRequestDto,
+  type CharacterRestPreviewResponseDto,
   type CharacterSheetCommandResponseDto,
   type CharacterSheetCommandInputDto,
   characterSheetCommandInputDtoSchema,
@@ -1348,9 +1355,33 @@ async function buildCharacterBuilderSavePayload(params: {
     targetStatus: params.targetStatus,
     ready: draftResolution.readiness.ready
   })
-  const character = {
+  let character = {
     ...reconciled,
     status: persistedStatus
+  }
+  if (persistedStatus === AUTHORED_RECORD_STATUS.ACTIVE) {
+    const adjustments = await createCharacterSheetAdjustmentRepository(params.db).listByCharacter(
+      character.id
+    )
+    const effectiveMaxHitPoints = Math.max(
+      resolveCharacterSheetEngine({
+        character,
+        resolution: draftResolution,
+        adjustments
+      }).derivedStats.maxHitPoints,
+      0
+    )
+
+    character = {
+      ...character,
+      state: {
+        ...character.state,
+        hitpoints: {
+          ...character.state.hitpoints,
+          current: Math.min(Math.max(character.state.hitpoints.current, 0), effectiveMaxHitPoints)
+        }
+      }
+    }
   }
   const resolution =
     persistedStatus === AUTHORED_RECORD_STATUS.DRAFT
@@ -1740,6 +1771,24 @@ export async function getCharacterSheetForUser(
     })),
     publicId: routeIdentity.publicId
   }
+}
+
+export async function previewCharacterRestForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  input: CharacterRestPreviewRequestDto,
+  userId: string
+): Promise<CharacterRestPreviewResponseDto> {
+  const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  return previewCharacterRest({
+    db,
+    characterId: resolvedCharacterId,
+    input,
+    userId
+  })
 }
 
 export async function getCharacterSheetPanelForUser(

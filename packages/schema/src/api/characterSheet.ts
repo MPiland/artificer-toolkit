@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character'
 import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
@@ -226,6 +227,7 @@ export const characterSheetCoreAdjustmentValueDtoSchema = z.union([
   passiveAdjustmentDtoSchema,
   senseAdjustmentDtoSchema,
   movementAdjustmentDtoSchema,
+  hitPointAdjustmentDtoSchema,
   defenseAdditionDtoSchema,
   proficiencyAdditionDtoSchema
 ])
@@ -360,6 +362,90 @@ export const characterDiceRollResultDtoSchema = z.object({
   total: z.number().int()
 })
 
+export const characterRestKindDtoSchema = z.enum(['SHORT', 'LONG'])
+export const characterRestHealingModeDtoSchema = z.enum(['AUTOMATIC', 'MANUAL'])
+
+export const characterRestHitDieSelectionDtoSchema = z.strictObject({
+  die: z.number().int().min(2),
+  count: z.number().int().positive()
+})
+
+export const characterRestHitDieSelectionsDtoSchema = z
+  .array(characterRestHitDieSelectionDtoSchema)
+  .superRefine((selections, context) => {
+    const seenDice = new Set<number>()
+    selections.forEach((selection, index) => {
+      if (seenDice.has(selection.die)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'die'],
+          message: `Hit die d${selection.die} may appear only once.`
+        })
+      }
+      seenDice.add(selection.die)
+    })
+  })
+
+export const characterRestHitDiceRollTermDtoSchema = z.strictObject({
+  die: z.number().int().min(2),
+  count: z.number().int().positive(),
+  modifierPerDie: z.number().int(),
+  rolls: z.array(z.number().int().positive())
+})
+
+export const characterRestHitDiceRollEvidenceDtoSchema = z
+  .strictObject({
+    expression: z.string().trim().min(1),
+    terms: z.array(characterRestHitDiceRollTermDtoSchema).min(1),
+    total: z.number().int()
+  })
+  .superRefine((evidence, context) => {
+    try {
+      validateCharacterHitDiceRollEvidence(evidence)
+    } catch (error) {
+      context.addIssue({
+        code: 'custom',
+        message: error instanceof Error ? error.message : 'Invalid hit-die roll evidence.'
+      })
+    }
+  })
+
+export const characterCompletedRestResultDtoSchema = z.strictObject({
+  restKind: characterRestKindDtoSchema,
+  previewFingerprint: z.string().trim().min(1),
+  hitPoints: z.strictObject({
+    currentBefore: z.number().int().nonnegative(),
+    currentAfter: z.number().int().nonnegative(),
+    temporaryBefore: z.number().int().nonnegative(),
+    temporaryAfter: z.number().int().nonnegative(),
+    healingApplied: z.number().int().nonnegative()
+  }),
+  exhaustion: z.strictObject({
+    before: z.number().int().nonnegative(),
+    after: z.number().int().nonnegative()
+  }),
+  spentHitDice: characterRestHitDieSelectionsDtoSchema,
+  recoveredHitDice: characterRestHitDieSelectionsDtoSchema,
+  rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional(),
+  resetMaximumHitPointModifier: z.boolean(),
+  recoveredResourceIds: z.array(identifierSchema),
+  recoveredSpellSlotKeys: z.array(identifierSchema),
+  companionRecoveries: z.array(
+    z.strictObject({
+      companionInstanceId: uuidSchema,
+      recoveredHitDice: characterRestHitDieSelectionsDtoSchema,
+      recoveredResourceIds: z.array(identifierSchema)
+    })
+  )
+})
+
+export const characterSheetCommandResultDtoSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('COMPLETE_REST'),
+    rest: characterCompletedRestResultDtoSchema
+  })
+])
+
 export const characterResourceRecoveryAmountDtoSchema = z.union([
   z.object({ kind: z.literal('ALL') }),
   z.object({
@@ -428,3 +514,11 @@ export type CharacterMovementDisplayPreferenceDto = z.infer<
   typeof characterMovementDisplayPreferenceDtoSchema
 >
 export type CharacterDiceRollResultDto = z.infer<typeof characterDiceRollResultDtoSchema>
+export type CharacterRestKindDto = z.infer<typeof characterRestKindDtoSchema>
+export type CharacterRestHealingModeDto = z.infer<typeof characterRestHealingModeDtoSchema>
+export type CharacterRestHitDieSelectionDto = z.infer<typeof characterRestHitDieSelectionDtoSchema>
+export type CharacterRestHitDiceRollEvidenceDto = z.infer<
+  typeof characterRestHitDiceRollEvidenceDtoSchema
+>
+export type CharacterCompletedRestResultDto = z.infer<typeof characterCompletedRestResultDtoSchema>
+export type CharacterSheetCommandResultDto = z.infer<typeof characterSheetCommandResultDtoSchema>

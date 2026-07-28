@@ -5,8 +5,13 @@ import {
   characterSheetExtrasDtoSchema,
   characterSheetInventoryItemDtoSchema,
   characterSheetProficiencyFactDtoSchema,
-  characterSheetResponseDtoSchema
+  characterSheetResponseDtoSchema,
+  characterRestPreviewRequestDtoSchema
 } from '../api/characters.js'
+import {
+  characterCompletedRestResultDtoSchema,
+  characterRestHitDiceRollEvidenceDtoSchema
+} from '../api/characterSheet.js'
 
 describe('character sheet command contracts', () => {
   it('requires property codes and authoritative labels in Sheet inventory rows', () => {
@@ -72,6 +77,8 @@ describe('character sheet command contracts', () => {
           currentHitPoints: 8,
           maxHitPoints: 12,
           tempHitPoints: 0,
+          maxHitPointsModifier: 0,
+          maxHitPointsModifierAdjustmentId: null,
           maxHitPointsOverride: null,
           savingThrows: [
             {
@@ -91,7 +98,13 @@ describe('character sheet command contracts', () => {
               proficiency: 'DOUBLE'
             }
           ],
-          exhaustionLevel: 0,
+          exhaustion: {
+            label: 'Exhaustion',
+            description: 'Exhaustion measures cumulative physical and mental fatigue.',
+            level: 0,
+            minimumLevel: 0,
+            maximumLevel: 6
+          },
           conditions: [],
           hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }]
         },
@@ -215,6 +228,8 @@ describe('character sheet command contracts', () => {
           currentHitPoints: 8,
           maxHitPoints: 12,
           tempHitPoints: 0,
+          maxHitPointsModifier: 0,
+          maxHitPointsModifierAdjustmentId: null,
           maxHitPointsOverride: null,
           savingThrows: [
             {
@@ -225,7 +240,13 @@ describe('character sheet command contracts', () => {
             }
           ],
           skills: [],
-          exhaustionLevel: 0,
+          exhaustion: {
+            label: 'Exhaustion',
+            description: 'Exhaustion measures cumulative physical and mental fatigue.',
+            level: 0,
+            minimumLevel: 0,
+            maximumLevel: 6
+          },
           conditions: [],
           hitDice: []
         },
@@ -408,6 +429,143 @@ describe('character sheet command contracts', () => {
         inspired: true
       }).success
     ).toBe(true)
+  })
+
+  it('accepts an exact mixed-die rest preview and completion contract', () => {
+    const rollEvidence = {
+      expression: '1d10 + 1d8 + 4',
+      terms: [
+        { die: 10, count: 1, modifierPerDie: 2, rolls: [8] },
+        { die: 8, count: 1, modifierPerDie: 2, rolls: [3] }
+      ],
+      total: 15
+    }
+    const restSelection = {
+      restKind: 'SHORT',
+      selectedHitDice: [
+        { die: 10, count: 1 },
+        { die: 8, count: 1 }
+      ],
+      resetMaximumHitPointModifier: true,
+      healingMode: 'MANUAL',
+      manualHealingAccepted: true,
+      selectedCompanionInstanceIds: ['00000000-0000-4000-8000-000000000002'],
+      rollEvidence
+    } as const
+
+    expect(
+      characterRestPreviewRequestDtoSchema.safeParse({
+        ...restSelection,
+        expectedVersion: 3,
+        requestRoll: false
+      }).success
+    ).toBe(true)
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        ...restSelection,
+        type: 'COMPLETE_REST',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 3,
+        previewFingerprint: 'preview-3'
+      }).success
+    ).toBe(true)
+    expect(
+      characterCompletedRestResultDtoSchema.safeParse({
+        restKind: 'SHORT',
+        previewFingerprint: 'preview-3',
+        hitPoints: {
+          currentBefore: 5,
+          currentAfter: 20,
+          temporaryBefore: 4,
+          temporaryAfter: 4,
+          healingApplied: 15
+        },
+        exhaustion: { before: 1, after: 1 },
+        spentHitDice: restSelection.selectedHitDice,
+        recoveredHitDice: [],
+        rollEvidence,
+        resetMaximumHitPointModifier: true,
+        recoveredResourceIds: ['resource-second-wind'],
+        recoveredSpellSlotKeys: [],
+        companionRecoveries: [
+          {
+            companionInstanceId: '00000000-0000-4000-8000-000000000002',
+            recoveredHitDice: [],
+            recoveredResourceIds: ['resource-companion-feature']
+          }
+        ]
+      }).success
+    ).toBe(true)
+  })
+
+  it('keeps exhaustion command levels system-neutral for service policy validation', () => {
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'SET_EXHAUSTION',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 3,
+        level: 7
+      }).success
+    ).toBe(true)
+  })
+
+  it.each([
+    ['expression', { expression: '1d10 + 1d8 + 3' }],
+    [
+      'roll count',
+      {
+        terms: [
+          { die: 10, count: 2, modifierPerDie: 2, rolls: [8] },
+          { die: 8, count: 1, modifierPerDie: 2, rolls: [3] }
+        ],
+        expression: '2d10 + 1d8 + 6',
+        total: 19
+      }
+    ],
+    [
+      'face range',
+      {
+        terms: [
+          { die: 10, count: 1, modifierPerDie: 2, rolls: [11] },
+          { die: 8, count: 1, modifierPerDie: 2, rolls: [3] }
+        ]
+      }
+    ],
+    ['total', { total: 14 }]
+  ])('rejects mixed-die evidence with an invalid %s', (_label, override) => {
+    const evidence = {
+      expression: '1d10 + 1d8 + 4',
+      terms: [
+        { die: 10, count: 1, modifierPerDie: 2, rolls: [8] },
+        { die: 8, count: 1, modifierPerDie: 2, rolls: [3] }
+      ],
+      total: 15,
+      ...override
+    }
+    expect(characterRestHitDiceRollEvidenceDtoSchema.safeParse(evidence).success).toBe(false)
+  })
+
+  it('rejects ambiguous rest preview roll requests and duplicate selections', () => {
+    expect(
+      characterRestPreviewRequestDtoSchema.safeParse({
+        restKind: 'SHORT',
+        expectedVersion: 3,
+        selectedHitDice: [
+          { die: 8, count: 1 },
+          { die: 8, count: 1 }
+        ],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: [],
+        rollEvidence: {
+          expression: '1d8 + 2',
+          terms: [{ die: 8, count: 1, modifierPerDie: 2, rolls: [5] }],
+          total: 7
+        },
+        requestRoll: true
+      }).success
+    ).toBe(false)
   })
 
   it('accepts adding an inventory item directly to a container', () => {

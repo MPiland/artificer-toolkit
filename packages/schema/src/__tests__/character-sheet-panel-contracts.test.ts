@@ -90,6 +90,40 @@ describe('character sheet panel contracts', () => {
     ).toBe(true)
   })
 
+  it('keeps maximum HP adjustments on the generic Sheet adjustment seam', () => {
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: '00000000-0000-4000-8000-000000000003',
+        expectedVersion: 2,
+        adjustment: {
+          id: adjustmentId,
+          family: 'HIT_POINTS',
+          field: 'MAXIMUM_MODIFIER',
+          value: -4
+        }
+      }).success
+    ).toBe(true)
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'REMOVE_SHEET_ADJUSTMENT',
+        commandId: '00000000-0000-4000-8000-000000000003',
+        expectedVersion: 2,
+        adjustmentId,
+        target: { kind: 'HIT_POINTS' },
+        family: 'HIT_POINTS'
+      }).success
+    ).toBe(true)
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'RESET_SHEET_PANEL_ADJUSTMENTS',
+        commandId: '00000000-0000-4000-8000-000000000003',
+        expectedVersion: 2,
+        target: { kind: 'HIT_POINTS' }
+      }).success
+    ).toBe(true)
+  })
+
   it('accepts typed owned-item adjustments through the shared Sheet command', () => {
     expect(
       characterSheetCommandInputDtoSchema.safeParse({

@@ -23,6 +23,7 @@ export const characterSheetPanelTargetDtoSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('SKILLS') }),
   z.object({ kind: z.literal('SENSES') }),
   z.object({ kind: z.literal('MOVEMENT') }),
+  z.object({ kind: z.literal('HIT_POINTS') }),
   z.object({ kind: z.literal('DEFENSES') }),
   z.object({ kind: z.literal('PROFICIENCIES') }),
   z.object({

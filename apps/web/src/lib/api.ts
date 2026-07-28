@@ -57,6 +57,7 @@ import {
   characterBuilderPayloadDtoSchema,
   characterHistoryResponseDtoSchema,
   characterListResponseDtoSchema,
+  characterRestPreviewResponseDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema,
   type CharacterBuilderPayloadDto,
@@ -71,6 +72,8 @@ import {
   type CharacterHistoryResponseDto,
   type CharacterListItemDto,
   type CharacterListResponseDto,
+  type CharacterRestPreviewRequestDto,
+  type CharacterRestPreviewResponseDto,
   type CharacterSheetCommandInputDto,
   type CharacterSheetCommandResponseDto,
   type CharacterSheetResponseDto
@@ -132,6 +135,8 @@ export type {
   CharacterHistoryResponseDto,
   CharacterListItemDto,
   CharacterListResponseDto,
+  CharacterRestPreviewRequestDto,
+  CharacterRestPreviewResponseDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto,
   CharacterSheetPanelDto,
@@ -296,6 +301,10 @@ interface TrpcClient {
       CharacterBuilderPreviewPayloadDto
     >
     resolve: MutationProcedure<CharacterBuilderResolveRequestDto, CharacterBuilderPayloadDto>
+    restPreview: MutationProcedure<
+      { id: string; input: CharacterRestPreviewRequestDto },
+      CharacterRestPreviewResponseDto
+    >
     saveDraft: MutationProcedure<
       { id: string; input: CharacterBuilderDraftSaveRequestDto },
       CharacterBuilderDraftDto
@@ -524,6 +533,10 @@ function buildApi(client: TrpcClient) {
       resolve: (input: CharacterBuilderResolveRequestDto, options?: ProcedureRequestOptions) =>
         request('characters.resolve', characterBuilderPayloadDtoSchema, () =>
           client.characters.resolve.mutate(input, options)
+        ),
+      restPreview: (id: string, input: CharacterRestPreviewRequestDto) =>
+        request('characters.restPreview', characterRestPreviewResponseDtoSchema, () =>
+          client.characters.restPreview.mutate({ id, input })
         ),
       saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) =>
         request('characters.saveDraft', characterBuilderDraftDtoSchema, () =>

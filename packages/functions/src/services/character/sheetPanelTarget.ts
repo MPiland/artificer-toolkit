@@ -18,6 +18,8 @@ export function characterSheetAdjustmentMatchesPanelTarget(
       return adjustment.family === 'PASSIVE' || adjustment.family === 'SENSE'
     case 'MOVEMENT':
       return adjustment.family === 'MOVEMENT'
+    case 'HIT_POINTS':
+      return adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
     case 'DEFENSES':
       return adjustment.family === 'DEFENSE'
     case 'PROFICIENCIES':

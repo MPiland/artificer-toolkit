@@ -359,8 +359,11 @@ export function projectOptimisticCharacterSheet(
         ...sheet,
         overview: {
           ...sheet.overview,
-          exhaustionLevel: command.level,
-          exhaustionNotes: command.notes
+          exhaustion: {
+            ...sheet.overview.exhaustion,
+            level: command.level,
+            notes: command.notes
+          }
         }
       }
     case 'REMOVE_CONDITION':

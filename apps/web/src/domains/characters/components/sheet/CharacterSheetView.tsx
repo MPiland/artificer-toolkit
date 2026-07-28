@@ -47,6 +47,7 @@ export function CharacterSheetView({
     getMobilePageForTab(initialTab)
   )
   const [inspectorTarget, setInspectorTarget] = useState<CharacterSheetPanelTargetDto>()
+  const [overlayEpoch, setOverlayEpoch] = useState(0)
   const inspectorTriggerRef = useRef<HTMLElement | null>(null)
   const isMobileSheet = useMediaQuery('(max-width: 760px)', false)
   const isDesktopSheet = useMediaQuery('(min-width: 1200px)', false)
@@ -58,6 +59,7 @@ export function CharacterSheetView({
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
   const pending = commandMutation.isPending
   function openInspector(target: CharacterSheetPanelTargetDto) {
+    setOverlayEpoch((current) => current + 1)
     inspectorTriggerRef.current =
       document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
@@ -72,7 +74,11 @@ export function CharacterSheetView({
   }
 
   const sectionProps = {
+    closePanel: () => {
+      if (inspectorTarget) closeInspector()
+    },
     openPanel: openInspector,
+    overlayEpoch,
     pending,
     sheet,
     submitCommand: async (command: CharacterSheetCommandDraft) => {

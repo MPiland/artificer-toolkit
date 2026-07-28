@@ -2,25 +2,18 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
-const compact = 'screen and (max-width: 760px)'
-
-export const popoverAnchor = style({
-  position: 'fixed',
-  right: '172px',
-  top: '180px',
-  width: '104px',
-  height: '40px',
-  opacity: 0,
-  pointerEvents: 'none'
-})
+const compact = 'screen and (max-width: 48rem)'
 
 export const popover = style({
   '@layer': {
     [app]: {
       background: foundationVars.color.surface.canvas,
       borderColor: foundationVars.color.border.subtle,
+      boxShadow: foundationVars.shadow.floatingControl,
       display: 'grid',
       gap: foundationVars.space[4],
+      maxHeight: 'min(44rem, calc(100dvh - 2rem))',
+      overflow: 'hidden',
       padding: foundationVars.space[4]
     }
   }
@@ -33,10 +26,40 @@ export const header = style({
   justifyContent: 'space-between'
 })
 
+export const closeButton = style({
+  '@media': {
+    '(pointer: coarse)': {
+      minHeight: '44px',
+      minWidth: '44px'
+    }
+  }
+})
+
 export const title = style({
   color: foundationVars.color.text.primary,
   fontSize: '0.95rem',
   fontWeight: 760
+})
+
+export const scrollOwner = style({
+  display: 'grid',
+  gap: foundationVars.space[4],
+  minHeight: 0,
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  paddingRight: foundationVars.space[1],
+  scrollbarWidth: 'thin'
+})
+
+export const drawerBody = style({
+  display: 'grid',
+  gap: foundationVars.space[5],
+  padding: `${foundationVars.space[2]} ${foundationVars.space[5]} max(${foundationVars.space[5]}, env(safe-area-inset-bottom))`,
+  '@media': {
+    [compact]: {
+      paddingInline: foundationVars.space[4]
+    }
+  }
 })
 
 export const description = style({
@@ -45,26 +68,10 @@ export const description = style({
   lineHeight: 1.45
 })
 
-export const body = style({
-  display: 'grid',
-  gap: foundationVars.space[4]
-})
-
-export const drawerBody = style({
-  display: 'grid',
-  gap: foundationVars.space[5],
-  padding: foundationVars.space[5]
-})
-
 export const vitals = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
   borderBlock: `1px solid ${foundationVars.color.border.subtle}`,
-  '@media': {
-    [compact]: {
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
-    }
-  }
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
 })
 
 export const vital = style({
@@ -90,12 +97,17 @@ export const label = style({
 export const value = style({
   color: foundationVars.color.text.primary,
   fontSize: '0.9rem',
+  fontVariantNumeric: 'tabular-nums',
   fontWeight: 760
 })
 
 export const section = style({
+  border: 0,
   display: 'grid',
-  gap: foundationVars.space[3]
+  gap: foundationVars.space[3],
+  margin: 0,
+  minInlineSize: 0,
+  padding: 0
 })
 
 export const options = style({
@@ -106,7 +118,8 @@ export const options = style({
 export const sectionHeading = style({
   alignItems: 'baseline',
   display: 'flex',
-  gap: foundationVars.space[3],
+  flexWrap: 'wrap',
+  gap: foundationVars.space[2],
   justifyContent: 'space-between'
 })
 
@@ -121,12 +134,22 @@ export const sectionMeta = style({
   fontSize: '0.74rem'
 })
 
+export const hitDiceList = style({
+  display: 'grid'
+})
+
 export const hitDieRow = style({
   alignItems: 'center',
   display: 'grid',
   gap: foundationVars.space[3],
   gridTemplateColumns: 'minmax(0, 1fr) auto',
   paddingBlock: foundationVars.space[2],
+  '@media': {
+    '(max-width: 22rem)': {
+      alignItems: 'stretch',
+      gridTemplateColumns: '1fr'
+    }
+  },
   selectors: {
     '&:not(:last-child)': {
       borderBottom: `1px solid ${foundationVars.color.border.subtle}`
@@ -134,13 +157,10 @@ export const hitDieRow = style({
   }
 })
 
-export const hitDiceList = style({
-  display: 'grid'
-})
-
 export const hitDieIdentity = style({
   display: 'grid',
-  gap: foundationVars.space[1]
+  gap: foundationVars.space[1],
+  minWidth: 0
 })
 
 export const hitDieName = style({
@@ -151,14 +171,24 @@ export const hitDieName = style({
 
 export const hitDieMeta = style({
   color: foundationVars.color.text.secondary,
-  fontSize: '0.74rem'
+  fontSize: '0.74rem',
+  lineHeight: 1.35
 })
 
 export const stepper = style({
   alignItems: 'center',
   display: 'grid',
   gap: foundationVars.space[2],
-  gridTemplateColumns: '36px 34px 36px'
+  gridTemplateColumns: '36px 34px 36px',
+  justifySelf: 'end',
+  '@media': {
+    '(max-width: 22rem)': {
+      justifySelf: 'start'
+    },
+    '(pointer: coarse)': {
+      gridTemplateColumns: '44px 34px 44px'
+    }
+  }
 })
 
 export const stepperButton = style({
@@ -166,7 +196,13 @@ export const stepperButton = style({
     [app]: {
       minHeight: '36px',
       minWidth: '36px',
-      paddingInline: 0
+      paddingInline: 0,
+      '@media': {
+        '(pointer: coarse)': {
+          minHeight: '44px',
+          minWidth: '44px'
+        }
+      }
     }
   }
 })
@@ -174,6 +210,7 @@ export const stepperButton = style({
 export const stepperValue = style({
   color: foundationVars.color.text.primary,
   fontSize: '0.9rem',
+  fontVariantNumeric: 'tabular-nums',
   fontWeight: 760,
   textAlign: 'center'
 })
@@ -186,25 +223,39 @@ export const diceAction = style({
 export const diceButton = style({
   '@layer': {
     [app]: {
-      minWidth: '148px'
+      minHeight: '40px',
+      minWidth: '148px',
+      whiteSpace: 'normal',
+      '@media': {
+        '(pointer: coarse)': {
+          minHeight: '44px'
+        }
+      }
     }
   }
 })
 
 export const recoverySummary = style({
-  display: 'grid',
-  gap: foundationVars.space[2],
-  padding: foundationVars.space[3],
+  background: foundationVars.color.surface.subtle,
   border: `1px solid ${foundationVars.color.border.subtle}`,
   borderRadius: foundationVars.radius.md,
-  background: foundationVars.color.surface.subtle
+  display: 'grid',
+  gap: foundationVars.space[2],
+  padding: foundationVars.space[3]
 })
 
 export const recoveryLine = style({
   alignItems: 'baseline',
   display: 'flex',
   gap: foundationVars.space[3],
-  justifyContent: 'space-between'
+  justifyContent: 'space-between',
+  '@media': {
+    '(max-width: 22rem)': {
+      alignItems: 'start',
+      flexDirection: 'column',
+      gap: foundationVars.space[1]
+    }
+  }
 })
 
 export const recoveryLabel = style({
@@ -216,7 +267,13 @@ export const recoveryValue = style({
   color: foundationVars.color.text.primary,
   fontSize: '0.78rem',
   fontWeight: 700,
-  textAlign: 'right'
+  overflowWrap: 'anywhere',
+  textAlign: 'right',
+  '@media': {
+    '(max-width: 22rem)': {
+      textAlign: 'left'
+    }
+  }
 })
 
 export const note = style({
@@ -225,9 +282,44 @@ export const note = style({
   lineHeight: 1.4
 })
 
+export const companionList = style({
+  display: 'grid',
+  gap: foundationVars.space[2]
+})
+
+export const error = style({
+  color: foundationVars.color.status.danger,
+  fontSize: '0.76rem',
+  lineHeight: 1.35
+})
+
+export const liveRegion = style({
+  color: foundationVars.color.text.secondary,
+  fontSize: '0.76rem',
+  minHeight: '1.1em'
+})
+
 export const actions = style({
   display: 'grid',
   gap: foundationVars.space[3],
   gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.35fr)',
-  paddingTop: foundationVars.space[1]
+  paddingTop: foundationVars.space[1],
+  '@media': {
+    '(max-width: 22rem)': {
+      gridTemplateColumns: '1fr'
+    }
+  }
+})
+
+export const actionButton = style({
+  '@layer': {
+    [app]: {
+      minHeight: '40px',
+      '@media': {
+        '(pointer: coarse)': {
+          minHeight: '44px'
+        }
+      }
+    }
+  }
 })

@@ -165,7 +165,15 @@ function createSheet(
       maxHitPoints: 12,
       tempHitPoints: 3,
       maxHitPointsOverride: null,
-      exhaustionLevel: 0,
+      maxHitPointsModifier: 0,
+      maxHitPointsModifierAdjustmentId: null,
+      exhaustion: {
+        label: 'Exhaustion',
+        description: 'Exhaustion measures cumulative physical and mental fatigue.',
+        level: 0,
+        minimumLevel: 0,
+        maximumLevel: 6
+      },
       conditions: [],
       hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }]
     },
@@ -209,7 +217,7 @@ function createSheet(
       proficiencies: [],
       defenses: [],
       senses: [],
-      conditionOptions: [{ id: 'condition-1', label: 'Poisoned' }],
+      conditionOptions: [{ id: 'condition-1', code: 'POISONED', label: 'Poisoned' }],
       equipmentOptions: [
         {
           id: 'equipment-1',
@@ -233,7 +241,7 @@ function createSheet(
 }
 
 function createConditionDb(
-  rows: Array<{ id: string; label: string; description?: string | null }> = [],
+  rows: Array<{ id: string; code: string; label: string; description?: string | null }> = [],
   rowsByTable: Readonly<Record<string, unknown[]>> = {}
 ): DBLike {
   type TestQueryBuilder = {
@@ -561,6 +569,20 @@ describe('character sheet command application', () => {
     })
   })
 
+  it('validates exhaustion against the resolved Sheet policy limit', () => {
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'SET_EXHAUSTION',
+          level: 7,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow('Exhaustion level must be between 0 and 6.')
+  })
+
   it('removes conditions from character state', () => {
     const character = createCharacter()
     character.state.conditions = [
@@ -598,8 +620,8 @@ describe('character sheet command application', () => {
       streamVersion: 1
     })
 
-    expect(sheet.overview.exhaustionLevel).toBe(1)
-    expect(sheet.overview.exhaustionNotes).toBe('Forced march through the swamp.')
+    expect(sheet.overview.exhaustion.level).toBe(1)
+    expect(sheet.overview.exhaustion.notes).toBe('Forced march through the swamp.')
   })
 
   it('hydrates condition descriptions from system vocabulary', async () => {
@@ -616,6 +638,7 @@ describe('character sheet command application', () => {
       db: createConditionDb([
         {
           id: 'condition-1',
+          code: 'POISONED',
           label: 'Poisoned',
           description: 'A poisoned creature suffers from toxins affecting its body.'
         }
@@ -636,6 +659,7 @@ describe('character sheet command application', () => {
     expect(sheet.reference.conditionOptions).toEqual([
       {
         id: 'condition-1',
+        code: 'POISONED',
         label: 'Poisoned',
         description: 'A poisoned creature suffers from toxins affecting its body.'
       }
