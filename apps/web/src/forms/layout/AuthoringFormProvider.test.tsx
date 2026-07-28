@@ -7,7 +7,7 @@ import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/ap
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAuthoringForm } from './AuthoringFormContext'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
-import { characterBuilderPayloadFixture } from '#domains/characters/character.fixtures'
+import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
 import type { AuthoringNavigationTarget } from './authoringNavigation'
 
 describe('AuthoringFormProvider domain registration', () => {

@@ -16,7 +16,7 @@ import type {
   AuthoredFormDomain,
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
-import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
+import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import type {
   VisibleAuthoringStep,
   VisibleAuthoringSteps

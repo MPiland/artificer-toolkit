@@ -1,2 +1,2 @@
-export { CharacterListPage } from './pages/CharacterListPage'
-export { CharacterSheetPage } from './pages/CharacterSheetPage'
+export { CharacterListPage } from './pages/list/CharacterListPage'
+export { CharacterSheetPage } from './pages/sheet/CharacterSheetPage'

@@ -35,7 +35,8 @@ export const dnd5e2014RulesSystem: RulesSystem = {
   },
   exhaustion: {
     label: 'Exhaustion',
-    description: 'Exhaustion measures cumulative physical and mental fatigue.',
+    description:
+      '<p>Each exhaustion level includes the effects of every lower level.</p><ol><li><strong>Level 1:</strong> Disadvantage on ability checks.</li><li><strong>Level 2:</strong> Speed is halved.</li><li><strong>Level 3:</strong> Disadvantage on attack rolls and saving throws.</li><li><strong>Level 4:</strong> Hit point maximum is halved.</li><li><strong>Level 5:</strong> Speed is reduced to 0.</li><li><strong>Level 6:</strong> Death.</li></ol>',
     minimumLevel: 0,
     maximumLevel: 6,
     levelAfterLongRest(currentLevel: number): number {

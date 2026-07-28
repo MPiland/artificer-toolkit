@@ -6,12 +6,12 @@ import type {
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
-  characterSheetFixture,
   characterSheetMulticlassFixture,
   createCharacterRestPreviewFixture
-} from '#domains/characters/character.fixtures'
-import { CharacterSheetView } from '#domains/characters/components/sheet/CharacterSheetView'
-import type { CharacterSheetTabId } from '#domains/characters/components/sheet/CharacterSheet.types'
+} from '#domains/characters/sheet/fixtures/characterRest.fixtures'
+import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
+import type { CharacterSheetTabId } from '#domains/characters/sheet/core/CharacterSheet.types'
+import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
 import { Shell, platformNavigation } from '#app/shell'
 
 const meta = {
@@ -73,7 +73,7 @@ async function openShortRest(canvasElement: HTMLElement) {
   const dialog = await page.findByRole('dialog', { name: 'Short Rest' })
   await expect(await within(dialog).findByText('No hit dice selected')).toBeInTheDocument()
   await expect(
-    within(dialog).getByLabelText('Reset Maximum HP changes during this rest')
+    within(dialog).getByLabelText('Remove the current Max HP adjustment')
   ).toBeInTheDocument()
   await expect(within(dialog).getByRole('button', { name: 'Take Short Rest' })).toBeInTheDocument()
   return dialog
@@ -104,7 +104,9 @@ export const CharacterSheetShortRest: Story = {
     const addD8 = within(dialog).getByRole('button', { name: 'Add one d8 hit die' })
     await waitFor(() => expect(addD8).toBeEnabled())
     await userEvent.click(addD8)
-    await expect(await within(dialog).findByText('1d10 + 1d8 + 4')).toBeVisible()
+    await expect(
+      await within(dialog).findByRole('button', { name: 'Roll 1d10 + 1d8 + 4' })
+    ).toBeVisible()
   },
   render: () => (
     <CharacterSheetCapture initialTab='actions' sheet={characterSheetMulticlassFixture} />
@@ -128,7 +130,7 @@ export const CharacterSheetShortRestRolled: Story = {
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {
       name: 'Short Rest'
     })
-    await userEvent.click(within(dialog).getByRole('button', { name: '1d10 + 1d8 + 4' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
     const rolledLabels = await within(dialog).findAllByText('15 rolled')
     await expect(rolledLabels[0]).toBeVisible()
     await expect(within(dialog).getByText('6 HP staged')).toBeVisible()

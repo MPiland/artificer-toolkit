@@ -12,7 +12,7 @@ import { getAuthoringStatus, readReactNodeText } from './AuthoringLayout.utils'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   markCharacterBuilderTiming
-} from '#domains/characters/characterBuilder.performance'
+} from '#domains/characters/builder/core/characterBuilder.performance'
 
 export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const {

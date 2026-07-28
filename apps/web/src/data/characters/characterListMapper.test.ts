@@ -6,7 +6,7 @@ import {
   mapCharacterListToDraftAuthoredItems,
   summarizeCharacterList
 } from './characterListMapper'
-import { characterListFixture } from '#app/domains/characters/character.fixtures'
+import { characterListFixture } from '#app/domains/characters/pages/list/characterList.fixtures'
 
 describe('character list mapper', () => {
   it('maps active and draft-only characters into authored list rows', () => {

@@ -1,8 +1,8 @@
-import { characterSheetFixture } from '#domains/characters/character.fixtures'
+import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import {
   spellPanelFixture,
   spellsPanelFixture
-} from '#domains/characters/components/sheet/panels/characterSheetPanel.fixtures'
+} from '#domains/characters/sheet/inspector/inspector.fixtures'
 import {
   projectOptimisticCharacterSheet,
   projectOptimisticCharacterSheetPanel

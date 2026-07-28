@@ -10,7 +10,7 @@ import {
 import {
   createFallbackCharacterFormValues,
   normalizeCharacterForDraft
-} from '#domains/characters/characterBuilder.utils'
+} from '#domains/characters/builder/shared/formNormalization'
 
 export const Route = createFileRoute('/_authed/characters/new')({
   context: () => createCharacterBuilderRouteContext('create'),

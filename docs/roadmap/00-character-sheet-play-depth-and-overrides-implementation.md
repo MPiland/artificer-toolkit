@@ -738,13 +738,13 @@ Mockup evidence:
 
 ### Checkpoints
 
-| Checkpoint      | Required evidence                                                                                                                    | Status  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------- |
-| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN` |
-| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN` |
-| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN` |
-| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN` |
-| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `GREEN` |
+| Checkpoint      | Required evidence                                                                                                                    | Status   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN`  |
+| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN`  |
+| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN`  |
+| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN`  |
+| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `ACTIVE` |
 
 ### Progress log
 
@@ -756,12 +756,13 @@ Mockup evidence:
 - `2026-07-28`: Initial delivery commit `57483cc09032373041b132b5ebd9d0c32090fda4` passed the focused, affected, formatting, lint, browser, and Character Sheet Postgres gates. The broader seeded lifecycle runner still exposed pre-rest fixture and performance failures, so its completed-rest proof remained an open Checkpoint 5 correction rather than an accepted validation gap.
 - `2026-07-28`: The seeded lifecycle correction is green at `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`. Builder HP normalization now uses rules-engine effective abilities; disabled grant options survive application-view projection; seeded choices avoid disabled and duplicate full-proficiency targets; the Dragonborn fixture uses its canonical Constitution result; inspiration clearing persists `false`; resource commands no longer request a nonexistent panel; and Sheet extra options use one bounded catalog query instead of fully hydrating every creature and vehicle. The Prepared Caster lifecycle fell from 307 seconds to 25 seconds, and the unfiltered runner now passes all four Martial, Prepared Caster, Choice-Heavy, and Multiclass HP fixtures through completed-rest retry, stale-write, persistence-reload, and rollback assertions.
 - `2026-07-28`: Deterministic Sheet commands now project optimistically for HP damage/healing, direct HP/temp changes without a maximum override, condition add/remove, exhaustion levels/notes, inspiration, spell slots, and typed resource use/recovery. Maximum-HP adjustment calculations and `COMPLETE_REST` remain authoritative because they depend on engine policy or backend roll evidence. The shared mutation boundary still snapshots, rolls back on failure, and reconciles every success with the returned authoritative Sheet.
+- `2026-07-28`: Checkpoint 5 reopened for the approved pre-Branch-07 Character frontend structural cleanup. The prior delivery SHA is superseded while Builder, Sheet, page, fixture, story, test, and style ownership move into feature-owned modules and the Exhaustion disclosure adopts Mantine Accordion. This cleanup preserves the existing optimistic Sheet boundary and introduces no transport contract, migration, RLS, or backend integration change.
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `ACTIVE`
 
-**Delivery SHA:** `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
+**Delivery SHA:** `PENDING` — supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
 
 #### Delivered contracts and ownership
 
