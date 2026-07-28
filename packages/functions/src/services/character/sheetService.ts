@@ -339,6 +339,7 @@ function createSkillReference(
     if (existing) {
       metadataByCanonical.set(canonical, {
         ...existing,
+        skillId: skill.id,
         code: skill.code ?? existing.code,
         label: skill.label,
         ability: ability ?? existing.ability

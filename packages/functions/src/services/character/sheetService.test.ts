@@ -892,6 +892,7 @@ describe('character sheet command application', () => {
 
   it('hydrates engine-derived skill overview rows with vocabulary-id skill matching', async () => {
     const resolution = createResolution()
+    const athleticsSkillId = '00000000-0000-0000-0000-000000000101'
     const fighter = createSpellcastingClass({
       id: 'class-1',
       label: 'Fighter',
@@ -907,7 +908,7 @@ describe('character sheet command application', () => {
         selectionKind: 'GRANTED',
         scalingKind: 'NONE',
         authoringModeKind: 'SELECTED',
-        skillIds: ['skill-athletics'],
+        skillIds: [athleticsSkillId],
         level: 'FULL'
       }
     ]
@@ -915,7 +916,7 @@ describe('character sheet command application', () => {
     resolution.registry.system = createSystem({
       skills: [
         {
-          id: 'skill-athletics',
+          id: athleticsSkillId,
           code: 'ATHLETICS',
           label: 'Athletics'
         }
@@ -945,7 +946,7 @@ describe('character sheet command application', () => {
     expect(sheet.overview.skills).toEqual(
       expect.arrayContaining([
         {
-          skillId: 'athletics',
+          skillId: athleticsSkillId,
           code: 'ATHLETICS',
           label: 'Athletics',
           ability: 'STRENGTH',
