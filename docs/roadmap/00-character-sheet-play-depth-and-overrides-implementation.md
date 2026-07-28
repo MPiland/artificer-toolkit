@@ -758,12 +758,13 @@ Mockup evidence:
 - `2026-07-28`: Deterministic Sheet commands now project optimistically for HP damage/healing, direct HP/temp changes without a maximum override, condition add/remove, exhaustion levels/notes, inspiration, spell slots, and typed resource use/recovery. Maximum-HP adjustment calculations and `COMPLETE_REST` remain authoritative because they depend on engine policy or backend roll evidence. The shared mutation boundary still snapshots, rolls back on failure, and reconciles every success with the returned authoritative Sheet.
 - `2026-07-28`: Checkpoint 5 reopened for the approved pre-Branch-07 Character frontend structural cleanup. The prior delivery SHA is superseded while Builder, Sheet, page, fixture, story, test, and style ownership move into feature-owned modules and the Exhaustion disclosure adopts Mantine Accordion. This cleanup preserves the existing optimistic Sheet boundary and introduces no transport contract, migration, RLS, or backend integration change.
 - `2026-07-28`: The structural cleanup is green at `d0d569b3488f512f6b4a4055c1e7470539cc14c7`. Builder, Sheet, pages, fixtures, stories, tests, and styles now live with their feature owners; the legacy root pockets and mega-stylesheets are removed; no Character Sheet context/provider or bundled section controller was introduced. Exhaustion uses a controlled Mantine Accordion with persistent sibling level controls and a trailing chevron. The character-domain suite passed 152/152 tests, Storybook passed 123/123 interactions, Web app/tests and story typechecks passed, and type-aware lint, repository formatting, and diff checks passed. The final opaque mobile status surface correction was validated with the focused 10-test status suite and direct 390px/320px browser checks rather than rerunning unrelated suites.
+- `2026-07-28`: Final visual approval is recorded at `f5f2ef24c2e4e7fb890cbcaebbf3964187adb1ab`. The collapsed Exhaustion row now removes excess divider and panel spacing, uses a 40px desktop header, and retains 44px mobile/coarse-pointer targets through its existing media query. Per explicit approval, this presentation-only adjustment was committed without another test or typecheck run.
 
 ### Handoff
 
 **Status:** `HANDOFF_READY`
 
-**Delivery SHA:** `d0d569b3488f512f6b4a4055c1e7470539cc14c7` — supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
+**Delivery SHA:** `f5f2ef24c2e4e7fb890cbcaebbf3964187adb1ab` — includes structural cleanup commit `d0d569b3488f512f6b4a4055c1e7470539cc14c7` and supersedes `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
 
 #### Delivered contracts and ownership
 
@@ -802,6 +803,7 @@ Mockup evidence:
 - Focused Storybook interactions: green — 46 tests across the production Sheet and reused marketing capture.
 - Structural cleanup validation: green — 21 character-domain files and 152 tests; 34 Storybook files and 123 interactions; Web app/tests and story typechecks; type-aware Oxlint; repository Oxfmt; and clean static import, context, CSS-size, and diff checks.
 - Final status/Accordion correction: green — 1 focused file and 10 tests; Vite-compiled browser verification at desktop, 820px tablet, 390px, and 320px with opaque Sheet surfaces, trailing chevron alignment, 44px coarse-pointer controls, reduced motion, both Forge themes, and zero horizontal overflow.
+- Final Exhaustion header spacing: user-approved presentation-only follow-up; no additional tests or typechecks were run by request.
 - `yarn test:character-sheet:integration`: green — event atomicity, rollback, stale-version protection, touched-state isolation, and owner RLS verified against local Postgres.
 - Repository type-aware Oxlint, repository Oxfmt, and `git diff --check`: green.
 - Browser evidence: desktop, tablet portrait/landscape, exact 48rem boundary, 390px, and 320px; both Forge themes; keyboard/focus, reduced motion, increased text, touch targets, overflow, staged healing, roll invalidation, and Long Rest verified. Structural-cleanup captures remain in ignored `output/playwright/character-cleanup/`.
