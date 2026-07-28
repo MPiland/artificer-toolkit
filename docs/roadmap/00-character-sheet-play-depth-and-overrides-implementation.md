@@ -1,6 +1,6 @@
 # Phase 00 implementation ledger
 
-> **Status:** active
+> **Status:** `FINAL_VALIDATED`
 > **Integration branch:** `feature/character-overrides`
 > **Integration base:** `35f22cf6`
 > **Roadmap:** [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md)
@@ -19,15 +19,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                           | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | ------------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs      | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG         | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
-| `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED` | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `INTEGRATED` | `0b9d37574ae7` | `f5f2ef24c2e4` | green       | green          | green       |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `ACTIVE`     | `3d482b563264` | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                           | Status            | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs      | `INTEGRATED`      | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG         | `INTEGRATED`      | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED`      | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED`      | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
+| `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED`      | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `INTEGRATED`      | `0b9d37574ae7` | `f5f2ef24c2e4` | green       | green          | green       |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, local smoke validation             | `FINAL_VALIDATED` | `3d482b563264` | `fd4ee0ea8c9e` | green       | green          | green       |
 
 ## Branch 01 — Foundation and persistence
 
@@ -820,7 +820,7 @@ Mockup evidence:
 
 **Entry:** Branches 01–06 are `INTEGRATED` with no known failed gate.
 
-**Exit:** Screenshot inventory coverage, Impeccable distillation, abstraction cleanup, exhaustive commands/adapters, end-to-end workflows, accessibility/theme/overflow states, roadmap renumbering, dice roadmap, full required validation, hosted Netlify smoke test, and one PR are green. Mark this ledger `FINAL_VALIDATED`.
+**Exit:** Screenshot inventory coverage, Impeccable distillation, abstraction cleanup, exhaustive commands/adapters, end-to-end workflows, accessibility/theme/overflow states, roadmap renumbering, dice roadmap, full required validation, isolated local application smoke validation, and one PR are green. This ledger is `FINAL_VALIDATED`.
 
 ### Entry verification
 
@@ -882,6 +882,26 @@ All 13 captures are final Storybook-rendered Sheet states. Their SHA-256 hashes 
 - At 125% root text size, the 390px Sheet remained 390px wide without horizontal overflow.
 - Closing mobile HP management with Escape returned keyboard focus to the Manage HP trigger.
 
+### Local application smoke validation
+
+- The final application smoke used the local development stack and local Supabase only. No
+  production or hosted character data was used as a final validation gate.
+- The retained local-only character `Phase 00 Local Smoke` (`7mcw0`) loaded as an active Level 3
+  High Elf Wizard and persisted Sheet state across refresh.
+- Ability and skill inspection, Spells, Extras, HP management, conditions, exhaustion, spell-slot
+  use, and authoritative long-rest recovery were exercised through the rendered application.
+- A used first-level spell slot persisted after refresh. Damage, Level 1 Exhaustion, and Prone were
+  applied; Prone was removed; and the long-rest preview reported the expected HP, exhaustion, and
+  resource recovery before completion.
+- Completing the long rest and refreshing restored the reusable baseline: HP `20/20`, Exhaustion
+  `0`, no conditions, first-level slots `4/4`, and second-level slots `2/2`.
+- The smoke uncovered one vocabulary-identity regression in skill inspection. The Sheet service now
+  retains the persisted skill UUID when hydrating canonical skill metadata, and Arcana inspection
+  was rechecked successfully in the browser.
+- Successful browser flows completed without console errors or warnings. Mutation rejection and
+  optimistic rollback remain covered by the deterministic owning tests; offline pause-and-resume was
+  not misreported as a failed-request rollback.
+
 ### Deprecated HP-column safety gate
 
 - Hosted project `Artificer Toolkit` was queried on 2026-07-28. It contains zero non-null
@@ -917,11 +937,17 @@ All 13 captures are final Storybook-rendered Sheet states. Their SHA-256 hashes 
 - Roadmap link/reference check: green — no broken local links, no stale pre-renumber filenames,
   and Phase 01–12 headings match their filenames.
 - `git diff --check`: green.
+- Post-smoke skill-identity regression test: green — 1 file and 71 application-service tests.
+- Post-smoke `yarn test:character-sheet:integration`: green — all 12 local database checks,
+  including rollback and stale-version handling.
+- Post-smoke `yarn turbo:affected:typecheck`: green — 8 tasks.
 
 ### Delivered and deferred scope
 
 - Delivered: exhaustive cross-branch command/projector/adapter consistency, focused regressions,
   final Impeccable/browser distillation, 13 curated captures, Phase 01 Dice planning, Phase 02–12
-  renumbering, one-source Media crop ownership, and Campaign consumption of the shared roll service.
+  renumbering, one-source Media crop ownership, Campaign consumption of the shared roll service,
+  and isolated local application smoke validation. The final app-bearing SHA is
+  `fd4ee0ea8c9e578671e12dba3b2c451f0c675779`.
 - Deferred by design: all Dice renderer/service/GLB implementation, Campaign/Encounter roll
   persistence, native dice presentation, and deprecated HP-column removal.
