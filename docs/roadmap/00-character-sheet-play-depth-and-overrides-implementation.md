@@ -19,15 +19,15 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 
 ## Branch ledger
 
-| Branch                                           | Scope                                                                           | Status          | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
-| ------------------------------------------------ | ------------------------------------------------------------------------------- | --------------- | -------------- | -------------- | ----------- | -------------- | ----------- |
-| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs      | `INTEGRATED`    | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
-| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG         | `INTEGRATED`    | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
-| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED`    | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
-| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED`    | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
-| `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `HANDOFF_READY` | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
-| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `PLANNED`       | pending        | pending        | pending     | pending        | pending     |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `PLANNED`       | pending        | pending        | as needed   | pending        | pending     |
+| Branch                                           | Scope                                                                           | Status       | Base SHA       | Delivery SHA   | Mockup gate | Technical gate | Visual gate |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- | ------------ | -------------- | -------------- | ----------- | -------------- | ----------- |
+| `codex/character-overrides-01-foundation`        | Taxonomy, persistence, identities, structured hit dice, HP migration, ADRs      | `INTEGRATED` | `35f22cf6`     | `75c44e1ed343` | N/A         | green          | N/A         |
+| `codex/character-overrides-02-engine`            | Precedence, propagation, provenance, breakdowns, movement/passives, RNG         | `INTEGRATED` | `7454f314adcf` | `0ebc81bf2a8e` | N/A         | green          | N/A         |
+| `codex/character-overrides-03-core-panels`       | Inspector shell and core-stat panels                                            | `INTEGRATED` | `f92cc6946541` | `11fa57750faa` | green       | green          | green       |
+| `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
+| `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED` | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
+| `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `PLANNED`    | pending        | pending        | pending     | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -607,7 +607,7 @@ limited-use states.
 
 ## Branch 05 — Extras
 
-> **Status:** handoff ready and locked at delivery commit `0bd47e4b1011`. Integration into `feature/character-overrides` remains the next branch transition.
+> **Status:** integrated into `feature/character-overrides`. Delivery remains locked at `0bd47e4b1011`; the ledger-only child head is `0da94343`.
 
 **Entry:** Generic resource owners, the `COMPANION_FEATURE` owner, companion calculation context, persisted creature/vehicle instances, and the existing right-inspector/mobile-drawer seam are available.
 
@@ -650,12 +650,15 @@ limited-use states.
 - `2026-07-28`: Checkpoint 4 is green. Live Storybook inspection covered 1440×1000 desktop, 1180×820 landscape tablet, 820×1180 portrait tablet, 390×844 phone, and 320×700 narrow phone in dark mode plus desktop light mode. All viewports had zero horizontal overflow; the narrow phone retained complete content through its intended internal scroll area. Companion and vehicle rows/panels, custom/authored naming, high-level per-kind metrics, Add success/pending/error states, retained selections after failure, semantic dialog controls, and trigger-focus restoration were verified. Checkpoint 5 remains pending only until the delivery SHA and final handoff ledger entry are recorded.
 - `2026-07-28`: Extras presentation was distilled to the Sheet's established flat-row language: title-first rows, divider-separated stat blocks, no redundant kind badge, and creature Origin hidden at the mobile breakpoint. Creature summaries now show the first authored non-walking movement mode and fall back to walking only when no other mode exists. Replacement evidence is green: focused functions tests passed 17/17, focused Extras/inspector tests passed 12/12, functions and both web TypeScript projects passed, scoped type-aware lint and formatting passed, and a clean Storybook interaction completed without console warnings. Live 1440×1000, 820×1180, 390×844, and 320×700 checks showed flat 0px-radius rows, the intended Origin breakpoint behavior, one `Flying 60 feet` summary, and zero horizontal overflow.
 - `2026-07-28`: Branch 05 is handoff ready and locked. Delivery commit `0bd47e4b1011` contains the complete Extras lifecycle and play-surface implementation; all five checkpoints are green.
+- `2026-07-28`: Branch 05 child head `0da94343` was fast-forwarded into `feature/character-overrides`; Branch 05 is integrated and Branch 06 is next.
 
 ### Handoff
 
-**Status:** `HANDOFF_READY`
+**Status:** `INTEGRATED`
 
 **Delivery SHA:** `0bd47e4b1011cbfc3de6b451faf0ffd3af6c95a6`
+
+**Integrated child head SHA:** `0da94343cc2019f9518fa514e7cb568844ab1392`
 
 #### Delivered contracts and ownership
 
@@ -689,7 +692,7 @@ limited-use states.
 - Automated creature and vehicle attacks, saves, damage, and authored action resolution remain deferred.
 - Vehicle temporary HP, hit dice, typed adjustments, and feature resources remain deferred.
 - Branch 06 may recover selected eligible companion hit dice and `COMPANION_FEATURE` resources through its atomic rest transaction. It must reuse the existing owner identities and command/event boundary rather than introducing a parallel companion recovery path.
-- Integrate this locked child branch into `feature/character-overrides`, mark Branch 05 `INTEGRATED`, then create `codex/character-overrides-06-vitals-rests` from that integration head.
+- Create `codex/character-overrides-06-vitals-rests` from the integration head after this ledger commit, then activate the Branch 06 checkpoints before implementation.
 
 ## Branch 06 — Vitals and complete rests
 
