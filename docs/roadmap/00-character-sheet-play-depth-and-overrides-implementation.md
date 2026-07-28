@@ -753,13 +753,15 @@ Mockup evidence:
 - `2026-07-28`: Checkpoints 2 and 3 are green. Rest preview uses the backend random source and deterministic fingerprints; `COMPLETE_REST` re-resolves inside the existing locked Sheet transaction and atomically persists HP, character and selected-companion hit dice, slots, exhaustion, typed resources, selected maximum-HP modifier removal, and the exact completed-rest event. Sequential and concurrent duplicate commands replay that stored result. Focused Functions tests passed 93/93, the final execute suite passed 23/23, Functions/API typechecks passed, and API routing tests passed 5/5.
 - `2026-07-28`: Checkpoint 4 is green. The production Sheet now owns the shared Short/Long Rest control, condition and exhaustion definitions/notes, and corrected HP reset semantics; the marketing capture reuses that production component. Storybook and browser review covered desktop, tablet portrait/landscape, the exact 48rem boundary, 390px, and 320px in both Forge themes with keyboard Escape/focus return, reduced motion, increased text, coarse-pointer targets, manual-healing staging, roll invalidation, and zero horizontal overflow. The focused Sheet suite passed 50/50 and the two rest-bearing Storybook files passed 46/46 browser tests.
 - `2026-07-28`: The mandatory Impeccable finish review is resolved. Preview fingerprints now bind the rules identity plus resolved long-rest exhaustion and character hit-die effects; stale policy previews reject before writes. Exhaustion retains 10px visual pips inside 44px coarse-pointer targets, and the public exhaustion command defers the maximum to the active rules policy. The post-review focused Schema/Functions suite passed 116/116 tests, and final browser measurements confirmed 44px exhaustion and close targets, reachable landscape actions, no horizontal overflow, and an enabled no-roll Long Rest.
-- `2026-07-28`: Checkpoint 5 is green at delivery commit `57483cc09032373041b132b5ebd9d0c32090fda4`. Final affected tests and typechecks passed 8/8 tasks; Web reports 105 files and 642 tests. Repository type-aware Oxlint, repository Oxfmt, `git diff --check`, the focused 50-test Sheet suite, and 46 Storybook interactions are green. The existing Character Sheet Postgres transaction/RLS suite is green. The broader lifecycle runner remains unable to reach its new completed-rest assertions against the current local seed: the canonical fixture first fails on pre-rest source-data drift, while a temporary current-seed-aligned probe reached the Builder lifecycle but timed out before the rest section. That temporary fixture change was reverted and is not part of the delivery.
+- `2026-07-28`: Initial delivery commit `57483cc09032373041b132b5ebd9d0c32090fda4` passed the focused, affected, formatting, lint, browser, and Character Sheet Postgres gates. The broader seeded lifecycle runner still exposed pre-rest fixture and performance failures, so its completed-rest proof remained an open Checkpoint 5 correction rather than an accepted validation gap.
+- `2026-07-28`: The seeded lifecycle correction is green at `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`. Builder HP normalization now uses rules-engine effective abilities; disabled grant options survive application-view projection; seeded choices avoid disabled and duplicate full-proficiency targets; the Dragonborn fixture uses its canonical Constitution result; inspiration clearing persists `false`; resource commands no longer request a nonexistent panel; and Sheet extra options use one bounded catalog query instead of fully hydrating every creature and vehicle. The Prepared Caster lifecycle fell from 307 seconds to 25 seconds, and the unfiltered runner now passes all four Martial, Prepared Caster, Choice-Heavy, and Multiclass HP fixtures through completed-rest retry, stale-write, persistence-reload, and rollback assertions.
+- `2026-07-28`: Deterministic Sheet commands now project optimistically for HP damage/healing, direct HP/temp changes without a maximum override, condition add/remove, exhaustion levels/notes, inspiration, spell slots, and typed resource use/recovery. Maximum-HP adjustment calculations and `COMPLETE_REST` remain authoritative because they depend on engine policy or backend roll evidence. The shared mutation boundary still snapshots, rolls back on failure, and reconciles every success with the returned authoritative Sheet.
 
 ### Handoff
 
 **Status:** `HANDOFF_READY`
 
-**Delivery SHA:** `57483cc09032373041b132b5ebd9d0c32090fda4`
+**Delivery SHA:** `08bcccdbfe12ff92f24f9f600f7d6b0f55db7853`
 
 #### Delivered contracts and ownership
 
@@ -767,6 +769,7 @@ Mockup evidence:
 - `COMPLETE_REST` is the only production rest command. Completed-rest results hydrate command responses, immutable events, history, and exact retries. Transitional `USE_HIT_DIE` and `APPLY_REST` remain compatibility-only and have no active production Web callers.
 - `RulesSystem` owns the closed rest/exhaustion policy. The D&D 5e 2014 implementation recovers half total hit dice with a minimum of one, reduces exhaustion by one, and exposes the active exhaustion definition and limits.
 - Builder save, Sheet adjustment changes, rest-selected modifier removal, and Sheet projection share the effective-maximum HP floor and current-HP clamp. Reset Maximum HP targets only `HIT_POINTS/MAXIMUM_MODIFIER`.
+- Deterministic Sheet commands project optimistically through the existing command mutation with rollback and authoritative success reconciliation. Engine-derived maximum-HP changes and completed rests intentionally wait for the backend response.
 
 #### Transaction and roll contract
 
@@ -782,11 +785,15 @@ Mockup evidence:
 - Migration: N/A. Existing Sheet state tables, typed resource ownership, companion state, stream version, and event JSONB cover the complete transaction.
 - New RLS policy: N/A. The existing Character Sheet owner-only application boundary remains the only persistence path.
 - No preview table, pending-roll table, signed token, cache, queue, or parallel rest repository was introduced.
+- Sheet creature/vehicle options use a bounded set-based read query. Only attached extras receive full authored hydration, avoiding the previous whole-catalog N+1 projection cost without changing persistence.
 
 #### Validation evidence
 
-- `yarn turbo:affected:test`: green — 8 tasks; Web reports 105 files and 642 tests.
+- `yarn test:character:integration`: green — all four seeded lifecycle fixtures, including atomic completed-rest retry/stale/rollback and persisted reload equality.
+- `yarn turbo:affected:test`: green — 8 tasks; Functions reports 24 files and 248 tests, and Web reports 105 files and 644 tests.
 - `yarn turbo:affected:typecheck`: green — 8 tasks.
+- Focused lifecycle correction tests: green — 3 service files and 61 tests; affected-suite mock regressions pass 14/14.
+- Focused optimistic Sheet projections: green — 6 tests.
 - Post-review focused Schema/Functions policy, contract, and service tests: green — 116 tests.
 - Focused production Sheet tests: green — 50 tests.
 - Focused Storybook interactions: green — 46 tests across the production Sheet and reused marketing capture.
@@ -798,7 +805,6 @@ Mockup evidence:
 
 - Signed roll evidence or persisted previews remain intentionally deferred because direct manual Sheet adjustment already permits equivalent outcomes.
 - Per-class hit-die persistence for classes sharing a denomination, generic dice history, schedulers, source-bound summons, rest timestamps, and new companion models remain deferred.
-- The new Postgres completed-rest lifecycle assertions are present and typechecked, but the current local seeded lifecycle runner fails or stalls in pre-rest legacy fixture work as recorded above. The focused transaction tests and existing Postgres transaction/RLS suite are green; executing that rest-specific lifecycle block after the seed/fixture drift is reconciled remains the only validation gap.
 
 ## Branch 07 — Integration and completion
 
