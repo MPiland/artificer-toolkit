@@ -738,13 +738,13 @@ Mockup evidence:
 
 ### Checkpoints
 
-| Checkpoint      | Required evidence                                                                                                                    | Status   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN`  |
-| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN`  |
-| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN`  |
-| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN`  |
-| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `ACTIVE` |
+| Checkpoint      | Required evidence                                                                                                                    | Status  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| 1. Contract     | Strict mixed-die evidence; preview/result DTOs; ruleset rest/exhaustion policy; HP floor/clamping invariants                         | `GREEN` |
+| 2. Persistence  | Existing-schema transaction; exact event result; stale/no-partial writes; duplicate convergence; selected typed companion recovery   | `GREEN` |
+| 3. Service/API  | Authorized preview and backend roll; production `COMPLETE_REST`; thin tRPC/REST adapters; authoritative response/history hydration   | `GREEN` |
+| 4. Play surface | HP/status completion; 420px popover and 48rem drawer; staged healing; responsive/theme/a11y/overflow/mockup evidence                 | `GREEN` |
+| 5. Handoff      | Focused technical and browser validation; transaction/roll contract; migration N/A; delivery SHA; delivered/deferred scope and risks | `GREEN` |
 
 ### Progress log
 
@@ -752,6 +752,53 @@ Mockup evidence:
 - `2026-07-27`: Checkpoint 1 is green. Strict rest preview/result and `COMPLETE_REST` contracts, mixed-die roll validation, effective-maximum HP clamping primitives, D&D 5e 2014 rest/exhaustion policy, and typed event/history results are delivered. Shared and Schema typechecks passed; focused Shared rest tests passed 5/5 and Schema command-contract tests passed 20/20. Checkpoint 2 opened on the existing Sheet transaction.
 - `2026-07-28`: Checkpoints 2 and 3 are green. Rest preview uses the backend random source and deterministic fingerprints; `COMPLETE_REST` re-resolves inside the existing locked Sheet transaction and atomically persists HP, character and selected-companion hit dice, slots, exhaustion, typed resources, selected maximum-HP modifier removal, and the exact completed-rest event. Sequential and concurrent duplicate commands replay that stored result. Focused Functions tests passed 93/93, the final execute suite passed 23/23, Functions/API typechecks passed, and API routing tests passed 5/5.
 - `2026-07-28`: Checkpoint 4 is green. The production Sheet now owns the shared Short/Long Rest control, condition and exhaustion definitions/notes, and corrected HP reset semantics; the marketing capture reuses that production component. Storybook and browser review covered desktop, tablet portrait/landscape, the exact 48rem boundary, 390px, and 320px in both Forge themes with keyboard Escape/focus return, reduced motion, increased text, coarse-pointer targets, manual-healing staging, roll invalidation, and zero horizontal overflow. The focused Sheet suite passed 50/50 and the two rest-bearing Storybook files passed 46/46 browser tests.
+- `2026-07-28`: The mandatory Impeccable finish review is resolved. Preview fingerprints now bind the rules identity plus resolved long-rest exhaustion and character hit-die effects; stale policy previews reject before writes. Exhaustion retains 10px visual pips inside 44px coarse-pointer targets, and the public exhaustion command defers the maximum to the active rules policy. The post-review focused Schema/Functions suite passed 116/116 tests, and final browser measurements confirmed 44px exhaustion and close targets, reachable landscape actions, no horizontal overflow, and an enabled no-roll Long Rest.
+- `2026-07-28`: Checkpoint 5 is green at delivery commit `57483cc09032373041b132b5ebd9d0c32090fda4`. Final affected tests and typechecks passed 8/8 tasks; Web reports 105 files and 642 tests. Repository type-aware Oxlint, repository Oxfmt, `git diff --check`, the focused 50-test Sheet suite, and 46 Storybook interactions are green. The existing Character Sheet Postgres transaction/RLS suite is green. The broader lifecycle runner remains unable to reach its new completed-rest assertions against the current local seed: the canonical fixture first fails on pre-rest source-data drift, while a temporary current-seed-aligned probe reached the Builder lifecycle but timed out before the rest section. That temporary fixture change was reverted and is not part of the delivery.
+
+### Handoff
+
+**Status:** `HANDOFF_READY`
+
+**Delivery SHA:** `57483cc09032373041b132b5ebd9d0c32090fda4`
+
+#### Delivered contracts and ownership
+
+- Rest preview is an authenticated, read-only request with rest kind, expected version, exact selections, healing decision, companion IDs, optional evidence, and an explicit backend-roll request. Its response carries authoritative HP, labelled aggregated pools, per-die Constitution modifiers, canonical mixed expression, exact evidence, staged healing, recoveries, eligibility, `canApply`, and a deterministic fingerprint.
+- `COMPLETE_REST` is the only production rest command. Completed-rest results hydrate command responses, immutable events, history, and exact retries. Transitional `USE_HIT_DIE` and `APPLY_REST` remain compatibility-only and have no active production Web callers.
+- `RulesSystem` owns the closed rest/exhaustion policy. The D&D 5e 2014 implementation recovers half total hit dice with a minimum of one, reduces exhaustion by one, and exposes the active exhaustion definition and limits.
+- Builder save, Sheet adjustment changes, rest-selected modifier removal, and Sheet projection share the effective-maximum HP floor and current-HP clamp. Reset Maximum HP targets only `HIT_POINTS/MAXIMUM_MODIFIER`.
+
+#### Transaction and roll contract
+
+1. Authorize the character, resolve prior `commandId`, and compare the expected stream version.
+2. Rebuild the preview from current character, typed play state, adjustments, companion instances, and rules-policy outcomes; compare the fingerprint before persistence.
+3. Validate denomination selections, companion eligibility, exact roll count/faces/modifiers/total, healing decision, and maximum-HP modifier reset.
+4. Use the existing locked `patchSheetState(...afterPersist)` transaction for HP, character/companion hit dice, spell slots, exhaustion, typed resource usage, and the selected adjustment removal.
+5. Append the typed completed-rest event last and increment the stream exactly once. Sequential and lock-time concurrent duplicates reread the stored event; mismatched `commandId` reuse fails.
+6. Production rolls use the backend random source. Tests inject deterministic values. The UI only reveals returned faces and never manufactures accepted evidence.
+
+#### Persistence and migration
+
+- Migration: N/A. Existing Sheet state tables, typed resource ownership, companion state, stream version, and event JSONB cover the complete transaction.
+- New RLS policy: N/A. The existing Character Sheet owner-only application boundary remains the only persistence path.
+- No preview table, pending-roll table, signed token, cache, queue, or parallel rest repository was introduced.
+
+#### Validation evidence
+
+- `yarn turbo:affected:test`: green — 8 tasks; Web reports 105 files and 642 tests.
+- `yarn turbo:affected:typecheck`: green — 8 tasks.
+- Post-review focused Schema/Functions policy, contract, and service tests: green — 116 tests.
+- Focused production Sheet tests: green — 50 tests.
+- Focused Storybook interactions: green — 46 tests across the production Sheet and reused marketing capture.
+- `yarn test:character-sheet:integration`: green — event atomicity, rollback, stale-version protection, touched-state isolation, and owner RLS verified against local Postgres.
+- Repository type-aware Oxlint, repository Oxfmt, and `git diff --check`: green.
+- Browser evidence: desktop, tablet portrait/landscape, exact 48rem boundary, 390px, and 320px; both Forge themes; keyboard/focus, reduced motion, increased text, touch targets, overflow, staged healing, roll invalidation, and Long Rest verified. Captures remain in ignored `output/playwright/branch06-short-rest-*.png`.
+
+#### Deferred scope and residual risk
+
+- Signed roll evidence or persisted previews remain intentionally deferred because direct manual Sheet adjustment already permits equivalent outcomes.
+- Per-class hit-die persistence for classes sharing a denomination, generic dice history, schedulers, source-bound summons, rest timestamps, and new companion models remain deferred.
+- The new Postgres completed-rest lifecycle assertions are present and typechecked, but the current local seeded lifecycle runner fails or stalls in pre-rest legacy fixture work as recorded above. The focused transaction tests and existing Postgres transaction/RLS suite are green; executing that rest-specific lifecycle block after the seed/fixture drift is reconciled remains the only validation gap.
 
 ## Branch 07 — Integration and completion
 
