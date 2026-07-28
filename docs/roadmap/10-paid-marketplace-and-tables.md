@@ -1,7 +1,7 @@
-# Phase 09 — Paid Marketplace and paid tables
+# Phase 10 — Paid Marketplace and paid tables
 
 > **Status:** planned; commercial/legal decisions required before implementation
-> **Depends on:** [Phase 06](06-entitlements-and-subscriptions.md), [Phase 07](07-social-hub.md), and [Phase 08](08-free-marketplace.md)
+> **Depends on:** [Phase 07](07-entitlements-and-subscriptions.md), [Phase 08](08-social-hub.md), and [Phase 09](09-free-marketplace.md)
 > **Unlocks:** creator and professional-GM revenue
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0007](../adr/0007-authored-revisions-and-active-projections.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -62,7 +62,7 @@ Content licensing and table-seat fulfillment share payment receipt/orchestration
 2. **Define accounting contracts.** Model seller accounts, offers, checkout attempts, immutable orders/line economics, provider events, allocations, refunds, disputes, payouts, licenses, and table seats.
 3. **Add Connect onboarding and eligibility.** Keep onboarding hosted and web-first; block paid publication until account requirements are satisfied.
 4. **Add server-owned checkout and webhook convergence.** Store idempotency and provider object identities; never fulfill from a client redirect.
-5. **Fulfill paid releases.** Reuse Phase 08 immutable release/license paths and record acquisition source as the completed order.
+5. **Fulfill paid releases.** Reuse Phase 09 immutable release/license paths and record acquisition source as the completed order.
 6. **Fulfill paid table seats.** Coordinate application, capacity, payment, access, cancellation, and payout status without overselling.
 7. **Apply fee entitlements.** Resolve professional/creator fee waivers before checkout and snapshot their effect into the order.
 8. **Build web administration and customer flows.** Cover onboarding, offer management, checkout, receipts, orders, cancellations, refunds, and operator diagnostics.

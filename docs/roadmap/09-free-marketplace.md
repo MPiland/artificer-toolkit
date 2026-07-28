@@ -1,7 +1,7 @@
-# Phase 08 — Free Marketplace
+# Phase 09 — Free Marketplace
 
 > **Status:** planned
-> **Depends on:** the asset pipeline from [Phase 01](01-media-and-file-pipeline.md), revision binding from [Phase 03](03-campaign-core.md), entitlement foundations from [Phase 06](06-entitlements-and-subscriptions.md), and moderation identity from [Phase 07](07-social-hub.md)
+> **Depends on:** the asset pipeline from [Phase 02](02-media-and-file-pipeline.md), revision binding from [Phase 04](04-campaign-core.md), entitlement foundations from [Phase 07](07-entitlements-and-subscriptions.md), and moderation identity from [Phase 08](08-social-hub.md)
 > **Unlocks:** paid creator content
 > **Primary ADRs:** [0007](../adr/0007-authored-revisions-and-active-projections.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -15,7 +15,7 @@ Prove creator publication, immutable releases, licensing, moderation, fulfillmen
 - Existing `MASTER | OWNED` provenance is insufficient for creator attribution, licenses, acquisition, updates, takedown, or sale rights.
 - Copying authored content intentionally creates an independent definition without a durable source link.
 - There is no creator storefront, package, release, asset, license, acquisition, fulfillment, or takedown domain.
-- Phase 01 is expected to own upload/processing lifecycle and stable asset identity; Marketplace owns rights, release references, licensing, and delivery authorization.
+- Phase 02 is expected to own upload/processing lifecycle and stable asset identity; Marketplace owns rights, release references, licensing, and delivery authorization.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ Prove creator publication, immutable releases, licensing, moderation, fulfillmen
 - Acquired content is available through Library and source-linked references/imports according to the approved license model.
 - Removing a listing blocks new acquisition but does not silently delete existing licenses. Legal takedown behavior is explicit and exceptional.
 - Native supports browse, detail, free acquisition, owned Library, and consumption. Package authoring/release administration remains web-first.
-- Preview and supplemental files must already be `READY` Phase 01 assets before publishing. Storage access uses API-authorized object paths and RLS/signed URLs; release metadata never trusts client-declared uploads.
+- Preview and supplemental files must already be `READY` Phase 02 assets before publishing. Storage access uses API-authorized object paths and RLS/signed URLs; release metadata never trusts client-declared uploads.
 - Published release manifests pin exact immutable asset IDs. Replacing a package draft file creates a new asset/reference and never changes a published release.
 
 ## Design
@@ -51,7 +51,7 @@ Marketplace package/release identity is not another authored-content revision ro
 
 1. **Lock rights and license semantics.** Define supported license forms, creator attestation, attribution, supplemental-file rules, update behavior, unlisting, takedown, deletion, and import/reference rights.
 2. **Define creator/package/release contracts.** Include exact revision manifests, release immutability, preview/assets, moderation state, and stable public identity.
-3. **Add persistence and RLS.** Create creator profiles, package drafts, releases/manifests with Phase 01 asset references, listings, licenses, moderation cases, and provenance links. Do not duplicate upload lifecycle tables.
+3. **Add persistence and RLS.** Create creator profiles, package drafts, releases/manifests with Phase 02 asset references, listings, licenses, moderation cases, and provenance links. Do not duplicate upload lifecycle tables.
 4. **Add release validation and publishing.** Verify ownership/rights, file metadata, ruleset compatibility, exact revisions, terms, and immutable economics placeholder without adding money.
 5. **Add free acquisition and fulfillment.** Reuse entitlement concepts where appropriate but keep license terms and content provenance explicit.
 6. **Add Library consumption.** Resolve licensed exact revisions for reference or approved copy/import while preserving creator/source/license attribution.

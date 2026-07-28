@@ -104,13 +104,7 @@ export const spellTableHeader = style({
       width: '100%',
       '@media': {
         '(max-width: 700px)': {
-          fontSize: '0.54rem',
-          gap: '3px',
-          gridTemplateColumns: 'minmax(66px, 1.2fr) 44px 40px 40px minmax(58px, 0.9fr) 50px',
-          padding: '5px 4px 3px'
-        },
-        '(max-width: 360px)': {
-          gridTemplateColumns: 'minmax(60px, 1fr) 34px 34px minmax(42px, 0.8fr) 40px'
+          display: 'none'
         }
       }
     }
@@ -180,13 +174,10 @@ export const spellEntryButton = style({
       width: '100%',
       '@media': {
         '(max-width: 700px)': {
-          gap: '3px',
-          gridTemplateColumns: 'minmax(66px, 1.2fr) 44px 40px 40px minmax(58px, 0.9fr)',
+          gap: '2px',
+          gridTemplateColumns: 'minmax(0, 1fr)',
           minHeight: '44px',
-          padding: '4px'
-        },
-        '(max-width: 360px)': {
-          gridTemplateColumns: 'minmax(60px, 1fr) 34px 34px minmax(42px, 0.8fr)'
+          padding: '6px 4px'
         }
       },
       selectors: {
@@ -213,6 +204,18 @@ export const spellFact = style({
       textAlign: 'center',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
+    }
+  }
+})
+
+globalStyle(`${spellEntryButton} > ${spellFact}`, {
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(max-width: 700px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -269,9 +272,11 @@ export const spellEffectLine = style({
       width: '100%',
       '@media': {
         '(max-width: 700px)': {
-          alignItems: 'center',
+          alignItems: 'baseline',
           fontSize: '0.72rem',
-          gap: 0
+          gap: '2px',
+          justifyContent: 'flex-start',
+          textAlign: 'left'
         }
       }
     }
@@ -289,7 +294,12 @@ export const spellPrimaryEffect = style({
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       width: '100%',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      '@media': {
+        '(max-width: 700px)': {
+          textAlign: 'left'
+        }
+      }
     }
   }
 })
@@ -312,7 +322,7 @@ export const spellInlineSeparator = style({
       color: foundationVars.color.text.muted,
       flex: '0 0 auto',
       '@media': {
-        '(max-width: 620px)': {
+        '(max-width: 700px)': {
           display: 'none'
         }
       }
@@ -328,8 +338,9 @@ export const spellUnavailable = style({
       lineHeight: 1.25,
       whiteSpace: 'normal',
       '@media': {
-        '(max-width: 620px)': {
+        '(max-width: 700px)': {
           flexBasis: 'auto',
+          textAlign: 'left',
           width: '100%'
         }
       }
@@ -348,12 +359,9 @@ export const spellCastButton = style({
       paddingInline: '5px',
       '@media': {
         '(max-width: 700px)': {
-          justifySelf: 'start',
-          minWidth: '36px',
-          paddingInline: '2px'
-        },
-        '(max-width: 360px)': {
-          minWidth: '32px'
+          minHeight: '44px',
+          minWidth: '44px',
+          paddingInline: '4px'
         }
       }
     }

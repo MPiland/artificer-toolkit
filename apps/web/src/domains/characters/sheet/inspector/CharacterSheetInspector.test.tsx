@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, vi } from 'vitest'
 
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
+import type { CharacterSheetPanelDto } from '#app/lib/api'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { CharacterSheetView } from '../core/CharacterSheetView'
@@ -13,6 +14,7 @@ import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetInspector } from './CharacterSheetInspector'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
+import { CharacterSheetRulesPanel } from './CharacterSheetRulesPanel'
 import { CharacterSheetSpellCustomizationEditor } from './CharacterSheetSpellCustomizationEditor'
 import {
   abilityPanelFixture,
@@ -45,6 +47,36 @@ afterAll(() => {
 })
 
 describe('Character Sheet inspector', () => {
+  it('renders the aggregate Extras panel through the exhaustive rules-panel adapter', () => {
+    const panel = {
+      kind: 'EXTRAS',
+      panelId: 'extras',
+      characterId: 'character-owned',
+      target: { kind: 'EXTRAS' },
+      title: 'Extras',
+      state: 'DEFAULT',
+      editable: true,
+      allowedCommands: ['ADD_EXTRA'],
+      companionCount: 2,
+      mountCount: 1,
+      ownedCreatureCount: 3,
+      vehicleCount: 1
+    } satisfies CharacterSheetPanelDto
+
+    renderWithAppProviders(
+      <CharacterSheetRulesPanel
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        submitCommand={vi.fn()}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('Total extras')).toBeVisible()
+    expect(screen.getByText('7')).toBeVisible()
+  })
+
   it('opens as an overlay from the existing ability card', async () => {
     server.use(http.get('*/api/trpc/characters.panel', () => panelResponse(abilityPanelFixture)))
     const user = userEvent.setup()

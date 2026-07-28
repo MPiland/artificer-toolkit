@@ -1,7 +1,7 @@
-# Phase 02 — Cross-platform foundation
+# Phase 03 — Cross-platform foundation
 
 > **Status:** planned
-> **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-media-and-file-pipeline.md), and the current authenticated web/API baseline
+> **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 02](02-media-and-file-pipeline.md), and the current authenticated web/API baseline
 > **Unlocks:** every native surface and all later cross-platform API work
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0010 platform-neutral design system](../adr/0010-platform-neutral-design-system.md)
 
@@ -16,7 +16,7 @@ Prove that the existing modular monolith can support a real native client before
 - `apps/web/src/lib/api.ts` manually mirrors tRPC procedures and parses shared Zod DTOs.
 - `packages/design-system` already owns platform-neutral foundations and semantics; only a web adapter exists.
 - Phase 00 is expected to provide typed, backend-resolved Character Sheet panels and calculation breakdowns with a complete web adapter.
-- Phase 01 is expected to provide portable asset DTOs, authorized delivery, and Character portrait support.
+- Phase 02 is expected to provide portable asset DTOs, authorized delivery, and Character portrait support.
 - There is no Expo workspace, native release configuration, native cache, push registration, or mobile test harness.
 
 Verify all of these statements on the phase branch before planning implementation.
@@ -29,7 +29,7 @@ Verify all of these statements on the phase branch before planning implementatio
 - Persist Supabase session secrets with `expo-secure-store`, refresh only while the app is active, and clear secrets and query state on sign-out or revocation.
 - Add a native semantic adapter for all existing portable design-system semantics. Do not import Mantine, Vanilla Extract, CSS, or web components.
 - Build native sign-in, Character list, and read-only Character Sheet screens from the Phase 00 panel contract with native stacks, lists, scrolling, loading, empty, stale, error, and access-denied states.
-- Render authorized Character portrait variants through the Phase 01 asset contract without reading Storage paths directly.
+- Render authorized Character portrait variants through the Phase 02 asset contract without reading Storage paths directly.
 - Configure the custom URL scheme and the production-origin hook needed for future universal links/App Links.
 - Add EAS development, internal preview, and production profiles without publishing a store build.
 - Start with Expo Go. Add a development client only when a required native module or push-notification work makes it necessary.
@@ -83,7 +83,7 @@ The API handler must distinguish browser-cookie requests from explicit bearer-to
 ## Out of scope
 
 - Campaigns, Realtime, push notifications, SQLite projection caching, offline behavior, native authoring, store submission, payments, and VTT.
-- Creating the media upload, processing, Storage policy, Character portrait, authored artwork, and supporting-file pipeline; that is completed in [Phase 01](01-media-and-file-pipeline.md).
+- Creating the media upload, processing, Storage policy, Character portrait, authored artwork, and supporting-file pipeline; that is completed in [Phase 02](02-media-and-file-pipeline.md).
 - Native adjustment editing or other full Sheet mutation parity. This phase proves the read-only panel adapter before expanding commands.
 - Migrating every existing web API call into `packages/api-client` in the same branch. Move only the shared seam needed to prove the boundary, then migrate incrementally.
 - Building a general cross-platform component library. Share semantic intent, contracts, and rules—not rendered components.

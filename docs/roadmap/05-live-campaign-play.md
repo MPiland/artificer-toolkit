@@ -1,13 +1,13 @@
-# Phase 04 — Live Campaign play and native play alpha
+# Phase 05 — Live Campaign play and native play alpha
 
 > **Status:** planned
-> **Depends on:** [Phase 01](01-media-and-file-pipeline.md) and [Phase 03](03-campaign-core.md)
+> **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), and [Phase 04](04-campaign-core.md)
 > **Unlocks:** full Campaign beta, richer Encounters, and native TestFlight/Play distribution
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0009](../adr/0009-vtt-encounter-event-boundary.md)
 
 ## Goal
 
-Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, group and vehicle inventories, sessions, collaborative notes and supporting files, a manual Campaign clock, server-authoritative dice and roll history, separate Campaign/player-only chat, Realtime reconciliation, read-only native projection caching, push notifications, and invitation links.
+Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, group and vehicle inventories, sessions, collaborative notes and supporting files, a manual Campaign clock, persisted Campaign visibility and history for Phase 01 authoritative rolls, separate Campaign/player-only chat, Realtime reconciliation, read-only native projection caching, push notifications, and invitation links.
 
 ## Current starting point
 
@@ -15,8 +15,9 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 - Builder aggregate replacement can delete and reinsert character-owned children; shared Campaign state cannot live inside `CharacterAuthored`.
 - Equipment definitions are revisioned content, while character inventory rows are runtime instances.
 - Character events provide a useful idempotent command/event pattern but are not a universal event store.
-- No application chat, dice service, Realtime channel model, shared notes, Campaign clock, native cache, or push registry exists.
-- Phase 01 is expected to provide ready-asset identity, upload safety, and authorized delivery; this phase owns how Campaign collaboration references and presents those assets.
+- Phase 01 is expected to provide the restricted authoritative roller and exact semantic evidence. No Campaign-scoped roll visibility, persistence, retention, or history exists.
+- No application chat, Realtime channel model, shared notes, Campaign clock, native cache, or push registry exists.
+- Phase 02 is expected to provide ready-asset identity, upload safety, and authorized delivery; this phase owns how Campaign collaboration references and presents those assets.
 
 ## Requirements
 
@@ -32,11 +33,12 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 - Append correlated custody/audit records and commit both sides or neither.
 - Campaign vehicle instances pin an authored Vehicle revision and own an inventory. Automated vehicle combat is deferred.
 
-### Sessions, notes, clock, dice, and chat
+### Sessions, notes, clock, rolls, and chat
 
 - Sessions act as Campaign folders with contributed notes, authorship, timestamps, edit history or explicit last-writer policy, and role-aware visibility.
 - The manual Campaign clock records start/stop segments and derives elapsed in-game time without requiring a background timer service.
-- Dice is server-authoritative and returns normalized expressions, faces, modifiers, totals, actor, visibility, scope, ruleset, and timestamp.
+- Campaign roll commands call the Phase 01 service and persist its normalized expression, ordered faces, modifiers, subtotals, and total with Campaign-owned actor, visibility, scope, ruleset, and timestamp metadata.
+- This phase must not create another expression parser, evaluator, randomness source, or client-side roll path.
 - Campaign roll history retains the newest 5,000 entries by default without deleting audit data required by another domain.
 - Campaign chat is visible to authorized Campaign members including GMs.
 - Player-only chat is inaccessible to GMs through fetch, subscription, notification, search, analytics, and ordinary administration paths.
@@ -44,7 +46,7 @@ Turn Campaign Core into a usable live-play workspace. Add atomic item transfer, 
 
 ### Campaign files and handouts
 
-- Authorized Campaign members may upload and download size-limited supporting files through the Phase 01 asset pipeline.
+- Authorized Campaign members may upload and download size-limited supporting files through the Phase 02 asset pipeline.
 - Campaign attachments inherit Campaign access and use explicit upload/delete capabilities. Removing a member revokes future API and Storage access.
 - A Campaign attachment records uploader, asset, Campaign, display filename, description, timestamps, and optional session/note association selected by the phase subplan.
 - `CAMPAIGN_HANDOUT_MAP` is a normal viewable/downloadable Campaign asset. It does not gain VTT grid, fog, token, scene, or large-map behavior.
@@ -78,8 +80,8 @@ Realtime messages are hints containing scope, event identity, and cursor. Client
 
 1. **Define shared live-play authorization.** Extend Campaign capabilities for inventories, transfers, vehicle custody, sessions, notes/files, clock, roll visibility, channel subscription, and moderation.
 2. **Extract the inventory aggregate.** Design migration/backfill, compatibility projection, versioning, repository locks, and transfer command/event contracts.
-3. **Add vehicles, sessions, notes/files, and clock.** Keep each Campaign-owned, attach only ready Phase 01 assets, and model clock segments instead of a continuously running server process.
-4. **Add dice and roll history.** Restrict expression grammar, limits, visibility, RNG injection, retention, and exact result persistence.
+3. **Add vehicles, sessions, notes/files, and clock.** Keep each Campaign-owned, attach only ready Phase 02 assets, and model clock segments instead of a continuously running server process.
+4. **Add Campaign roll visibility and history.** Reuse Phase 01 validation and exact roll evidence; add Campaign authorization, actor/scope metadata, visibility, retention, persistence, and history queries.
 5. **Add chat and safety boundaries.** Define channel kinds, membership snapshots, message lifecycle, reporting, blocking interaction, retention, RLS, and private notification rules.
 6. **Add Realtime reconciliation.** Authorize private channels, emit after commit, track cursors, and handle reconnect, duplicate, delayed, and out-of-order delivery.
 7. **Add native cache, push, and links.** Cache only approved projections, mark staleness, disable offline writes, register/revoke devices, and route authorized cold starts.
@@ -93,7 +95,7 @@ Realtime messages are hints containing scope, event identity, and cursor. Client
 - Non-empty container transfer is rejected without changing either inventory.
 - Builder save cannot delete or replace Campaign, vehicle, or shared inventory data.
 - Clock totals remain correct across repeated start/stop, reconnect, and concurrent GM commands.
-- Dice limits reject abusive expressions; stored faces and totals reproduce the displayed result.
+- Phase 01 limits reject abusive expressions; stored semantic evidence reproduces the displayed Campaign result without re-evaluation.
 - GMs cannot fetch, subscribe to, receive notification content from, or infer player-only chat.
 - Reconnect from a cursor produces no duplicate messages, rolls, transfers, or clock segments.
 - Native cache is visibly stale and every mutation surface is disabled offline.
@@ -104,7 +106,7 @@ Realtime messages are hints containing scope, event identity, and cursor. Client
 
 ## Out of scope
 
-- Encounters, initiative, creature state, VTT, voice/video, end-to-end encryption, offline mutation queues, automated vehicle combat, non-empty container transfer, and unlimited history.
+- The underlying roll grammar, evaluator, randomness source, Sheet animation, Encounters, initiative, creature state, VTT, voice/video, end-to-end encryption, offline mutation queues, automated vehicle combat, non-empty container transfer, and unlimited history.
 - General background-job infrastructure. Retention and notification work should use the smallest provider/database mechanisms justified by measured needs.
 
 ## Questions for the phase subplan

@@ -1,4 +1,4 @@
-# Phase 11 — Store release and continuous validation
+# Phase 12 — Store release and continuous validation
 
 > **Status:** planned; validation work begins in Phase 00 and is hardened here
 > **Depends on:** the native features selected for the first public release
@@ -11,7 +11,7 @@ Turn the tested native client into a repeatable, observable, privacy-complete st
 
 ## Current starting point
 
-- Phase 02 creates the Expo workspace and initial EAS profiles.
+- Phase 03 creates the Expo workspace and initial EAS profiles.
 - Each prior phase is responsible for its own unit, contract, integration, authorization, and client tests.
 - Store accounts, final identifiers, signing ownership, privacy declarations, crash reporting, Maestro journeys, production EAS workflows, staged rollout, and rollback policy do not currently exist.
 

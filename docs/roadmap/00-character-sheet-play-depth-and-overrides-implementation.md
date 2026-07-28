@@ -27,7 +27,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED` | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
 | `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED` | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
 | `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `INTEGRATED` | `0b9d37574ae7` | `f5f2ef24c2e4` | green       | green          | green       |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `PLANNED`    | pending        | pending        | as needed   | pending        | pending     |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, hosted smoke test                  | `ACTIVE`     | `3d482b563264` | pending        | as needed   | pending        | pending     |
 
 ## Branch 01 — Foundation and persistence
 
@@ -821,3 +821,107 @@ Mockup evidence:
 **Entry:** Branches 01–06 are `INTEGRATED` with no known failed gate.
 
 **Exit:** Screenshot inventory coverage, Impeccable distillation, abstraction cleanup, exhaustive commands/adapters, end-to-end workflows, accessibility/theme/overflow states, roadmap renumbering, dice roadmap, full required validation, hosted Netlify smoke test, and one PR are green. Mark this ledger `FINAL_VALIDATED`.
+
+### Entry verification
+
+- `HEAD`, local `feature/character-overrides`, and `origin/feature/character-overrides` resolved to
+  `3d482b56326439b59bc6d74a00657e208f8f6758` before the Branch 07 child was created.
+- The index and tracked worktree were clean. The user-owned untracked Impeccable critique at
+  `.impeccable/critique/2026-07-28T14-02-51Z__ers-components-sheet-charactersheetrestcontrol-tsx.md`
+  remains explicitly excluded from staging, formatting, deletion, and commits.
+- Branches 01–06 are integrated and recorded green. Branch 07 will not reopen their architecture;
+  it may make only evidence-backed consistency, regression, accessibility, responsive, and
+  completion corrections.
+
+### Cross-branch consistency and visual audit
+
+- The Character Sheet command path was traced through Schema discriminators, application-service
+  execution, TanStack Query optimistic projection, inspector adapters, rendered panels, and the
+  `characters/index.ts` public seam.
+- Deterministic Sheet commands retain optimistic snapshot, projection, rollback, and
+  authoritative-response replacement. Engine-derived maximum HP and `COMPLETE_REST` remain
+  authoritative.
+- Open resource, item, and companion panels now project sheet-level resource recovery consistently
+  with the Sheet summary. The optimistic and inspector dispatchers explicitly enumerate all
+  command/panel variants and fail type checking when a future variant is unhandled.
+- The aggregate Extras inspector now reports the total Extras count instead of falling through to
+  placeholder content.
+- The final Impeccable distillation found one concrete cross-branch regression: the 390px spell list
+  had retained the desktop fact grid. The approved stacked mobile hierarchy was restored with
+  name/effect emphasis and a 44px Cast target. No provider, controller bundle, compatibility barrel,
+  root feature pocket, or speculative abstraction was introduced.
+
+### Final screenshot inventory
+
+All 13 captures are final Storybook-rendered Sheet states. Their SHA-256 hashes are distinct.
+
+| Evidence                                                                                                                  | State                        | Viewport  | Theme       | SHA-256                                                            |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------- | ----------- | ------------------------------------------------------------------ |
+| [`07-final-overview-dark-desktop.png`](../mockups/character-sheet-overrides/07-final-overview-dark-desktop.png)           | Overview                     | 1440×1000 | Forge dark  | `1ca2a60c8e48cfbae27359c58962b277710ef4fc6306aae67942618eae1d8979` |
+| [`07-final-overview-light-desktop.png`](../mockups/character-sheet-overrides/07-final-overview-light-desktop.png)         | Overview                     | 1440×1000 | Forge light | `a7cc18741b2ac534b822d1f726f0978cea543bc7babdd27ea0557ad278fe3293` |
+| [`07-final-overview-tablet-portrait.png`](../mockups/character-sheet-overrides/07-final-overview-tablet-portrait.png)     | Overview                     | 820×1180  | Forge dark  | `bea06f452e93cbfe14a07ae8db58dc6ea9ce505065e3f23bc91622b5b5c844b1` |
+| [`07-final-overview-mobile-390.png`](../mockups/character-sheet-overrides/07-final-overview-mobile-390.png)               | Overview                     | 390×844   | Forge dark  | `c10540f5ef46badc5e19e603abe97e5cff0a7667eb05442e4d8ed2d8b93c929c` |
+| [`07-final-overview-mobile-320.png`](../mockups/character-sheet-overrides/07-final-overview-mobile-320.png)               | Overview                     | 320×700   | Forge dark  | `1c70c114f8c351b78b17a7d10b10549274765f19bb0dab4c5cfbe2df8d0a66bc` |
+| [`07-final-ability-adjusted-desktop.png`](../mockups/character-sheet-overrides/07-final-ability-adjusted-desktop.png)     | Adjusted Strength inspection | 1440×1000 | Forge dark  | `4ca5db4c00ee116fa5a811a8d752060306d6a310ea8180622281316d42a63156` |
+| [`07-final-actions-desktop.png`](../mockups/character-sheet-overrides/07-final-actions-desktop.png)                       | Actions                      | 1440×1000 | Forge dark  | `ca1669a1e70f83147d3f09a1065ce7634f2b2613f124964926dabac82940b96f` |
+| [`07-final-spells-mobile.png`](../mockups/character-sheet-overrides/07-final-spells-mobile.png)                           | Spells                       | 390×844   | Forge dark  | `5e1d405f7f138c27ced7697be007a6d5beff5e0240d8b423ddc68ee263979bfc` |
+| [`07-final-extras-tablet.png`](../mockups/character-sheet-overrides/07-final-extras-tablet.png)                           | Extras                       | 820×1180  | Forge dark  | `361e9d223683c00b4eb69c03e5569e3dfe0ddf42bd9b639bec4cc1afa4ba9d68` |
+| [`07-final-hp-management-desktop.png`](../mockups/character-sheet-overrides/07-final-hp-management-desktop.png)           | HP management                | 1440×1000 | Forge dark  | `8ce58af6a980978e5882af72d7360fddf2efb8e5fc955f9f9e2191b5a7612be4` |
+| [`07-final-conditions-mobile.png`](../mockups/character-sheet-overrides/07-final-conditions-mobile.png)                   | Conditions and Exhaustion    | 390×844   | Forge dark  | `5dc9f26e8a9c2b9e51bc827f0eaf85e7e77394237b914e73fed80be878c2ef05` |
+| [`07-final-short-rest-preview-desktop.png`](../mockups/character-sheet-overrides/07-final-short-rest-preview-desktop.png) | Short Rest, unrolled preview | 1440×1000 | Forge dark  | `8dcc46fecab62035ea4a92bcc892f2a3344ff6d1461f244bbb5e27d066cd2188` |
+| [`07-final-short-rest-rolled-mobile.png`](../mockups/character-sheet-overrides/07-final-short-rest-rolled-mobile.png)     | Short Rest, rolled           | 390×844   | Forge dark  | `a5e1dc6c2fcceb1da5c978160292c785442c49096d972c04e28aa5a47a259c80` |
+
+### Final browser audit
+
+- All curated captures completed without page/console errors or horizontal overflow.
+- The exact `48rem` rest boundary renders the bottom Drawer at 768px and the anchored Popover at
+  769px.
+- A coarse-pointer 390px Spells run measured all visible Cast controls at 44×44px.
+- Reduced-motion media matched at 390px with the audited disclosure transition at `0s` and no
+  animation.
+- At 125% root text size, the 390px Sheet remained 390px wide without horizontal overflow.
+- Closing mobile HP management with Escape returned keyboard focus to the Manage HP trigger.
+
+### Deprecated HP-column safety gate
+
+- Hosted project `Artificer Toolkit` was queried on 2026-07-28. It contains zero non-null
+  `character_hitpoint_state.max_override` rows.
+- The deployed migration list stops before
+  `20260724190000_character_sheet_adjustment_foundation`, and
+  `public.character_hitpoint_adjustments` does not yet exist on the hosted database.
+- Removal is therefore **verified deferred**. The legacy column remains the rollback source until
+  the adjustment foundation and idempotent backfill are deployed and observed. Branch 07 adds no
+  drop migration and makes no hosted schema mutation.
+
+### Candidate validation
+
+- Focused shared, Schema, DB, and application-service validation: green — 11 files and 164 tests.
+- Focused web Sheet validation: green — 13 files and 74 tests.
+- `yarn test:character-sheet:integration`: green — 12 local Postgres checks covering adjustment
+  round-trip/clear, idempotent backfill, movement, notes, spells, atomicity, RLS, rollback,
+  stale-version rejection, and touched-state isolation.
+- `yarn test:character:integration`: green — four Builder-to-Sheet lifecycle fixtures, persisted
+  reload coverage for every Sheet command family, rollback/finalization, and a maximum observed
+  Builder resolution of 862ms.
+- `yarn test:web:storybook`: green — 34 files and 123 Chromium interactions.
+- `yarn build-storybook:web`: green — 7 tasks. Existing plugin-timing and large-chunk advisories
+  remain non-blocking.
+- `yarn build:web`: green — 8 tasks. Existing ineffective-dynamic-import advisories remain
+  non-blocking.
+- `yarn turbo:affected:typecheck`: green — 8 tasks.
+- `yarn turbo:affected:test`: green — 8 tasks; the web task contains 114 files and 649 tests.
+- `yarn lint:ox:type-aware:web`: green.
+- `yarn format:check`: the only reported file was the protected untracked Impeccable critique.
+  The equivalent repository check with that exact user-owned path excluded is green across 2,548
+  files; the artifact was not modified.
+- Roadmap link/reference check: green — no broken local links, no stale pre-renumber filenames,
+  and Phase 01–12 headings match their filenames.
+- `git diff --check`: green.
+
+### Delivered and deferred scope
+
+- Delivered: exhaustive cross-branch command/projector/adapter consistency, focused regressions,
+  final Impeccable/browser distillation, 13 curated captures, Phase 01 Dice planning, Phase 02–12
+  renumbering, one-source Media crop ownership, and Campaign consumption of the shared roll service.
+- Deferred by design: all Dice renderer/service/GLB implementation, Campaign/Encounter roll
+  persistence, native dice presentation, and deprecated HP-column removal.

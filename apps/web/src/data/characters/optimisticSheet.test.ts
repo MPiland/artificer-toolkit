@@ -1,5 +1,6 @@
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import {
+  itemPanelFixture,
   spellPanelFixture,
   spellsPanelFixture
 } from '#domains/characters/sheet/inspector/inspector.fixtures'
@@ -90,6 +91,7 @@ describe('optimistic Character Sheet projections', () => {
 
   it('projects resource recovery and HP changes without duplicating engine rules', () => {
     const resource = characterSheetFixture.resources.items[1]
+    const itemResource = itemPanelFixture.resources[0]!
     const recovered = projectOptimisticCharacterSheet(characterSheetFixture, {
       ...commandBase,
       type: 'RECOVER_SHEET_RESOURCE',
@@ -99,6 +101,20 @@ describe('optimistic Character Sheet projections', () => {
     expect(recovered.resources.items[1]).toMatchObject({
       used: 0,
       remaining: resource.max
+    })
+    expect(
+      projectOptimisticCharacterSheetPanel(itemPanelFixture, {
+        ...commandBase,
+        type: 'RECOVER_SHEET_RESOURCE',
+        owner: itemResource.target.owner,
+        trigger: 'MANUAL'
+      })
+    ).toMatchObject({
+      resources: [
+        expect.objectContaining({
+          remaining: itemResource.maximum
+        })
+      ]
     })
 
     const damaged = projectOptimisticCharacterSheet(characterSheetFixture, {

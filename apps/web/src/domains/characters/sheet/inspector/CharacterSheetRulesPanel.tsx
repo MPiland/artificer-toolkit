@@ -105,8 +105,15 @@ export function CharacterSheetRulesPanel({
         return { label: 'Background features', value: String(panel.features.length) }
       case 'RESOURCE':
         return { label: 'Remaining uses', value: `${panel.remaining} / ${panel.maximum}` }
+      case 'EXTRAS':
+        return {
+          label: 'Total extras',
+          value: String(
+            panel.companionCount + panel.mountCount + panel.ownedCreatureCount + panel.vehicleCount
+          )
+        }
       default:
-        return { label: 'Details', value: 'â€”' }
+        return panel satisfies never
     }
   }
 

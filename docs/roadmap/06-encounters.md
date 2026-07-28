@@ -1,7 +1,7 @@
-# Phase 05 — Encounters on all clients
+# Phase 06 — Encounters on all clients
 
 > **Status:** planned
-> **Depends on:** [Phase 03](03-campaign-core.md) and the relevant live-play primitives from [Phase 04](04-live-campaign-play.md)
+> **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 04](04-campaign-core.md), and the relevant live-play primitives from [Phase 05](05-live-campaign-play.md)
 > **Unlocks:** standalone one-shots and the VTT
 > **Primary ADRs:** [0005](../adr/0005-pure-rules-system-engine.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0009](../adr/0009-vtt-encounter-event-boundary.md)
 
@@ -24,7 +24,7 @@ Add a manual, server-authoritative Encounter aggregate for Campaign play and sta
 - Actors use `EncounterActorRef = CHARACTER | CREATURE`; actor projections include current/max/temp HP, spell-slot summary where applicable, initiative, control authority, and source revision identity.
 - GMs set initiative values and order manually. Turn/round automation is deferred unless required for deterministic projection ordering.
 - Authorized users can navigate from actor summary to the full Character Sheet.
-- Encounter and player-only chat reuse Phase 04 channel security with Encounter-scoped authorization.
+- Encounter and player-only chat reuse Phase 05 channel security with Encounter-scoped authorization.
 - Rolls use the server-authoritative dice contract and Encounter retention policy of 2,000 entries by default.
 - Creature HP, conditions, resources, notes, and other manual state remain Encounter-local.
 - Commands are idempotent and version-checked. Events are append-only, and a current projection is rebuildable from persisted exact event data.
@@ -89,7 +89,7 @@ Use the existing character command pattern as a reference, not as a universal ev
 - Retried commands return the original effective result and do not append duplicate events.
 - Rebuilding from event zero yields the stored current projection.
 - Rebuild does not query newer active content to reinterpret old events.
-- Player-only Encounter chat retains the Phase 04 confidentiality tests.
+- Player-only Encounter chat retains the Phase 05 confidentiality tests.
 
 ## Out of scope
 

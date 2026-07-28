@@ -18,7 +18,7 @@ The reference captures are a capability baseline only. Artificer Toolkit keeps t
 - Non-mechanical names, notes, and display choices are separate typed Sheet customizations or preferences. They may affect panel projection, but never enter rules calculation.
 - Character owners are the only adjustment, customization, and preference editors in this phase.
 - Future authorized Campaign GMs may inspect effective values, adjustment indicators, source notes, and calculation breakdowns. Campaign authority does not grant adjustment-edit permission unless a later phase explicitly adds it.
-- The web client ships the first panel adapter. Phase 02 consumes the same contracts through a native adapter.
+- The web client ships the first panel adapter. Phase 03 consumes the same contracts through a native adapter.
 - Backend contracts own semantic panel facts, family-specific content ordering, editability, valid options, commands, validation, and concurrency metadata. Clients own overlay geometry, focus management, component choice, responsive composition, and transient pending/error state.
 - Movement display supports `AUTO` or an explicit available movement type. `AUTO` selects walking when available and otherwise uses the first backend-ordered available movement.
 - There is no Sheet Save action. Text and numeric fields commit on blur or Enter; selects, toggles, clears, additions, removals, HP/resource use, and condition changes commit immediately. Rest selections remain a preview until the player takes the rest.
@@ -291,7 +291,7 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 - A single adjustment record that mixes rules-engine inputs with labels, notes, or display preferences.
 - Mutating reusable authored spell, feature, item, background, or creature definitions from the Sheet.
 - Campaign membership, GM authorization, GM adjustment editing, Campaign rules, Realtime, Encounter state, or VTT automation.
-- Native application implementation; Phase 02 consumes the portable contract.
+- Native application implementation; Phase 03 consumes the portable contract.
 - General dice chat/history infrastructure. This phase adds only the smallest Sheet-owned hit-die result needed for rest.
 - Custom-skill CRUD; Phase 00 preserves ID-based seams but does not create, edit, or remove custom skills.
 - Non-5e adjustment policy implementation.
@@ -299,13 +299,13 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 ## Concerns and expansions
 
 - Adjustment persistence spans heterogeneous targets. The implementation subplan must preserve SQL integrity and queryability without creating one unconstrained polymorphic row or a table per individual field.
-- Mobile clients eventually update less frequently than the API. Phase 02 must define additive contract evolution and minimum-client behavior before native mutation ships.
+- Mobile clients eventually update less frequently than the API. Phase 03 must define additive contract evolution and minimum-client behavior before native mutation ships.
 - Item and companion resources need instance-scoped identities. Definition-scoped charge keys would couple duplicate owned instances and are not acceptable.
 - Long prose and large source breakdowns may require progressive disclosure, but clients must not hide the final value, override indicator, or source notes needed for trust.
 - Compact spell and action rows may need backend-projected, closed effect categories such as damage, healing, control, defense, movement, summoning, and utility. Clients must not infer them from authored prose, display labels, or free-form primary-effect text. The implementation subplan must settle one primary category versus ordered tags before adding transport fields.
 - Spell inclusion in Actions, action economy, and resolution method are separate concepts. The implementation subplan must not keep conflating the user-owned “Display in Actions” preference with `ATTACK`, `ACTION`, `BONUS_ACTION`, or `REACTION` classification.
 - Additional rulesets may expose different ability, proficiency, rest, exhaustion, movement, or resource concepts. They should register compatible policies and panel kinds rather than adding conditionals to D&D contracts.
-- Campaign inspection requires capability-aware reads and audit correlation. Phase 03 owns that authorization expansion.
+- Campaign inspection requires capability-aware reads and audit correlation. Phase 04 owns that authorization expansion.
 
 ## Phase implementation decisions
 

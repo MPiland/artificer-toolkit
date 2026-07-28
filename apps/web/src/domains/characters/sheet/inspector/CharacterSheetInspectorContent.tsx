@@ -27,60 +27,71 @@ export function CharacterSheetInspectorContent({
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
   onOpenBuilder: () => void
 }) {
-  if (panel.kind === 'COMPANION' || panel.kind === 'VEHICLE') {
-    return (
-      <CharacterSheetExtraPanel
-        expectedVersion={expectedVersion}
-        equipmentItems={equipmentItems}
-        panel={panel}
-        pending={pending}
-        submitCommand={submitCommand}
-        onClose={onClose}
-      />
-    )
+  switch (panel.kind) {
+    case 'COMPANION':
+    case 'VEHICLE':
+      return (
+        <CharacterSheetExtraPanel
+          expectedVersion={expectedVersion}
+          equipmentItems={equipmentItems}
+          panel={panel}
+          pending={pending}
+          submitCommand={submitCommand}
+          onClose={onClose}
+        />
+      )
+    case 'SPELL':
+      return (
+        <CharacterSheetSpellPanelContent
+          expectedVersion={expectedVersion}
+          panel={panel}
+          pending={pending}
+          submitCommand={submitCommand}
+        />
+      )
+    case 'SPELLS':
+      return (
+        <CharacterSheetSpellsPanelContent
+          expectedVersion={expectedVersion}
+          panel={panel}
+          pending={pending}
+          submitCommand={submitCommand}
+          onTargetChange={onTargetChange}
+          onOpenBuilder={onOpenBuilder}
+        />
+      )
+    case 'ITEM':
+      return (
+        <CharacterSheetItemPanelContent
+          expectedVersion={expectedVersion}
+          panel={panel}
+          pending={pending}
+          submitCommand={submitCommand}
+          onClose={onClose}
+        />
+      )
+    case 'ABILITY':
+    case 'SAVING_THROW':
+    case 'SKILL':
+    case 'SKILLS':
+    case 'SENSES':
+    case 'MOVEMENT':
+    case 'DEFENSES':
+    case 'PROFICIENCIES':
+    case 'FEATURE':
+    case 'BACKGROUND':
+    case 'RESOURCE':
+    case 'EXTRAS':
+      return (
+        <CharacterSheetRulesPanel
+          expectedVersion={expectedVersion}
+          panel={panel}
+          pending={pending}
+          submitCommand={submitCommand}
+          onTargetChange={onTargetChange}
+        />
+      )
+    default:
+      return panel satisfies never
   }
-
-  if (panel.kind === 'SPELL') {
-    return (
-      <CharacterSheetSpellPanelContent
-        expectedVersion={expectedVersion}
-        panel={panel}
-        pending={pending}
-        submitCommand={submitCommand}
-      />
-    )
-  }
-  if (panel.kind === 'SPELLS') {
-    return (
-      <CharacterSheetSpellsPanelContent
-        expectedVersion={expectedVersion}
-        panel={panel}
-        pending={pending}
-        submitCommand={submitCommand}
-        onTargetChange={onTargetChange}
-        onOpenBuilder={onOpenBuilder}
-      />
-    )
-  }
-  if (panel.kind === 'ITEM') {
-    return (
-      <CharacterSheetItemPanelContent
-        expectedVersion={expectedVersion}
-        panel={panel}
-        pending={pending}
-        submitCommand={submitCommand}
-        onClose={onClose}
-      />
-    )
-  }
-
-  return (
-    <CharacterSheetRulesPanel
-      expectedVersion={expectedVersion}
-      panel={panel}
-      pending={pending}
-      submitCommand={submitCommand}
-      onTargetChange={onTargetChange}
-    />
-  )
 }

@@ -477,8 +477,27 @@ export function projectOptimisticCharacterSheet(
     case 'UPDATE_SHEET_EXTRA':
     case 'REMOVE_SHEET_EXTRA':
       return projectExtras(sheet, command)
-    default:
+    case 'UPSERT_SHEET_ADJUSTMENT':
+    case 'REMOVE_SHEET_ADJUSTMENT':
+    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
+    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'USE_HIT_DIE':
+    case 'APPLY_REST':
+    case 'COMPLETE_REST':
+    case 'ADD_INVENTORY_ITEM':
+    case 'ADJUST_CURRENCY':
+    case 'MOVE_CURRENCY':
+    case 'CREATE_NOTE':
+    case 'UPDATE_NOTE':
+    case 'DELETE_NOTE':
+    case 'CREATE_NOTE_GROUP':
+    case 'UPDATE_NOTE_GROUP':
+    case 'DELETE_NOTE_GROUP':
       return sheet
+    default:
+      return command satisfies never
   }
 }
 
@@ -586,10 +605,13 @@ export function projectOptimisticCharacterSheetPanel(
     }
   }
 
-  if (command.type === 'USE_SHEET_RESOURCE') {
-    const amount = command.amount ?? 1
+  if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
+    const amount = command.type === 'USE_SHEET_RESOURCE' ? (command.amount ?? 1) : 0
     if (panel.kind === 'RESOURCE' && sameResourceOwner(panel.owner, command.owner)) {
-      const remaining = updatePanelResource(panel.remaining, panel.maximum, amount)
+      const remaining =
+        command.type === 'RECOVER_SHEET_RESOURCE'
+          ? panel.maximum
+          : updatePanelResource(panel.remaining, panel.maximum, amount)
       return { ...panel, remaining, used: panel.maximum - remaining }
     }
     if (panel.kind === 'FEATURE' || panel.kind === 'ITEM') {
@@ -599,7 +621,10 @@ export function projectOptimisticCharacterSheetPanel(
           sameResourceOwner(resource.target.owner, command.owner)
             ? {
                 ...resource,
-                remaining: updatePanelResource(resource.remaining, resource.maximum, amount)
+                remaining:
+                  command.type === 'RECOVER_SHEET_RESOURCE'
+                    ? resource.maximum
+                    : updatePanelResource(resource.remaining, resource.maximum, amount)
               }
             : resource
         )
@@ -643,5 +668,51 @@ export function projectOptimisticCharacterSheetPanel(
     return { ...panel, attuned: command.type === 'ATTUNE_ITEM' }
   }
 
-  return panel
+  switch (command.type) {
+    case 'UPSERT_SHEET_ADJUSTMENT':
+    case 'REMOVE_SHEET_ADJUSTMENT':
+    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
+    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+    case 'ADD_SHEET_EXTRA':
+    case 'UPDATE_SHEET_EXTRA':
+    case 'REMOVE_SHEET_EXTRA':
+    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
+    case 'SET_INSPIRATION':
+    case 'SET_HIT_POINTS':
+    case 'ADJUST_HIT_POINTS':
+    case 'USE_HIT_DIE':
+    case 'APPLY_REST':
+    case 'COMPLETE_REST':
+    case 'SET_EXHAUSTION':
+    case 'ADD_CONDITION':
+    case 'REMOVE_CONDITION':
+    case 'USE_RESOURCE':
+    case 'RESTORE_RESOURCE':
+    case 'USE_SPELL_SLOT':
+    case 'RESTORE_SPELL_SLOT':
+    case 'CAST_SPELL':
+    case 'SET_PREPARED_SPELLS':
+    case 'ADD_INVENTORY_ITEM':
+    case 'REMOVE_INVENTORY_ITEM':
+    case 'UPDATE_INVENTORY_ITEM':
+    case 'EQUIP_ITEM':
+    case 'UNEQUIP_ITEM':
+    case 'ATTUNE_ITEM':
+    case 'UNATTUNE_ITEM':
+    case 'ADJUST_CURRENCY':
+    case 'MOVE_CURRENCY':
+    case 'CREATE_NOTE':
+    case 'UPDATE_NOTE':
+    case 'DELETE_NOTE':
+    case 'CREATE_NOTE_GROUP':
+    case 'UPDATE_NOTE_GROUP':
+    case 'DELETE_NOTE_GROUP':
+      return panel
+    default:
+      return command satisfies never
+  }
 }

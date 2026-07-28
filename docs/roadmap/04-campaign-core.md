@@ -1,7 +1,7 @@
-# Phase 03 — Campaign Core
+# Phase 04 — Campaign Core
 
 > **Status:** planned
-> **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-media-and-file-pipeline.md), and [Phase 02](02-cross-platform-foundation.md)
+> **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 02](02-media-and-file-pipeline.md), and [Phase 03](03-cross-platform-foundation.md)
 > **Unlocks:** live Campaign play, Campaign Encounters, Social Hub conversion, and Campaign-scoped content
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0007](../adr/0007-authored-revisions-and-active-projections.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -31,7 +31,7 @@ Introduce the minimum Campaign aggregate and authorization model: invitations, m
 - GM Sheet changes use existing typed Sheet commands. Structural changes use Builder preview/commit and must surface the proposed diff before persistence.
 - Authorized GMs may inspect effective Character values, adjustment indicators, source notes, and calculation breakdowns from Phase 00 without receiving adjustment-edit commands.
 - Every GM action records actor, authority source, Campaign, character, command or preview/commit identity, timestamp, result, and human-readable summary.
-- A Campaign may reference a logo through a ready asset from Phase 01. Campaign capability controls replacement/removal; member access does not make the private original public.
+- A Campaign may reference a logo through a ready asset from Phase 02. Campaign capability controls replacement/removal; member access does not make the private original public.
 
 ## Design
 
@@ -70,7 +70,7 @@ RLS and service authorization must agree. Direct database access, tRPC procedure
 
 ## Ordered workstreams
 
-1. **Specify the authorization matrix.** Define OWNER, GM, PLAYER, removed member, invitee, character owner, and non-member capabilities for every Phase 03 action, including read-only inspection of Phase 00 adjustments and breakdowns.
+1. **Specify the authorization matrix.** Define OWNER, GM, PLAYER, removed member, invitee, character owner, and non-member capabilities for every Phase 04 action, including read-only inspection of Phase 00 adjustments and breakdowns.
 2. **Complete revision binding required by grants.** Persist exact `ContentRef` revision identity through character selection, hydration, engine assembly, and history before Campaign content is selectable.
 3. **Add Campaign persistence and RLS.** Create migrations and Kysely repositories for Campaigns, members, invitations, assignments, grants, rules, and audit records.
 4. **Add application orchestration.** Implement lifecycle and capability resolution in `packages/functions`; keep `apps/apis` thin and schema-parsed.
