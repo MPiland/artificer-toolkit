@@ -43,7 +43,10 @@ export const authoringTextStyleAdapter = {
   supporting: foundationVars.typography.bodySm,
   value: foundationVars.typography.heading,
   caption: foundationVars.typography.caption
-} as const satisfies Record<SemanticTextStyle, (typeof foundationVars.typography)[keyof typeof foundationVars.typography]>
+} as const satisfies Record<
+  SemanticTextStyle,
+  (typeof foundationVars.typography)[keyof typeof foundationVars.typography]
+>
 
 /** Exhaustive web color mapping for schema-selected text tone. */
 export const authoringTextToneAdapter = {
@@ -123,10 +126,7 @@ export function resolveAuthoringSurfaceStyle(
 
 function resolveResponsivePresentation<
   TAppearance extends ActionAppearance | SemanticTextAppearance | SemanticSurfaceAppearance
->(
-  presentation: ResponsivePresentation<TAppearance>,
-  context: PresentationContext
-): TAppearance {
+>(presentation: ResponsivePresentation<TAppearance>, context: PresentationContext): TAppearance {
   if (context === 'compact') return presentation.compact ?? presentation.default
   if (context === 'wide') return presentation.wide ?? presentation.default
   return presentation.default

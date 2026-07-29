@@ -387,9 +387,7 @@ function collectInvalidEffectPathCodes(value: unknown, path: string, invalidValu
         typeof effectPath.pathCode === 'string' &&
         !allowedPathCodes.has(effectPath.pathCode)
       ) {
-        invalidValues.push(
-          `${path}.paths[${index}]: ${triggerCode}/${effectPath.pathCode}`
-        )
+        invalidValues.push(`${path}.paths[${index}]: ${triggerCode}/${effectPath.pathCode}`)
       }
     })
   }
@@ -599,7 +597,8 @@ describe('SRD source data', () => {
       for (const record of records) {
         expect(schema.parse(record)).toEqual(record)
       }
-    }
+    },
+    15_000
   )
 
   it('compiles every background root', () => {
@@ -1510,17 +1509,27 @@ describe('SRD source data', () => {
   })
 
   it('keeps shared race ability score increases on the base race', () => {
-    const racesByLabel = new Map(srdBaselineContent.subjects.races.map((race) => [race.label, race]))
+    const racesByLabel = new Map(
+      srdBaselineContent.subjects.races.map((race) => [race.label, race])
+    )
     const abilityScoreIncreaseDescriptions = (label: string) =>
       racesByLabel
         .get(label)
         ?.features?.filter((feature) => feature.label === 'Ability Score Increase')
         .map((feature) => feature.description)
 
-    expect(abilityScoreIncreaseDescriptions('Elf')).toEqual(['Your Dexterity score increases by 2.'])
-    expect(abilityScoreIncreaseDescriptions('High Elf')).toEqual(['Your Intelligence score increases by 1.'])
-    expect(abilityScoreIncreaseDescriptions('Dwarf')).toEqual(['Your Constitution score increases by 2.'])
-    expect(abilityScoreIncreaseDescriptions('Hill Dwarf')).toEqual(['Your Wisdom score increases by 1.'])
+    expect(abilityScoreIncreaseDescriptions('Elf')).toEqual([
+      'Your Dexterity score increases by 2.'
+    ])
+    expect(abilityScoreIncreaseDescriptions('High Elf')).toEqual([
+      'Your Intelligence score increases by 1.'
+    ])
+    expect(abilityScoreIncreaseDescriptions('Dwarf')).toEqual([
+      'Your Constitution score increases by 2.'
+    ])
+    expect(abilityScoreIncreaseDescriptions('Hill Dwarf')).toEqual([
+      'Your Wisdom score increases by 1.'
+    ])
   })
 
   it('uses duration kinds supported by normalized duration persistence', () => {

@@ -1,6 +1,4 @@
-import {
-  useMutation,
-  useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -15,7 +13,9 @@ export function useActivateClassMutation() {
 
       if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.classes.detail(response.item.id), response)
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.classes.draft(response.item.id) })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.content.classes.draft(response.item.id)
+        })
       }
     }
   })
@@ -28,7 +28,9 @@ export function useSaveClassDraftMutation() {
     mutationFn: (classRecord: ClassAuthoringInputDto) => api.content.classes.saveDraft(classRecord),
     onSuccess: async (draft) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.classes.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.classes.draft(draft.subjectId) })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.classes.draft(draft.subjectId)
+      })
     }
   })
 }

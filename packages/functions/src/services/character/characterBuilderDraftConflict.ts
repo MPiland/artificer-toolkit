@@ -1,13 +1,16 @@
 export class CharacterBuilderDraftConflictError extends Error {
   constructor(characterId: string) {
-    super(`Character "${characterId}" changed after this builder draft was saved. Reload the character before finalizing.`)
+    super(
+      `Character "${characterId}" changed after this builder draft was saved. Reload the character before finalizing.`
+    )
     this.name = 'CharacterBuilderDraftConflictError'
   }
 }
 
 type RevisionTimestamp = Date | string | null | undefined
 
-const TIMESTAMP_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(?:\s*(Z|[+-]\d{2}(?::?\d{2})?))?$/
+const TIMESTAMP_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(?:\s*(Z|[+-]\d{2}(?::?\d{2})?))?$/
 
 function getOffsetSeconds(offset: string | undefined): number {
   if (offset == null || offset === 'Z') return 0
@@ -33,18 +36,18 @@ function toComparableRevision(value: RevisionTimestamp): string | null {
   const match = TIMESTAMP_PATTERN.exec(normalized)
   if (!match) return normalized
 
-  const [
-    ,
-    year,
-    month,
-    day,
-    hour,
-    minute,
-    second,
-    fraction = '',
-    offset
-  ] = match
-  const epochSeconds = Math.trunc(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)) / 1000) - getOffsetSeconds(offset)
+  const [, year, month, day, hour, minute, second, fraction = '', offset] = match
+  const epochSeconds =
+    Math.trunc(
+      Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second)
+      ) / 1000
+    ) - getOffsetSeconds(offset)
 
   if (!Number.isFinite(epochSeconds)) return normalized
 

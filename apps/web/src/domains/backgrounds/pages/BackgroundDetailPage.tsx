@@ -1,6 +1,4 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import {
@@ -39,7 +37,10 @@ export function BackgroundDetailPage({
 }: {
   backgroundId: string
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'currencies' | 'equipment' | 'languages' | 'skills'
+  >
   response: BackgroundResponseDto
   view: 'active' | 'draft'
 }) {
@@ -61,10 +62,11 @@ export function BackgroundDetailPage({
     duplicate: api.content.backgrounds.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: backgroundId,
-    navigateEdit: async (subject) => navigate({
-      params: buildBackgroundRouteParams(subject.publicId, subject.label),
-      to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildBackgroundRouteParams(subject.publicId, subject.label),
+        to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/backgrounds' })
   })
 
@@ -72,15 +74,19 @@ export function BackgroundDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This background draft cannot be previewed. Delete it to return to the background list.</Alert>
+          <Alert color='yellow'>
+            This background draft cannot be previewed. Delete it to return to the background list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: backgroundId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'background draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: backgroundId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'background draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -100,18 +106,52 @@ export function BackgroundDetailPage({
   }
 
   const item = detailState.item
-  const backgroundParams = buildBackgroundRouteParams(draft?.publicId ?? response?.publicId ?? backgroundId, item.label)
+  const backgroundParams = buildBackgroundRouteParams(
+    draft?.publicId ?? response?.publicId ?? backgroundId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit', params: backgroundParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () =>
+            navigate({
+              to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit',
+              params: backgroundParams
+            })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit', params: backgroundParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({
+                to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit',
+                params: backgroundParams
+              })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/backgrounds/$backgroundPublicId/$backgroundSlug',
+              params: backgroundParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -119,11 +159,12 @@ export function BackgroundDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: backgroundId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: backgroundId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/new' }) }
@@ -143,8 +184,17 @@ export function BackgroundDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams }),
-          onViewDraft: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({
+              to: '/backgrounds/$backgroundPublicId/$backgroundSlug',
+              params: backgroundParams
+            }),
+          onViewDraft: () =>
+            navigate({
+              to: '/backgrounds/$backgroundPublicId/$backgroundSlug',
+              params: backgroundParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getBackgroundSections(item, references)}
@@ -163,14 +213,22 @@ export function BackgroundDetailPage({
 
 function getBackgroundSections(
   background: BackgroundAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'currencies' | 'equipment' | 'languages' | 'skills'
+  >
 ): AuthoredDetailSectionModel[] {
   const detailGroups = getCharacteristicDetailGroups(background.details ?? [])
   const otherDetails = getOtherDetails(background.details ?? [])
   const characteristicTablesHtml = buildCharacteristicTablesHtml(detailGroups)
-  const startingEquipmentLine = formatStartingEquipmentLine(background.startingEquipment, references)
+  const startingEquipmentLine = formatStartingEquipmentLine(
+    background.startingEquipment,
+    references
+  )
   const proficiencyEquipmentHtml = formatGrantDetailLinesHtml([
-    ...formatProficiencyGrantLines(background.proficiencies, references, { skillLabel: 'Skill Proficiencies' }),
+    ...formatProficiencyGrantLines(background.proficiencies, references, {
+      skillLabel: 'Skill Proficiencies'
+    }),
     ...(startingEquipmentLine ? [startingEquipmentLine] : [])
   ])
   const featureItems = (background.features ?? []).map((feature) => ({
@@ -180,40 +238,59 @@ function getBackgroundSections(
   }))
 
   return compactAuthoredDetailSections([
-    hasDetailText(background.description) ? {
-      id: 'description',
-      title: 'Description',
-      content: <AuthoredDetailProse html={background.description} />
-    } : null,
-    characteristicTablesHtml || otherDetails.length ? {
-      id: 'characteristics',
-      title: 'Suggested Characteristics',
-      content: (
-        <Stack gap='md'>
-          {characteristicTablesHtml ? (
-            <AuthoredDetailProse html={characteristicTablesHtml} fallback='No background details have been added.' />
-          ) : null}
-          {otherDetails.length || !characteristicTablesHtml ? (
-            <AuthoredDetailItemList empty='No background details have been added.' items={toDetailItems(otherDetails)} />
-          ) : null}
-        </Stack>
-      )
-    } : null,
-    hasDetailText(proficiencyEquipmentHtml) ? {
-      id: 'proficiencies-equipment',
-      title: 'Proficiencies & Equipment',
-      content: <AuthoredDetailProse html={proficiencyEquipmentHtml} fallback='No proficiencies or equipment have been added.' />
-    } : null,
-    featureItems.length ? {
-      id: 'features',
-      title: 'Features',
-      content: (
-        <AuthoredDetailItemList
-          empty='No background features have been added.'
-          items={featureItems}
-        />
-      )
-    } : null
+    hasDetailText(background.description)
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: <AuthoredDetailProse html={background.description} />
+        }
+      : null,
+    characteristicTablesHtml || otherDetails.length
+      ? {
+          id: 'characteristics',
+          title: 'Suggested Characteristics',
+          content: (
+            <Stack gap='md'>
+              {characteristicTablesHtml ? (
+                <AuthoredDetailProse
+                  html={characteristicTablesHtml}
+                  fallback='No background details have been added.'
+                />
+              ) : null}
+              {otherDetails.length || !characteristicTablesHtml ? (
+                <AuthoredDetailItemList
+                  empty='No background details have been added.'
+                  items={toDetailItems(otherDetails)}
+                />
+              ) : null}
+            </Stack>
+          )
+        }
+      : null,
+    hasDetailText(proficiencyEquipmentHtml)
+      ? {
+          id: 'proficiencies-equipment',
+          title: 'Proficiencies & Equipment',
+          content: (
+            <AuthoredDetailProse
+              html={proficiencyEquipmentHtml}
+              fallback='No proficiencies or equipment have been added.'
+            />
+          )
+        }
+      : null,
+    featureItems.length
+      ? {
+          id: 'features',
+          title: 'Features',
+          content: (
+            <AuthoredDetailItemList
+              empty='No background features have been added.'
+              items={featureItems}
+            />
+          )
+        }
+      : null
   ])
 }
 
@@ -243,14 +320,12 @@ function getCharacteristicKind(label: string): CharacteristicKind | null {
 }
 
 function getCharacteristicDetailGroups(details: BackgroundDetail[]): CharacteristicGroup[] {
-  return CHARACTERISTIC_GROUPS
-    .map((group) => ({
-      ...group,
-      details: details
-        .filter((detail) => getCharacteristicKind(detail.label) === group.kind)
-        .sort((a, b) => a.order - b.order)
-    }))
-    .filter((group) => group.details.length)
+  return CHARACTERISTIC_GROUPS.map((group) => ({
+    ...group,
+    details: details
+      .filter((detail) => getCharacteristicKind(detail.label) === group.kind)
+      .sort((a, b) => a.order - b.order)
+  })).filter((group) => group.details.length)
 }
 
 function getOtherDetails(details: BackgroundDetail[]): BackgroundDetail[] {
@@ -262,7 +337,9 @@ function getOtherDetails(details: BackgroundDetail[]): BackgroundDetail[] {
 function buildCharacteristicTablesHtml(groups: CharacteristicGroup[]): string {
   if (!groups.length) return ''
 
-  return groups.map((group) => `
+  return groups
+    .map(
+      (group) => `
     <h3>${escapeHtml(group.title)}</h3>
     <table style="width: 100%">
       <colgroup>
@@ -276,15 +353,21 @@ function buildCharacteristicTablesHtml(groups: CharacteristicGroup[]): string {
         </tr>
       </thead>
       <tbody>
-        ${group.details.map((detail, index) => `
+        ${group.details
+          .map(
+            (detail, index) => `
           <tr>
             <td>${index + 1}</td>
             <td>${formatCharacteristicDescription(detail)}</td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
-  `).join('')
+  `
+    )
+    .join('')
 }
 
 function formatCharacteristicDescription(detail: BackgroundDetail): string {
@@ -302,10 +385,14 @@ function formatFeatureHtml(
 ): string | undefined {
   const parts = [
     description,
-    ...[...(details ?? [])].sort((left, right) => left.order - right.order).map((detail) => detail.description)
+    ...[...(details ?? [])]
+      .sort((left, right) => left.order - right.order)
+      .map((detail) => detail.description)
   ]
     .filter((part): part is string => Boolean(part?.trim()))
-    .map((part) => part.trim().startsWith('<') ? part.trim() : `<p>${escapeHtml(part.trim())}</p>`)
+    .map((part) =>
+      part.trim().startsWith('<') ? part.trim() : `<p>${escapeHtml(part.trim())}</p>`
+    )
 
   return parts.length ? parts.join('') : undefined
 }

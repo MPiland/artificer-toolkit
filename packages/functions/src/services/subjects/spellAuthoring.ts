@@ -8,7 +8,7 @@ import { createSubjectAuthoringService } from './pipeline.js'
 export interface SpellSubjectAuthoringDeps {
   validate?: (input: unknown) => SpellAuthored
   compile?: (authored: SpellAuthored) => CompiledSpell
-  persist?: (payload: { authored: SpellAuthored, compiled: CompiledSpell }) => Promise<void>
+  persist?: (payload: { authored: SpellAuthored; compiled: CompiledSpell }) => Promise<void>
   findById?: (id: string) => Promise<SpellAuthored | null>
   findAll?: (filter?: RepositoryFindAllOptions) => Promise<SpellAuthored[]>
 }
@@ -22,9 +22,11 @@ export function createSpellSubjectAuthoringService(
   return createSubjectAuthoringService<unknown, SpellAuthored, CompiledSpell, void>({
     validate: deps.validate ?? ((input) => spellAuthoredDtoSchema.parse(input) as SpellAuthored),
     compile: deps.compile ?? compileSpell,
-    persist: deps.persist ?? (async ({ authored }) => {
-      await upsertSpell(db, authored, authored.systemId)
-    }),
+    persist:
+      deps.persist ??
+      (async ({ authored }) => {
+        await upsertSpell(db, authored, authored.systemId)
+      }),
     findById: deps.findById ?? ((id) => repo.findById(id)),
     findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
   })

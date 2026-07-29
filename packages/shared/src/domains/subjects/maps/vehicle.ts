@@ -1,13 +1,7 @@
-import {
-  SIZE_OPTIONS,
-  VEHICLE_CATEGORY_OPTIONS
-} from '#core'
+import { SIZE_OPTIONS, VEHICLE_CATEGORY_OPTIONS } from '#core'
 import { COST_NODE_MAP, FEATURE_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
-import type {
-  DetailAuthored,
-  VehicleAuthored
-} from '#authored'
+import type { DetailAuthored, VehicleAuthored } from '#authored'
 
 const VEHICLE_STEPS = {
   overview: { id: 'overview', label: 'Overview', order: 10 },
@@ -42,42 +36,119 @@ const vehicleNode = buildNodeMap<VehicleAuthored>()
 export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) => {
   const { text, richText, number, selectSingle, groupArray, groupObject } = nodes
 
-  const stringNode = buildNodeMap<{ value: string }>().define('vehicleString', ({ map: m, nodes: n }) => {
-    m.set('value', n.text(['value'], 'Value'))
-  })
+  const stringNode = buildNodeMap<{ value: string }>().define(
+    'vehicleString',
+    ({ map: m, nodes: n }) => {
+      m.set('value', n.text(['value'], 'Value'))
+    }
+  )
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', {
-      section: VEHICLE_SECTIONS.basics,
-      order: 10,
-      requiredIf: true
-    }))
-    .set('description', richText(['description'], 'Description', { section: VEHICLE_SECTIONS.basics, order: 20 }))
+    .set(
+      'label',
+      text(['label'], 'Name', {
+        section: VEHICLE_SECTIONS.basics,
+        order: 10,
+        requiredIf: true
+      })
+    )
+    .set(
+      'description',
+      richText(['description'], 'Description', { section: VEHICLE_SECTIONS.basics, order: 20 })
+    )
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
-    .set('category', selectSingle(['category'], 'Category', {
-      kind: 'INLINE_OPTIONS',
-      options: VEHICLE_CATEGORY_OPTIONS
-    }, {
-      section: VEHICLE_SECTIONS.basics,
-      order: 30,
-      requiredIf: true
-    }))
-    .set('size', selectSingle(['size'], 'Size', {
-      kind: 'INLINE_OPTIONS',
-      options: SIZE_OPTIONS
-    }, { section: VEHICLE_SECTIONS.stats, order: 10 }))
-    .set('armorClass', number(['armorClass'], 'Armor Class', { section: VEHICLE_SECTIONS.stats, order: 20 }))
-    .set('hitPoints', number(['hitPoints'], 'Hit Points', { section: VEHICLE_SECTIONS.stats, order: 30 }))
+    .set(
+      'category',
+      selectSingle(
+        ['category'],
+        'Category',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: VEHICLE_CATEGORY_OPTIONS
+        },
+        {
+          section: VEHICLE_SECTIONS.basics,
+          order: 30,
+          requiredIf: true
+        }
+      )
+    )
+    .set(
+      'size',
+      selectSingle(
+        ['size'],
+        'Size',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: SIZE_OPTIONS
+        },
+        { section: VEHICLE_SECTIONS.stats, order: 10 }
+      )
+    )
+    .set(
+      'armorClass',
+      number(['armorClass'], 'Armor Class', { section: VEHICLE_SECTIONS.stats, order: 20 })
+    )
+    .set(
+      'hitPoints',
+      number(['hitPoints'], 'Hit Points', { section: VEHICLE_SECTIONS.stats, order: 30 })
+    )
     .set('speed', number(['speed'], 'Speed', { section: VEHICLE_SECTIONS.stats, order: 40 }))
-    .set('speedNote', text(['speedNote'], 'Speed Note', { section: VEHICLE_SECTIONS.stats, order: 50 }))
-    .set('crewMin', number(['crewMin'], 'Minimum Crew', { section: VEHICLE_SECTIONS.capacity, order: 10 }))
-    .set('crewMax', number(['crewMax'], 'Maximum Crew', { section: VEHICLE_SECTIONS.capacity, order: 20 }))
-    .set('passengerCapacity', number(['passengerCapacity'], 'Passenger Capacity', { section: VEHICLE_SECTIONS.capacity, order: 30 }))
-    .set('cargoCapacity', text(['cargoCapacity'], 'Cargo Capacity', { section: VEHICLE_SECTIONS.capacity, order: 40 }))
-    .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, { presentation: 'inline', section: VEHICLE_SECTIONS.economy, order: 10 }))
-    .set('properties', groupArray(['properties'], 'Properties', () => stringNode, { presentation: 'inline', section: VEHICLE_SECTIONS.economy, order: 20 }))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { presentation: 'branch', section: VEHICLE_SECTIONS.content, order: 10 }))
-    .set('details', groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, { presentation: 'inline', section: VEHICLE_SECTIONS.content, order: 20 }))
+    .set(
+      'speedNote',
+      text(['speedNote'], 'Speed Note', { section: VEHICLE_SECTIONS.stats, order: 50 })
+    )
+    .set(
+      'crewMin',
+      number(['crewMin'], 'Minimum Crew', { section: VEHICLE_SECTIONS.capacity, order: 10 })
+    )
+    .set(
+      'crewMax',
+      number(['crewMax'], 'Maximum Crew', { section: VEHICLE_SECTIONS.capacity, order: 20 })
+    )
+    .set(
+      'passengerCapacity',
+      number(['passengerCapacity'], 'Passenger Capacity', {
+        section: VEHICLE_SECTIONS.capacity,
+        order: 30
+      })
+    )
+    .set(
+      'cargoCapacity',
+      text(['cargoCapacity'], 'Cargo Capacity', { section: VEHICLE_SECTIONS.capacity, order: 40 })
+    )
+    .set(
+      'cost',
+      groupObject(['cost'], 'Cost', () => COST_NODE_MAP, {
+        presentation: 'inline',
+        section: VEHICLE_SECTIONS.economy,
+        order: 10
+      })
+    )
+    .set(
+      'properties',
+      groupArray(['properties'], 'Properties', () => stringNode, {
+        presentation: 'inline',
+        section: VEHICLE_SECTIONS.economy,
+        order: 20
+      })
+    )
+    .set(
+      'features',
+      groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
+        presentation: 'branch',
+        section: VEHICLE_SECTIONS.content,
+        order: 10
+      })
+    )
+    .set(
+      'details',
+      groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, {
+        presentation: 'inline',
+        section: VEHICLE_SECTIONS.content,
+        order: 20
+      })
+    )
 })

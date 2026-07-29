@@ -109,8 +109,10 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   [EFFECT_KIND.FORCED_MOVEMENT]: {
     code: EFFECT_KIND.FORCED_MOVEMENT,
     label: 'Forced Movement',
-    tooltip: 'This effect compels movement with typed direction, distance, and action-economy usage.',
-    description: 'This effect compels movement with typed direction, distance, and action-economy usage.'
+    tooltip:
+      'This effect compels movement with typed direction, distance, and action-economy usage.',
+    description:
+      'This effect compels movement with typed direction, distance, and action-economy usage.'
   },
   [EFFECT_KIND.TELEPORT]: {
     code: EFFECT_KIND.TELEPORT,
@@ -121,8 +123,10 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   [EFFECT_KIND.MANIFEST]: {
     code: EFFECT_KIND.MANIFEST,
     label: 'Manifest',
-    tooltip: 'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.',
-    description: 'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.'
+    tooltip:
+      'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.',
+    description:
+      'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.'
   },
   [EFFECT_KIND.MOVE_MANIFEST]: {
     code: EFFECT_KIND.MOVE_MANIFEST,
@@ -134,7 +138,8 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.COMMAND_MANIFEST,
     label: 'Command Manifest',
     tooltip: 'This effect commands a previously created manifestation to use one of its behaviors.',
-    description: 'This effect commands a previously created manifestation to use one of its behaviors.'
+    description:
+      'This effect commands a previously created manifestation to use one of its behaviors.'
   },
   [EFFECT_KIND.MANUAL_ADJUDICATION]: {
     code: EFFECT_KIND.MANUAL_ADJUDICATION,
@@ -144,9 +149,7 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   }
 } as const
 
-export const EFFECT_KIND_OPTIONS = valuesOf(
-  EFFECT_KIND_REGISTRY
-) as readonly EffectKindOption[]
+export const EFFECT_KIND_OPTIONS = valuesOf(EFFECT_KIND_REGISTRY) as readonly EffectKindOption[]
 
 export const NON_MANIFEST_EFFECT_KIND_OPTIONS = EFFECT_KIND_OPTIONS.filter(
   (option): option is CoreMeta<NonManifestEffectKind> => option.code !== EFFECT_KIND.MANIFEST

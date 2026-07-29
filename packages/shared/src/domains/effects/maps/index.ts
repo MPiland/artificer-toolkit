@@ -4,4 +4,3 @@ export * from './invocation.js'
 export * from './outcomeBonus.js'
 export * from './path.js'
 export * from './targeting.js'
-

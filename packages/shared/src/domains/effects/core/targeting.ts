@@ -83,4 +83,3 @@ export const TARGET_DISPOSITION_KIND_REGISTRY: Record<
 export const TARGET_DISPOSITION_KIND_OPTIONS = valuesOf(
   TARGET_DISPOSITION_KIND_REGISTRY
 ) as readonly TargetDispositionKindOption[]
-

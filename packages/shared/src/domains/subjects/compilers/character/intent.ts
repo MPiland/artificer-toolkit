@@ -1,6 +1,33 @@
 import { assertNever } from '#utils'
 
-import type { CharacterAbilityRollGroupRecord, CharacterAbilityScoresIntent, CharacterAcquisitionTiming, CharacterAdvancementIntent, CharacterAncestryAcquisition, CharacterBackgroundIntent, CharacterChosenGrantSelectionRecord, CharacterClassIntent, CharacterDieRollRecord, CharacterFeatureAcquisitionRecord, CharacterFeatureSelectionRecord, CharacterFeatureSelectionValue, CharacterFeatureSource, CharacterHitpointLevelEntry, CharacterHitpointsIntent, CharacterIntent, CharacterManualAbilityAssignment, CharacterManualRolledAbilityRecord, CharacterPointBuyAssignment, CharacterRaceIntent, CharacterResourceGrantRecord, CharacterSpellSelectionRecord, CharacterStandardArrayAssignment, CharacterStartingEquipmentDecision, CharacterStartingEquipmentGroupSelection, CharacterStartingGoldSelection } from '#authored'
+import type {
+  CharacterAbilityRollGroupRecord,
+  CharacterAbilityScoresIntent,
+  CharacterAcquisitionTiming,
+  CharacterAdvancementIntent,
+  CharacterAncestryAcquisition,
+  CharacterBackgroundIntent,
+  CharacterChosenGrantSelectionRecord,
+  CharacterClassIntent,
+  CharacterDieRollRecord,
+  CharacterFeatureAcquisitionRecord,
+  CharacterFeatureSelectionRecord,
+  CharacterFeatureSelectionValue,
+  CharacterFeatureSource,
+  CharacterHitpointLevelEntry,
+  CharacterHitpointsIntent,
+  CharacterIntent,
+  CharacterManualAbilityAssignment,
+  CharacterManualRolledAbilityRecord,
+  CharacterPointBuyAssignment,
+  CharacterRaceIntent,
+  CharacterResourceGrantRecord,
+  CharacterSpellSelectionRecord,
+  CharacterStandardArrayAssignment,
+  CharacterStartingEquipmentDecision,
+  CharacterStartingEquipmentGroupSelection,
+  CharacterStartingGoldSelection
+} from '#authored'
 import type { AbilityCode, HitpointCalculationMethodCode } from '#core'
 import { ADVANCEMENT_METHOD_CODE, CHARACTER_ABILITY_GENERATION_METHOD } from '#core'
 
@@ -36,16 +63,18 @@ export type CompiledCharacterIntent = {
  * Advancement
  * ────────────────────────────────────────────────────────────── */
 
-export type CompiledAdvancement
-  = | {
-    method: typeof ADVANCEMENT_METHOD_CODE.EXPERIENCE
-    experience?: number
-  }
+export type CompiledAdvancement =
   | {
-    method: typeof ADVANCEMENT_METHOD_CODE.MILESTONE
-  }
+      method: typeof ADVANCEMENT_METHOD_CODE.EXPERIENCE
+      experience?: number
+    }
+  | {
+      method: typeof ADVANCEMENT_METHOD_CODE.MILESTONE
+    }
 
-export function compileAdvancementIntent(authored: CharacterAdvancementIntent): CompiledAdvancement {
+export function compileAdvancementIntent(
+  authored: CharacterAdvancementIntent
+): CompiledAdvancement {
   switch (authored.method) {
     case ADVANCEMENT_METHOD_CODE.EXPERIENCE:
       return {
@@ -74,7 +103,9 @@ export type CompiledCharacterBackgroundIntent = {
   backgroundId: string
 }
 
-export function compileCharacterRaceIntent(authored: CharacterRaceIntent): CompiledCharacterRaceIntent {
+export function compileCharacterRaceIntent(
+  authored: CharacterRaceIntent
+): CompiledCharacterRaceIntent {
   return {
     raceId: authored.raceId,
     subraceId: authored.subraceId
@@ -97,12 +128,8 @@ export type CompiledCharacterAncestrySelection = {
   id: string
   ancestryId: string
   optionId: string
-  source:
-    | { kind: 'RACE', raceId: string }
-    | { kind: 'SUBRACE', subraceId: string }
-  timing:
-    | { kind: 'IMMEDIATE' }
-    | { kind: 'CLASS_LEVEL', classId: string, classLevel: number }
+  source: { kind: 'RACE'; raceId: string } | { kind: 'SUBRACE'; subraceId: string }
+  timing: { kind: 'IMMEDIATE' } | { kind: 'CLASS_LEVEL'; classId: string; classLevel: number }
 }
 
 export function compileAncestrySelection(
@@ -128,7 +155,9 @@ export type CompiledCharacterClassIntent = {
   specializationId?: string
 }
 
-export function compileCharacterClassIntent(authored: CharacterClassIntent): CompiledCharacterClassIntent {
+export function compileCharacterClassIntent(
+  authored: CharacterClassIntent
+): CompiledCharacterClassIntent {
   return {
     classId: authored.classId,
     classLevel: authored.classLevel,
@@ -159,21 +188,23 @@ export type CompiledManualRolledAbilityState = {
   assignments: CharacterManualAbilityAssignment[]
 }
 
-export type CompiledAbilityScores
-  = | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
-    assignments: CharacterStandardArrayAssignment[]
-  }
+export type CompiledAbilityScores =
   | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
-    assignments: CharacterPointBuyAssignment[]
-  }
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY
+      assignments: CharacterStandardArrayAssignment[]
+    }
   | {
-    method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-    state: CompiledManualRolledAbilityState
-  }
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
+      assignments: CharacterPointBuyAssignment[]
+    }
+  | {
+      method: typeof CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+      state: CompiledManualRolledAbilityState
+    }
 
-function compileAbilityRollGroup(authored: CharacterAbilityRollGroupRecord): CompiledAbilityRollGroup {
+function compileAbilityRollGroup(
+  authored: CharacterAbilityRollGroupRecord
+): CompiledAbilityRollGroup {
   const rolls = authored.rolls && authored.rolls.length ? authored.rolls : undefined
   const kept = authored.kept && authored.kept.length ? authored.kept : undefined
 
@@ -191,8 +222,8 @@ function compileAbilityRollGroup(authored: CharacterAbilityRollGroupRecord): Com
 function compileManualRolledAbilityState(
   authored: CharacterManualRolledAbilityRecord
 ): CompiledManualRolledAbilityState {
-  const rollGroups
-    = authored.rollGroups && authored.rollGroups.length
+  const rollGroups =
+    authored.rollGroups && authored.rollGroups.length
       ? authored.rollGroups.map(compileAbilityRollGroup)
       : undefined
 
@@ -203,7 +234,9 @@ function compileManualRolledAbilityState(
   }
 }
 
-export function compileAbilityScoresIntent(authored: CharacterAbilityScoresIntent): CompiledAbilityScores {
+export function compileAbilityScoresIntent(
+  authored: CharacterAbilityScoresIntent
+): CompiledAbilityScores {
   switch (authored.method) {
     case CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY:
       return {
@@ -239,7 +272,9 @@ export type CompiledCharacterHitpointIntent = {
   levels: CompiledHitpointLevelEntry[]
 }
 
-export function compileHitpointIntent(authored: CharacterHitpointsIntent): CompiledCharacterHitpointIntent {
+export function compileHitpointIntent(
+  authored: CharacterHitpointsIntent
+): CompiledCharacterHitpointIntent {
   return {
     method: authored.method,
     levels: authored.levels
@@ -250,7 +285,8 @@ export function compileHitpointIntent(authored: CharacterHitpointsIntent): Compi
  * Starting equipment decisions
  * ────────────────────────────────────────────────────────────── */
 
-export type CompiledCharacterStartingEquipmentGroupSelection = CharacterStartingEquipmentGroupSelection
+export type CompiledCharacterStartingEquipmentGroupSelection =
+  CharacterStartingEquipmentGroupSelection
 export type CompiledCharacterStartingGoldSelection = CharacterStartingGoldSelection
 
 export type CompiledCharacterStartingEquipment = {
@@ -296,7 +332,9 @@ export type CompiledCharacterFeatureAcquisition = {
   selections?: CompiledFeatureSelection[]
 }
 
-function compileFeatureSelection(authored: CharacterFeatureSelectionRecord): CompiledFeatureSelection {
+function compileFeatureSelection(
+  authored: CharacterFeatureSelectionRecord
+): CompiledFeatureSelection {
   return {
     selectionKey: authored.selectionKey,
     values: authored.values
@@ -306,8 +344,8 @@ function compileFeatureSelection(authored: CharacterFeatureSelectionRecord): Com
 export function compileFeatureAcquisition(
   authored: CharacterFeatureAcquisitionRecord
 ): CompiledCharacterFeatureAcquisition {
-  const selections
-    = authored.selections && authored.selections.length
+  const selections =
+    authored.selections && authored.selections.length
       ? authored.selections.map(compileFeatureSelection)
       : undefined
 
@@ -319,7 +357,6 @@ export function compileFeatureAcquisition(
     selections
   }
 }
-
 
 export type CompiledCharacterChosenGrantSelection = CharacterChosenGrantSelectionRecord
 
@@ -381,35 +418,34 @@ export function compileResourceGrant(
  * ────────────────────────────────────────────────────────────── */
 
 export function compileCharacterIntent(authored: CharacterIntent): CompiledCharacterIntent {
-  const ancestrySelections
-    = authored.ancestrySelections && authored.ancestrySelections.length
+  const ancestrySelections =
+    authored.ancestrySelections && authored.ancestrySelections.length
       ? authored.ancestrySelections.map(compileAncestrySelection)
       : undefined
 
-  const startingEquipment
-    = authored.startingEquipment
-      ? {
-          class: authored.startingEquipment.class
-            ? compileStartingEquipmentDecision(authored.startingEquipment.class)
-            : undefined,
-          background: authored.startingEquipment.background
-            ? compileStartingEquipmentDecision(authored.startingEquipment.background)
-            : undefined
-        }
-      : undefined
+  const startingEquipment = authored.startingEquipment
+    ? {
+        class: authored.startingEquipment.class
+          ? compileStartingEquipmentDecision(authored.startingEquipment.class)
+          : undefined,
+        background: authored.startingEquipment.background
+          ? compileStartingEquipmentDecision(authored.startingEquipment.background)
+          : undefined
+      }
+    : undefined
 
-  const spellSelections
-    = authored.spellSelections && authored.spellSelections.length
+  const spellSelections =
+    authored.spellSelections && authored.spellSelections.length
       ? authored.spellSelections.map(compileSpellSelection)
       : undefined
 
-  const chosenGrantSelections
-    = authored.chosenGrantSelections && authored.chosenGrantSelections.length
+  const chosenGrantSelections =
+    authored.chosenGrantSelections && authored.chosenGrantSelections.length
       ? authored.chosenGrantSelections.map(compileChosenGrantSelection)
       : undefined
 
-  const resourceGrants
-    = authored.resourceGrants && authored.resourceGrants.length
+  const resourceGrants =
+    authored.resourceGrants && authored.resourceGrants.length
       ? authored.resourceGrants.map(compileResourceGrant)
       : undefined
 

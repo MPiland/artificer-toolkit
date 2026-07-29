@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  hasMaterialComponent,
-  normalizeSpellForSubmit
-} from '../spellAuthoring.utils'
+import { hasMaterialComponent, normalizeSpellForSubmit } from '../spellAuthoring.utils'
 import { spellFixture } from '../spellAuthoring.fixtures'
 
 describe('Spell authoring runtime', () => {

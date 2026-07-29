@@ -42,7 +42,7 @@ import {
 } from '../vocabulary.js'
 
 function vocabularyId<TCode extends string>(
-  entries: readonly { code: TCode, id: string }[],
+  entries: readonly { code: TCode; id: string }[],
   code: TCode
 ): string {
   const entry = entries.find((item) => item.code === code)
@@ -255,7 +255,8 @@ const dragonLegendaryActionOptions: LegendaryActionOptionTemplate[] = [
   },
   {
     label: 'Wing Attack (Costs 2 Actions)',
-    description: 'The dragon beats its wings. Nearby creatures risk bludgeoning damage and being knocked prone, then the dragon can fly up to half its flying speed.'
+    description:
+      'The dragon beats its wings. Nearby creatures risk bludgeoning damage and being knocked prone, then the dragon can fly up to half its flying speed.'
   }
 ]
 
@@ -271,7 +272,8 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     },
     {
       label: 'Teleport (Costs 2 Actions)',
-      description: 'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
+      description:
+        'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
     }
   ],
   Gynosphinx: [
@@ -281,11 +283,13 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     },
     {
       label: 'Teleport (Costs 2 Actions)',
-      description: 'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
+      description:
+        'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
     },
     {
       label: 'Cast a Spell (Costs 3 Actions)',
-      description: 'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.'
+      description:
+        'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.'
     }
   ],
   Lich: [
@@ -299,33 +303,40 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     },
     {
       label: 'Frightening Gaze (Costs 2 Actions)',
-      description: 'The lich fixes its gaze on one creature it can see within 10 feet. The target must succeed on a Wisdom saving throw against this magic or become frightened for 1 minute.'
+      description:
+        'The lich fixes its gaze on one creature it can see within 10 feet. The target must succeed on a Wisdom saving throw against this magic or become frightened for 1 minute.'
     },
     {
       label: 'Disrupt Life (Costs 3 Actions)',
-      description: 'Each non-undead creature within 20 feet of the lich must make a Constitution saving throw against this magic, taking necrotic damage on a failed save or half as much on a successful one.'
+      description:
+        'Each non-undead creature within 20 feet of the lich must make a Constitution saving throw against this magic, taking necrotic damage on a failed save or half as much on a successful one.'
     }
   ],
   'Mummy Lord': [
     {
       label: 'Attack',
-      description: 'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.'
+      description:
+        'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.'
     },
     {
       label: 'Blinding Dust',
-      description: 'Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a Constitution saving throw or be blinded until the end of the creature\'s next turn.'
+      description:
+        "Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a Constitution saving throw or be blinded until the end of the creature's next turn."
     },
     {
       label: 'Blasphemous Word (Costs 2 Actions)',
-      description: 'The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a Constitution saving throw or be stunned until the end of the mummy lord\'s next turn.'
+      description:
+        "The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a Constitution saving throw or be stunned until the end of the mummy lord's next turn."
     },
     {
       label: 'Channel Negative Energy (Costs 2 Actions)',
-      description: 'The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can\'t regain hit points until the end of the mummy lord\'s next turn.'
+      description:
+        "The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can't regain hit points until the end of the mummy lord's next turn."
     },
     {
       label: 'Whirlwind of Sand (Costs 2 Actions)',
-      description: 'The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form.'
+      description:
+        'The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form.'
     }
   ],
   Unicorn: [
@@ -335,7 +346,8 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     },
     {
       label: 'Shimmering Shield (Costs 2 Actions)',
-      description: 'The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet. The target gains a +2 bonus to AC until the end of the unicorn\'s next turn.'
+      description:
+        "The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet. The target gains a +2 bonus to AC until the end of the unicorn's next turn."
     },
     {
       label: 'Heal Self (Costs 3 Actions)',
@@ -358,7 +370,9 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
   ]
 }
 
-export function normalizeLegendaryActionOptions<TCreature extends CreatureAuthored>(creature: TCreature): TCreature {
+export function normalizeLegendaryActionOptions<TCreature extends CreatureAuthored>(
+  creature: TCreature
+): TCreature {
   if (!creature.features?.some(isLegendaryActionFeature)) {
     return creature
   }
@@ -401,10 +415,7 @@ function buildLegendaryActionFeatureWithOptions(
   const effectsByOrder = new Map<number, NonNullable<FeatureAuthored['effects']>>()
 
   for (const effect of feature.effects ?? []) {
-    effectsByOrder.set(effect.order, [
-      ...(effectsByOrder.get(effect.order) ?? []),
-      effect
-    ])
+    effectsByOrder.set(effect.order, [...(effectsByOrder.get(effect.order) ?? []), effect])
   }
 
   const featureWithoutEffects = { ...feature }

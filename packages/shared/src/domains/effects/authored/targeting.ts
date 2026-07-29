@@ -1,27 +1,23 @@
-import type {
-  TargetDispositionKind,
-  TargetSelectionKind,
-  ScalableValueAuthored
-} from '#core'
+import type { TargetDispositionKind, TargetSelectionKind, ScalableValueAuthored } from '#core'
 
-export type TargetingAuthored
-  = | {
-    selectionKind: Extract<TargetSelectionKind, 'SELF'>
-  }
+export type TargetingAuthored =
   | {
-    selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
-    dispositionKind?: TargetDispositionKind
-    excludedCreatureTypeIds?: string[]
-  }
+      selectionKind: Extract<TargetSelectionKind, 'SELF'>
+    }
   | {
-    selectionKind: Extract<TargetSelectionKind, 'CHOSEN_CREATURES'>
-    dispositionKind?: TargetDispositionKind
-    maxTargets?: number
-    maxTargetsScaling?: ScalableValueAuthored<{ amount: number }>
-    excludedCreatureTypeIds?: string[]
-  }
+      selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
+      dispositionKind?: TargetDispositionKind
+      excludedCreatureTypeIds?: string[]
+    }
   | {
-    selectionKind: Extract<TargetSelectionKind, 'AREA_CONTENTS'>
-    dispositionKind?: TargetDispositionKind
-    excludedCreatureTypeIds?: string[]
-  }
+      selectionKind: Extract<TargetSelectionKind, 'CHOSEN_CREATURES'>
+      dispositionKind?: TargetDispositionKind
+      maxTargets?: number
+      maxTargetsScaling?: ScalableValueAuthored<{ amount: number }>
+      excludedCreatureTypeIds?: string[]
+    }
+  | {
+      selectionKind: Extract<TargetSelectionKind, 'AREA_CONTENTS'>
+      dispositionKind?: TargetDispositionKind
+      excludedCreatureTypeIds?: string[]
+    }

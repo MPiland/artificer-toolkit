@@ -23,10 +23,7 @@ import { createProficiencyGrantRepository } from '../../grants/repositories/prof
 import { createSenseGrantRepository } from '../../grants/repositories/sense.js'
 import { createSpellGrantRepository } from '../../grants/repositories/spell.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
-import type {
-  OptionRepository,
-  RepositoryFindAllOptions
-} from '../../../repositories/contracts.js'
+import type { OptionRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 
 export interface OptionRepositoryReadOptions extends RepositoryFindAllOptions {
@@ -93,10 +90,7 @@ type OptionAttributeRow = OptionGrantLinkRow & {
   attribute_code: string
 }
 
-function requireLinkedRecord<T>(
-  value: T | null,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message)
   }
@@ -123,10 +117,7 @@ function hydrateLinkedRecords<Link, Record>(
 ): Record[] {
   return links.map((link) => {
     const linkedId = getId(link)
-    return requireLinkedRecord(
-      recordsById.get(linkedId) ?? null,
-      buildMessage(linkedId)
-    )
+    return requireLinkedRecord(recordsById.get(linkedId) ?? null, buildMessage(linkedId))
   })
 }
 
@@ -159,18 +150,11 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
     return new Map()
   }
 
-  const rows = await db
+  const rows = (await db
     .selectFrom('options')
-    .select([
-      'id',
-      'label',
-      'description',
-      'sort_order',
-      'charge_id',
-      'restriction_id'
-    ])
+    .select(['id', 'label', 'description', 'sort_order', 'charge_id', 'restriction_id'])
     .where('id', 'in', distinctIds)
-    .execute() as OptionRow[]
+    .execute()) as OptionRow[]
 
   const optionIds = rows.map((row) => row.id)
   if (optionIds.length === 0) {
@@ -189,41 +173,49 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
   ] = await Promise.all([
     options.includeEffects === false
       ? Promise.resolve([] as OptionEffectLinkRow[])
-      : db.selectFrom('option_effects')
+      : (db
+          .selectFrom('option_effects')
           .select(['option_id', 'effect_id'])
           .where('option_id', 'in', optionIds)
-          .execute() as Promise<OptionEffectLinkRow[]>,
-    db.selectFrom('option_details')
+          .execute() as Promise<OptionEffectLinkRow[]>),
+    db
+      .selectFrom('option_details')
       .select(['option_id', 'detail_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionDetailLinkRow[]>,
-    db.selectFrom('option_attributes')
+    db
+      .selectFrom('option_attributes')
       .select(['option_id', 'attribute_code', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionAttributeRow[]>,
-    db.selectFrom('option_feat_grants')
+    db
+      .selectFrom('option_feat_grants')
       .select(['option_id', 'feat_grant_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionFeatGrantLinkRow[]>,
-    db.selectFrom('option_modifier_grants')
+    db
+      .selectFrom('option_modifier_grants')
       .select(['option_id', 'modifier_grant_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionModifierGrantLinkRow[]>,
-    db.selectFrom('option_proficiency_grants')
+    db
+      .selectFrom('option_proficiency_grants')
       .select(['option_id', 'proficiency_grant_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionProficiencyGrantLinkRow[]>,
-    db.selectFrom('option_sense_grants')
+    db
+      .selectFrom('option_sense_grants')
       .select(['option_id', 'sense_grant_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
       .execute() as Promise<OptionSenseGrantLinkRow[]>,
-    db.selectFrom('option_spell_grants')
+    db
+      .selectFrom('option_spell_grants')
       .select(['option_id', 'spell_grant_id', 'sort_order'])
       .where('option_id', 'in', optionIds)
       .orderBy('sort_order')
@@ -248,9 +240,12 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
     senseGrantsById,
     spellGrantsById
   ] = await Promise.all([
-    hydrateChargesByIds(db, rows.flatMap((row) => row.charge_id ? [row.charge_id] : [])),
+    hydrateChargesByIds(
+      db,
+      rows.flatMap((row) => (row.charge_id ? [row.charge_id] : []))
+    ),
     hydrateByIds(
-      rows.flatMap((row) => row.restriction_id ? [row.restriction_id] : []),
+      rows.flatMap((row) => (row.restriction_id ? [row.restriction_id] : [])),
       (restrictionId) => hydrateFacetById(db, restrictionId)
     ),
     options.includeEffects === false
@@ -259,7 +254,9 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     featGrantRepository.findByIds(featGrantLinks.map((link) => link.feat_grant_id)),
     modifierGrantRepository.findByIds(modifierGrantLinks.map((link) => link.modifier_grant_id)),
-    proficiencyGrantRepository.findByIds(proficiencyGrantLinks.map((link) => link.proficiency_grant_id)),
+    proficiencyGrantRepository.findByIds(
+      proficiencyGrantLinks.map((link) => link.proficiency_grant_id)
+    ),
     senseGrantRepository.findByIds(senseGrantLinks.map((link) => link.sense_grant_id)),
     spellGrantRepository.findByIds(spellGrantLinks.map((link) => link.spell_grant_id))
   ])
@@ -326,37 +323,49 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
       (link) => link.spell_grant_id,
       (linkedId) => `Option "${id}" is linked to missing spell grant "${linkedId}".`
     )
-    const charge = row.charge_id ? chargesById.get(row.charge_id) ?? null : null
-    const restrictions = row.restriction_id ? restrictionsById.get(row.restriction_id) ?? null : null
+    const charge = row.charge_id ? (chargesById.get(row.charge_id) ?? null) : null
+    const restrictions = row.restriction_id
+      ? (restrictionsById.get(row.restriction_id) ?? null)
+      : null
 
     recordsById.set(id, {
       id: row.id,
       label: row.label,
       description: row.description,
-      attributes: optionAttributeRows.length > 0
-        ? optionAttributeRows.map((attribute) => requireFeatureAttribute(id, attribute.attribute_code))
-        : undefined,
+      attributes:
+        optionAttributeRows.length > 0
+          ? optionAttributeRows.map((attribute) =>
+              requireFeatureAttribute(id, attribute.attribute_code)
+            )
+          : undefined,
       details: authoredDetails.length > 0 ? authoredDetails : undefined,
       effects: authoredEffects.length > 0 ? authoredEffects : undefined,
       charges: row.charge_id
-        ? requireLinkedRecord(charge as ChargeAuthored | null, `Option "${id}" is linked to missing charge "${row.charge_id}".`)
+        ? requireLinkedRecord(
+            charge as ChargeAuthored | null,
+            `Option "${id}" is linked to missing charge "${row.charge_id}".`
+          )
         : undefined,
       grants:
-        authoredFeatGrants.length > 0
-        || authoredModifierGrants.length > 0
-        || authoredProficiencyGrants.length > 0
-        || authoredSenseGrants.length > 0
-        || authoredSpellGrants.length > 0
+        authoredFeatGrants.length > 0 ||
+        authoredModifierGrants.length > 0 ||
+        authoredProficiencyGrants.length > 0 ||
+        authoredSenseGrants.length > 0 ||
+        authoredSpellGrants.length > 0
           ? {
               feats: authoredFeatGrants.length > 0 ? authoredFeatGrants : undefined,
               modifiers: authoredModifierGrants.length > 0 ? authoredModifierGrants : undefined,
-              proficiencies: authoredProficiencyGrants.length > 0 ? authoredProficiencyGrants : undefined,
+              proficiencies:
+                authoredProficiencyGrants.length > 0 ? authoredProficiencyGrants : undefined,
               senses: authoredSenseGrants.length > 0 ? authoredSenseGrants : undefined,
               spells: authoredSpellGrants.length > 0 ? authoredSpellGrants : undefined
             }
           : undefined,
       restrictions: row.restriction_id
-        ? requireLinkedRecord(restrictions as FacetAuthored<N> | null, `Option "${id}" is linked to missing restriction facet "${row.restriction_id}".`)
+        ? requireLinkedRecord(
+            restrictions as FacetAuthored<N> | null,
+            `Option "${id}" is linked to missing restriction facet "${row.restriction_id}".`
+          )
         : undefined,
       order: row.sort_order
     } as OptionAuthored<N>)
@@ -400,19 +409,15 @@ export function createOptionRepository<N extends NodeSubjectCode = NodeSubjectCo
     },
 
     async findAll() {
-      const rows = await db
-        .selectFrom('options')
-        .select('id')
-        .orderBy('sort_order')
-        .execute()
+      const rows = await db.selectFrom('options').select('id').orderBy('sort_order').execute()
 
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateOptionsByIds<N>(db, rows.map((row) => row.id))
+        await hydrateOptionsByIds<N>(
+          db,
+          rows.map((row) => row.id)
+        )
       )
     }
   }
 }
-
-
-

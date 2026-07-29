@@ -33,14 +33,16 @@ export const languages: LanguageOption[] = [
     id: '5cc2a251-e841-4516-9b9e-89b9478a39d9',
     code: LanguageCode.DWARVISH,
     label: 'Dwarvish',
-    description: 'Dwarvish is the language of dwarves, known for its harsh consonants and runic script.',
+    description:
+      'Dwarvish is the language of dwarves, known for its harsh consonants and runic script.',
     tooltip: 'Language of dwarves.'
   },
   {
     id: 'fcf7df00-0e90-49c0-aec2-18eac9e0e57b',
     code: LanguageCode.ELVISH,
     label: 'Elvish',
-    description: 'Elvish is a flowing and melodic language spoken by elves and closely tied to their culture.',
+    description:
+      'Elvish is a flowing and melodic language spoken by elves and closely tied to their culture.',
     tooltip: 'Language of elves.'
   },
   {
@@ -89,7 +91,8 @@ export const languages: LanguageOption[] = [
     id: 'e0bb1bca-7240-4589-9af6-21081512b593',
     code: LanguageCode.ABYSSAL,
     label: 'Abyssal',
-    description: 'Abyssal is the language of demons and the Abyss, filled with harsh and chaotic sounds.',
+    description:
+      'Abyssal is the language of demons and the Abyss, filled with harsh and chaotic sounds.',
     tooltip: 'Language of demons.'
   },
   {
@@ -117,7 +120,8 @@ export const languages: LanguageOption[] = [
     id: '6419c2dc-a2cb-4ff1-9732-2a53018ee633',
     code: LanguageCode.SYLVAN,
     label: 'Sylvan',
-    description: 'Sylvan is a musical language spoken by fey creatures and tied to the natural world.',
+    description:
+      'Sylvan is a musical language spoken by fey creatures and tied to the natural world.',
     tooltip: 'Language of the fey.'
   },
   {

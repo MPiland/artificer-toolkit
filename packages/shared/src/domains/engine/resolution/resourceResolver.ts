@@ -4,6 +4,7 @@ import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { EngineAccumulatedState } from './grantApplicator.js'
 import { resolveCompiledChargeMaximum } from '../../shared/compilers/charge.js'
+import { resolveNumericCalculation } from './calculationResolver.js'
 
 /**
  * Resolves class and selected subclass resource maximums from compiled class
@@ -13,11 +14,18 @@ export function resolveResources(
   snapshot: CharacterBuildSnapshot,
   registry: CharacterAssemblyRegistry,
   rules: RulesSystem,
-  modifierEntries: EngineAccumulatedState['modifierEntries'] = []
+  modifierEntries: EngineAccumulatedState['modifierEntries'] = [],
+  context: {
+    abilities?: Readonly<Record<string, number>>
+    proficiencyBonus?: number
+  } = {}
 ): EngineResource[] {
   const out: EngineResource[] = []
-  const proficiencyBonus = rules.proficiencyBonus(Math.max(snapshot.totalLevel, 1))
-  const classLevels = Object.fromEntries(snapshot.classes.map((entry) => [entry.classId, entry.level]))
+  const proficiencyBonus =
+    context.proficiencyBonus ?? rules.proficiencyBonus(Math.max(snapshot.totalLevel, 1))
+  const classLevels = Object.fromEntries(
+    snapshot.classes.map((entry) => [entry.classId, entry.level])
+  )
 
   for (const cls of snapshot.classes) {
     const resourceOwnerIds = cls.subclassId ? [cls.classId, cls.subclassId] : [cls.classId]
@@ -28,7 +36,7 @@ export function resolveResources(
 
       const resource = compiled.resources
       const maxCount = resolveCompiledChargeMaximum(resource.charges, {
-        abilities: snapshot.abilities,
+        abilities: context.abilities ?? snapshot.abilities,
         classLevels,
         sourceClassLevel: cls.level,
         proficiencyBonus,
@@ -40,7 +48,10 @@ export function resolveResources(
         resourceId: resource.id,
         label: resource.label,
         maxCount,
-        rechargeOn: mapResetKind(resolveResourceResetKind(resource.charges.resetKind, resource.id, modifierEntries)),
+        maxCountCalculation: resolveNumericCalculation(maxCount),
+        rechargeOn: mapResetKind(
+          resolveResourceResetKind(resource.charges.resetKind, resource.id, modifierEntries)
+        ),
         sourceFeatureId: resourceOwnerId
       })
     }
@@ -88,10 +99,7 @@ export function resolveResourceResetKind(
   return resetKind
 }
 
-function targetsResource(
-  grant: ChargeResetModifierGrant,
-  resourceId: string
-): boolean {
+function targetsResource(grant: ChargeResetModifierGrant, resourceId: string): boolean {
   let hasResourceScope = false
 
   for (const group of grant.restrictions?.groups ?? []) {
@@ -112,6 +120,12 @@ function targetsResource(
 
 function mapResetKind(resetKind: string): EngineResource['rechargeOn'] {
   switch (resetKind) {
+    case 'DAILY':
+      return 'DAILY'
+    case 'DAWN':
+      return 'DAWN'
+    case 'DUSK':
+      return 'DUSK'
     case 'SHORT_REST':
       return 'SHORT_REST'
     case 'LONG_REST':

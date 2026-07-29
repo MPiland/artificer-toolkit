@@ -1,6 +1,13 @@
 import { assertNever } from '#utils'
 
-import type { FacetAuthored, StartingEquipmentGroupAuthored, StartingEquipmentOptionAuthored, StartingEquipmentItemAuthored, StartingEquipmentSetAuthored, StartingEquipmentAuthored } from '#authored'
+import type {
+  FacetAuthored,
+  StartingEquipmentGroupAuthored,
+  StartingEquipmentOptionAuthored,
+  StartingEquipmentItemAuthored,
+  StartingEquipmentSetAuthored,
+  StartingEquipmentAuthored
+} from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, STARTING_EQUIPMENT_KIND } from '#core'
 import type { EquipmentCategoryCode, EquipmentPropertyCode } from '#core'
 
@@ -28,14 +35,15 @@ export interface CompiledEquipmentOption {
   items: CompiledEquipmentOptionItem[]
 }
 
-export type CompiledEquipmentOptionItem = {
-  startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.CURRENCY
-  currencies: CompiledEquipmentCurrency[]
-} | (
-  {
-    startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.EQUIPMENT
-  } & CompiledEquipmentOptionItemBase & CompiledStartingEquipmentOptionItemSelectionType
-)
+export type CompiledEquipmentOptionItem =
+  | {
+      startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.CURRENCY
+      currencies: CompiledEquipmentCurrency[]
+    }
+  | ({
+      startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.EQUIPMENT
+    } & CompiledEquipmentOptionItemBase &
+      CompiledStartingEquipmentOptionItemSelectionType)
 
 export type CompiledEquipmentOptionItemBase = {
   id: string
@@ -43,21 +51,24 @@ export type CompiledEquipmentOptionItemBase = {
   category?: EquipmentCategoryCode
   properties?: EquipmentPropertyCode[]
 } & (
-  {
-    authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
-  } | {
-    authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
-    equipmentIds: string[]
-  }
+  | {
+      authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
+    }
+  | {
+      authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
+      equipmentIds: string[]
+    }
 )
 
-export type CompiledStartingEquipmentOptionItemSelectionType = {
-  selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
-  count: number // int
-} | {
-  selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
-  quantity: number // int
-}
+export type CompiledStartingEquipmentOptionItemSelectionType =
+  | {
+      selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
+      count: number // int
+    }
+  | {
+      selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
+      quantity: number // int
+    }
 
 export interface CompiledEquipmentCurrency {
   currencyId: string
@@ -76,24 +87,27 @@ type EquipmentStartingEquipmentItem = StartingEquipmentItemAuthored & {
   selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN | typeof AUTHORING_SELECTION_KIND.GRANTED
 } & (
     | {
-      selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
-      count: number
-    }
+        selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
+        count: number
+      }
     | {
-      selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
-      quantity: number
-    }
-  ) & (
+        selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
+        quantity: number
+      }
+  ) &
+  (
     | {
-      authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
-    }
+        authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
+      }
     | {
-      authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
-      equipmentIds: string[]
-    }
+        authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
+        equipmentIds: string[]
+      }
   )
 
-export function compileStartingEquipmentSet(set: StartingEquipmentSetAuthored): CompiledEquipmentSet {
+export function compileStartingEquipmentSet(
+  set: StartingEquipmentSetAuthored
+): CompiledEquipmentSet {
   return {
     id: set.id,
     order: set.order,
@@ -101,7 +115,9 @@ export function compileStartingEquipmentSet(set: StartingEquipmentSetAuthored): 
   }
 }
 
-export function compileStartingEquipmentGroup(group: StartingEquipmentGroupAuthored): CompiledEquipmentGroup {
+export function compileStartingEquipmentGroup(
+  group: StartingEquipmentGroupAuthored
+): CompiledEquipmentGroup {
   return {
     id: group.id,
     order: group.order,
@@ -109,7 +125,9 @@ export function compileStartingEquipmentGroup(group: StartingEquipmentGroupAutho
   }
 }
 
-export function compileStartingEquipmentOption(option: StartingEquipmentOptionAuthored): CompiledEquipmentOption {
+export function compileStartingEquipmentOption(
+  option: StartingEquipmentOptionAuthored
+): CompiledEquipmentOption {
   return {
     id: option.id,
     order: option.order,
@@ -118,7 +136,9 @@ export function compileStartingEquipmentOption(option: StartingEquipmentOptionAu
   }
 }
 
-export function compileStartingEquipmentItem(item: StartingEquipmentItemAuthored): CompiledEquipmentOptionItem {
+export function compileStartingEquipmentItem(
+  item: StartingEquipmentItemAuthored
+): CompiledEquipmentOptionItem {
   const base: Pick<CompiledEquipmentOptionItemBase, 'id' | 'order'> = {
     id: item.id,
     order: item.order
@@ -184,7 +204,9 @@ export function compileStartingEquipmentItem(item: StartingEquipmentItemAuthored
   }
 }
 
-export function compileStartingEquipment(authored: StartingEquipmentAuthored): CompiledStartingEquipment {
+export function compileStartingEquipment(
+  authored: StartingEquipmentAuthored
+): CompiledStartingEquipment {
   return {
     id: authored.id,
     sets: authored.sets.map((set) => compileStartingEquipmentSet(set))

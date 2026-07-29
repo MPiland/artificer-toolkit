@@ -29,7 +29,10 @@ const response = {
   }
 }
 
-function draft(payload: Record<string, unknown>, overrides: Partial<AuthoredDraftDto> = {}): AuthoredDraftDto {
+function draft(
+  payload: Record<string, unknown>,
+  overrides: Partial<AuthoredDraftDto> = {}
+): AuthoredDraftDto {
   return {
     subjectKind: 'SPELL',
     subjectId: 'active-id',
@@ -110,14 +113,17 @@ describe('resolveAuthoredDetailState', () => {
       }
     }
     const state = resolveAuthoredDetailState({
-      draft: draft({
-        id: 'draft-only-id',
-        label: 'Draft Only Record',
-        description: 'Draft-only copy'
-      }, {
-        draftState: 'DRAFT_ONLY',
-        subjectId: 'draft-only-id'
-      }),
+      draft: draft(
+        {
+          id: 'draft-only-id',
+          label: 'Draft Only Record',
+          description: 'Draft-only copy'
+        },
+        {
+          draftState: 'DRAFT_ONLY',
+          subjectId: 'draft-only-id'
+        }
+      ),
       response: draftOnlyResponse,
       schema: itemSchema
     })

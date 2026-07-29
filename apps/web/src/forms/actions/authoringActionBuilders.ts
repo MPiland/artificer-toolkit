@@ -11,10 +11,7 @@ import type {
   DuplicateAuthoringResponse
 } from './authoringActionBuilders.types'
 
-export function createCancelAction({
-  listPath,
-  navigate
-}: CreateCancelActionArgs) {
+export function createCancelAction({ listPath, navigate }: CreateCancelActionArgs) {
   return async () => {
     await navigate({ to: listPath })
   }

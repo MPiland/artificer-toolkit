@@ -1,29 +1,26 @@
 import type { DBLike } from '#types'
-import type {
-  SystemSeedRecord,
-  VocabularySeedRecord
-} from '../../../source-data/index.js'
+import type { SystemSeedRecord, VocabularySeedRecord } from '../../../source-data/index.js'
 import { upsertSystem } from '../upserts/system.js'
 import type { SystemRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
-type VocabularyTableName
-  = | 'alignments'
-    | 'challenge_ratings'
-    | 'condition_types'
-    | 'creature_types'
-    | 'currencies'
-    | 'damage_types'
-    | 'heritages'
-    | 'languages'
-    | 'lifestyles'
-    | 'magic_schools'
-    | 'passives'
-    | 'rarities'
-    | 'senses'
-    | 'skills'
-    | 'speeds'
-    | 'terrains'
+type VocabularyTableName =
+  | 'alignments'
+  | 'challenge_ratings'
+  | 'condition_types'
+  | 'creature_types'
+  | 'currencies'
+  | 'damage_types'
+  | 'heritages'
+  | 'languages'
+  | 'lifestyles'
+  | 'magic_schools'
+  | 'passives'
+  | 'rarities'
+  | 'senses'
+  | 'skills'
+  | 'speeds'
+  | 'terrains'
 
 async function readVocabularyRows(
   db: DBLike,
@@ -32,9 +29,7 @@ async function readVocabularyRows(
 ): Promise<VocabularySeedRecord[]> {
   const rows = await db
     .selectFrom(table)
-    .select([
-      'id', 'code', 'label', 'description', 'tooltip', 'short'
-    ])
+    .select(['id', 'code', 'label', 'description', 'tooltip', 'short'])
     .where('system_id', '=', systemId)
     .orderBy('label')
     .execute()
@@ -49,15 +44,10 @@ async function readVocabularyRows(
   }))
 }
 
-async function hydrateSystemById(
-  db: DBLike,
-  id: string
-): Promise<SystemSeedRecord | null> {
+async function hydrateSystemById(db: DBLike, id: string): Promise<SystemSeedRecord | null> {
   const row = await db
     .selectFrom('systems')
-    .select([
-      'id', 'label', 'description', 'ruleset_code', 'ruleset_version', 'user_id'
-    ])
+    .select(['id', 'label', 'description', 'ruleset_code', 'ruleset_version', 'user_id'])
     .where('id', '=', id)
     .executeTakeFirst()
 
@@ -143,10 +133,7 @@ export function createSystemRepository(db: DBLike): SystemRepository {
     },
 
     async findAll(filter) {
-      let query = db
-        .selectFrom('systems')
-        .select('id')
-        .orderBy('label')
+      let query = db.selectFrom('systems').select('id').orderBy('label')
 
       if (filter?.userId) {
         query = query.where('user_id', '=', filter.userId)
@@ -155,7 +142,10 @@ export function createSystemRepository(db: DBLike): SystemRepository {
       const rows = await query.execute()
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSystemById(db, id))
+        await hydrateByIds(
+          rows.map((row) => row.id),
+          (id) => hydrateSystemById(db, id)
+        )
       )
     }
   }

@@ -14,5 +14,5 @@ export const leatherArmorPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(310), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

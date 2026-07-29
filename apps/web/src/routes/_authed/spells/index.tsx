@@ -61,7 +61,7 @@ function SpellsRoute() {
     domainQueryKey: queryKeys.content.spells.all(),
     draftQueryKey: queryKeys.content.spells.draft
   })
-  const spellMeta = data.meta as { schools?: Array<{ id: string | number, label?: string }> }
+  const spellMeta = data.meta as { schools?: Array<{ id: string | number; label?: string }> }
 
   return (
     <>
@@ -81,28 +81,36 @@ function SpellsRoute() {
         attributeColumns={spellListAttributeColumns}
         sortOptions={spellListSortOptions}
         onCreate={() => navigate({ to: '/spells/new' })}
-        onView={(item) => navigate({
-          params: buildSpellRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/spells/$spellPublicId/$spellSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildSpellRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/spells/$spellPublicId/$spellSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getSpell({
-            id: item.id,
-            meta: spellDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getSpell({
+              id: item.id,
+              meta: spellDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildSpellRouteParams(item.publicId, item.name),
-          to: '/spells/$spellPublicId/$spellSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildSpellRouteParams(item.publicId, item.name),
+            to: '/spells/$spellPublicId/$spellSlug/edit'
+          })
+        }
         onCopy={(item) => duplicateMutation.mutate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

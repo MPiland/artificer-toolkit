@@ -18,12 +18,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
-import {
-  SRD_CURRENCIES,
-  SRD_SKILLS,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from '../vocabulary.js'
+import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -422,14 +417,16 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 1),
       label: 'Rage',
-      description: 'In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action. While raging, you have advantage on Strength checks and Strength saving throws, and you gain a bonus to damage rolls with melee weapons using Strength.',
+      description:
+        'In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action. While raging, you have advantage on Strength checks and Strength saving throws, and you gain a bonus to damage rolls with melee weapons using Strength.',
       availableAtLevel: 1,
       order: 0
     },
     {
       id: classRowId(B, 3, 2),
       label: 'Unarmored Defense',
-      description: 'While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.',
+      description:
+        'While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.',
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -451,14 +448,16 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 4),
       label: 'Reckless Attack',
-      description: 'Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.',
+      description:
+        'Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.',
       availableAtLevel: 2,
       order: 2
     },
     {
       id: classRowId(B, 3, 5),
       label: 'Danger Sense',
-      description: 'At 2nd level, you gain an uncanny sense of when things nearby aren\'t as they should be, giving you an edge when you dodge away from danger. You have advantage on Dexterity saving throws against effects that you can see.',
+      description:
+        "At 2nd level, you gain an uncanny sense of when things nearby aren't as they should be, giving you an edge when you dodge away from danger. You have advantage on Dexterity saving throws against effects that you can see.",
       availableAtLevel: 2,
       order: 3
     },
@@ -474,7 +473,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 7),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 4,
       order: 5,
       optionChoices: [{ level: 4, count: 1 }],
@@ -483,21 +483,24 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 8),
       label: 'Extra Attack',
-      description: 'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      description:
+        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
       availableAtLevel: 5,
       order: 6
     },
     {
       id: classRowId(B, 3, 9),
       label: 'Fast Movement',
-      description: 'Starting at 5th level, your speed increases by 10 feet while you aren\'t wearing heavy armor.',
+      description:
+        "Starting at 5th level, your speed increases by 10 feet while you aren't wearing heavy armor.",
       availableAtLevel: 5,
       order: 7
     },
     {
       id: classRowId(B, 3, 10),
       label: 'Feral Instinct',
-      description: 'By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren\'t incapacitated, you can act normally on your first turn.',
+      description:
+        "By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren't incapacitated, you can act normally on your first turn.",
       availableAtLevel: 7,
       order: 8
     },
@@ -505,7 +508,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 11),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 8,
       order: 9,
       optionChoices: [{ level: 8, count: 1 }],
@@ -514,7 +518,8 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 12),
       label: 'Brutal Critical',
-      description: 'Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack. This increases at 13th and 17th level.',
+      description:
+        'Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack. This increases at 13th and 17th level.',
       availableAtLevel: 9,
       order: 10
     },
@@ -528,7 +533,8 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 14),
       label: 'Relentless Rage',
-      description: 'Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you\'re raging and don\'t die outright, you can make a DC 10 Constitution saving throw.',
+      description:
+        "Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you're raging and don't die outright, you can make a DC 10 Constitution saving throw.",
       availableAtLevel: 11,
       order: 12
     },
@@ -536,7 +542,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 15),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 12,
       order: 13,
       optionChoices: [{ level: 12, count: 1 }],
@@ -552,7 +559,8 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 17),
       label: 'Persistent Rage',
-      description: 'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
+      description:
+        'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
       availableAtLevel: 15,
       order: 15
     },
@@ -560,7 +568,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 18),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 16,
       order: 16,
       optionChoices: [{ level: 16, count: 1 }],
@@ -569,7 +578,8 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 19),
       label: 'Indomitable Might',
-      description: 'Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.',
+      description:
+        'Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.',
       availableAtLevel: 18,
       order: 17
     },
@@ -577,7 +587,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 20),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description:
+        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 18,
       optionChoices: [{ level: 19, count: 1 }],
@@ -586,7 +597,8 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 3, 21),
       label: 'Primal Champion',
-      description: 'At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4 each. Your maximum for those scores is now 24.',
+      description:
+        'At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4 each. Your maximum for those scores is now 24.',
       availableAtLevel: 20,
       order: 19
     }

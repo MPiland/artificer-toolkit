@@ -2,12 +2,8 @@ import { QueryClient } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { refreshAuthoredDetailAfterDraftDiscard } from './useAuthoredDetailActions'
 
-const draftKey = [
-  'content', 'spells', 'draft', 'spell-id'
-] as const
-const detailSubjectKey = [
-  'content', 'spells', 'detail', 'spell-id'
-] as const
+const draftKey = ['content', 'spells', 'draft', 'spell-id'] as const
+const detailSubjectKey = ['content', 'spells', 'detail', 'spell-id'] as const
 const optionedDetailKey = [
   ...detailSubjectKey,
   'draft',

@@ -1,12 +1,7 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
-import {
-  type AuthoredDraftDto,
-  type SpellResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import { type AuthoredDraftDto, type SpellResponseDto } from '@artificer-toolkit/schema/api/content'
 import { type SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import {
   AuthoredDetailLayout,
@@ -92,10 +87,11 @@ export function SpellDetailPage({
     duplicate: api.content.spells.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: spellId,
-    navigateEdit: async (subject) => navigate({
-      params: buildSpellRouteParams(subject.publicId, subject.label),
-      to: '/spells/$spellPublicId/$spellSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildSpellRouteParams(subject.publicId, subject.label),
+        to: '/spells/$spellPublicId/$spellSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/spells' })
   })
 
@@ -103,15 +99,19 @@ export function SpellDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This spell draft cannot be previewed. Delete it to return to the spell list.</Alert>
+          <Alert color='yellow'>
+            This spell draft cannot be previewed. Delete it to return to the spell list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: spellId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'spell draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: spellId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'spell draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -131,18 +131,46 @@ export function SpellDetailPage({
   }
 
   const item = detailState.item
-  const spellParams = buildSpellRouteParams(draft?.publicId ?? response?.publicId ?? spellId, item.label)
+  const spellParams = buildSpellRouteParams(
+    draft?.publicId ?? response?.publicId ?? spellId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/spells/$spellPublicId/$spellSlug/edit', params: spellParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () =>
+            navigate({ to: '/spells/$spellPublicId/$spellSlug/edit', params: spellParams })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/spells/$spellPublicId/$spellSlug/edit', params: spellParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({ to: '/spells/$spellPublicId/$spellSlug/edit', params: spellParams })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/spells/$spellPublicId/$spellSlug',
+              params: spellParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -150,11 +178,12 @@ export function SpellDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: spellId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: spellId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'quiet', onClick: () => navigate({ to: '/spells/new' }) }
@@ -165,7 +194,12 @@ export function SpellDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
-        afterFacts={<AuthoredDetailPillList label='Available For' items={getSpellClassLabels(item, references)} />}
+        afterFacts={
+          <AuthoredDetailPillList
+            label='Available For'
+            items={getSpellClassLabels(item, references)}
+          />
+        }
         facts={getSpellFacts(item, references)}
         notice={buildAuthoredDetailNotice({
           canViewActive: detailState.canViewActive,
@@ -174,8 +208,14 @@ export function SpellDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams }),
-          onViewDraft: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams }),
+          onViewDraft: () =>
+            navigate({
+              to: '/spells/$spellPublicId/$spellSlug',
+              params: spellParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getSpellSections(item)}
@@ -193,21 +233,37 @@ export function SpellDetailPage({
   )
 }
 
-function getSpellFacts(spell: SpellAuthoredDto, references: SpellDetailReferenceData): AuthoredDetailFact[] {
+function getSpellFacts(
+  spell: SpellAuthoredDto,
+  references: SpellDetailReferenceData
+): AuthoredDetailFact[] {
   return [
     { label: 'Level', value: formatSpellLevel(spell.level) },
     { label: 'Casting Time', value: formatSpellCastingTime(spell) },
     { label: 'Range/Area', value: formatSpellRange(spell) },
     { label: 'Components', value: formatSpellComponents(spell) },
     { label: 'Duration', value: formatSpellDuration(spell) },
-    { label: 'School', value: formatReferenceLabel(spell.magicSchoolId, 'Magic school selected', references.magicSchools) },
+    {
+      label: 'School',
+      value: formatReferenceLabel(
+        spell.magicSchoolId,
+        'Magic school selected',
+        references.magicSchools
+      )
+    },
     { label: 'Attack/Save', value: formatSpellAttackSave(spell) },
     { label: 'Damage/Effect', value: formatSpellDamageEffect(spell, references) }
   ]
 }
 
-function getSpellClassLabels(spell: SpellAuthoredDto, references: SpellDetailReferenceData): string[] {
-  return spell.classIds.map((classId) => references.classes.find((option) => option.value === classId)?.label ?? 'Unknown class')
+function getSpellClassLabels(
+  spell: SpellAuthoredDto,
+  references: SpellDetailReferenceData
+): string[] {
+  return spell.classIds.map(
+    (classId) =>
+      references.classes.find((option) => option.value === classId)?.label ?? 'Unknown class'
+  )
 }
 
 function getSpellSections(spell: SpellAuthoredDto): AuthoredDetailSectionModel[] {
@@ -236,24 +292,26 @@ function formatSpellLevel(level: number): string {
   }
 
   const mod100 = level % 100
-  const suffix = mod100 >= 11 && mod100 <= 13
-    ? 'th'
-    : level % 10 === 1
-      ? 'st'
-      : level % 10 === 2
-        ? 'nd'
-        : level % 10 === 3
-          ? 'rd'
-          : 'th'
+  const suffix =
+    mod100 >= 11 && mod100 <= 13
+      ? 'th'
+      : level % 10 === 1
+        ? 'st'
+        : level % 10 === 2
+          ? 'nd'
+          : level % 10 === 3
+            ? 'rd'
+            : 'th'
 
   return `${formatNumber(level)}${suffix}`
 }
 
 function formatSpellCastingTime(spell: SpellAuthoredDto): string {
   const amount = spell.castingTime.amount
-  const unit = spell.castingTime.unit === 'ROUND' && amount === 1
-    ? 'Action'
-    : formatEnumLabel(spell.castingTime.unit)
+  const unit =
+    spell.castingTime.unit === 'ROUND' && amount === 1
+      ? 'Action'
+      : formatEnumLabel(spell.castingTime.unit)
 
   return `${formatNumber(amount)} ${amount === 1 ? unit : pluralizeUnit(unit)}`
 }
@@ -303,11 +361,12 @@ function formatSpellDuration(spell: SpellAuthoredDto): string {
     .map((block) => block.duration)
     .filter((duration): duration is NonNullable<SpellResultBlock['duration']> => Boolean(duration))
   const uniqueDurations = [...new Set(durations.map(formatDuration))]
-  const duration = uniqueDurations.length === 0
-    ? 'Instantaneous'
-    : uniqueDurations.length === 1
-      ? uniqueDurations[0]
-      : 'Varies'
+  const duration =
+    uniqueDurations.length === 0
+      ? 'Instantaneous'
+      : uniqueDurations.length === 1
+        ? uniqueDurations[0]
+        : 'Varies'
 
   if (spell.attributes?.includes('CONCENTRATION') && duration !== 'Instantaneous') {
     return `Concentration, up to ${lowercaseFirst(duration)}`
@@ -331,7 +390,10 @@ function formatSpellAttackSave(spell: SpellAuthoredDto): string {
     return invocation.range.rangeKind === 'TOUCH' ? 'Melee' : 'Ranged'
   }
 
-  if (invocation.triggerCode === 'MELEE_WEAPON_ATTACK' || invocation.triggerCode === 'UNARMED_ATTACK') {
+  if (
+    invocation.triggerCode === 'MELEE_WEAPON_ATTACK' ||
+    invocation.triggerCode === 'UNARMED_ATTACK'
+  ) {
     return 'Melee'
   }
 
@@ -342,17 +404,24 @@ function formatSpellAttackSave(spell: SpellAuthoredDto): string {
   return 'None'
 }
 
-function formatSpellDamageEffect(spell: SpellAuthoredDto, references: SpellDetailReferenceData): string {
+function formatSpellDamageEffect(
+  spell: SpellAuthoredDto,
+  references: SpellDetailReferenceData
+): string {
   const outcomes = collectResultBlocks(spell).flatMap((block) => block.outcomes)
   const damageLabels = labelsForOutcomeIds(
-    outcomes.flatMap((outcome) => outcome.effectKind === 'DAMAGE' && outcome.damageTypeId ? [outcome.damageTypeId] : []),
+    outcomes.flatMap((outcome) =>
+      outcome.effectKind === 'DAMAGE' && outcome.damageTypeId ? [outcome.damageTypeId] : []
+    ),
     references.damageTypes
   )
   const inferredDamageLabels = damageLabels.length
     ? []
     : inferDamageLabelsFromDescription(spell.description, references.damageTypes)
   const conditionLabels = labelsForOutcomeIds(
-    outcomes.flatMap((outcome) => outcome.effectKind === 'CONDITION' && outcome.conditionId ? [outcome.conditionId] : []),
+    outcomes.flatMap((outcome) =>
+      outcome.effectKind === 'CONDITION' && outcome.conditionId ? [outcome.conditionId] : []
+    ),
     references.conditionTypes
   )
   const labels = [...damageLabels, ...inferredDamageLabels, ...conditionLabels]
@@ -382,11 +451,13 @@ function collectPathResultBlocks(path: SpellPath): SpellResultBlock[] {
   }
 
   if ('options' in path && Array.isArray(path.options)) {
-    return path.options.flatMap((option) => isRecord(option) ? collectResultBlock(option.resultBlock) : [])
+    return path.options.flatMap((option) =>
+      isRecord(option) ? collectResultBlock(option.resultBlock) : []
+    )
   }
 
   if ('rows' in path && Array.isArray(path.rows)) {
-    return path.rows.flatMap((row) => isRecord(row) ? collectResultBlock(row.resultBlock) : [])
+    return path.rows.flatMap((row) => (isRecord(row) ? collectResultBlock(row.resultBlock) : []))
   }
 
   return []
@@ -397,10 +468,12 @@ function collectResultBlock(value: unknown): SpellResultBlock[] {
     return []
   }
 
-  return [{
-    duration: readDuration(value.duration),
-    outcomes: value.outcomes.flatMap(readOutcome)
-  }]
+  return [
+    {
+      duration: readDuration(value.duration),
+      outcomes: value.outcomes.flatMap(readOutcome)
+    }
+  ]
 }
 
 function readOutcome(value: unknown): SpellOutcome[] {
@@ -408,11 +481,13 @@ function readOutcome(value: unknown): SpellOutcome[] {
     return []
   }
 
-  return [{
-    conditionId: typeof value.conditionId === 'string' ? value.conditionId : undefined,
-    damageTypeId: typeof value.damageTypeId === 'string' ? value.damageTypeId : undefined,
-    effectKind: value.effectKind
-  }]
+  return [
+    {
+      conditionId: typeof value.conditionId === 'string' ? value.conditionId : undefined,
+      damageTypeId: typeof value.damageTypeId === 'string' ? value.damageTypeId : undefined,
+      effectKind: value.effectKind
+    }
+  ]
 }
 
 function readDuration(value: unknown): SpellDuration | undefined {
@@ -438,11 +513,13 @@ function labelsForOutcomeIds(ids: string[], options: SpellReferenceOption[]): st
   })
 }
 
-function inferDamageLabelsFromDescription(description: string, options: SpellReferenceOption[]): string[] {
+function inferDamageLabelsFromDescription(
+  description: string,
+  options: SpellReferenceOption[]
+): string[] {
   const text = stripHtml(description).toLowerCase()
   const optionLabels = options.map((option) => option.label)
-  const labels = optionLabels
-    .filter((label) => text.includes(`${label.toLowerCase()} damage`))
+  const labels = optionLabels.filter((label) => text.includes(`${label.toLowerCase()} damage`))
 
   return labels.length > 0
     ? labels

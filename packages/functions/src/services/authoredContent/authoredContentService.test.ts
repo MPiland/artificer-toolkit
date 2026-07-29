@@ -62,40 +62,49 @@ describe('authored content draft helpers', () => {
     draftRepositoryMock.findDraftBySubject.mockReset()
     draftRepositoryMock.listDraftsByUser.mockReset()
     draftRepositoryMock.saveDraft.mockReset()
-    draftRepositoryMock.findBySubjects.mockImplementation(async ({ subjectIds }: { subjectIds: string[] }) => (
-      subjectIds.map((subjectId) => ({
-        subjectId,
-        subjectKind: 'SPELL',
-        ownerUserId: 'user-1',
-        systemId: 'system-1',
-        label: subjectId,
-        isMaster: false,
-        activeRevisionId: `${subjectId}-revision`,
-        draftRevisionId: null,
-        createdAt: '2026-01-01T00:00:00.000Z',
-        updatedAt: '2026-01-01T00:00:00.000Z'
-      }))
-    ))
+    draftRepositoryMock.findBySubjects.mockImplementation(
+      async ({ subjectIds }: { subjectIds: string[] }) =>
+        subjectIds.map((subjectId) => ({
+          subjectId,
+          subjectKind: 'SPELL',
+          ownerUserId: 'user-1',
+          systemId: 'system-1',
+          label: subjectId,
+          isMaster: false,
+          activeRevisionId: `${subjectId}-revision`,
+          draftRevisionId: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z'
+        }))
+    )
     routeIdRepositoryMock.ensure.mockReset()
     routeIdRepositoryMock.ensureMany.mockReset()
-    routeIdRepositoryMock.ensure.mockImplementation(async ({ subjectId }: { subjectId: string }) => ({
-      subjectKind: 'SPELL',
-      subjectId,
-      routeNumber: '1',
-      publicId: `${subjectId}-public`,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z'
-    }))
-    routeIdRepositoryMock.ensureMany.mockImplementation(async (_subjectKind: string, subjectIds: string[]) => (
-      new Map(subjectIds.map((subjectId) => [subjectId, {
+    routeIdRepositoryMock.ensure.mockImplementation(
+      async ({ subjectId }: { subjectId: string }) => ({
         subjectKind: 'SPELL',
         subjectId,
         routeNumber: '1',
         publicId: `${subjectId}-public`,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z'
-      }]))
-    ))
+      })
+    )
+    routeIdRepositoryMock.ensureMany.mockImplementation(
+      async (_subjectKind: string, subjectIds: string[]) =>
+        new Map(
+          subjectIds.map((subjectId) => [
+            subjectId,
+            {
+              subjectKind: 'SPELL',
+              subjectId,
+              routeNumber: '1',
+              publicId: `${subjectId}-public`,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-01T00:00:00.000Z'
+            }
+          ])
+        )
+    )
   })
 
   it('keeps active rows active and exposes owned drafts separately', async () => {
@@ -114,16 +123,18 @@ describe('authored content draft helpers', () => {
     const response = await normalizeAuthoredListResponseWithDrafts(
       db,
       {
-        items: [{
-          id: 'spell-1',
-          label: 'Active Spell',
-          description: 'Still active.',
-          status: 'ACTIVE',
-          userId: 'user-1',
-          ownerUserId: 'user-1',
-          isMaster: false,
-          systemId: 'system-1'
-        }],
+        items: [
+          {
+            id: 'spell-1',
+            label: 'Active Spell',
+            description: 'Still active.',
+            status: 'ACTIVE',
+            userId: 'user-1',
+            ownerUserId: 'user-1',
+            isMaster: false,
+            systemId: 'system-1'
+          }
+        ],
         meta: {}
       },
       'user-1',
@@ -151,15 +162,17 @@ describe('authored content draft helpers', () => {
 
   it('keeps master rows read-only for every user', () => {
     const response = {
-      items: [{
-        id: 'spell-1',
-        label: 'SRD Spell',
-        status: 'ACTIVE',
-        userId: 'master',
-        ownerUserId: 'srd-owner',
-        isMaster: true,
-        systemId: 'system-1'
-      }],
+      items: [
+        {
+          id: 'spell-1',
+          label: 'SRD Spell',
+          status: 'ACTIVE',
+          userId: 'master',
+          ownerUserId: 'srd-owner',
+          isMaster: true,
+          systemId: 'system-1'
+        }
+      ],
       meta: {}
     }
 
@@ -196,19 +209,25 @@ describe('authored content draft helpers', () => {
     const draft = createDraft({ userId: 'server-user' })
     draftRepositoryMock.saveDraft.mockResolvedValue(draft)
 
-    await expect(saveAuthoredDraft(db, {
-      subjectKind: 'SPELL',
-      subjectId: 'spell-1',
-      systemId: 'system-1',
-      label: 'Client Draft',
-      payload: {
-        id: 'client-controlled-id',
-        label: 'Client Controlled Label',
-        status: 'ACTIVE',
-        userId: 'client-controlled-user',
-        systemId: 'client-controlled-system'
-      }
-    }, 'server-user')).resolves.toEqual({
+    await expect(
+      saveAuthoredDraft(
+        db,
+        {
+          subjectKind: 'SPELL',
+          subjectId: 'spell-1',
+          systemId: 'system-1',
+          label: 'Client Draft',
+          payload: {
+            id: 'client-controlled-id',
+            label: 'Client Controlled Label',
+            status: 'ACTIVE',
+            userId: 'client-controlled-user',
+            systemId: 'client-controlled-system'
+          }
+        },
+        'server-user'
+      )
+    ).resolves.toEqual({
       ...draft,
       publicId: 'spell-1-public'
     })
@@ -230,13 +249,18 @@ describe('authored content draft helpers', () => {
   })
 
   it('forces activated records to ACTIVE with server-owned user id', () => {
-    expect(normalizeActivatedAuthoringInput({
-      id: 'spell-1',
-      label: 'Draft Spell',
-      userId: 'client-controlled-user',
-      systemId: 'system-1',
-      status: 'DRAFT'
-    }, 'server-user')).toEqual({
+    expect(
+      normalizeActivatedAuthoringInput(
+        {
+          id: 'spell-1',
+          label: 'Draft Spell',
+          userId: 'client-controlled-user',
+          systemId: 'system-1',
+          status: 'DRAFT'
+        },
+        'server-user'
+      )
+    ).toEqual({
       id: 'spell-1',
       label: 'Draft Spell',
       userId: 'server-user',
@@ -270,45 +294,39 @@ describe('authored content draft helpers', () => {
   it('throws a route-safe error when activating a missing draft', async () => {
     draftRepositoryMock.findDraftBySubject.mockResolvedValue(null)
 
-    await expect(requireAuthoredDraft(db, 'SPELL', 'missing-spell', 'user-1'))
-      .rejects
-      .toMatchObject({
-        name: 'AuthoredDraftNotFoundError',
-        message: 'SPELL draft "missing-spell" was not found.'
-      })
+    await expect(
+      requireAuthoredDraft(db, 'SPELL', 'missing-spell', 'user-1')
+    ).rejects.toMatchObject({
+      name: 'AuthoredDraftNotFoundError',
+      message: 'SPELL draft "missing-spell" was not found.'
+    })
   })
 
   it('rejects writes to master and foreign definitions while allowing owned definitions', async () => {
     draftRepositoryMock.findBySubject.mockResolvedValueOnce({ isMaster: true, ownerUserId: null })
-    await expect(assertWritableAuthoredSubject(
-      db,
-      'CREATURE',
-      'master-creature',
-      'user-1'
-    )).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+    await expect(
+      assertWritableAuthoredSubject(db, 'CREATURE', 'master-creature', 'user-1')
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
 
     draftRepositoryMock.findBySubject.mockResolvedValueOnce({ isMaster: true, ownerUserId: null })
-    await expect(assertWritableAuthoredSubject(
-      db,
-      'CREATURE',
-      'master-creature',
-      'admin-user'
-    )).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+    await expect(
+      assertWritableAuthoredSubject(db, 'CREATURE', 'master-creature', 'admin-user')
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
 
-    draftRepositoryMock.findBySubject.mockResolvedValueOnce({ isMaster: false, ownerUserId: 'other-user' })
-    await expect(assertWritableAuthoredSubject(
-      db,
-      'CREATURE',
-      'foreign-creature',
-      'user-1'
-    )).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+    draftRepositoryMock.findBySubject.mockResolvedValueOnce({
+      isMaster: false,
+      ownerUserId: 'other-user'
+    })
+    await expect(
+      assertWritableAuthoredSubject(db, 'CREATURE', 'foreign-creature', 'user-1')
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
 
-    draftRepositoryMock.findBySubject.mockResolvedValueOnce({ isMaster: false, ownerUserId: 'user-1' })
-    await expect(assertWritableAuthoredSubject(
-      db,
-      'CREATURE',
-      'owned-creature',
-      'user-1'
-    )).resolves.toMatchObject({ isMaster: false, ownerUserId: 'user-1' })
+    draftRepositoryMock.findBySubject.mockResolvedValueOnce({
+      isMaster: false,
+      ownerUserId: 'user-1'
+    })
+    await expect(
+      assertWritableAuthoredSubject(db, 'CREATURE', 'owned-creature', 'user-1')
+    ).resolves.toMatchObject({ isMaster: false, ownerUserId: 'user-1' })
   })
 })

@@ -1,7 +1,4 @@
-import {
-  queryOptions,
-  useSuspenseQuery
-} from '@tanstack/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import type {
   ClassListItemDto,
   CreatureListItemDto,
@@ -46,11 +43,13 @@ type ContentReferenceApi = {
   }
 }
 
-function toVocabularyOptions(items: Array<{ id: string, label: string }>): ReferenceOption[] {
+function toVocabularyOptions(items: Array<{ id: string; label: string }>): ReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
-function toContentOptions(items: Array<ClassListItemDto | CreatureListItemDto | EquipmentListItemDto | RaceListItemDto>): ReferenceOption[] {
+function toContentOptions(
+  items: Array<ClassListItemDto | CreatureListItemDto | EquipmentListItemDto | RaceListItemDto>
+): ReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
@@ -142,7 +141,10 @@ export async function loadAuthoredContentReferenceData(
   })
 }
 
-export function getAuthoredContentReferenceData(systemId: string | undefined, client: ContentReferenceApi = api) {
+export function getAuthoredContentReferenceData(
+  systemId: string | undefined,
+  client: ContentReferenceApi = api
+) {
   const querySystemId = systemId ?? 'default-system'
 
   return queryOptions({

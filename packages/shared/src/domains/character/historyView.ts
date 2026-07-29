@@ -1,4 +1,5 @@
 import type { CharacterEvent } from './events/index.js'
+import type { CharacterSheetCommandResult } from './sheetRest.js'
 
 export interface CharacterHistoryEntry {
   eventId: string
@@ -7,6 +8,7 @@ export interface CharacterHistoryEntry {
   eventType: string
   /** Human-readable English summary of what happened. */
   summary: string
+  result?: CharacterSheetCommandResult
 }
 
 export interface CharacterHistoryView {
@@ -66,12 +68,18 @@ export function buildCharacterHistoryView(
   const characterId = events[0]?.characterId ?? requestedCharacterId
   return {
     characterId,
-    entries: events.map((event) => ({
-      eventId: event.eventId,
-      occurredAt: event.occurredAt,
-      actorId: event.actorId,
-      eventType: event.type,
-      summary: summarise(event)
-    }))
+    entries: events.map((event) => {
+      const entry: CharacterHistoryEntry = {
+        eventId: event.eventId,
+        occurredAt: event.occurredAt,
+        actorId: event.actorId,
+        eventType: event.type,
+        summary: summarise(event)
+      }
+      if (event.type === 'CHARACTER_SHEET_COMMAND_APPLIED' && event.result) {
+        entry.result = event.result
+      }
+      return entry
+    })
   }
 }

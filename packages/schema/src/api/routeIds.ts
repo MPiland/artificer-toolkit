@@ -31,4 +31,6 @@ export const routeIdentityBySubjectRequestDtoSchema = z.object({
 export type RouteSubjectKindDto = z.infer<typeof routeSubjectKindDtoSchema>
 export type RouteIdentityDto = z.infer<typeof routeIdentityDtoSchema>
 export type RouteIdentityResolveRequestDto = z.infer<typeof routeIdentityResolveRequestDtoSchema>
-export type RouteIdentityBySubjectRequestDto = z.infer<typeof routeIdentityBySubjectRequestDtoSchema>
+export type RouteIdentityBySubjectRequestDto = z.infer<
+  typeof routeIdentityBySubjectRequestDtoSchema
+>

@@ -16,16 +16,18 @@ export const hydra: CreatureAuthored = {
     CONSTITUTION: 20,
     INTELLIGENCE: 2,
     WISDOM: 10,
-    CHARISMA: 7,
+    CHARISMA: 7
   },
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 172,
-  hitDice: '15d12+75',
+  hitDice: {
+    count: 15,
+    die: 12,
+    modifier: 75
+  },
   speeds: [...S.walk(30), ...S.swim(30)],
-  proficiencies: [
-    S.grantedSkillProficiency(169, 1, 'PERCEPTION')
-  ],
+  proficiencies: [S.grantedSkillProficiency(169, 1, 'PERCEPTION')],
   senses: ['darkvision 60 ft.'],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_8,
@@ -40,13 +42,15 @@ export const hydra: CreatureAuthored = {
     {
       id: S.featureId(169, 2),
       label: 'Multiple Heads',
-      description: 'Multiple Heads. The hydra has five heads. While it has more than one head, the hydra has advantage on saving throws against being blinded, charmed, deafened, frightened, stunned, and knocked unconscious. Whenever the hydra takes 25 or more damage in a single turn, one of its heads dies. At the end of each of its turns, it regains 10 hit points for each head it lost since its last turn, provided it still has at least one head. If all its heads die, the hydra dies.',
+      description:
+        'Multiple Heads. The hydra has five heads. While it has more than one head, the hydra has advantage on saving throws against being blinded, charmed, deafened, frightened, stunned, and knocked unconscious. Whenever the hydra takes 25 or more damage in a single turn, one of its heads dies. At the end of each of its turns, it regains 10 hit points for each head it lost since its last turn, provided it still has at least one head. If all its heads die, the hydra dies.',
       order: 2
     },
     {
       id: S.featureId(169, 3),
       label: 'Reactive Heads',
-      description: 'Reactive Heads. For each head the hydra has beyond one, it gets an extra reaction that can be used only for opportunity attacks.',
+      description:
+        'Reactive Heads. For each head the hydra has beyond one, it gets an extra reaction that can be used only for opportunity attacks.',
       order: 3
     },
     {
@@ -64,9 +68,9 @@ export const hydra: CreatureAuthored = {
     {
       id: S.featureId(169, 6),
       label: 'Bite',
-      description: 'Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 10 (1d10 + 5) piercing damage.',
+      description:
+        'Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 10 (1d10 + 5) piercing damage.',
       order: 6
     }
   ]
 }
-

@@ -19,7 +19,15 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_INFERNAL_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_DAMAGE_TYPES,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_INFERNAL_HERITAGE_ID,
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 
 function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
@@ -41,14 +49,16 @@ function raceFeatureId(raceIndex: number, group: number, entry: number): string 
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
-if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const tieflingWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
 
 export const tiefling: RaceAuthored = {
   id: RACE_IDS.TIEFLING,
   label: 'Tiefling',
-  description: '<p>Tieflings are derived from human bloodlines, and in the broadest possible sense, they still look human. Their infernal heritage has left a clear imprint on their appearance.</p>',
+  description:
+    '<p>Tieflings are derived from human bloodlines, and in the broadest possible sense, they still look human. Their infernal heritage has left a clear imprint on their appearance.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
@@ -64,7 +74,8 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 0, 2),
       label: 'Alignment',
-      description: 'Tieflings might not have an innate tendency toward evil, but many of them end up there. Evil or not, an independent nature inclines many tieflings toward a chaotic alignment.',
+      description:
+        'Tieflings might not have an innate tendency toward evil, but many of them end up there. Evil or not, an independent nature inclines many tieflings toward a chaotic alignment.',
       order: 1
     },
     {
@@ -87,7 +98,8 @@ export const tiefling: RaceAuthored = {
       id: raceFeatureId(9, 1, 1),
       label: 'Ability Score Increase',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'Your Intelligence score increases by 1, and your Charisma score increases by 2.',
+      description:
+        'Your Intelligence score increases by 1, and your Charisma score increases by 2.',
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -120,7 +132,8 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 2, 1),
       label: 'Darkvision',
-      description: 'Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+      description:
+        'Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -168,7 +181,8 @@ export const tiefling: RaceAuthored = {
     {
       id: raceFeatureId(9, 4, 1),
       label: 'Infernal Legacy',
-      description: 'You know the Thaumaturgy cantrip. When you reach 3rd level, you can cast Hellish Rebuke as a 2nd-level spell once per long rest. When you reach 5th level, you can cast Darkness once per long rest. Charisma is your spellcasting ability for these spells.',
+      description:
+        'You know the Thaumaturgy cantrip. When you reach 3rd level, you can cast Hellish Rebuke as a 2nd-level spell once per long rest. When you reach 5th level, you can cast Darkness once per long rest. Charisma is your spellcasting ability for these spells.',
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -229,4 +243,3 @@ export const tiefling: RaceAuthored = {
     }
   ]
 }
-

@@ -21,33 +21,41 @@ const startingEquipmentEquipmentItemBaseDtoSchema = z.object({
   selectionKind: authoringSelectionKindSchema
 })
 
-const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema.extend({
-  selectionKind: z.literal(authoringSelectionKindSchema.enum.GRANTED),
-  quantity: z.number().int(),
-  authoringModeKind: authoringModeKindSchema.optional()
-}).and(z.union([
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
-  }),
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    equipmentIds: z.array(z.string())
+const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema
+  .extend({
+    selectionKind: z.literal(authoringSelectionKindSchema.enum.GRANTED),
+    quantity: z.number().int(),
+    authoringModeKind: authoringModeKindSchema.optional()
   })
-]))
+  .and(
+    z.union([
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
+      }),
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
+        equipmentIds: z.array(z.string())
+      })
+    ])
+  )
 
-const chosenEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema.extend({
-  selectionKind: z.literal(authoringSelectionKindSchema.enum.CHOSEN),
-  count: z.number().int(),
-  authoringModeKind: authoringModeKindSchema.optional()
-}).and(z.union([
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
-  }),
-  z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    equipmentIds: z.array(z.string())
+const chosenEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema
+  .extend({
+    selectionKind: z.literal(authoringSelectionKindSchema.enum.CHOSEN),
+    count: z.number().int(),
+    authoringModeKind: authoringModeKindSchema.optional()
   })
-]))
+  .and(
+    z.union([
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
+      }),
+      z.object({
+        authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
+        equipmentIds: z.array(z.string())
+      })
+    ])
+  )
 
 const startingEquipmentCurrencyItemDtoSchema = z.object({
   id: z.string(),

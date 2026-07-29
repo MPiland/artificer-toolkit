@@ -20,9 +20,5 @@
     "src/**/tests/**/*",
     "vite-env.d.ts"
   ],
-  "exclude": [
-    "src/**/*.stories.ts",
-    "src/**/*.stories.tsx",
-    "src/**/stories/**/*"
-  ]
+  "exclude": ["src/**/*.stories.ts", "src/**/*.stories.tsx", "src/**/stories/**/*"]
 }

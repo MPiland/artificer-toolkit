@@ -18,7 +18,7 @@ export const spinner_container = style({
 export const spinner = style({
   '@layer': {
     [app]: {
-      'vars': {
+      vars: {
         '--loader-size': '3rem'
       },
       '@container': {

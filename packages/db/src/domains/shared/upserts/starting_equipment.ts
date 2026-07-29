@@ -101,23 +101,20 @@ type StartingEquipmentWritePlan = {
   currencies: StartingEquipmentCurrencyRow[]
 }
 
-function requireStartingEquipmentKind(
-  item: {
-    id: string
-    startingEquipmentKind: string
-  }
-): 'EQUIPMENT' | 'CURRENCY' {
+function requireStartingEquipmentKind(item: {
+  id: string
+  startingEquipmentKind: string
+}): 'EQUIPMENT' | 'CURRENCY' {
   if (item.startingEquipmentKind !== 'EQUIPMENT' && item.startingEquipmentKind !== 'CURRENCY') {
-    throw new Error(`Starting equipment item "${item.id}" has invalid startingEquipmentKind "${item.startingEquipmentKind}".`)
+    throw new Error(
+      `Starting equipment item "${item.id}" has invalid startingEquipmentKind "${item.startingEquipmentKind}".`
+    )
   }
 
   return item.startingEquipmentKind
 }
 
-function requireChosenCount(
-  itemId: string,
-  count: number | undefined
-): number {
+function requireChosenCount(itemId: string, count: number | undefined): number {
   if (count == null) {
     throw new Error(`Starting equipment item "${itemId}" is missing count for CHOSEN selection.`)
   }
@@ -125,10 +122,7 @@ function requireChosenCount(
   return count
 }
 
-function rejectGrantedCount(
-  itemId: string,
-  count: number | undefined
-) {
+function rejectGrantedCount(itemId: string, count: number | undefined) {
   if (count == null) {
     return
   }
@@ -136,34 +130,31 @@ function rejectGrantedCount(
   throw new Error(`Starting equipment item "${itemId}" cannot persist count for GRANTED selection.`)
 }
 
-function requireGrantedQuantity(
-  itemId: string,
-  quantity: number | undefined
-): number {
+function requireGrantedQuantity(itemId: string, quantity: number | undefined): number {
   if (quantity == null) {
-    throw new Error(`Starting equipment item "${itemId}" is missing quantity for GRANTED selection.`)
+    throw new Error(
+      `Starting equipment item "${itemId}" is missing quantity for GRANTED selection.`
+    )
   }
 
   return quantity
 }
 
-function rejectChosenQuantity(
-  itemId: string,
-  quantity: number | undefined
-) {
+function rejectChosenQuantity(itemId: string, quantity: number | undefined) {
   if (quantity == null) {
     return
   }
 
-  throw new Error(`Starting equipment item "${itemId}" cannot persist quantity for CHOSEN selection.`)
+  throw new Error(
+    `Starting equipment item "${itemId}" cannot persist quantity for CHOSEN selection.`
+  )
 }
 
-function requireSelectedEquipmentIds(
-  itemId: string,
-  equipmentIds: string[] | undefined
-): string[] {
+function requireSelectedEquipmentIds(itemId: string, equipmentIds: string[] | undefined): string[] {
   if (!equipmentIds || equipmentIds.length === 0) {
-    throw new Error(`Starting equipment item "${itemId}" is missing equipmentIds for SELECTED payload.`)
+    throw new Error(
+      `Starting equipment item "${itemId}" is missing equipmentIds for SELECTED payload.`
+    )
   }
 
   return equipmentIds
@@ -174,7 +165,9 @@ function requireCurrencies(
   currencies: CurrencyItemWrite['currencies'] | undefined
 ): CurrencyItemWrite['currencies'] {
   if (!currencies || currencies.length === 0) {
-    throw new Error(`Starting equipment item "${itemId}" is missing currencies for CURRENCY payload.`)
+    throw new Error(
+      `Starting equipment item "${itemId}" is missing currencies for CURRENCY payload.`
+    )
   }
 
   return currencies
@@ -275,20 +268,18 @@ function mapItemRow(
     authoring_mode_kind: equipmentItem.authoringModeKind,
     selection_kind: equipmentItem.selectionKind,
     category_code: requireEquipmentCategoryCode(equipmentItem.id, equipmentItem.category),
-    count: equipmentItem.selectionKind === 'CHOSEN'
-      ? requireChosenCount(equipmentItem.id, equipmentItem.count)
-      : (
-          'count' in equipmentItem
-            ? (rejectGrantedCount(equipmentItem.id, equipmentItem.count), null)
-            : null
-        ),
-    quantity: equipmentItem.selectionKind === 'GRANTED'
-      ? requireGrantedQuantity(equipmentItem.id, equipmentItem.quantity)
-      : (
-          'quantity' in equipmentItem
-            ? (rejectChosenQuantity(equipmentItem.id, equipmentItem.quantity), null)
-            : null
-        ),
+    count:
+      equipmentItem.selectionKind === 'CHOSEN'
+        ? requireChosenCount(equipmentItem.id, equipmentItem.count)
+        : 'count' in equipmentItem
+          ? (rejectGrantedCount(equipmentItem.id, equipmentItem.count), null)
+          : null,
+    quantity:
+      equipmentItem.selectionKind === 'GRANTED'
+        ? requireGrantedQuantity(equipmentItem.id, equipmentItem.quantity)
+        : 'quantity' in equipmentItem
+          ? (rejectChosenQuantity(equipmentItem.id, equipmentItem.quantity), null)
+          : null,
     sort_order: equipmentItem.order
   }
 }
@@ -323,26 +314,37 @@ function buildWritePlan(json_data: StartingEquipmentAuthored): StartingEquipment
 
           if (startingEquipmentKind === 'EQUIPMENT') {
             const equipmentItem = item as EquipmentItemWrite
-            const validatedProperties = requireEquipmentPropertyCodes(item.id, equipmentItem.properties)
+            const validatedProperties = requireEquipmentPropertyCodes(
+              item.id,
+              equipmentItem.properties
+            )
 
             if (equipmentItem.authoringModeKind === 'SELECTED') {
-              plan.itemEquipment.push(...requireSelectedEquipmentIds(item.id, equipmentItem.equipmentIds).map((equipmentId) => ({
-                option_item_id: item.id,
-                equipment_id: equipmentId
-              })))
+              plan.itemEquipment.push(
+                ...requireSelectedEquipmentIds(item.id, equipmentItem.equipmentIds).map(
+                  (equipmentId) => ({
+                    option_item_id: item.id,
+                    equipment_id: equipmentId
+                  })
+                )
+              )
             }
 
-            plan.itemProperties.push(...validatedProperties.map((property) => ({
-              option_item_id: item.id,
-              property_code: property
-            })))
+            plan.itemProperties.push(
+              ...validatedProperties.map((property) => ({
+                option_item_id: item.id,
+                property_code: property
+              }))
+            )
           } else {
             const currencyItem = item as CurrencyItemWrite
-            plan.currencies.push(...requireCurrencies(item.id, currencyItem.currencies).map((currency) => ({
-              option_item_id: item.id,
-              currency_id: currency.currencyId,
-              amount: currency.amount
-            })))
+            plan.currencies.push(
+              ...requireCurrencies(item.id, currencyItem.currencies).map((currency) => ({
+                option_item_id: item.id,
+                currency_id: currency.currencyId,
+                amount: currency.amount
+              }))
+            )
           }
         }
       }
@@ -352,10 +354,7 @@ function buildWritePlan(json_data: StartingEquipmentAuthored): StartingEquipment
   return plan
 }
 
-export async function upsertStartingEquipment(
-  db: DBLike,
-  json_data: StartingEquipmentAuthored
-) {
+export async function upsertStartingEquipment(db: DBLike, json_data: StartingEquipmentAuthored) {
   const plan = buildWritePlan(json_data)
   return withTransaction(db, async (trx) => {
     await trx
@@ -370,17 +369,11 @@ export async function upsertStartingEquipment(
       .execute()
 
     for (const set of plan.sets) {
-      await trx
-        .insertInto('starting_equipment_sets')
-        .values(set)
-        .execute()
+      await trx.insertInto('starting_equipment_sets').values(set).execute()
     }
 
     for (const group of plan.groups) {
-      await trx
-        .insertInto('starting_equipment_groups')
-        .values(group)
-        .execute()
+      await trx.insertInto('starting_equipment_groups').values(group).execute()
     }
 
     for (const eligibility of plan.eligibilities) {
@@ -388,17 +381,11 @@ export async function upsertStartingEquipment(
     }
 
     for (const option of plan.options) {
-      await trx
-        .insertInto('starting_equipment_options')
-        .values(option)
-        .execute()
+      await trx.insertInto('starting_equipment_options').values(option).execute()
     }
 
     for (const item of plan.items) {
-      await trx
-        .insertInto('starting_equipment_option_items')
-        .values(item)
-        .execute()
+      await trx.insertInto('starting_equipment_option_items').values(item).execute()
     }
 
     if (plan.itemEquipment.length > 0) {
@@ -416,11 +403,7 @@ export async function upsertStartingEquipment(
     }
 
     if (plan.currencies.length > 0) {
-      await trx
-        .insertInto('starting_equipment_currencies')
-        .values(plan.currencies)
-        .execute()
+      await trx.insertInto('starting_equipment_currencies').values(plan.currencies).execute()
     }
-
   })
 }

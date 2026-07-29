@@ -24,11 +24,7 @@ import {
   mapEffectResultBlockRow,
   mapInvocationRow
 } from './effect.mappers.js'
-import {
-  deleteEffectById,
-  upsertCondition,
-  upsertDamage
-} from './effect.persistence.js'
+import { deleteEffectById, upsertCondition, upsertDamage } from './effect.persistence.js'
 
 export { deleteEffectById } from './effect.persistence.js'
 
@@ -43,17 +39,16 @@ function isRelationalOutcome(outcome: OutcomeAuthored): outcome is PersistableOu
   return false
 }
 
-async function upsertGenericOutcome(
-  db: DBLike,
-  outcome: PersistableGenericOutcome
-): Promise<void> {
+async function upsertGenericOutcome(db: DBLike, outcome: PersistableGenericOutcome): Promise<void> {
   await db
     .insertInto('effect_generic_outcomes')
     .values(mapEffectGenericOutcomeRow(outcome))
-    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-      effect_kind: eb.ref('excluded.effect_kind'),
-      json_data: eb.ref('excluded.json_data')
-    })))
+    .onConflict((oc) =>
+      oc.column('id').doUpdateSet((eb) => ({
+        effect_kind: eb.ref('excluded.effect_kind'),
+        json_data: eb.ref('excluded.json_data')
+      }))
+    )
     .execute()
 }
 
@@ -104,15 +99,9 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
       await upsertSavingThrow(trx, json_data.invocation.savingThrow)
     }
 
-    await trx
-      .insertInto('effects')
-      .values(mapEffectRow(json_data))
-      .execute()
+    await trx.insertInto('effects').values(mapEffectRow(json_data)).execute()
 
-    await trx
-      .insertInto('effect_invocations')
-      .values(mapInvocationRow(json_data))
-      .execute()
+    await trx.insertInto('effect_invocations').values(mapInvocationRow(json_data)).execute()
 
     for (const path of paths) {
       if (path.rangeOverride) {
@@ -156,8 +145,5 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
           .execute()
       }
     }
-
   })
 }
-
-

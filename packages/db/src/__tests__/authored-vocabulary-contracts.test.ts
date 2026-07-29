@@ -24,7 +24,10 @@ describe('shared and transport authored vocabularies', () => {
     [SPELLCASTING_ATTRIBUTE, spellcastingAttributeSchema.options],
     [FEATURE_ATTRIBUTE, featureAttributeSchema.options],
     [SPELL_ATTRIBUTE, spellAttributeSchema.options]
-  ])('keeps the schema vocabulary aligned with its owning shared model', (sharedValues, schemaValues) => {
-    expect([...schemaValues].sort()).toEqual(Object.values(sharedValues).sort())
-  })
+  ])(
+    'keeps the schema vocabulary aligned with its owning shared model',
+    (sharedValues, schemaValues) => {
+      expect([...schemaValues].sort()).toEqual(Object.values(sharedValues).sort())
+    }
+  )
 })

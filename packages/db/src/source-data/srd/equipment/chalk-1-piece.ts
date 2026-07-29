@@ -2,16 +2,16 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
 export const chalk1Piece: EquipmentAuthored = {
-    kind: S.SUBJECT.EQUIPMENT,
-    id: S.equipId(130),
-    label: 'Chalk (1 piece)',
-    description: "A piece of chalk for marking surfaces with writing or symbols.",
-    category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
-    attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    cost: S.cp(1),
-    weight: S.lbs(0),
-    rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
-    systemId: S.SRD_SYSTEM_ID,
-  }
+  kind: S.SUBJECT.EQUIPMENT,
+  id: S.equipId(130),
+  label: 'Chalk (1 piece)',
+  description: 'A piece of chalk for marking surfaces with writing or symbols.',
+  category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+  properties: [],
+  attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
+  cost: S.cp(1),
+  weight: S.lbs(0),
+  rarityId: S.RARITY_COMMON,
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID
+}

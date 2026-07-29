@@ -41,6 +41,3 @@ const featureBaseDtoSchemaBase = z.object({
 export type FeatureBaseDto = z.infer<typeof featureBaseDtoSchemaBase>
 export const featureBaseDtoSchema: z.ZodType<FeatureBaseDto> = featureBaseDtoSchemaBase
 export const featureBaseDtoObject = featureBaseDtoSchemaBase
-
-
-

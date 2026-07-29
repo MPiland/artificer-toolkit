@@ -90,21 +90,18 @@ export function useAuthoredDeleteAction({
     target
   ])
 
-  const confirmation = useMemo<ReactNode>(() => (
-    <AuthoredDeleteConfirmModal
-      domainLabel={domainLabel}
-      isDeleting={deleteMutation.isPending}
-      target={target}
-      onClose={closeDelete}
-      onConfirm={() => void confirmDelete()}
-    />
-  ), [
-    closeDelete,
-    confirmDelete,
-    deleteMutation.isPending,
-    domainLabel,
-    target
-  ])
+  const confirmation = useMemo<ReactNode>(
+    () => (
+      <AuthoredDeleteConfirmModal
+        domainLabel={domainLabel}
+        isDeleting={deleteMutation.isPending}
+        target={target}
+        onClose={closeDelete}
+        onConfirm={() => void confirmDelete()}
+      />
+    ),
+    [closeDelete, confirmDelete, deleteMutation.isPending, domainLabel, target]
+  )
 
   return {
     confirmation,

@@ -54,14 +54,14 @@ async function main() {
   const existingUser = users.users.find((user) => user.email?.toLowerCase() === email.toLowerCase())
   const result = existingUser
     ? await supabase.auth.admin.updateUserById(existingUser.id, {
-      email_confirm: true,
-      password
-    })
+        email_confirm: true,
+        password
+      })
     : await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      password
-    })
+        email,
+        email_confirm: true,
+        password
+      })
 
   if (result.error) throw result.error
   if (!result.data.user) {
@@ -72,9 +72,7 @@ async function main() {
 }
 
 function isDirectScript() {
-  return process.argv[1]
-    ? import.meta.url === pathToFileURL(process.argv[1]).href
-    : false
+  return process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false
 }
 
 if (isDirectScript()) {

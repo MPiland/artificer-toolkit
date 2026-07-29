@@ -14,7 +14,8 @@ export const senses: SenseOption[] = [
     id: '2b7dd0e1-285a-4c52-a273-192ca7a7adcd',
     code: SenseCode.BLINDSIGHT,
     label: 'Blindsight',
-    description: 'Blindsight allows a creature to perceive its surroundings without relying on sight.',
+    description:
+      'Blindsight allows a creature to perceive its surroundings without relying on sight.',
     tooltip: 'Perceive without sight.'
   },
   {

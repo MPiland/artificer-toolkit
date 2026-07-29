@@ -20,10 +20,12 @@ import {
   getCharacterBuilderDraftForUser,
   getCharacterForUser,
   getCharacterHistoryForUser,
+  getCharacterSheetPanelForUser,
   getCharacterSheetForUser,
   listAuthoredDomain,
   listCharactersForUser,
   normalizeNodeRuntimeValues,
+  previewCharacterRestForUser,
   previewCharacterSaveForUser,
   resolveCharacterForUser,
   resolveNodeRuntime,
@@ -97,10 +99,16 @@ import {
   characterDraftRequestDtoSchema,
   characterHistoryResponseDtoSchema,
   characterListResponseDtoSchema,
+  characterRestPreviewRequestDtoSchema,
+  characterRestPreviewResponseDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
 } from '@artificer-toolkit/schema/api/characters'
+import {
+  characterSheetPanelDtoSchema,
+  characterSheetPanelTargetDtoSchema
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeNormalizeValuesResponseDtoSchema,
@@ -176,13 +184,16 @@ const authenticatedProcedure = t.procedure.use(async ({ ctx, next, path, type })
   const result = await next({ ctx })
 
   if (shouldTraceApiProcedure()) {
-    console.info('[artificer-api-procedure]', JSON.stringify({
-      count: nextProcedureCount(path),
-      durationMs: Date.now() - startedAt,
-      ok: result.ok,
-      path,
-      type
-    }))
+    console.info(
+      '[artificer-api-procedure]',
+      JSON.stringify({
+        count: nextProcedureCount(path),
+        durationMs: Date.now() - startedAt,
+        ok: result.ok,
+        path,
+        type
+      })
+    )
   }
 
   return result
@@ -206,84 +217,113 @@ const characterCommandProcedureInputSchema = z.object({
   input: characterSheetCommandInputDtoSchema
 })
 
-function authoredDomainRouter<TInput extends AuthoredContentInput>(config: AuthoredDomainConfig<TInput>) {
+const characterRestPreviewProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  input: characterRestPreviewRequestDtoSchema
+})
+
+const characterSheetPanelProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  target: characterSheetPanelTargetDtoSchema
+})
+
+function authoredDomainRouter<TInput extends AuthoredContentInput>(
+  config: AuthoredDomainConfig<TInput>
+) {
   return createTRPCRouter({
     list: authenticatedProcedure
       .output(config.listSchema)
-      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId) => config.listSchema.parse(
-        await listAuthoredDomain(db, config.runtime, userId)
-      ))),
+      .query(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          config.listSchema.parse(await listAuthoredDomain(db, config.runtime, userId))
+        )
+      ),
 
     get: authenticatedProcedure
       .input(authoredDetailRequestDtoSchema)
       .output(config.responseSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await getAuthoredDomain(db, config.runtime, input, userId)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          config.responseSchema.parse(await getAuthoredDomain(db, config.runtime, input, userId))
+        )
+      ),
 
     getDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(authoredDraftDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.nullable().parse(
-        await getAuthoredDomainDraft(db, config.runtime, input.id, userId)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          authoredDraftDtoSchema
+            .nullable()
+            .parse(await getAuthoredDomainDraft(db, config.runtime, input.id, userId))
+        )
+      ),
 
     saveDraft: authenticatedProcedure
       .input(config.inputSchema)
       .output(authoredDraftDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.parse(
-        await saveAuthoredDomainInputDraft(
-          db,
-          config.runtime,
-          input,
-          userId
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          authoredDraftDtoSchema.parse(
+            await saveAuthoredDomainInputDraft(db, config.runtime, input, userId)
+          )
         )
-      ))),
+      ),
 
     discardDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(okResponseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => okResponseSchema.parse(
-        await discardAuthoredDomainDraft(db, config.runtime, input.id, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          okResponseSchema.parse(
+            await discardAuthoredDomainDraft(db, config.runtime, input.id, userId)
+          )
+        )
+      ),
 
     deleteActive: authenticatedProcedure
       .input(idInputSchema)
       .output(okResponseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => okResponseSchema.parse(
-        await deleteAuthoredDomainActive(db, config.runtime, input.id, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          okResponseSchema.parse(
+            await deleteAuthoredDomainActive(db, config.runtime, input.id, userId)
+          )
+        )
+      ),
 
     activateDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await activateAuthoredDomainDraft(
-          db,
-          config.runtime,
-          input.id,
-          userId
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          config.responseSchema.parse(
+            await activateAuthoredDomainDraft(db, config.runtime, input.id, userId)
+          )
         )
-      ))),
+      ),
 
     activate: authenticatedProcedure
       .input(config.inputSchema)
       .output(config.responseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await activateAuthoredDomainInput(
-          db,
-          config.runtime,
-          input,
-          userId
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          config.responseSchema.parse(
+            await activateAuthoredDomainInput(db, config.runtime, input, userId)
+          )
         )
-      ))),
+      ),
 
     duplicate: authenticatedProcedure
       .input(idInputSchema)
       .output(authoredDraftDtoSchema.nullable())
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => authoredDraftDtoSchema.nullable().parse(
-        await duplicateAuthoredDomain(db, config.runtime, input.id, userId)
-      )))
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          authoredDraftDtoSchema
+            .nullable()
+            .parse(await duplicateAuthoredDomain(db, config.runtime, input.id, userId))
+        )
+      )
   })
 }
 
@@ -298,47 +338,59 @@ export const appRouter = createTRPCRouter({
     resolve: authenticatedProcedure
       .input(routeIdentityResolveRequestDtoSchema)
       .output(routeIdentityDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => {
-        const identity = await createAuthoredRouteIdRepository(db).resolveByPublicIdForUser(input)
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) => {
+          const identity = await createAuthoredRouteIdRepository(db).resolveByPublicIdForUser(input)
 
-        return routeIdentityDtoSchema.nullable().parse(identity
-          ? {
-              subjectKind: identity.subjectKind,
-              subjectId: identity.subjectId,
-              publicId: identity.publicId
-            }
-          : null)
-      })),
+          return routeIdentityDtoSchema.nullable().parse(
+            identity
+              ? {
+                  subjectKind: identity.subjectKind,
+                  subjectId: identity.subjectId,
+                  publicId: identity.publicId
+                }
+              : null
+          )
+        })
+      ),
 
     bySubject: authenticatedProcedure
       .input(routeIdentityBySubjectRequestDtoSchema)
       .output(routeIdentityDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => {
-        const identity = await createAuthoredRouteIdRepository(db).resolveBySubjectForUser(input)
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) => {
+          const identity = await createAuthoredRouteIdRepository(db).resolveBySubjectForUser(input)
 
-        return routeIdentityDtoSchema.nullable().parse(identity
-          ? {
-              subjectKind: identity.subjectKind,
-              subjectId: identity.subjectId,
-              publicId: identity.publicId
-            }
-          : null)
-      }))
+          return routeIdentityDtoSchema.nullable().parse(
+            identity
+              ? {
+                  subjectKind: identity.subjectKind,
+                  subjectId: identity.subjectId,
+                  publicId: identity.publicId
+                }
+              : null
+          )
+        })
+      )
   }),
 
   systems: createTRPCRouter({
     list: authenticatedProcedure
       .output(systemListResponseDtoSchema)
-      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db) => systemListResponseDtoSchema.parse(
-        await getSystemListQuery(db)
-      ))),
+      .query(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          systemListResponseDtoSchema.parse(await getSystemListQuery(db))
+        )
+      ),
 
     get: authenticatedProcedure
       .input(idInputSchema)
       .output(systemResponseDtoSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => systemResponseDtoSchema.parse(
-        await createSystemRepository(db).findById(input.id)
-      )))
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          systemResponseDtoSchema.parse(await createSystemRepository(db).findById(input.id))
+        )
+      )
   }),
 
   content: createTRPCRouter({
@@ -402,102 +454,170 @@ export const appRouter = createTRPCRouter({
   characters: createTRPCRouter({
     list: authenticatedProcedure
       .output(characterListResponseDtoSchema)
-      .query(({ ctx }) => withAuthenticatedDb(ctx, async (db, userId) => characterListResponseDtoSchema.parse(
-        await listCharactersForUser(db, userId)
-      ))),
+      .query(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterListResponseDtoSchema.parse(await listCharactersForUser(db, userId))
+        )
+      ),
 
     draft: authenticatedProcedure
       .input(characterDraftRequestDtoSchema)
       .output(characterBuilderPayloadDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderPayloadDtoSchema.parse(
-        await createCharacterDraftForUser(db, input, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderPayloadDtoSchema.parse(
+            await createCharacterDraftForUser(db, input, userId)
+          )
+        )
+      ),
 
     get: authenticatedProcedure
       .input(idInputSchema)
       .output(characterBuilderPayloadDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => characterBuilderPayloadDtoSchema.nullable().parse(
-        await getCharacterForUser(db, input.id)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          characterBuilderPayloadDtoSchema.nullable().parse(await getCharacterForUser(db, input.id))
+        )
+      ),
 
     getDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(characterBuilderDraftDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderDraftDtoSchema.nullable().parse(
-        await getCharacterBuilderDraftForUser(db, input.id, userId)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderDraftDtoSchema
+            .nullable()
+            .parse(await getCharacterBuilderDraftForUser(db, input.id, userId))
+        )
+      ),
 
     saveDraft: authenticatedProcedure
       .input(characterDraftProcedureInputSchema)
       .output(characterBuilderDraftDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderDraftDtoSchema.parse(
-        await saveCharacterBuilderDraftForUser(db, input.id, input.input, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderDraftDtoSchema.parse(
+            await saveCharacterBuilderDraftForUser(db, input.id, input.input, userId)
+          )
+        )
+      ),
 
     discardDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(okResponseSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => okResponseSchema.parse(
-        await discardCharacterBuilderDraftForUser(db, input.id, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          okResponseSchema.parse(await discardCharacterBuilderDraftForUser(db, input.id, userId))
+        )
+      ),
 
     sheet: authenticatedProcedure
       .input(idInputSchema)
       .output(characterSheetResponseDtoSchema.nullable())
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => characterSheetResponseDtoSchema.nullable().parse(
-        await getCharacterSheetForUser(db, input.id)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          characterSheetResponseDtoSchema
+            .nullable()
+            .parse(await getCharacterSheetForUser(db, input.id))
+        )
+      ),
+
+    restPreview: authenticatedProcedure
+      .input(characterRestPreviewProcedureInputSchema)
+      .output(characterRestPreviewResponseDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterRestPreviewResponseDtoSchema.parse(
+            await previewCharacterRestForUser(db, input.id, input.input, userId)
+          )
+        )
+      ),
+
+    panel: authenticatedProcedure
+      .input(characterSheetPanelProcedureInputSchema)
+      .output(characterSheetPanelDtoSchema)
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterSheetPanelDtoSchema.parse(
+            await getCharacterSheetPanelForUser(db, input.id, input.target, userId)
+          )
+        )
+      ),
 
     resolve: authenticatedProcedure
       .input(characterBuilderResolveRequestDtoSchema)
       .output(characterBuilderPayloadDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderPayloadDtoSchema.parse(
-        await resolveCharacterForUser(db, input, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderPayloadDtoSchema.parse(await resolveCharacterForUser(db, input, userId))
+        )
+      ),
 
     previewSave: authenticatedProcedure
       .input(characterBuilderSaveRequestDtoSchema)
       .output(characterBuilderPreviewPayloadDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderPreviewPayloadDtoSchema.parse(
-        await previewCharacterSaveForUser(db, input, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderPreviewPayloadDtoSchema.parse(
+            await previewCharacterSaveForUser(db, input, userId)
+          )
+        )
+      ),
 
     upsert: authenticatedProcedure
       .input(characterBuilderCommitRequestDtoSchema)
       .output(characterBuilderPayloadDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterBuilderPayloadDtoSchema.parse(
-        await upsertCharacterBuilderForUser(db, input, userId)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderPayloadDtoSchema.parse(
+            await upsertCharacterBuilderForUser(db, input, userId)
+          )
+        )
+      ),
 
     history: authenticatedProcedure
       .input(idInputSchema)
       .output(characterHistoryResponseDtoSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterHistoryResponseDtoSchema.parse(
-        await getCharacterHistoryForUser(db, input.id, userId)
-      ))),
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterHistoryResponseDtoSchema.parse(
+            await getCharacterHistoryForUser(db, input.id, userId)
+          )
+        )
+      ),
 
     command: authenticatedProcedure
       .input(characterCommandProcedureInputSchema)
       .output(characterSheetCommandResponseDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => characterSheetCommandResponseDtoSchema.parse(
-        await dispatchCommandForUser(db, input.id, input.input, userId)
-      )))
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterSheetCommandResponseDtoSchema.parse(
+            await dispatchCommandForUser(db, input.id, input.input, userId)
+          )
+        )
+      )
   }),
 
   nodeRuntime: createTRPCRouter({
     resolve: authenticatedProcedure
       .input(nodeRuntimeResolveRequestDtoSchema)
       .output(nodeRuntimeResolveResponseDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => nodeRuntimeResolveResponseDtoSchema.parse(
-        await resolveNodeRuntime(db, input)
-      ))),
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          nodeRuntimeResolveResponseDtoSchema.parse(await resolveNodeRuntime(db, input))
+        )
+      ),
 
     normalizeValues: authenticatedProcedure
       .input(nodeRuntimeNormalizeValuesRequestDtoSchema)
       .output(nodeRuntimeNormalizeValuesResponseDtoSchema)
-      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => nodeRuntimeNormalizeValuesResponseDtoSchema.parse(
-        await normalizeNodeRuntimeValues(db, input)
-      )))
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db) =>
+          nodeRuntimeNormalizeValuesResponseDtoSchema.parse(
+            await normalizeNodeRuntimeValues(db, input)
+          )
+        )
+      )
   })
 })
 

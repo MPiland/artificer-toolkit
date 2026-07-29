@@ -104,19 +104,23 @@ export async function findSeedOwnerUserById(environment: SeedOwnerEnvironment, u
   return findUser(environment, (user) => user.id === userId)
 }
 
-async function promoteSeedOwnerToSuperAdmin(environment: SeedOwnerEnvironment, user: SeedOwnerUser) {
+async function promoteSeedOwnerToSuperAdmin(
+  environment: SeedOwnerEnvironment,
+  user: SeedOwnerUser
+) {
   const client = new Client({ connectionString: environment.connectionString })
 
   await client.connect()
 
   try {
-    const result = await client.query(
-      'UPDATE auth.users SET is_super_admin = true WHERE id = $1',
-      [user.id]
-    )
+    const result = await client.query('UPDATE auth.users SET is_super_admin = true WHERE id = $1', [
+      user.id
+    ])
 
     if (result.rowCount !== 1) {
-      throw new Error(`Expected to promote seed owner "${user.id}", updated ${result.rowCount ?? 0} users.`)
+      throw new Error(
+        `Expected to promote seed owner "${user.id}", updated ${result.rowCount ?? 0} users.`
+      )
     }
   } finally {
     await client.end()
@@ -152,7 +156,9 @@ export async function ensureSeedOwnerUser(environment: SeedOwnerEnvironment) {
 
   if (error) throw error
   if (!data.user) {
-    throw new Error(`Supabase did not return a user after creating seed owner "${environment.email}".`)
+    throw new Error(
+      `Supabase did not return a user after creating seed owner "${environment.email}".`
+    )
   }
 
   return promoteSeedOwnerToSuperAdmin(environment, data.user)

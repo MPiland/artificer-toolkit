@@ -130,7 +130,10 @@ function requireClassCategory(id: string, value: string | null): ClassAuthored['
   return value as ClassAuthored['category']
 }
 
-function requireEquipmentCategory(id: string, value: string | null): EquipmentCategoryCode | undefined {
+function requireEquipmentCategory(
+  id: string,
+  value: string | null
+): EquipmentCategoryCode | undefined {
   if (value === null) return undefined
   if (!(value in EQUIPMENT_CATEGORY_CODE)) {
     throw new Error(`Equipment "${id}" has unsupported category "${value}".`)
@@ -231,14 +234,15 @@ export async function loadCharacterBuilderCatalog(
       getBackgroundListQuery(db, { systemId }),
       getEquipmentListQuery(db, { systemId }),
       getFeatListQuery(db, { systemId }),
-      options.includeSpells
-        ? loadCharacterBuilderSpellCatalog(db, systemId)
-        : Promise.resolve([])
+      options.includeSpells ? loadCharacterBuilderSpellCatalog(db, systemId) : Promise.resolve([])
     ])
 
   const [resolvedRaces, classesById, backgroundsById, system] = await Promise.all([
     createRaceRepository(db).findResolvedAll({ systemId }),
-    createClassRepository(db).findByIds(classResult.items.map((record) => record.id), { systemId }),
+    createClassRepository(db).findByIds(
+      classResult.items.map((record) => record.id),
+      { systemId }
+    ),
     createBackgroundRepository(db).findByIds(
       backgroundResult.items.map((record) => record.id),
       { systemId }
@@ -260,7 +264,9 @@ export async function loadCharacterBuilderCatalog(
         selectionMode: race?.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
         sizeLabel: race ? SIZE_OPTIONS.find((size) => size.code === race.size)?.label : undefined,
         speedLabels: (race?.speeds ?? []).map((speed) => {
-          const speedLabel = system?.speeds.find((candidate) => candidate.id === speed.speedId)?.label
+          const speedLabel = system?.speeds.find(
+            (candidate) => candidate.id === speed.speedId
+          )?.label
           return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
         }),
         abilityScoreIncreaseDescriptions: (race?.features ?? [])
@@ -286,11 +292,15 @@ export async function loadCharacterBuilderCatalog(
             : undefined,
         savingThrowLabels: proficiencies
           .flatMap((proficiency) =>
-            proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY && 'abilities' in proficiency
-              ? proficiency.abilities ?? []
+            proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY &&
+            'abilities' in proficiency
+              ? (proficiency.abilities ?? [])
               : []
           )
-          .map((ability) => ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability),
+          .map(
+            (ability) =>
+              ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability
+          ),
         proficiencyGroups: getClassProficiencyGroups(
           proficiencies,
           system?.skills ?? [],
@@ -301,7 +311,12 @@ export async function loadCharacterBuilderCatalog(
     }),
     backgrounds: backgroundResult.items.map((record) => {
       const background = backgroundsById.get(record.id)
-      const grantFacts = getBackgroundGrantFacts(background, system?.skills ?? [], system?.languages ?? [], equipmentById)
+      const grantFacts = getBackgroundGrantFacts(
+        background,
+        system?.skills ?? [],
+        system?.languages ?? [],
+        equipmentById
+      )
       const featureLabels = (background?.features ?? []).map((feature) => feature.label)
       return {
         id: record.id,
@@ -335,10 +350,9 @@ export async function loadCharacterBuilderCatalog(
 type ClassProficiency = NonNullable<
   Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>['proficiencies']
 >[number]
-type BackgroundProficiency = NonNullable<BackgroundAuthored['proficiencies']>[number]
 
 function getClassProficiencyGroups(
-  proficiencies: Array<ClassProficiency | BackgroundProficiency>,
+  proficiencies: ClassProficiency[],
   skills: Array<{ id: string; label: string }>,
   languages: Array<{ id: string; label: string }>,
   equipmentById: Map<string, { category: string | null; label: string }>
@@ -363,9 +377,8 @@ function getClassProficiencyGroups(
     if (proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY) continue
 
     if (proficiency.proficiencyKind === PROFICIENCY_KIND.SKILL) {
-      const skillIds = 'skillIds' in proficiency
-        ? proficiency.skillIds ?? []
-        : skills.map((skill) => skill.id)
+      const skillIds =
+        'skillIds' in proficiency ? (proficiency.skillIds ?? []) : skills.map((skill) => skill.id)
       append(
         'Skills',
         formatChosenProficiency(proficiency, skillIds, skills),
@@ -374,9 +387,10 @@ function getClassProficiencyGroups(
       continue
     }
     if (proficiency.proficiencyKind === PROFICIENCY_KIND.LANGUAGE) {
-      const languageIds = 'languageIds' in proficiency
-        ? proficiency.languageIds ?? []
-        : languages.map((language) => language.id)
+      const languageIds =
+        'languageIds' in proficiency
+          ? (proficiency.languageIds ?? [])
+          : languages.map((language) => language.id)
       append(
         'Languages',
         formatChosenProficiency(proficiency, languageIds, languages),
@@ -384,40 +398,68 @@ function getClassProficiencyGroups(
       )
       continue
     }
-    if (proficiency.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY && 'properties' in proficiency) {
-      const group = proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
-        ? 'Armor'
-        : proficiency.category === 'WEAPON' ? 'Weapons' : proficiency.category === 'TOOL' ? 'Tools' : 'Other'
-      append(group, proficiency.properties.map((property) => {
-        const propertyLabel = property in EQUIPMENT_PROPERTY_REGISTRY
-          ? EQUIPMENT_PROPERTY_REGISTRY[property as EquipmentPropertyCode].label
-          : formatCatalogLabel(property)
-        if (group === 'Armor') return `${propertyLabel} armor`
-        if (group === 'Weapons') return `${propertyLabel} weapons`
-        if (group === 'Tools') return `${propertyLabel} tools`
-        return propertyLabel
-      }), proficiency.selectionKind !== 'CHOSEN')
+    if (
+      proficiency.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT_PROPERTY &&
+      'properties' in proficiency
+    ) {
+      const group =
+        proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
+          ? 'Armor'
+          : proficiency.category === 'WEAPON'
+            ? 'Weapons'
+            : proficiency.category === 'TOOL'
+              ? 'Tools'
+              : 'Other'
+      append(
+        group,
+        proficiency.properties.map((property) => {
+          const propertyLabel =
+            property in EQUIPMENT_PROPERTY_REGISTRY
+              ? EQUIPMENT_PROPERTY_REGISTRY[property as EquipmentPropertyCode].label
+              : formatCatalogLabel(property)
+          if (group === 'Armor') return `${propertyLabel} armor`
+          if (group === 'Weapons') return `${propertyLabel} weapons`
+          if (group === 'Tools') return `${propertyLabel} tools`
+          return propertyLabel
+        }),
+        proficiency.selectionKind !== 'CHOSEN'
+      )
       continue
     }
     if (proficiency.proficiencyKind === PROFICIENCY_KIND.EQUIPMENT) {
       if (!('equipmentIds' in proficiency) || !proficiency.equipmentIds?.length) {
-        const group = proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
-          ? 'Armor'
-          : proficiency.category === 'WEAPON' ? 'Weapons' : proficiency.category === 'TOOL' ? 'Tools' : 'Other'
-        const entry = proficiency.category === 'SHIELD'
-          ? 'Shields'
-          : proficiency.category === 'ARMOR' ? 'Armor'
-            : proficiency.category === 'WEAPON' ? 'Weapons'
-              : proficiency.category === 'TOOL' ? 'Tools' : 'Equipment'
+        const group =
+          proficiency.category === 'SHIELD' || proficiency.category === 'ARMOR'
+            ? 'Armor'
+            : proficiency.category === 'WEAPON'
+              ? 'Weapons'
+              : proficiency.category === 'TOOL'
+                ? 'Tools'
+                : 'Other'
+        const entry =
+          proficiency.category === 'SHIELD'
+            ? 'Shields'
+            : proficiency.category === 'ARMOR'
+              ? 'Armor'
+              : proficiency.category === 'WEAPON'
+                ? 'Weapons'
+                : proficiency.category === 'TOOL'
+                  ? 'Tools'
+                  : 'Equipment'
         append(group, [entry], proficiency.selectionKind !== 'CHOSEN')
         continue
       }
       const grouped = new Map<string, string[]>()
       for (const equipmentId of proficiency.equipmentIds ?? []) {
         const equipment = equipmentById.get(equipmentId)
-        const group = equipment?.category === 'SHIELD' || equipment?.category === 'ARMOR'
-          ? 'Armor'
-          : equipment?.category === 'WEAPON' ? 'Weapons' : equipment?.category === 'TOOL' ? 'Tools' : 'Other'
+        const group =
+          equipment?.category === 'SHIELD' || equipment?.category === 'ARMOR'
+            ? 'Armor'
+            : equipment?.category === 'WEAPON'
+              ? 'Weapons'
+              : equipment?.category === 'TOOL'
+                ? 'Tools'
+                : 'Other'
         const entries = grouped.get(group) ?? []
         entries.push(equipment?.label ?? equipmentId)
         grouped.set(group, entries)
@@ -449,13 +491,21 @@ function getBackgroundGrantFacts(
   languages: Array<{ id: string; label: string }>,
   equipmentById: Map<string, { category: string | null; label: string }>
 ): Array<{ label: string; value: string }> {
-  return getClassProficiencyGroups(background?.proficiencies ?? [], skills, languages, equipmentById)
+  return getClassProficiencyGroups(
+    background?.proficiencies ?? [],
+    skills,
+    languages,
+    equipmentById
+  )
     .filter((group) => group.entries.length > 0)
     .map((group) => ({ label: group.label, value: group.entries.join(', ') }))
 }
 
 function toPlainText(value: string): string {
-  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function formatChosenProficiency(
@@ -468,8 +518,11 @@ function formatChosenProficiency(
     .sort((left, right) => left.localeCompare(right, 'en'))
   if (proficiency.selectionKind !== 'CHOSEN') return labels
   const count = 'count' in proficiency ? proficiency.count : 0
-  const hasEveryVocabularyEntry = vocabulary.length > 0 && vocabulary.every((entry) => ids.includes(entry.id))
-  return [hasEveryVocabularyEntry ? `Choose any ${count}` : `Choose ${count} from ${labels.join(', ')}`]
+  const hasEveryVocabularyEntry =
+    vocabulary.length > 0 && vocabulary.every((entry) => ids.includes(entry.id))
+  return [
+    hasEveryVocabularyEntry ? `Choose any ${count}` : `Choose ${count} from ${labels.join(', ')}`
+  ]
 }
 
 function formatCatalogLabel(value: string): string {

@@ -37,13 +37,14 @@ export function useAuthoringResolvedModel({
     debounceMs
   })
   const staticModel = useMemo(
-    () => (!resolveModel && !model
-      ? createStaticResolvedFormModel(mapId, {
-        ancestors: resolvedAncestors,
-        parentValues,
-        values
-      })
-      : undefined),
+    () =>
+      !resolveModel && !model
+        ? createStaticResolvedFormModel(mapId, {
+            ancestors: resolvedAncestors,
+            parentValues,
+            values
+          })
+        : undefined,
     [mapId, model, parentValues, resolveModel, resolvedAncestors, values]
   )
   const activeModel = model ?? resolvedModel ?? staticModel

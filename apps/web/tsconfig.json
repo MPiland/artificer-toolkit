@@ -1,95 +1,38 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "paths": {
-      "#app/*": [
-        "./src/*"
-      ],
-      "#css/foundations.css": [
-        "./src/css/foundations.css.ts"
-      ],
-      "#css/layers.css": [
-        "./src/css/layers.css.ts"
-      ],
-      "#css/main.css": [
-        "./src/css/main.css"
-      ],
-      "#css/theme": [
-        "./src/css/theme.ts"
-      ],
-      "#css/*": [
-        "./src/css/*"
-      ],
-      "#lib/*": [
-        "./src/lib/*"
-      ],
-      "#forms": [
-        "./src/forms/index.ts"
-      ],
-      "#forms/*": [
-        "./src/forms/*"
-      ],
-      "#components/*": [
-        "./src/components/*"
-      ],
-      "#ui": [
-        "./src/ui/index.ts"
-      ],
-      "#ui/*": [
-        "./src/ui/*"
-      ],
-      "#domains/*": [
-        "./src/domains/*"
-      ],
-      "#routes/*": [
-        "./src/routes/*"
-      ],
-      "#assets/*": [
-        "./src/assets/*"
-      ],
-      "#supabase": [
-        "./src/supabase/index.ts"
-      ],
-      "#supabase/*": [
-        "./src/supabase/*"
-      ],
-      "#auth": [
-        "./src/auth/index.ts"
-      ],
-      "#test/msw/handlers": [
-        "./src/test/msw/handlers.ts"
-      ],
-      "#test/msw/server": [
-        "./src/test/msw/server.ts"
-      ],
-      "#test/renderWithAppProviders": [
-        "./src/test/renderWithAppProviders.tsx"
-      ],
-      "#test/*": [
-        "./src/test/*"
-      ]
+      "#app/*": ["./src/*"],
+      "#css/foundations.css": ["./src/css/foundations.css.ts"],
+      "#css/layers.css": ["./src/css/layers.css.ts"],
+      "#css/main.css": ["./src/css/main.css"],
+      "#css/theme": ["./src/css/theme.ts"],
+      "#css/*": ["./src/css/*"],
+      "#lib/*": ["./src/lib/*"],
+      "#forms": ["./src/forms/index.ts"],
+      "#forms/*": ["./src/forms/*"],
+      "#components/*": ["./src/components/*"],
+      "#ui": ["./src/ui/index.ts"],
+      "#ui/*": ["./src/ui/*"],
+      "#domains/*": ["./src/domains/*"],
+      "#routes/*": ["./src/routes/*"],
+      "#assets/*": ["./src/assets/*"],
+      "#supabase": ["./src/supabase/index.ts"],
+      "#supabase/*": ["./src/supabase/*"],
+      "#auth": ["./src/auth/index.ts"],
+      "#test/msw/handlers": ["./src/test/msw/handlers.ts"],
+      "#test/msw/server": ["./src/test/msw/server.ts"],
+      "#test/renderWithAppProviders": ["./src/test/renderWithAppProviders.tsx"],
+      "#test/*": ["./src/test/*"]
     },
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
-    "types": [
-      "vite/client",
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ],
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "noEmit": true,
     "useDefineForClassFields": true,
     "module": "esnext",
     "moduleResolution": "bundler"
   },
-  "include": [
-    ".storybook/**/*",
-    "src",
-    "vite.config.ts",
-    "vite-env.d.ts"
-  ]
+  "include": [".storybook/**/*", "src", "vite.config.ts", "vite-env.d.ts"]
 }

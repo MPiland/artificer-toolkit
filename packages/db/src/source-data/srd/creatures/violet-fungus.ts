@@ -16,11 +16,15 @@ export const violetFungus: CreatureAuthored = {
     CONSTITUTION: 10,
     INTELLIGENCE: 1,
     WISDOM: 3,
-    CHARISMA: 1,
+    CHARISMA: 1
   },
   armorClass: 5,
   hitPoints: 18,
-  hitDice: '4d8',
+  hitDice: {
+    count: 4,
+    die: 8,
+    modifier: 0
+  },
   speeds: [...S.walk(5)],
   conditionImmunities: ['blinded', 'deafened', 'frightened'],
   senses: ['blindsight 30 ft. (blind beyond this radius)'],
@@ -31,7 +35,8 @@ export const violetFungus: CreatureAuthored = {
     {
       id: S.featureId(280, 1),
       label: 'False Appearance',
-      description: 'False Appearance. While the violet fungus remains motionless, it is indistinguishable from an ordinary fungus.',
+      description:
+        'False Appearance. While the violet fungus remains motionless, it is indistinguishable from an ordinary fungus.',
       order: 1
     },
     {
@@ -43,9 +48,9 @@ export const violetFungus: CreatureAuthored = {
     {
       id: S.featureId(280, 3),
       label: 'Rotting Touch',
-      description: 'Rotting Touch. Melee Weapon Attack: +2 to hit, reach 10 ft., one creature. Hit: 4 (1d8) necrotic damage.',
+      description:
+        'Rotting Touch. Melee Weapon Attack: +2 to hit, reach 10 ft., one creature. Hit: 4 (1d8) necrotic damage.',
       order: 3
     }
   ]
 }
-

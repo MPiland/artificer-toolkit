@@ -4,7 +4,10 @@ import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { resolveRequestUserId } from './requestUser.js'
 
 function validationErrorResponse(issues: unknown): Response {
-  return new Response(JSON.stringify({ error: 'Validation failed', issues }), { status: 422, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify({ error: 'Validation failed', issues }), {
+    status: 422,
+    headers: { 'Content-Type': 'application/json' }
+  })
 }
 
 type AuthoringHandler<TBody, TResult> = (
@@ -34,19 +37,16 @@ export function handleAuthoringRequest<TBody, TResult>(
   handlerOrParseBody: AuthoringHandler<TBody, TResult> | ((raw: unknown) => TBody)
 ): (req: Request) => Promise<Response> {
   // Determine which overload was called
-  const isZodSchema = schemaOrHandler != null && typeof (schemaOrHandler as ZodType<TBody>).parse === 'function'
+  const isZodSchema =
+    schemaOrHandler != null && typeof (schemaOrHandler as ZodType<TBody>).parse === 'function'
 
   const handler = isZodSchema
     ? (handlerOrParseBody as AuthoringHandler<TBody, TResult>)
     : (schemaOrHandler as AuthoringHandler<TBody, TResult>)
 
-  const parseBody = isZodSchema
-    ? null
-    : (handlerOrParseBody as (raw: unknown) => TBody)
+  const parseBody = isZodSchema ? null : (handlerOrParseBody as (raw: unknown) => TBody)
 
-  const schema = isZodSchema
-    ? (schemaOrHandler as ZodType<TBody>)
-    : null
+  const schema = isZodSchema ? (schemaOrHandler as ZodType<TBody>) : null
 
   return async (req: Request): Promise<Response> => {
     try {
@@ -83,11 +83,17 @@ export function handleAuthoringRequest<TBody, TResult>(
       }
 
       if (err instanceof Error && err.name === 'NodeRuntimeInputError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'AuthoredDraftSubjectMismatchError') {
@@ -101,23 +107,38 @@ export function handleAuthoringRequest<TBody, TResult>(
       }
 
       if (err instanceof Error && err.name === 'AuthoredContentOwnershipError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'CharacterBuilderDraftConflictError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 409, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'NotFoundError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'ConcurrencyError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 409, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       if (err instanceof Error && err.name === 'CharacterSheetCommandError') {
-        return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
 
       console.error(err)

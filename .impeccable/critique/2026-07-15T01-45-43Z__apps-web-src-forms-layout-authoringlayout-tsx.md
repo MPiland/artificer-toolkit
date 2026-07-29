@@ -6,6 +6,7 @@ p1_count: 3
 timestamp: 2026-07-15T01-45-43Z
 slug: apps-web-src-forms-layout-authoringlayout-tsx
 ---
+
 # Current desktop authoring workspace critique
 
 ## Verdict

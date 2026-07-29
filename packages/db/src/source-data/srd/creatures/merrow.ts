@@ -17,16 +17,18 @@ export const merrow: CreatureAuthored = {
     CONSTITUTION: 15,
     INTELLIGENCE: 8,
     WISDOM: 10,
-    CHARISMA: 9,
+    CHARISMA: 9
   },
   armorClass: 13,
   armorClassNote: 'natural armor',
   hitPoints: 45,
-  hitDice: '6d10+12',
+  hitDice: {
+    count: 6,
+    die: 10,
+    modifier: 12
+  },
   speeds: [...S.walk(10), ...S.swim(40)],
-  proficiencies: [
-    S.grantedLanguageProficiency(196, 1, 'ABYSSAL', 'AQUAN')
-  ],
+  proficiencies: [S.grantedLanguageProficiency(196, 1, 'ABYSSAL', 'AQUAN')],
   senses: ['darkvision 60 ft.'],
   passivePerception: 10,
   challengeRatingId: S.CR.CR_2,
@@ -41,27 +43,30 @@ export const merrow: CreatureAuthored = {
     {
       id: S.featureId(196, 2),
       label: 'Multiattack',
-      description: 'Multiattack. The merrow makes two attacks: one with its bite and one with its claws or harpoon.',
+      description:
+        'Multiattack. The merrow makes two attacks: one with its bite and one with its claws or harpoon.',
       order: 2
     },
     {
       id: S.featureId(196, 3),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) piercing damage.',
+      description:
+        'Bite. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) piercing damage.',
       order: 3
     },
     {
       id: S.featureId(196, 4),
       label: 'Claws',
-      description: 'Claws. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 9 (2d4 + 4) slashing damage.',
+      description:
+        'Claws. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 9 (2d4 + 4) slashing damage.',
       order: 4
     },
     {
       id: S.featureId(196, 5),
       label: 'Harpoon',
-      description: 'Harpoon. Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 20/60 ft., one target. Hit: 11 (2d6 + 4) piercing damage. If the target is a Large or smaller creature, it is grappled (escape DC 14). The merrow has two harpoons, each of which can grapple only one target.',
+      description:
+        'Harpoon. Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 20/60 ft., one target. Hit: 11 (2d6 + 4) piercing damage. If the target is a Large or smaller creature, it is grappled (escape DC 14). The merrow has two harpoons, each of which can grapple only one target.',
       order: 5
     }
   ]
 }
-

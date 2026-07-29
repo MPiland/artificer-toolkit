@@ -17,9 +17,7 @@ export function buildModifierDomainKey(
     return `${valueDomainCode}:${modifierKind}`
   }
 
-  const paramKey = entries
-    .map(([key, value]) => `${key}=${String(value)}`)
-    .join('|')
+  const paramKey = entries.map(([key, value]) => `${key}=${String(value)}`).join('|')
 
   return `${valueDomainCode}:${modifierKind}|${paramKey}`
 }

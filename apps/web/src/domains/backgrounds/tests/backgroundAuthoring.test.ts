@@ -1,9 +1,4 @@
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 import {
   addStartingEquipmentItem,
@@ -18,11 +13,11 @@ import {
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
-type StartingEquipmentItemDto
-  = StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
+type StartingEquipmentItemDto =
+  StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
 type GrantedEquipmentStartingEquipmentItemDto = Extract<
   StartingEquipmentItemDto,
-  { selectionKind: 'GRANTED', startingEquipmentKind: 'EQUIPMENT' }
+  { selectionKind: 'GRANTED'; startingEquipmentKind: 'EQUIPMENT' }
 >
 
 describe('background authoring helpers', () => {
@@ -213,7 +208,9 @@ function createBranchedStartingEquipment(): StartingEquipmentDto {
   }
 }
 
-function expectEquipmentItem(item: StartingEquipmentItemDto | undefined): GrantedEquipmentStartingEquipmentItemDto {
+function expectEquipmentItem(
+  item: StartingEquipmentItemDto | undefined
+): GrantedEquipmentStartingEquipmentItemDto {
   expect(item?.startingEquipmentKind).toBe('EQUIPMENT')
   if (item?.startingEquipmentKind === 'EQUIPMENT') {
     expect(item.selectionKind).toBe('GRANTED')

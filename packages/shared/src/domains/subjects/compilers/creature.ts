@@ -2,7 +2,7 @@ import type {
   CreatureAuthored,
   CreatureCompanionProfile,
   CreatureMountProfile,
-  CreatureNpcProfile,
+  CreatureNpcProfile
 } from '#authored'
 import type { AbilityCode, SizeCode } from '#core'
 import {
@@ -11,7 +11,7 @@ import {
   compileSpeed,
   type CompiledFeature,
   type CompiledProficiencyGrant,
-  type CompiledSpeed,
+  type CompiledSpeed
 } from '#compilers'
 
 export interface CompiledCreatureMountProfile {
@@ -55,7 +55,7 @@ export interface CompiledCreature extends CompiledCreatureBase {
   armorClass: number
   armorClassNote?: string
   hitPoints: number
-  hitDice?: string
+  hitDice?: CreatureAuthored['hitDice']
   senses?: string[]
   passivePerception?: number
   damageVulnerabilities?: string[]
@@ -75,7 +75,7 @@ function compileMountProfile(authored: CreatureMountProfile): CompiledCreatureMo
     mountType: authored.mountType,
     capacity: authored.capacity,
     riderCount: authored.riderCount,
-    notes: authored.notes,
+    notes: authored.notes
   }
 }
 
@@ -85,7 +85,7 @@ function compileCompanionProfile(
   return {
     bondType: authored.bondType,
     initiativeMode: authored.initiativeMode,
-    notes: authored.notes,
+    notes: authored.notes
   }
 }
 
@@ -94,13 +94,11 @@ function compileNpcProfile(authored: CreatureNpcProfile): CompiledCreatureNpcPro
     bonds: authored.bonds,
     flaws: authored.flaws,
     ideals: authored.ideals,
-    personalityTraits: authored.personalityTraits,
+    personalityTraits: authored.personalityTraits
   }
 }
 
-function compileBase(
-  authored: CreatureAuthored
-): CompiledCreatureBase {
+function compileBase(authored: CreatureAuthored): CompiledCreatureBase {
   return {
     id: authored.id,
     category: authored.category,
@@ -111,12 +109,10 @@ function compileBase(
     speeds: authored.speeds.map(compileSpeed),
     features: authored.features?.map(compileFeature),
     proficiencies: authored.proficiencies?.map(compileProficiencyGrant),
-    mountProfile: authored.mountProfile
-      ? compileMountProfile(authored.mountProfile)
-      : undefined,
+    mountProfile: authored.mountProfile ? compileMountProfile(authored.mountProfile) : undefined,
     companionProfile: authored.companionProfile
       ? compileCompanionProfile(authored.companionProfile)
-      : undefined,
+      : undefined
   }
 }
 
@@ -138,12 +134,10 @@ function compileCreatureFields(authored: CreatureAuthored): CompiledCreature {
     conditionImmunities: authored.conditionImmunities,
     challengeRatingId: authored.challengeRatingId,
     xp: authored.xp,
-    npcProfile: authored.npcProfile
-      ? compileNpcProfile(authored.npcProfile)
-      : undefined,
+    npcProfile: authored.npcProfile ? compileNpcProfile(authored.npcProfile) : undefined,
     cost: authored.cost,
     carryingCapacity: authored.carryingCapacity,
-    logisticsNotes: authored.logisticsNotes,
+    logisticsNotes: authored.logisticsNotes
   }
 }
 

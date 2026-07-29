@@ -14,10 +14,7 @@ export type EquipmentCategoryCode = keyof typeof EQUIPMENT_CATEGORY_CODE
 
 export type EquipmentCategoryOption = CoreMeta<EquipmentCategoryCode>
 
-export const EQUIPMENT_CATEGORY_REGISTRY: Record<
-  EquipmentCategoryCode,
-  EquipmentCategoryOption
-> = {
+export const EQUIPMENT_CATEGORY_REGISTRY: Record<EquipmentCategoryCode, EquipmentCategoryOption> = {
   [EQUIPMENT_CATEGORY_CODE.WEAPON]: {
     code: EQUIPMENT_CATEGORY_CODE.WEAPON,
     label: 'Weapon',
@@ -30,7 +27,7 @@ export const EQUIPMENT_CATEGORY_REGISTRY: Record<
     label: 'Variant',
     tooltip: 'A variant of another item.',
     description:
-      'Represents a derived version of another item. Variants inherit the base item\'s core properties and may add or modify behavior through grants, effects, restrictions, cost, or rarity without redefining the base item.'
+      "Represents a derived version of another item. Variants inherit the base item's core properties and may add or modify behavior through grants, effects, restrictions, cost, or rarity without redefining the base item."
   },
 
   [EQUIPMENT_CATEGORY_CODE.ARMOR]: {
@@ -62,8 +59,8 @@ export const EQUIPMENT_CATEGORY_REGISTRY: Record<
   }
 } as const
 
-export type EquipmentCategoryValue
-  = (typeof EQUIPMENT_CATEGORY_REGISTRY)[keyof typeof EQUIPMENT_CATEGORY_REGISTRY]
+export type EquipmentCategoryValue =
+  (typeof EQUIPMENT_CATEGORY_REGISTRY)[keyof typeof EQUIPMENT_CATEGORY_REGISTRY]
 
 export const EQUIPMENT_CATEGORY_OPTIONS = valuesOf(
   EQUIPMENT_CATEGORY_REGISTRY
@@ -112,10 +109,7 @@ export type EquipmentPropertyCode = keyof typeof EQUIPMENT_PROPERTY_CODE
 
 export type EquipmentPropertyOption = CoreMeta<EquipmentPropertyCode>
 
-export const EQUIPMENT_PROPERTY_REGISTRY: Record<
-  EquipmentPropertyCode,
-  EquipmentPropertyOption
-> = {
+export const EQUIPMENT_PROPERTY_REGISTRY: Record<EquipmentPropertyCode, EquipmentPropertyOption> = {
   [EQUIPMENT_PROPERTY_CODE.LIGHT]: {
     code: EQUIPMENT_PROPERTY_CODE.LIGHT,
     label: 'Light',
@@ -455,10 +449,7 @@ export type EquipmentAttribute = keyof typeof EQUIPMENT_ATTRIBUTE
 
 export type EquipmentAttributeOption = CoreMeta<EquipmentAttribute>
 
-export const EQUIPMENT_ATTRIBUTE_REGISTRY: Record<
-  EquipmentAttribute,
-  EquipmentAttributeOption
-> = {
+export const EQUIPMENT_ATTRIBUTE_REGISTRY: Record<EquipmentAttribute, EquipmentAttributeOption> = {
   LIMITED_USE: {
     code: EQUIPMENT_ATTRIBUTE.LIMITED_USE,
     label: 'Limited Use',

@@ -1,16 +1,8 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState
-} from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient } from '@tanstack/react-query'
-import { useLocation,
-  useRouter } from '@tanstack/react-router'
-import type { QueryClient,
-  QueryKey } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLocation, useRouter } from '@tanstack/react-router'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import type { AuthoredDetailPendingOperation } from './AuthoredDetail.types'
@@ -47,7 +39,9 @@ export function useAuthoredDetailActions({
   const duplicateInFlightRef = useRef(false)
   const duplicateOperationRef = useRef(0)
   const mountedRef = useRef(true)
-  const [pendingOperation, setPendingOperation] = useState<AuthoredDetailPendingOperation | null>(null)
+  const [pendingOperation, setPendingOperation] = useState<AuthoredDetailPendingOperation | null>(
+    null
+  )
   const duplicateMutation = useMutation({ mutationFn: () => duplicate(id) })
   const discardMutation = useMutation({ mutationFn: () => discard(id) })
   const deleteAction = useAuthoredDeleteAction({
@@ -88,19 +82,25 @@ export function useAuthoredDetailActions({
     try {
       const copied = await duplicateMutation.mutateAsync()
       await queryClient.invalidateQueries({ queryKey: domainQueryKey })
-      notifications.show({ color: 'green', message: `${domainLabel} duplicated as an owned draft.` })
+      notifications.show({
+        color: 'green',
+        message: `${domainLabel} duplicated as an owned draft.`
+      })
 
       if (
-        copied
-        && mountedRef.current
-        && duplicateOperationRef.current === operationId
-        && currentHrefRef.current === sourceHref
+        copied &&
+        mountedRef.current &&
+        duplicateOperationRef.current === operationId &&
+        currentHrefRef.current === sourceHref
       ) {
         setPendingOperation(null)
         await navigateEdit({ id: copied.subjectId, publicId: copied.publicId, label: copied.label })
       }
     } catch {
-      notifications.show({ color: 'red', message: `Could not duplicate that ${domainLabel.toLowerCase()} yet.` })
+      notifications.show({
+        color: 'red',
+        message: `Could not duplicate that ${domainLabel.toLowerCase()} yet.`
+      })
     } finally {
       duplicateInFlightRef.current = false
 
@@ -108,46 +108,49 @@ export function useAuthoredDetailActions({
         setPendingOperation(null)
       }
     }
-  }, [
-    domainLabel,
-    domainQueryKey,
-    duplicateMutation,
-    navigateEdit,
-    queryClient
-  ])
+  }, [domainLabel, domainQueryKey, duplicateMutation, navigateEdit, queryClient])
 
-  const discardDraft = useCallback(async ({ backToList = false }: { backToList?: boolean } = {}) => {
-    try {
-      await discardMutation.mutateAsync()
-      await refreshAuthoredDetailAfterDraftDiscard({
-        detailSubjectQueryKey,
-        domainQueryKey,
-        draftQueryKey,
-        hasActiveContent,
-        queryClient
-      })
-      notifications.show({ color: 'green', message: `Stale ${domainLabel.toLowerCase()} draft discarded.` })
+  const discardDraft = useCallback(
+    async ({ backToList = false }: { backToList?: boolean } = {}) => {
+      try {
+        await discardMutation.mutateAsync()
+        await refreshAuthoredDetailAfterDraftDiscard({
+          detailSubjectQueryKey,
+          domainQueryKey,
+          draftQueryKey,
+          hasActiveContent,
+          queryClient
+        })
+        notifications.show({
+          color: 'green',
+          message: `Stale ${domainLabel.toLowerCase()} draft discarded.`
+        })
 
-      if (backToList) {
-        await navigateList()
-        return
+        if (backToList) {
+          await navigateList()
+          return
+        }
+
+        await router.invalidate()
+      } catch {
+        notifications.show({
+          color: 'red',
+          message: `Could not discard that ${domainLabel.toLowerCase()} draft yet.`
+        })
       }
-
-      await router.invalidate()
-    } catch {
-      notifications.show({ color: 'red', message: `Could not discard that ${domainLabel.toLowerCase()} draft yet.` })
-    }
-  }, [
-    detailSubjectQueryKey,
-    discardMutation,
-    domainLabel,
-    domainQueryKey,
-    draftQueryKey,
-    hasActiveContent,
-    navigateList,
-    queryClient,
-    router
-  ])
+    },
+    [
+      detailSubjectQueryKey,
+      discardMutation,
+      domainLabel,
+      domainQueryKey,
+      draftQueryKey,
+      hasActiveContent,
+      navigateList,
+      queryClient,
+      router
+    ]
+  )
 
   return {
     deleteConfirmation: deleteAction.confirmation,

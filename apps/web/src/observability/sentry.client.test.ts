@@ -22,7 +22,7 @@ describe('client Sentry configuration', () => {
     sentryMocks.isInitialized.mockReturnValue(false)
   })
 
-  it('initializes production browser error reporting and opt-in feedback only', () => {
+  it('initializes production browser error reporting, telemetry, and opt-in feedback', () => {
     initializeClientSentry(productionClient)
 
     expect(sentryMocks.feedbackIntegration).toHaveBeenCalledWith({
@@ -44,8 +44,8 @@ describe('client Sentry configuration', () => {
         userInfo: false
       },
       dsn: productionClient.dsn,
-      enableLogs: false,
-      enableMetrics: false,
+      enableLogs: true,
+      enableMetrics: true,
       integrations: [{ name: 'Feedback' }],
       sendDefaultPii: false
     })

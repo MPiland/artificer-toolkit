@@ -1,7 +1,6 @@
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
-
 export const vampire: CreatureAuthored = {
   id: S.CREATURE_IDS.VAMPIRE,
   label: 'Vampire',
@@ -18,12 +17,16 @@ export const vampire: CreatureAuthored = {
     CONSTITUTION: 18,
     INTELLIGENCE: 17,
     WISDOM: 15,
-    CHARISMA: 18,
+    CHARISMA: 18
   },
   armorClass: 16,
   armorClassNote: 'natural armor',
   hitPoints: 144,
-  hitDice: '17d8+68',
+  hitDice: {
+    count: 17,
+    die: 8,
+    modifier: 68
+  },
   speeds: [...S.walk(30)],
   proficiencies: [
     S.grantedSaveProficiency(277, 1, 'DEXTERITY', 'WISDOM', 'CHARISMA'),
@@ -38,13 +41,15 @@ export const vampire: CreatureAuthored = {
     {
       id: S.featureId(277, 1),
       label: 'Shapechanger',
-      description: "Shapechanger. If the vampire isn't in sunlight or running water, it can use its action to polymorph into a Tiny bat or a Medium cloud of mist, or back into its true form. While in bat form, the vampire can't speak, its walking speed is 5 feet, and it has a flying speed of 30 feet. Its statistics, other than its size and speed, are unchanged. Anything it is wearing transforms with it, but nothing it is carrying does. It reverts to its true form if it dies. While in mist form, the vampire can't take any actions, speak, or manipulate objects. It is weightless, has a flying speed of 20 feet, can hover, and can enter a hostile creature's space and stop there. In addition, if air can pass through a space, the mist can do so without squeezing, and it can't pass through water. It has advantage on Strength, Dexterity, and Constitution saving throws, and it is immune to all nonmagical damage, except the damage it takes from sunlight.",
+      description:
+        "Shapechanger. If the vampire isn't in sunlight or running water, it can use its action to polymorph into a Tiny bat or a Medium cloud of mist, or back into its true form. While in bat form, the vampire can't speak, its walking speed is 5 feet, and it has a flying speed of 30 feet. Its statistics, other than its size and speed, are unchanged. Anything it is wearing transforms with it, but nothing it is carrying does. It reverts to its true form if it dies. While in mist form, the vampire can't take any actions, speak, or manipulate objects. It is weightless, has a flying speed of 20 feet, can hover, and can enter a hostile creature's space and stop there. In addition, if air can pass through a space, the mist can do so without squeezing, and it can't pass through water. It has advantage on Strength, Dexterity, and Constitution saving throws, and it is immune to all nonmagical damage, except the damage it takes from sunlight.",
       order: 1
     },
     {
       id: S.featureId(277, 2),
       label: 'Legendary Resistance (3/Day)',
-      description: 'Legendary Resistance (3/Day). If the vampire fails a saving throw, it can choose to succeed instead.',
+      description:
+        'Legendary Resistance (3/Day). If the vampire fails a saving throw, it can choose to succeed instead.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.legendaryActionId(277, 21),
@@ -58,19 +63,22 @@ export const vampire: CreatureAuthored = {
     {
       id: S.featureId(277, 3),
       label: 'Misty Escape',
-      description: "Misty Escape. When it drops to 0 hit points outside its resting place, the vampire transforms into a cloud of mist (as in the Shapechanger trait) instead of falling unconscious, provided that it isn't in sunlight or running water. If it can't transform, it is destroyed. While it has 0 hit points in mist form, it can't revert to its vampire form, and it must reach its resting place within 2 hours or be destroyed. Once in its resting place, it reverts to its vampire form. It is then paralyzed until it regains at least 1 hit point. After spending 1 hour in its resting place with 0 hit points, it regains 1 hit point.",
+      description:
+        "Misty Escape. When it drops to 0 hit points outside its resting place, the vampire transforms into a cloud of mist (as in the Shapechanger trait) instead of falling unconscious, provided that it isn't in sunlight or running water. If it can't transform, it is destroyed. While it has 0 hit points in mist form, it can't revert to its vampire form, and it must reach its resting place within 2 hours or be destroyed. Once in its resting place, it reverts to its vampire form. It is then paralyzed until it regains at least 1 hit point. After spending 1 hour in its resting place with 0 hit points, it regains 1 hit point.",
       order: 3
     },
     {
       id: S.featureId(277, 4),
       label: 'Regeneration',
-      description: "Regeneration. The vampire regains 20 hit points at the start of its turn if it has at least 1 hit point and isn't in sunlight or running water. If the vampire takes radiant damage or damage from holy water, this trait doesn't function at the start of the vampire's next turn.",
+      description:
+        "Regeneration. The vampire regains 20 hit points at the start of its turn if it has at least 1 hit point and isn't in sunlight or running water. If the vampire takes radiant damage or damage from holy water, this trait doesn't function at the start of the vampire's next turn.",
       order: 4
     },
     {
       id: S.featureId(277, 5),
       label: 'Spider Climb',
-      description: 'Spider Climb. The vampire can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      description:
+        'Spider Climb. The vampire can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       order: 5
     },
     {
@@ -82,25 +90,29 @@ export const vampire: CreatureAuthored = {
     {
       id: S.featureId(277, 7),
       label: 'Forbiddance',
-      description: "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
+      description:
+        "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
       order: 7
     },
     {
       id: S.featureId(277, 8),
       label: 'Harmed by Running Water',
-      description: 'Harmed by Running Water. The vampire takes 20 acid damage if it ends its turn in running water.',
+      description:
+        'Harmed by Running Water. The vampire takes 20 acid damage if it ends its turn in running water.',
       order: 8
     },
     {
       id: S.featureId(277, 9),
       label: 'Stake to the Heart',
-      description: "Stake to the Heart. If a piercing weapon made of wood is driven into the vampire's heart while the vampire is incapacitated in its resting place, the vampire is paralyzed until the stake is removed.",
+      description:
+        "Stake to the Heart. If a piercing weapon made of wood is driven into the vampire's heart while the vampire is incapacitated in its resting place, the vampire is paralyzed until the stake is removed.",
       order: 9
     },
     {
       id: S.featureId(277, 10),
       label: 'Sunlight Hypersensitivity',
-      description: 'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
+      description:
+        'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
       order: 10
     },
     {
@@ -112,31 +124,36 @@ export const vampire: CreatureAuthored = {
     {
       id: S.featureId(277, 12),
       label: 'Multiattack',
-      description: 'Multiattack (Vampire Form Only). The vampire makes two attacks, only one of which can be a bite attack.',
+      description:
+        'Multiattack (Vampire Form Only). The vampire makes two attacks, only one of which can be a bite attack.',
       order: 12
     },
     {
       id: S.featureId(277, 13),
       label: 'Unarmed Strike',
-      description: 'Melee Weapon Attack: +9 to hit, reach 5 ft., one creature. Hit: 8 (1d8 + 4) bludgeoning damage. Instead of dealing damage, the vampire can grapple the target (escape DC 18).',
+      description:
+        'Melee Weapon Attack: +9 to hit, reach 5 ft., one creature. Hit: 8 (1d8 + 4) bludgeoning damage. Instead of dealing damage, the vampire can grapple the target (escape DC 18).',
       order: 13
     },
     {
       id: S.featureId(277, 14),
       label: 'Bite',
-      description: "Melee Weapon Attack: +9 to hit, reach 5 ft., one willing creature, or a creature that is grappled by the vampire, incapacitated, or restrained. Hit: 7 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage. The target's hit point maximum is reduced by an amount equal to the necrotic damage taken, and the vampire regains hit points equal to that amount. The reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0. A humanoid slain in this way and then buried in the ground rises the following night as a vampire spawn under the vampire's control.",
+      description:
+        "Melee Weapon Attack: +9 to hit, reach 5 ft., one willing creature, or a creature that is grappled by the vampire, incapacitated, or restrained. Hit: 7 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage. The target's hit point maximum is reduced by an amount equal to the necrotic damage taken, and the vampire regains hit points equal to that amount. The reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0. A humanoid slain in this way and then buried in the ground rises the following night as a vampire spawn under the vampire's control.",
       order: 14
     },
     {
       id: S.featureId(277, 15),
       label: 'Charm',
-      description: "Charm. The vampire targets one humanoid it can see within 30 feet of it. If the target can see the vampire, the target must succeed on a DC 17 Wisdom saving throw against this magic or be charmed by the vampire. The charmed target regards the vampire as a trusted friend to be heeded and protected. Although the target isn't under the vampire's control, it takes the vampire's requests or actions in the most favorable way it can, and it is a willing target for the vampire's bite attack. Each time the vampire or the vampire's companions do anything harmful to the target, it can repeat the saving throw, ending the effect on itself on a success. Otherwise, the effect lasts 24 hours or until the vampire is destroyed, the vampire and the target are on different planes of existence, or the vampire takes a bonus action to end the effect.",
+      description:
+        "Charm. The vampire targets one humanoid it can see within 30 feet of it. If the target can see the vampire, the target must succeed on a DC 17 Wisdom saving throw against this magic or be charmed by the vampire. The charmed target regards the vampire as a trusted friend to be heeded and protected. Although the target isn't under the vampire's control, it takes the vampire's requests or actions in the most favorable way it can, and it is a willing target for the vampire's bite attack. Each time the vampire or the vampire's companions do anything harmful to the target, it can repeat the saving throw, ending the effect on itself on a success. Otherwise, the effect lasts 24 hours or until the vampire is destroyed, the vampire and the target are on different planes of existence, or the vampire takes a bonus action to end the effect.",
       order: 15
     },
     {
       id: S.featureId(277, 16),
       label: 'Children of the Night (1/Day)',
-      description: "Children of the Night (1/Day). The vampire magically calls 2d4 swarms of bats or rats, provided that the sun isn't up. While outdoors, the vampire can call 3d6 wolves instead. The called creatures arrive in 1d4 rounds, acting as allies of the vampire and obeying its spoken commands. The beasts remain for 1 hour, until the vampire dies, or until the vampire dismisses them as a bonus action.",
+      description:
+        "Children of the Night (1/Day). The vampire magically calls 2d4 swarms of bats or rats, provided that the sun isn't up. While outdoors, the vampire can call 3d6 wolves instead. The called creatures arrive in 1d4 rounds, acting as allies of the vampire and obeying its spoken commands. The beasts remain for 1 hour, until the vampire dies, or until the vampire dismisses them as a bonus action.",
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.legendaryActionId(277, 22),
@@ -151,7 +168,8 @@ export const vampire: CreatureAuthored = {
       id: S.featureId(277, 17),
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
-      description: 'The vampire can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The vampire regains spent legendary actions at the start of its turn.',
+      description:
+        "The vampire can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The vampire regains spent legendary actions at the start of its turn.",
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.legendaryActionId(277, 23),
@@ -164,4 +182,3 @@ export const vampire: CreatureAuthored = {
     }
   ]
 }
-

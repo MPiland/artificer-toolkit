@@ -3,8 +3,14 @@ import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { EngineAccumulatedState } from './grantApplicator.js'
 import type { EngineProficiency } from '../contracts/engineState.js'
+import type { CharacterCalculation } from '../../character/sheetCalculation.js'
+import {
+  CHARACTER_CALCULATION_CONTRIBUTION_STATE,
+  createCharacterMechanicSourceKey
+} from '../../character/sheetCalculation.js'
 import { resolveAbilityRecordKey } from './abilityKey.js'
 import { parseModifierDomainKey } from './modifierDomainKey.js'
+import { resolveNumericCalculation } from './calculationResolver.js'
 
 type ModifierResolutionContext = {
   snapshot?: CharacterBuildSnapshot
@@ -22,6 +28,19 @@ export function resolveModifiers(
   rules: RulesSystem,
   context: ModifierResolutionContext = {}
 ): Record<string, number> {
+  return resolveModifierState(modifierEntries, rules, context).values
+}
+
+export interface ResolvedModifierState {
+  values: Record<string, number>
+  calculations: Record<string, CharacterCalculation<number>>
+}
+
+export function resolveModifierState(
+  modifierEntries: EngineAccumulatedState['modifierEntries'],
+  rules: RulesSystem,
+  context: ModifierResolutionContext = {}
+): ResolvedModifierState {
   const effectiveAbilityScores = resolveEffectiveAbilityScores(
     modifierEntries,
     rules,
@@ -30,7 +49,15 @@ export function resolveModifiers(
 
   const groups = new Map<
     string,
-    { modifierKind: string; valueDomainCode: string; values: number[] }
+    {
+      modifierKind: string
+      valueDomainCode: string
+      values: Array<{
+        id: string
+        source: EngineAccumulatedState['modifierEntries'][number]['source']
+        value: number
+      }>
+    }
   >()
 
   for (const entry of modifierEntries) {
@@ -45,11 +72,16 @@ export function resolveModifiers(
 
     const value = extractNumericValue(entry.grant, parsed, rules, context, effectiveAbilityScores)
     if (value !== undefined) {
-      groups.get(entry.domainKey)!.values.push(value)
+      groups.get(entry.domainKey)!.values.push({
+        id: `${createCharacterMechanicSourceKey(entry.source)}:${entry.grant.id}:${entry.domainKey}`,
+        source: entry.source,
+        value
+      })
     }
   }
 
   const resolved: Record<string, number> = {}
+  const calculations: Record<string, CharacterCalculation<number>> = {}
 
   for (const [key, group] of groups) {
     const config = rules.stackingConfig(
@@ -57,26 +89,50 @@ export function resolveModifiers(
       group.modifierKind
     )
 
+    let appliedIndexes: ReadonlySet<number>
+
     switch (config.rule) {
       case 'additive':
-        resolved[key] = group.values.reduce((sum, value) => sum + value, 0)
+        appliedIndexes = new Set(group.values.map((_, index) => index))
         break
-      case 'highest':
-        resolved[key] = group.values.length ? Math.max(...group.values) : 0
+      case 'highest': {
+        const highest = group.values.length
+          ? Math.max(...group.values.map((entry) => entry.value))
+          : undefined
+        const index = group.values.findIndex((entry) => entry.value === highest)
+        appliedIndexes = new Set(index < 0 ? [] : [index])
         break
+      }
       case 'last':
-        resolved[key] = group.values[group.values.length - 1] ?? 0
+        appliedIndexes = new Set(group.values.length ? [group.values.length - 1] : [])
         break
       case 'boolean':
-        resolved[key] = group.values.some((value) => value !== 0) ? 1 : 0
+        appliedIndexes = new Set(
+          group.values
+            .map((entry, index) => (entry.value !== 0 ? index : -1))
+            .filter((index) => index >= 0)
+            .slice(0, 1)
+        )
         break
       case 'exclusive':
-        resolved[key] = group.values[0] ?? 0
+        appliedIndexes = new Set(group.values.length ? [0] : [])
         break
     }
+
+    const calculation = resolveNumericCalculation(
+      0,
+      group.values.map((entry, index) => ({
+        ...entry,
+        state: appliedIndexes.has(index)
+          ? CHARACTER_CALCULATION_CONTRIBUTION_STATE.APPLIED
+          : CHARACTER_CALCULATION_CONTRIBUTION_STATE.SUPPRESSED
+      }))
+    )
+    calculations[key] = calculation
+    resolved[key] = calculation.effective
   }
 
-  return resolved
+  return { values: resolved, calculations }
 }
 
 function resolveEffectiveAbilityScores(

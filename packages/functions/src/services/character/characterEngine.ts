@@ -17,10 +17,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 
-import type {
-  CharacterBuilderRegistry,
-  CharacterBuilderResolution
-} from './builderService.js'
+import type { CharacterBuilderRegistry, CharacterBuilderResolution } from './builderService.js'
 
 type EngineFeatureSource = CharacterBuildSnapshot['features'][number]['source']
 type EngineFeatureTiming = CharacterBuildSnapshot['features'][number]['timing']
@@ -56,19 +53,16 @@ export function createCharacterAssemblyRegistry(
     feats: Object.fromEntries(
       (registry.feats ?? []).map((record) => [record.id, compileFeat(record)])
     ),
-    features: Object.fromEntries(
-      features.map((record) => [record.id, compileFeature(record)])
-    ),
-    races: Object.fromEntries(
-      registry.races.map((record) => [record.id, compileRace(record)])
-    ),
+    features: Object.fromEntries(features.map((record) => [record.id, compileFeature(record)])),
+    races: Object.fromEntries(registry.races.map((record) => [record.id, compileRace(record)])),
     // Spell card mechanics are loaded through the Sheet projection. The current
     // engine resolves granted spell IDs from compiled grant owners and does not
     // hydrate or inspect the spell aggregates themselves.
     spells: {},
     system: registry.system
       ? {
-          skills: registry.system.skills ?? []
+          skills: registry.system.skills ?? [],
+          speeds: registry.system.speeds ?? []
         }
       : undefined
   }
@@ -81,15 +75,14 @@ export function createCharacterEngineFeatures(
   const registryFeatures = collectRegistryFeatures(resolution.registry)
   const automaticFeatures = resolution.grants.features.map((grant) => {
     const feature = registryFeatures.find((candidate) => candidate.id === grant.id)
-    const acquisition = character.intent.featureAcquisitions.find((candidate) => (
-      candidate.featureId === grant.id
-      && isSameCharacterProvenanceIdentity(candidate.source, grant.source)
-    ))
-    const timing = acquisition?.timing ?? inferAutomaticFeatureTiming(
-      character,
-      grant.source,
-      feature?.availableAtLevel ?? 1
+    const acquisition = character.intent.featureAcquisitions.find(
+      (candidate) =>
+        candidate.featureId === grant.id &&
+        isSameCharacterProvenanceIdentity(candidate.source, grant.source)
     )
+    const timing =
+      acquisition?.timing ??
+      inferAutomaticFeatureTiming(character, grant.source, feature?.availableAtLevel ?? 1)
 
     return {
       ...(acquisition ? { acquisitionId: acquisition.id } : {}),
@@ -100,10 +93,14 @@ export function createCharacterEngineFeatures(
     }
   })
   const explicitFeatures = character.intent.featureAcquisitions
-    .filter((acquisition) => !resolution.grants.features.some((grant) => (
-      acquisition.featureId === grant.id
-      && isSameCharacterProvenanceIdentity(acquisition.source, grant.source)
-    )))
+    .filter(
+      (acquisition) =>
+        !resolution.grants.features.some(
+          (grant) =>
+            acquisition.featureId === grant.id &&
+            isSameCharacterProvenanceIdentity(acquisition.source, grant.source)
+        )
+    )
     .map((acquisition) => ({
       acquisitionId: acquisition.id,
       featureId: acquisition.featureId,
@@ -129,9 +126,9 @@ function inferAutomaticFeatureTiming(
   }
 
   if (source.kind === 'SUBCLASS') {
-    const owningClass = character.intent.classes.find((entry) => (
-      entry.subclassId === source.subclassId
-    ))
+    const owningClass = character.intent.classes.find(
+      (entry) => entry.subclassId === source.subclassId
+    )
     if (owningClass) {
       return {
         kind: 'CLASS_LEVEL',
@@ -144,9 +141,7 @@ function inferAutomaticFeatureTiming(
   return { kind: 'IMMEDIATE' }
 }
 
-export function toCharacterEngineFeatureSource(
-  source: CharacterProvenance
-): EngineFeatureSource {
+export function toCharacterEngineFeatureSource(source: CharacterProvenance): EngineFeatureSource {
   return source
 }
 

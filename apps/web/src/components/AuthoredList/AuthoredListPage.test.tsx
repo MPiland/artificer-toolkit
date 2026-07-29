@@ -215,8 +215,20 @@ describe('AuthoredListPage', () => {
 
   it('keeps child records directly under their visible parent', () => {
     const hierarchyItems: AuthoredListItem[] = [
-      { ...spellListItems[0], id: 'high-elf', publicId: 'high-elf', name: 'High Elf', hierarchy: { level: 2, parentId: 'wood-elf', parentLabel: 'Wood Elf' } },
-      { ...spellListItems[0], id: 'wood-elf', publicId: 'wood-elf', name: 'Wood Elf', hierarchy: { level: 1, parentId: 'elf', parentLabel: 'Elf' } },
+      {
+        ...spellListItems[0],
+        id: 'high-elf',
+        publicId: 'high-elf',
+        name: 'High Elf',
+        hierarchy: { level: 2, parentId: 'wood-elf', parentLabel: 'Wood Elf' }
+      },
+      {
+        ...spellListItems[0],
+        id: 'wood-elf',
+        publicId: 'wood-elf',
+        name: 'Wood Elf',
+        hierarchy: { level: 1, parentId: 'elf', parentLabel: 'Elf' }
+      },
       { ...spellListItems[0], id: 'dwarf', publicId: 'dwarf', name: 'Dwarf' },
       { ...spellListItems[0], id: 'elf', publicId: 'elf', name: 'Elf' }
     ]
@@ -231,7 +243,10 @@ describe('AuthoredListPage', () => {
       />
     )
 
-    const rowText = screen.getAllByRole('row').map((row) => row.textContent ?? '').join('\n')
+    const rowText = screen
+      .getAllByRole('row')
+      .map((row) => row.textContent ?? '')
+      .join('\n')
 
     expect(rowText.indexOf('Dwarf')).toBeLessThan(rowText.indexOf('Elf'))
     expect(rowText.indexOf('Elf')).toBeLessThan(rowText.indexOf('Wood Elf'))
@@ -240,8 +255,20 @@ describe('AuthoredListPage', () => {
 
   it('keeps cyclic hierarchy records reachable', () => {
     const hierarchyItems: AuthoredListItem[] = [
-      { ...spellListItems[0], id: 'cycle-a', publicId: 'cycle-a', name: 'Cycle A', hierarchy: { level: 1, parentId: 'cycle-b', parentLabel: 'Cycle B' } },
-      { ...spellListItems[0], id: 'cycle-b', publicId: 'cycle-b', name: 'Cycle B', hierarchy: { level: 1, parentId: 'cycle-a', parentLabel: 'Cycle A' } }
+      {
+        ...spellListItems[0],
+        id: 'cycle-a',
+        publicId: 'cycle-a',
+        name: 'Cycle A',
+        hierarchy: { level: 1, parentId: 'cycle-b', parentLabel: 'Cycle B' }
+      },
+      {
+        ...spellListItems[0],
+        id: 'cycle-b',
+        publicId: 'cycle-b',
+        name: 'Cycle B',
+        hierarchy: { level: 1, parentId: 'cycle-a', parentLabel: 'Cycle A' }
+      }
     ]
 
     renderWithAppProviders(
@@ -316,7 +343,10 @@ describe('AuthoredListPage', () => {
         createLabel='Create Spell'
         items={spellListItems}
         filters={spellListFilters}
-        attributeColumns={[{ key: 'level', label: 'Lvl', width: 76 }, { key: 'school', label: 'School' }]}
+        attributeColumns={[
+          { key: 'level', label: 'Lvl', width: 76 },
+          { key: 'school', label: 'School' }
+        ]}
         initialViewMode='cards'
         onCopy={vi.fn()}
       />
@@ -329,7 +359,9 @@ describe('AuthoredListPage', () => {
     expect(header).not.toHaveTextContent('SRD')
     expect(featureRow).not.toHaveTextContent('1')
     expect(footer).toHaveTextContent('SRD')
-    expect(within(footer as HTMLElement).getByRole('button', { name: /duplicate magic missile/i })).toBeEnabled()
+    expect(
+      within(footer as HTMLElement).getByRole('button', { name: /duplicate magic missile/i })
+    ).toBeEnabled()
   })
 
   it('filters card view records by search text', async () => {
@@ -365,16 +397,25 @@ describe('AuthoredListPage', () => {
       />
     )
 
-    expect(screen.getByRole('button', { name: /table view/i })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /table view/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
 
     await user.click(screen.getByRole('button', { name: /card view/i }))
 
-    expect(screen.getByRole('button', { name: /card view/i })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /card view/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
     expect(screen.getByLabelText(/view magic missile/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /table view/i }))
 
-    expect(screen.getByRole('button', { name: /table view/i })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /table view/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
     expect(screen.getByRole('row', { name: /magic missile/i })).toBeInTheDocument()
   })
 })

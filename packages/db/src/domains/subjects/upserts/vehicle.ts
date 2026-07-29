@@ -1,11 +1,7 @@
 import type { DBLike } from '#types'
 import { withTransaction } from '../../../utils/index.js'
 import type { Json } from '../../../types/supabase.database.js'
-import {
-  SIZE_CODE,
-  type SizeCode,
-  type VehicleAuthored
-} from '@artificer-toolkit/shared'
+import { SIZE_CODE, type SizeCode, type VehicleAuthored } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { normalizeSubjectStatus } from '../status.js'
@@ -44,23 +40,15 @@ type VehicleFeatureRow = {
   sort_order: number
 }
 
-function requireCategory(
-  vehicleId: string,
-  value: string
-): VehicleAuthored['category'] {
-  if (![
-    'LAND', 'WATER', 'AIR', 'SPELLJAMMER'
-  ].includes(value)) {
+function requireCategory(vehicleId: string, value: string): VehicleAuthored['category'] {
+  if (!['LAND', 'WATER', 'AIR', 'SPELLJAMMER'].includes(value)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid category "${value}".`)
   }
 
   return value as VehicleAuthored['category']
 }
 
-function requireSizeCode(
-  vehicleId: string,
-  value: string
-): SizeCode {
+function requireSizeCode(vehicleId: string, value: string): SizeCode {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid size "${value}".`)
   }
@@ -68,11 +56,7 @@ function requireSizeCode(
   return value as SizeCode
 }
 
-export async function upsertVehicle(
-  db: DBLike,
-  json_data: VehicleAuthored,
-  _systemId: string
-) {
+export async function upsertVehicle(db: DBLike, json_data: VehicleAuthored, _systemId: string) {
   const row: VehicleRow = {
     id: json_data.id,
     system_id: json_data.systemId,
@@ -90,7 +74,7 @@ export async function upsertVehicle(
     crew_max: json_data.crewMax ?? null,
     passenger_capacity: json_data.passengerCapacity ?? null,
     cargo_capacity: json_data.cargoCapacity ?? null,
-    cost: json_data.cost ? json_data.cost as unknown as Json : null,
+    cost: json_data.cost ? (json_data.cost as unknown as Json) : null,
     properties: json_data.properties ?? null,
     is_master: null
   }
@@ -114,15 +98,9 @@ export async function upsertVehicle(
       .onConflict((oc) => oc.column('id').doUpdateSet(row))
       .execute()
 
-    await trx
-      .deleteFrom('vehicle_details')
-      .where('vehicle_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('vehicle_details').where('vehicle_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('vehicle_features')
-      .where('vehicle_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('vehicle_features').where('vehicle_id', '=', json_data.id).execute()
 
     for (const detail of json_data.details ?? []) {
       await upsertDetail(trx, detail)
@@ -133,18 +111,11 @@ export async function upsertVehicle(
     }
 
     if (detailRows.length > 0) {
-      await trx
-        .insertInto('vehicle_details')
-        .values(detailRows)
-        .execute()
+      await trx.insertInto('vehicle_details').values(detailRows).execute()
     }
 
     if (featureRows.length > 0) {
-      await trx
-        .insertInto('vehicle_features')
-        .values(featureRows)
-        .execute()
+      await trx.insertInto('vehicle_features').values(featureRows).execute()
     }
-
   })
 }

@@ -15,9 +15,9 @@ export const contentWide = style({
 export const fieldGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(2, minmax(0, 1fr))',
-      'gap': foundationVars.space[4],
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: foundationVars.space[4],
       '@media': {
         [mobile]: {
           gridTemplateColumns: '1fr'
@@ -30,7 +30,7 @@ export const fieldGrid = style({
 export const singleField = style({
   '@layer': {
     [app]: {
-      'width': 'min(100%, 280px)',
+      width: 'min(100%, 280px)',
       '@media': {
         [mobile]: {
           width: '100%'
@@ -131,9 +131,9 @@ export const inheritedPanel = style({
 export const inheritedGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(3, minmax(0, 1fr))',
-      'gap': foundationVars.space[4],
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: foundationVars.space[4],
       '@media': {
         [mobile]: {
           gridTemplateColumns: '1fr'

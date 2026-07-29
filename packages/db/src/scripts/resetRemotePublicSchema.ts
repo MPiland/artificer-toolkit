@@ -31,7 +31,10 @@ async function main() {
     throw new Error(`CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET must equal "${CONFIRMATION_VALUE}".`)
   }
 
-  const bundleUrl = new URL('../domains/bootstrap/generated/create_database.bundle.sql', import.meta.url)
+  const bundleUrl = new URL(
+    '../domains/bootstrap/generated/create_database.bundle.sql',
+    import.meta.url
+  )
   const bundleSql = await readFile(bundleUrl, 'utf8')
 
   const resetSql = `

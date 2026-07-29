@@ -67,6 +67,8 @@ describe('fingerprintNodeRuntimeRequest', () => {
       }
     } satisfies NodeRuntimeResolveRequestDto
 
-    expect(fingerprintNodeRuntimeRequest(changedStructure)).not.toBe(fingerprintNodeRuntimeRequest(base))
+    expect(fingerprintNodeRuntimeRequest(changedStructure)).not.toBe(
+      fingerprintNodeRuntimeRequest(base)
+    )
   })
 })

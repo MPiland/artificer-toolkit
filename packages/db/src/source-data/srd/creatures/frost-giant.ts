@@ -16,12 +16,16 @@ export const frostGiant: CreatureAuthored = {
     CONSTITUTION: 21,
     INTELLIGENCE: 9,
     WISDOM: 10,
-    CHARISMA: 12,
+    CHARISMA: 12
   },
   armorClass: 15,
   armorClassNote: 'patchwork armor',
   hitPoints: 138,
-  hitDice: '12d12+60',
+  hitDice: {
+    count: 12,
+    die: 12,
+    modifier: 60
+  },
   speeds: [...S.walk(40)],
   proficiencies: [
     S.grantedSaveProficiency(107, 1, 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
@@ -42,15 +46,16 @@ export const frostGiant: CreatureAuthored = {
     {
       id: S.featureId(107, 2),
       label: 'Greataxe',
-      description: 'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 25 (3d12 + 6) slashing damage.',
+      description:
+        'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 25 (3d12 + 6) slashing damage.',
       order: 2
     },
     {
       id: S.featureId(107, 3),
       label: 'Rock',
-      description: 'Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
+      description:
+        'Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
       order: 3
     }
   ]
 }
-

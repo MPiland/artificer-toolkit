@@ -18,14 +18,16 @@ export const magicSchools: MagicSchoolOption[] = [
     id: '0aa87b3c-ba8b-4829-a360-47b7175175f7',
     code: MagicSchoolCode.ABJURATION,
     label: 'Abjuration',
-    description: 'Abjuration magic focuses on protection, warding, and negation of harmful effects.',
+    description:
+      'Abjuration magic focuses on protection, warding, and negation of harmful effects.',
     tooltip: 'Protective magic.'
   },
   {
     id: 'a8859680-a4cd-471c-9f92-09ed8fe8e236',
     code: MagicSchoolCode.CONJURATION,
     label: 'Conjuration',
-    description: 'Conjuration magic involves summoning creatures, objects, or energies from elsewhere.',
+    description:
+      'Conjuration magic involves summoning creatures, objects, or energies from elsewhere.',
     tooltip: 'Summoning magic.'
   },
   {
@@ -46,14 +48,16 @@ export const magicSchools: MagicSchoolOption[] = [
     id: 'c63f84d1-d67f-4f04-aac6-9e918a059ff9',
     code: MagicSchoolCode.EVOCATION,
     label: 'Evocation',
-    description: 'Evocation magic channels elemental or raw magical energy to create powerful effects.',
+    description:
+      'Evocation magic channels elemental or raw magical energy to create powerful effects.',
     tooltip: 'Energy magic.'
   },
   {
     id: '84021b71-cef1-4efd-afea-1de784e3c47c',
     code: MagicSchoolCode.ILLUSION,
     label: 'Illusion',
-    description: 'Illusion magic creates false images, sounds, or sensations to deceive the senses.',
+    description:
+      'Illusion magic creates false images, sounds, or sensations to deceive the senses.',
     tooltip: 'Deceptive magic.'
   },
   {
@@ -67,7 +71,8 @@ export const magicSchools: MagicSchoolOption[] = [
     id: '2506e4f1-6fa1-419e-af73-72cb8980aedd',
     code: MagicSchoolCode.TRANSMUTATION,
     label: 'Transmutation',
-    description: 'Transmutation magic alters the physical properties or form of creatures and objects.',
+    description:
+      'Transmutation magic alters the physical properties or form of creatures and objects.',
     tooltip: 'Transformative magic.'
   }
 ]

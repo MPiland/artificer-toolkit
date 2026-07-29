@@ -23,7 +23,9 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
+    null
+  )
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
@@ -100,7 +102,9 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         onChange={(event) => setPassword(event.currentTarget.value)}
         required
       />
-      <p className={authFieldHint}>Use at least 8 characters. A mix of letters and numbers is easier to keep secure.</p>
+      <p className={authFieldHint}>
+        Use at least 8 characters. A mix of letters and numbers is easier to keep secure.
+      </p>
       <Button className={authButton} type='submit' disabled={isSubmitting}>
         {isSubmitting ? 'Creating account...' : 'Create account'}
       </Button>

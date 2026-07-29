@@ -7,33 +7,33 @@ import {
   type ScalingSourcePayload
 } from '#core'
 
-export type HealBonusAuthored
-  = | {
-    id: string
-    bonusKind: 'ABILITY_BONUS'
-    ability: AbilityModifierReference
-    min?: number
-    max?: number
-    multiplier?: number
-    order: number
-  }
+export type HealBonusAuthored =
   | {
-    id: string
-    bonusKind: 'PROFICIENCY_BONUS'
-    min?: number
-    max?: number
-    multiplier?: number
-    order: number
-  }
+      id: string
+      bonusKind: 'ABILITY_BONUS'
+      ability: AbilityModifierReference
+      min?: number
+      max?: number
+      multiplier?: number
+      order: number
+    }
   | {
-    id: string
-    bonusKind: 'CLASS_LEVEL'
-    classId: string
-    min?: number
-    max?: number
-    multiplier?: number
-    order: number
-  }
+      id: string
+      bonusKind: 'PROFICIENCY_BONUS'
+      min?: number
+      max?: number
+      multiplier?: number
+      order: number
+    }
+  | {
+      id: string
+      bonusKind: 'CLASS_LEVEL'
+      classId: string
+      min?: number
+      max?: number
+      multiplier?: number
+      order: number
+    }
 
 export type HealingProgressionLevel<TPayload extends object = object> = {
   id: string
@@ -47,7 +47,8 @@ export type HealingProgression<TPayload extends object = object> = {
   } & ScalingSourcePayload[S]
 }[ScalingSource]
 
-export type HealBreakpointProgressionLevel<TPayload extends object = object> = ScalingBreakpoint<TPayload>
+export type HealBreakpointProgressionLevel<TPayload extends object = object> =
+  ScalingBreakpoint<TPayload>
 
 export type HealBreakpointProgression<TPayload extends object = object> = {
   [S in ScalingSource]: {
@@ -55,51 +56,54 @@ export type HealBreakpointProgression<TPayload extends object = object> = {
   } & ScalingSourcePayload[S]
 }[ScalingSource]
 
-export type HealFixedPayload
-  = | {
-    amount: number
-    valueKind: 'FIXED'
-    scalingKind: typeof SCALING.NONE
-  } | ({
-    valueKind: 'FIXED'
-    scalingKind: typeof SCALING.PER_LEVEL
-  } & HealingProgression<{ amount: number }>)
+export type HealFixedPayload =
+  | {
+      amount: number
+      valueKind: 'FIXED'
+      scalingKind: typeof SCALING.NONE
+    }
   | ({
-    valueKind: 'FIXED'
-    scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
-  } & HealBreakpointProgression<{ amount: number }>)
-
-export type HealDicePayload
-  = | {
-    diceConfig: string
-    valueKind: 'DICE'
-    scalingKind: typeof SCALING.NONE
-  } | ({
-    valueKind: 'DICE'
-    scalingKind: typeof SCALING.PER_LEVEL
-  } & HealingProgression<{ diceConfig: string }>)
+      valueKind: 'FIXED'
+      scalingKind: typeof SCALING.PER_LEVEL
+    } & HealingProgression<{ amount: number }>)
   | ({
-    valueKind: 'DICE'
-    scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
-  } & HealBreakpointProgression<{ diceConfig: string }>)
+      valueKind: 'FIXED'
+      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+    } & HealBreakpointProgression<{ amount: number }>)
 
-export type HealPoolPayload
-  = | {
-    amount: number
-    valueKind: 'POOL'
-    scalingKind: typeof SCALING.NONE
-  } | ({
-    valueKind: 'POOL'
-    scalingKind: typeof SCALING.PER_LEVEL
-    scalingSource: 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
-    amount?: number
-    multiplier?: number
-    min?: number
-    max?: number
-  } & (
-    | { scalingSource: 'CLASS_LEVEL', classId: string }
-    | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
-  ))
+export type HealDicePayload =
+  | {
+      diceConfig: string
+      valueKind: 'DICE'
+      scalingKind: typeof SCALING.NONE
+    }
+  | ({
+      valueKind: 'DICE'
+      scalingKind: typeof SCALING.PER_LEVEL
+    } & HealingProgression<{ diceConfig: string }>)
+  | ({
+      valueKind: 'DICE'
+      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+    } & HealBreakpointProgression<{ diceConfig: string }>)
+
+export type HealPoolPayload =
+  | {
+      amount: number
+      valueKind: 'POOL'
+      scalingKind: typeof SCALING.NONE
+    }
+  | ({
+      valueKind: 'POOL'
+      scalingKind: typeof SCALING.PER_LEVEL
+      scalingSource: 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
+      amount?: number
+      multiplier?: number
+      min?: number
+      max?: number
+    } & (
+      | { scalingSource: 'CLASS_LEVEL'; classId: string }
+      | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
+    ))
 
 export type HealPayload = HealFixedPayload | HealDicePayload | HealPoolPayload
 

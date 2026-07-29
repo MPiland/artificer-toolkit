@@ -33,14 +33,16 @@ export const oathOfDevotion: ClassAuthored = {
   label: 'Oath of Devotion',
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.PALADIN,
-  description: 'The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order.',
+  description:
+    'The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
     {
       id: classRowId(P, 11, 1),
       label: 'Oath Spells',
-      description: 'You gain oath spells at the paladin levels listed. Protection from Evil and Good, Sanctuary (L3); Lesser Restoration, Zone of Truth (L5); Beacon of Hope, Dispel Magic (L9); Freedom of Movement, Guardian of Faith (L13); Commune, Flame Strike (L17).',
+      description:
+        'You gain oath spells at the paladin levels listed. Protection from Evil and Good, Sanctuary (L3); Lesser Restoration, Zone of Truth (L5); Beacon of Hope, Dispel Magic (L9); Freedom of Movement, Guardian of Faith (L13); Commune, Flame Strike (L17).',
       availableAtLevel: 3,
       order: 0,
       grants: {
@@ -69,35 +71,40 @@ export const oathOfDevotion: ClassAuthored = {
     {
       id: classRowId(P, 11, 2),
       label: 'Channel Divinity: Sacred Weapon',
-      description: 'As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon.',
+      description:
+        'As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon.',
       availableAtLevel: 3,
       order: 1
     },
     {
       id: classRowId(P, 11, 3),
       label: 'Channel Divinity: Turn the Unholy',
-      description: 'As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw.',
+      description:
+        'As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw.',
       availableAtLevel: 3,
       order: 2
     },
     {
       id: classRowId(P, 11, 4),
       label: 'Aura of Devotion',
-      description: 'Starting at 7th level, you and friendly creatures within 10 feet of you can\'t be charmed while you are conscious.',
+      description:
+        "Starting at 7th level, you and friendly creatures within 10 feet of you can't be charmed while you are conscious.",
       availableAtLevel: 7,
       order: 3
     },
     {
       id: classRowId(P, 11, 5),
       label: 'Purity of Spirit',
-      description: 'Beginning at 15th level, you are always under the effects of a Protection from Evil and Good spell.',
+      description:
+        'Beginning at 15th level, you are always under the effects of a Protection from Evil and Good spell.',
       availableAtLevel: 15,
       order: 4
     },
     {
       id: classRowId(P, 11, 6),
       label: 'Holy Nimbus',
-      description: 'At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.',
+      description:
+        'At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.',
       availableAtLevel: 20,
       order: 5
     }

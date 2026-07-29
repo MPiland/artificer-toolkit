@@ -11,10 +11,7 @@ export type RoundingCode = keyof typeof ROUNDING_CODE
 
 export type RoundingOption = CoreMeta<RoundingCode>
 
-export const ROUNDING_REGISTRY: Record<
-  RoundingCode,
-  RoundingOption
-> = {
+export const ROUNDING_REGISTRY: Record<RoundingCode, RoundingOption> = {
   [ROUNDING_CODE.UP]: {
     code: ROUNDING_CODE.UP,
     label: 'Round Up',

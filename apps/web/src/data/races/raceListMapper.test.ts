@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { RaceListResponseDto } from '#app/lib/api'
-import { buildRaceListFilters, mapRaceListToAuthoredItems, raceListAttributeColumns } from './raceListMapper'
+import {
+  buildRaceListFilters,
+  mapRaceListToAuthoredItems,
+  raceListAttributeColumns
+} from './raceListMapper'
 
 const response = {
   items: [
@@ -80,7 +84,9 @@ describe('race list mapper', () => {
   })
 
   it('builds category filters from active and draft rows', () => {
-    const categoryFilter = buildRaceListFilters(response).find((filter) => filter.key === 'category')
+    const categoryFilter = buildRaceListFilters(response).find(
+      (filter) => filter.key === 'category'
+    )
 
     expect(categoryFilter?.options).toEqual([
       { value: 'BASE', label: 'Base Race' },

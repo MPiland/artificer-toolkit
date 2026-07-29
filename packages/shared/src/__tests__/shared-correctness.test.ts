@@ -20,11 +20,15 @@ describe('shared D&D 5e correctness regressions', () => {
       'WISDOM',
       'CHARISMA'
     ])
-    expect(ABILITY_MODIFIER_REFERENCE_OPTIONS.map((option) => option.code)).toContain('SPELLCASTING')
+    expect(ABILITY_MODIFIER_REFERENCE_OPTIONS.map((option) => option.code)).toContain(
+      'SPELLCASTING'
+    )
   })
 
   it('uses SRD currency values expressed in copper pieces', () => {
-    const values = Object.fromEntries(currencies.map((currency) => [currency.code, currency.baseValue]))
+    const values = Object.fromEntries(
+      currencies.map((currency) => [currency.code, currency.baseValue])
+    )
 
     expect(values).toMatchObject({
       [CurrencyCode.COPPER]: 1,
@@ -36,15 +40,18 @@ describe('shared D&D 5e correctness regressions', () => {
   })
 
   it('uses Intelligence for Passive Investigation', () => {
-    expect(passives.find((passive) => passive.code === PassiveCode.INVESTIGATION)?.ability)
-      .toBe('INTELLIGENCE')
+    expect(passives.find((passive) => passive.code === PassiveCode.INVESTIGATION)?.ability).toBe(
+      'INTELLIGENCE'
+    )
   })
 
   it('preserves stable currency-group identity through compilation', () => {
-    const groups = [{
-      id: 'coin-purse',
-      currencies: [{ currencyId: 'gold', amount: 12 }]
-    }]
+    const groups = [
+      {
+        id: 'coin-purse',
+        currencies: [{ currencyId: 'gold', amount: 12 }]
+      }
+    ]
 
     expect(compileCurrencyGroups(groups)).toEqual(groups)
   })

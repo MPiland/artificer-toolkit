@@ -114,25 +114,23 @@ export type CompiledClassBase = {
   resources?: CompiledClassResource
 }
 
-export type CompiledClass = CompiledClassBase
-  & (
+export type CompiledClass = CompiledClassBase &
+  (
     | {
-      category: typeof CLASS_CATEGORY.BASE
-      startingGold: CompiledStartingGold
-      startingEquipment: CompiledStartingEquipment
-      hitpoint: CompiledHitpoint
-      multiclass: CompiledMulticlass
-    }
+        category: typeof CLASS_CATEGORY.BASE
+        startingGold: CompiledStartingGold
+        startingEquipment: CompiledStartingEquipment
+        hitpoint: CompiledHitpoint
+        multiclass: CompiledMulticlass
+      }
     | {
-      category: typeof CLASS_CATEGORY.SUBCLASS
-      parentClassId: string
-      specializations?: CompiledSpecialization[]
-    }
+        category: typeof CLASS_CATEGORY.SUBCLASS
+        parentClassId: string
+        specializations?: CompiledSpecialization[]
+      }
   )
 
-export function compileResource(
-  authored: ClassResourceAuthored
-): CompiledClassResource {
+export function compileResource(authored: ClassResourceAuthored): CompiledClassResource {
   return {
     id: authored.id,
     label: authored.label,
@@ -142,9 +140,7 @@ export function compileResource(
   }
 }
 
-export function compilePrepareLimit(
-  authored: ClassPrepareLimitAuthored
-): CompiledPrepareLimit {
+export function compilePrepareLimit(authored: ClassPrepareLimitAuthored): CompiledPrepareLimit {
   return {
     methodKinds: authored.methodKinds,
     scaling: authored.scaling,
@@ -153,9 +149,7 @@ export function compilePrepareLimit(
   }
 }
 
-export function compileSpellLimits(
-  authored: ClassSpellLimitsAuthored
-): CompiledSpellLimits {
+export function compileSpellLimits(authored: ClassSpellLimitsAuthored): CompiledSpellLimits {
   return {
     classLevel: authored.classLevel,
     slots: authored.slots,
@@ -165,9 +159,7 @@ export function compileSpellLimits(
   }
 }
 
-export function compileSpellcasting(
-  authored: ClassSpellcastingAuthored
-): CompiledSpellcasting {
+export function compileSpellcasting(authored: ClassSpellcastingAuthored): CompiledSpellcasting {
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
 
   const prepareLimit = authored.prepareLimit
@@ -184,9 +176,7 @@ export function compileSpellcasting(
   }
 }
 
-export function compileMulticlass(
-  authored: ClassMulticlassAuthored
-): CompiledMulticlass {
+export function compileMulticlass(authored: ClassMulticlassAuthored): CompiledMulticlass {
   return {
     id: authored.id,
     requirementGroups: {
@@ -217,13 +207,13 @@ export function compileSpecialization(
 }
 
 export function compileClass(authored: ClassAuthored): CompiledClass {
-  const proficiencies
-    = authored.proficiencies && authored.proficiencies.length
+  const proficiencies =
+    authored.proficiencies && authored.proficiencies.length
       ? authored.proficiencies.map(compileProficiencyGrant)
       : undefined
 
-  const features
-    = authored.features && authored.features.length
+  const features =
+    authored.features && authored.features.length
       ? authored.features.map(compileFeature)
       : undefined
 
@@ -231,9 +221,7 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
     ? compileSpellcasting(authored.spellcasting)
     : undefined
 
-  const resources = authored.resources
-    ? compileResource(authored.resources)
-    : undefined
+  const resources = authored.resources ? compileResource(authored.resources) : undefined
 
   const base: CompiledClassBase = {
     id: authored.id,
@@ -256,8 +244,8 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
     }
 
     case CLASS_CATEGORY.SUBCLASS: {
-      const specializations
-        = authored.specializations && authored.specializations.length
+      const specializations =
+        authored.specializations && authored.specializations.length
           ? authored.specializations.map((specialization) => compileSpecialization(specialization))
           : undefined
       return {

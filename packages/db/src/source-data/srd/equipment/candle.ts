@@ -13,5 +13,5 @@ export const candle: EquipmentAuthored = {
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

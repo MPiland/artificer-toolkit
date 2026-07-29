@@ -77,9 +77,15 @@ export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$
 })
 
 function BackgroundDetailRoute() {
-  const {
-    backgroundId, draft, references, response, view
-  } = Route.useLoaderData()
+  const { backgroundId, draft, references, response, view } = Route.useLoaderData()
 
-  return <BackgroundDetailPage backgroundId={backgroundId} draft={draft} references={references} response={response} view={view} />
+  return (
+    <BackgroundDetailPage
+      backgroundId={backgroundId}
+      draft={draft}
+      references={references}
+      response={response}
+      view={view}
+    />
+  )
 }

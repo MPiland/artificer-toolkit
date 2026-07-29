@@ -51,23 +51,23 @@ Within a single feature, grants are applied in this order:
 Stacking is determined by `modifierKind`. The engine applies rules per kind regardless of
 which value domain the modifier targets.
 
-| Modifier Kind         | Stacking Rule | Notes |
-|---|---|---|
-| `BONUS`               | additive      | Untyped bonuses always stack in 5e 2014 |
-| `PENALTY`             | additive      | Penalties stack (e.g. exhaustion stacks) |
-| `SET_VALUE`           | last          | Explicit overrides; last processed wins |
-| `ADD_BONUS_DIE`       | additive      | Multiple bonus dice stack |
-| `REPLACE_DAMAGE_TYPE` | last          | Last replacement wins |
-| `ADVANTAGE`           | boolean       | Advantage is binary — any source grants it |
-| `DISADVANTAGE`        | boolean       | Disadvantage is binary — any source grants it |
-| `ADD_OPTION`          | additive      | Set membership — each entry is distinct |
-| `REMOVE_OPTION`       | additive      | Set removal — each entry is distinct |
-| `REPLACE_RANGE_KIND`  | last          | Last replacement wins |
-| `REPLACE_DURATION_KIND` | last        | Last replacement wins |
-| `REPLACE_SHAPE_KIND`  | last          | Last replacement wins |
-| `REPLACE_CHARGE_RESET_KIND` | last    | Last replacement wins |
-| `MODIFY_CHARGE_LIMIT` | additive      | Charge limit deltas stack |
-| `OPTIONAL_ABILITY_MODIFIER_BONUS` | additive | Adds to the pool of eligible ability modifiers |
+| Modifier Kind                     | Stacking Rule | Notes                                          |
+| --------------------------------- | ------------- | ---------------------------------------------- |
+| `BONUS`                           | additive      | Untyped bonuses always stack in 5e 2014        |
+| `PENALTY`                         | additive      | Penalties stack (e.g. exhaustion stacks)       |
+| `SET_VALUE`                       | last          | Explicit overrides; last processed wins        |
+| `ADD_BONUS_DIE`                   | additive      | Multiple bonus dice stack                      |
+| `REPLACE_DAMAGE_TYPE`             | last          | Last replacement wins                          |
+| `ADVANTAGE`                       | boolean       | Advantage is binary — any source grants it     |
+| `DISADVANTAGE`                    | boolean       | Disadvantage is binary — any source grants it  |
+| `ADD_OPTION`                      | additive      | Set membership — each entry is distinct        |
+| `REMOVE_OPTION`                   | additive      | Set removal — each entry is distinct           |
+| `REPLACE_RANGE_KIND`              | last          | Last replacement wins                          |
+| `REPLACE_DURATION_KIND`           | last          | Last replacement wins                          |
+| `REPLACE_SHAPE_KIND`              | last          | Last replacement wins                          |
+| `REPLACE_CHARGE_RESET_KIND`       | last          | Last replacement wins                          |
+| `MODIFY_CHARGE_LIMIT`             | additive      | Charge limit deltas stack                      |
+| `OPTIONAL_ABILITY_MODIFIER_BONUS` | additive      | Adds to the pool of eligible ability modifiers |
 
 **Note on ENHANCEMENT bonuses:** The 5e 2014 rule that "enhancement bonuses don't stack" is
 modeled through `scope` on the modifier grant (`MODIFIER_SCOPE_KIND`), not the modifier kind
@@ -93,45 +93,69 @@ Stats are calculated in this exact order. Each step may depend on the result of 
 
 5. **Proficiency bonus computed** — `floor((totalLevel - 1) / 4) + 2`
 
-6. **Saving throws** — for each ability:
+6. **Saving throws** — apply any saving-throw proficiency override, then for each ability:
    `abilityModifier + (proficiencyBonus × scaling)` where scaling:
    - FULL = 1× PB (full proficiency)
    - HALF = 0.5× PB rounded down (half proficiency, e.g. Bard Jack of All Trades)
    - DOUBLE = 2× PB (expertise, not on saves in 5e 2014 base rules)
    - Not proficient = 0
 
-7. **Skill bonuses** — for each skill:
+7. **Skill bonuses** — apply any governing-ability and proficiency overrides, then for each skill:
    `abilityModifier(governingAbility) + (proficiencyBonus × scaling)`
    Same scaling as saving throws.
 
-8. **Hit points** — sum of `snapshot.intent.hitpoints.levels[].value`; each ordered row already stores
-   its character level, class identity, class level, and computed HP value (including CON modifier)
-   Note: this is the already-computed HP total from the character's level entries.
+8. **Passive checks** — `10 + effectiveSkillBonus`, followed by a target-specific passive override.
 
-9. **Armor class** — resolve eligible equipped armor/shields and their modifiers, otherwise use
-   `10 + DEX modifier`; then apply remaining `ARMOR_CLASS` domain modifiers.
+9. **Movement** — resolve authored speeds and speed modifiers, then apply typed speed overrides.
+   `AUTO` displays walking when available and otherwise the first backend-ordered available speed.
+   An explicit preference is used only while that speed remains available.
 
-10. **Initiative** — `DEX modifier` + sum of `INITIATIVE` domain modifiers
+10. **Hit points** — sum the ordered per-level HP values, apply the difference between the authored
+    and adjusted Constitution modifier once per level, then apply maximum-HP modifiers. Each ordered
+    row already stores character level, class identity, class level, and its authored HP value.
 
-11. **Spell save DC** — present only if the character has a spellcasting class in the registry:
+11. **Armor class** — resolve eligible equipped armor/shields and their modifiers, otherwise use
+    `10 + DEX modifier`; then apply remaining `ARMOR_CLASS` domain modifiers.
+
+12. **Initiative** — `DEX modifier` + sum of `INITIATIVE` domain modifiers
+
+13. **Spell save DC** — present only if the character has a spellcasting class in the registry:
     `8 + proficiencyBonus + spellcastingAbilityModifier`
 
-12. **Spell attack bonus** — present only if the character has a spellcasting class:
+14. **Spell attack bonus** — present only if the character has a spellcasting class:
     `proficiencyBonus + spellcastingAbilityModifier`
 
 ---
 
-## 5. Effect Resolution
+## 5. Sheet Adjustment Precedence
+
+For every supported target, resolution follows this order:
+
+1. Start with the Builder-authored base value.
+2. Apply authored, feature, equipment, and other engine contributions using their normal stacking rule.
+3. Apply typed manual additive adjustments.
+4. Apply the target's absolute override last.
+
+An absolute override suppresses, but does not delete, earlier contributions in the calculation breakdown.
+Removing it recalculates from current inputs. Adjusted upstream values feed downstream calculations unless
+the downstream target has its own absolute override. Labels, notes, actors, permissions, and presentation
+semantics never enter engine input.
+
+Spell adjustments are keyed by spell-source identity. Item and companion adjustments are keyed by their
+owned-instance UUID. Derived totals and calculation breakdowns are output only and are never persisted.
+
+---
+
+## 6. Effect Resolution
 
 Effect resolution (damage dice, healing, condition application, moment triggers) is
 **deferred to Phase 7**. The engine does not process effects in Phase 6.
 
 ---
 
-## 6. Out of Scope for This Implementation
+## 7. Out of Scope for This Implementation
 
 - Damage/attack roll simulation
 - Encounter turn, target, and outcome sequencing
 - Mechanical condition consequences and stacking
 - Per-scope ENHANCEMENT bonus capping
-

@@ -88,11 +88,7 @@ export const ShellActions: Story = {
   )
 }
 
-function HeaderMenuButtonStory({
-  label,
-  variant,
-  ...colorArgs
-}: HeaderMenuButtonStoryArgs) {
+function HeaderMenuButtonStory({ label, variant, ...colorArgs }: HeaderMenuButtonStoryArgs) {
   const Icon = variant === 'create' ? PlusCircle : BookOpen
 
   return (

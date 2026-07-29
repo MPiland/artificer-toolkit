@@ -28,17 +28,22 @@ function shouldTraceDbQueries(): boolean {
 }
 
 function isPromiseLike(value: unknown): value is Promise<unknown> {
-  return typeof value === 'object'
-    && value !== null
-    && 'then' in value
-    && typeof (value as { then?: unknown }).then === 'function'
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'then' in value &&
+    typeof (value as { then?: unknown }).then === 'function'
+  )
 }
 
 function readQueryText(args: readonly unknown[]): string {
   const first = args[0]
   return typeof first === 'string'
     ? first
-    : typeof first === 'object' && first !== null && 'text' in first && typeof (first as { text?: unknown }).text === 'string'
+    : typeof first === 'object' &&
+        first !== null &&
+        'text' in first &&
+        typeof (first as { text?: unknown }).text === 'string'
       ? (first as { text: string }).text
       : ''
 }
@@ -71,13 +76,16 @@ function installQueryTrace(pool: Pool): Pool {
       const sequence = ++queryCount
       const result = originalQuery(...args)
       const logQuery = (ok: boolean) => {
-        console.info('[artificer-db-query]', JSON.stringify({
-          durationMs: Date.now() - startedAt,
-          ok,
-          operation,
-          relation,
-          sequence
-        }))
+        console.info(
+          '[artificer-db-query]',
+          JSON.stringify({
+            durationMs: Date.now() - startedAt,
+            ok,
+            operation,
+            relation,
+            sequence
+          })
+        )
       }
 
       if (isPromiseLike(result)) {
@@ -104,12 +112,14 @@ function installQueryTrace(pool: Pool): Pool {
 export function createDb(options: CreateDbOptions = {}) {
   return new Kysely<Database>({
     dialect: new PostgresDialect({
-      pool: installQueryTrace(new Pool({
-        connectionString: resolveConnectionString(options),
-        connectionTimeoutMillis: 10_000,
-        idleTimeoutMillis: 30_000,
-        max: readPoolMax()
-      }))
+      pool: installQueryTrace(
+        new Pool({
+          connectionString: resolveConnectionString(options),
+          connectionTimeoutMillis: 10_000,
+          idleTimeoutMillis: 30_000,
+          max: readPoolMax()
+        })
+      )
     })
   })
 }

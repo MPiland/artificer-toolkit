@@ -10,10 +10,25 @@ function read(relativePath: string): string {
 
 describe('character play-state persistence schema', () => {
   const characterTables = read('packages/db/src/domains/subjects/tables/characters.sql')
-  const generatedBundle = read('packages/db/src/domains/bootstrap/generated/create_database.bundle.sql')
+  const generatedBundle = read(
+    'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
+  )
   const bootstrapMigration = read('supabase/migrations/20260316000100_bootstrap_bundle.sql')
-  const playStateMigration = read('supabase/migrations/20260713090000_character_play_state_persistence.sql')
-  const classSpellStateIdentityMigration = read('supabase/migrations/20260714053000_character_class_spell_state_identity.sql')
+  const playStateMigration = read(
+    'supabase/migrations/20260713090000_character_play_state_persistence.sql'
+  )
+  const classSpellStateIdentityMigration = read(
+    'supabase/migrations/20260714053000_character_class_spell_state_identity.sql'
+  )
+  const characterAdjustmentTables = read(
+    'packages/db/src/domains/subjects/tables/character_sheet_adjustments.sql'
+  )
+  const adjustmentNoteOnlyMigration = read(
+    'supabase/migrations/20260725010000_character_sheet_adjustment_note_only.sql'
+  )
+  const creatureOriginMigration = read(
+    'supabase/migrations/20260727090000_character_creature_origin_kind.sql'
+  )
 
   it.each([
     ['canonical character tables', characterTables],
@@ -53,7 +68,75 @@ describe('character play-state persistence schema', () => {
   })
 
   it('upgrades existing class-spell identities without rewriting spell selections', () => {
-    expect(classSpellStateIdentityMigration).toContain('DROP CONSTRAINT IF EXISTS character_class_spells_pkey')
-    expect(classSpellStateIdentityMigration).toContain('PRIMARY KEY (character_id, class_id, spell_id, state)')
+    expect(classSpellStateIdentityMigration).toContain(
+      'DROP CONSTRAINT IF EXISTS character_class_spells_pkey'
+    )
+    expect(classSpellStateIdentityMigration).toContain(
+      'PRIMARY KEY (character_id, class_id, spell_id, state)'
+    )
+  })
+
+  it('keeps adjustment provenance as a note without category or label fields', () => {
+    expect(characterAdjustmentTables).toContain('source_note text')
+    expect(characterAdjustmentTables).not.toContain('source_category')
+    expect(characterAdjustmentTables).not.toContain('source_label')
+  })
+
+  it.each([
+    ['canonical character tables', characterTables],
+    ['generated bootstrap bundle', generatedBundle]
+  ])('stores creature origin and instance hit point state in %s', (_label, sql) => {
+    expect(sql).toContain("origin_kind text NOT NULL DEFAULT 'WORLD'")
+    expect(sql).toContain("relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED')")
+    expect(sql).toContain('current_hit_points integer')
+    expect(sql).toContain('temp_hit_points integer')
+    expect(sql).toContain('character_creatures_hit_points_nonnegative_chk')
+    expect(sql).toContain('character_vehicles_current_hit_points_nonnegative_chk')
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.character_creature_hit_dice_state')
+    expect(sql).toContain('character_creature_hit_dice_state_creature_owner_fkey')
+  })
+
+  it('migrates legacy summoned creatures to a companion role with summoned origin', () => {
+    expect(creatureOriginMigration).toContain('ADD COLUMN IF NOT EXISTS origin_kind text')
+    expect(creatureOriginMigration).toContain("WHEN relationship_kind = 'SUMMONED' THEN 'SUMMONED'")
+    expect(creatureOriginMigration).toContain("SET relationship_kind = 'COMPANION'")
+    expect(creatureOriginMigration).toContain("origin_kind IN ('WORLD', 'SUMMONED')")
+    expect(creatureOriginMigration).toContain('character_creatures_hit_points_nonnegative_chk')
+    expect(creatureOriginMigration).toContain(
+      'character_vehicles_current_hit_points_nonnegative_chk'
+    )
+    expect(creatureOriginMigration).toContain('No direct browser API access')
+  })
+
+  it('migrates adjustment labels into capped notes before removing legacy provenance fields', () => {
+    expect(adjustmentNoteOnlyMigration).toContain('SET source_note = CASE')
+    expect(adjustmentNoteOnlyMigration).toContain('THEN left(btrim(source_label), 240)')
+    expect(adjustmentNoteOnlyMigration).toMatch(
+      /ELSE left\(btrim\(source_label\) \|\| .+ \|\| btrim\(source_note\), 240\)/
+    )
+    expect(adjustmentNoteOnlyMigration).toContain("table_name || '_source_category_chk'")
+    expect(adjustmentNoteOnlyMigration).toContain("table_name || '_source_label_chk'")
+    expect(adjustmentNoteOnlyMigration).toContain('DROP COLUMN IF EXISTS source_category')
+    expect(adjustmentNoteOnlyMigration).toContain('DROP COLUMN IF EXISTS source_label')
+  })
+
+  it('keeps spell customizations and resource usage keyed by stable source identity', () => {
+    expect(characterAdjustmentTables).toContain(
+      'CREATE TABLE IF NOT EXISTS public.character_spell_customizations'
+    )
+    expect(characterAdjustmentTables).toContain('source_kind text NOT NULL')
+    expect(characterAdjustmentTables).toContain('source_instance_id text NOT NULL')
+    expect(characterAdjustmentTables).toContain(
+      'UNIQUE (character_id, spell_id, source_kind, source_instance_id)'
+    )
+    expect(characterAdjustmentTables).toContain(
+      'CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage'
+    )
+    expect(characterAdjustmentTables).toContain("owner_kind = 'SPELL_SOURCE'")
+    expect(characterAdjustmentTables).toContain('source_kind IN (')
+    expect(characterAdjustmentTables).toContain('AND source_instance_id IS NOT NULL')
+    expect(characterAdjustmentTables).toContain(
+      'character_id,\n    resource_grant_id,\n    spell_id,\n    source_kind,\n    source_instance_id'
+    )
   })
 })

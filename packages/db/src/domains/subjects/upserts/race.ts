@@ -65,10 +65,7 @@ type RaceAncestryOptionFeatureRow = {
   sort_order: number
 }
 
-function requireRaceCategory(
-  raceId: string,
-  value: string
-): RaceAuthored['category'] {
+function requireRaceCategory(raceId: string, value: string): RaceAuthored['category'] {
   if (value !== RACE_CATEGORY_CODE.BASE && value !== RACE_CATEGORY_CODE.SUBRACE) {
     throw new Error(`Race "${raceId}" has invalid category "${value}".`)
   }
@@ -76,10 +73,7 @@ function requireRaceCategory(
   return value
 }
 
-function requireSizeCode(
-  raceId: string,
-  value: string
-): BaseRaceAuthored['size'] {
+function requireSizeCode(raceId: string, value: string): BaseRaceAuthored['size'] {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Race "${raceId}" has invalid size "${value}".`)
   }
@@ -137,14 +131,9 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
   }
 }
 
-export async function upsertRace(
-  db: DBLike,
-  json_data: RaceAuthored,
-  _systemId: string
-) {
-  const baseData: BaseRaceAuthored | null = json_data.category === RACE_CATEGORY_CODE.BASE
-    ? json_data
-    : null
+export async function upsertRace(db: DBLike, json_data: RaceAuthored, _systemId: string) {
+  const baseData: BaseRaceAuthored | null =
+    json_data.category === RACE_CATEGORY_CODE.BASE ? json_data : null
   const ancestryData = baseData?.ancestry
 
   const speedRows: RaceSpeedRow[] = (baseData?.speeds ?? []).map((speed) => ({
@@ -154,11 +143,13 @@ export async function upsertRace(
     unit_code: requireMeasurementUnit(json_data.id, speed.speedId, speed.unit)
   }))
 
-  const heritageRows: RaceHeritageRow[] = (baseData?.heritageIds ?? []).map((heritageId, index) => ({
-    race_id: json_data.id,
-    heritage_id: heritageId,
-    sort_order: index + 1
-  }))
+  const heritageRows: RaceHeritageRow[] = (baseData?.heritageIds ?? []).map(
+    (heritageId, index) => ({
+      race_id: json_data.id,
+      heritage_id: heritageId,
+      sort_order: index + 1
+    })
+  )
 
   const ancestryRow: RaceAncestryRow | null = ancestryData
     ? {
@@ -180,55 +171,44 @@ export async function upsertRace(
     : []
 
   const ancestryOptionFeatureRows: RaceAncestryOptionFeatureRow[] = ancestryData
-    ? ancestryData.options.flatMap((option) => (option.features ?? []).map((feature) => ({
-        ancestry_option_id: option.id,
-        feature_id: feature.id,
-        sort_order: feature.order
-      })))
+    ? ancestryData.options.flatMap((option) =>
+        (option.features ?? []).map((feature) => ({
+          ancestry_option_id: option.id,
+          feature_id: feature.id,
+          sort_order: feature.order
+        }))
+      )
     : []
 
   return withTransaction(db, async (trx) => {
     await trx
       .insertInto('races')
       .values(mapRaceRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        system_id: eb.ref('excluded.system_id'),
-        user_id: eb.ref('excluded.user_id'),
-        label: eb.ref('excluded.label'),
-        quote: eb.ref('excluded.quote'),
-        description: eb.ref('excluded.description'),
-        status: eb.ref('excluded.status'),
-        category: eb.ref('excluded.category'),
-        selection_mode: eb.ref('excluded.selection_mode'),
-        parent_race_id: eb.ref('excluded.parent_race_id'),
-        size_code: eb.ref('excluded.size_code')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          user_id: eb.ref('excluded.user_id'),
+          label: eb.ref('excluded.label'),
+          quote: eb.ref('excluded.quote'),
+          description: eb.ref('excluded.description'),
+          status: eb.ref('excluded.status'),
+          category: eb.ref('excluded.category'),
+          selection_mode: eb.ref('excluded.selection_mode'),
+          parent_race_id: eb.ref('excluded.parent_race_id'),
+          size_code: eb.ref('excluded.size_code')
+        }))
+      )
       .execute()
 
-    await trx
-      .deleteFrom('race_features')
-      .where('race_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('race_features').where('race_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('race_ancestries')
-      .where('race_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('race_ancestries').where('race_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('race_details')
-      .where('race_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('race_details').where('race_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('race_speeds')
-      .where('race_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('race_speeds').where('race_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('race_heritages')
-      .where('race_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('race_heritages').where('race_id', '=', json_data.id).execute()
 
     if (json_data.details) {
       for (const detail of json_data.details) {
@@ -257,10 +237,7 @@ export async function upsertRace(
     }))
 
     if (detailRows.length > 0) {
-      await trx
-        .insertInto('race_details')
-        .values(detailRows)
-        .execute()
+      await trx.insertInto('race_details').values(detailRows).execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -270,37 +247,22 @@ export async function upsertRace(
     }))
 
     if (featureRows.length > 0) {
-      await trx
-        .insertInto('race_features')
-        .values(featureRows)
-        .execute()
+      await trx.insertInto('race_features').values(featureRows).execute()
     }
 
     if (speedRows.length > 0) {
-      await trx
-        .insertInto('race_speeds')
-        .values(speedRows)
-        .execute()
+      await trx.insertInto('race_speeds').values(speedRows).execute()
     }
 
     if (heritageRows.length > 0) {
-      await trx
-        .insertInto('race_heritages')
-        .values(heritageRows)
-        .execute()
+      await trx.insertInto('race_heritages').values(heritageRows).execute()
     }
 
     if (ancestryRow) {
-      await trx
-        .insertInto('race_ancestries')
-        .values(ancestryRow)
-        .execute()
+      await trx.insertInto('race_ancestries').values(ancestryRow).execute()
 
       if (ancestryOptionRows.length > 0) {
-        await trx
-          .insertInto('race_ancestry_options')
-          .values(ancestryOptionRows)
-          .execute()
+        await trx.insertInto('race_ancestry_options').values(ancestryOptionRows).execute()
       }
 
       if (ancestryOptionFeatureRows.length > 0) {
@@ -310,6 +272,5 @@ export async function upsertRace(
           .execute()
       }
     }
-
   })
 }

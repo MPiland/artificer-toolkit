@@ -70,10 +70,7 @@ export async function selectNodeRuntimeRows(
   return result.rows
 }
 
-function getSystemPredicate(
-  tableName: string,
-  systemId: string
-): RawBuilder<unknown> | undefined {
+function getSystemPredicate(tableName: string, systemId: string): RawBuilder<unknown> | undefined {
   if (systemScopedTables.has(tableName)) {
     return sql`${sql.ref('system_id')} = ${systemId}`
   }

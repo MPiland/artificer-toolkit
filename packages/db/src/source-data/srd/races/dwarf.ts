@@ -19,7 +19,16 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_DWARVEN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID,
+  SRD_DARKVISION_SENSE_ID
+} from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -29,7 +38,8 @@ function raceFeatureId(raceIndex: number, group: number, entry: number): string 
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
-if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
+if (!walkSpeedId)
+  throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const dwarfWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_CODE.FEET }]
 
@@ -61,7 +71,8 @@ function languageId(code: string): string {
 export const dwarf: RaceAuthored = {
   id: RACE_IDS.DWARF,
   label: 'Dwarf',
-  description: '<p>Your dwarf character has an assortment of inborn abilities, part and parcel of dwarven nature.</p>',
+  description:
+    '<p>Your dwarf character has an assortment of inborn abilities, part and parcel of dwarven nature.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
@@ -71,25 +82,29 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 0, 1),
       label: 'Age',
-      description: 'Dwarves mature at the same rate as humans, but they are considered young until they reach the age of 50. On average, they live about 350 years.',
+      description:
+        'Dwarves mature at the same rate as humans, but they are considered young until they reach the age of 50. On average, they live about 350 years.',
       order: 0
     },
     {
       id: raceFeatureId(1, 0, 2),
       label: 'Alignment',
-      description: 'Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order.',
+      description:
+        'Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order.',
       order: 1
     },
     {
       id: raceFeatureId(1, 0, 3),
       label: 'Size',
-      description: 'Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium.',
+      description:
+        'Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium.',
       order: 2
     },
     {
       id: raceFeatureId(1, 0, 4),
       label: 'Speed',
-      description: 'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
+      description:
+        'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
       order: 3
     }
   ],
@@ -122,7 +137,8 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 1, 1),
       label: 'Darkvision',
-      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+      description:
+        'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -148,7 +164,8 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 2, 1),
       label: 'Dwarven Resilience',
-      description: 'You have advantage on saving throws against poison, and you have resistance against poison damage.',
+      description:
+        'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
       order: 2,
       grants: {
@@ -211,7 +228,8 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 4, 1),
       label: 'Tool Proficiency',
-      description: 'You gain proficiency with the artisan\'s tools of your choice: smith\'s tools, brewer\'s supplies, or mason\'s tools.',
+      description:
+        "You gain proficiency with the artisan's tools of your choice: smith's tools, brewer's supplies, or mason's tools.",
       availableAtLevel: 1,
       order: 4,
       grants: {
@@ -239,7 +257,8 @@ export const dwarf: RaceAuthored = {
     {
       id: raceFeatureId(1, 5, 1),
       label: 'Stonecunning',
-      description: 'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
+      description:
+        'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
       availableAtLevel: 1,
       order: 5
     },
@@ -247,7 +266,8 @@ export const dwarf: RaceAuthored = {
       id: raceFeatureId(1, 6, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.',
+      description:
+        'You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.',
       availableAtLevel: 1,
       order: 6,
       grants: {
@@ -274,7 +294,8 @@ export const dwarf: RaceAuthored = {
 export const hillDwarf: RaceAuthored = {
   id: SUBRACE_IDS.HILL_DWARF,
   label: 'Hill Dwarf',
-  description: '<p>As a hill dwarf, you have keen senses, deep intuition, and remarkable resilience.</p>',
+  description:
+    '<p>As a hill dwarf, you have keen senses, deep intuition, and remarkable resilience.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.DWARF,
   userId: SRD_USER_ID,
@@ -299,14 +320,15 @@ export const hillDwarf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { valueKind: 'FIXED' as const, amount: 1 },
             order: 0
-          },
+          }
         ]
       }
     },
     {
       id: raceFeatureId(101, 2, 1),
       label: 'Dwarven Toughness',
-      description: 'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.',
+      description:
+        'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.',
       availableAtLevel: 1,
       order: 1,
       grants: {

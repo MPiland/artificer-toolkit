@@ -56,13 +56,17 @@ describe('grant detail presenters', () => {
       }
     ] satisfies ProficiencyGrantDto[]
 
-    const lines = formatProficiencyGrantLines(grants, references, { skillLabel: 'Skill Proficiencies' })
+    const lines = formatProficiencyGrantLines(grants, references, {
+      skillLabel: 'Skill Proficiencies'
+    })
 
     expect(lines).toEqual([
       { id: 'skills', label: 'Skill Proficiencies', description: 'Insight, Religion' },
       { id: 'languages', label: 'Languages', description: 'Choose any 2 languages.' }
     ])
-    expect(formatGrantDetailLinesHtml(lines)).toContain('<strong>Languages:</strong> Choose any 2 languages.')
+    expect(formatGrantDetailLinesHtml(lines)).toContain(
+      '<strong>Languages:</strong> Choose any 2 languages.'
+    )
   })
 
   it('groups class armor, weapon, save, and skill proficiencies', () => {
@@ -196,7 +200,8 @@ describe('grant detail presenters', () => {
     expect(formatStartingEquipmentLine(startingEquipment, references)).toEqual({
       id: 'equipment',
       label: 'Equipment',
-      description: 'A holy symbol, choose either a prayer book or prayer wheel, and a pouch containing 15 gp.'
+      description:
+        'A holy symbol, choose either a prayer book or prayer wheel, and a pouch containing 15 gp.'
     })
   })
 })

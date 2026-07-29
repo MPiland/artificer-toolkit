@@ -16,7 +16,7 @@ Character services load and compile authored content, populate a registry, assem
 ## Invariants
 
 - Identical snapshot/registry/rules inputs produce identical output; keep resolution side-effect free.
-- D&D-5e-family arithmetic, stacking, and ordering policy is injected through `RulesSystem`. A materially different game should use a system-specific engine adapter and contracts behind the registry seam rather than adding cross-system branches to this kernel.
+- D&D-5e-family arithmetic, stacking, ordering, rest recovery, and exhaustion policy is injected through `RulesSystem`. Sheet services orchestrate rest transactions but consume the active rules policy for exhaustion limits and long-rest recovery instead of embedding system-specific values. A materially different game should use a system-specific engine adapter and contracts behind the registry seam rather than adding cross-system branches to this kernel.
 - `CharacterBuildSnapshot` is ephemeral and distinct from persisted character authored/state records.
 - Compiled records are supplied by the caller; the engine never reaches through repositories.
 

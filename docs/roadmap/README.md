@@ -1,7 +1,7 @@
 # Future platform roadmap
 
 > **Status:** transitional plan
-> **Scope:** Character Sheet play depth, native clients, media/files, Campaigns, Encounters, commerce, Social Hub, Marketplace, VTT, and release operations
+> **Scope:** Character Sheet play depth, authoritative dice, native clients, media/files, Campaigns, Encounters, commerce, Social Hub, Marketplace, VTT, and release operations
 > **Update when:** priorities, product assumptions, client boundaries, payment strategy, or a phase exit gate changes
 > **Verification:** current workspace manifests, canonical architecture guides, ADRs 0001 and 0005–0010, and the phase documents linked below
 
@@ -14,17 +14,18 @@ Evolve Artificer Toolkit from its current web-first character and authored-conte
 The delivery order is:
 
 - **Phase 00:** Character Sheet play depth and overrides.
-- **Phase 01:** Media and supporting-file pipeline.
-- **Phase 02:** Cross-platform client foundation.
-- **Phase 03:** Campaign Core.
-- **Phase 04:** Live Campaign play.
-- **Phase 05:** Campaign and standalone Encounters.
-- **Phase 06:** Entitlements and subscriptions.
-- **Phase 07:** Free Social Hub.
-- **Phase 08:** Free Marketplace.
-- **Phase 09:** Paid Marketplace and paid tables.
-- **Phase 10:** Web and native VTT.
-- **Phase 11:** Store release and continuous validation.
+- **Phase 01:** Dice and roll infrastructure.
+- **Phase 02:** Media and supporting-file pipeline.
+- **Phase 03:** Cross-platform client foundation.
+- **Phase 04:** Campaign Core.
+- **Phase 05:** Live Campaign play.
+- **Phase 06:** Campaign and standalone Encounters.
+- **Phase 07:** Entitlements and subscriptions.
+- **Phase 08:** Free Social Hub.
+- **Phase 09:** Free Marketplace.
+- **Phase 10:** Paid Marketplace and paid tables.
+- **Phase 11:** Web and native VTT.
+- **Phase 12:** Store release and continuous validation.
 
 No phase should be implemented as one repository-wide branch. Start a new session and branch for one phase, verify the current repository state, and produce a smaller implementation subplan before changing code.
 
@@ -40,7 +41,7 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 - Alpha and early beta remain free. Prices, plan limits, fees, and revenue shares are unresolved product decisions.
 - Beta sizing targets ordinary tabletop use: approximately 20 connected users and 100 actors in one scope.
 - Roll retention starts at 5,000 Campaign rolls and 2,000 Encounter rolls, then changes only from observed beta usage.
-- Character portraits are distinct from account avatars. Authored content initially supports an optional thumbnail and larger display image.
+- Character portraits are distinct from account avatars. Characters and user-authored content use one source image plus normalized user-selected thumbnail crop metadata; initially only the Character Sheet header renders the generated thumbnail.
 - User uploads are private by default. Exact file limits, dimensions, quotas, retention, and supporting-file allowlists remain per-profile product decisions for the media phase.
 - Ordinary Campaign supporting files and handout maps are size-limited separately from larger VTT maps.
 - The existing modular monolith remains the deployment model. This roadmap does not introduce microservices, general queues, or speculative infrastructure.
@@ -51,13 +52,17 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 
 The Sheet owns play-state commands and per-character adjustment intent without rewriting Builder structure or reusable authored content. The backend resolves effective values, calculation breakdowns, valid actions, and semantic panels; web and future native clients own accessible platform presentation. Ability, save, skill, passive, sense, movement, defense, proficiency, HP, rest, condition, spell, feature, item, background, and companion interactions use the same authoritative engine and Sheet command seams.
 
+### Dice and rolls
+
+One restricted backend service owns expression validation, cryptographic randomness, and exact per-die evidence. Web may animate that known result with a lazy viewport-sized 3D presentation, but browser physics never chooses the outcome. Campaign and Encounter scopes add their own visibility, persistence, and retention by consuming the same service rather than creating another roller.
+
 ### Native applications
 
 Native iOS and Android clients are first-class play clients for Character Sheets, Campaigns, chat, notes, Encounters, Social Hub participation, Marketplace discovery and consumption, and VTT. They use Expo Router and React Native components for navigation and ordinary product surfaces. A specialized canvas such as the first VTT renderer may use an Expo DOM component; the app as a whole must not become a WebView wrapper.
 
 ### Media and supporting files
 
-One private-by-default asset pipeline serves Character portraits, authored-content thumbnails and larger images, Campaign logos, size-limited Campaign attachments and handout maps, Marketplace previews/supplements, and larger VTT maps. Each purpose has a centrally configured profile for authorization, verified file types, size/dimension limits, variants, quotas, processing, and delivery. The API approves every object key and domain reference; clients transfer bytes directly to Storage only through short-lived permissions.
+One private-by-default asset pipeline serves Character and authored-content source images, crop-derived variants, Campaign logos, size-limited Campaign attachments and handout maps, Marketplace previews/supplements, and larger VTT maps. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. Each purpose has a centrally configured profile for authorization, verified file types, size/dimension limits, variants, quotas, processing, and delivery. The API approves every object key and domain reference; clients transfer bytes directly to Storage only through short-lived permissions.
 
 ### Campaigns and live play
 
@@ -99,31 +104,36 @@ This extends the existing dependency direction rather than replacing it. Product
 
 ```mermaid
 flowchart TD
-  P0["Phase 00<br/>Sheet play depth + overrides"] --> P2["Phase 02<br/>Cross-platform foundation"]
-  P1["Phase 01<br/>Media + files"] --> P2
-  P0 --> P3["Phase 03<br/>Campaign Core"]
-  P1 --> P3
-  P2 --> P3
-  P3 --> P4["Phase 04<br/>Live Campaign play"]
-  P3 --> P5["Phase 05<br/>Encounters"]
+  P0["Phase 00<br/>Sheet play depth + overrides"] --> P1["Phase 01<br/>Dice + roll infrastructure"]
+  P0 --> P3["Phase 03<br/>Cross-platform foundation"]
+  P2["Phase 02<br/>Media + files"] --> P3
+  P0 --> P4["Phase 04<br/>Campaign Core"]
+  P2 --> P4
+  P3 --> P4
+  P1 --> P5["Phase 05<br/>Live Campaign play"]
   P4 --> P5
-  P2 --> P6["Phase 06<br/>Entitlements"]
-  P3 --> P7["Phase 07<br/>Social Hub"]
-  P6 --> P7
-  P1 --> P8["Phase 08<br/>Free Marketplace"]
-  P6 --> P8
-  P8 --> P9["Phase 09<br/>Paid commerce"]
+  P1 --> P6["Phase 06<br/>Encounters"]
+  P4 --> P6
+  P5 --> P6
+  P3 --> P7["Phase 07<br/>Entitlements"]
+  P4 --> P8["Phase 08<br/>Social Hub"]
+  P7 --> P8
+  P2 --> P9["Phase 09<br/>Free Marketplace"]
   P7 --> P9
-  P1 --> P10["Phase 10<br/>VTT"]
-  P2 --> P10
-  P5 --> P10
-  P1 --> P11["Phase 11<br/>Release validation"]
+  P9 --> P10["Phase 10<br/>Paid commerce"]
+  P8 --> P10
+  P1 --> P11["Phase 11<br/>VTT"]
   P2 --> P11
-  P9 --> P11
-  P10 --> P11
+  P3 --> P11
+  P6 --> P11
+  P1 --> P12["Phase 12<br/>Release validation"]
+  P2 --> P12
+  P3 --> P12
+  P10 --> P12
+  P11 --> P12
 ```
 
-The numbered order is the default product sequence. Hard technical dependencies are shown above. Phase 01 is web-first and prepares portable media contracts; Phase 02 consumes both the Phase 00 Sheet panel contract and Phase 01 assets in native. VTT requires media, the cross-platform foundation, and the Encounter model, but not Marketplace commerce.
+The numbered order is the default product sequence. Hard technical dependencies are shown above. Phase 01 establishes authoritative roll evidence and the first web presentation; Phase 05 and Phase 06 add owning persistence. Phase 02 is web-first and prepares portable media contracts; Phase 03 consumes both the Phase 00 Sheet panel contract and Phase 02 assets in native. VTT requires dice, media, the cross-platform foundation, and the Encounter model, but not Marketplace commerce.
 
 ## Architecture guardrails
 
@@ -146,60 +156,62 @@ The numbered order is the default product sequence. Hard technical dependencies 
 
 ## Technology direction
 
-| Area | Direction |
-| --- | --- |
-| Shared language | TypeScript for clients, transport, orchestration, and pure domain logic |
-| Persistence | PostgreSQL, Supabase migrations/RLS, and Kysely repositories |
-| Web | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query |
-| Native | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler |
-| Contracts | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client` |
-| Identity | One Supabase user identity across web, iOS, and Android |
-| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections |
-| Realtime | Private Supabase Broadcast; Presence only for slow-changing connection state |
-| Notifications | `expo-notifications` and Expo Push Service, with API-authorized deep links |
-| Media and files | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
-| Dice | A restricted server-side adapter around `@dice-roller/rpg-dice-roller`, using server cryptographic randomness |
-| VTT | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails |
-| Web payments | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement |
-| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval |
-| Tests | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS |
+| Area                 | Direction                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                            |
+| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                       |
+| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                           |
+| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                       |
+| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                            |
+| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                            |
+| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                 |
+| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                       |
+| Notifications        | `expo-notifications` and Expo Push Service, with API-authorized deep links                                                                                         |
+| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
+| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web          |
+| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                  |
+| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                          |
+| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                           |
+| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                            |
 
-Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 02 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
+Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 03 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 
-Supabase currently supports private buckets with RLS or time-limited signed delivery, per-bucket file-size and MIME restrictions, resumable transfers for larger files, and optional image transformations. Re-check limits, pricing, security guidance, and transformation behavior when Phase 01 begins: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [bucket fundamentals](https://supabase.com/docs/guides/storage/buckets/fundamentals), [upload limits](https://supabase.com/docs/guides/storage/uploads/file-limits), [standard and resumable upload guidance](https://supabase.com/docs/guides/storage/uploads/standard-uploads), and [image transformations](https://supabase.com/docs/guides/storage/serving/image-transformations).
+Supabase currently supports private buckets with RLS or time-limited signed delivery, per-bucket file-size and MIME restrictions, resumable transfers for larger files, and optional image transformations. Re-check limits, pricing, security guidance, and transformation behavior when Phase 02 begins: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [bucket fundamentals](https://supabase.com/docs/guides/storage/buckets/fundamentals), [upload limits](https://supabase.com/docs/guides/storage/uploads/file-limits), [standard and resumable upload guidance](https://supabase.com/docs/guides/storage/uploads/standard-uploads), and [image transformations](https://supabase.com/docs/guides/storage/serving/image-transformations).
 
 ## Payment-channel strategy
 
-| Product | Web | Native initial state | Native paid state |
-| --- | --- | --- | --- |
-| Artificer subscription | Stripe Billing | Consume the existing entitlement; no purchase CTA | StoreKit/Play Billing through RevenueCat |
-| Marketplace content | Stripe Connect | Browse, acquire free releases, and consume owned content | Enable paid acquisition only after store and creator-payout design |
-| Paid table/session | Stripe Connect | Join or manage an existing booking | Enable checkout only after service-payment policy review |
-| Creator/GM onboarding | Stripe Connect hosted onboarding | Open an authorized web flow | Remain web-hosted unless provider constraints require otherwise |
+| Product                | Web                              | Native initial state                                     | Native paid state                                                  |
+| ---------------------- | -------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Artificer subscription | Stripe Billing                   | Consume the existing entitlement; no purchase CTA        | StoreKit/Play Billing through RevenueCat                           |
+| Marketplace content    | Stripe Connect                   | Browse, acquire free releases, and consume owned content | Enable paid acquisition only after store and creator-payout design |
+| Paid table/session     | Stripe Connect                   | Join or manage an existing booking                       | Enable checkout only after service-payment policy review           |
+| Creator/GM onboarding  | Stripe Connect hosted onboarding | Open an authorized web flow                              | Remain web-hosted unless provider constraints require otherwise    |
 
 Apple Pay and Google Pay are wallet methods inside an allowed payment path; they do not override app-store billing rules. Venmo remains outside the initial design because it adds a second processor and reconciliation model. Before paid native controls are designed, re-check [Apple's review guidelines](https://developer.apple.com/app-store/review/guidelines/), [Google Play's payments policy](https://support.google.com/googleplay/android-developer/answer/9858738), [Stripe's React Native SDK](https://docs.stripe.com/sdks/react-native), and [RevenueCat's Expo integration](https://www.revenuecat.com/docs/getting-started/installation/expo).
 
 ## Phase documents
 
-| Phase | Document | Exit result |
-| --- | --- | --- |
-| 00 | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | Web Sheet controls, authoritative per-character adjustments, transparent breakdowns, and portable semantic panels are complete |
-| 01 | [Media and supporting-file pipeline](01-media-and-file-pipeline.md) | Authorized, private-by-default assets support portraits, authored artwork, Campaign branding, and later feature-specific files |
-| 02 | [Cross-platform foundation](02-cross-platform-foundation.md) | Expo shell proves authenticated, typed, read-only Sheet-panel access on iOS and Android |
-| 03 | [Campaign Core](03-campaign-core.md) | Campaign membership, roles, rules, content grants, audited GM authority, and read-only adjustment inspection work on web and native |
-| 04 | [Live Campaign play](04-live-campaign-play.md) | Shared inventory, vehicles, sessions, notes/files, clock, chat, rolls, Realtime, and native distribution work |
-| 05 | [Encounters](05-encounters.md) | Campaign and standalone Encounters provide authoritative manual play on web and native |
-| 06 | [Entitlements and subscriptions](06-entitlements-and-subscriptions.md) | Provider-neutral entitlements and Stripe web subscriptions are reliable |
-| 07 | [Free Social Hub](07-social-hub.md) | Adults can discover, apply to, moderate, and form free tables |
-| 08 | [Free Marketplace](08-free-marketplace.md) | Immutable releases, licenses, free acquisition, and content consumption work |
-| 09 | [Paid Marketplace and paid tables](09-paid-marketplace-and-tables.md) | Approved web commerce, payouts, refunds, and fee entitlements work |
-| 10 | [VTT](10-vtt.md) | One Encounter-backed VTT works across web, iOS, and Android |
-| 11 | [Store release and continuous validation](11-store-release-and-continuous-validation.md) | Store-ready binaries and repeatable cross-platform release gates exist |
+| Phase | Document                                                                                   | Exit result                                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | Web Sheet controls, authoritative per-character adjustments, transparent breakdowns, and portable semantic panels are complete      |
+| 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | Restricted authoritative rolls and accessible lazy web presentation share exact per-die evidence                                    |
+| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | Authorized private assets support one-source imagery, crop-derived variants, Campaign files, and later feature-specific media       |
+| 03    | [Cross-platform foundation](03-cross-platform-foundation.md)                               | Expo shell proves authenticated, typed, read-only Sheet-panel access on iOS and Android                                             |
+| 04    | [Campaign Core](04-campaign-core.md)                                                       | Campaign membership, roles, rules, content grants, audited GM authority, and read-only adjustment inspection work on web and native |
+| 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Shared inventory, vehicles, sessions, notes/files, clock, chat, persisted rolls, Realtime, and native distribution work             |
+| 06    | [Encounters](06-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative manual play on web and native                                              |
+| 07    | [Entitlements and subscriptions](07-entitlements-and-subscriptions.md)                     | Provider-neutral entitlements and Stripe web subscriptions are reliable                                                             |
+| 08    | [Free Social Hub](08-social-hub.md)                                                        | Adults can discover, apply to, moderate, and form free tables                                                                       |
+| 09    | [Free Marketplace](09-free-marketplace.md)                                                 | Immutable releases, licenses, free acquisition, and content consumption work                                                        |
+| 10    | [Paid Marketplace and paid tables](10-paid-marketplace-and-tables.md)                      | Approved web commerce, payouts, refunds, and fee entitlements work                                                                  |
+| 11    | [VTT](11-vtt.md)                                                                           | One Encounter-backed VTT works across web, iOS, and Android                                                                         |
+| 12    | [Store release and continuous validation](12-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                              |
 
 ## Cross-phase acceptance gates
 
 - Web and native parse the same API contracts and produce the same rules results.
 - Character adjustments change the same authoritative engine results used by display, rolls, passive checks, HP/rest, spell mechanics, and command validation; clearing an adjustment restores current authored behavior.
+- Roll consumers use the Phase 01 authoritative semantic evidence; browser physics never selects or alters a result, and static fallback remains fully usable.
 - Effective Character values expose source and adjustment breakdowns to the owner and to future authorized GM readers without granting GM adjustment-edit actions.
 - OWNER, GM, PLAYER, removed member, standalone invitee, and non-member matrices pass at API and RLS boundaries.
 - Player-only chat tests prove a GM cannot subscribe, fetch, receive notifications for, or infer message content.
@@ -229,12 +241,12 @@ Use the selected phase document as context, then require the new session to:
 ## Concerns and expansions
 
 - Full native authoring needs a native renderer for existing platform-neutral Authoring Schema semantics; it must not port Mantine or browser CSS.
-- Expo DOM is the fastest shared VTT route but has bridge, battery, accessibility, and binary-update constraints. Phase 10 contains an explicit benchmark and Skia fallback gate.
+- Expo DOM is the fastest shared VTT route but has bridge, battery, accessibility, and binary-update constraints. Phase 11 contains an explicit benchmark and Skia fallback gate.
 - Marketplace payments combine app-store collection, creator licensing, tax, refunds, fee calculation, and payouts. They are not an ordinary single-merchant checkout.
 - Supporting minors requires a separate age-assurance, guardian, moderation, safety, and retention program.
 - Professional page-layout/book authoring is separate from app-native content packages and supplemental files.
-- Supporting-file uploads require an allowlist, scanning/quarantine, safe download behavior, quotas, retention, takedown, and cost controls; Phase 01 keeps this bounded rather than becoming a general cloud drive.
-- VTT maps may require resumable transfer, optimization, or tiling beyond ordinary Campaign attachments. Those expansions remain in Phase 10 behind the shared asset identity.
+- Supporting-file uploads require an allowlist, scanning/quarantine, safe download behavior, quotas, retention, takedown, and cost controls; Phase 02 keeps this bounded rather than becoming a general cloud drive.
+- VTT maps may require resumable transfer, optimization, or tiling beyond ordinary Campaign attachments. Those expansions remain in Phase 11 behind the shared asset identity.
 - Combat automation, voice/video, multi-seller carts, reviews, gifting, organizations, non-US commerce, and additional payment processors remain later expansions.
 
 ## Roadmap-level open questions

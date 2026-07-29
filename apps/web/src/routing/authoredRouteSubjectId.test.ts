@@ -38,13 +38,15 @@ describe('resolveAuthoredRouteSubjectId', () => {
       ]
     })
 
-    await expect(resolveAuthoredRouteSubjectId({
-      client,
-      listQueryKey: queryKeys.content.classes.list(),
-      publicId: 'yakk',
-      queryClient,
-      subjectKind: 'CLASS'
-    })).resolves.toBe('class-druid')
+    await expect(
+      resolveAuthoredRouteSubjectId({
+        client,
+        listQueryKey: queryKeys.content.classes.list(),
+        publicId: 'yakk',
+        queryClient,
+        subjectKind: 'CLASS'
+      })
+    ).resolves.toBe('class-druid')
     expect(resolve).not.toHaveBeenCalled()
   })
 

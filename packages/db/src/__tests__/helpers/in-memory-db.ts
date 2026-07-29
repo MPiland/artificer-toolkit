@@ -1,5 +1,5 @@
 type Row = Record<string, unknown>
-type Filter = { column: string, op: string, value: unknown }
+type Filter = { column: string; op: string; value: unknown }
 
 type ConflictMode = 'none' | 'doNothing' | 'doUpdateSet'
 
@@ -29,11 +29,14 @@ function readColumnValue(row: Row, column: string): unknown {
 }
 
 function withQualifiedColumns(table: string, row: Row): Row {
-  return Object.entries(row).reduce<Row>((next, [key, value]) => ({
-    ...next,
-    [key]: value,
-    [`${table}.${key}`]: value
-  }), {})
+  return Object.entries(row).reduce<Row>(
+    (next, [key, value]) => ({
+      ...next,
+      [key]: value,
+      [`${table}.${key}`]: value
+    }),
+    {}
+  )
 }
 
 function projectSelectedColumns(row: Row, columns: string | string[]): Row {
@@ -123,7 +126,9 @@ class SelectBuilder {
       })
     }
 
-    return this.selectedColumns ? rows.map((row) => projectSelectedColumns(row, this.selectedColumns!)) : rows
+    return this.selectedColumns
+      ? rows.map((row) => projectSelectedColumns(row, this.selectedColumns!))
+      : rows
   }
 
   async executeTakeFirst() {
@@ -298,16 +303,11 @@ export class InMemoryDb {
     return cloneRows(this.readTable(table))
   }
 
-  insertRow(
-    table: string,
-    row: Row,
-    conflictColumns: string[],
-    conflictMode: ConflictMode
-  ) {
+  insertRow(table: string, row: Row, conflictColumns: string[], conflictMode: ConflictMode) {
     const rows = this.readTable(table)
     const nextRow = { ...row }
-    const existingIndex = rows.findIndex(
-      (candidate) => conflictColumns.every((column) => candidate[column] === nextRow[column])
+    const existingIndex = rows.findIndex((candidate) =>
+      conflictColumns.every((column) => candidate[column] === nextRow[column])
     )
 
     if (existingIndex >= 0) {
@@ -328,11 +328,7 @@ export class InMemoryDb {
     this.tables.set(table, rows)
   }
 
-  deleteWhere(
-    table: string,
-    columnOrFilters: string | Filter[],
-    value?: unknown
-  ) {
+  deleteWhere(table: string, columnOrFilters: string | Filter[], value?: unknown) {
     const filters = Array.isArray(columnOrFilters)
       ? columnOrFilters
       : [{ column: columnOrFilters, op: '=', value }]
@@ -387,10 +383,7 @@ export class InMemoryDb {
       const previousStartingEquipmentId = previous.starting_equipment_id
       const nextStartingEquipmentId = next.starting_equipment_id
 
-      if (
-        previousStartingEquipmentId
-        && previousStartingEquipmentId !== nextStartingEquipmentId
-      ) {
+      if (previousStartingEquipmentId && previousStartingEquipmentId !== nextStartingEquipmentId) {
         this.deleteWhere('starting_equipment', 'id', previousStartingEquipmentId)
       }
     }
@@ -399,10 +392,7 @@ export class InMemoryDb {
       const previousStartingEquipmentId = previous.starting_equipment_id
       const nextStartingEquipmentId = next.starting_equipment_id
 
-      if (
-        previousStartingEquipmentId
-        && previousStartingEquipmentId !== nextStartingEquipmentId
-      ) {
+      if (previousStartingEquipmentId && previousStartingEquipmentId !== nextStartingEquipmentId) {
         this.deleteWhere('starting_equipment', 'id', previousStartingEquipmentId)
       }
     }
@@ -770,7 +760,11 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_magic_school_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_damage_type_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_condition_type_items', 'facet_condition_id', row.id)
-        this.deleteWhere('facet_predicate_subclass_specialization_items', 'facet_condition_id', row.id)
+        this.deleteWhere(
+          'facet_predicate_subclass_specialization_items',
+          'facet_condition_id',
+          row.id
+        )
         this.deleteWhere('facet_predicate_size_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_charge_limit_kind_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_charge_reset_kind_items', 'facet_condition_id', row.id)
@@ -871,10 +865,18 @@ export class InMemoryDb {
         this.deleteWhere('proficiency_grant_save_abilities', 'proficiency_grant_id', row.id)
         this.deleteWhere('proficiency_grant_languages', 'proficiency_grant_id', row.id)
         this.deleteWhere('proficiency_grant_equipment', 'proficiency_grant_id', row.id)
-        this.deleteWhere('proficiency_grant_equipment_filter_properties', 'proficiency_grant_id', row.id)
+        this.deleteWhere(
+          'proficiency_grant_equipment_filter_properties',
+          'proficiency_grant_id',
+          row.id
+        )
         this.deleteWhere('proficiency_grant_equipment_filters', 'proficiency_grant_id', row.id)
         this.deleteWhere('proficiency_grant_equipment_properties', 'proficiency_grant_id', row.id)
-        this.deleteWhere('proficiency_grant_equipment_property_filters', 'proficiency_grant_id', row.id)
+        this.deleteWhere(
+          'proficiency_grant_equipment_property_filters',
+          'proficiency_grant_id',
+          row.id
+        )
         break
 
       case 'starting_equipment':

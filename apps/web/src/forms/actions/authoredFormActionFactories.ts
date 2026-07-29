@@ -9,7 +9,10 @@ import {
   buildVehicleRouteParams
 } from '#app/routing/authoredRouteParams'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
-import type { AuthoringActionMessages, AuthoringRouteParamBuilder } from './authoringActionBuilders.types'
+import type {
+  AuthoringActionMessages,
+  AuthoringRouteParamBuilder
+} from './authoringActionBuilders.types'
 
 export type AuthoredFormActionFactory = {
   activatePath: string

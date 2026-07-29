@@ -1,7 +1,4 @@
-import {
-  useMutation,
-  useQueryClient
-} from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FeatAuthoringInputDto } from '@artificer-toolkit/schema/subjects/feat'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -16,7 +13,9 @@ export function useActivateFeatMutation() {
 
       if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.feats.detail(response.item.id), response)
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(response.item.id) })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.content.feats.draft(response.item.id)
+        })
       }
     }
   })
@@ -29,7 +28,9 @@ export function useSaveFeatDraftMutation() {
     mutationFn: (feat: FeatAuthoringInputDto) => api.content.feats.saveDraft(feat),
     onSuccess: async (draft) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(draft.subjectId) })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.content.feats.draft(draft.subjectId)
+      })
     }
   })
 }

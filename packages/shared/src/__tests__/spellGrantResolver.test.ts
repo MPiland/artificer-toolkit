@@ -9,7 +9,12 @@ import {
   SCALING_SOURCE
 } from '#core'
 import { compileSpellGrant } from '#compilers'
-import { dnd5e2014RulesSystem, runEngine, type CharacterAssemblyRegistry, type CharacterBuildSnapshot } from '@artificer-toolkit/shared'
+import {
+  dnd5e2014RulesSystem,
+  runEngine,
+  type CharacterAssemblyRegistry,
+  type CharacterBuildSnapshot
+} from '@artificer-toolkit/shared'
 
 import { resolveSpellGrantState } from '../domains/engine/resolution/spellGrantResolver.js'
 
@@ -193,12 +198,7 @@ describe('spell grant resolver', () => {
       {
         classId: 'druid',
         spells: {
-          prepared: [
-            'fog-cloud',
-            'spike-growth',
-            'sleet-storm',
-            'water-walk'
-          ]
+          prepared: ['fog-cloud', 'spike-growth', 'sleet-storm', 'water-walk']
         }
       }
     ])
@@ -268,14 +268,130 @@ describe('spell grant resolver', () => {
       {
         classId: 'druid',
         spells: {
-          prepared: [
-            'fog-cloud',
-            'spike-growth',
-            'sleet-storm',
-            'water-walk'
-          ]
+          prepared: ['fog-cloud', 'spike-growth', 'sleet-storm', 'water-walk']
         }
       }
+    ])
+    expect(output.spellAccess).toHaveLength(4)
+  })
+
+  it('preserves access metadata for at-will, fixed-level, and limited-use grants', () => {
+    const atWillGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'at-will-grant',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['mage-hand'],
+      attributes: ['CAST_AT_WILL']
+    })
+    const fixedLevelGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'fixed-level-grant',
+      order: 2,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['shield'],
+      attributes: ['CAST_AT_LEVEL'],
+      castAtLevel: 3
+    })
+    const limitedUseGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'limited-use-grant',
+      order: 3,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['misty-step'],
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: 'misty-step-charges',
+        resetKind: 'LONG_REST',
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        amount: 1
+      }
+    })
+    const registry = makeRegistry()
+    const druid = registry.classes.druid
+    if (!druid) throw new Error('Expected druid class registry entry')
+    druid.features = [
+      { id: 'spellcasting', order: 1, spells: [atWillGrant, fixedLevelGrant, limitedUseGrant] }
+    ]
+
+    const resolved = resolveSpellGrantState(
+      makeSnapshot({ classes: [{ classId: 'druid', level: 5 }] }),
+      registry
+    )
+
+    expect(resolved.spellAccess).toEqual([
+      expect.objectContaining({
+        spellId: 'mage-hand',
+        attributes: ['CAST_AT_WILL'],
+        sourceFeatureId: 'spellcasting',
+        grantId: 'at-will-grant'
+      }),
+      expect.objectContaining({
+        spellId: 'shield',
+        attributes: ['CAST_AT_LEVEL'],
+        castAtLevel: 3,
+        grantId: 'fixed-level-grant'
+      }),
+      expect.objectContaining({
+        spellId: 'misty-step',
+        attributes: ['LIMITED_USE'],
+        grantId: 'limited-use-grant',
+        charges: {
+          id: 'misty-step-charges',
+          resetKind: 'LONG_REST',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: SCALING.NONE,
+          amount: 1,
+          bonuses: undefined
+        }
+      })
+    ])
+  })
+
+  it('keeps duplicate spell ids from distinct grants as separate accesses', () => {
+    const firstGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'first-shield-grant',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['shield']
+    })
+    const secondGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'second-shield-grant',
+      order: 2,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['shield']
+    })
+    const registry = makeRegistry()
+    const druid = registry.classes.druid
+    if (!druid) throw new Error('Expected druid class registry entry')
+    druid.features = [{ id: 'spellcasting', order: 1, spells: [firstGrant, secondGrant] }]
+
+    const spellAccess = resolveSpellGrantState(
+      makeSnapshot({ classes: [{ classId: 'druid', level: 5 }] }),
+      registry
+    ).spellAccess
+
+    expect(spellAccess).toHaveLength(2)
+    expect(spellAccess.map((access) => access.id)).toEqual([
+      'CLASS:druid:druid:spellcasting:first-shield-grant:shield',
+      'CLASS:druid:druid:spellcasting:second-shield-grant:shield'
+    ])
+    expect(spellAccess.map((access) => access.sourceInstanceId)).toEqual([
+      'CLASS:druid:druid:spellcasting:first-shield-grant',
+      'CLASS:druid:druid:spellcasting:second-shield-grant'
     ])
   })
 })

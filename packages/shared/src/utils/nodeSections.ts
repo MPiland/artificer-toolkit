@@ -9,9 +9,10 @@ export type SectionedNodeEntry<NLocal extends object> = {
   section: ResolvedNodeSection
 }
 
-export type SectionedNodeGroup<NLocal extends object = Record<string, unknown>> = ResolvedNodeSection & {
-  nodes: SectionedNodeEntry<NLocal>[]
-}
+export type SectionedNodeGroup<NLocal extends object = Record<string, unknown>> =
+  ResolvedNodeSection & {
+    nodes: SectionedNodeEntry<NLocal>[]
+  }
 
 export type SteppedNodeGroup<NLocal extends object = Record<string, unknown>> = ResolvedNodeStep & {
   sections: SectionedNodeGroup<NLocal>[]
@@ -65,7 +66,9 @@ export function resolveNestedNodeSections<NLocal extends object>(
     .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0))
     .flatMap(([id, node]) => {
       const section = node.section ?? inheritedSection
-      const current = section ? [{ id, node: node as unknown as NodeEntry<Record<string, unknown>>, section }] : []
+      const current = section
+        ? [{ id, node: node as unknown as NodeEntry<Record<string, unknown>>, section }]
+        : []
 
       if (node.kind !== 'GROUP') return current
 

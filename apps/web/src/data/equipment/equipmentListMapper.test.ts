@@ -36,6 +36,8 @@ describe('equipment list mapper', () => {
   })
 
   it('summarizes total, master, and owned counts', () => {
-    expect(summarizeEquipmentList(equipmentListResponseFixture)).toBe('2 items / 1 SRD / 1 homebrew')
+    expect(summarizeEquipmentList(equipmentListResponseFixture)).toBe(
+      '2 items / 1 SRD / 1 homebrew'
+    )
   })
 })

@@ -70,7 +70,7 @@ export const NUMERIC_EXPR: Record<keyof typeof NUMERIC_EXPR_CODE, NumericExprOpt
   [NUMERIC_EXPR_CODE.CHARACTER_LEVEL]: {
     code: NUMERIC_EXPR_CODE.CHARACTER_LEVEL,
     label: 'Character Level',
-    description: 'Uses the character\'s total level.',
+    description: "Uses the character's total level.",
     tooltip: 'Counts all class levels combined.'
   },
 
@@ -96,15 +96,15 @@ export const NUMERIC_EXPR: Record<keyof typeof NUMERIC_EXPR_CODE, NumericExprOpt
   }
 } as const
 
-export type NumericAtom
-  = | { kind: typeof NUMERIC_EXPR_CODE.FIXED, value: number }
-    | { kind: typeof NUMERIC_EXPR_CODE.PROFICIENCY_BONUS }
-    | { kind: typeof NUMERIC_EXPR_CODE.ABILITY_MODIFIER, ability: keyof typeof ABILITY_CODE }
-    | { kind: typeof NUMERIC_EXPR_CODE.SKILL_BONUS, skillId: string }
-    | { kind: typeof NUMERIC_EXPR_CODE.CHARACTER_LEVEL }
-    | { kind: typeof NUMERIC_EXPR_CODE.CLASS_LEVEL, classId?: string }
-    | { kind: typeof NUMERIC_EXPR_CODE.SPELL_LEVEL }
-    | { kind: typeof NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM }
+export type NumericAtom =
+  | { kind: typeof NUMERIC_EXPR_CODE.FIXED; value: number }
+  | { kind: typeof NUMERIC_EXPR_CODE.PROFICIENCY_BONUS }
+  | { kind: typeof NUMERIC_EXPR_CODE.ABILITY_MODIFIER; ability: keyof typeof ABILITY_CODE }
+  | { kind: typeof NUMERIC_EXPR_CODE.SKILL_BONUS; skillId: string }
+  | { kind: typeof NUMERIC_EXPR_CODE.CHARACTER_LEVEL }
+  | { kind: typeof NUMERIC_EXPR_CODE.CLASS_LEVEL; classId?: string }
+  | { kind: typeof NUMERIC_EXPR_CODE.SPELL_LEVEL }
+  | { kind: typeof NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM }
 
 export type NumericMul = {
   kind: typeof NUMERIC_EXPR_CODE.MUL
@@ -126,10 +126,7 @@ export type NumericClamp = {
   max?: number
 }
 
-export type NumericExpr
-  = | NumericTerm
-    | NumericAdd
-    | NumericClamp
+export type NumericExpr = NumericTerm | NumericAdd | NumericClamp
 
 export function atom(value: NumericAtom): NumericAtom {
   return value

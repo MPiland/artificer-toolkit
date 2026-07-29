@@ -25,7 +25,7 @@ function toRow(event: CharacterEvent) {
     schema_version: event.schemaVersion,
     actor_id: event.actorId,
     command_id: event.commandId,
-    occurred_at: event.occurredAt,
+    occurred_at: event.occurredAt
   }
 }
 
@@ -59,7 +59,7 @@ export function createCharacterEventRepository(db: DBLike): CharacterEventReposi
         .where('command_id', '=', commandId)
         .executeTakeFirst()
 
-      return row ? row.event_data as unknown as CharacterEvent : null
-    },
+      return row ? (row.event_data as unknown as CharacterEvent) : null
+    }
   }
 }

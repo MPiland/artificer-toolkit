@@ -19,7 +19,7 @@ export const EFFECT_NODE_MAP = effect.define(
           presentation: 'inline'
         })
       )
-    .set(
+      .set(
         'paths',
         groupArray(['paths'], 'Outcome Paths', () => PATH_NODE_MAP, {
           presentation: 'branch'

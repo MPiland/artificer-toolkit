@@ -1,5 +1,9 @@
 import type { AuthoredListFilter } from './AuthoredList.types'
-import { getFacetedFilterOptionsByKey, itemMatchesQuery, type AuthoredListFilterValues } from './AuthoredList.filters'
+import {
+  getFacetedFilterOptionsByKey,
+  itemMatchesQuery,
+  type AuthoredListFilterValues
+} from './AuthoredList.filters'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
 const emptyFilterValues: AuthoredListFilterValues = {

@@ -1,0 +1,166 @@
+import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
+import { characterSheetSpellStatesFixture } from '../fixtures/characterSpell.fixtures'
+import { CharacterSheetView } from './CharacterSheetView'
+import {
+  characterSheetStoryMeta,
+  characterSheetTabletViewports
+} from '../fixtures/characterSheetStory.fixture'
+
+const meta = {
+  ...characterSheetStoryMeta,
+  title: 'Domains/Characters/CharacterSheetView'
+} satisfies Meta<typeof CharacterSheetView>
+
+export default meta
+
+type Story = StoryObj<typeof meta>
+
+export const Desktop: Story = {}
+
+export const Mobile: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
+export const TabletPortrait: Story = {
+  globals: {
+    viewport: {
+      value: 'characterSheetTabletPortrait',
+      isRotated: false
+    }
+  },
+  parameters: {
+    viewport: {
+      options: characterSheetTabletViewports
+    }
+  }
+}
+
+export const TabletLandscape: Story = {
+  globals: {
+    viewport: {
+      value: 'characterSheetTabletLandscape',
+      isRotated: false
+    }
+  },
+  parameters: {
+    viewport: {
+      options: characterSheetTabletViewports
+    }
+  }
+}
+
+export const DraftPending: Story = {
+  args: {
+    hasDraft: true
+  }
+}
+
+export const AbilityModifierStates: Story = {}
+
+export const ProficiencyStates: Story = {
+  args: {
+    sheet: {
+      ...characterSheetMulticlassFixture,
+      overview: {
+        ...characterSheetMulticlassFixture.overview,
+        skills: characterSheetMulticlassFixture.overview.skills.map((skill, index) => ({
+          ...skill,
+          proficiency:
+            index < 4
+              ? ((['NONE', 'HALF', 'FULL', 'DOUBLE'] as const)[index] ?? 'NONE')
+              : skill.proficiency
+        }))
+      }
+    }
+  }
+}
+
+export const SpellStates: Story = {
+  args: {
+    initialTab: 'spells',
+    sheet: characterSheetSpellStatesFixture
+  }
+}
+
+export const ActionTypes: Story = {
+  args: {
+    initialTab: 'actions',
+    sheet: {
+      ...characterSheetMulticlassFixture,
+      actions: {
+        items: [
+          ...characterSheetMulticlassFixture.actions.items,
+          {
+            id: 'action-dash',
+            label: 'Dash',
+            kind: 'ACTION',
+            sourceLabel: 'Core action',
+            description: '<p>Gain extra movement for the current turn.</p>'
+          },
+          {
+            id: 'action-opportunity-attack',
+            label: 'Opportunity Attack',
+            kind: 'REACTION',
+            sourceLabel: 'Core action',
+            description:
+              '<p>Make one melee attack when a creature leaves your reach without disengaging.</p>'
+          },
+          {
+            id: 'action-force-ballista',
+            label: 'Force Ballista',
+            kind: 'ACTION',
+            sourceLabel: 'Artificer',
+            description: '<p>Fire a bolt of force at a creature you can see within range.</p>',
+            resourceGrantId: 'resource-force-ballista',
+            mechanic: {
+              effectId: 'force-ballista-effect',
+              trigger: 'ATTACK_ROLL',
+              activation: { kind: 'ACTION', amount: 1 },
+              rangeLabel: '120 ft',
+              attackBonus: 7,
+              outcomes: [
+                {
+                  kind: 'DAMAGE',
+                  pathCode: 'ON_HIT',
+                  expression: '2d8',
+                  damageTypeId: 'force',
+                  damageTypeLabel: 'Force'
+                }
+              ]
+            }
+          }
+        ]
+      },
+      resources: {
+        ...characterSheetMulticlassFixture.resources,
+        items: [
+          ...characterSheetMulticlassFixture.resources.items,
+          {
+            id: 'resource-force-ballista',
+            label: 'Force Ballista',
+            sourceLabel: 'Artificer',
+            owner: {
+              kind: 'AUTHORED_GRANT',
+              resourceGrantId: 'resource-force-ballista',
+              source: {
+                kind: 'AUTHORED',
+                sourceKind: 'FEATURE',
+                definitionId: '00000000-0000-4000-8000-000000000223',
+                sourceInstanceId: 'feature:force-ballista'
+              }
+            },
+            used: 1,
+            max: 3,
+            remaining: 2,
+            recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -32,7 +32,9 @@ const messages = {
 
 describe('authoring action builders', () => {
   it('uses detail routes for activation targets', () => {
-    expect(authoredFormActionFactories.class.activatePath).toBe('/classes/$classPublicId/$classSlug')
+    expect(authoredFormActionFactories.class.activatePath).toBe(
+      '/classes/$classPublicId/$classSlug'
+    )
     expect(authoredFormActionFactories.equipment.activatePath).toBe(
       '/equipment/$equipmentPublicId/$equipmentSlug'
     )
@@ -73,7 +75,10 @@ describe('authoring action builders', () => {
     await action({ label: 'New Race' })
 
     expect(activateMutation.mutateAsync).toHaveBeenCalledWith({ label: 'New Race' })
-    expect(notifier.show).toHaveBeenCalledWith({ color: 'green', message: messages.activateSuccess })
+    expect(notifier.show).toHaveBeenCalledWith({
+      color: 'green',
+      message: messages.activateSuccess
+    })
     expect(navigate).toHaveBeenCalledWith({
       params: { racePublicId: 'race-new-public', raceSlug: 'new-race' },
       to: '/races/$racePublicId/$raceSlug'
@@ -152,7 +157,10 @@ describe('authoring action builders', () => {
 
     await action({ label: 'Draft Race' })
 
-    expect(notifier.show).toHaveBeenCalledWith({ color: 'green', message: messages.saveDraftSuccess })
+    expect(notifier.show).toHaveBeenCalledWith({
+      color: 'green',
+      message: messages.saveDraftSuccess
+    })
     expect(navigate).toHaveBeenCalledWith({
       params: { racePublicId: 'draft-race', raceSlug: 'draft-race' },
       to: '/races/$racePublicId/$raceSlug/edit'
@@ -174,7 +182,10 @@ describe('authoring action builders', () => {
 
     await action({ label: 'Updated Race' })
 
-    expect(notifier.show).toHaveBeenCalledWith({ color: 'green', message: messages.saveDraftSuccess })
+    expect(notifier.show).toHaveBeenCalledWith({
+      color: 'green',
+      message: messages.saveDraftSuccess
+    })
     expect(router.invalidate).toHaveBeenCalled()
   })
 
@@ -263,7 +274,10 @@ describe('authoring action builders', () => {
 
     await action()
 
-    expect(notifier.show).toHaveBeenCalledWith({ color: 'green', message: messages.discardDraftSuccess })
+    expect(notifier.show).toHaveBeenCalledWith({
+      color: 'green',
+      message: messages.discardDraftSuccess
+    })
     expect(navigate).toHaveBeenCalledWith({ to: '/races' })
     expect(router.invalidate).not.toHaveBeenCalled()
   })

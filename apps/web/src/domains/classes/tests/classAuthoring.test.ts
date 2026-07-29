@@ -83,7 +83,10 @@ describe('class authoring utilities', () => {
     expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
     expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
     expect(createEmptySpecialization(3)).toMatchObject({ id: generatedId, order: 3 })
-    expect(createEmptyMulticlass()).toMatchObject({ id: generatedId, requirementGroups: { groups: [] } })
+    expect(createEmptyMulticlass()).toMatchObject({
+      id: generatedId,
+      requirementGroups: { groups: [] }
+    })
   })
 
   it('requires a real system id for create mode', () => {
@@ -92,17 +95,23 @@ describe('class authoring utilities', () => {
   })
 
   it('keeps locked active classes read-only even when a draft row exists', () => {
-    expect(resolveClassEditReadOnly({
-      canEdit: false,
-      hasActiveClass: true
-    })).toBe(true)
-    expect(resolveClassEditReadOnly({
-      canEdit: false,
-      hasActiveClass: false
-    })).toBe(false)
-    expect(resolveClassEditReadOnly({
-      canEdit: true,
-      hasActiveClass: true
-    })).toBe(false)
+    expect(
+      resolveClassEditReadOnly({
+        canEdit: false,
+        hasActiveClass: true
+      })
+    ).toBe(true)
+    expect(
+      resolveClassEditReadOnly({
+        canEdit: false,
+        hasActiveClass: false
+      })
+    ).toBe(false)
+    expect(
+      resolveClassEditReadOnly({
+        canEdit: true,
+        hasActiveClass: true
+      })
+    ).toBe(false)
   })
 })

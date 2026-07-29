@@ -14,7 +14,11 @@ export function formatEnumLabel(value: string | null | undefined): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-export function formatCount(count: number | null | undefined, singular: string, plural = `${singular}s`): string {
+export function formatCount(
+  count: number | null | undefined,
+  singular: string,
+  plural = `${singular}s`
+): string {
   const safeCount = count ?? 0
   return `${safeCount} ${safeCount === 1 ? singular : plural}`
 }
@@ -33,12 +37,13 @@ export function formatReferenceLabel(
   return options.find((option) => option.value === value)?.label ?? formatReference(value, fallback)
 }
 
-export function formatReferenceList(values: readonly string[] | null | undefined, fallback: string): string {
+export function formatReferenceList(
+  values: readonly string[] | null | undefined,
+  fallback: string
+): string {
   if (!values?.length) return 'None'
 
-  const visibleValues = values
-    .filter((value) => !uuidPattern.test(value))
-    .map(formatEnumLabel)
+  const visibleValues = values.filter((value) => !uuidPattern.test(value)).map(formatEnumLabel)
 
   if (visibleValues.length) return visibleValues.join(', ')
 
@@ -53,7 +58,11 @@ export function formatReferenceLabelList(
   if (!values?.length) return 'None'
 
   const labels = values
-    .map((value) => options.find((option) => option.value === value)?.label ?? (uuidPattern.test(value) ? null : formatEnumLabel(value)))
+    .map(
+      (value) =>
+        options.find((option) => option.value === value)?.label ??
+        (uuidPattern.test(value) ? null : formatEnumLabel(value))
+    )
     .filter((label): label is string => Boolean(label))
 
   if (labels.length) return labels.join(', ')

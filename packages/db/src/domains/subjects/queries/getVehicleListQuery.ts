@@ -24,7 +24,9 @@ interface VehicleMeta {
   features: VehicleMetaObject[]
 }
 
-export async function getVehicleListQuery(db: DBLike): Promise<{ items: VehicleListItem[], meta: VehicleMeta }> {
+export async function getVehicleListQuery(
+  db: DBLike
+): Promise<{ items: VehicleListItem[]; meta: VehicleMeta }> {
   const items = await db
     .selectFrom('vehicles')
     .select((eb) => [
@@ -35,31 +37,32 @@ export async function getVehicleListQuery(db: DBLike): Promise<{ items: VehicleL
       'system_id as systemId',
       'user_id as ownerUserId',
       'is_master as isMaster',
-      details(eb, (eb2) => eb2
-        .selectFrom('vehicle_details as bridge')
-        .whereRef('bridge.vehicle_id', '=', 'id')
-        .select([
-          'bridge.detail_id',
-          'bridge.sort_order as position'
-        ])
-        .orderBy('bridge.sort_order'))
-        .as('details'),
-      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
-        .as('userId')
+      details(eb, (eb2) =>
+        eb2
+          .selectFrom('vehicle_details as bridge')
+          .whereRef('bridge.vehicle_id', '=', 'id')
+          .select(['bridge.detail_id', 'bridge.sort_order as position'])
+          .orderBy('bridge.sort_order')
+      ).as('details'),
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`.as(
+        'userId'
+      )
     ])
     .execute()
-    .then((rows) => rows?.length ? rows : [])
+    .then((rows) => (rows?.length ? rows : []))
 
-  const categories: VehicleMetaObject[] = await db
+  const categories: VehicleMetaObject[] = (await db
     .selectFrom('vehicles')
     .select((eb) => [
       'category as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct()
+      eb.fn
+        .agg<string[]>('array_agg', [eb.ref('id')])
+        .distinct()
         .as('vehicleIds')
     ])
     .where('category', 'is not', null)
     .groupBy('category')
-    .execute() as VehicleMetaObject[]
+    .execute()) as VehicleMetaObject[]
 
   const features: VehicleMetaObject[] = await db
     .selectFrom('vehicle_features')

@@ -8,7 +8,7 @@ import { createSubjectAuthoringService } from './pipeline.js'
 export interface VehicleSubjectAuthoringDeps {
   validate?: (input: unknown) => VehicleAuthored
   compile?: (authored: VehicleAuthored) => CompiledVehicle
-  persist?: (payload: { authored: VehicleAuthored, compiled: CompiledVehicle }) => Promise<void>
+  persist?: (payload: { authored: VehicleAuthored; compiled: CompiledVehicle }) => Promise<void>
   findById?: (id: string) => Promise<VehicleAuthored | null>
   findAll?: (filter?: RepositoryFindAllOptions) => Promise<VehicleAuthored[]>
 }
@@ -20,11 +20,14 @@ export function createVehicleSubjectAuthoringService(
   const repo = createVehicleRepository(db)
 
   return createSubjectAuthoringService<unknown, VehicleAuthored, CompiledVehicle, void>({
-    validate: deps.validate ?? ((input) => vehicleAuthoredDtoSchema.parse(input) as VehicleAuthored),
+    validate:
+      deps.validate ?? ((input) => vehicleAuthoredDtoSchema.parse(input) as VehicleAuthored),
     compile: deps.compile ?? compileVehicle,
-    persist: deps.persist ?? (async ({ authored }) => {
-      await upsertVehicle(db, authored, authored.systemId)
-    }),
+    persist:
+      deps.persist ??
+      (async ({ authored }) => {
+        await upsertVehicle(db, authored, authored.systemId)
+      }),
     findById: deps.findById ?? ((id) => repo.findById(id)),
     findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
   })

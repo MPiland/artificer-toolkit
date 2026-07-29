@@ -1,6 +1,6 @@
 [build]
-  command = "yarn build:web"
-  publish = "apps/web/dist/client"
+command = "yarn build:web"
+publish = "apps/web/dist/client"
 
 [functions]
-  directory = "/netlify/functions"
+directory = "/netlify/functions"

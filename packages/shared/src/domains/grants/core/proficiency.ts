@@ -13,10 +13,7 @@ export type ProficiencyKind = keyof typeof PROFICIENCY_KIND
 
 export type ProficiencyTypeOption = CoreMeta<ProficiencyKind>
 
-export const PROFICIENCY_KIND_REGISTRY: Record<
-  ProficiencyKind,
-  ProficiencyTypeOption
-> = {
+export const PROFICIENCY_KIND_REGISTRY: Record<ProficiencyKind, ProficiencyTypeOption> = {
   [PROFICIENCY_KIND.SKILL]: {
     code: PROFICIENCY_KIND.SKILL,
     label: 'Skill Proficiency',
@@ -29,8 +26,7 @@ export const PROFICIENCY_KIND_REGISTRY: Record<
     code: PROFICIENCY_KIND.SAVE_ABILITY,
     label: 'Saving Throw Proficiency',
     tooltip: 'Grants proficiency in one or more saving throw abilities.',
-    description:
-      'Targets saving throw abilities (e.g., Constitution saves).'
+    description: 'Targets saving throw abilities (e.g., Constitution saves).'
   },
 
   [PROFICIENCY_KIND.EQUIPMENT]: {
@@ -44,7 +40,8 @@ export const PROFICIENCY_KIND_REGISTRY: Record<
   [PROFICIENCY_KIND.EQUIPMENT_PROPERTY]: {
     code: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
     label: 'Equipment Property Proficiency',
-    tooltip: 'Grants proficiency with equipment matching properties (optionally scoped by category).',
+    tooltip:
+      'Grants proficiency with equipment matching properties (optionally scoped by category).',
     description:
       'Targets equipment properties (e.g., “Heavy”) and optionally a category (e.g., “Armor”).'
   },
@@ -53,8 +50,7 @@ export const PROFICIENCY_KIND_REGISTRY: Record<
     code: PROFICIENCY_KIND.LANGUAGE,
     label: 'Language Proficiency',
     tooltip: 'Grants proficiency in one or more languages.',
-    description:
-      'Targets language IDs (e.g., Common, Elvish).'
+    description: 'Targets language IDs (e.g., Common, Elvish).'
   }
 } as const
 

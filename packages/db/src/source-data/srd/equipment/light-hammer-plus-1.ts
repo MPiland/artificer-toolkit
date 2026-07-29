@@ -14,5 +14,5 @@ export const lightHammerPlus1: EquipmentVariantAuthored = {
   maxBonus: 1,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(279), 1),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

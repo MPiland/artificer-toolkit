@@ -17,16 +17,18 @@ export const salamander: CreatureAuthored = {
     CONSTITUTION: 15,
     INTELLIGENCE: 11,
     WISDOM: 10,
-    CHARISMA: 12,
+    CHARISMA: 12
   },
   armorClass: 15,
   armorClassNote: 'natural armor',
   hitPoints: 90,
-  hitDice: '12d10+24',
+  hitDice: {
+    count: 12,
+    die: 10,
+    modifier: 24
+  },
   speeds: [...S.walk(30)],
-  proficiencies: [
-    S.grantedLanguageProficiency(244, 1, 'IGNAN')
-  ],
+  proficiencies: [S.grantedLanguageProficiency(244, 1, 'IGNAN')],
   damageVulnerabilities: ['cold'],
   damageResistances: ['bludgeoning, piercing, and slashing from nonmagical attacks'],
   damageImmunities: ['fire'],
@@ -38,33 +40,37 @@ export const salamander: CreatureAuthored = {
     {
       id: S.featureId(244, 1),
       label: 'Heated Body',
-      description: 'Heated Body. A creature that touches the salamander or hits it with a melee attack while within 5 feet of it takes 7 (2d6) fire damage.',
+      description:
+        'Heated Body. A creature that touches the salamander or hits it with a melee attack while within 5 feet of it takes 7 (2d6) fire damage.',
       order: 1
     },
     {
       id: S.featureId(244, 2),
       label: 'Heated Weapons',
-      description: 'Heated Weapons. Any metal melee weapon the salamander wields deals an extra 3 (1d6) fire damage on a hit (included in the attack).',
+      description:
+        'Heated Weapons. Any metal melee weapon the salamander wields deals an extra 3 (1d6) fire damage on a hit (included in the attack).',
       order: 2
     },
     {
       id: S.featureId(244, 3),
       label: 'Multiattack',
-      description: 'Multiattack. The salamander makes two attacks: one with its spear and one with its tail.',
+      description:
+        'Multiattack. The salamander makes two attacks: one with its spear and one with its tail.',
       order: 3
     },
     {
       id: S.featureId(244, 4),
       label: 'Spear',
-      description: 'Spear. Melee or Ranged Weapon Attack: +7 to hit, reach 5 ft. or range 20 ft./60 ft., one target. Hit: 11 (2d6 + 4) piercing damage, or 13 (2d8 + 4) piercing damage if used with two hands to make a melee attack, plus 3 (1d6) fire damage.',
+      description:
+        'Spear. Melee or Ranged Weapon Attack: +7 to hit, reach 5 ft. or range 20 ft./60 ft., one target. Hit: 11 (2d6 + 4) piercing damage, or 13 (2d8 + 4) piercing damage if used with two hands to make a melee attack, plus 3 (1d6) fire damage.',
       order: 4
     },
     {
       id: S.featureId(244, 5),
       label: 'Tail',
-      description: "Tail. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage plus 7 (2d6) fire damage, and the target is grappled (escape DC 14). Until this grapple ends, the target is restrained, the salamander can automatically hit the target with its tail, and the salamander can't make tail attacks against other targets.",
+      description:
+        "Tail. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage plus 7 (2d6) fire damage, and the target is grappled (escape DC 14). Until this grapple ends, the target is restrained, the salamander can automatically hit the target with its tail, and the salamander can't make tail attacks against other targets.",
       order: 5
     }
   ]
 }
-

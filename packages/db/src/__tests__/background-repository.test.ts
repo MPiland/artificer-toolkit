@@ -52,85 +52,83 @@ function createFakeDb(rowsByTable: RowMap) {
 
 describe('createBackgroundRepository', () => {
   it('hydrates a background with composed owned content', async () => {
-    const repository = createBackgroundRepository(createFakeDb({
-      backgrounds: [
-        {
-          id: 'background-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Scholar',
-          description: 'Knows things.',
-          starting_equipment_id: 'se-1'
-        }
-      ],
-      background_details: [
-        { background_id: 'background-1', detail_id: 'detail-1', sort_order: 1 }
-      ],
-      background_features: [
-        { background_id: 'background-1', feature_id: 'feature-1', sort_order: 1 }
-      ],
-      details: [
-        { id: 'detail-1', label: 'Overview', description: 'Lore', sort_order: 1 }
-      ],
-      features: [
-        {
-          id: 'feature-1',
-          label: 'Researcher',
-          description: 'You know how to find answers.',
-          charge_id: null,
-          restriction_id: null,
-          sort_order: 1,
-          available_at_level: null
-        }
-      ],
-      feature_effects: [],
-      feature_attributes: [],
-      feature_feat_grants: [],
-      feature_modifier_grants: [],
-      feature_proficiency_grants: [],
-      feature_sense_grants: [],
-      feature_spell_grants: [],
-      feature_options: [],
-      feature_option_levels: [],
-      background_proficiency_grants: [
-        { background_id: 'background-1', proficiency_grant_id: 'grant-1', sort_order: 1 }
-      ],
-      proficiency_grants: [
-        {
-          id: 'grant-1',
-          sort_order: 1,
-          proficiency_kind: 'SKILL',
-          selection_kind: 'GRANTED',
-          authoring_mode_kind: 'SELECTED',
-          count: null,
-          level: 'FULL',
-          rounding: null
-        }
-      ],
-      proficiency_grant_skills: [
-        { proficiency_grant_id: 'grant-1', skill_id: 'skill-1' }
-      ],
-      starting_equipment: [{ id: 'se-1' }],
-      starting_equipment_sets: [{ id: 'set-1', starting_equipment_id: 'se-1', sort_order: 1 }],
-      starting_equipment_groups: [{ id: 'group-1', equipment_set_id: 'set-1', sort_order: 1 }],
-      starting_equipment_options: [{ id: 'option-1', equipment_group_id: 'group-1', sort_order: 1 }],
-      starting_equipment_option_items: [
-        {
-          id: 'item-1',
-          equipment_option_id: 'option-1',
-          starting_equipment_kind: 'CURRENCY',
-          authoring_mode_kind: null,
-          selection_kind: null,
-          category_code: null,
-          count: null,
-          quantity: null,
-          sort_order: 1
-        }
-      ],
-      starting_equipment_currencies: [
-        { option_item_id: 'item-1', currency_id: 'gp', amount: 15 }
-      ]
-    }) as never)
+    const repository = createBackgroundRepository(
+      createFakeDb({
+        backgrounds: [
+          {
+            id: 'background-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Scholar',
+            description: 'Knows things.',
+            starting_equipment_id: 'se-1'
+          }
+        ],
+        background_details: [
+          { background_id: 'background-1', detail_id: 'detail-1', sort_order: 1 }
+        ],
+        background_features: [
+          { background_id: 'background-1', feature_id: 'feature-1', sort_order: 1 }
+        ],
+        details: [{ id: 'detail-1', label: 'Overview', description: 'Lore', sort_order: 1 }],
+        features: [
+          {
+            id: 'feature-1',
+            label: 'Researcher',
+            description: 'You know how to find answers.',
+            charge_id: null,
+            restriction_id: null,
+            sort_order: 1,
+            available_at_level: null
+          }
+        ],
+        feature_effects: [],
+        feature_attributes: [],
+        feature_feat_grants: [],
+        feature_modifier_grants: [],
+        feature_proficiency_grants: [],
+        feature_sense_grants: [],
+        feature_spell_grants: [],
+        feature_options: [],
+        feature_option_levels: [],
+        background_proficiency_grants: [
+          { background_id: 'background-1', proficiency_grant_id: 'grant-1', sort_order: 1 }
+        ],
+        proficiency_grants: [
+          {
+            id: 'grant-1',
+            sort_order: 1,
+            proficiency_kind: 'SKILL',
+            selection_kind: 'GRANTED',
+            authoring_mode_kind: 'SELECTED',
+            count: null,
+            level: 'FULL',
+            rounding: null
+          }
+        ],
+        proficiency_grant_skills: [{ proficiency_grant_id: 'grant-1', skill_id: 'skill-1' }],
+        starting_equipment: [{ id: 'se-1' }],
+        starting_equipment_sets: [{ id: 'set-1', starting_equipment_id: 'se-1', sort_order: 1 }],
+        starting_equipment_groups: [{ id: 'group-1', equipment_set_id: 'set-1', sort_order: 1 }],
+        starting_equipment_options: [
+          { id: 'option-1', equipment_group_id: 'group-1', sort_order: 1 }
+        ],
+        starting_equipment_option_items: [
+          {
+            id: 'item-1',
+            equipment_option_id: 'option-1',
+            starting_equipment_kind: 'CURRENCY',
+            authoring_mode_kind: null,
+            selection_kind: null,
+            category_code: null,
+            count: null,
+            quantity: null,
+            sort_order: 1
+          }
+        ],
+        starting_equipment_currencies: [{ option_item_id: 'item-1', currency_id: 'gp', amount: 15 }]
+      }) as never
+    )
 
     await expect(repository.findById('background-1')).resolves.toEqual({
       kind: 'BACKGROUND',
@@ -216,21 +214,23 @@ describe('createBackgroundRepository', () => {
   })
 
   it('omits optional owned fields when the row graph does not contain them', async () => {
-    const repository = createBackgroundRepository(createFakeDb({
-      backgrounds: [
-        {
-          id: 'background-2',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Wanderer',
-          description: null,
-          starting_equipment_id: null
-        }
-      ],
-      background_details: [],
-      background_features: [],
-      background_proficiency_grants: []
-    }) as never)
+    const repository = createBackgroundRepository(
+      createFakeDb({
+        backgrounds: [
+          {
+            id: 'background-2',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Wanderer',
+            description: null,
+            starting_equipment_id: null
+          }
+        ],
+        background_details: [],
+        background_features: [],
+        background_proficiency_grants: []
+      }) as never
+    )
 
     await expect(repository.findById('background-2')).resolves.toEqual({
       kind: 'BACKGROUND',
@@ -248,46 +248,52 @@ describe('createBackgroundRepository', () => {
   })
 
   it('fails loudly when a linked detail row is missing', async () => {
-    const repository = createBackgroundRepository(createFakeDb({
-      backgrounds: [
-        {
-          id: 'background-missing-detail',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Broken Scholar',
-          description: null,
-          starting_equipment_id: null
-        }
-      ],
-      background_details: [
-        { background_id: 'background-missing-detail', detail_id: 'detail-missing', sort_order: 1 }
-      ],
-      background_features: [],
-      details: [],
-      background_proficiency_grants: []
-    }) as never)
+    const repository = createBackgroundRepository(
+      createFakeDb({
+        backgrounds: [
+          {
+            id: 'background-missing-detail',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Broken Scholar',
+            description: null,
+            starting_equipment_id: null
+          }
+        ],
+        background_details: [
+          { background_id: 'background-missing-detail', detail_id: 'detail-missing', sort_order: 1 }
+        ],
+        background_features: [],
+        details: [],
+        background_proficiency_grants: []
+      }) as never
+    )
 
     await expect(repository.findById('background-missing-detail')).rejects.toThrow('missing detail')
   })
 
   it('fails loudly when linked starting equipment is missing', async () => {
-    const repository = createBackgroundRepository(createFakeDb({
-      backgrounds: [
-        {
-          id: 'background-missing-equipment',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Broken Wanderer',
-          description: null,
-          starting_equipment_id: 'se-missing'
-        }
-      ],
-      background_details: [],
-      background_features: [],
-      background_proficiency_grants: [],
-      starting_equipment: []
-    }) as never)
+    const repository = createBackgroundRepository(
+      createFakeDb({
+        backgrounds: [
+          {
+            id: 'background-missing-equipment',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Broken Wanderer',
+            description: null,
+            starting_equipment_id: 'se-missing'
+          }
+        ],
+        background_details: [],
+        background_features: [],
+        background_proficiency_grants: [],
+        starting_equipment: []
+      }) as never
+    )
 
-    await expect(repository.findById('background-missing-equipment')).rejects.toThrow('missing starting equipment')
+    await expect(repository.findById('background-missing-equipment')).rejects.toThrow(
+      'missing starting equipment'
+    )
   })
 })

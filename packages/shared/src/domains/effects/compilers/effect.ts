@@ -19,12 +19,7 @@ import {
   type PathCode,
   type PathGroupType
 } from '#core'
-import {
-  assertNever,
-  compileSuccess,
-  unwrapCompileResult,
-  type CompileResult
-} from '#utils'
+import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
 import {
   compileConditionEffect,
   compileDamageEffect,
@@ -48,39 +43,39 @@ export type CompiledEffect = {
   outcome: CompiledEffectOutcome
 } & (
   | {
-    resolutionKind: typeof PATH_RESOLUTION_KIND.DIRECT
-    groupKind: keyof typeof PATH_GROUP_TYPE
-  }
+      resolutionKind: typeof PATH_RESOLUTION_KIND.DIRECT
+      groupKind: keyof typeof PATH_GROUP_TYPE
+    }
   | ({
-    resolutionKind: typeof PATH_RESOLUTION_KIND.ROLL_TABLE
-    groupKind: PathGroupType
-  } & (
-    | {
-      rollTableKind: typeof PATH_ROLL_TABLE_KIND.RANGE
-      die: string
-      rollRange: [number, number]
-    }
-    | {
-      rollTableKind: typeof PATH_ROLL_TABLE_KIND.EXACT
-      die: string
-      rollValue: number
-    }
-  ))
+      resolutionKind: typeof PATH_RESOLUTION_KIND.ROLL_TABLE
+      groupKind: PathGroupType
+    } & (
+      | {
+          rollTableKind: typeof PATH_ROLL_TABLE_KIND.RANGE
+          die: string
+          rollRange: [number, number]
+        }
+      | {
+          rollTableKind: typeof PATH_ROLL_TABLE_KIND.EXACT
+          die: string
+          rollValue: number
+        }
+    ))
 )
 
 export type CompiledEffectGroup = CompiledEffect[]
 
-export type CompiledEffectOutcome
-  = | CompiledDamageEffect
-    | CompiledConditionEffect
-    | HealAuthored
-    | ApplyGrantAuthored
-    | ForcedMovementAuthored
-    | ManifestAuthored
-    | import('#authored').MoveManifestAuthored
-    | CommandManifestAuthored
-    | import('#authored').TeleportAuthored
-    | import('#authored').ManualAdjudicationAuthored
+export type CompiledEffectOutcome =
+  | CompiledDamageEffect
+  | CompiledConditionEffect
+  | HealAuthored
+  | ApplyGrantAuthored
+  | ForcedMovementAuthored
+  | ManifestAuthored
+  | import('#authored').MoveManifestAuthored
+  | CommandManifestAuthored
+  | import('#authored').TeleportAuthored
+  | import('#authored').ManualAdjudicationAuthored
 
 function compileOutcomePayload(
   outcome: import('#authored').OutcomeAuthored
@@ -105,9 +100,7 @@ function compileOutcomePayload(
 }
 
 function groupKindFromResultKind(resultKind: 'SINGLE' | 'SEQUENCE'): PathGroupType {
-  return resultKind === 'SEQUENCE'
-    ? PATH_GROUP_TYPE.SEQUENTIAL
-    : PATH_GROUP_TYPE.SINGLE
+  return resultKind === 'SEQUENCE' ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE
 }
 
 function compileResultBlock(
@@ -126,9 +119,7 @@ function compileResultBlock(
     rollValue?: number
   }
 ): CompiledEffect[] {
-  const duration = resultBlock.duration
-    ? compileDuration(resultBlock.duration)
-    : undefined
+  const duration = resultBlock.duration ? compileDuration(resultBlock.duration) : undefined
 
   const compiled: CompiledEffect[] = []
 
@@ -140,9 +131,7 @@ function compileResultBlock(
         pathGroupId: path.id,
         pathCode: path.pathCode,
         pathOrder: path.order,
-        entryOrder: meta?.entryOrderBase != null
-          ? meta.entryOrderBase + index
-          : index + 1,
+        entryOrder: meta?.entryOrderBase != null ? meta.entryOrderBase + index : index + 1,
         ...(meta?.label !== undefined ? { label: meta.label } : {}),
         ...(meta?.description !== undefined ? { description: meta.description } : {}),
         outcome: compiledOutcome,
@@ -177,9 +166,10 @@ function compileResultBlock(
       compiled.push({
         ...base,
         resolutionKind: PATH_RESOLUTION_KIND.DIRECT,
-        groupKind: path.selectionKind === 'CHOICE'
-          ? PATH_GROUP_TYPE.CHOICE
-          : groupKindFromResultKind(resultBlock.resultKind)
+        groupKind:
+          path.selectionKind === 'CHOICE'
+            ? PATH_GROUP_TYPE.CHOICE
+            : groupKindFromResultKind(resultBlock.resultKind)
       })
     }
   }
@@ -193,35 +183,45 @@ export function compileEffectResult<
 >(effect: EffectAuthored<TTrigger, TOutcome>): CompileResult<CompiledEffectGroup> {
   const rules: CompiledEffect[] = []
 
-  for (const path of effect.paths as EffectPathAuthored<Trigger, import('#authored').OutcomeAuthored>[]) {
+  for (const path of effect.paths as EffectPathAuthored<
+    Trigger,
+    import('#authored').OutcomeAuthored
+  >[]) {
     switch (path.selectionKind) {
       case 'FIXED':
         rules.push(...compileResultBlock(path, path.resultBlock))
         break
       case 'CHOICE':
         for (const option of path.options) {
-          rules.push(...compileResultBlock(path, option.resultBlock, {
-            entryId: option.id,
-            entryOrderBase: option.order * 1000,
-            ...(option.label !== undefined ? { label: option.label } : {}),
-            ...(option.description !== undefined ? { description: option.description } : {})
-          }))
+          rules.push(
+            ...compileResultBlock(path, option.resultBlock, {
+              entryId: option.id,
+              entryOrderBase: option.order * 1000,
+              ...(option.label !== undefined ? { label: option.label } : {}),
+              ...(option.description !== undefined ? { description: option.description } : {})
+            })
+          )
         }
         break
       case 'ROLL_TABLE':
         for (const row of path.rows) {
-          rules.push(...compileResultBlock(path, row.resultBlock, {
-            entryId: row.id,
-            entryOrderBase: row.order * 1000
-          }, {
-            rollTableKind: path.rollTableKind,
-            die: path.dieConfig,
-            ...(
-              row.rollRange
-                ? { rollRange: row.rollRange }
-                : { rollValue: row.rollValue as number }
+          rules.push(
+            ...compileResultBlock(
+              path,
+              row.resultBlock,
+              {
+                entryId: row.id,
+                entryOrderBase: row.order * 1000
+              },
+              {
+                rollTableKind: path.rollTableKind,
+                die: path.dieConfig,
+                ...(row.rollRange
+                  ? { rollRange: row.rollRange }
+                  : { rollValue: row.rollValue as number })
+              }
             )
-          }))
+          )
         }
         break
       default:

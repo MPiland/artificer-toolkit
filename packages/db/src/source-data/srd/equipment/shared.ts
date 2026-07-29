@@ -1,7 +1,54 @@
-import { ACTIVATION_CODE, ATTACK_DOMAIN_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SCALING, TARGET_SELECTION_KIND, TARGET_DISPOSITION_KIND, SUBJECT, TRIGGER, VALUE_DOMAIN_CODE } from '@artificer-toolkit/shared'
-import type { AbilityCode, FacetConditionAuthored, ModifierGrantAuthored, SizeCode } from '@artificer-toolkit/shared'
+import {
+  ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  PATH_RESOLUTION_KIND,
+  DAMAGE_VALUE_KIND,
+  EQUIPMENT_ATTRIBUTE,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  EFFECT_KIND,
+  GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  RANGE_KIND,
+  SCALING,
+  TARGET_SELECTION_KIND,
+  TARGET_DISPOSITION_KIND,
+  SUBJECT,
+  TRIGGER,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared'
+import type {
+  AbilityCode,
+  FacetConditionAuthored,
+  ModifierGrantAuthored,
+  SizeCode
+} from '@artificer-toolkit/shared'
 import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-export { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DAMAGE_VALUE_KIND, EQUIPMENT_ATTRIBUTE, EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, TARGET_DISPOSITION_KIND, TARGET_SELECTION_KIND, SUBJECT, TRIGGER, SRD_SYSTEM_ID, SRD_USER_ID }
+export {
+  ACTIVATION_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  PATH_RESOLUTION_KIND,
+  DAMAGE_VALUE_KIND,
+  EQUIPMENT_ATTRIBUTE,
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SCALING,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  SUBJECT,
+  TRIGGER,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+}
 export function equipId(index: number): string {
   const hex = index.toString(16).padStart(4, '0')
   return `00000000-0000-0000-0060-${hex}00000000`
@@ -29,21 +76,23 @@ export function lbs(amount: number) {
 export function conditionTypeId(code: string): string {
   const entry = SRD_CONDITION_TYPES.find((conditionType) => conditionType.code === code)
   if (!entry) {
-    throw new Error(`SRD condition type vocabulary entry for ${code} required for equipment source data.`)
+    throw new Error(
+      `SRD condition type vocabulary entry for ${code} required for equipment source data.`
+    )
   }
   return entry.id
 }
 export function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)
   if (!entry) {
-    throw new Error(`SRD damage type vocabulary entry for ${code} required for equipment source data.`)
+    throw new Error(
+      `SRD damage type vocabulary entry for ${code} required for equipment source data.`
+    )
   }
   return entry.id
 }
 export function equipmentChildId(equipmentId: string, bucket: number, index: number): string {
-  const [
-    , , , equipmentDomain, equipmentSuffix
-  ] = equipmentId.split('-')
+  const [, , , equipmentDomain, equipmentSuffix] = equipmentId.split('-')
   const bucketHex = bucket.toString(16).padStart(4, '0')
   const indexHex = index.toString(16).padStart(12, '0')
   return `${equipmentDomain.padStart(8, '0')}-0000-${bucketHex}-${equipmentSuffix.slice(0, 4)}-${indexHex}`
@@ -78,7 +127,12 @@ function whileEquippedRestriction(equipmentId: string, grantIndex: number) {
     ]
   }
 }
-function whileEquippedWithConditionRestriction(equipmentId: string, grantIndex: number, facetBucket: number, extraConditions: FacetConditionAuthored<'CHARACTER'>[]) {
+function whileEquippedWithConditionRestriction(
+  equipmentId: string,
+  grantIndex: number,
+  facetBucket: number,
+  extraConditions: FacetConditionAuthored<'CHARACTER'>[]
+) {
   return {
     id: equipmentChildId(equipmentId, facetBucket, grantIndex),
     groups: [
@@ -107,7 +161,14 @@ function whileEquippedWithConditionRestriction(equipmentId: string, grantIndex: 
   }
 }
 // ─── Base weapon modifier helpers ────────────────────────────────────────────
-function fixedAbilityWeaponModifier(equipmentId: string, bucket: number, order: number, valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE, attackDomain: keyof typeof ATTACK_DOMAIN_CODE, ability: AbilityCode): ModifierGrantAuthored {
+function fixedAbilityWeaponModifier(
+  equipmentId: string,
+  bucket: number,
+  order: number,
+  valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE,
+  attackDomain: keyof typeof ATTACK_DOMAIN_CODE,
+  ability: AbilityCode
+): ModifierGrantAuthored {
   return {
     id: equipmentChildId(equipmentId, bucket, order),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -123,27 +184,100 @@ function fixedAbilityWeaponModifier(equipmentId: string, bucket: number, order: 
 }
 export function meleeWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
   const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 1, VALUE_DOMAIN_CODE.ATTACK_ROLL, ATTACK_DOMAIN_CODE.MELEE, 'STRENGTH') as ModifierGrantAuthored)
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 2, VALUE_DOMAIN_CODE.DAMAGE, ATTACK_DOMAIN_CODE.MELEE, 'STRENGTH') as ModifierGrantAuthored)
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      1,
+      VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      ATTACK_DOMAIN_CODE.MELEE,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      2,
+      VALUE_DOMAIN_CODE.DAMAGE,
+      ATTACK_DOMAIN_CODE.MELEE,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
   return modifiers
 }
 export function rangedWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
   const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 1, VALUE_DOMAIN_CODE.ATTACK_ROLL, ATTACK_DOMAIN_CODE.RANGED, 'DEXTERITY') as ModifierGrantAuthored)
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 2, VALUE_DOMAIN_CODE.DAMAGE, ATTACK_DOMAIN_CODE.RANGED, 'DEXTERITY') as ModifierGrantAuthored)
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      1,
+      VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      ATTACK_DOMAIN_CODE.RANGED,
+      'DEXTERITY'
+    ) as ModifierGrantAuthored
+  )
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      2,
+      VALUE_DOMAIN_CODE.DAMAGE,
+      ATTACK_DOMAIN_CODE.RANGED,
+      'DEXTERITY'
+    ) as ModifierGrantAuthored
+  )
   return modifiers
 }
 export function thrownWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
   const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 1, VALUE_DOMAIN_CODE.ATTACK_ROLL, ATTACK_DOMAIN_CODE.MELEE, 'STRENGTH') as ModifierGrantAuthored)
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 2, VALUE_DOMAIN_CODE.DAMAGE, ATTACK_DOMAIN_CODE.MELEE, 'STRENGTH') as ModifierGrantAuthored)
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 3, VALUE_DOMAIN_CODE.ATTACK_ROLL, ATTACK_DOMAIN_CODE.RANGED, 'STRENGTH') as ModifierGrantAuthored)
-  modifiers.push(fixedAbilityWeaponModifier(equipmentId, 0x300, 4, VALUE_DOMAIN_CODE.DAMAGE, ATTACK_DOMAIN_CODE.RANGED, 'STRENGTH') as ModifierGrantAuthored)
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      1,
+      VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      ATTACK_DOMAIN_CODE.MELEE,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      2,
+      VALUE_DOMAIN_CODE.DAMAGE,
+      ATTACK_DOMAIN_CODE.MELEE,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      3,
+      VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      ATTACK_DOMAIN_CODE.RANGED,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
+  modifiers.push(
+    fixedAbilityWeaponModifier(
+      equipmentId,
+      0x300,
+      4,
+      VALUE_DOMAIN_CODE.DAMAGE,
+      ATTACK_DOMAIN_CODE.RANGED,
+      'STRENGTH'
+    ) as ModifierGrantAuthored
+  )
   return modifiers
 }
 /** FINESSE: allow STR or DEX for attack and damage rolls. Bucket 0x310. */
 export function finesseWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const restriction = (i: number) => whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
+  const restriction = (i: number) =>
+    whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
   return [
     {
       id: equipmentChildId(equipmentId, 0x310, 1),
@@ -173,7 +307,8 @@ export function finesseWeaponModifiers(equipmentId: string): ModifierGrantAuthor
 }
 /** FINESSE on a thrown/ranged weapon: STR or DEX for both melee and ranged attacks. Bucket 0x310. */
 export function finesseWeaponWithRangedModifiers(equipmentId: string) {
-  const restriction = (i: number) => whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
+  const restriction = (i: number) =>
+    whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
   return [
     {
       id: equipmentChildId(equipmentId, 0x310, 1),
@@ -245,7 +380,9 @@ export function heavyWeaponModifiers(equipmentId: string): ModifierGrantAuthored
       modifierKind: MODIFIER_KIND.DISADVANTAGE,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x320, [sizeCondition(1)]),
+      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x320, [
+        sizeCondition(1)
+      ]),
       order: 1
     },
     {
@@ -256,7 +393,9 @@ export function heavyWeaponModifiers(equipmentId: string): ModifierGrantAuthored
       modifierKind: MODIFIER_KIND.DISADVANTAGE,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 2, 0x320, [sizeCondition(2)]),
+      restrictions: whileEquippedWithConditionRestriction(equipmentId, 2, 0x320, [
+        sizeCondition(2)
+      ]),
       order: 2
     }
   ]
@@ -284,7 +423,12 @@ export function lightArmorModifiers(equipmentId: string) {
 export function mediumArmorModifiers(equipmentId: string) {
   return armorAbilityModModifiers(equipmentId, 'MEDIUM', 'DEXTERITY', { max: 2 })
 }
-function proficiencyCondition(equipmentId: string, bucket: number, grantIndex: number, property: keyof typeof EQUIPMENT_PROPERTY_CODE) {
+function proficiencyCondition(
+  equipmentId: string,
+  bucket: number,
+  grantIndex: number,
+  property: keyof typeof EQUIPMENT_PROPERTY_CODE
+) {
   return {
     id: equipmentChildId(equipmentId, bucket + 4, grantIndex),
     order: 1,
@@ -295,7 +439,12 @@ function proficiencyCondition(equipmentId: string, bucket: number, grantIndex: n
     properties: [property]
   }
 }
-function armorAbilityModModifiers(equipmentId: string, property: keyof typeof EQUIPMENT_PROPERTY_CODE, ability: AbilityCode, bounds: { min?: number, max?: number } = {}) {
+function armorAbilityModModifiers(
+  equipmentId: string,
+  property: keyof typeof EQUIPMENT_PROPERTY_CODE,
+  ability: AbilityCode,
+  bounds: { min?: number; max?: number } = {}
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x330, 1),
@@ -306,7 +455,9 @@ function armorAbilityModModifiers(equipmentId: string, property: keyof typeof EQ
       scope: MODIFIER_SCOPE_KIND.GLOBAL,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
       payload: { ability, ...bounds },
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x330, [proficiencyCondition(equipmentId, 0x330, 1, property)]),
+      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x330, [
+        proficiencyCondition(equipmentId, 0x330, 1, property)
+      ]),
       order: 1
     }
   ]
@@ -466,7 +617,12 @@ function distanceRange(equipmentId: string, effectBucket: number, normalFt: numb
     unit: MEASUREMENT_UNIT_CODE.FEET
   }
 }
-function damagePath(equipmentId: string, pathBucket: number, damageTypeCode: string, diceConfig: string) {
+function damagePath(
+  equipmentId: string,
+  pathBucket: number,
+  damageTypeCode: string,
+  diceConfig: string
+) {
   return {
     id: equipmentChildId(equipmentId, pathBucket, 1),
     order: 1,
@@ -490,7 +646,12 @@ function damagePath(equipmentId: string, pathBucket: number, damageTypeCode: str
     }
   }
 }
-function fixedDamagePath(equipmentId: string, pathBucket: number, damageTypeCode: string, amount: number) {
+function fixedDamagePath(
+  equipmentId: string,
+  pathBucket: number,
+  damageTypeCode: string,
+  amount: number
+) {
   return {
     id: equipmentChildId(equipmentId, pathBucket, 1),
     order: 1,
@@ -515,7 +676,11 @@ function fixedDamagePath(equipmentId: string, pathBucket: number, damageTypeCode
   }
 }
 /** Pure melee weapon (e.g. mace, flail, morningstar). */
-export function meleeWeaponEffects(equipmentId: string, damageTypeCode: string, diceConfig: string) {
+export function meleeWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  diceConfig: string
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -531,7 +696,12 @@ export function meleeWeaponEffects(equipmentId: string, damageTypeCode: string, 
   ]
 }
 /** Versatile melee weapon: two effects (one-handed / two-handed). */
-export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode: string, dice1h: string, dice2h: string) {
+export function meleeVersatileWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  dice1h: string,
+  dice2h: string
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -566,7 +736,12 @@ export function meleeVersatileWeaponEffects(equipmentId: string, damageTypeCode:
   ]
 }
 /** Thrown weapon (also melee): two effects — melee and ranged. */
-export function thrownWeaponEffects(equipmentId: string, damageTypeCode: string, diceConfig: string, normalRangeFt: number) {
+export function thrownWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  diceConfig: string,
+  normalRangeFt: number
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -593,7 +768,13 @@ export function thrownWeaponEffects(equipmentId: string, damageTypeCode: string,
   ]
 }
 /** Thrown + versatile weapon (spear, trident): melee 1h, melee 2h, ranged. */
-export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode: string, dice1h: string, dice2h: string, normalRangeFt: number) {
+export function thrownVersatileWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  dice1h: string,
+  dice2h: string,
+  normalRangeFt: number
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -639,7 +820,11 @@ export function thrownVersatileWeaponEffects(equipmentId: string, damageTypeCode
   ]
 }
 /** Reach melee weapon (glaive, halberd, pike, lance, whip): 10ft range. */
-export function meleeReachWeaponEffects(equipmentId: string, damageTypeCode: string, diceConfig: string) {
+export function meleeReachWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  diceConfig: string
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -655,7 +840,12 @@ export function meleeReachWeaponEffects(equipmentId: string, damageTypeCode: str
   ]
 }
 /** Pure ranged weapon (bow, crossbow, sling). */
-export function rangedWeaponEffects(equipmentId: string, damageTypeCode: string, diceConfig: string, normalRangeFt: number) {
+export function rangedWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  diceConfig: string,
+  normalRangeFt: number
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),
@@ -671,7 +861,12 @@ export function rangedWeaponEffects(equipmentId: string, damageTypeCode: string,
   ]
 }
 /** Ranged weapon with fixed (non-dice) damage (blowgun: 1 piercing). */
-export function rangedFixedDamageWeaponEffects(equipmentId: string, damageTypeCode: string, amount: number, normalRangeFt: number) {
+export function rangedFixedDamageWeaponEffects(
+  equipmentId: string,
+  damageTypeCode: string,
+  amount: number,
+  normalRangeFt: number
+) {
   return [
     {
       id: equipmentChildId(equipmentId, 0x210, 1),

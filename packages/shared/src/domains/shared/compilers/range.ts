@@ -1,12 +1,12 @@
 import type { MeasurementUnitCode, RangeKind, ScalableValueAuthored } from '#core'
 import type { RangeAuthored, RangeMeasurementAuthored } from '#authored'
 
-export type CompiledRange
-  = | {
-    id: string
-    rangeKind: Exclude<RangeKind, 'DISTANCE'>
-  }
-    | {
+export type CompiledRange =
+  | {
+      id: string
+      rangeKind: Exclude<RangeKind, 'DISTANCE'>
+    }
+  | {
       id: string
       rangeKind: 'DISTANCE'
       amount: number

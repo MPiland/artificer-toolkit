@@ -10,7 +10,6 @@ export type Database = {
           description: string | null
           id: string
           label: string
-          sort_order: number
           short: string | null
           system_id: string
           tooltip: string | null
@@ -22,7 +21,6 @@ export type Database = {
           description?: string | null
           id: string
           label: string
-          sort_order?: number | null
           short?: string | null
           system_id: string
           tooltip?: string | null
@@ -34,7 +32,6 @@ export type Database = {
           description?: string | null
           id?: string
           label?: string
-          sort_order?: number | null
           short?: string | null
           system_id?: string
           tooltip?: string | null
@@ -641,6 +638,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'character_abilities_standard_array_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_ability_adjustments: {
+        Row: {
+          ability_code: string
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          ability_code: string
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value: number
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          ability_code?: string
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_ability_adjustments_character_id_fkey'
             columns: ['character_id']
             isOneToOne: false
             referencedRelation: 'characters'
@@ -1484,6 +1528,66 @@ export type Database = {
           }
         ]
       }
+      character_companion_adjustments: {
+        Row: {
+          character_id: string
+          companion_instance_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number | null
+          reference_value: string | null
+          source_note: string | null
+          text_value: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          companion_instance_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value?: number | null
+          reference_value?: string | null
+          source_note?: string | null
+          text_value?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          companion_instance_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number | null
+          reference_value?: string | null
+          source_note?: string | null
+          text_value?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_companion_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_companion_adjustments_companion_fkey'
+            columns: ['character_id', 'companion_instance_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
+          }
+        ]
+      }
       character_conditions: {
         Row: {
           character_id: string
@@ -1574,33 +1678,42 @@ export type Database = {
           character_id: string
           created_at: string
           creature_id: string
+          current_hit_points: number | null
           custom_name: string | null
           id: string
           is_active: boolean | null
           notes: string | null
+          origin_kind: string
           relationship_kind: string
+          temp_hit_points: number | null
           updated_at: string
         }
         Insert: {
           character_id: string
           created_at?: string
           creature_id: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          origin_kind?: string
           relationship_kind: string
+          temp_hit_points?: number | null
           updated_at?: string
         }
         Update: {
           character_id?: string
           created_at?: string
           creature_id?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          origin_kind?: string
           relationship_kind?: string
+          temp_hit_points?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1617,6 +1730,51 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'creatures'
             referencedColumns: ['id']
+          }
+        ]
+      }
+      character_creature_hit_dice_state: {
+        Row: {
+          character_creature_id: string
+          character_id: string
+          created_at: string
+          die: number
+          total: number
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_creature_id: string
+          character_id: string
+          created_at?: string
+          die: number
+          total: number
+          updated_at?: string
+          used: number
+        }
+        Update: {
+          character_creature_id?: string
+          character_id?: string
+          created_at?: string
+          die?: number
+          total?: number
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_creature_owner_fkey'
+            columns: ['character_id', 'character_creature_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
           }
         ]
       }
@@ -1705,6 +1863,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'character_equipment'
             referencedColumns: ['character_id', 'id']
+          }
+        ]
+      }
+      character_defense_additions: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          damage_type_id: string
+          defense_kind: string
+          id: string
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          damage_type_id: string
+          defense_kind: string
+          id?: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          damage_type_id?: string
+          defense_kind?: string
+          id?: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_defense_additions_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_defense_additions_damage_type_id_fkey'
+            columns: ['damage_type_id']
+            isOneToOne: false
+            referencedRelation: 'damage_types'
+            referencedColumns: ['id']
           }
         ]
       }
@@ -2140,6 +2349,50 @@ export type Database = {
           }
         ]
       }
+      character_hitpoint_adjustments: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value: number
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_hitpoint_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       character_hitpoint_intent: {
         Row: {
           character_id: string
@@ -2290,6 +2543,117 @@ export type Database = {
           }
         ]
       }
+      character_item_adjustments: {
+        Row: {
+          boolean_value: boolean | null
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          item_instance_id: string
+          numeric_value: number | null
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          boolean_value?: boolean | null
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          item_instance_id: string
+          numeric_value?: number | null
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          boolean_value?: boolean | null
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          item_instance_id?: string
+          numeric_value?: number | null
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_item_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_item_adjustments_item_fkey'
+            columns: ['character_id', 'item_instance_id']
+            isOneToOne: false
+            referencedRelation: 'character_equipment'
+            referencedColumns: ['character_id', 'id']
+          }
+        ]
+      }
+      character_movement_adjustments: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          source_note: string | null
+          speed_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind?: string
+          id?: string
+          integer_value: number
+          source_note?: string | null
+          speed_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          source_note?: string | null
+          speed_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_movement_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_movement_adjustments_speed_id_fkey'
+            columns: ['speed_id']
+            isOneToOne: false
+            referencedRelation: 'speeds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       character_note_groups: {
         Row: {
           character_id: string
@@ -2373,6 +2737,104 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'character_note_groups'
             referencedColumns: ['character_id', 'id']
+          }
+        ]
+      }
+      character_passive_adjustments: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          skill_id: string
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind?: string
+          id?: string
+          integer_value: number
+          skill_id: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          skill_id?: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_passive_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_passive_adjustments_skill_id_fkey'
+            columns: ['skill_id']
+            isOneToOne: false
+            referencedRelation: 'skills'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_proficiency_additions: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          id: string
+          proficiency_kind: string
+          source_note: string | null
+          target_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          proficiency_kind: string
+          source_note?: string | null
+          target_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          proficiency_kind?: string
+          source_note?: string | null
+          target_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_proficiency_additions_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
           }
         ]
       }
@@ -2672,6 +3134,377 @@ export type Database = {
           }
         ]
       }
+      character_saving_throw_adjustments: {
+        Row: {
+          ability_code: string
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number | null
+          proficiency_value: string | null
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          ability_code: string
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value?: number | null
+          proficiency_value?: string | null
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          ability_code?: string
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number | null
+          proficiency_value?: string | null
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_saving_throw_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_sense_adjustments: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          sense_id: string
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind?: string
+          id?: string
+          integer_value: number
+          sense_id: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          sense_id?: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_sense_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_sense_adjustments_sense_id_fkey'
+            columns: ['sense_id']
+            isOneToOne: false
+            referencedRelation: 'senses'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_sheet_preferences: {
+        Row: {
+          character_id: string
+          created_at: string
+          movement_display_mode: string
+          movement_speed_id: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          movement_display_mode?: string
+          movement_speed_id?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          movement_display_mode?: string
+          movement_speed_id?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_sheet_preferences_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: true
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_sheet_preferences_movement_speed_id_fkey'
+            columns: ['movement_speed_id']
+            isOneToOne: false
+            referencedRelation: 'speeds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_sheet_resource_usage: {
+        Row: {
+          charge_id: string | null
+          character_id: string
+          companion_instance_id: string | null
+          created_at: string
+          created_by: string
+          feature_id: string | null
+          id: string
+          item_instance_id: string | null
+          owner_kind: string
+          resource_grant_id: string | null
+          sense_grant_id: string | null
+          source_instance_id: string | null
+          source_kind: string | null
+          spell_id: string | null
+          updated_at: string
+          updated_by: string
+          used: number
+        }
+        Insert: {
+          charge_id?: string | null
+          character_id: string
+          companion_instance_id?: string | null
+          created_at?: string
+          created_by: string
+          feature_id?: string | null
+          id?: string
+          item_instance_id?: string | null
+          owner_kind: string
+          resource_grant_id?: string | null
+          sense_grant_id?: string | null
+          source_instance_id?: string | null
+          source_kind?: string | null
+          spell_id?: string | null
+          updated_at?: string
+          updated_by: string
+          used?: number
+        }
+        Update: {
+          charge_id?: string | null
+          character_id?: string
+          companion_instance_id?: string | null
+          created_at?: string
+          created_by?: string
+          feature_id?: string | null
+          id?: string
+          item_instance_id?: string | null
+          owner_kind?: string
+          resource_grant_id?: string | null
+          sense_grant_id?: string | null
+          source_instance_id?: string | null
+          source_kind?: string | null
+          spell_id?: string | null
+          updated_at?: string
+          updated_by?: string
+          used?: number
+        }
+        Relationships: []
+      }
+      character_skill_adjustments: {
+        Row: {
+          ability_value: string | null
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number | null
+          proficiency_value: string | null
+          skill_id: string
+          source_note: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          ability_value?: string | null
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value?: number | null
+          proficiency_value?: string | null
+          skill_id: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          ability_value?: string | null
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number | null
+          proficiency_value?: string | null
+          skill_id?: string
+          source_note?: string | null
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_skill_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_skill_adjustments_skill_id_fkey'
+            columns: ['skill_id']
+            isOneToOne: false
+            referencedRelation: 'skills'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_spell_customizations: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          custom_name: string | null
+          display_as_attack: boolean
+          id: string
+          notes: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id?: string
+          source_kind?: string
+          spell_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: []
+      }
+      character_spell_adjustments: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          field_kind: string
+          id: string
+          integer_value: number
+          source_instance_id: string
+          source_kind: string
+          source_note: string | null
+          spell_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          field_kind: string
+          id?: string
+          integer_value: number
+          source_instance_id: string
+          source_kind: string
+          source_note?: string | null
+          spell_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          field_kind?: string
+          id?: string
+          integer_value?: number
+          source_instance_id?: string
+          source_kind?: string
+          source_note?: string | null
+          spell_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_spell_adjustments_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_spell_adjustments_spell_id_fkey'
+            columns: ['spell_id']
+            isOneToOne: false
+            referencedRelation: 'spells'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       character_spell_selection_spells: {
         Row: {
           created_at: string
@@ -2901,6 +3734,7 @@ export type Database = {
         Row: {
           character_id: string
           created_at: string
+          current_hit_points: number | null
           custom_name: string | null
           id: string
           is_active: boolean | null
@@ -2911,6 +3745,7 @@ export type Database = {
         Insert: {
           character_id: string
           created_at?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -2921,6 +3756,7 @@ export type Database = {
         Update: {
           character_id?: string
           created_at?: string
+          current_hit_points?: number | null
           custom_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -3695,32 +4531,32 @@ export type Database = {
       class_spellcasting: {
         Row: {
           ability_code: string | null
+          available_at_level: number | null
           charge_id: string
           class_id: string
           id: string
           magic_name: string | null
           max_spell_level: number
-          available_at_level: number | null
           sort_order: number | null
         }
         Insert: {
           ability_code?: string | null
+          available_at_level?: number | null
           charge_id: string
           class_id: string
           id?: string
           magic_name?: string | null
           max_spell_level: number
-          available_at_level?: number | null
           sort_order?: number | null
         }
         Update: {
           ability_code?: string | null
+          available_at_level?: number | null
           charge_id?: string
           class_id?: string
           id?: string
           magic_name?: string | null
           max_spell_level?: number
-          available_at_level?: number | null
           sort_order?: number | null
         }
         Relationships: [
@@ -4376,6 +5212,9 @@ export type Database = {
           creature_type_id: string | null
           description: string | null
           hit_dice: string | null
+          hit_dice_count: number | null
+          hit_dice_modifier: number | null
+          hit_die: number | null
           hit_points: number | null
           id: string
           is_master: boolean | null
@@ -4409,6 +5248,9 @@ export type Database = {
           creature_type_id?: string | null
           description?: string | null
           hit_dice?: string | null
+          hit_dice_count?: number | null
+          hit_dice_modifier?: number | null
+          hit_die?: number | null
           hit_points?: number | null
           id: string
           is_master?: boolean | null
@@ -4442,6 +5284,9 @@ export type Database = {
           creature_type_id?: string | null
           description?: string | null
           hit_dice?: string | null
+          hit_dice_count?: number | null
+          hit_dice_modifier?: number | null
+          hit_die?: number | null
           hit_points?: number | null
           id?: string
           is_master?: boolean | null

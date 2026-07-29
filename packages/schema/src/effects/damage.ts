@@ -42,39 +42,48 @@ const damageFixedDtoSchema = z.union([
     valueKind: z.literal('FIXED'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
-  z.object({
-    valueKind: z.literal('FIXED'),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-    levels: z.array(
-      levelScaledValueLevelDtoSchema.extend({
-        amount: z.number()
-      })
-    ),
-    scalingSource: scalingSourceSchema,
-    classId: z.string().optional()
-  }).superRefine((value, ctx) => {
-    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-  })
-  ,
-  z.object({
-    valueKind: z.literal('FIXED'),
-    scalingKind: z.literal('BREAKPOINTS'),
-    breakpoints: z.array(
-      levelScaledValueLevelDtoSchema.extend({
-        value: z.object({
+  z
+    .object({
+      valueKind: z.literal('FIXED'),
+      scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+      levels: z.array(
+        levelScaledValueLevelDtoSchema.extend({
           amount: z.number()
         })
-      })
-    ),
-    scalingSource: scalingSourceSchema,
-    classId: z.string().optional()
-  }).superRefine((value, ctx) => {
-    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-  })
+      ),
+      scalingSource: scalingSourceSchema,
+      classId: z.string().optional()
+    })
+    .superRefine((value, ctx) => {
+      if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'classId is required for CLASS_LEVEL scaling'
+        })
+      }
+    }),
+  z
+    .object({
+      valueKind: z.literal('FIXED'),
+      scalingKind: z.literal('BREAKPOINTS'),
+      breakpoints: z.array(
+        levelScaledValueLevelDtoSchema.extend({
+          value: z.object({
+            amount: z.number()
+          })
+        })
+      ),
+      scalingSource: scalingSourceSchema,
+      classId: z.string().optional()
+    })
+    .superRefine((value, ctx) => {
+      if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'classId is required for CLASS_LEVEL scaling'
+        })
+      }
+    })
 ])
 
 const damageDiceDtoSchema = z.union([
@@ -83,39 +92,48 @@ const damageDiceDtoSchema = z.union([
     valueKind: z.literal('DICE'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
-  z.object({
-    valueKind: z.literal('DICE'),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-    levels: z.array(
-      levelScaledValueLevelDtoSchema.extend({
-        diceConfig: z.string()
-      })
-    ),
-    scalingSource: scalingSourceSchema,
-    classId: z.string().optional()
-  }).superRefine((value, ctx) => {
-    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-  })
-  ,
-  z.object({
-    valueKind: z.literal('DICE'),
-    scalingKind: z.literal('BREAKPOINTS'),
-    breakpoints: z.array(
-      levelScaledValueLevelDtoSchema.extend({
-        value: z.object({
+  z
+    .object({
+      valueKind: z.literal('DICE'),
+      scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+      levels: z.array(
+        levelScaledValueLevelDtoSchema.extend({
           diceConfig: z.string()
         })
-      })
-    ),
-    scalingSource: scalingSourceSchema,
-    classId: z.string().optional()
-  }).superRefine((value, ctx) => {
-    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-  })
+      ),
+      scalingSource: scalingSourceSchema,
+      classId: z.string().optional()
+    })
+    .superRefine((value, ctx) => {
+      if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'classId is required for CLASS_LEVEL scaling'
+        })
+      }
+    }),
+  z
+    .object({
+      valueKind: z.literal('DICE'),
+      scalingKind: z.literal('BREAKPOINTS'),
+      breakpoints: z.array(
+        levelScaledValueLevelDtoSchema.extend({
+          value: z.object({
+            diceConfig: z.string()
+          })
+        })
+      ),
+      scalingSource: scalingSourceSchema,
+      classId: z.string().optional()
+    })
+    .superRefine((value, ctx) => {
+      if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'classId is required for CLASS_LEVEL scaling'
+        })
+      }
+    })
 ])
 
 const damagePoolDtoSchema = z.union([
@@ -124,29 +142,36 @@ const damagePoolDtoSchema = z.union([
     valueKind: z.literal('POOL'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
-  z.object({
-    valueKind: z.literal('POOL'),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-    scalingSource: scalingSourceSchema,
-    classId: z.string().optional(),
-    amount: z.number().optional(),
-    multiplier: z.number().optional(),
-    min: z.number().optional(),
-    max: z.number().optional()
-  }).superRefine((value, ctx) => {
-    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-  })
+  z
+    .object({
+      valueKind: z.literal('POOL'),
+      scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+      scalingSource: scalingSourceSchema,
+      classId: z.string().optional(),
+      amount: z.number().optional(),
+      multiplier: z.number().optional(),
+      min: z.number().optional(),
+      max: z.number().optional()
+    })
+    .superRefine((value, ctx) => {
+      if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'classId is required for CLASS_LEVEL scaling'
+        })
+      }
+    })
 ])
 
-export const damageDtoSchema = z.object({
-  id: z.string(),
-  effectKind: z.literal('DAMAGE'),
-  damageTypeId: z.string(),
-  bonuses: z.array(damageBonusDtoSchema).optional(),
-  amountKind: scalingAmountKindSchema.optional(),
-  multiplier: z.number().optional()
-}).and(z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema]))
+export const damageDtoSchema = z
+  .object({
+    id: z.string(),
+    effectKind: z.literal('DAMAGE'),
+    damageTypeId: z.string(),
+    bonuses: z.array(damageBonusDtoSchema).optional(),
+    amountKind: scalingAmountKindSchema.optional(),
+    multiplier: z.number().optional()
+  })
+  .and(z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema]))
 
 export type DamageDto = z.infer<typeof damageDtoSchema>

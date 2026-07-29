@@ -16,16 +16,18 @@ export const youngCopperDragon: CreatureAuthored = {
     CONSTITUTION: 17,
     INTELLIGENCE: 16,
     WISDOM: 13,
-    CHARISMA: 15,
+    CHARISMA: 15
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 119,
-  hitDice: '14d10+42',
+  hitDice: {
+    count: 14,
+    die: 10,
+    modifier: 42
+  },
   speeds: [...S.walk(40), ...S.climb(40), ...S.fly(80)],
-  proficiencies: [
-    S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'PERCEPTION', 'STEALTH')
-  ],
+  proficiencies: [S.grantedSkillProficiency(4834, 1, 'DECEPTION', 'PERCEPTION', 'STEALTH')],
   damageImmunities: ['acid'],
   senses: ['blindsight 30 ft.', 'darkvision 120 ft.'],
   passivePerception: 19,
@@ -35,33 +37,37 @@ export const youngCopperDragon: CreatureAuthored = {
     {
       id: S.featureId(305, 1),
       label: 'Spider Climb',
-      description: 'Spider Climb. The dragon can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      description:
+        'Spider Climb. The dragon can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       order: 1
     },
     {
       id: S.featureId(305, 2),
       label: 'Acid Breath',
-      description: 'Acid Breath. The dragon exhales acid in a line. Each creature in the line must make a Dexterity saving throw, taking acid damage on a failed save, or half as much damage on a successful one.',
+      description:
+        'Acid Breath. The dragon exhales acid in a line. Each creature in the line must make a Dexterity saving throw, taking acid damage on a failed save, or half as much damage on a successful one.',
       order: 2
     },
     {
       id: S.featureId(305, 3),
       label: 'Multiattack',
-      description: 'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
+      description:
+        'Multiattack. The dragon makes three attacks: one with its bite and two with its claws.',
       order: 3
     },
     {
       id: S.featureId(305, 4),
       label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage plus acid damage.',
+      description:
+        'Bite. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage plus acid damage.',
       order: 4
     },
     {
       id: S.featureId(305, 5),
       label: 'Claw',
-      description: 'Claw. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.',
+      description:
+        'Claw. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.',
       order: 5
     }
   ]
 }
-

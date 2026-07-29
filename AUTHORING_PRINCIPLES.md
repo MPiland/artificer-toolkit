@@ -16,11 +16,11 @@ Authored objects are never shared. If two parents (races, classes, backgrounds) 
 
 Use a deterministic ID helper scoped to the parent type:
 
-| Context | Helper | Example |
-|---|---|---|
-| Race features | `raceFeatureId(raceIndex, group, entry)` | `raceFeatureId(9, 1, 1)` = Tiefling Darkvision feature |
-| Class features | `classRowId(classIndex, group, entry)` | `classRowId(W, 1, 1)` = Warlock Otherworldly Patron |
-| Background features | `bgId(bgIndex, group, entry)` | `bgId(12, 1, 1)` = Sage Researcher feature |
+| Context             | Helper                                   | Example                                                |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------ |
+| Race features       | `raceFeatureId(raceIndex, group, entry)` | `raceFeatureId(9, 1, 1)` = Tiefling Darkvision feature |
+| Class features      | `classRowId(classIndex, group, entry)`   | `classRowId(W, 1, 1)` = Warlock Otherworldly Patron    |
+| Background features | `bgId(bgIndex, group, entry)`            | `bgId(12, 1, 1)` = Sage Researcher feature             |
 
 ## Vocabulary vs. Authored Objects
 

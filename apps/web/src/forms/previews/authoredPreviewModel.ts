@@ -55,9 +55,24 @@ function createDomainSections(
   switch (domain) {
     case 'background':
       return [
-        createProseSection('background-prose', 'Description', values, 'Add a description to preview its reader copy.'),
-        createListSection('background-features', 'Features', readRecords(values.features), 'No background features yet.'),
-        createListSection('background-details', 'Details', readRecords(values.details), 'No background details yet.')
+        createProseSection(
+          'background-prose',
+          'Description',
+          values,
+          'Add a description to preview its reader copy.'
+        ),
+        createListSection(
+          'background-features',
+          'Features',
+          readRecords(values.features),
+          'No background features yet.'
+        ),
+        createListSection(
+          'background-details',
+          'Details',
+          readRecords(values.details),
+          'No background details yet.'
+        )
       ]
     case 'class':
       return [
@@ -66,7 +81,12 @@ function createDomainSections(
           ['Starting Gold', formatCost(readRecord(values.startingGold), system)],
           ['Features', formatCount(readRecords(values.features).length, 'feature')]
         ]),
-        createListSection('class-features', 'Progression Hooks', readRecords(values.features), 'No class features yet.'),
+        createListSection(
+          'class-features',
+          'Progression Hooks',
+          readRecords(values.features),
+          'No class features yet.'
+        ),
         createChargesSection(values)
       ]
     case 'creature':
@@ -74,18 +94,36 @@ function createDomainSections(
         createFactsSection('creature-facts', 'Stat Block', [
           ['AC', readNumber(values.armorClass)],
           ['HP', formatHitPoints(values)],
-          ['CR', labelForVocabularyId(system, 'challengeRatings', readString(values.challengeRatingId))],
+          [
+            'CR',
+            labelForVocabularyId(system, 'challengeRatings', readString(values.challengeRatingId))
+          ],
           ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))]
         ]),
-        createRowsSection('creature-speeds', 'Speeds', createSpeedRows(readRecords(values.speeds), system), { showWhenEmpty: true }),
+        createRowsSection(
+          'creature-speeds',
+          'Speeds',
+          createSpeedRows(readRecords(values.speeds), system),
+          { showWhenEmpty: true }
+        ),
         createChipsSection('creature-defenses', 'Defenses', [
-          ...labelIds(system, 'damageTypes', readStrings(values.damageVulnerabilities), 'Vulnerable'),
+          ...labelIds(
+            system,
+            'damageTypes',
+            readStrings(values.damageVulnerabilities),
+            'Vulnerable'
+          ),
           ...labelIds(system, 'damageTypes', readStrings(values.damageResistances), 'Resists'),
           ...labelIds(system, 'damageTypes', readStrings(values.damageImmunities), 'Immune'),
           ...labelIds(system, 'conditionTypes', readStrings(values.conditionImmunities), 'Immune')
         ]),
         createDamageSection(values, system),
-        createListSection('creature-features', 'Actions & Traits', readRecords(values.features), 'No creature traits yet.')
+        createListSection(
+          'creature-features',
+          'Actions & Traits',
+          readRecords(values.features),
+          'No creature traits yet.'
+        )
       ]
     case 'equipment':
       return [
@@ -98,46 +136,94 @@ function createDomainSections(
         createChipsSection(
           'equipment-properties',
           'Properties',
-          readStrings(values.properties).map(formatEnumLabel).filter((value): value is string => value !== undefined)
+          readStrings(values.properties)
+            .map(formatEnumLabel)
+            .filter((value): value is string => value !== undefined)
         ),
         createDamageSection(values, system),
         createChargesSection(values),
-        createListSection('equipment-features', 'Features', readRecords(values.features), 'No equipment features yet.')
+        createListSection(
+          'equipment-features',
+          'Features',
+          readRecords(values.features),
+          'No equipment features yet.'
+        )
       ]
     case 'feat':
       return [
-        createProseSection('feat-prose', 'Description', values, 'Add a description to preview its reader copy.'),
+        createProseSection(
+          'feat-prose',
+          'Description',
+          values,
+          'Add a description to preview its reader copy.'
+        ),
         createDamageSection(values, system),
         createChargesSection(values),
-        createListSection('feat-features', 'Feature Pieces', readRecords(values.features), 'No feat features yet.')
+        createListSection(
+          'feat-features',
+          'Feature Pieces',
+          readRecords(values.features),
+          'No feat features yet.'
+        )
       ]
     case 'race':
       return [
-        createProseSection('race-prose', 'Description', values, 'Add a description to preview how this will read.'),
+        createProseSection(
+          'race-prose',
+          'Description',
+          values,
+          'Add a description to preview how this will read.'
+        ),
         createRowsSection('race-traits', 'Traits', [
-          ...createFactRows([
-            ['Size', formatEnumLabel(readString(values.size))]
-          ]),
+          ...createFactRows([['Size', formatEnumLabel(readString(values.size))]]),
           ...createSpeedRows(readRecords(values.speeds), system).map((speed) => ({
             label: 'Speeds',
             value: speed.label
           }))
         ]),
-        createListSection('race-options', 'Ancestry Options', readRecords(values.options), 'No ancestry options yet.'),
-        createListSection('race-features', 'Features', readRecords(values.features), 'No race features yet.'),
-        createListSection('race-details', 'Details', readRecords(values.details), 'No race details yet.')
+        createListSection(
+          'race-options',
+          'Ancestry Options',
+          readRecords(values.options),
+          'No ancestry options yet.'
+        ),
+        createListSection(
+          'race-features',
+          'Features',
+          readRecords(values.features),
+          'No race features yet.'
+        ),
+        createListSection(
+          'race-details',
+          'Details',
+          readRecords(values.details),
+          'No race details yet.'
+        )
       ]
     case 'spell':
       return [
         createFactsSection('spell-facts', 'Spell Snapshot', [
           ['Level', formatSpellLevel(readNumber(values.level))],
-          ['School', labelForVocabularyId(system, 'magicSchools', readString(values.magicSchoolId))],
+          [
+            'School',
+            labelForVocabularyId(system, 'magicSchools', readString(values.magicSchoolId))
+          ],
           ['Casting', formatTimedUnit(readRecord(values.castingTime))],
           ['Components', readStrings(values.components).map(formatEnumLabel).join(', ')]
         ]),
         createDamageSection(values, system),
-        createProseSection('spell-prose', 'Description', values, 'Add a description to preview its reader copy.'),
-        createProseSection('spell-materials', 'Materials', { description: values.materialDescription }, undefined)
+        createProseSection(
+          'spell-prose',
+          'Description',
+          values,
+          'Add a description to preview its reader copy.'
+        ),
+        createProseSection(
+          'spell-materials',
+          'Materials',
+          { description: values.materialDescription },
+          undefined
+        )
       ]
     case 'vehicle':
       return [
@@ -149,7 +235,12 @@ function createDomainSections(
           ['Crew', formatCrew(values)],
           ['Cost', formatCost(readRecord(values.cost), system)]
         ]),
-        createListSection('vehicle-features', 'Features', readRecords(values.features), 'No vehicle features yet.')
+        createListSection(
+          'vehicle-features',
+          'Features',
+          readRecords(values.features),
+          'No vehicle features yet.'
+        )
       ]
   }
 }
@@ -247,7 +338,9 @@ function createDamageSection(
 
 function createChargesSection(values: RuntimeRecord): PreviewSection {
   const charges = collectRecords(values)
-    .filter((record) => typeof record.resetKind === 'string' && typeof record.limitKind === 'string')
+    .filter(
+      (record) => typeof record.resetKind === 'string' && typeof record.limitKind === 'string'
+    )
     .map(formatCharge)
     .filter(Boolean)
 
@@ -288,10 +381,11 @@ function formatDamageAmount(record: RuntimeRecord): string | undefined {
   const levelDice = readFirstScalingValue(record.levels, 'diceConfig')
   const breakpointAmount = readFirstScalingValue(record.breakpoints, 'amount')
   const breakpointDice = readFirstScalingValue(record.breakpoints, 'diceConfig')
-  const formatted = diceConfig
-    ?? formatNumber(amount)
-    ?? formatScalingValue(levelDice ?? levelAmount)
-    ?? formatScalingValue(breakpointDice ?? breakpointAmount)
+  const formatted =
+    diceConfig ??
+    formatNumber(amount) ??
+    formatScalingValue(levelDice ?? levelAmount) ??
+    formatScalingValue(breakpointDice ?? breakpointAmount)
 
   if (!formatted) return undefined
   return record.amountKind === 'HALF' ? `Half ${formatted}` : formatted
@@ -314,12 +408,15 @@ function formatCharge(record: RuntimeRecord): string {
   const limitKind = readString(record.limitKind)
   const resetKind = readString(record.resetKind)
   const amount = readNumber(record.amount)
-  const limit = amount !== undefined ? `${amount}` : formatEnumLabel(limitKind) ?? 'Scaling'
+  const limit = amount !== undefined ? `${amount}` : (formatEnumLabel(limitKind) ?? 'Scaling')
   const reset = formatEnumLabel(resetKind)?.toLowerCase()
   return reset ? `${limit}, ${reset}` : limit
 }
 
-function formatCost(cost: RuntimeRecord | undefined, system?: SystemResponseDto | null): string | undefined {
+function formatCost(
+  cost: RuntimeRecord | undefined,
+  system?: SystemResponseDto | null
+): string | undefined {
   const amount = readNumber(cost?.amount)
   if (amount === undefined) return undefined
   const currency = labelForVocabularyId(system, 'currencies', readString(cost?.currencyId), 'short')
@@ -342,9 +439,17 @@ function formatTimedUnit(record: RuntimeRecord | undefined): string | undefined 
 
 function formatHitPoints(values: RuntimeRecord): string | undefined {
   const hitPoints = readNumber(values.hitPoints)
-  const hitDice = readString(values.hitDice)
+  const hitDice = readRecord(values.hitDice)
   if (hitPoints === undefined) return undefined
-  return hitDice ? `${formatNumber(hitPoints)} (${hitDice})` : formatNumber(hitPoints)
+  if (!hitDice) return formatNumber(hitPoints)
+
+  const count = readNumber(hitDice.count)
+  const die = readNumber(hitDice.die)
+  const modifier = readNumber(hitDice.modifier) ?? 0
+  if (count === undefined || die === undefined) return formatNumber(hitPoints)
+
+  const modifierLabel = modifier === 0 ? '' : modifier > 0 ? `+${modifier}` : `${modifier}`
+  return `${formatNumber(hitPoints)} (${count}d${die}${modifierLabel})`
 }
 
 function formatCrew(values: RuntimeRecord): string | undefined {
@@ -367,9 +472,11 @@ function createSpeedRows(
     const label = speedLabel.replace(/\s*Speed$/i, '')
     const value = amount === undefined ? label : `${label} - ${formatNumber(amount)} ${unit}`
 
-    return [{
-      label: value
-    }]
+    return [
+      {
+        label: value
+      }
+    ]
   })
 }
 
@@ -479,14 +586,18 @@ function readRecord(value: unknown): RuntimeRecord | undefined {
 }
 
 function readRecords(value: unknown): RuntimeRecord[] {
-  return Array.isArray(value) ? value.flatMap((entry) => {
-    const record = toRecord(entry)
-    return record ? [record] : []
-  }) : []
+  return Array.isArray(value)
+    ? value.flatMap((entry) => {
+        const record = toRecord(entry)
+        return record ? [record] : []
+      })
+    : []
 }
 
 function readStrings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : []
 }
 
 function readString(value: unknown): string | undefined {
@@ -498,7 +609,7 @@ function readNumber(value: unknown): number | undefined {
 }
 
 function toRecord(value: unknown): RuntimeRecord | null {
-  return typeof value === 'object' && value !== null ? value as RuntimeRecord : null
+  return typeof value === 'object' && value !== null ? (value as RuntimeRecord) : null
 }
 
 function collectRecords(value: unknown): RuntimeRecord[] {
@@ -524,7 +635,9 @@ function collectRecords(value: unknown): RuntimeRecord[] {
 
 function isUsefulSection(section: PreviewSection): boolean {
   if (section.type === 'facts') return section.facts.length > 0
-  if (section.type === 'prose') return Boolean(section.html?.trim() || section.quote?.trim() || section.fallback)
-  if (section.type === 'rows') return section.rows.length > 0 || Boolean(section.empty) || Boolean(section.showWhenEmpty)
+  if (section.type === 'prose')
+    return Boolean(section.html?.trim() || section.quote?.trim() || section.fallback)
+  if (section.type === 'rows')
+    return section.rows.length > 0 || Boolean(section.empty) || Boolean(section.showWhenEmpty)
   return section.items.length > 0
 }

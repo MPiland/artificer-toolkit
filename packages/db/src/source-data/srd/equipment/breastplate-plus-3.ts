@@ -14,5 +14,5 @@ export const breastplatePlus3: EquipmentVariantAuthored = {
   maxBonus: 3,
   modifiers: S.magicArmorModifiers(S.equipId(326), 3),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

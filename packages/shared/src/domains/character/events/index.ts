@@ -1,4 +1,5 @@
 import type { ContentRef } from '../../engine/snapshot.js'
+import type { CharacterSheetCommandResult } from '../sheetRest.js'
 
 /* ──────────────────────────────────────────────
  * Event envelope — all events extend this
@@ -152,25 +153,26 @@ export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelop
   commandType: string
   commandFingerprint: string
   summary: string
+  result?: CharacterSheetCommandResult
 }
 
 /* ──────────────────────────────────────────────
  * Full event union
  * ────────────────────────────────────────────── */
 
-export type CharacterEvent
-  = | CharacterCreatedEvent
-    | RaceAssignedEvent
-    | BackgroundAssignedEvent
-    | AbilityScoresGeneratedEvent
-    | AbilityScoresReplacedEvent
-    | ClassLevelGainedEvent
-    | HitPointsAppliedEvent
-    | FeatureSelectionMadeEvent
-    | FeatChosenEvent
-    | SpellSelectionUpdatedEvent
-    | EquipmentAcquiredEvent
-    | EquipmentRemovedEvent
-    | ItemEquippedEvent
-    | ItemUnequippedEvent
-    | CharacterSheetCommandAppliedEvent
+export type CharacterEvent =
+  | CharacterCreatedEvent
+  | RaceAssignedEvent
+  | BackgroundAssignedEvent
+  | AbilityScoresGeneratedEvent
+  | AbilityScoresReplacedEvent
+  | ClassLevelGainedEvent
+  | HitPointsAppliedEvent
+  | FeatureSelectionMadeEvent
+  | FeatChosenEvent
+  | SpellSelectionUpdatedEvent
+  | EquipmentAcquiredEvent
+  | EquipmentRemovedEvent
+  | ItemEquippedEvent
+  | ItemUnequippedEvent
+  | CharacterSheetCommandAppliedEvent

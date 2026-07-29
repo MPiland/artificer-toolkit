@@ -1,10 +1,7 @@
 import type { DBLike } from '#types'
 import { withTransaction } from '../../../utils/index.js'
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
-import {
-  upsertDetail,
-  upsertStartingEquipment
-} from '../../shared/upserts/index.js'
+import { upsertDetail, upsertStartingEquipment } from '../../shared/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { normalizeSubjectStatus } from '../status.js'
@@ -62,25 +59,21 @@ export async function upsertBackground(
     await trx
       .insertInto('backgrounds')
       .values(mapBackgroundRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        system_id: eb.ref('excluded.system_id'),
-        user_id: eb.ref('excluded.user_id'),
-        label: eb.ref('excluded.label'),
-        description: eb.ref('excluded.description'),
-        status: eb.ref('excluded.status'),
-        starting_equipment_id: eb.ref('excluded.starting_equipment_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          user_id: eb.ref('excluded.user_id'),
+          label: eb.ref('excluded.label'),
+          description: eb.ref('excluded.description'),
+          status: eb.ref('excluded.status'),
+          starting_equipment_id: eb.ref('excluded.starting_equipment_id')
+        }))
+      )
       .execute()
 
-    await trx
-      .deleteFrom('background_details')
-      .where('background_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('background_details').where('background_id', '=', json_data.id).execute()
 
-    await trx
-      .deleteFrom('background_features')
-      .where('background_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('background_features').where('background_id', '=', json_data.id).execute()
 
     await trx
       .deleteFrom('background_proficiency_grants')
@@ -112,23 +105,19 @@ export async function upsertBackground(
     }))
 
     if (detailRows.length > 0) {
-      await trx
-        .insertInto('background_details')
-        .values(detailRows)
-        .execute()
+      await trx.insertInto('background_details').values(detailRows).execute()
     }
 
-    const proficiencyRows: BackgroundProficiencyGrantRow[] = (json_data.proficiencies ?? []).map((proficiencyGrant) => ({
-      background_id: json_data.id,
-      proficiency_grant_id: proficiencyGrant.id,
-      sort_order: proficiencyGrant.order
-    }))
+    const proficiencyRows: BackgroundProficiencyGrantRow[] = (json_data.proficiencies ?? []).map(
+      (proficiencyGrant) => ({
+        background_id: json_data.id,
+        proficiency_grant_id: proficiencyGrant.id,
+        sort_order: proficiencyGrant.order
+      })
+    )
 
     if (proficiencyRows.length > 0) {
-      await trx
-        .insertInto('background_proficiency_grants')
-        .values(proficiencyRows)
-        .execute()
+      await trx.insertInto('background_proficiency_grants').values(proficiencyRows).execute()
     }
 
     const featureRows: BackgroundFeatureRow[] = (json_data.features ?? []).map((feature) => ({
@@ -138,11 +127,7 @@ export async function upsertBackground(
     }))
 
     if (featureRows.length > 0) {
-      await trx
-        .insertInto('background_features')
-        .values(featureRows)
-        .execute()
+      await trx.insertInto('background_features').values(featureRows).execute()
     }
-
   })
 }

@@ -94,9 +94,9 @@ export function getStepStatuses<TStep extends string>({
   const statuses: Partial<Record<TStep, StepStatus>> = {}
 
   for (const [stepId, ownedFields] of typedEntries(stepFields)) {
-    const ownedMeta = Object.entries(fieldMeta).filter(([path]) => (
+    const ownedMeta = Object.entries(fieldMeta).filter(([path]) =>
       ownedFields.some((ownedPath) => isOwnedFieldPath(path, ownedPath))
-    ))
+    )
     const hasErrors = ownedMeta.some(([, meta]) => (meta?.errors?.length ?? 0) > 0)
     const hasDirtyFields = ownedMeta.some(([, meta]) => meta?.isDirty === true)
 
@@ -120,9 +120,7 @@ export function getFirstErroredStep<TStep extends string>(
 }
 
 function isOwnedFieldPath(path: string, ownedPath: string): boolean {
-  return path === ownedPath
-    || path.startsWith(`${ownedPath}.`)
-    || path.startsWith(`${ownedPath}[`)
+  return path === ownedPath || path.startsWith(`${ownedPath}.`) || path.startsWith(`${ownedPath}[`)
 }
 
 function typedEntries<TStep extends string>(

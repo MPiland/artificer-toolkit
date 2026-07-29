@@ -20,10 +20,7 @@ export interface FeatRepositoryReadOptions extends RepositoryFindAllOptions {
   includeEffects?: boolean
 }
 
-export type FeatRepositoryWithReadOptions = Omit<
-  FeatRepository,
-  'findById' | 'findByIds'
-> & {
+export type FeatRepositoryWithReadOptions = Omit<FeatRepository, 'findById' | 'findByIds'> & {
   findById(id: string, filter?: FeatRepositoryReadOptions): Promise<FeatAuthored | null>
   findByIds(
     ids: readonly string[],
@@ -55,10 +52,7 @@ type FeatRow = {
 
 type FeatOwnedRow = { feat_id: string }
 
-function requireLinkedRecord<T>(
-  value: T | null | undefined,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
     throw new Error(message)
   }
@@ -114,17 +108,60 @@ async function hydrateFeatRows(
   ] = await Promise.all([
     options.includeEffects === false
       ? Promise.resolve([])
-      : db.selectFrom('feat_effects').select(['feat_id', 'effect_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_details').select(['feat_id', 'detail_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_features').select(['feat_id', 'feature_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_feat_grants').select(['feat_id', 'feat_grant_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_proficiency_grants').select(['feat_id', 'proficiency_grant_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_sense_grants').select(['feat_id', 'sense_grant_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_spell_grants').select(['feat_id', 'spell_grant_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    db.selectFrom('feat_modifier_grants').select(['feat_id', 'modifier_grant_id', 'sort_order']).where('feat_id', 'in', featIds).orderBy('sort_order').execute(),
-    hydrateChargesByIds(db, rows.flatMap((row) => row.charge_id ? [row.charge_id] : [])),
+      : db
+          .selectFrom('feat_effects')
+          .select(['feat_id', 'effect_id', 'sort_order'])
+          .where('feat_id', 'in', featIds)
+          .orderBy('sort_order')
+          .execute(),
+    db
+      .selectFrom('feat_details')
+      .select(['feat_id', 'detail_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_features')
+      .select(['feat_id', 'feature_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_feat_grants')
+      .select(['feat_id', 'feat_grant_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_proficiency_grants')
+      .select(['feat_id', 'proficiency_grant_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_sense_grants')
+      .select(['feat_id', 'sense_grant_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_spell_grants')
+      .select(['feat_id', 'spell_grant_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    db
+      .selectFrom('feat_modifier_grants')
+      .select(['feat_id', 'modifier_grant_id', 'sort_order'])
+      .where('feat_id', 'in', featIds)
+      .orderBy('sort_order')
+      .execute(),
+    hydrateChargesByIds(
+      db,
+      rows.flatMap((row) => (row.charge_id ? [row.charge_id] : []))
+    ),
     hydrateByIds(
-      rows.flatMap((row) => row.prerequisite_id ? [row.prerequisite_id] : []),
+      rows.flatMap((row) => (row.prerequisite_id ? [row.prerequisite_id] : [])),
       (prerequisiteId) => hydrateFacetById<'CHARACTER'>(db, prerequisiteId)
     )
   ])
@@ -179,16 +216,59 @@ async function hydrateFeatRows(
     }
 
     const id = row.id
-    const authoredFeatures = (featureLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(featuresById.get(link.feature_id), `Feat "${id}" is linked to missing feature "${link.feature_id}".`))
-    const authoredFeatGrants = (featGrantLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(featsById.get(link.feat_grant_id), `Feat "${id}" is linked to missing feat grant "${link.feat_grant_id}".`))
-    const authoredEffects = (effectLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(effectsById.get(link.effect_id), `Feat "${id}" is linked to missing effect "${link.effect_id}".`))
-    const authoredDetails: DetailAuthored[] = (detailLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(detailsById.get(link.detail_id), `Feat "${id}" is linked to missing detail "${link.detail_id}".`))
-    const authoredProficiencies = (proficiencyLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(proficienciesById.get(link.proficiency_grant_id), `Feat "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`))
-    const authoredSenses = (senseLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(sensesById.get(link.sense_grant_id), `Feat "${id}" is linked to missing sense grant "${link.sense_grant_id}".`))
-    const authoredSpells = (spellLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(spellsById.get(link.spell_grant_id), `Feat "${id}" is linked to missing spell grant "${link.spell_grant_id}".`))
-    const authoredModifiers = (modifierLinksByFeat.get(id) ?? []).map((link) => requireLinkedRecord(modifiersById.get(link.modifier_grant_id), `Feat "${id}" is linked to missing modifier grant "${link.modifier_grant_id}".`))
+    const authoredFeatures = (featureLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        featuresById.get(link.feature_id),
+        `Feat "${id}" is linked to missing feature "${link.feature_id}".`
+      )
+    )
+    const authoredFeatGrants = (featGrantLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        featsById.get(link.feat_grant_id),
+        `Feat "${id}" is linked to missing feat grant "${link.feat_grant_id}".`
+      )
+    )
+    const authoredEffects = (effectLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        effectsById.get(link.effect_id),
+        `Feat "${id}" is linked to missing effect "${link.effect_id}".`
+      )
+    )
+    const authoredDetails: DetailAuthored[] = (detailLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        detailsById.get(link.detail_id),
+        `Feat "${id}" is linked to missing detail "${link.detail_id}".`
+      )
+    )
+    const authoredProficiencies = (proficiencyLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        proficienciesById.get(link.proficiency_grant_id),
+        `Feat "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`
+      )
+    )
+    const authoredSenses = (senseLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        sensesById.get(link.sense_grant_id),
+        `Feat "${id}" is linked to missing sense grant "${link.sense_grant_id}".`
+      )
+    )
+    const authoredSpells = (spellLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        spellsById.get(link.spell_grant_id),
+        `Feat "${id}" is linked to missing spell grant "${link.spell_grant_id}".`
+      )
+    )
+    const authoredModifiers = (modifierLinksByFeat.get(id) ?? []).map((link) =>
+      requireLinkedRecord(
+        modifiersById.get(link.modifier_grant_id),
+        `Feat "${id}" is linked to missing modifier grant "${link.modifier_grant_id}".`
+      )
+    )
     const authoredCharge = row.charge_id
-      ? requireLinkedRecord(chargesById.get(row.charge_id), `Feat "${id}" is linked to missing charge "${row.charge_id}".`)
+      ? requireLinkedRecord(
+          chargesById.get(row.charge_id),
+          `Feat "${id}" is linked to missing charge "${row.charge_id}".`
+        )
       : null
 
     authoredById.set(id, {
@@ -201,15 +281,20 @@ async function hydrateFeatRows(
       effects: authoredEffects.length > 0 ? authoredEffects : undefined,
       features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
       charges: authoredCharge ?? undefined,
-      grants: authoredFeatGrants.length > 0 || authoredProficiencies.length > 0 || authoredModifiers.length > 0 || authoredSenses.length > 0 || authoredSpells.length > 0
-        ? {
-            feats: authoredFeatGrants.length > 0 ? authoredFeatGrants : undefined,
-            modifiers: authoredModifiers.length > 0 ? authoredModifiers : undefined,
-            proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
-            senses: authoredSenses.length > 0 ? authoredSenses : undefined,
-            spells: authoredSpells.length > 0 ? authoredSpells : undefined
-          }
-        : undefined,
+      grants:
+        authoredFeatGrants.length > 0 ||
+        authoredProficiencies.length > 0 ||
+        authoredModifiers.length > 0 ||
+        authoredSenses.length > 0 ||
+        authoredSpells.length > 0
+          ? {
+              feats: authoredFeatGrants.length > 0 ? authoredFeatGrants : undefined,
+              modifiers: authoredModifiers.length > 0 ? authoredModifiers : undefined,
+              proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
+              senses: authoredSenses.length > 0 ? authoredSenses : undefined,
+              spells: authoredSpells.length > 0 ? authoredSpells : undefined
+            }
+          : undefined,
       userId: row.user_id,
       systemId: row.system_id
     })
@@ -228,13 +313,21 @@ async function hydrateFeatsByIds(
     return new Map()
   }
 
-  const rows = await db.selectFrom('feats').select(FEAT_COLUMNS).where('id', 'in', distinctIds).execute() as FeatRow[]
+  const rows = (await db
+    .selectFrom('feats')
+    .select(FEAT_COLUMNS)
+    .where('id', 'in', distinctIds)
+    .execute()) as FeatRow[]
   const rowsById = new Map(rows.map((row) => [row.id, row]))
 
-  return hydrateFeatRows(db, distinctIds.flatMap((id) => {
-    const row = rowsById.get(id)
-    return row ? [row] : []
-  }), options)
+  return hydrateFeatRows(
+    db,
+    distinctIds.flatMap((id) => {
+      const row = rowsById.get(id)
+      return row ? [row] : []
+    }),
+    options
+  )
 }
 
 export function createFeatRepository(db: DBLike): FeatRepositoryWithReadOptions {
@@ -252,10 +345,7 @@ export function createFeatRepository(db: DBLike): FeatRepositoryWithReadOptions 
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('feats')
-        .select(FEAT_COLUMNS)
-        .orderBy('label')
+      let query = db.selectFrom('feats').select(FEAT_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
         query = query.where('system_id', '=', filter.systemId)
@@ -273,6 +363,3 @@ export function createFeatRepository(db: DBLike): FeatRepositoryWithReadOptions 
     }
   }
 }
-
-
-

@@ -1,19 +1,18 @@
 import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
-import type {
-  FeatListResponseDto,
-  FeatResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import type { FeatListResponseDto, FeatResponseDto } from '@artificer-toolkit/schema/api/content'
 
 export const ownedFeatFixture: FeatAuthoredDto = {
   id: 'battlefield-reader',
   label: 'Battlefield Reader',
   description: 'You have learned to read a dangerous room before the first blade is drawn.',
-  details: [{
-    id: 'battlefield-reader-detail',
-    label: 'Detail',
-    description: 'This feat rewards careful positioning and quick tactical reads.',
-    order: 1
-  }],
+  details: [
+    {
+      id: 'battlefield-reader-detail',
+      label: 'Detail',
+      description: 'This feat rewards careful positioning and quick tactical reads.',
+      order: 1
+    }
+  ],
   status: 'DRAFT',
   effects: [],
   features: [
@@ -32,13 +31,16 @@ export const masterFeatFixture: FeatAuthoredDto = {
   ...ownedFeatFixture,
   id: 'grappler',
   label: 'Grappler',
-  description: 'You have developed the skills necessary to hold your own in close-quarters grappling.',
-  details: [{
-    id: 'grappler-detail',
-    label: 'Detail',
-    description: 'Prerequisite: Strength 13 or higher.',
-    order: 1
-  }],
+  description:
+    'You have developed the skills necessary to hold your own in close-quarters grappling.',
+  details: [
+    {
+      id: 'grappler-detail',
+      label: 'Detail',
+      description: 'Prerequisite: Strength 13 or higher.',
+      order: 1
+    }
+  ],
   status: 'ACTIVE',
   userId: 'master'
 }

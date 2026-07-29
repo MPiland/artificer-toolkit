@@ -53,6 +53,7 @@ const preview: Preview = {
         <AppProviders
           key={colorScheme}
           defaultColorScheme={colorScheme}
+          forceColorScheme={colorScheme}
           queryClient={queryClient}
         >
           <ColorSchemeScript defaultColorScheme={colorScheme} />
@@ -61,9 +62,7 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [
-    mswLoader
-  ],
+  loaders: [mswLoader],
   async beforeEach() {
     MockDate.set('2024-04-01T12:00:00Z')
   },

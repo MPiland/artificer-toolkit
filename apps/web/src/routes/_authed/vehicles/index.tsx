@@ -79,28 +79,36 @@ function VehiclesRoute() {
         attributeColumns={vehicleListAttributeColumns}
         sortOptions={vehicleListSortOptions}
         onCreate={() => navigate({ to: '/vehicles/new' })}
-        onView={(item) => navigate({
-          params: buildVehicleRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/vehicles/$vehiclePublicId/$vehicleSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildVehicleRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/vehicles/$vehiclePublicId/$vehicleSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getVehicle({
-            id: item.id,
-            meta: vehicleDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getVehicle({
+              id: item.id,
+              meta: vehicleDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildVehicleRouteParams(item.publicId, item.name),
-          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildVehicleRouteParams(item.publicId, item.name),
+            to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+          })
+        }
         onCopy={(item) => void handleDuplicate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

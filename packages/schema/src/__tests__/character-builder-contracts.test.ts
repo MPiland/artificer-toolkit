@@ -57,20 +57,26 @@ const baseRequest = {
 
 describe('character builder contracts', () => {
   it('keeps preview flexible while commit only accepts active targets', () => {
-    expect(characterBuilderSaveRequestDtoSchema.parse({
-      ...baseRequest,
-      targetStatus: 'DRAFT'
-    }).targetStatus).toBe('DRAFT')
+    expect(
+      characterBuilderSaveRequestDtoSchema.parse({
+        ...baseRequest,
+        targetStatus: 'DRAFT'
+      }).targetStatus
+    ).toBe('DRAFT')
 
-    expect(() => characterBuilderCommitRequestDtoSchema.parse({
-      ...baseRequest,
-      targetStatus: 'DRAFT'
-    })).toThrow()
+    expect(() =>
+      characterBuilderCommitRequestDtoSchema.parse({
+        ...baseRequest,
+        targetStatus: 'DRAFT'
+      })
+    ).toThrow()
 
-    expect(characterBuilderCommitRequestDtoSchema.parse({
-      ...baseRequest,
-      targetStatus: 'ACTIVE'
-    }).targetStatus).toBe('ACTIVE')
+    expect(
+      characterBuilderCommitRequestDtoSchema.parse({
+        ...baseRequest,
+        targetStatus: 'ACTIVE'
+      }).targetStatus
+    ).toBe('ACTIVE')
   })
 
   it('requires explicit class identity for each hit point level', () => {
@@ -81,10 +87,91 @@ describe('character builder contracts', () => {
     }>
     delete level.classId
 
-    expect(() => characterBuilderSaveRequestDtoSchema.parse({
-      ...request,
-      targetStatus: 'DRAFT'
-    })).toThrow()
+    expect(() =>
+      characterBuilderSaveRequestDtoSchema.parse({
+        ...request,
+        targetStatus: 'DRAFT'
+      })
+    ).toThrow()
+  })
+
+  it.each([
+    ['creature current HP', { currentHitPoints: -1 }],
+    ['creature temporary HP', { tempHitPoints: -1 }]
+  ])('rejects negative persisted %s', (_label, creatureState) => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          creatures: [
+            {
+              id: 'creature-1',
+              creatureId: 'creature-definition-1',
+              relationshipKind: 'COMPANION',
+              originKind: 'WORLD',
+              ...creatureState
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
+  })
+
+  it('rejects negative persisted vehicle current HP', () => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          vehicles: [
+            {
+              id: 'vehicle-1',
+              vehicleId: 'vehicle-definition-1',
+              currentHitPoints: -1
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
+  })
+
+  it('rejects duplicate and overused persisted creature hit dice', () => {
+    const request = {
+      ...baseRequest,
+      character: {
+        ...baseRequest.character,
+        state: {
+          ...baseRequest.character.state,
+          creatures: [
+            {
+              id: 'creature-1',
+              creatureId: 'creature-definition-1',
+              relationshipKind: 'COMPANION',
+              originKind: 'WORLD',
+              hitDice: [
+                { die: 8, total: 1, used: 2 },
+                { die: 8, total: 1, used: 0 }
+              ]
+            }
+          ]
+        }
+      }
+    }
+
+    expect(
+      characterBuilderSaveRequestDtoSchema.safeParse({ ...request, targetStatus: 'DRAFT' }).success
+    ).toBe(false)
   })
 
   it('rejects legacy direct-character draft payloads', () => {
@@ -131,82 +218,100 @@ describe('character builder contracts', () => {
   })
 
   it('accepts multiclass reference groups and spell option metadata', () => {
-    expect(characterBuilderReferencesDtoSchema.parse({
-      abilities: [{ id: 'STRENGTH', label: 'Strength' }],
-      advancementMethods: [{ id: 'MILESTONE', label: 'Milestone' }],
-      abilityGenerationMethods: [{ id: 'STANDARD_ARRAY', label: 'Standard Array' }],
-      hitpointCalculationMethods: [{ id: 'FIXED', label: 'Fixed' }],
-      standardArrayScores: [{ id: '8', label: '8' }],
-      pointBuyScores: [{ id: '8', label: '8', cost: 0 }],
-      pointBuyTotalPoints: 27,
-      races: [{
-        id: 'race-dragonborn',
-        label: 'Dragonborn',
-        ancestry: {
-          id: 'draconic-ancestry',
-          label: 'Draconic Ancestry',
-          options: [{
-            id: 'red',
-            label: 'Red',
-            features: [{
-              id: 'fire-breath',
-              label: 'Fire Breath',
-              details: [{ id: 'damage', label: 'Damage', description: 'Fire damage.' }],
-              sourceLabel: 'Red',
-              source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' }
-            }]
-          }]
-        }
-      }],
-      classes: [{
-        id: 'class-fighter',
-        label: 'Fighter',
-        requirementGroups: {
-          groups: [{
-            id: 'strength-or-dexterity',
-            requirements: [{ id: 'strength-13', ability: 'STRENGTH', min: 13 }]
-          }]
-        }
-      }],
-      backgrounds: [{
-        id: 'background-acolyte',
-        label: 'Acolyte',
-        description: 'A life of service.',
-        summary: 'A life of service.',
-        grantFacts: [],
-        featureLabels: ['Shelter of the Faithful'],
-        hiddenGrantFactCount: 0,
-        hiddenFeatureCount: 0
-      }],
-      equipment: [],
-      currencies: [],
-      alignments: [{ id: 'neutral', label: 'Neutral' }],
-      lifestyles: [{ id: 'modest', label: 'Modest' }]
-    }).backgrounds[0]).toMatchObject({
+    expect(
+      characterBuilderReferencesDtoSchema.parse({
+        abilities: [{ id: 'STRENGTH', label: 'Strength' }],
+        advancementMethods: [{ id: 'MILESTONE', label: 'Milestone' }],
+        abilityGenerationMethods: [{ id: 'STANDARD_ARRAY', label: 'Standard Array' }],
+        hitpointCalculationMethods: [{ id: 'FIXED', label: 'Fixed' }],
+        standardArrayScores: [{ id: '8', label: '8' }],
+        pointBuyScores: [{ id: '8', label: '8', cost: 0 }],
+        pointBuyTotalPoints: 27,
+        races: [
+          {
+            id: 'race-dragonborn',
+            label: 'Dragonborn',
+            ancestry: {
+              id: 'draconic-ancestry',
+              label: 'Draconic Ancestry',
+              options: [
+                {
+                  id: 'red',
+                  label: 'Red',
+                  features: [
+                    {
+                      id: 'fire-breath',
+                      label: 'Fire Breath',
+                      details: [{ id: 'damage', label: 'Damage', description: 'Fire damage.' }],
+                      sourceLabel: 'Red',
+                      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        classes: [
+          {
+            id: 'class-fighter',
+            label: 'Fighter',
+            requirementGroups: {
+              groups: [
+                {
+                  id: 'strength-or-dexterity',
+                  requirements: [{ id: 'strength-13', ability: 'STRENGTH', min: 13 }]
+                }
+              ]
+            }
+          }
+        ],
+        backgrounds: [
+          {
+            id: 'background-acolyte',
+            label: 'Acolyte',
+            description: 'A life of service.',
+            summary: 'A life of service.',
+            grantFacts: [],
+            featureLabels: ['Shelter of the Faithful'],
+            hiddenGrantFactCount: 0,
+            hiddenFeatureCount: 0
+          }
+        ],
+        equipment: [],
+        currencies: [],
+        alignments: [{ id: 'neutral', label: 'Neutral' }],
+        lifestyles: [{ id: 'modest', label: 'Modest' }]
+      }).backgrounds[0]
+    ).toMatchObject({
       description: 'A life of service.',
       featureLabels: ['Shelter of the Faithful']
     })
 
-    expect(characterBuilderSpellChoiceViewDtoSchema.parse({
-      id: 'wizard-spellcasting',
-      label: 'Wizard Spellcasting',
-      sourceLabel: 'Wizard',
-      source: { kind: 'CLASS', classId: 'class-wizard' },
-      cantripLimit: 0,
-      learnedSpellLimit: 1,
-      spellCollectionLabel: 'Spellbook',
-      selectedCantripIds: [],
-      selectedSpellIds: [],
-      cantripOptions: [],
-      spellOptions: [{
-        id: 'magic-missile',
-        label: 'Magic Missile',
-        level: 1,
-        schoolLabel: 'Evocation',
-        ritual: false,
-        concentration: false
-      }]
-    }).spellOptions[0]?.schoolLabel).toBe('Evocation')
+    expect(
+      characterBuilderSpellChoiceViewDtoSchema.parse({
+        id: 'wizard-spellcasting',
+        label: 'Wizard Spellcasting',
+        sourceLabel: 'Wizard',
+        source: { kind: 'CLASS', classId: 'class-wizard' },
+        cantripLimit: 0,
+        learnedSpellLimit: 1,
+        spellCollectionLabel: 'Spellbook',
+        selectedCantripIds: [],
+        selectedSpellIds: [],
+        cantripOptions: [],
+        spellOptions: [
+          {
+            id: 'magic-missile',
+            label: 'Magic Missile',
+            level: 1,
+            schoolLabel: 'Evocation',
+            ritual: false,
+            concentration: false
+          }
+        ]
+      }).spellOptions[0]?.schoolLabel
+    ).toBe('Evocation')
   })
 
   it('rejects duplicate chosen grant selections for the same owning source', () => {
@@ -227,17 +332,19 @@ describe('character builder contracts', () => {
       }
     ]
 
-    expect(() => characterBuilderSaveRequestDtoSchema.parse({
-      ...baseRequest,
-      character: {
-        ...baseRequest.character,
-        intent: {
-          ...baseRequest.character.intent,
-          chosenGrantSelections
-        }
-      },
-      targetStatus: 'DRAFT'
-    })).toThrow(/unique by grant, source, and progression level/i)
+    expect(() =>
+      characterBuilderSaveRequestDtoSchema.parse({
+        ...baseRequest,
+        character: {
+          ...baseRequest.character,
+          intent: {
+            ...baseRequest.character.intent,
+            chosenGrantSelections
+          }
+        },
+        targetStatus: 'DRAFT'
+      })
+    ).toThrow(/unique by grant, source, and progression level/i)
   })
 
   it('allows the same grant for different owning sources or progression levels', () => {
@@ -266,16 +373,18 @@ describe('character builder contracts', () => {
       }
     ]
 
-    expect(() => characterBuilderSaveRequestDtoSchema.parse({
-      ...baseRequest,
-      character: {
-        ...baseRequest.character,
-        intent: {
-          ...baseRequest.character.intent,
-          chosenGrantSelections
-        }
-      },
-      targetStatus: 'DRAFT'
-    })).not.toThrow()
+    expect(() =>
+      characterBuilderSaveRequestDtoSchema.parse({
+        ...baseRequest,
+        character: {
+          ...baseRequest.character,
+          intent: {
+            ...baseRequest.character.intent,
+            chosenGrantSelections
+          }
+        },
+        targetStatus: 'DRAFT'
+      })
+    ).not.toThrow()
   })
 })

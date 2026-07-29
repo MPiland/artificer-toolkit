@@ -13,10 +13,7 @@ export type ScalingSource = keyof typeof SCALING_SOURCE
 
 export type ScalingSourceOption = CoreMeta<ScalingSource>
 
-export const SCALING_SOURCE_REGISTRY: Record<
-  ScalingSource,
-  ScalingSourceOption
-> = {
+export const SCALING_SOURCE_REGISTRY: Record<ScalingSource, ScalingSourceOption> = {
   [SCALING_SOURCE.CHARACTER_LEVEL]: {
     code: SCALING_SOURCE.CHARACTER_LEVEL,
     label: 'Character Level',
@@ -46,7 +43,9 @@ export const SCALING_SOURCE_REGISTRY: Record<
   }
 } as const
 
-export const SCALING_SOURCE_OPTIONS = valuesOf(SCALING_SOURCE_REGISTRY) as readonly ScalingSourceOption[]
+export const SCALING_SOURCE_OPTIONS = valuesOf(
+  SCALING_SOURCE_REGISTRY
+) as readonly ScalingSourceOption[]
 
 export type ScalingSourcePayload = {
   [SCALING_SOURCE.CHARACTER_LEVEL]: {
@@ -75,24 +74,19 @@ export type ScalingKind = keyof typeof SCALING
 
 export type ScalingOption = CoreMeta<ScalingKind>
 
-export const SCALING_REGISTRY: Record<
-  ScalingKind,
-  ScalingOption
-> = {
+export const SCALING_REGISTRY: Record<ScalingKind, ScalingOption> = {
   NONE: {
     code: SCALING.NONE,
     label: 'No Scaling',
     tooltip: 'This does not change at source levels.',
-    description:
-      'The content remains the same regardless of source level.'
+    description: 'The content remains the same regardless of source level.'
   },
 
   PER_LEVEL: {
     code: SCALING.PER_LEVEL,
     label: 'Scales by Level',
     tooltip: 'This changes based on source level.',
-    description:
-      'The content varies dependent on the source level, using level-based rules.'
+    description: 'The content varies dependent on the source level, using level-based rules.'
   }
 } as const
 
@@ -121,7 +115,8 @@ export type BreakpointScalingAuthored<
   breakpoints: ScalingBreakpoint<TValue>[]
 } & ScalingPayload<TSource>
 
-export type ScalableValueAuthored<TValue extends object = object> = BreakpointScalingAuthored<TValue>
+export type ScalableValueAuthored<TValue extends object = object> =
+  BreakpointScalingAuthored<TValue>
 
 export const SCALING_AMOUNT_KIND = {
   FULL: 'FULL',
@@ -133,10 +128,7 @@ export type ScalingAmountKind = keyof typeof SCALING_AMOUNT_KIND
 
 export type ScalingAmountOption = CoreMeta<ScalingAmountKind>
 
-export const SCALING_AMOUNT_REGISTRY: Record<
-  ScalingAmountKind,
-  ScalingAmountOption
-> = {
+export const SCALING_AMOUNT_REGISTRY: Record<ScalingAmountKind, ScalingAmountOption> = {
   [SCALING_AMOUNT_KIND.FULL]: {
     code: SCALING_AMOUNT_KIND.FULL,
     label: 'Full',

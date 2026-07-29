@@ -20,11 +20,8 @@ function read(relativePath: string): string {
 
 function route(domain: string, detail = false): string {
   if (!detail) return `src/routes/_authed/${domain}/index.tsx`
-  const singular = domain === 'classes'
-    ? 'class'
-    : domain === 'equipment'
-      ? 'equipment'
-      : domain.slice(0, -1)
+  const singular =
+    domain === 'classes' ? 'class' : domain === 'equipment' ? 'equipment' : domain.slice(0, -1)
   return `src/routes/_authed/${domain}/$${singular}PublicId/$${singular}Slug/index.tsx`
 }
 
@@ -33,11 +30,8 @@ describe('authored detail loading', () => {
     for (const domain of domains) {
       const listSource = read(route(domain))
       const detailSource = read(route(domain, true))
-      const singular = domain === 'classes'
-        ? 'class'
-        : domain === 'equipment'
-          ? 'equipment'
-          : domain.slice(0, -1)
+      const singular =
+        domain === 'classes' ? 'class' : domain === 'equipment' ? 'equipment' : domain.slice(0, -1)
       const constantName = `${singular}DetailMeta`
       const metaPattern = new RegExp(`const ${constantName} = (\\[[\\s\\S]*?\\])`)
       const listMeta = metaPattern.exec(listSource)?.[1].replace(/\s/g, '')

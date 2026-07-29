@@ -9,13 +9,11 @@ interface SpellMetaGroup {
 }
 
 function findMetaEntries(meta: SpellMetaGroup[] | undefined, spellId: string) {
-  return (meta ?? [])
-    .filter((entry) => entry.spellIds.includes(spellId))
+  return (meta ?? []).filter((entry) => entry.spellIds.includes(spellId))
 }
 
 function findMetaIds(meta: SpellMetaGroup[] | undefined, spellId: string) {
-  return findMetaEntries(meta, spellId)
-    .map((entry) => String(entry.id))
+  return findMetaEntries(meta, spellId).map((entry) => String(entry.id))
 }
 
 function findMetaLabel(meta: SpellMetaGroup[] | undefined, id: string | null | undefined) {
@@ -34,7 +32,9 @@ function formatCastingTime(amount?: number, unit?: string) {
   return `${amount} ${normalizedUnit}`
 }
 
-function mapPermissions(item: SpellListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: SpellListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -63,7 +63,12 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
       name: item.label,
       description: item.description ?? undefined,
       attributes: {
-        level: item.level == null ? undefined : Number(item.level) === 0 ? 'Cantrip' : String(item.level),
+        level:
+          item.level == null
+            ? undefined
+            : Number(item.level) === 0
+              ? 'Cantrip'
+              : String(item.level),
         school,
         classes: classLabels,
         castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit)

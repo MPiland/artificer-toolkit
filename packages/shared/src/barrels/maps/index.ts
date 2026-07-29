@@ -11,4 +11,3 @@ export * from '../../domains/subjects/maps/index.js'
 
 export * from '../../utils/nodeDefinition.js'
 export * from '../../utils/authoringSchema.js'
-

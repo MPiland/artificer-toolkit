@@ -12,5 +12,5 @@ export const pole10Foot: EquipmentAuthored = {
   weight: S.lbs(7),
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

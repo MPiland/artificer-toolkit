@@ -49,33 +49,35 @@ function createFakeDb(rowsByTable: RowMap) {
 
 describe('createSpellRepository', () => {
   it('hydrates a spell with supported class and attribute rows', async () => {
-    const repository = createSpellRepository(createFakeDb({
-      spells: [
-        {
-          id: 'spell-1',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Magic Missile',
-          description: 'Bolts of force.',
-          level: 1,
-          magic_school_id: 'evocation',
-          casting_time_unit: 'ROUND',
-          casting_time_amount: 1,
-          material_description: 'A sliver of glass.'
-        }
-      ],
-      spell_effects: [],
-      spell_attributes: [
-        { spell_id: 'spell-1', attribute_code: 'RITUAL', sort_order: 2 },
-        { spell_id: 'spell-1', attribute_code: 'CONCENTRATION', sort_order: 1 },
-        { spell_id: 'spell-1', attribute_code: 'VERBAL', sort_order: 3 },
-        { spell_id: 'spell-1', attribute_code: 'MATERIAL', sort_order: 4 }
-      ],
-      spell_classes: [
-        { spell_id: 'spell-1', class_id: 'wizard' },
-        { spell_id: 'spell-1', class_id: 'sorcerer' }
-      ]
-    }) as never)
+    const repository = createSpellRepository(
+      createFakeDb({
+        spells: [
+          {
+            id: 'spell-1',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Magic Missile',
+            description: 'Bolts of force.',
+            level: 1,
+            magic_school_id: 'evocation',
+            casting_time_unit: 'ROUND',
+            casting_time_amount: 1,
+            material_description: 'A sliver of glass.'
+          }
+        ],
+        spell_effects: [],
+        spell_attributes: [
+          { spell_id: 'spell-1', attribute_code: 'RITUAL', sort_order: 2 },
+          { spell_id: 'spell-1', attribute_code: 'CONCENTRATION', sort_order: 1 },
+          { spell_id: 'spell-1', attribute_code: 'VERBAL', sort_order: 3 },
+          { spell_id: 'spell-1', attribute_code: 'MATERIAL', sort_order: 4 }
+        ],
+        spell_classes: [
+          { spell_id: 'spell-1', class_id: 'wizard' },
+          { spell_id: 'spell-1', class_id: 'sorcerer' }
+        ]
+      }) as never
+    )
 
     await expect(repository.findById('spell-1')).resolves.toEqual({
       kind: 'SPELL',
@@ -100,25 +102,27 @@ describe('createSpellRepository', () => {
   })
 
   it('omits optional spell fields when the row graph does not contain them', async () => {
-    const repository = createSpellRepository(createFakeDb({
-      spells: [
-        {
-          id: 'spell-2',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Shout',
-          description: 'A loud shout.',
-          level: 0,
-          magic_school_id: 'evocation',
-          casting_time_unit: 'ROUND',
-          casting_time_amount: 1,
-          material_description: null
-        }
-      ],
-      spell_effects: [],
-      spell_attributes: [],
-      spell_classes: []
-    }) as never)
+    const repository = createSpellRepository(
+      createFakeDb({
+        spells: [
+          {
+            id: 'spell-2',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Shout',
+            description: 'A loud shout.',
+            level: 0,
+            magic_school_id: 'evocation',
+            casting_time_unit: 'ROUND',
+            casting_time_amount: 1,
+            material_description: null
+          }
+        ],
+        spell_effects: [],
+        spell_attributes: [],
+        spell_classes: []
+      }) as never
+    )
 
     await expect(repository.findById('spell-2')).resolves.toEqual({
       kind: 'SPELL',
@@ -310,54 +314,60 @@ describe('createSpellRepository', () => {
   })
 
   it('fails loudly on invalid persisted casting time units', async () => {
-    const repository = createSpellRepository(createFakeDb({
-      spells: [
-        {
-          id: 'spell-invalid-unit',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Broken Spell',
-          description: 'Oops.',
-          level: 1,
-          magic_school_id: 'evocation',
-          casting_time_unit: 'DAY',
-          casting_time_amount: 1,
-          material_description: null
-        }
-      ],
-      spell_effects: [],
-      spell_attributes: [],
-      spell_classes: []
-    }) as never)
+    const repository = createSpellRepository(
+      createFakeDb({
+        spells: [
+          {
+            id: 'spell-invalid-unit',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Broken Spell',
+            description: 'Oops.',
+            level: 1,
+            magic_school_id: 'evocation',
+            casting_time_unit: 'DAY',
+            casting_time_amount: 1,
+            material_description: null
+          }
+        ],
+        spell_effects: [],
+        spell_attributes: [],
+        spell_classes: []
+      }) as never
+    )
 
-    await expect(repository.findById('spell-invalid-unit')).rejects.toThrow('invalid casting_time_unit')
+    await expect(repository.findById('spell-invalid-unit')).rejects.toThrow(
+      'invalid casting_time_unit'
+    )
   })
 
   it('fails loudly on unknown persisted spell attribute/component codes', async () => {
-    const repository = createSpellRepository(createFakeDb({
-      spells: [
-        {
-          id: 'spell-invalid-attribute',
-          system_id: 'system-1',
-          user_id: 'user-1',
-          label: 'Broken Spell',
-          description: 'Oops.',
-          level: 1,
-          magic_school_id: 'evocation',
-          casting_time_unit: 'ROUND',
-          casting_time_amount: 1,
-          material_description: null
-        }
-      ],
-      spell_effects: [],
-      spell_attributes: [
-        { spell_id: 'spell-invalid-attribute', attribute_code: 'NOT_A_REAL_CODE', sort_order: 1 }
-      ],
-      spell_classes: []
-    }) as never)
+    const repository = createSpellRepository(
+      createFakeDb({
+        spells: [
+          {
+            id: 'spell-invalid-attribute',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Broken Spell',
+            description: 'Oops.',
+            level: 1,
+            magic_school_id: 'evocation',
+            casting_time_unit: 'ROUND',
+            casting_time_amount: 1,
+            material_description: null
+          }
+        ],
+        spell_effects: [],
+        spell_attributes: [
+          { spell_id: 'spell-invalid-attribute', attribute_code: 'NOT_A_REAL_CODE', sort_order: 1 }
+        ],
+        spell_classes: []
+      }) as never
+    )
 
-    await expect(repository.findById('spell-invalid-attribute')).rejects.toThrow('invalid spell_attributes codes')
+    await expect(repository.findById('spell-invalid-attribute')).rejects.toThrow(
+      'invalid spell_attributes codes'
+    )
   })
 })
-
-

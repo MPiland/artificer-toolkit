@@ -36,12 +36,12 @@ import type {
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import { areAuthoringFieldPathsRelated, toAuthoringFieldName } from '../utils/pathUtils'
 import { findAuthoringValidationTarget } from './authoringNavigation'
-import { createCharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
-import type { CharacterBuilderAuthoringSession } from '#domains/characters/characterBuilderAuthoringSession'
+import { createCharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
+import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   startCharacterBuilderTiming
-} from '#domains/characters/characterBuilder.performance'
+} from '#domains/characters/builder/core/characterBuilder.performance'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import {
   isAuthoringStepNavigationState,

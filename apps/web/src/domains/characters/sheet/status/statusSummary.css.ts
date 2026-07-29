@@ -1,0 +1,396 @@
+import { style } from '@vanilla-extract/css'
+import { foundationVars } from '#css/foundations.css'
+import { app } from '#css/layers.css'
+
+export const statusStripPanel = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '8px',
+      minWidth: 0,
+      position: 'relative'
+    }
+  }
+})
+
+export const mobileStatusBar = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'stretch',
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gridColumn: '1 / -1',
+      gridTemplateColumns: 'minmax(86px, 0.8fr) minmax(0, 1.4fr) minmax(82px, auto)',
+      minWidth: 0,
+      padding: '0 10px'
+    }
+  }
+})
+
+export const mobileStatusItem = style({
+  '@layer': {
+    [app]: {
+      alignContent: 'center',
+      borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gap: '2px',
+      minHeight: '42px',
+      minWidth: 0,
+      padding: '5px 8px',
+      selectors: {
+        '&:last-child': {
+          borderInlineEnd: 0
+        }
+      }
+    }
+  }
+})
+
+export const mobileStatusAction = style([
+  mobileStatusItem,
+  {
+    '@layer': {
+      [app]: {
+        appearance: 'none',
+        background: 'transparent',
+        borderBlock: 0,
+        borderInlineStart: 0,
+        color: 'inherit',
+        cursor: 'pointer',
+        font: 'inherit',
+        textAlign: 'left',
+        width: '100%',
+        selectors: {
+          '&:hover': {
+            background: foundationVars.color.surface.subtle
+          },
+          '&:focus-visible': {
+            boxShadow: foundationVars.shadow.focus,
+            outline: 0
+          },
+          '&:disabled': {
+            cursor: 'default',
+            opacity: 0.55
+          }
+        }
+      }
+    }
+  }
+])
+
+export const mobileStatusValue = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontSize: '0.72rem',
+      fontWeight: 750,
+      lineHeight: 1.1,
+      minWidth: 0
+    }
+  }
+})
+
+export const mobileInspirationButton = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      appearance: 'none',
+      background: 'transparent',
+      border: 0,
+      borderRadius: foundationVars.radius.sm,
+      color: foundationVars.color.text.secondary,
+      cursor: 'pointer',
+      display: 'flex',
+      font: 'inherit',
+      fontSize: '0.7rem',
+      fontWeight: 750,
+      gap: '4px',
+      minWidth: 0,
+      padding: 0,
+      selectors: {
+        '&[data-active="true"]': {
+          color: foundationVars.color.text.accent
+        },
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus,
+          outline: 0
+        },
+        '&:disabled': {
+          cursor: 'not-allowed',
+          opacity: 0.55
+        }
+      }
+    }
+  }
+})
+
+export const resourceSummaryList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '8px'
+    }
+  }
+})
+
+export const resourceSummaryRow = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      background: foundationVars.color.surface.subtle,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      display: 'grid',
+      gap: '10px',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      padding: '10px'
+    }
+  }
+})
+
+export const statusStrip = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'stretch',
+      background: foundationVars.color.surface.panel,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      display: 'grid',
+      gap: 0,
+      gridTemplateColumns: 'minmax(112px, 0.9fr) minmax(96px, 0.72fr) minmax(164px, 1.2fr)',
+      minWidth: 0,
+      overflow: 'hidden',
+      '@media': {
+        '(max-width: 620px)': {
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
+        }
+      }
+    }
+  }
+})
+
+export const conditionsOnlyStrip = style({
+  '@layer': {
+    [app]: {
+      gridTemplateColumns: 'minmax(120px, 0.8fr) minmax(0, 1.2fr)'
+    }
+  }
+})
+
+export const statusStripItem = style({
+  '@layer': {
+    [app]: {
+      borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '92px',
+      minWidth: 0,
+      padding: '10px 12px 9px',
+      selectors: {
+        '&:last-child': {
+          borderInlineEnd: 0
+        }
+      }
+    }
+  }
+})
+
+export const statusStripLabel = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.68rem',
+      fontWeight: 750,
+      lineHeight: 1.2,
+      minHeight: '16px',
+      textAlign: 'center',
+      width: '100%'
+    }
+  }
+})
+
+export const statusStripContent = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      flex: 1,
+      minHeight: 0,
+      width: '100%'
+    }
+  }
+})
+
+export const statusStripContentStart = style({
+  '@layer': {
+    [app]: {
+      justifyContent: 'flex-start'
+    }
+  }
+})
+
+export const statusStripContentCenter = style({
+  '@layer': {
+    [app]: {
+      justifyContent: 'center',
+      textAlign: 'center'
+    }
+  }
+})
+
+export const statusStripStack = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'flex-start',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      minWidth: 0
+    }
+  }
+})
+
+export const statusStripCenteredStack = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center'
+    }
+  }
+})
+
+export const statusStripValue = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontSize: '0.84rem',
+      fontWeight: 750,
+      lineHeight: 1.1
+    }
+  }
+})
+
+export const exhaustionPips = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      gap: 0
+    }
+  }
+})
+
+export const exhaustionPip = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      appearance: 'none',
+      background: 'transparent',
+      border: 0,
+      cursor: 'pointer',
+      display: 'inline-flex',
+      height: '24px',
+      justifyContent: 'center',
+      padding: 0,
+      width: '24px',
+      selectors: {
+        '&:disabled': {
+          cursor: 'not-allowed',
+          opacity: 0.55
+        }
+      },
+      '@media': {
+        '(pointer: coarse)': {
+          height: '44px',
+          width: '44px'
+        }
+      }
+    }
+  }
+})
+
+export const exhaustionPipVisual = style({
+  '@layer': {
+    [app]: {
+      background: 'transparent',
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.pill,
+      height: '10px',
+      pointerEvents: 'none',
+      width: '10px',
+      selectors: {
+        '&[data-active="true"]': {
+          background: foundationVars.color.status.warning,
+          borderColor: foundationVars.color.status.warning
+        }
+      }
+    }
+  }
+})
+
+export const inspirationPip = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      background: 'transparent',
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.pill,
+      color: foundationVars.color.text.muted,
+      cursor: 'pointer',
+      display: 'inline-flex',
+      height: '24px',
+      justifyContent: 'center',
+      padding: 0,
+      selectors: {
+        '&[data-active="true"]': {
+          background: foundationVars.color.accent.soft,
+          borderColor: foundationVars.color.accent.border,
+          color: foundationVars.color.accent.solid
+        },
+        '&:disabled': {
+          cursor: 'not-allowed',
+          opacity: 0.55
+        }
+      },
+      width: '24px'
+    }
+  }
+})
+
+export const conditionSummary = style([
+  statusStripItem,
+  {
+    '@layer': {
+      [app]: {
+        borderInlineEnd: 0
+      }
+    }
+  }
+])
+
+export const conditionAddShell = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      appearance: 'none',
+      background: 'transparent',
+      border: `1px dashed ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.md,
+      color: foundationVars.color.text.secondary,
+      cursor: 'pointer',
+      display: 'grid',
+      font: 'inherit',
+      gap: '8px',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      minHeight: '34px',
+      minWidth: 0,
+      padding: '6px 9px',
+      textAlign: 'left',
+      width: '100%',
+      selectors: {
+        '&:disabled': {
+          cursor: 'not-allowed',
+          opacity: 0.55
+        }
+      }
+    }
+  }
+})

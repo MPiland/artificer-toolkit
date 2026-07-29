@@ -11,16 +11,16 @@ slug: character-builder-end-to-end-impeccable-refinement
 
 ## Heuristic assessment
 
-| Area | Score | Finding |
-|---|---:|---|
-| Hierarchy | 3/5 | Step content repeated context and nested too many bordered containers. |
-| Density | 2/5 | Class, equipment, ability, and HP workflows consumed excessive vertical space. |
-| Consistency | 3/5 | Race, class, and background selection used different interaction patterns. |
-| Responsiveness | 3/5 | Narrow controls wrapped, but grouping and modal behavior were not consistently intentional. |
-| Feedback | 3/5 | Resolver updates visibly dimmed content and delayed backend-derived feature presentation. |
-| Accessibility | 4/5 | Most controls were labeled, but repeated class and assignment controls lacked unique names. |
-| Player-facing copy | 3/5 | Several labels exposed implementation language or repeated surrounding context. |
-| Backend portability | 5/5 | Existing resolver and schema seams provided the right place for portable rules and content. |
+| Area                | Score | Finding                                                                                     |
+| ------------------- | ----: | ------------------------------------------------------------------------------------------- |
+| Hierarchy           |   3/5 | Step content repeated context and nested too many bordered containers.                      |
+| Density             |   2/5 | Class, equipment, ability, and HP workflows consumed excessive vertical space.              |
+| Consistency         |   3/5 | Race, class, and background selection used different interaction patterns.                  |
+| Responsiveness      |   3/5 | Narrow controls wrapped, but grouping and modal behavior were not consistently intentional. |
+| Feedback            |   3/5 | Resolver updates visibly dimmed content and delayed backend-derived feature presentation.   |
+| Accessibility       |   4/5 | Most controls were labeled, but repeated class and assignment controls lacked unique names. |
+| Player-facing copy  |   3/5 | Several labels exposed implementation language or repeated surrounding context.             |
+| Backend portability |   5/5 | Existing resolver and schema seams provided the right place for portable rules and content. |
 
 ## Anti-pattern verdict
 

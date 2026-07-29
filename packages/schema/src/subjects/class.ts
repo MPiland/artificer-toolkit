@@ -29,18 +29,20 @@ const classBaseDtoSchema = z.object({
   status: authoredRecordStatusSchema.optional(),
   details: z.array(detailDtoSchema).optional(),
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
-  spellcasting: z.object({
-    spellLimits: z.array(classSpellLimitDtoSchema),
-    availableAtLevel: z.number().int().optional(),
-    order: z.number().int().optional(),
-    details: z.array(detailDtoSchema).optional(),
-    magicName: z.string().optional(),
-    ability: abilityCodeSchema.optional(),
-    maxSpellLevel: z.number().int(),
-    attributes: z.array(spellcastingAttributeSchema).optional(),
-    charges: chargeDtoSchema,
-    prepareLimit: classPrepareLimitDtoSchema.optional()
-  }).optional(),
+  spellcasting: z
+    .object({
+      spellLimits: z.array(classSpellLimitDtoSchema),
+      availableAtLevel: z.number().int().optional(),
+      order: z.number().int().optional(),
+      details: z.array(detailDtoSchema).optional(),
+      magicName: z.string().optional(),
+      ability: abilityCodeSchema.optional(),
+      maxSpellLevel: z.number().int(),
+      attributes: z.array(spellcastingAttributeSchema).optional(),
+      charges: chargeDtoSchema,
+      prepareLimit: classPrepareLimitDtoSchema.optional()
+    })
+    .optional(),
   resources: classResourceDtoSchema.optional(),
   features: z.array(featureDtoSchema).optional(),
   userId: z.string(),
@@ -99,22 +101,22 @@ export type ClassAuthoringInputDto = Omit<
   parentClassId?: SubclassAuthoredDto['parentClassId']
   specializations?: SubclassAuthoredDto['specializations']
 } & (
-  | {
-    category: 'BASE'
-    attributes?: ParentClassAuthoredDto['attributes']
-    subclassSelectionLevel?: ParentClassAuthoredDto['subclassSelectionLevel']
-  }
-  | {
-    category: 'SUBCLASS'
-    attributes?: SubclassAuthoredDto['attributes']
-    subclassSelectionLevel?: never
-  }
-  | {
-    category?: undefined
-    attributes?: ParentClassAuthoredDto['attributes']
-    subclassSelectionLevel?: ParentClassAuthoredDto['subclassSelectionLevel']
-  }
-)
+    | {
+        category: 'BASE'
+        attributes?: ParentClassAuthoredDto['attributes']
+        subclassSelectionLevel?: ParentClassAuthoredDto['subclassSelectionLevel']
+      }
+    | {
+        category: 'SUBCLASS'
+        attributes?: SubclassAuthoredDto['attributes']
+        subclassSelectionLevel?: never
+      }
+    | {
+        category?: undefined
+        attributes?: ParentClassAuthoredDto['attributes']
+        subclassSelectionLevel?: ParentClassAuthoredDto['subclassSelectionLevel']
+      }
+  )
 
 const classAuthoringInputDtoSchemaRaw: z.ZodType<ClassAuthoringInputDto> = z.union([
   classAuthoringInputDtoSchemaCommon.extend({
@@ -138,7 +140,10 @@ export type ParentClassAuthoredDto = z.infer<typeof parentClassAuthoredDtoSchema
 export type SubclassAuthoredDto = z.infer<typeof subclassAuthoredDtoSchemaRaw>
 export type ClassAuthoredDto = ParentClassAuthoredDto | SubclassAuthoredDto
 export type ClassSpellcastingDto = NonNullable<ClassAuthoredDto['spellcasting']>
-export const parentClassAuthoredDtoSchema: z.ZodType<ParentClassAuthoredDto> = parentClassAuthoredDtoSchemaRaw
-export const subclassAuthoredDtoSchema: z.ZodType<SubclassAuthoredDto> = subclassAuthoredDtoSchemaRaw
+export const parentClassAuthoredDtoSchema: z.ZodType<ParentClassAuthoredDto> =
+  parentClassAuthoredDtoSchemaRaw
+export const subclassAuthoredDtoSchema: z.ZodType<SubclassAuthoredDto> =
+  subclassAuthoredDtoSchemaRaw
 export const classAuthoredDtoSchema: z.ZodType<ClassAuthoredDto> = classAuthoredDtoSchemaRaw
-export const classAuthoringInputDtoSchema: z.ZodType<ClassAuthoringInputDto> = classAuthoringInputDtoSchemaRaw
+export const classAuthoringInputDtoSchema: z.ZodType<ClassAuthoringInputDto> =
+  classAuthoringInputDtoSchemaRaw

@@ -8,7 +8,13 @@ const mocks = vi.hoisted(() => ({
   findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
+  getMovementPreference: vi.fn(),
+  listAdjustments: vi.fn(),
+  listResourceUsage: vi.fn(),
+  listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
+  setResourceUsage: vi.fn(),
+  setSpellCustomization: vi.fn(),
   resolveCharacterBuilder: vi.fn()
 }))
 
@@ -32,7 +38,18 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
-    })
+    }),
+    createCharacterSheetAdjustmentRepository: () => ({
+      getMovementPreference: mocks.getMovementPreference,
+      listByCharacter: mocks.listAdjustments
+    }),
+    createCharacterSheetPlayStateRepository: () => ({
+      listResourceUsage: mocks.listResourceUsage,
+      listSpellCustomizations: mocks.listSpellCustomizations,
+      setResourceUsage: mocks.setResourceUsage,
+      setSpellCustomization: mocks.setSpellCustomization
+    }),
+    getCharacterSheetExtraCatalogQuery: async () => ({ creatures: [], vehicles: [] })
   }
 })
 
@@ -42,13 +59,14 @@ vi.mock('./builderService.js', async (importOriginal) => {
 })
 
 const db = {
-  selectFrom: () => ({
-    select: () => ({
-      where: () => ({
-        orderBy: () => ({ execute: async () => [] })
-      })
-    })
-  })
+  selectFrom: () => {
+    const query = {
+      orderBy: () => query,
+      where: () => query,
+      execute: async () => []
+    }
+    return { select: () => query }
+  }
 }
 
 function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterAuthored {
@@ -140,8 +158,18 @@ describe('MVP character Sheet command audit', () => {
     mocks.findByCommandId.mockReset()
     mocks.findById.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.getMovementPreference.mockReset()
+    mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
+    mocks.listAdjustments.mockReset()
+    mocks.listAdjustments.mockResolvedValue([])
+    mocks.listResourceUsage.mockReset()
+    mocks.listResourceUsage.mockResolvedValue([])
+    mocks.listSpellCustomizations.mockReset()
+    mocks.listSpellCustomizations.mockResolvedValue([])
     mocks.resolveCharacterBuilder.mockReset()
     mocks.patchSheetState.mockReset()
+    mocks.setResourceUsage.mockReset()
+    mocks.setSpellCustomization.mockReset()
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
   })
@@ -271,14 +299,29 @@ describe('MVP character Sheet command audit', () => {
         maxHitPoints: 10,
         tempHitPoints: 0,
         maxHitPointsOverride: null,
-        exhaustionLevel: 0,
+        maxHitPointsModifier: 0,
+        maxHitPointsModifierAdjustmentId: null,
+        exhaustion: {
+          label: 'Exhaustion',
+          description: 'Exhaustion measures cumulative physical and mental fatigue.',
+          level: 0,
+          minimumLevel: 0,
+          maximumLevel: 6
+        },
         conditions: [],
         hitDice: []
       },
       identity: { label: character.label, classSummary: 'Fighter 1', totalLevel: 1 },
       actions: { items: [] },
+      extras: {
+        kindOptions: [],
+        originOptions: [],
+        creatureOptions: [],
+        vehicleOptions: [],
+        items: []
+      },
       resources: { items: [], hitDice: [] },
-      spells: { saveDc: null, attackBonus: null, spells: [], slots: [] },
+      spells: { saveDc: null, attackBonus: null, spells: [], slots: [], activeGroups: [] },
       inventory: { items: [], currencies: [] },
       currency: { groups: [] },
       reference: {

@@ -33,8 +33,8 @@ describe('authoring action dispatcher', () => {
       presentation: actionPresentationPresets.icon
     } satisfies NodeRuntimeCollectionActionDto
 
-    expect(() =>
-      dispatchCollectionAction(action, {} as MouseEvent<HTMLButtonElement>, {})
-    ).toThrow('No web handler is registered for authoring action: collection.edit')
+    expect(() => dispatchCollectionAction(action, {} as MouseEvent<HTMLButtonElement>, {})).toThrow(
+      'No web handler is registered for authoring action: collection.edit'
+    )
   })
 })

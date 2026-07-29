@@ -1,13 +1,5 @@
-import {
-  queryOptions,
-  useSuspenseQuery
-} from '@tanstack/react-query'
-import {
-  api,
-  type Api,
-  type AuthoredDetailRequestDto,
-  type AuthoredDraftDto
-} from '#app/lib/api'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { api, type Api, type AuthoredDetailRequestDto, type AuthoredDraftDto } from '#app/lib/api'
 
 type AuthoredDetailInput = string | AuthoredDetailRequestDto
 
@@ -31,10 +23,11 @@ export function createAuthoredContentQueries<TList, TResponse>(
   getDomain: (client: Api) => AuthoredContentApi<TList, TResponse>,
   keys: AuthoredContentQueryKeys
 ) {
-  const getList = (client: Api = api) => queryOptions({
-    queryKey: keys.list(),
-    queryFn: async () => await getDomain(client).list()
-  })
+  const getList = (client: Api = api) =>
+    queryOptions({
+      queryKey: keys.list(),
+      queryFn: async () => await getDomain(client).list()
+    })
   const getDetail = (input: AuthoredDetailInput, client: Api = api) => {
     const request = normalizeDetailRequest(input)
 
@@ -46,10 +39,11 @@ export function createAuthoredContentQueries<TList, TResponse>(
       queryFn: async () => await getDomain(client).get(request)
     })
   }
-  const getDraft = (id: string, client: Api = api) => queryOptions({
-    queryKey: keys.draft(id),
-    queryFn: async () => await getDomain(client).getDraft(id)
-  })
+  const getDraft = (id: string, client: Api = api) =>
+    queryOptions({
+      queryKey: keys.draft(id),
+      queryFn: async () => await getDomain(client).getDraft(id)
+    })
 
   return {
     getList,

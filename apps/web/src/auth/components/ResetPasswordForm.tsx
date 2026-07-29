@@ -20,7 +20,9 @@ import { AuthFormProps } from './authForm.types'
 export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
+    null
+  )
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()

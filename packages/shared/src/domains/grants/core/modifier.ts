@@ -1,5 +1,10 @@
 import type { ChargeLimitPayload } from '#authored'
-import type { AbilityCode, ValueDomainCode, CoreMeta, ValueDomainOptionPayloadByDomain } from '#core'
+import type {
+  AbilityCode,
+  ValueDomainCode,
+  CoreMeta,
+  ValueDomainOptionPayloadByDomain
+} from '#core'
 import { valuesOf } from '#utils'
 
 export const MODIFIER_KIND = {
@@ -56,8 +61,7 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.SET_VALUE,
     label: 'Set Value',
     tooltip: 'Set the value to a specific amount.',
-    description:
-      'Overrides the existing value and sets it to a fixed or calculated value.'
+    description: 'Overrides the existing value and sets it to a fixed or calculated value.'
   },
 
   ABILITY_MODIFIER_BONUS: {
@@ -142,8 +146,7 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND,
     label: 'Replace Charge Reset',
     tooltip: 'Replace the reset timing.',
-    description:
-      'Replaces the reset kind (e.g., LONG_REST → SHORT_REST) for charges.'
+    description: 'Replaces the reset kind (e.g., LONG_REST → SHORT_REST) for charges.'
   },
 
   MODIFY_CHARGE_LIMIT: {
@@ -172,10 +175,7 @@ export type ModifierScopeKind = keyof typeof MODIFIER_SCOPE_KIND
 
 export type ModifierScopeOption = CoreMeta<ModifierScopeKind>
 
-export const MODIFIER_SCOPE_REGISTRY: Record<
-  ModifierScopeKind,
-  ModifierScopeOption
-> = {
+export const MODIFIER_SCOPE_REGISTRY: Record<ModifierScopeKind, ModifierScopeOption> = {
   [MODIFIER_SCOPE_KIND.GLOBAL]: {
     code: MODIFIER_SCOPE_KIND.GLOBAL,
     label: 'Global',
@@ -195,157 +195,136 @@ export const MODIFIER_SCOPE_OPTIONS = valuesOf(
   MODIFIER_SCOPE_REGISTRY
 ) as readonly ModifierScopeOption[]
 
-export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly ModifierKind[]>
-  = {
-    /* ──────────────────────────────────────────────
-     * CORE NUMERIC VALUES
-     * ────────────────────────────────────────────── */
+export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly ModifierKind[]> = {
+  /* ──────────────────────────────────────────────
+   * CORE NUMERIC VALUES
+   * ────────────────────────────────────────────── */
 
-    HIT_POINTS_MAX: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
-    ],
+  HIT_POINTS_MAX: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
-    TEMPORARY_HIT_POINTS: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
-    ],
+  TEMPORARY_HIT_POINTS: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
-    ARMOR_CLASS: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE,
-      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
-    ],
+  ARMOR_CLASS: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.SET_VALUE,
+    MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+  ],
 
-    INITIATIVE: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.ADVANTAGE,
-      MODIFIER_KIND.DISADVANTAGE
-    ],
+  INITIATIVE: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE
+  ],
 
-    SAVE_DC: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
-    ],
+  SAVE_DC: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
-    SAVING_THROW_MODIFIER: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.ADVANTAGE,
-      MODIFIER_KIND.DISADVANTAGE
-    ],
+  SAVING_THROW_MODIFIER: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE
+  ],
 
-    ATTACK_ROLL: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.ADVANTAGE,
-      MODIFIER_KIND.DISADVANTAGE,
-      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
-    ],
+  ATTACK_ROLL: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.ADVANTAGE,
+    MODIFIER_KIND.DISADVANTAGE,
+    MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+  ],
 
-    SKILL_MODIFIER: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY],
+  SKILL_MODIFIER: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY],
 
-    ABILITY_SCORE: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
-    ],
+  ABILITY_SCORE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
-    PROFICIENCY_BONUS: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  PROFICIENCY_BONUS: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    /* ──────────────────────────────────────────────
-     * DAMAGE
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * DAMAGE
+   * ────────────────────────────────────────────── */
 
-    DAMAGE: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.ADD_BONUS_DIE,
-      MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
-      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
-    ],
+  DAMAGE: [
+    MODIFIER_KIND.BONUS,
+    MODIFIER_KIND.PENALTY,
+    MODIFIER_KIND.ADD_BONUS_DIE,
+    MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
+    MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+    MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
+  ],
 
-    DAMAGE_RESISTANCE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  DAMAGE_RESISTANCE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    DAMAGE_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  DAMAGE_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    DAMAGE_VULNERABILITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  DAMAGE_VULNERABILITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    /* ──────────────────────────────────────────────
-     * MOVEMENT & SENSES
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * MOVEMENT & SENSES
+   * ────────────────────────────────────────────── */
 
-    SPEED: [
-      MODIFIER_KIND.BONUS,
-      MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
-    ],
+  SPEED: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.SET_VALUE],
 
-    MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  MOVEMENT_MODE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    SENSE_RANGE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SENSE_RANGE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    /* ──────────────────────────────────────────────
-     * SPELL STRUCTURE
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * SPELL STRUCTURE
+   * ────────────────────────────────────────────── */
 
-    RANGE: [MODIFIER_KIND.SET_VALUE, MODIFIER_KIND.REPLACE_RANGE_KIND],
+  RANGE: [MODIFIER_KIND.SET_VALUE, MODIFIER_KIND.REPLACE_RANGE_KIND],
 
-    DURATION: [MODIFIER_KIND.SET_VALUE, MODIFIER_KIND.REPLACE_DURATION_KIND],
+  DURATION: [MODIFIER_KIND.SET_VALUE, MODIFIER_KIND.REPLACE_DURATION_KIND],
 
-    SHAPE: [MODIFIER_KIND.REPLACE_SHAPE_KIND],
+  SHAPE: [MODIFIER_KIND.REPLACE_SHAPE_KIND],
 
-    /* ──────────────────────────────────────────────
-     * SPELLCASTING LIMITS
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * SPELLCASTING LIMITS
+   * ────────────────────────────────────────────── */
 
-    SPELL_SLOT_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SPELL_SLOT_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    SPELL_SLOT_LEVEL_MAX: [MODIFIER_KIND.SET_VALUE],
+  SPELL_SLOT_LEVEL_MAX: [MODIFIER_KIND.SET_VALUE],
 
-    SPELLS_KNOWN: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SPELLS_KNOWN: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    SPELLS_PREPARED: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  SPELLS_PREPARED: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    /* ──────────────────────────────────────────────
-     * ACTION ECONOMY
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * ACTION ECONOMY
+   * ────────────────────────────────────────────── */
 
-    ACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  ACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    BONUS_ACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  BONUS_ACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    REACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
+  REACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
-    /* ──────────────────────────────────────────────
-     * CHARGES / RESOURCES
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * CHARGES / RESOURCES
+   * ────────────────────────────────────────────── */
 
-    CHARGE_LIMIT: [MODIFIER_KIND.MODIFY_CHARGE_LIMIT, MODIFIER_KIND.SET_VALUE],
+  CHARGE_LIMIT: [MODIFIER_KIND.MODIFY_CHARGE_LIMIT, MODIFIER_KIND.SET_VALUE],
 
-    CHARGE_RESET: [MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND],
+  CHARGE_RESET: [MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND],
 
-    /* ──────────────────────────────────────────────
-     * CONDITIONS / ATTRIBUTES
-     * ────────────────────────────────────────────── */
+  /* ──────────────────────────────────────────────
+   * CONDITIONS / ATTRIBUTES
+   * ────────────────────────────────────────────── */
 
-    CONDITION: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  CONDITION: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
+  CONDITION_IMMUNITY: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
 
-    ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
-  } as const
+  ATTRIBUTE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION]
+} as const
 
-export type ModifierKindsByDomain<V extends ValueDomainCode>
-  = (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
+export type ModifierKindsByDomain<V extends ValueDomainCode> =
+  (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
 
 /* ============================================================================
  * Domain-correlated payloads for option-like operations
@@ -369,8 +348,8 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   MOVEMENT_MODE: { movementModeId: string }
 }
 
-export type ModifierKindsByDomiain<V extends ValueDomainCode>
-  = (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
+export type ModifierKindsByDomiain<V extends ValueDomainCode> =
+  (typeof MODIFIER_KINDS_BY_DOMAIN)[V][number]
 
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
@@ -413,7 +392,7 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
   CHARACTER_LEVEL: {
     code: MODIFIER_VALUE_SOURCE_CODE.CHARACTER_LEVEL,
     label: 'Character Level',
-    description: 'Uses the character\'s total level.',
+    description: "Uses the character's total level.",
     tooltip: 'Counts all class levels combined.'
   },
 
@@ -440,39 +419,38 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
   MODIFIER_VALUE_SOURCE_REGISTRY
 ) as readonly ModifierValueSourceOption[]
 
-export type ModifierScalarValueAuthored
-  = | { valueKind: 'FIXED', amount: number }
-    | { valueKind: 'PROFICIENCY_BONUS', multiplier?: number }
-    | { valueKind: 'SKILL_BONUS', skillId: string, multiplier?: number }
-    | { valueKind: 'CHARACTER_LEVEL', multiplier?: number }
-    | { valueKind: 'CLASS_LEVEL', classId: string, multiplier?: number }
+export type ModifierScalarValueAuthored =
+  | { valueKind: 'FIXED'; amount: number }
+  | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
+  | { valueKind: 'SKILL_BONUS'; skillId: string; multiplier?: number }
+  | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
+  | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
-    | { valueKind: 'SPELL_SLOT_LEVEL', multiplier?: number }
+  | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number }
 
-export type ModifierPayloadFor<
-  V extends ValueDomainCode,
-  K extends ModifierKind
->
+export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
-  = K extends 'BONUS' | 'PENALTY' ? ModifierScalarValueAuthored
-    : K extends 'SET_VALUE' ? { amount: number } // consider NumericExpr later
+  K extends 'BONUS' | 'PENALTY'
+    ? ModifierScalarValueAuthored
+    : K extends 'SET_VALUE'
+      ? { amount: number } // consider NumericExpr later
       : K extends 'ABILITY_MODIFIER_BONUS'
-        ? { ability: AbilityCode, multiplier?: number, min?: number, max?: number }
-        : K extends 'MODIFY_CHARGE_LIMIT' ? ChargeLimitPayload
-          : K extends 'ADD_BONUS_DIE' ? { dice: string }
+        ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+        : K extends 'MODIFY_CHARGE_LIMIT'
+          ? ChargeLimitPayload
+          : K extends 'ADD_BONUS_DIE'
+            ? { dice: string }
             : K extends 'REPLACE_DAMAGE_TYPE'
               ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
               : K extends 'ADVANTAGE' | 'DISADVANTAGE'
                 ? undefined
                 : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
                   ? { abilities: AbilityCode[] }
-
-                // option-like operations must be domain-supported
-                  : K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                  : // option-like operations must be domain-supported
+                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
                     ? V extends keyof ValueDomainOptionPayloadByDomain
                       ? ValueDomainOptionPayloadByDomain[V]
                       : never
-
                     : never
 
 export type ModifierPayloadByDomain<

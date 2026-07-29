@@ -12,7 +12,9 @@ export function MobileAppFooter({
 }: MobileAppFooterProps) {
   return (
     <footer aria-label={ariaLabel} className={clsx(styles.root, className)}>
-      {items.map((item) => <MobileFooterItem key={item.id} item={item} />)}
+      {items.map((item) => (
+        <MobileFooterItem key={item.id} item={item} />
+      ))}
     </footer>
   )
 }
@@ -35,22 +37,21 @@ function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
 
   return (
     <Menu position='top' width={230} withinPortal>
-      <Menu.Target>
-        {control}
-      </Menu.Target>
+      <Menu.Target>{control}</Menu.Target>
       <Menu.Dropdown>
-        {item.menuContent ?? item.menuItems?.map((menuItem) => (
-          <Menu.Item
-            key={menuItem.id}
-            component={Link}
+        {item.menuContent ??
+          item.menuItems?.map((menuItem) => (
+            <Menu.Item
+              key={menuItem.id}
+              component={Link}
               to={menuItem.href}
               aria-current={menuItem.isActive ? 'page' : undefined}
             >
               <span className={styles.menuItemText}>
                 <span>{menuItem.label}</span>
-            </span>
-          </Menu.Item>
-        ))}
+              </span>
+            </Menu.Item>
+          ))}
       </Menu.Dropdown>
     </Menu>
   )

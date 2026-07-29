@@ -1,34 +1,25 @@
-import {
-  SIZE_CODE,
-  type SizeCode,
-  type VehicleAuthored
-} from '@artificer-toolkit/shared'
+import { SIZE_CODE, type SizeCode, type VehicleAuthored } from '@artificer-toolkit/shared'
 import { costDtoSchema } from '@artificer-toolkit/schema/subjects/shared'
 import type { DBLike } from '#types'
 import { upsertVehicle } from '../upserts/vehicle.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
-import type { RepositoryFindAllOptions, VehicleRepository } from '../../../repositories/contracts.js'
+import type {
+  RepositoryFindAllOptions,
+  VehicleRepository
+} from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
-function requireCategory(
-  vehicleId: string,
-  value: string
-): VehicleAuthored['category'] {
-  if (![
-    'LAND', 'WATER', 'AIR', 'SPELLJAMMER'
-  ].includes(value)) {
+function requireCategory(vehicleId: string, value: string): VehicleAuthored['category'] {
+  if (!['LAND', 'WATER', 'AIR', 'SPELLJAMMER'].includes(value)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid category "${value}".`)
   }
 
   return value as VehicleAuthored['category']
 }
 
-function requireSizeCode(
-  vehicleId: string,
-  value: string
-): SizeCode {
+function requireSizeCode(vehicleId: string, value: string): SizeCode {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid size_code "${value}".`)
   }
@@ -36,10 +27,7 @@ function requireSizeCode(
   return value as SizeCode
 }
 
-function requireLinkedRecord<T>(
-  value: T | null,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null, message: string): T {
   if (value === null) {
     throw new Error(message)
   }
@@ -47,10 +35,7 @@ function requireLinkedRecord<T>(
   return value
 }
 
-function hydrateCost(
-  vehicleId: string,
-  value: unknown
-): VehicleAuthored['cost'] {
+function hydrateCost(vehicleId: string, value: unknown): VehicleAuthored['cost'] {
   if (value == null) {
     return undefined
   }
@@ -63,10 +48,26 @@ function hydrateCost(
   return parsed.data
 }
 
-async function hydrateVehicleById(
-  db: DBLike,
-  id: string
-): Promise<VehicleAuthored | null> {
+function selectVehicleIds(db: DBLike, filter?: RepositoryFindAllOptions) {
+  let query = db.selectFrom('vehicles').select('id')
+
+  if (filter?.systemId) {
+    query = query.where('system_id', '=', filter.systemId)
+  }
+  if (filter?.userId && filter.includeMaster) {
+    query = query.where((eb) =>
+      eb.or([eb('user_id', '=', filter.userId!), eb('is_master', '=', true)])
+    )
+  } else if (filter?.userId) {
+    query = query.where('user_id', '=', filter.userId)
+  } else if (filter?.includeMaster) {
+    query = query.where('is_master', '=', true)
+  }
+
+  return query
+}
+
+async function hydrateVehicleById(db: DBLike, id: string): Promise<VehicleAuthored | null> {
   const row = await db
     .selectFrom('vehicles')
     .select([
@@ -118,8 +119,18 @@ async function hydrateVehicleById(
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     featureRepository.findByIds(featureLinks.map((link) => link.feature_id))
   ])
-  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(detailsById.get(link.detail_id) ?? null, `Vehicle "${id}" is linked to missing detail "${link.detail_id}".`))
-  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(featuresById.get(link.feature_id) ?? null, `Vehicle "${id}" is linked to missing feature "${link.feature_id}".`))
+  const authoredDetails = detailLinks.map((link) =>
+    requireLinkedRecord(
+      detailsById.get(link.detail_id) ?? null,
+      `Vehicle "${id}" is linked to missing detail "${link.detail_id}".`
+    )
+  )
+  const authoredFeatures = featureLinks.map((link) =>
+    requireLinkedRecord(
+      featuresById.get(link.feature_id) ?? null,
+      `Vehicle "${id}" is linked to missing feature "${link.feature_id}".`
+    )
+  )
 
   return {
     id: row.id,
@@ -151,32 +162,27 @@ export function createVehicleRepository(db: DBLike): VehicleRepository {
       await upsertVehicle(db, entity, entity.systemId)
     },
 
-    async findById(id) {
-      return hydrateVehicleById(db, id)
+    async findById(id, filter) {
+      const row = await selectVehicleIds(db, filter).where('id', '=', id).executeTakeFirst()
+      return row ? hydrateVehicleById(db, row.id) : null
     },
 
-    async findByIds(ids) {
-      return hydrateByIds(ids, (id) => hydrateVehicleById(db, id))
+    async findByIds(ids, filter) {
+      const rows = await selectVehicleIds(db, filter).where('id', 'in', ids).execute()
+      return hydrateByIds(
+        rows.map((row) => row.id),
+        (id) => hydrateVehicleById(db, id)
+      )
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('vehicles')
-        .select('id')
-        .orderBy('label')
-
-      if (filter?.systemId) {
-        query = query.where('system_id', '=', filter.systemId)
-      }
-
-      if (filter?.userId) {
-        query = query.where('user_id', '=', filter.userId)
-      }
-
-      const rows = await query.execute()
+      const rows = await selectVehicleIds(db, filter).orderBy('label').execute()
       return orderedHydratedRecords(
         rows.map((row) => row.id),
-        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateVehicleById(db, id))
+        await hydrateByIds(
+          rows.map((row) => row.id),
+          (id) => hydrateVehicleById(db, id)
+        )
       )
     }
   }

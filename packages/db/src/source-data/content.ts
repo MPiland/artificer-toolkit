@@ -115,18 +115,14 @@ export interface BaselineContentBundle {
   subjects: BaselineSubjectsContent
 }
 
-function withActiveStatus<T extends { status?: AuthoredRecordStatus }>(
-  records: T[]
-): T[] {
+function withActiveStatus<T extends { status?: AuthoredRecordStatus }>(records: T[]): T[] {
   return records.map((record) => ({
     ...record,
     status: record.status ?? AUTHORED_RECORD_STATUS.ACTIVE
   }))
 }
 
-export function defineBaselineContentBundle(
-  bundle: BaselineContentBundle
-): BaselineContentBundle {
+export function defineBaselineContentBundle(bundle: BaselineContentBundle): BaselineContentBundle {
   return {
     ...bundle,
     subjects: {
@@ -164,4 +160,3 @@ export function assignBaselineContentOwner(
     }
   }
 }
-

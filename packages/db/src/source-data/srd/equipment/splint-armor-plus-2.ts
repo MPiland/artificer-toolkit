@@ -14,5 +14,5 @@ export const splintArmorPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(337), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

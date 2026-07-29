@@ -19,7 +19,13 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 
-const creatureDetailMeta = ['challengeRatings', 'conditionTypes', 'creatureTypes', 'damageTypes', 'speeds']
+const creatureDetailMeta = [
+  'challengeRatings',
+  'conditionTypes',
+  'creatureTypes',
+  'damageTypes',
+  'speeds'
+]
 
 export const Route = createFileRoute('/_authed/creatures/')({
   loader: async ({ context }): Promise<void> => {
@@ -78,28 +84,36 @@ function CreaturesRoute() {
         attributeColumns={creatureListAttributeColumns}
         sortOptions={creatureListSortOptions}
         onCreate={() => navigate({ to: '/creatures/new' })}
-        onView={(item) => navigate({
-          params: buildCreatureRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/creatures/$creaturePublicId/$creatureSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildCreatureRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/creatures/$creaturePublicId/$creatureSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getCreature({
-            id: item.id,
-            meta: creatureDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getCreature({
+              id: item.id,
+              meta: creatureDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildCreatureRouteParams(item.publicId, item.name),
-          to: '/creatures/$creaturePublicId/$creatureSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildCreatureRouteParams(item.publicId, item.name),
+            to: '/creatures/$creaturePublicId/$creatureSlug/edit'
+          })
+        }
         onCopy={(item) => duplicateMutation.mutate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

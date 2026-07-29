@@ -15,8 +15,8 @@ export class UnsupportedRulesSystemError extends Error {
 
 export function resolveRulesSystem(identity: RulesSystemIdentity): RulesSystem {
   if (
-    identity.code === dnd5e2014RulesSystem.identity.code
-    && identity.version === dnd5e2014RulesSystem.identity.version
+    identity.code === dnd5e2014RulesSystem.identity.code &&
+    identity.version === dnd5e2014RulesSystem.identity.version
   ) {
     return dnd5e2014RulesSystem
   }

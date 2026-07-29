@@ -46,7 +46,9 @@ export type BackgroundRepository = AuthoredRepository<BackgroundAuthored>
 export type ClassRepository = AuthoredRepository<ClassAuthored>
 export type CreatureRepository = AuthoredRepository<CreatureAuthored>
 export type DetailRepository = AuthoredRepository<DetailAuthored, void>
-export interface EquipmentRepository extends AuthoredRepository<EquipmentAuthored | EquipmentVariantAuthored> {
+export interface EquipmentRepository extends AuthoredRepository<
+  EquipmentAuthored | EquipmentVariantAuthored
+> {
   findResolvedById(id: string, filter?: RepositoryFindAllOptions): Promise<ResolvedEquipment | null>
   findResolvedAll(filter?: RepositoryFindAllOptions): Promise<ResolvedEquipment[]>
 }
@@ -59,8 +61,12 @@ export type SpellRepository = AuthoredRepository<SpellAuthored>
 export type SystemRepository = AuthoredRepository<SystemSeedRecord>
 export type VehicleRepository = AuthoredRepository<VehicleAuthored>
 
-export type FeatureRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<FeatureAuthored<N>>
-export type OptionRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<OptionAuthored<N>>
+export type FeatureRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<
+  FeatureAuthored<N>
+>
+export type OptionRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<
+  OptionAuthored<N>
+>
 
 export type ModifierGrantRepository = AuthoredRepository<ModifierGrantAuthored>
 export type FeatGrantRepository = AuthoredRepository<FeatGrantAuthored>
@@ -70,4 +76,3 @@ export type SpellGrantRepository = AuthoredRepository<SpellGrantAuthored>
 
 export type EffectRepository = AuthoredRepository<EffectAuthored>
 export type StartingEquipmentRepository = AuthoredRepository<StartingEquipmentAuthored>
-

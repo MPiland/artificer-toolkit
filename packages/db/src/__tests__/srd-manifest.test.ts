@@ -76,8 +76,11 @@ function collectTargetingRecords(value: unknown, seen = new WeakSet<object>()): 
   seen.add(value)
 
   const selectionKind = value.selectionKind
-  const isTargetingSelection = typeof selectionKind === 'string'
-    && Object.values(TARGET_SELECTION_KIND).includes(selectionKind as keyof typeof TARGET_SELECTION_KIND)
+  const isTargetingSelection =
+    typeof selectionKind === 'string' &&
+    Object.values(TARGET_SELECTION_KIND).includes(
+      selectionKind as keyof typeof TARGET_SELECTION_KIND
+    )
 
   if (isTargetingSelection) {
     return [value]
@@ -104,9 +107,7 @@ describe('SRD manifest coverage', () => {
     expect(srdClasses).toHaveLength(
       Object.keys(CLASS_IDS).length + Object.keys(SUBCLASS_IDS).length
     )
-    expect(srdRaces).toHaveLength(
-      Object.keys(RACE_IDS).length + Object.keys(SUBRACE_IDS).length
-    )
+    expect(srdRaces).toHaveLength(Object.keys(RACE_IDS).length + Object.keys(SUBRACE_IDS).length)
     expect(srdBackgrounds).toHaveLength(Object.keys(BACKGROUND_IDS).length)
     expect(srdFeats).toHaveLength(Object.keys(FEAT_IDS).length)
     expect(srdCreatures).toHaveLength(Object.keys(CREATURE_IDS).length)
@@ -123,14 +124,8 @@ describe('SRD manifest coverage', () => {
     expectUniqueIds(srdEquipment, 'srdEquipment')
     expectUniqueIds(srdVehicles, 'srdVehicles')
 
-    const allowedClassIds = new Set([
-      ...Object.values(CLASS_IDS),
-      ...Object.values(SUBCLASS_IDS)
-    ])
-    const allowedRaceIds = new Set([
-      ...Object.values(RACE_IDS),
-      ...Object.values(SUBRACE_IDS)
-    ])
+    const allowedClassIds = new Set([...Object.values(CLASS_IDS), ...Object.values(SUBCLASS_IDS)])
+    const allowedRaceIds = new Set([...Object.values(RACE_IDS), ...Object.values(SUBRACE_IDS)])
     const allowedBackgroundIds = new Set(Object.values(BACKGROUND_IDS))
     const allowedFeatIds = new Set(Object.values(FEAT_IDS))
     const allowedCreatureIds = new Set(Object.values(CREATURE_IDS))
@@ -147,10 +142,12 @@ describe('SRD manifest coverage', () => {
   })
 
   it('keeps Grappler explicitly represented by the canonical feat manifest', () => {
-    expect(srdFeats).toContainEqual(expect.objectContaining({
-      id: FEAT_IDS.GRAPPLER,
-      label: 'Grappler'
-    }))
+    expect(srdFeats).toContainEqual(
+      expect.objectContaining({
+        id: FEAT_IDS.GRAPPLER,
+        label: 'Grappler'
+      })
+    )
   })
 
   it('keeps spell coverage aligned with the corrected SRD spell manifest', () => {
@@ -161,18 +158,32 @@ describe('SRD manifest coverage', () => {
   })
 
   it('models legendary action choices as feature options', () => {
-    const legendaryActionFeatures = srdCreatures.flatMap((creature) => (creature.features ?? [])
-      .filter((feature) => feature.label === 'Legendary Actions')
-      .map((feature) => ({ creature, feature })))
-    const adultBrassDragon = srdCreatures.find((creature) => creature.id === CREATURE_IDS.ADULT_BRASS_DRAGON)
-    const adultBrassLegendaryActions = adultBrassDragon?.features?.find((feature) => feature.label === 'Legendary Actions')
-    const adultBrassLegendaryResistance = adultBrassDragon?.features?.find((feature) => feature.label.startsWith('Legendary Resistance'))
+    const legendaryActionFeatures = srdCreatures.flatMap((creature) =>
+      (creature.features ?? [])
+        .filter((feature) => feature.label === 'Legendary Actions')
+        .map((feature) => ({ creature, feature }))
+    )
+    const adultBrassDragon = srdCreatures.find(
+      (creature) => creature.id === CREATURE_IDS.ADULT_BRASS_DRAGON
+    )
+    const adultBrassLegendaryActions = adultBrassDragon?.features?.find(
+      (feature) => feature.label === 'Legendary Actions'
+    )
+    const adultBrassLegendaryResistance = adultBrassDragon?.features?.find((feature) =>
+      feature.label.startsWith('Legendary Resistance')
+    )
 
     expect(legendaryActionFeatures.length).toBeGreaterThan(0)
 
     for (const { creature, feature } of legendaryActionFeatures) {
-      expect(feature.options?.length ?? 0, `${creature.label} legendary action options`).toBeGreaterThan(0)
-      expect(feature.effects, `${creature.label} feature-level legendary action effects`).toBeUndefined()
+      expect(
+        feature.options?.length ?? 0,
+        `${creature.label} legendary action options`
+      ).toBeGreaterThan(0)
+      expect(
+        feature.effects,
+        `${creature.label} feature-level legendary action effects`
+      ).toBeUndefined()
     }
 
     expect(adultBrassLegendaryActions?.options?.map((option) => option.label)).toEqual([
@@ -180,20 +191,25 @@ describe('SRD manifest coverage', () => {
       'Tail Attack',
       'Wing Attack (Costs 2 Actions)'
     ])
-    expect(adultBrassLegendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects?.length).toBeGreaterThan(0)
+    expect(
+      adultBrassLegendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects
+        ?.length
+    ).toBeGreaterThan(0)
     expect(adultBrassLegendaryResistance).toBeDefined()
   })
 
   it('models Dragonborn breath weapon as a derived Constitution DC with explicit targeting eligibility', () => {
     const dragonborn = srdRaces.find((race) => race.id === RACE_IDS.DRAGONBORN)
-    const blackAncestry = dragonborn && 'ancestry' in dragonborn
-      ? dragonborn.ancestry?.options?.find((option) => option.label === 'Black (Acid)')
-      : undefined
-    const breathWeapon = blackAncestry?.features?.find((feature) => feature.label === 'Breath Weapon')
+    const blackAncestry =
+      dragonborn && 'ancestry' in dragonborn
+        ? dragonborn.ancestry?.options?.find((option) => option.label === 'Black (Acid)')
+        : undefined
+    const breathWeapon = blackAncestry?.features?.find(
+      (feature) => feature.label === 'Breath Weapon'
+    )
     const effect = breathWeapon?.effects?.[0]
-    const savingThrow = effect?.invocation.triggerCode === 'SAVING_THROW'
-      ? effect.invocation.savingThrow
-      : undefined
+    const savingThrow =
+      effect?.invocation.triggerCode === 'SAVING_THROW' ? effect.invocation.savingThrow : undefined
 
     expect(effect?.invocation.targeting).toMatchObject({
       selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
@@ -204,7 +220,9 @@ describe('SRD manifest coverage', () => {
       ability: 'DEXTERITY',
       baseDc: 8
     })
-    expect(savingThrow?.dcMethod === SAVING_THROW_DC_METHOD.DERIVED_DC ? savingThrow.bonuses : []).toEqual([
+    expect(
+      savingThrow?.dcMethod === SAVING_THROW_DC_METHOD.DERIVED_DC ? savingThrow.bonuses : []
+    ).toEqual([
       {
         id: expect.any(String),
         bonusKind: SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER,
@@ -218,18 +236,29 @@ describe('SRD manifest coverage', () => {
   })
 
   it('declares target eligibility for every non-self SRD targeting record', () => {
-    const missingEligibility = allSrdRecords().flatMap((record) => collectTargetingRecords(record)
-      .filter((targeting) => targeting.selectionKind !== TARGET_SELECTION_KIND.SELF && targeting.dispositionKind == null)
-      .map((targeting) => `${record.label}: ${String(targeting.selectionKind)}`))
+    const missingEligibility = allSrdRecords().flatMap((record) =>
+      collectTargetingRecords(record)
+        .filter(
+          (targeting) =>
+            targeting.selectionKind !== TARGET_SELECTION_KIND.SELF &&
+            targeting.dispositionKind == null
+        )
+        .map((targeting) => `${record.label}: ${String(targeting.selectionKind)}`)
+    )
 
     expect(missingEligibility).toEqual([])
   })
 
   it('uses printed fixed DCs for creature saving throws instead of inherited source save DCs', () => {
-    const sourceDcCreatureEffects = srdCreatures.flatMap((creature) => collectEffects(creature)
-      .filter((effect) => effect.invocation.triggerCode === 'SAVING_THROW'
-        && effect.invocation.savingThrow.dcMethod === SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC)
-      .map((effect) => `${creature.label}: ${effect.id}`))
+    const sourceDcCreatureEffects = srdCreatures.flatMap((creature) =>
+      collectEffects(creature)
+        .filter(
+          (effect) =>
+            effect.invocation.triggerCode === 'SAVING_THROW' &&
+            effect.invocation.savingThrow.dcMethod === SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
+        )
+        .map((effect) => `${creature.label}: ${effect.id}`)
+    )
 
     expect(sourceDcCreatureEffects).toEqual([])
   })

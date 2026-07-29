@@ -16,15 +16,17 @@ export const ancientWhiteDragon: CreatureAuthored = {
     CONSTITUTION: 26,
     INTELLIGENCE: 10,
     WISDOM: 13,
-    CHARISMA: 14,
+    CHARISMA: 14
   },
   armorClass: 20,
   armorClassNote: 'natural armor',
   hitPoints: 333,
-  hitDice: '18d20+144',
-  speeds: [
-    ...S.walk(40), ...S.burrow(40), ...S.fly(80), ...S.swim(40)
-  ],
+  hitDice: {
+    count: 18,
+    die: 20,
+    modifier: 144
+  },
+  speeds: [...S.walk(40), ...S.burrow(40), ...S.fly(80), ...S.swim(40)],
   proficiencies: [
     S.grantedSaveProficiency(23, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
     S.grantedSkillProficiency(23, 2, 'PERCEPTION', 'STEALTH'),
@@ -39,13 +41,15 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 1),
       label: 'Ice Walk',
-      description: 'Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn\'t cost it extra movement.',
+      description:
+        "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra movement.",
       order: 1
     },
     {
       id: S.featureId(23, 2),
       label: 'Legendary Resistance (3/Day)',
-      description: 'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
+      description:
+        'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.legendaryActionId(23, 20),
@@ -59,13 +63,15 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 3),
       label: 'Multiattack',
-      description: 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+      description:
+        'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
       order: 3
     },
     {
       id: S.featureId(23, 4),
       label: 'Bite',
-      description: 'Melee Weapon Attack: +14 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus 9 (2d8) cold damage.',
+      description:
+        'Melee Weapon Attack: +14 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 8) piercing damage plus 9 (2d8) cold damage.',
       effects: [
         {
           id: S.actionId(23, 13),
@@ -146,7 +152,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 5),
       label: 'Claw',
-      description: 'Melee Weapon Attack: +14 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
+      description:
+        'Melee Weapon Attack: +14 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 8) slashing damage.',
       effects: [
         {
           id: S.actionId(23, 18),
@@ -205,7 +212,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 6),
       label: 'Tail',
-      description: 'Melee Weapon Attack: +14 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 8) bludgeoning damage.',
+      description:
+        'Melee Weapon Attack: +14 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 8) bludgeoning damage.',
       effects: [
         {
           id: S.actionId(23, 22),
@@ -264,7 +272,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 7),
       label: 'Frightful Presence',
-      description: 'Each creature of the dragon\'s choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\'s saving throw is successful or the effect ends for it, the creature is immune to the dragon\'s Frightful Presence for the next 24 hours.',
+      description:
+        "Each creature of the dragon's choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the dragon's Frightful Presence for the next 24 hours.",
       effects: [
         {
           id: S.actionId(23, 26),
@@ -319,7 +328,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
     {
       id: S.featureId(23, 8),
       label: 'Cold Breath (Recharge 5-6)',
-      description: 'The dragon exhales an icy blast in a 90-foot cone. Each creature in that area must make a DC 22 Constitution saving throw, taking 72 (16d8) cold damage on a failed save, or half as much damage on a successful one.',
+      description:
+        'The dragon exhales an icy blast in a 90-foot cone. Each creature in that area must make a DC 22 Constitution saving throw, taking 72 (16d8) cold damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(23, 29),
@@ -391,7 +401,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
       id: S.featureId(23, 9),
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
-      description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
+      description:
+        "The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The dragon regains spent legendary actions at the start of its turn.",
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.legendaryActionId(23, 21),

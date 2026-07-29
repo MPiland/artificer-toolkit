@@ -9,8 +9,13 @@ import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry, CharacterAssemblyRegistryFeature } from '../registry.js'
 import {
   getCharacterChosenGrantSelectionIdentityKey,
+  getCharacterProvenanceIdentityKey,
   type CharacterProvenance
 } from '../../subjects/authored/character/intent.js'
+import type {
+  CharacterAuthoredSourceKind,
+  CharacterMechanicSourceRef
+} from '../../character/sheetCalculation.js'
 import { buildModifierDomainKey } from './modifierDomainKey.js'
 import { evaluateCharacterFacet, type CharacterEligibilityContext } from '../prerequisiteEval.js'
 
@@ -36,6 +41,7 @@ export interface EngineAccumulatedState {
     domainKey: string
     modifierKind: string
     grant: CompiledModifierGrant
+    source: CharacterMechanicSourceRef
     scopeSpellIds?: string[]
   }>
   unlockedFeatIds: string[]
@@ -51,7 +57,8 @@ export interface EngineAccumulatedState {
 function extractProficiencies(
   grants: CompiledProficiencyGrant[],
   snapshot: CharacterBuildSnapshot,
-  ownerSource: CharacterProvenance
+  ownerSource: CharacterProvenance,
+  mechanicSource: CharacterMechanicSourceRef
 ): EngineProficiency[] {
   const out: EngineProficiency[] = []
 
@@ -63,7 +70,8 @@ function extractProficiencies(
         out,
         grant,
         getSelectedGrantTargetIds(snapshot, grant.id, ownerSource),
-        scaling
+        scaling,
+        mechanicSource
       )
       continue
     }
@@ -88,6 +96,8 @@ function extractProficiencies(
         kind: grant.proficiencyKind,
         subjectId: '*',
         scaling,
+        source: mechanicSource,
+        grantId: grant.id,
         ...(category ? { category } : {})
       })
       continue
@@ -98,28 +108,52 @@ function extractProficiencies(
       case 'SKILL': {
         const g = grant as CompiledProficiencyGrant<'SKILL'> & { skillIds?: string[] }
         for (const id of g.skillIds ?? []) {
-          out.push({ kind: 'SKILL', subjectId: id, scaling })
+          out.push({
+            kind: 'SKILL',
+            subjectId: id,
+            scaling,
+            source: mechanicSource,
+            grantId: grant.id
+          })
         }
         break
       }
       case 'SAVE_ABILITY': {
         const g = grant as CompiledProficiencyGrant<'SAVE_ABILITY'> & { abilities?: string[] }
         for (const ability of g.abilities ?? []) {
-          out.push({ kind: 'SAVE_ABILITY', subjectId: ability, scaling })
+          out.push({
+            kind: 'SAVE_ABILITY',
+            subjectId: ability,
+            scaling,
+            source: mechanicSource,
+            grantId: grant.id
+          })
         }
         break
       }
       case 'LANGUAGE': {
         const g = grant as CompiledProficiencyGrant<'LANGUAGE'> & { languageIds?: string[] }
         for (const id of g.languageIds ?? []) {
-          out.push({ kind: 'LANGUAGE', subjectId: id, scaling })
+          out.push({
+            kind: 'LANGUAGE',
+            subjectId: id,
+            scaling,
+            source: mechanicSource,
+            grantId: grant.id
+          })
         }
         break
       }
       case 'EQUIPMENT': {
         const g = grant as CompiledProficiencyGrant<'EQUIPMENT'> & { equipmentIds?: string[] }
         for (const id of g.equipmentIds ?? []) {
-          out.push({ kind: 'EQUIPMENT', subjectId: id, scaling })
+          out.push({
+            kind: 'EQUIPMENT',
+            subjectId: id,
+            scaling,
+            source: mechanicSource,
+            grantId: grant.id
+          })
         }
         break
       }
@@ -133,6 +167,8 @@ function extractProficiencies(
             kind: 'EQUIPMENT_PROPERTY',
             subjectId: prop,
             scaling,
+            source: mechanicSource,
+            grantId: grant.id,
             ...(g.category ? { category: g.category } : {})
           })
         }
@@ -148,7 +184,8 @@ function pushProficiencies(
   out: EngineProficiency[],
   grant: CompiledProficiencyGrant,
   ids: readonly string[],
-  scaling: EngineProficiency['scaling']
+  scaling: EngineProficiency['scaling'],
+  mechanicSource: CharacterMechanicSourceRef
 ): void {
   const category =
     grant.proficiencyKind === 'EQUIPMENT_PROPERTY'
@@ -163,6 +200,8 @@ function pushProficiencies(
       kind: grant.proficiencyKind,
       subjectId: id,
       scaling,
+      source: mechanicSource,
+      grantId: grant.id,
       ...(category ? { category } : {})
     })
   }
@@ -275,12 +314,59 @@ export function createCharacterEligibilityContext(
   }
 }
 
+function toCharacterAuthoredSourceKind(
+  source: Exclude<CharacterProvenance, { kind: 'MANUAL' }>
+): CharacterAuthoredSourceKind {
+  switch (source.kind) {
+    case 'ANCESTRY':
+      return 'ANCESTRY'
+    case 'BACKGROUND':
+      return 'BACKGROUND'
+    case 'CLASS':
+      return 'CLASS'
+    case 'FEAT':
+      return 'FEAT'
+    case 'FEATURE':
+      return 'FEATURE'
+    case 'OPTION':
+      return 'OPTION'
+    case 'RACE':
+      return 'RACE'
+    case 'SUBRACE':
+      return 'SUBRACE'
+    case 'SUBCLASS':
+      return 'SUBCLASS'
+  }
+}
+
+function createAuthoredMechanicSource(
+  snapshot: CharacterBuildSnapshot,
+  source: CharacterProvenance,
+  definitionId: string,
+  sourceInstanceId = getCharacterProvenanceIdentityKey(source)
+): CharacterMechanicSourceRef {
+  if (source.kind === 'MANUAL') {
+    return {
+      kind: 'SYSTEM',
+      systemId: snapshot.systemId
+    }
+  }
+
+  return {
+    kind: 'AUTHORED',
+    sourceKind: toCharacterAuthoredSourceKind(source),
+    definitionId,
+    sourceInstanceId
+  }
+}
+
 function collectModifiers(
   grants: CompiledModifierGrant[],
   snapshot: CharacterBuildSnapshot,
   spellAccess: readonly { spellId: string }[],
   registry: CharacterAssemblyRegistry,
-  acc: EngineAccumulatedState
+  acc: EngineAccumulatedState,
+  source: CharacterMechanicSourceRef
 ): void {
   for (const grant of grants) {
     const restrictions = grant.restrictions
@@ -323,6 +409,7 @@ function collectModifiers(
       domainKey: buildModifierDomainKey(valueDomainCode, kind, g.domain),
       modifierKind: kind,
       grant,
+      source,
       scopeSpellIds
     })
   }
@@ -336,6 +423,7 @@ type GrantBearingSource = Pick<
 function applyGrantBearingSource(
   source: GrantBearingSource,
   ownerSource: CharacterProvenance,
+  mechanicSource: CharacterMechanicSourceRef,
   snapshot: CharacterBuildSnapshot,
   spellAccess: readonly { spellId: string }[],
   acc: EngineAccumulatedState,
@@ -360,7 +448,7 @@ function applyGrantBearingSource(
       case 'PROFICIENCY_GRANT':
         if (source.proficiencies?.length) {
           acc.proficiencies.push(
-            ...extractProficiencies(source.proficiencies, snapshot, ownerSource)
+            ...extractProficiencies(source.proficiencies, snapshot, ownerSource, mechanicSource)
           )
         }
         break
@@ -374,7 +462,7 @@ function applyGrantBearingSource(
         break
       case 'MODIFIER_GRANT':
         if (source.modifiers?.length) {
-          collectModifiers(source.modifiers, snapshot, spellAccess, registry, acc)
+          collectModifiers(source.modifiers, snapshot, spellAccess, registry, acc, mechanicSource)
         }
         break
       case 'FEAT_GRANT':
@@ -582,9 +670,11 @@ export function applyGrants(
     ? registry.backgrounds?.[snapshot.backgroundId]
     : undefined
   if (background && snapshot.backgroundId) {
+    const source = { kind: 'BACKGROUND', backgroundId: snapshot.backgroundId } as const
     applyGrantBearingSource(
       background,
-      { kind: 'BACKGROUND', backgroundId: snapshot.backgroundId },
+      source,
+      createAuthoredMechanicSource(snapshot, source, snapshot.backgroundId),
       snapshot,
       spellAccess,
       acc,
@@ -602,6 +692,13 @@ export function applyGrants(
       applyGrantBearingSource(
         registryFeature,
         feature.source,
+        createAuthoredMechanicSource(
+          snapshot,
+          feature.source,
+          feature.featureId,
+          feature.acquisitionId ??
+            `${getCharacterProvenanceIdentityKey(feature.source)}:${feature.featureId}`
+        ),
         snapshot,
         spellAccess,
         acc,
@@ -614,6 +711,7 @@ export function applyGrants(
         applyGrantBearingSource(
           selected.option,
           selected.source,
+          createAuthoredMechanicSource(snapshot, selected.source, selected.option.id),
           snapshot,
           spellAccess,
           acc,
@@ -633,6 +731,13 @@ export function applyGrants(
           applyGrantBearingSource(
             compiledFeat,
             feature.source,
+            createAuthoredMechanicSource(
+              snapshot,
+              feature.source,
+              featId,
+              feature.acquisitionId ??
+                `${getCharacterProvenanceIdentityKey(feature.source)}:${featId}`
+            ),
             snapshot,
             spellAccess,
             acc,
@@ -685,6 +790,11 @@ function applyEquipmentGrants(
       applyGrantBearingSource(
         feature,
         { kind: 'FEATURE', featureId: feature.id },
+        {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: item.contentRef.definitionId,
+          itemInstanceId: item.instanceId
+        },
         snapshot,
         spellAccess,
         acc,
@@ -713,6 +823,7 @@ function applyClassGrants(
   applyGrantBearingSource(
     { ...compiledClass, proficiencies },
     ownerSource,
+    createAuthoredMechanicSource(snapshot, ownerSource, compiledClass.id),
     snapshot,
     spellAccess,
     acc,

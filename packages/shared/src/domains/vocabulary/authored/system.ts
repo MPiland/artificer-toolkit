@@ -26,6 +26,5 @@ export type SystemAuthored = {
 }
 
 export type SystemVocabularyKey = {
-  [K in keyof SystemAuthored]-?:
-  SystemAuthored[K] extends readonly Vocabulary[] ? K : never
+  [K in keyof SystemAuthored]-?: SystemAuthored[K] extends readonly Vocabulary[] ? K : never
 }[keyof SystemAuthored]

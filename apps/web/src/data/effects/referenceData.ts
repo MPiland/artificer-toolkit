@@ -1,6 +1,4 @@
-import {
-  queryOptions,
-  useSuspenseQuery } from '@tanstack/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import type { CreatureListItemDto } from '@artificer-toolkit/schema/api/content'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { api, type Api } from '#app/lib/api'
@@ -25,7 +23,7 @@ export type EffectReferenceApi = {
   }
 }
 
-function toVocabularyOptions(items: Array<{ id: string, label: string }>): EffectReferenceOption[] {
+function toVocabularyOptions(items: Array<{ id: string; label: string }>): EffectReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
@@ -83,7 +81,9 @@ export async function loadEffectReferenceData(
     client.systems.get(targetSystemId),
     client.content.creatures.list()
   ])
-  const systemCreatureItems = creatures.items.filter((creature) => creature.systemId === targetSystemId)
+  const systemCreatureItems = creatures.items.filter(
+    (creature) => creature.systemId === targetSystemId
+  )
 
   return buildEffectReferenceData(system ?? emptySystem(targetSystemId), systemCreatureItems)
 }

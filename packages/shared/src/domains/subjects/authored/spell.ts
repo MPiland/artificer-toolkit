@@ -5,9 +5,7 @@ import type {
   SUBJECT,
   AuthoredRecordStatus
 } from '#core'
-import type {
-  EffectAuthored
-} from '#authored'
+import type { EffectAuthored } from '#authored'
 
 export type CastingTimeAuthored = {
   unit: CastingTimeUnitCode
@@ -31,4 +29,3 @@ export type SpellAuthored = {
   userId: string
   systemId: string
 }
-

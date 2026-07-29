@@ -17,41 +17,45 @@ import {
 } from '#domains/races/race.fixtures'
 
 export const handlers = [
-  http.get('*/api/trpc/systems.list', () => trpcJson([
-    {
-      id: 'dnd5e-2014',
-      label: 'D&D 5e (2014)'
-    }
-  ])),
-  http.get('*/api/trpc/content.spells.list', () => trpcJson({
-    items: [
+  http.get('*/api/trpc/systems.list', () =>
+    trpcJson([
       {
-        id: 'magic-missile',
-        publicId: '1',
-        label: 'Magic Missile',
-        description: 'Force darts that strike unerringly.',
-        status: 'ACTIVE',
-        userId: 'master',
-        systemId: 'dnd5e-2014',
-        level: 1,
-        magicSchoolId: 'Evocation',
-        castingTimeUnit: 'ACTION',
-        castingTimeAmount: 1,
-        provenance: {
-          kind: 'MASTER',
-          ownerUserId: null
-        },
-        permissions: {
-          canView: true,
-          canEdit: false,
-          canCopy: true,
-          canDelete: false
-        }
+        id: 'dnd5e-2014',
+        label: 'D&D 5e (2014)'
       }
-    ],
-    drafts: [],
-    meta: {}
-  })),
+    ])
+  ),
+  http.get('*/api/trpc/content.spells.list', () =>
+    trpcJson({
+      items: [
+        {
+          id: 'magic-missile',
+          publicId: '1',
+          label: 'Magic Missile',
+          description: 'Force darts that strike unerringly.',
+          status: 'ACTIVE',
+          userId: 'master',
+          systemId: 'dnd5e-2014',
+          level: 1,
+          magicSchoolId: 'Evocation',
+          castingTimeUnit: 'ACTION',
+          castingTimeAmount: 1,
+          provenance: {
+            kind: 'MASTER',
+            ownerUserId: null
+          },
+          permissions: {
+            canView: true,
+            canEdit: false,
+            canCopy: true,
+            canDelete: false
+          }
+        }
+      ],
+      drafts: [],
+      meta: {}
+    })
+  ),
   http.get('*/api/trpc/content.races.list', () => trpcJson(raceListResponseFixture)),
   http.get('*/api/trpc/content.races.get', () => trpcJson(ownedBaseRaceResponseFixture)),
   http.get('*/api/trpc/content.races.getDraft', () => trpcJson(null)),
@@ -64,11 +68,15 @@ export const handlers = [
   http.post('*/api/trpc/content.races.activateDraft', () => trpcJson(ownedBaseRaceResponseFixture)),
   http.post('*/api/trpc/content.races.deleteActive', () => trpcJson({ ok: true })),
   http.post('*/api/trpc/content.races.discardDraft', () => trpcJson({ ok: true })),
-  http.post('*/api/trpc/content.races.duplicate', () => trpcJson(createRaceDraft({
-    ...ownedBaseRaceFixture,
-    id: `${ownedBaseRaceFixture.id}-copy`,
-    label: `${ownedBaseRaceFixture.label} Copy`
-  }))),
+  http.post('*/api/trpc/content.races.duplicate', () =>
+    trpcJson(
+      createRaceDraft({
+        ...ownedBaseRaceFixture,
+        id: `${ownedBaseRaceFixture.id}-copy`,
+        label: `${ownedBaseRaceFixture.label} Copy`
+      })
+    )
+  ),
   http.post('*/api/trpc/nodeRuntime.resolve', async ({ request }) => {
     const body = readBatchedInput<NodeRuntimeResolveRequestDto>(await request.json())
 
@@ -130,7 +138,9 @@ function createRaceDraft(race: RaceAuthoringInputDto) {
   }
 }
 
-function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRuntimeResolveResponseDto {
+function buildSpellRuntimeResponse(
+  body: NodeRuntimeResolveRequestDto
+): NodeRuntimeResolveResponseDto {
   const components = Array.isArray(body.values.components)
     ? body.values.components.map((value) => String(value))
     : []

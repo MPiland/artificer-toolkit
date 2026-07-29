@@ -1,9 +1,6 @@
 import { z } from 'zod'
 
-import {
-  detailDtoSchema,
-  startingEquipmentDtoSchema
-} from '../shared/index.js'
+import { detailDtoSchema, startingEquipmentDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'

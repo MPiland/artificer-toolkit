@@ -19,9 +19,7 @@ export interface CreateEmptyVehicleInput {
   systemId: string
 }
 
-export function createEmptyVehicle({
-  systemId
-}: CreateEmptyVehicleInput): VehicleFormValues {
+export function createEmptyVehicle({ systemId }: CreateEmptyVehicleInput): VehicleFormValues {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -66,7 +64,9 @@ export function createEmptyProperty(): VehiclePropertyFormValue {
   }
 }
 
-export function toVehicleFormValues(vehicle: VehicleAuthoringInputDto | VehicleAuthoredDto | VehicleFormValues): VehicleFormValues {
+export function toVehicleFormValues(
+  vehicle: VehicleAuthoringInputDto | VehicleAuthoredDto | VehicleFormValues
+): VehicleFormValues {
   return {
     ...vehicle,
     description: vehicle.description ?? '',
@@ -106,7 +106,9 @@ export function resolveCreateVehicleSystemId(systems: readonly { id: string }[])
   return systems[0]?.id ?? null
 }
 
-function toPropertyFormValues(properties: VehicleAuthoringInputDto['properties'] | VehiclePropertyFormValue[] | undefined): VehiclePropertyFormValue[] {
+function toPropertyFormValues(
+  properties: VehicleAuthoringInputDto['properties'] | VehiclePropertyFormValue[] | undefined
+): VehiclePropertyFormValue[] {
   if (!properties) return []
 
   return properties.map((property) => {

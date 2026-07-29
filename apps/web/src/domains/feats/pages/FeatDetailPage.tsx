@@ -1,13 +1,8 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
 import type { FacetDto } from '@artificer-toolkit/schema/shared/facet'
-import {
-  type AuthoredDraftDto,
-  type FeatResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import { type AuthoredDraftDto, type FeatResponseDto } from '@artificer-toolkit/schema/api/content'
 import { type FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import {
   AuthoredDetailItemList,
@@ -58,10 +53,11 @@ export function FeatDetailPage({
     duplicate: api.content.feats.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: featId,
-    navigateEdit: async (subject) => navigate({
-      params: buildFeatRouteParams(subject.publicId, subject.label),
-      to: '/feats/$featPublicId/$featSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildFeatRouteParams(subject.publicId, subject.label),
+        to: '/feats/$featPublicId/$featSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/feats' })
   })
 
@@ -69,15 +65,19 @@ export function FeatDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This feat draft cannot be previewed. Delete it to return to the feat list.</Alert>
+          <Alert color='yellow'>
+            This feat draft cannot be previewed. Delete it to return to the feat list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: featId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'feat draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: featId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'feat draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -97,18 +97,45 @@ export function FeatDetailPage({
   }
 
   const item = detailState.item
-  const featParams = buildFeatRouteParams(draft?.publicId ?? response?.publicId ?? featId, item.label)
+  const featParams = buildFeatRouteParams(
+    draft?.publicId ?? response?.publicId ?? featId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({ to: '/feats/$featPublicId/$featSlug/edit', params: featParams })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/feats/$featPublicId/$featSlug',
+              params: featParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -116,11 +143,12 @@ export function FeatDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: featId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: featId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/feats/new' }) }
@@ -140,8 +168,14 @@ export function FeatDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams }),
-          onViewDraft: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams }),
+          onViewDraft: () =>
+            navigate({
+              to: '/feats/$featPublicId/$featSlug',
+              params: featParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getFeatSections(item)}
@@ -169,34 +203,51 @@ function getFeatSections(feat: FeatAuthoredDto): AuthoredDetailSectionModel[] {
   }))
 
   return compactAuthoredDetailSections([
-    hasDetailText(feat.description) ? {
-      id: 'description',
-      title: 'Description',
-      content: <AuthoredDetailProse html={feat.description} />
-    } : null,
-    prerequisiteHtml ? {
-      id: 'requirements',
-      title: 'Prerequisites',
-      content: <AuthoredDetailProse html={prerequisiteHtml} />
-    } : null,
-    detailItems.length ? {
-      id: 'details',
-      title: 'Details',
-      content: <AuthoredDetailItemList empty='No feat details have been added.' items={detailItems} />
-    } : null,
-    featureItems.length ? {
-      id: 'features',
-      title: 'Features',
-      content: <AuthoredDetailItemList empty='No feat features have been added.' items={featureItems} />
-    } : null
+    hasDetailText(feat.description)
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: <AuthoredDetailProse html={feat.description} />
+        }
+      : null,
+    prerequisiteHtml
+      ? {
+          id: 'requirements',
+          title: 'Prerequisites',
+          content: <AuthoredDetailProse html={prerequisiteHtml} />
+        }
+      : null,
+    detailItems.length
+      ? {
+          id: 'details',
+          title: 'Details',
+          content: (
+            <AuthoredDetailItemList empty='No feat details have been added.' items={detailItems} />
+          )
+        }
+      : null,
+    featureItems.length
+      ? {
+          id: 'features',
+          title: 'Features',
+          content: (
+            <AuthoredDetailItemList
+              empty='No feat features have been added.'
+              items={featureItems}
+            />
+          )
+        }
+      : null
   ])
 }
 
 function formatPrerequisiteHtml(prerequisites: FacetDto | undefined): string {
   const groups = readArray(prerequisites, 'groups')
-    .map((group) => readArray(group, 'contexts')
-      .flatMap((context) => readArray(context, 'conditions').map(formatPrerequisiteCondition))
-      .filter((line): line is string => Boolean(line)))
+    .map((group) =>
+      readArray(group, 'contexts')
+        .flatMap((context) => readArray(context, 'conditions').map(formatPrerequisiteCondition))
+        .filter((line): line is string => Boolean(line))
+    )
     .filter((lines) => lines.length)
     .map((lines) => lines.join(' and '))
 
@@ -240,7 +291,9 @@ function readArray(value: unknown, key: string): unknown[] {
 function readStringList(record: Record<string, unknown>, key: string): string[] {
   const value = record[key]
   if (typeof value === 'string') return [value]
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : []
 }
 
 function readNumber(record: Record<string, unknown>, key: string): number | null {

@@ -15,6 +15,7 @@ import {
   RACE_CATEGORY_CODE,
   resolveRulesSystem,
   resolveSpellGrantState,
+  runEngine,
   type AbilityCode,
   type AuthoredRecordStatus,
   type CharacterBuildSnapshot,
@@ -476,12 +477,16 @@ function appendAbilityIntentValidationIssues(
   validations: CharacterBuilderValidation[]
 ): void {
   const abilities = character.intent.abilities
-  const assignments = abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-    ? abilities.state.assignments
-    : abilities.assignments
+  const assignments =
+    abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+      ? abilities.state.assignments
+      : abilities.assignments
   const assignedAbilities = assignments.map((assignment) => assignment.ability)
 
-  if (assignments.length > abilityOrder.length || new Set(assignedAbilities).size !== assignedAbilities.length) {
+  if (
+    assignments.length > abilityOrder.length ||
+    new Set(assignedAbilities).size !== assignedAbilities.length
+  ) {
     validations.push({
       code: 'MALFORMED_ABILITY_ASSIGNMENTS',
       severity: 'blocking',
@@ -601,7 +606,9 @@ function validateMulticlass(
     const baseClass = selection.baseClass
     if (!baseClass) continue
 
-    if (!evaluateMulticlassRequirements(baseClass.multiclass.requirementGroups, abilityScores).passes) {
+    if (
+      !evaluateMulticlassRequirements(baseClass.multiclass.requirementGroups, abilityScores).passes
+    ) {
       validations.push({
         code: 'MULTICLASS_PREREQUISITE_UNMET',
         severity: 'blocking',
@@ -839,19 +846,17 @@ type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number
 function normalizeCharacterHitpointLevels(
   character: CharacterAuthored,
   authoredClasses: CharacterBuilderRegistry['classes'],
-  existingCharacter: CharacterAuthored | null
+  existingCharacter: CharacterAuthored | null,
+  abilityScores: Partial<Record<AbilityCode, number>>
 ): CharacterHitpointLevelEntry[] {
   const submittedLevels = character.intent.hitpoints.levels
   const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
-  const levelsByClass = new Map(submittedLevels.map((level) => [
-    `${level.classId}:${level.classLevel}`,
-    level
-  ]))
-  const existingLevelsByClass = new Map(persistedLevels.map((level) => [
-    `${level.classId}:${level.classLevel}`,
-    level
-  ]))
-  const abilityScores = deriveAbilityScores(character.intent.abilities)
+  const levelsByClass = new Map(
+    submittedLevels.map((level) => [`${level.classId}:${level.classLevel}`, level])
+  )
+  const existingLevelsByClass = new Map(
+    persistedLevels.map((level) => [`${level.classId}:${level.classLevel}`, level])
+  )
   const persistedKeys = new Set(existingLevelsByClass.keys())
   const preferredLevels = existingCharacter
     ? [
@@ -879,7 +884,8 @@ function normalizeCharacterHitpointLevels(
         level: 1,
         classId: primaryClassId,
         classLevel: 1,
-        value: levelsByClass.get(primaryKey)?.value ?? existingLevelsByClass.get(primaryKey)?.value ?? 1
+        value:
+          levelsByClass.get(primaryKey)?.value ?? existingLevelsByClass.get(primaryKey)?.value ?? 1
       })
     }
   }
@@ -901,9 +907,10 @@ function normalizeCharacterHitpointLevels(
 
   return orderedLevels.map((orderedLevel, index) => {
     const level = index + 1
-    const authoredClass = authoredClasses.find((record): record is ParentClassAuthored => (
-      record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
-    ))
+    const authoredClass = authoredClasses.find(
+      (record): record is ParentClassAuthored =>
+        record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
+    )
     const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
     if (!authoredClass || die === null) return { ...orderedLevel, level }
 
@@ -915,7 +922,10 @@ function normalizeCharacterHitpointLevels(
     const persisted = existingLevelsByClass.get(key)
     const fixedDieValue = level === 1 ? die : Math.floor(die / 2) + 1
 
-    if (character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED || level === 1) {
+    if (
+      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED ||
+      level === 1
+    ) {
       return {
         level,
         classId: orderedLevel.classId,
@@ -925,10 +935,11 @@ function normalizeCharacterHitpointLevels(
     }
 
     const roll = submitted?.rolls?.[0]
-    const persistedLegacyOverride = existingCharacter?.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.MANUAL
-      && persisted !== undefined
-      && !persisted.rolls?.length
-      && persisted.overridden !== false
+    const persistedLegacyOverride =
+      existingCharacter?.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.MANUAL &&
+      persisted !== undefined &&
+      !persisted.rolls?.length &&
+      persisted.overridden !== false
 
     return {
       level,
@@ -989,9 +1000,10 @@ function appendManualHitpointValidationIssues(
   for (const level of character.intent.hitpoints.levels) {
     if (level.level === 1) continue
 
-    const authoredClass = authoredClasses.find((record): record is ParentClassAuthored => (
-      record.category === CLASS_CATEGORY.BASE && record.id === level.classId
-    ))
+    const authoredClass = authoredClasses.find(
+      (record): record is ParentClassAuthored =>
+        record.category === CLASS_CATEGORY.BASE && record.id === level.classId
+    )
     const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
     const rolls = level.rolls ?? []
     if (rolls.length === 0 && level.overridden === true) continue
@@ -1007,12 +1019,12 @@ function appendManualHitpointValidationIssues(
 
     const roll = rolls[0]
     if (
-      rolls.length !== 1
-      || die === null
-      || !roll
-      || roll.die !== die
-      || roll.value < 1
-      || roll.value > die
+      rolls.length !== 1 ||
+      die === null ||
+      !roll ||
+      roll.die !== die ||
+      roll.value < 1 ||
+      roll.value > die
     ) {
       validations.push({
         code: 'INVALID_MANUAL_HITPOINT_ROLL',
@@ -1862,7 +1874,7 @@ function getChosenGrantOwnerTiming(
   return { kind: 'IMMEDIATE' }
 }
 
-function createStartingEquipmentEligibilitySnapshot(
+function createCharacterBuilderEvaluationSnapshot(
   character: CharacterAuthored,
   grantedFeatures: readonly GrantedFeatureRecord[],
   abilityScores: Partial<Record<AbilityCode, number>>
@@ -1926,6 +1938,31 @@ function createStartingEquipmentEligibilitySnapshot(
   }
 }
 
+function resolveCharacterBuilderEffectiveAbilityScores(
+  character: CharacterAuthored,
+  registry: CharacterBuilderRegistry,
+  grantedFeatures: readonly GrantedFeatureRecord[]
+): Partial<Record<AbilityCode, number>> {
+  const assignedAbilityScores = deriveAbilityScores(character.intent.abilities)
+  if (!registry.system) return assignedAbilityScores
+
+  const engineOutput = runEngine(
+    createCharacterBuilderEvaluationSnapshot(character, grantedFeatures, assignedAbilityScores),
+    createCharacterAssemblyRegistry(registry),
+    resolveRulesSystem({
+      code: registry.system.rulesetCode,
+      version: registry.system.rulesetVersion
+    })
+  )
+  const effectiveAbilityScores: Partial<Record<AbilityCode, number>> = {}
+  for (const ability of abilityOrder) {
+    const score = engineOutput.derivedStats.abilityScores[ability]
+    if (typeof score === 'number') effectiveAbilityScores[ability] = score
+  }
+
+  return effectiveAbilityScores
+}
+
 function createStartingEquipmentEligibilityContext(params: {
   character: CharacterAuthored
   registry: CharacterBuilderRegistry
@@ -1936,7 +1973,7 @@ function createStartingEquipmentEligibilityContext(params: {
   registry: ReturnType<typeof createCharacterAssemblyRegistry>
 } {
   const registry = createCharacterAssemblyRegistry(params.registry)
-  const snapshot = createStartingEquipmentEligibilitySnapshot(
+  const snapshot = createCharacterBuilderEvaluationSnapshot(
     params.character,
     params.grantedFeatures,
     params.abilityScores
@@ -2199,9 +2236,9 @@ function appendDuplicateSpellSelectionIssues(
 
   for (const [spellId, sources] of sourcesBySpellId) {
     const hasDifferentSources = sources.some((source, index) =>
-      sources.slice(index + 1).some((otherSource) =>
-        !isSameCharacterProvenanceIdentity(source, otherSource)
-      )
+      sources
+        .slice(index + 1)
+        .some((otherSource) => !isSameCharacterProvenanceIdentity(source, otherSource))
     )
     if (!hasDifferentSources) continue
 
@@ -2225,25 +2262,6 @@ export async function reconcileCharacterBuilderCharacter(
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
   const nextCharacter = clearObsoleteStartingEquipmentSelections(character, existingCharacter)
-  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
-    nextCharacter,
-    registry.classes,
-    existingCharacter
-  )
-  nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
-    nextCharacter.intent.classes,
-    registry.classes,
-    nextCharacter.state.hitpoints.hitDice
-  )
-  if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
-    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
-      (total, level) => total + level.value,
-      0
-    )
-    if (startingHitPoints > 0) {
-      nextCharacter.state.hitpoints.current = startingHitPoints
-    }
-  }
 
   const ancestrySelections = (nextCharacter.intent.ancestrySelections ?? []).filter((selection) => {
     const race = nextCharacter.intent.race.subraceId
@@ -2321,6 +2339,32 @@ export async function reconcileCharacterBuilderCharacter(
     isProvenanceStillValid(selection.source, filteredCharacter, registry, grantedFeatures)
   )
   nextCharacter.intent.spellSelections = spellSelections.length > 0 ? spellSelections : undefined
+
+  const effectiveAbilityScores = resolveCharacterBuilderEffectiveAbilityScores(
+    nextCharacter,
+    registry,
+    grantedFeatures
+  )
+  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
+    nextCharacter,
+    registry.classes,
+    existingCharacter,
+    effectiveAbilityScores
+  )
+  nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
+    nextCharacter.intent.classes,
+    registry.classes,
+    nextCharacter.state.hitpoints.hitDice
+  )
+  if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
+      (total, level) => total + level.value,
+      0
+    )
+    if (startingHitPoints > 0) {
+      nextCharacter.state.hitpoints.current = startingHitPoints
+    }
+  }
 
   const requiredResourceGrants = getRequiredClassResourceGrants(classSelections)
   const validResourceGrants = (nextCharacter.intent.resourceGrants ?? [])
@@ -2496,7 +2540,11 @@ export async function resolveCharacterBuilder(
           details: selection.baseClass.spellcasting.details
             ?.slice()
             .sort((left, right) => left.order - right.order)
-            .map((detail) => ({ id: detail.id, label: detail.label, description: detail.description })),
+            .map((detail) => ({
+              id: detail.id,
+              label: detail.label,
+              description: detail.description
+            })),
           sortOrder: selection.baseClass.spellcasting.order,
           availableAtLevel: selection.baseClass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.baseClass.label,
@@ -2517,7 +2565,11 @@ export async function resolveCharacterBuilder(
           details: selection.subclass.spellcasting.details
             ?.slice()
             .sort((left, right) => left.order - right.order)
-            .map((detail) => ({ id: detail.id, label: detail.label, description: detail.description })),
+            .map((detail) => ({
+              id: detail.id,
+              label: detail.label,
+              description: detail.description
+            })),
           sortOrder: selection.subclass.spellcasting.order,
           availableAtLevel: selection.subclass.spellcasting.availableAtLevel ?? 1,
           sourceLabel: selection.subclass.label,

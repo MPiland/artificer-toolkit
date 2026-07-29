@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-14T02:40:19.0496327Z",
+  "generatedAt": "2026-07-27T20:57:41.8958823Z",
   "title": "Design System: Artificer Toolkit",
   "extensions": {
     "colorMeta": {
@@ -8,78 +8,200 @@
         "role": "primary",
         "displayName": "Forge Orange",
         "canonical": "#ec8c06",
-        "tonalRamp": ["#7c2d12", "#9a3412", "#b84a04", "#c95704", "#ec8c06", "#f97316", "#fed7aa", "#fff7ed"]
+        "tonalRamp": [
+          "#7c2d12",
+          "#9a3412",
+          "#b84a04",
+          "#c95704",
+          "#ec8c06",
+          "#f97316",
+          "#fed7aa",
+          "#fff7ed"
+        ]
       },
       "secondary-accent": {
         "role": "secondary",
         "displayName": "Workshop Teal",
         "canonical": "#0891b2",
-        "tonalRamp": ["#164e63", "#155e75", "#0e7490", "#0891b2", "#0ea5c5", "#38bdd6", "#84ddec", "#d8f6fb"]
+        "tonalRamp": [
+          "#164e63",
+          "#155e75",
+          "#0e7490",
+          "#0891b2",
+          "#0ea5c5",
+          "#38bdd6",
+          "#84ddec",
+          "#d8f6fb"
+        ]
       },
       "surface-canvas-light": {
         "role": "neutral",
         "displayName": "Paper Canvas",
         "canonical": "#f7f9fb",
-        "tonalRamp": ["#151b20", "#363b40", "#55626d", "#8a97a1", "#b5b9c6", "#d7dbe4", "#eef2f6", "#f7f9fb"]
+        "tonalRamp": [
+          "#151b20",
+          "#363b40",
+          "#55626d",
+          "#8a97a1",
+          "#b5b9c6",
+          "#d7dbe4",
+          "#eef2f6",
+          "#f7f9fb"
+        ]
       },
       "surface-panel-light": {
         "role": "neutral",
         "displayName": "Panel White",
         "canonical": "#ffffff",
-        "tonalRamp": ["#20262d", "#475569", "#78858f", "#cbd5e1", "#dfe4ea", "#f1f5f9", "#fbfcfd", "#ffffff"]
+        "tonalRamp": [
+          "#20262d",
+          "#475569",
+          "#78858f",
+          "#cbd5e1",
+          "#dfe4ea",
+          "#f1f5f9",
+          "#fbfcfd",
+          "#ffffff"
+        ]
       },
       "surface-canvas-dark": {
         "role": "neutral",
         "displayName": "Night Canvas",
         "canonical": "#0a0f0e",
-        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1a2127", "#1b2120", "#262b2a", "#2a3038", "#75828c"]
+        "tonalRamp": [
+          "#0a0f0e",
+          "#0f1413",
+          "#171d1c",
+          "#1a2127",
+          "#1b2120",
+          "#262b2a",
+          "#2a3038",
+          "#75828c"
+        ]
       },
       "surface-panel-dark": {
         "role": "neutral",
         "displayName": "Forge Panel",
         "canonical": "#171d1c",
-        "tonalRamp": ["#0a0f0e", "#0f1413", "#171d1c", "#1b2120", "#202830", "#262b2a", "#334049", "#eef4f6"]
+        "tonalRamp": [
+          "#0a0f0e",
+          "#0f1413",
+          "#171d1c",
+          "#1b2120",
+          "#202830",
+          "#262b2a",
+          "#334049",
+          "#eef4f6"
+        ]
       },
       "text-strong": {
         "role": "text",
         "displayName": "Slate Ink",
         "canonical": "#151b20",
-        "tonalRamp": ["#151b20", "#20262d", "#363b40", "#55626d", "#78858f", "#8a97a1", "#cbd5e1", "#eef4f6"]
+        "tonalRamp": [
+          "#151b20",
+          "#20262d",
+          "#363b40",
+          "#55626d",
+          "#78858f",
+          "#8a97a1",
+          "#cbd5e1",
+          "#eef4f6"
+        ]
       },
       "success": {
         "role": "success",
         "displayName": "Success",
         "canonical": "#2f9b63",
-        "tonalRamp": ["#14532d", "#166534", "#237a4b", "#2f9b63", "#29a195", "#86d5a4", "#c2ecd2", "#e3f6ea"]
+        "tonalRamp": [
+          "#14532d",
+          "#166534",
+          "#237a4b",
+          "#2f9b63",
+          "#29a195",
+          "#86d5a4",
+          "#c2ecd2",
+          "#e3f6ea"
+        ]
       },
       "warning": {
         "role": "warning",
         "displayName": "Warning",
         "canonical": "#8a5a00",
-        "tonalRamp": ["#422006", "#5f3700", "#704700", "#8a5a00", "#b7791f", "#d9a441", "#f3d78b", "#fff4cc"]
+        "tonalRamp": [
+          "#422006",
+          "#5f3700",
+          "#704700",
+          "#8a5a00",
+          "#b7791f",
+          "#d9a441",
+          "#f3d78b",
+          "#fff4cc"
+        ]
       },
       "danger": {
         "role": "danger",
         "displayName": "Danger",
         "canonical": "#c15336",
-        "tonalRamp": ["#651d14", "#84271c", "#a33b29", "#c15336", "#dc3545", "#e98a76", "#f6beb2", "#fee7e2"]
+        "tonalRamp": [
+          "#651d14",
+          "#84271c",
+          "#a33b29",
+          "#c15336",
+          "#dc3545",
+          "#e98a76",
+          "#f6beb2",
+          "#fee7e2"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero-auth and marketing entry moments only." },
-      "headline": { "displayName": "Headline", "purpose": "Page-level titles and major shell headings." },
-      "title": { "displayName": "Title", "purpose": "Section titles and important grouped surfaces." },
-      "body": { "displayName": "Body", "purpose": "Primary application copy and descriptive text." },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero-auth and marketing entry moments only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page-level titles and major shell headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section titles and important grouped surfaces."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary application copy and descriptive text."
+      },
       "label": { "displayName": "Label", "purpose": "Fields, overlines, and compact metadata." }
     },
     "shadows": [
-      { "name": "card", "value": "none", "purpose": "Repeated cards and panels stay flat at rest." },
-      { "name": "card-hover", "value": "none", "purpose": "Hover state uses color and borders instead of decorative lift." },
-      { "name": "floating-control", "value": "0 6px 8px rgba(0, 0, 0, 0.22)", "purpose": "Floating authoring actions that overlay workspace content." },
-      { "name": "focus-halo", "value": "0 0 0 4px rgba(14, 165, 197, 0.24)", "purpose": "Keyboard focus and selected-input emphasis." }
+      {
+        "name": "card",
+        "value": "none",
+        "purpose": "Repeated cards and panels stay flat at rest."
+      },
+      {
+        "name": "card-hover",
+        "value": "none",
+        "purpose": "Hover state uses color and borders instead of decorative lift."
+      },
+      {
+        "name": "floating-control",
+        "value": "0 6px 8px rgba(0, 0, 0, 0.22)",
+        "purpose": "Floating actions and overlay controls that must separate from content beneath."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 4px rgba(14, 165, 197, 0.24)",
+        "purpose": "Keyboard focus and selected-input emphasis."
+      }
     ],
     "motion": [
-      { "name": "fast", "value": "120ms", "purpose": "Hover, focus, and compact state transitions." },
+      {
+        "name": "fast",
+        "value": "120ms",
+        "purpose": "Hover, focus, and compact state transitions."
+      },
       { "name": "base", "value": "180ms", "purpose": "Default interface transition timing." },
       { "name": "slow", "value": "320ms", "purpose": "Larger stateful surface transitions." }
     ],
@@ -126,32 +248,103 @@
       "name": "Working Surface",
       "kind": "card",
       "refersTo": "card-surface",
-      "description": "A flat framed region for grouped authoring content.",
+      "description": "A flat framed region for content that requires a meaningful group boundary.",
       "html": "<section class=\"ds-surface\"><h3>Feature options</h3><p>Configure the options granted by this feature.</p></section>",
       "css": ".ds-surface { display:grid; gap:12px; padding:24px; border:1px solid var(--at-color-card-border-default); border-radius:var(--at-radius-lg); background:var(--at-color-card-background-default); color:var(--at-color-text-primary); box-shadow:var(--at-shadow-card); font-family:var(--at-font-sans); } .ds-surface h3, .ds-surface p { margin:0; } .ds-surface h3 { font-size:var(--at-typography-heading-fontSize); line-height:var(--at-typography-heading-lineHeight); } .ds-surface p { max-width:70ch; color:var(--at-color-text-secondary); font-size:0.875rem; line-height:1.45; }"
     },
     {
-      "name": "Floating Authoring Action",
+      "name": "Floating Action",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "A compact action that physically floats above the authoring canvas.",
+      "description": "A compact contextual action that physically floats above a working surface.",
       "html": "<button class=\"ds-floating-action\" aria-label=\"Open structure\">+</button>",
-      "css": ".ds-floating-action { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; padding:0; border:1px solid var(--at-color-button-primary-border); border-radius:var(--at-radius-pill); background:var(--at-color-button-primary-background); color:var(--at-color-button-primary-text); box-shadow:var(--at-shadow-floatingControl); font-family:var(--at-font-sans); font-size:1.5rem; font-weight:700; cursor:pointer; transition:background-color var(--at-motion-fast) ease; } .ds-floating-action:hover { background:var(--at-color-button-primary-hover); } .ds-floating-action:active { background:var(--at-color-button-primary-active); } .ds-floating-action:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+      "css": ".ds-floating-action { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border:1px solid var(--at-color-button-primary-border); border-radius:var(--at-radius-pill); background:var(--at-color-button-primary-background); color:var(--at-color-button-primary-text); box-shadow:var(--at-shadow-floatingControl); font-family:var(--at-font-sans); font-size:1.125rem; font-weight:700; cursor:pointer; transition:background-color var(--at-motion-fast) ease; } .ds-floating-action:hover { background:var(--at-color-button-primary-hover); } .ds-floating-action:active { background:var(--at-color-button-primary-active); } .ds-floating-action:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Compact Play Row",
+      "kind": "custom",
+      "description": "A divider-separated, aligned row for fast comparison of repeated play facts.",
+      "html": "<button class=\"ds-play-row\"><span class=\"ds-play-name\"><strong>Fire Bolt</strong><small>Wizard</small></span><span class=\"ds-play-fact\">120 ft</span><span class=\"ds-play-fact\">1d10 Fire</span></button>",
+      "css": ".ds-play-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(86px,auto) minmax(96px,auto); align-items:center; gap:10px; width:100%; min-height:34px; padding:8px 0; border:0; border-bottom:1px solid var(--at-color-border-subtle); background:transparent; color:var(--at-color-text-primary); font-family:var(--at-font-sans); text-align:left; cursor:pointer; } .ds-play-row:hover { background:var(--at-color-card-background-hover); } .ds-play-row:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); } .ds-play-name { display:grid; gap:2px; min-width:0; } .ds-play-name strong { font-size:0.78rem; line-height:1.2; } .ds-play-name small { color:var(--at-color-text-secondary); font-size:0.7rem; line-height:1.2; } .ds-play-fact { color:var(--at-color-text-secondary); font-size:0.78rem; font-variant-numeric:tabular-nums; text-align:center; }"
+    },
+    {
+      "name": "Focused Inspector",
+      "kind": "custom",
+      "description": "The one-at-a-time overlay for Sheet detail, provenance, customization, and focused management.",
+      "html": "<aside class=\"ds-inspector\"><header class=\"ds-inspector-header\"><strong>Fire Bolt</strong><button aria-label=\"Close inspector\">&times;</button></header><section class=\"ds-inspector-section\"><span>Spell attack</span><strong>+5</strong></section><section class=\"ds-inspector-section\"><p>Inspect details without displacing the play surface.</p></section></aside>",
+      "css": ".ds-inspector { display:grid; align-content:start; width:min(420px,100%); min-height:360px; border-left:1px solid var(--at-color-border-subtle); background:var(--at-color-surface-canvas); color:var(--at-color-text-primary); font-family:var(--at-font-sans); } .ds-inspector-header { display:flex; align-items:center; justify-content:space-between; min-height:64px; padding:0 20px; border-bottom:1px solid var(--at-color-border-subtle); background:var(--at-color-surface-panel); font-size:1.05rem; } .ds-inspector-header button { width:44px; height:44px; border:1px solid var(--at-color-border-subtle); border-radius:var(--at-radius-pill); background:transparent; color:var(--at-color-text-secondary); cursor:pointer; } .ds-inspector-header button:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); } .ds-inspector-section { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; padding:20px; border-bottom:1px solid var(--at-color-border-subtle); } .ds-inspector-section p { grid-column:1/-1; margin:0; color:var(--at-color-text-secondary); font-size:0.875rem; line-height:1.45; }"
     }
   ],
   "narrative": {
     "northStar": "Forge Clarity, Reliable Play",
-    "overview": "Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.\n\nThe canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.\n\nThe visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.",
-    "keyCharacteristics": ["Playful, not gimmicky", "Clear, not bureaucratic", "Familiar, not generic", "Creative, not ornamental", "Dense when needed, but always navigable", "Dual-theme by design, not as an afterthought", "Modular content authoring, not admin CRUD", "Form-backed, but not form-shaped"],
+    "overview": "Artificer Toolkit is a product UI first, but it should not feel like office software. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel clear, reliable, and fun to return to, even when the underlying data model is dense. The interface should feel like a creative RPG tool that helps people build things for play, not like a rigid workbench or an enterprise form system.\n\nThe canonical creation surface is the Authoring Workspace. It is form-backed, but it should never feel like a long generic form. The experience is modular content configuration: the app shell handles Library and Create navigation, the authoring structure rail handles the current item only, the editor canvas focuses the active step, the preview/context rail shows supporting output, and drawers stage complex row or group edits before they mutate draft data.\n\nThe Character Sheet is the runtime counterpart: modern, compact, and play-first. Its default view exposes current state and the facts needed to choose and resolve an action. Long descriptions, source provenance, customization, and management remain immediately available through focused overlays without competing for permanent space.\n\nThe visual language is structured, but not monotonous. A Forge surface system gives dense authoring screens a calmer foundation: black and charcoal carry dark mode, crisp white and cool gray carry light mode, forge orange identifies primary action and craft momentum, and teal stays reserved for focus and technical state. Neutral surfaces still carry most dense work, but they should be composed with rhythm, contrast, and moments of personality. Color is used to orient, confirm, reward, and prioritize. On native clients, Forge identity maps through platform-native color roles, typography, navigation, controls, materials, and motion rather than recreating web components. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.",
+    "keyCharacteristics": [
+      "Playful, not gimmicky",
+      "Clear, not bureaucratic",
+      "Familiar, not generic",
+      "Creative, not ornamental",
+      "Dense when needed, but always navigable",
+      "Modern, compact, and play-first",
+      "Dual-theme by design, not as an afterthought",
+      "Modular content authoring, not admin CRUD",
+      "Form-backed, but not form-shaped"
+    ],
     "rules": [
-      { "name": "The Purposeful Accent Rule", "body": "Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.", "section": "colors" },
-      { "name": "The Dual-Surface Rule", "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.", "section": "colors" },
-      { "name": "The No-Monotony Rule", "body": "Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.", "section": "colors" },
-      { "name": "The Orange-Is-Action Rule", "body": "Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.", "section": "colors" },
-      { "name": "The Density Hierarchy Rule", "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.", "section": "typography" },
-      { "name": "The One-Step Rule", "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.", "section": "typography" },
-      { "name": "The Cheer Without Shouting Rule", "body": "Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.", "section": "typography" },
-      { "name": "The Flat-at-Rest Rule", "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.", "section": "elevation" }
+      {
+        "name": "The Purposeful Accent Rule",
+        "body": "Orange is the primary action and craft signal, not wallpaper. Teal sharpens focus and technical states. Purple is rare. Dense work screens should stay readable, but accent moments are welcome when they clarify domain, progress, success, or creative momentum.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dual-Surface Rule",
+        "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Monotony Rule",
+        "body": "Avoid long stretches of identical gray panels. Use spacing rhythm, icons, section identity, progress feedback, and selective color to prevent the app from feeling like administrative work.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orange-Is-Action Rule",
+        "body": "Orange can mark craft, current authoring state, and primary action. It must not be used as a warning substitute; warning and destructive states keep their own semantic colors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Density Hierarchy Rule",
+        "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Step Rule",
+        "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.",
+        "section": "typography"
+      },
+      {
+        "name": "The Cheer Without Shouting Rule",
+        "body": "Playful copy and energetic headings are welcome in entry, empty, and success states. Dense forms still need quiet, readable typography.",
+        "section": "typography"
+      },
+      {
+        "name": "The Play-First Rule",
+        "body": "If information does not help the player understand current state, choose an action, or resolve it now, keep it one interaction away instead of permanently occupying the play surface.",
+        "section": "layout"
+      },
+      {
+        "name": "The Space Must Earn Itself Rule",
+        "body": "Extra wrappers, repeated headings, decorative containers, and explanatory copy are not neutral; remove them unless they clarify structure or interaction.",
+        "section": "layout"
+      },
+      {
+        "name": "The One-Scroll-Owner Rule",
+        "body": "A user should never have to discover which of two nested regions will move for the same gesture.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do make authored screens feel creative and approachable, with enough structure to stay readable.",
@@ -159,6 +352,9 @@
       "Do preserve the same information hierarchy across light and dark themes.",
       "Do use framed surfaces only when they clarify structure or interaction.",
       "Do make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.",
+      "Do preserve Forge identity on native through platform roles and interaction patterns rather than copied web controls.",
+      "Do make Character Sheet collections compact, consistently aligned, and optimized for at-a-glance play.",
+      "Do keep ancillary descriptions, references, provenance, and customization available through focused overlays.",
       "Do keep long-form authoring surfaces strongly sectioned, with obvious location and next-action cues.",
       "Do add delight through copy, icons, feedback states, and small motion moments.",
       "Do describe the creation experience as an Authoring Workspace or modular content authoring, not as just forms in product-facing design language.",
@@ -171,8 +367,11 @@
       "Don't recreate Azure DevOps forms: avoid cluttered pages, weak hierarchy, and outdated organization patterns for dense authoring flows.",
       "Don't recreate D&D Beyond content creation: avoid brittle creation flows, weak data structure, and poor conditional disclosure.",
       "Don't treat responsive support as secondary: desktop and mobile both need intentional layouts rather than desktop-first leftovers.",
+      "Don't ship native clients that feel like the website inside a wrapper or like one mobile platform wearing the other's controls.",
       "Don't use decorative gradients, glassmorphism, or side-stripe card accents as default styling moves.",
       "Don't turn every repeated surface into an identical card grid. Density needs hierarchy, not repetition.",
+      "Don't make play surfaces compete with long descriptions, redundant summaries, or infrequent management controls.",
+      "Don't nest same-axis scrolling regions or resize the Sheet when a focused inspector opens.",
       "Don't let the app feel like monotonous office software, an admin dashboard, or a chore list.",
       "Don't fake fantasy flavor with parchment, distressed textures, medieval fonts, or novelty controls.",
       "Don't build domain-specific authoring UI unless the domain requires a genuinely distinct interaction that reusable workspace components cannot support.",

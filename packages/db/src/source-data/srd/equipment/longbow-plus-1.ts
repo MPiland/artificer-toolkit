@@ -14,5 +14,5 @@ export const longbowPlus1: EquipmentVariantAuthored = {
   maxBonus: 1,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(240), 1),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

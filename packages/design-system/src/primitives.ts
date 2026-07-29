@@ -302,11 +302,11 @@ export const darkColorTokens = {
     },
     button: {
       primary: {
-        background: '#ec8c06',
-        border: '#c95704',
-        hover: '#ff7f1f',
-        active: '#b84a04',
-        text: '#241002'
+        background: 'transparent',
+        border: '#ec8c06',
+        hover: 'rgba(236, 106, 6, 0.18)',
+        active: '#262b2a',
+        text: '#ffb690'
       },
       secondary: {
         background: '#12161c',
@@ -475,8 +475,12 @@ export const brandColorScale = [
 /**
  * Convenience tuple references for primitive scales.
  */
-export const spacingScaleKeys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14] as const satisfies readonly (keyof typeof spacingScale)[]
-export const typographyScaleKeys = Object.keys(typographyScale) as readonly (keyof typeof typographyScale)[]
+export const spacingScaleKeys = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14
+] as const satisfies readonly (keyof typeof spacingScale)[]
+export const typographyScaleKeys = Object.keys(
+  typographyScale
+) as readonly (keyof typeof typographyScale)[]
 export const radiusScaleKeys = Object.keys(radiusScale) as readonly (keyof typeof radiusScale)[]
 export const breakpointsKeys = Object.keys(breakpoints) as readonly (keyof typeof breakpoints)[]
 

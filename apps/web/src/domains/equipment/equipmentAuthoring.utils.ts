@@ -1,7 +1,4 @@
-import type {
-  ChargeDto,
-  FacetDto
-} from '@artificer-toolkit/schema/shared'
+import type { ChargeDto, FacetDto } from '@artificer-toolkit/schema/shared'
 import type {
   CapacityDto,
   ContainsDto,
@@ -19,17 +16,27 @@ import {
   MODIFIER_VALUE_SOURCE_CODE,
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared/core'
-import type { EquipmentAuthoredDto
-} from '@artificer-toolkit/schema/subjects/equipment'
+import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ModifierGrantDto } from '@artificer-toolkit/schema/grants/modifier'
-import {
-  AUTHORING_SELECTION_KIND } from '@artificer-toolkit/shared/core'
+import { AUTHORING_SELECTION_KIND } from '@artificer-toolkit/shared/core'
 
-type BaseEquipmentDto = Exclude<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
-type VariantEquipmentDto = Extract<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
+type BaseEquipmentDto = Exclude<
+  EquipmentAuthoringInputDto,
+  { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }
+>
+type VariantEquipmentDto = Extract<
+  EquipmentAuthoringInputDto,
+  { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }
+>
 
-export type EquipmentFormStep = 'basics' | 'inventory' | 'rules' | 'content' | 'charges' | 'contents'
+export type EquipmentFormStep =
+  | 'basics'
+  | 'inventory'
+  | 'rules'
+  | 'content'
+  | 'charges'
+  | 'contents'
 
 export type EquipmentFormValues = {
   kind: 'EQUIPMENT'
@@ -181,7 +188,9 @@ export function createEmptyModifier(order: number): ModifierGrantDto {
   }
 }
 
-export function toEquipmentFormValues(equipment: EquipmentAuthoringInputDto | EquipmentAuthoredDto | EquipmentFormValues): EquipmentFormValues {
+export function toEquipmentFormValues(
+  equipment: EquipmentAuthoringInputDto | EquipmentAuthoredDto | EquipmentFormValues
+): EquipmentFormValues {
   if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {
     return {
       ...equipment,
@@ -208,7 +217,9 @@ export function toEquipmentFormValues(equipment: EquipmentAuthoringInputDto | Eq
   }
 }
 
-export function normalizeEquipmentForSubmit(equipment: EquipmentFormValues): EquipmentAuthoringInputDto {
+export function normalizeEquipmentForSubmit(
+  equipment: EquipmentFormValues
+): EquipmentAuthoringInputDto {
   const common = {
     kind: 'EQUIPMENT' as const,
     id: equipment.id,
@@ -256,6 +267,6 @@ export function resolveCreateEquipmentSystemId(systems: readonly { id: string }[
 export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const exists = items.some((current) => current.id === item.id)
   return exists
-    ? items.map((current) => current.id === item.id ? item : current)
+    ? items.map((current) => (current.id === item.id ? item : current))
     : [...items, item]
 }

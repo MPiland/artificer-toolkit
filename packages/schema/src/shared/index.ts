@@ -1,4 +1,5 @@
 export * from './detail.js'
+export * from './dice.js'
 export * from './enums.js'
 export * from './speed.js'
 export * from './range.js'

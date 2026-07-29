@@ -38,9 +38,7 @@ export interface CreateEmptyRaceInput {
   systemId: string
 }
 
-export function createEmptyBaseRace({
-  systemId
-}: CreateEmptyRaceInput): RaceFormValues {
+export function createEmptyBaseRace({ systemId }: CreateEmptyRaceInput): RaceFormValues {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -58,9 +56,7 @@ export function createEmptyBaseRace({
   }
 }
 
-export function createEmptySubrace({
-  systemId
-}: CreateEmptyRaceInput): RaceFormValues {
+export function createEmptySubrace({ systemId }: CreateEmptyRaceInput): RaceFormValues {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -114,7 +110,9 @@ export function createEmptyAncestry(): NonNullable<BaseRaceDto['ancestry']> {
   }
 }
 
-export function createEmptyAncestryOption(order: number): NonNullable<BaseRaceDto['ancestry']>['options'][number] {
+export function createEmptyAncestryOption(
+  order: number
+): NonNullable<BaseRaceDto['ancestry']>['options'][number] {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -124,7 +122,9 @@ export function createEmptyAncestryOption(order: number): NonNullable<BaseRaceDt
   }
 }
 
-export function toRaceFormValues(race: RaceAuthoringInputDto | RaceAuthoredDto | RaceFormValues): RaceFormValues {
+export function toRaceFormValues(
+  race: RaceAuthoringInputDto | RaceAuthoredDto | RaceFormValues
+): RaceFormValues {
   if (race.category === RACE_CATEGORY_CODE.SUBRACE) {
     return {
       ...race,
@@ -186,13 +186,11 @@ export function resolveCreateRaceSystemId(systems: readonly { id: string }[]): s
 export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const exists = items.some((current) => current.id === item.id)
   return exists
-    ? items.map((current) => current.id === item.id ? item : current)
+    ? items.map((current) => (current.id === item.id ? item : current))
     : [...items, item]
 }
 
-function normalizeAncestry(
-  ancestry: RaceFormValues['ancestry']
-): BaseRaceDto['ancestry'] {
+function normalizeAncestry(ancestry: RaceFormValues['ancestry']): BaseRaceDto['ancestry'] {
   if (!ancestry) return undefined
 
   return {

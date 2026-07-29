@@ -15,10 +15,12 @@ const event: CharacterEvent = {
   occurredAt: '2026-07-11T09:00:00.000Z',
   actorId: '00000000-0000-4000-8000-000000000003',
   commandId: '00000000-0000-4000-8000-000000000004',
-  schemaVersion: 1,
+  schemaVersion: 1
 }
 
-function createFakeDb(rows: Array<{ character_id: string, command_id: string, event_data: CharacterEvent }>) {
+function createFakeDb(
+  rows: Array<{ character_id: string; command_id: string; event_data: CharacterEvent }>
+) {
   const filters: Array<[string, string]> = []
 
   return {
@@ -35,24 +37,32 @@ function createFakeDb(rows: Array<{ character_id: string, command_id: string, ev
           return builder
         },
         async executeTakeFirst() {
-          return rows.find((row) => filters.every(([column, value]) => row[column as 'character_id' | 'command_id'] === value))
-        },
+          return rows.find((row) =>
+            filters.every(
+              ([column, value]) => row[column as 'character_id' | 'command_id'] === value
+            )
+          )
+        }
       }
 
       return builder
-    },
+    }
   }
 }
 
 describe('createCharacterEventRepository', () => {
   it('finds an event by character and command id', async () => {
-    const db = createFakeDb([{ character_id: event.characterId, command_id: event.commandId, event_data: event }])
+    const db = createFakeDb([
+      { character_id: event.characterId, command_id: event.commandId, event_data: event }
+    ])
     const repository = createCharacterEventRepository(db as unknown as DBLike)
 
-    await expect(repository.findByCommandId(event.characterId, event.commandId)).resolves.toEqual(event)
+    await expect(repository.findByCommandId(event.characterId, event.commandId)).resolves.toEqual(
+      event
+    )
     expect(db.filters).toEqual([
       ['character_id', event.characterId],
-      ['command_id', event.commandId],
+      ['command_id', event.commandId]
     ])
   })
 
@@ -64,16 +74,36 @@ describe('createCharacterEventRepository', () => {
 
   it('keeps canonical bootstrap and deployed migration uniqueness in sync', () => {
     const root = process.cwd()
-    const canonical = readFileSync(join(root, 'packages/db/src/domains/subjects/tables/character_events.sql'), 'utf8')
-    const generated = readFileSync(join(root, 'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'), 'utf8')
-    const bootstrapMigration = readFileSync(join(root, 'supabase/migrations/20260316000100_bootstrap_bundle.sql'), 'utf8')
-    const idempotencyMigration = readFileSync(join(root, 'supabase/migrations/20260711090000_character_event_command_idempotency.sql'), 'utf8')
+    const canonical = readFileSync(
+      join(root, 'packages/db/src/domains/subjects/tables/character_events.sql'),
+      'utf8'
+    )
+    const generated = readFileSync(
+      join(root, 'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'),
+      'utf8'
+    )
+    const bootstrapMigration = readFileSync(
+      join(root, 'supabase/migrations/20260316000100_bootstrap_bundle.sql'),
+      'utf8'
+    )
+    const idempotencyMigration = readFileSync(
+      join(root, 'supabase/migrations/20260711090000_character_event_command_idempotency.sql'),
+      'utf8'
+    )
     const uniqueColumns = '(character_id, command_id)'
 
-    expect(canonical).toContain('character_events_character_command_uniq UNIQUE (character_id, command_id)')
-    expect(generated).toContain('character_events_character_command_uniq UNIQUE (character_id, command_id)')
-    expect(bootstrapMigration).toContain('character_events_character_command_uniq UNIQUE (character_id, command_id)')
-    expect(idempotencyMigration).toContain('CREATE UNIQUE INDEX IF NOT EXISTS character_events_character_command_uniq')
+    expect(canonical).toContain(
+      'character_events_character_command_uniq UNIQUE (character_id, command_id)'
+    )
+    expect(generated).toContain(
+      'character_events_character_command_uniq UNIQUE (character_id, command_id)'
+    )
+    expect(bootstrapMigration).toContain(
+      'character_events_character_command_uniq UNIQUE (character_id, command_id)'
+    )
+    expect(idempotencyMigration).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS character_events_character_command_uniq'
+    )
     expect(idempotencyMigration).toContain(uniqueColumns)
   })
 })

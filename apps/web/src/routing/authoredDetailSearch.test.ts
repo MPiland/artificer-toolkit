@@ -16,8 +16,12 @@ describe('authoredDetailSearch', () => {
   it('loads edit routes draft-first so draft-only duplicates can open in forms', () => {
     expect(resolveAuthoredDetailView({}, '/races/7md25/dragonborn-copy/edit')).toBe('draft')
     expect(resolveAuthoredDetailView({}, '/races/7md25/dragonborn-copy/edit/')).toBe('draft')
-    expect(resolveAuthoredDetailView({ view: 'active' }, '/spells/abc/acid-arrow/edit')).toBe('draft')
+    expect(resolveAuthoredDetailView({ view: 'active' }, '/spells/abc/acid-arrow/edit')).toBe(
+      'draft'
+    )
     expect(resolveAuthoredDetailView({}, '/races/7md25/dragonborn-copy')).toBe('active')
-    expect(resolveAuthoredDetailView({ view: 'draft' }, '/races/7md25/dragonborn-copy')).toBe('draft')
+    expect(resolveAuthoredDetailView({ view: 'draft' }, '/races/7md25/dragonborn-copy')).toBe(
+      'draft'
+    )
   })
 })

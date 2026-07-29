@@ -28,14 +28,15 @@ export const DURATION_REGISTRY: Record<DurationKind, DurationOption> = {
   [DURATION_KIND.UNTIL_DISPELLED]: {
     code: DURATION_KIND.UNTIL_DISPELLED,
     label: 'Until Dispelled',
-    description: 'The effect persists until it is ended by dispelling magic or another specific rule.',
+    description:
+      'The effect persists until it is ended by dispelling magic or another specific rule.',
     tooltip: 'Lasts until dispelled.'
   },
   [DURATION_KIND.TURN]: {
     code: DURATION_KIND.TURN,
     label: 'Turn',
-    description: 'The duration of a single creature\'s turn.',
-    tooltip: 'One creature\'s turn.'
+    description: "The duration of a single creature's turn.",
+    tooltip: "One creature's turn."
   },
   [DURATION_KIND.ROUND]: {
     code: DURATION_KIND.ROUND,

@@ -17,7 +17,8 @@ export const GRANT_TYPE_REGISTRY: Record<GrantKind, GrantKindOption> = {
     code: GRANT_KIND.MODIFIER_GRANT,
     label: 'Modifier',
     tooltip: 'Applies a numeric or categorical change to a value.',
-    description: 'Modifiers alter values such as attack rolls, damage, armor class, charges, or other domains.'
+    description:
+      'Modifiers alter values such as attack rolls, damage, armor class, charges, or other domains.'
   },
 
   [GRANT_KIND.PROFICIENCY_GRANT]: {

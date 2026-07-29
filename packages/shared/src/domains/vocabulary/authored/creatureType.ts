@@ -14,7 +14,7 @@ export enum CreatureTypeCode {
   MONSTROSITY = 'MONSTROSITY',
   OOZE = 'OOZE',
   PLANT = 'PLANT',
-  UNDEAD = 'UNDEAD',
+  UNDEAD = 'UNDEAD'
 }
 
 export type CreatureTypeOption = Vocabulary<CreatureTypeCode>
@@ -26,7 +26,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Aberration',
     short: 'Aberr.',
     description: 'Aberrations are utterly alien beings from beyond the known planes.',
-    tooltip: 'Alien entity from beyond known reality.',
+    tooltip: 'Alien entity from beyond known reality.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c02',
@@ -34,7 +34,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Beast',
     short: 'Beast',
     description: 'Beasts are nonhumanoid creatures that are a natural part of the fantasy ecology.',
-    tooltip: 'Natural non-magical creature.',
+    tooltip: 'Natural non-magical creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c03',
@@ -42,15 +42,16 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Celestial',
     short: 'Celes.',
     description: 'Celestials are creatures native to the Upper Planes.',
-    tooltip: 'Upper Planes creature.',
+    tooltip: 'Upper Planes creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c04',
     code: CreatureTypeCode.CONSTRUCT,
     label: 'Construct',
     short: 'Constr.',
-    description: 'Constructs are made, not born. Some are programmed by their creators to follow simple instructions, others are imbued with sentience and capable of independent thought.',
-    tooltip: 'Artificially created creature.',
+    description:
+      'Constructs are made, not born. Some are programmed by their creators to follow simple instructions, others are imbued with sentience and capable of independent thought.',
+    tooltip: 'Artificially created creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c05',
@@ -58,7 +59,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Dragon',
     short: 'Dragon',
     description: 'Dragons are large reptilian creatures of ancient origin and tremendous power.',
-    tooltip: 'Ancient reptilian creature of great power.',
+    tooltip: 'Ancient reptilian creature of great power.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c06',
@@ -66,7 +67,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Elemental',
     short: 'Elem.',
     description: 'Elementals are creatures native to the elemental planes.',
-    tooltip: 'Elemental plane creature.',
+    tooltip: 'Elemental plane creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c07',
@@ -74,7 +75,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Fey',
     short: 'Fey',
     description: 'Fey are magical creatures closely tied to the forces of nature.',
-    tooltip: 'Magical nature-tied creature.',
+    tooltip: 'Magical nature-tied creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c08',
@@ -82,15 +83,16 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Fiend',
     short: 'Fiend',
     description: 'Fiends are wicked creatures from the Lower Planes.',
-    tooltip: 'Lower Planes creature.',
+    tooltip: 'Lower Planes creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c09',
     code: CreatureTypeCode.GIANT,
     label: 'Giant',
     short: 'Giant',
-    description: 'Giants tower over humans and their kind. They are humanlike in shape, though some have multiple heads or deformities.',
-    tooltip: 'Enormous humanoid creature.',
+    description:
+      'Giants tower over humans and their kind. They are humanlike in shape, though some have multiple heads or deformities.',
+    tooltip: 'Enormous humanoid creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c0a',
@@ -98,15 +100,16 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Humanoid',
     short: 'Human.',
     description: 'Humanoids are the main peoples of the D&D world, both civilized and savage.',
-    tooltip: 'Bipedal humanoid creature.',
+    tooltip: 'Bipedal humanoid creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c0b',
     code: CreatureTypeCode.MONSTROSITY,
     label: 'Monstrosity',
     short: 'Monstr.',
-    description: 'Monstrosities are monsters in the strictest sense — frightening creatures that are not ordinary, not truly natural, and almost never benign.',
-    tooltip: 'Unnatural frightening creature.',
+    description:
+      'Monstrosities are monsters in the strictest sense — frightening creatures that are not ordinary, not truly natural, and almost never benign.',
+    tooltip: 'Unnatural frightening creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c0c',
@@ -114,7 +117,7 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Ooze',
     short: 'Ooze',
     description: 'Oozes are gelatinous creatures that rarely have a fixed shape.',
-    tooltip: 'Gelatinous shapeless creature.',
+    tooltip: 'Gelatinous shapeless creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c0d',
@@ -122,14 +125,15 @@ export const creatureTypes: CreatureTypeOption[] = [
     label: 'Plant',
     short: 'Plant',
     description: 'Plants in this context are vegetable creatures, not ordinary flora.',
-    tooltip: 'Animate plant creature.',
+    tooltip: 'Animate plant creature.'
   },
   {
     id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c0e',
     code: CreatureTypeCode.UNDEAD,
     label: 'Undead',
     short: 'Undead',
-    description: 'Undead are once-living creatures brought to a horrifying state of undeath through the practice of necromantic magic or some unholy curse.',
-    tooltip: 'Undead creature.',
-  },
+    description:
+      'Undead are once-living creatures brought to a horrifying state of undeath through the practice of necromantic magic or some unholy curse.',
+    tooltip: 'Undead creature.'
+  }
 ]

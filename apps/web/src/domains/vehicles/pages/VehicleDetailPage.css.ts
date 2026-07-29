@@ -7,9 +7,9 @@ const compact = 'screen and (max-width: 720px)'
 export const metricGrid = style({
   '@layer': {
     [app]: {
-      'display': 'grid',
-      'gridTemplateColumns': 'repeat(4, minmax(0, 1fr))',
-      'gap': foundationVars.space[3],
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+      gap: foundationVars.space[3],
       '@media': {
         [compact]: {
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'

@@ -4,12 +4,7 @@
     "incremental": true,
     "noEmit": true,
     "tsBuildInfoFile": ".cache/tsc/typecheck.stories.tsbuildinfo",
-    "types": [
-      "vite/client",
-      "node",
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ]
+    "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
     ".storybook/**/*",

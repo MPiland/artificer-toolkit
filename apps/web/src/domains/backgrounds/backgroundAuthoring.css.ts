@@ -14,7 +14,7 @@ export const contentWide = style({
 export const singleField = style({
   '@layer': {
     [app]: {
-      'width': 'min(100%, 240px)',
+      width: 'min(100%, 240px)',
       '@media': {
         [mobile]: {
           width: '100%'

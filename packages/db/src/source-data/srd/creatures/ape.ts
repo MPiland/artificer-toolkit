@@ -16,15 +16,17 @@ export const ape: CreatureAuthored = {
     CONSTITUTION: 14,
     INTELLIGENCE: 6,
     WISDOM: 12,
-    CHARISMA: 7,
+    CHARISMA: 7
   },
   armorClass: 12,
   hitPoints: 19,
-  hitDice: '3d8+6',
+  hitDice: {
+    count: 3,
+    die: 8,
+    modifier: 6
+  },
   speeds: [...S.walk(30), ...S.climb(30)],
-  proficiencies: [
-    S.grantedSkillProficiency(27, 1, 'ATHLETICS', 'PERCEPTION')
-  ],
+  proficiencies: [S.grantedSkillProficiency(27, 1, 'ATHLETICS', 'PERCEPTION')],
   passivePerception: 13,
   challengeRatingId: S.CR.CR_1_2,
   xp: 100,
@@ -38,15 +40,16 @@ export const ape: CreatureAuthored = {
     {
       id: S.featureId(27, 2),
       label: 'Fist',
-      description: 'Fist. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
+      description:
+        'Fist. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
       order: 2
     },
     {
       id: S.featureId(27, 3),
       label: 'Rock',
-      description: 'Rock. Ranged Weapon Attack: +5 to hit, range 25/50 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
+      description:
+        'Rock. Ranged Weapon Attack: +5 to hit, range 25/50 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage.',
       order: 3
     }
   ]
 }
-

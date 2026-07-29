@@ -805,9 +805,8 @@ export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdDat
 
 async function main() {
   const production = process.argv.includes('--production')
-  const connectionString = process.env[
-    production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING'
-  ]
+  const connectionString =
+    process.env[production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING']
   if (!connectionString) {
     throw new Error(
       `${production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING'} is required for the SRD data audit.`

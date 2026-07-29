@@ -5,8 +5,9 @@ import type { CharacterBuildSnapshot } from './snapshot.js'
 import { applyGrants } from './resolution/grantApplicator.js'
 import type { CompiledModifierGrant } from '../grants/compilers/modifier.js'
 import { resolveSpellGrantState } from './resolution/spellGrantResolver.js'
-import { resolveModifiers } from './resolution/modifierResolver.js'
-import { calculateDerivedStats } from './resolution/derivedStatCalculator.js'
+import { resolveModifierState } from './resolution/modifierResolver.js'
+import { calculateAdjustedDerivedStats } from './resolution/adjustedDerivedStatCalculator.js'
+import { resolveSheetSubjectMechanics } from './resolution/sheetSubjectMechanicsResolver.js'
 import { resolveSpellSlots } from './resolution/spellSlotResolver.js'
 import { resolveResources } from './resolution/resourceResolver.js'
 import { buildModifierDomainKey } from './resolution/modifierDomainKey.js'
@@ -34,44 +35,54 @@ export function runEngine(
   const resolvedSpellGrantState = resolveSpellGrantState(snapshot, registry)
   const accumulated = applyGrants(snapshot, registry, rules, resolvedSpellGrantState.spellAccess)
   collectEquipmentItemModifiers(snapshot, registry, accumulated)
-  const resolvedModifiers = resolveModifiers(accumulated.modifierEntries, rules, {
+  applySheetProficiencyAdditions(snapshot, accumulated)
+  const modifierState = resolveModifierState(accumulated.modifierEntries, rules, {
     snapshot,
     proficiencies: accumulated.proficiencies
   })
   const activeEquipmentInstanceIds = new Set(accumulated.activeEquipmentInstanceIds)
-  const derivedStats = calculateDerivedStats(
+  const derived = calculateAdjustedDerivedStats(
     snapshot,
-    resolvedModifiers,
+    modifierState,
     accumulated.proficiencies,
+    accumulated.senses,
     registry,
     rules,
     activeEquipmentInstanceIds
   )
 
   const spellSlots = resolveSpellSlots(snapshot, registry)
-  const resources = resolveResources(snapshot, registry, rules, accumulated.modifierEntries)
+  const resources = resolveResources(snapshot, registry, rules, accumulated.modifierEntries, {
+    abilities: derived.derivedStats.abilityScores,
+    proficiencyBonus: derived.derivedStats.proficiencyBonus
+  })
   const activeItemContributions = buildItemContributions(
     snapshot,
-    resolvedModifiers,
+    modifierState.values,
     registry,
     accumulated
   )
+  const subjectMechanics = resolveSheetSubjectMechanics(snapshot, derived.calculations)
 
   return {
     characterId: snapshot.characterId,
     systemId: snapshot.systemId,
     proficiencies: accumulated.proficiencies,
-    senses: accumulated.senses,
-    defenses: resolveDefenses(accumulated.modifierEntries),
-    derivedStats,
+    senses: derived.senses,
+    defenses: resolveDefenses(snapshot, accumulated.modifierEntries),
+    derivedStats: derived.derivedStats,
+    calculations: derived.calculations,
     spellState: resolvedSpellGrantState.spellState,
+    spellAccess: resolvedSpellGrantState.spellAccess,
     spellSlots,
     resources,
+    ...subjectMechanics,
     activeItemContributions
   }
 }
 
 function resolveDefenses(
+  snapshot: CharacterBuildSnapshot,
   modifierEntries: ReturnType<typeof applyGrants>['modifierEntries']
 ): EngineCharacterOutput['defenses'] {
   const domains = {
@@ -93,10 +104,47 @@ function resolveDefenses(
 
     const key = `${kind}:${damageTypeId}`
     if (grant.modifierKind === 'REMOVE_OPTION') resolved.delete(key)
-    if (grant.modifierKind === 'ADD_OPTION') resolved.set(key, { kind, damageTypeId })
+    if (grant.modifierKind === 'ADD_OPTION') {
+      resolved.set(key, {
+        kind,
+        damageTypeId,
+        source: entry.source
+      })
+    }
+  }
+
+  for (const adjustment of snapshot.adjustments ?? []) {
+    if (adjustment.family !== 'DEFENSE') continue
+    const key = `${adjustment.defenseKind}:${adjustment.damageTypeId}`
+    resolved.set(key, {
+      kind: adjustment.defenseKind,
+      damageTypeId: adjustment.damageTypeId,
+      source: {
+        kind: 'MANUAL_ADJUSTMENT',
+        adjustmentId: adjustment.id
+      }
+    })
   }
 
   return [...resolved.values()]
+}
+
+function applySheetProficiencyAdditions(
+  snapshot: CharacterBuildSnapshot,
+  accumulated: ReturnType<typeof applyGrants>
+): void {
+  for (const adjustment of snapshot.adjustments ?? []) {
+    if (adjustment.family !== 'PROFICIENCY') continue
+    accumulated.proficiencies.push({
+      kind: adjustment.proficiencyKind === 'LANGUAGE' ? 'LANGUAGE' : 'EQUIPMENT',
+      subjectId: adjustment.targetId,
+      scaling: 'FULL',
+      source: {
+        kind: 'MANUAL_ADJUSTMENT',
+        adjustmentId: adjustment.id
+      }
+    })
+  }
 }
 
 function collectEquipmentItemModifiers(
@@ -114,7 +162,12 @@ function collectEquipmentItemModifiers(
       accumulated.modifierEntries.push({
         domainKey: buildModifierDomainKey(grant.valueDomainCode, grant.modifierKind, grant.domain),
         modifierKind: grant.modifierKind,
-        grant
+        grant,
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: item.contentRef.definitionId,
+          itemInstanceId: item.instanceId
+        }
       })
     }
   }

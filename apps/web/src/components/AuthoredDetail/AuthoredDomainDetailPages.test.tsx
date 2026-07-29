@@ -8,10 +8,7 @@ import type {
   SpellResponseDto
 } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import type {
-  SpellDetailReferenceData,
-  SpellReferenceData
-} from '#app/data/spells/referenceData'
+import type { SpellDetailReferenceData, SpellReferenceData } from '#app/data/spells/referenceData'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   masterSubclassResponseFixture,
@@ -157,10 +154,15 @@ const detailReferences = {
   rarities: [{ value: 'common', label: 'Common' }],
   skills: [{ value: 'performance', label: 'Performance' }],
   speeds: [],
-  classes: [{ value: ownedClassResponseFixture.item.id, label: ownedClassResponseFixture.item.label }],
+  classes: [
+    { value: ownedClassResponseFixture.item.id, label: ownedClassResponseFixture.item.label }
+  ],
   creatures: [],
   equipment: [
-    { value: masterEquipmentResponseFixture.item!.id, label: masterEquipmentResponseFixture.item!.label },
+    {
+      value: masterEquipmentResponseFixture.item!.id,
+      label: masterEquipmentResponseFixture.item!.label
+    },
     { value: 'torch', label: 'Torch' }
   ],
   races: []
@@ -193,10 +195,34 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
       label: 'Draconic Ancestry',
       description: 'Choose one dragon type.',
       options: [
-        { id: 'black', label: 'Black (Acid)', description: 'Your draconic ancestry is black dragon. Damage type: acid. Breath weapon: 5 by 30 ft. line (DEX save).', order: 0 },
-        { id: 'blue', label: 'Blue (Lightning)', description: 'Your draconic ancestry is blue dragon. Damage type: lightning. Breath weapon: 5 by 30 ft. line (DEX save).', order: 1 },
-        { id: 'green', label: 'Green (Poison)', description: 'Your draconic ancestry is green dragon. Damage type: poison. Breath weapon: 15 ft. cone (CON save).', order: 2 },
-        { id: 'red', label: 'Red (Fire)', description: 'Your draconic ancestry is red dragon. Damage type: fire. Breath weapon: 15 ft. cone (DEX save).', order: 3 }
+        {
+          id: 'black',
+          label: 'Black (Acid)',
+          description:
+            'Your draconic ancestry is black dragon. Damage type: acid. Breath weapon: 5 by 30 ft. line (DEX save).',
+          order: 0
+        },
+        {
+          id: 'blue',
+          label: 'Blue (Lightning)',
+          description:
+            'Your draconic ancestry is blue dragon. Damage type: lightning. Breath weapon: 5 by 30 ft. line (DEX save).',
+          order: 1
+        },
+        {
+          id: 'green',
+          label: 'Green (Poison)',
+          description:
+            'Your draconic ancestry is green dragon. Damage type: poison. Breath weapon: 15 ft. cone (CON save).',
+          order: 2
+        },
+        {
+          id: 'red',
+          label: 'Red (Fire)',
+          description:
+            'Your draconic ancestry is red dragon. Damage type: fire. Breath weapon: 15 ft. cone (DEX save).',
+          order: 3
+        }
       ]
     },
     userId: 'master',
@@ -229,7 +255,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       CONSTITUTION: 21,
       INTELLIGENCE: 14,
       WISDOM: 13,
-      CHARISMA: 17,
+      CHARISMA: 17
     },
     armorClass: 18,
     hitPoints: 172,
@@ -253,7 +279,8 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       {
         id: 'bite',
         label: 'Bite',
-        description: 'Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 piercing damage.',
+        description:
+          'Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 piercing damage.',
         effects: [
           {
             id: 'bite-effect',
@@ -304,7 +331,8 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       {
         id: 'legendary-actions',
         label: 'Legendary Actions',
-        description: '<p>The dragon can take 3 legendary actions, choosing from the options below.</p>',
+        description:
+          '<p>The dragon can take 3 legendary actions, choosing from the options below.</p>',
         section: 'LEGENDARY_ACTION',
         options: [
           {
@@ -348,7 +376,8 @@ const grapplerResponse: NonNullable<FeatResponseDto> = {
   item: {
     id: 'grappler',
     label: 'Grappler',
-    description: 'You have developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.',
+    description:
+      'You have developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.',
     status: 'ACTIVE',
     prerequisites: {
       id: 'grappler-prerequisite',
@@ -401,7 +430,13 @@ const grapplerResponse: NonNullable<FeatResponseDto> = {
 describe('authored domain detail pages', () => {
   it('renders an active spell detail page', () => {
     renderWithAppProviders(
-      <SpellDetailPage draft={null} references={spellReferences} response={spellResponse} spellId='spell-sea-step' view='active' />
+      <SpellDetailPage
+        draft={null}
+        references={spellReferences}
+        response={spellResponse}
+        spellId='spell-sea-step'
+        view='active'
+      />
     )
 
     expect(screen.getByRole('heading', { name: /sea step/i })).toBeInTheDocument()
@@ -517,19 +552,31 @@ describe('authored domain detail pages', () => {
     const traitsSection = screen.getByRole('heading', { name: 'Traits' }).closest('section')
     const actionsSection = screen.getByRole('heading', { name: 'Actions' }).closest('section')
 
-    const legendaryActionsSection = screen.getByRole('heading', { name: 'Legendary Actions' }).closest('section')
+    const legendaryActionsSection = screen
+      .getByRole('heading', { name: 'Legendary Actions' })
+      .closest('section')
 
     expect(traitsSection).not.toBeNull()
     expect(actionsSection).not.toBeNull()
     expect(legendaryActionsSection).not.toBeNull()
-    expect(within(traitsSection as HTMLElement).getByText('Legendary Resistance (3/Day)')).toBeInTheDocument()
+    expect(
+      within(traitsSection as HTMLElement).getByText('Legendary Resistance (3/Day)')
+    ).toBeInTheDocument()
     expect(within(actionsSection as HTMLElement).getByText('Multiattack')).toBeInTheDocument()
     expect(within(actionsSection as HTMLElement).getByText('Bite')).toBeInTheDocument()
-    expect(within(actionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')).not.toBeInTheDocument()
+    expect(
+      within(actionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')
+    ).not.toBeInTheDocument()
     expect(within(legendaryActionsSection as HTMLElement).getByText('Detect')).toBeInTheDocument()
-    expect(within(legendaryActionsSection as HTMLElement).getByText('Tail Attack')).toBeInTheDocument()
-    expect(within(legendaryActionsSection as HTMLElement).getByText('Wing Attack (Costs 2 Actions)')).toBeInTheDocument()
-    expect(within(legendaryActionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')).not.toBeInTheDocument()
+    expect(
+      within(legendaryActionsSection as HTMLElement).getByText('Tail Attack')
+    ).toBeInTheDocument()
+    expect(
+      within(legendaryActionsSection as HTMLElement).getByText('Wing Attack (Costs 2 Actions)')
+    ).toBeInTheDocument()
+    expect(
+      within(legendaryActionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')
+    ).not.toBeInTheDocument()
   })
 
   it('shows a visible creature legendary action option gap', () => {
@@ -537,9 +584,9 @@ describe('authored domain detail pages', () => {
       ...brassDragonResponse,
       item: {
         ...brassDragonResponse.item!,
-        features: brassDragonResponse.item!.features?.map((feature) => feature.label === 'Legendary Actions'
-          ? { ...feature, options: [] }
-          : feature)
+        features: brassDragonResponse.item!.features?.map((feature) =>
+          feature.label === 'Legendary Actions' ? { ...feature, options: [] } : feature
+        )
       }
     } satisfies NonNullable<CreatureResponseDto>
 
@@ -660,12 +707,7 @@ describe('authored domain detail pages', () => {
 
   it('renders feat prerequisites from structured data and hides empty mechanics', () => {
     renderWithAppProviders(
-      <FeatDetailPage
-        draft={null}
-        featId='grappler'
-        response={grapplerResponse}
-        view='active'
-      />
+      <FeatDetailPage draft={null} featId='grappler' response={grapplerResponse} view='active' />
     )
 
     expect(screen.getByRole('heading', { name: /grappler/i })).toBeInTheDocument()
@@ -853,13 +895,21 @@ describe('authored domain detail pages', () => {
     const hitPoints = screen.getByRole('heading', { name: 'Hit Points' })
     const proficiencies = screen.getByRole('heading', { name: 'Proficiencies' })
 
-    expect(hitPoints.compareDocumentPosition(proficiencies) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      hitPoints.compareDocumentPosition(proficiencies) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Progression' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /detail sections/i })).toBeInTheDocument()
     const progressionTable = screen.getByRole('table')
-    expect(within(progressionTable).getByRole('columnheader', { name: 'Prof.' })).toBeInTheDocument()
-    expect(within(progressionTable).getByRole('columnheader', { name: 'Known' })).toBeInTheDocument()
-    expect(within(progressionTable).getByRole('columnheader', { name: 'Spell Slots per Spell Level' })).toBeInTheDocument()
+    expect(
+      within(progressionTable).getByRole('columnheader', { name: 'Prof.' })
+    ).toBeInTheDocument()
+    expect(
+      within(progressionTable).getByRole('columnheader', { name: 'Known' })
+    ).toBeInTheDocument()
+    expect(
+      within(progressionTable).getByRole('columnheader', { name: 'Spell Slots per Spell Level' })
+    ).toBeInTheDocument()
     expect(within(progressionTable).getByRole('columnheader', { name: '1st' })).toBeInTheDocument()
     expect(within(progressionTable).getByRole('columnheader', { name: '2nd' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Spellcasting' })).toBeInTheDocument()

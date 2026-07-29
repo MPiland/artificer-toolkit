@@ -14,5 +14,5 @@ export const daggerPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(253), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

@@ -20,9 +20,7 @@ export {
   stripHtml,
   summarizeHtml
 } from './detailFormatters'
-export {
-  buildAuthoredDetailNotice
-} from './detailNotice'
+export { buildAuthoredDetailNotice } from './detailNotice'
 export {
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
@@ -36,21 +34,11 @@ export {
   formatProficiencyGrantLines,
   formatStartingEquipmentLine
 } from './grantDetailPresenters'
-export {
-  resolveAuthoredDetailState
-} from './authoredDetailState'
-export {
-  useAuthoredDetailActions
-} from './useAuthoredDetailActions'
-export type {
-  LabelDescriptionRecord
-} from './detailModels'
-export type {
-  ReferenceLabelOption
-} from './detailFormatters'
-export type {
-  GrantDetailLine
-} from './grantDetailPresenters'
+export { resolveAuthoredDetailState } from './authoredDetailState'
+export { useAuthoredDetailActions } from './useAuthoredDetailActions'
+export type { LabelDescriptionRecord } from './detailModels'
+export type { ReferenceLabelOption } from './detailFormatters'
+export type { GrantDetailLine } from './grantDetailPresenters'
 export type {
   AuthoredDetailAction,
   AuthoredDetailActionTone,

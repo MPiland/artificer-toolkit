@@ -18,7 +18,7 @@ export const DND5E2014_FEATURE_SOURCE_ORDER = [
   'FEATURE',
   'OPTION',
   'EQUIPMENT',
-  'MANUAL',
+  'MANUAL'
 ] as const
 
 /**
@@ -30,5 +30,5 @@ export const DND5E2014_GRANT_APPLICATION_ORDER = [
   'SENSE_GRANT',
   'MODIFIER_GRANT',
   'FEAT_GRANT',
-  'SPELL_GRANT',
+  'SPELL_GRANT'
 ] as const

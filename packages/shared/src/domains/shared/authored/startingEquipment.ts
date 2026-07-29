@@ -1,4 +1,12 @@
-import type { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, AuthoringSelectionKind, EquipmentCategoryCode, EquipmentPropertyCode, STARTING_EQUIPMENT_KIND, StartingEquipmentKind } from '#core'
+import type {
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
+  AuthoringSelectionKind,
+  EquipmentCategoryCode,
+  EquipmentPropertyCode,
+  STARTING_EQUIPMENT_KIND,
+  StartingEquipmentKind
+} from '#core'
 import type { FacetAuthored } from './facet.js'
 
 export interface StartingEquipmentAuthored {
@@ -46,23 +54,29 @@ export type StartingEquipmentItemPayloadByKind<K extends AuthoringSelectionKind>
     category?: EquipmentCategoryCode
     properties?: EquipmentPropertyCode[]
     selectionKind: K
-  } & SelectionPayload<K> & (
-    {
-      authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
-    } | {
-      authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
-      equipmentIds: string[]
-    }
-  )
+  } & SelectionPayload<K> &
+    (
+      | {
+          authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
+        }
+      | {
+          authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
+          equipmentIds: string[]
+        }
+    )
 }
 
-type StartingEquipmentItemPayloadBy<K extends StartingEquipmentKind, A extends AuthoringSelectionKind = AuthoringSelectionKind> = StartingEquipmentItemPayloadByKind<A>[K]
+type StartingEquipmentItemPayloadBy<
+  K extends StartingEquipmentKind,
+  A extends AuthoringSelectionKind = AuthoringSelectionKind
+> = StartingEquipmentItemPayloadByKind<A>[K]
 
-export type StartingEquipmentItemAuthored<K extends StartingEquipmentKind = StartingEquipmentKind> = {
-  id: string
-  order: number // intF
-  startingEquipmentKind: K
-} & StartingEquipmentItemPayloadBy<K>
+export type StartingEquipmentItemAuthored<K extends StartingEquipmentKind = StartingEquipmentKind> =
+  {
+    id: string
+    order: number // intF
+    startingEquipmentKind: K
+  } & StartingEquipmentItemPayloadBy<K>
 
 export interface StartingEquipmentCurrencyAuthored {
   currencyId: string

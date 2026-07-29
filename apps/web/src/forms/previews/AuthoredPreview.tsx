@@ -25,9 +25,7 @@ function PreviewSectionView({ section }: { section: PreviewSection }) {
   if (section.type === 'facts') {
     return (
       <ContextCard title={section.title} titleId={`${section.id}-title`}>
-        <dl className={styles.rows}>
-          {section.facts.map((fact) => renderPreviewRow(fact))}
-        </dl>
+        <dl className={styles.rows}>{section.facts.map((fact) => renderPreviewRow(fact))}</dl>
       </ContextCard>
     )
   }
@@ -51,9 +49,7 @@ function PreviewSectionView({ section }: { section: PreviewSection }) {
           </dl>
         ) : section.empty ? (
           <p className={contextStyles.body}>{section.empty}</p>
-        ) : (
-          null
-        )}
+        ) : null}
       </ContextCard>
     )
   }

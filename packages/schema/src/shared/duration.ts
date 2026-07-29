@@ -24,9 +24,11 @@ export const durationDtoSchema = z.union([
       durationKindSchema.enum.YEAR
     ]),
     amount: z.number(),
-    scaling: createBreakpointScalingDtoSchema(z.object({
-      amount: z.number()
-    })).optional()
+    scaling: createBreakpointScalingDtoSchema(
+      z.object({
+        amount: z.number()
+      })
+    ).optional()
   })
 ])
 

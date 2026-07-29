@@ -83,10 +83,7 @@ function activeExistsProjection() {
   `
 }
 
-async function activeCharacterExists(
-  db: DBLike,
-  characterId: string
-): Promise<boolean> {
+async function activeCharacterExists(db: DBLike, characterId: string): Promise<boolean> {
   const result = await sql<{ exists: boolean }>`
     select exists(
       select 1
@@ -203,10 +200,7 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
       return mapDraft(row, await activeCharacterExists(db, input.characterId))
     },
 
-    async delete(params: {
-      characterId: string
-      userId: string
-    }): Promise<void> {
+    async delete(params: { characterId: string; userId: string }): Promise<void> {
       await sql`
         delete from character_builder_drafts
         where character_id = ${params.characterId}

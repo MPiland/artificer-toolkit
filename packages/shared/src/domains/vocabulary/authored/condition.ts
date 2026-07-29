@@ -32,7 +32,8 @@ export const conditionTypes: ConditionTypeOption[] = [
     id: '6aa46804-276e-424c-bfa4-773cb9524049',
     code: ConditionTypeCode.CHARMED,
     label: 'Charmed',
-    description: 'A charmed creature is influenced by another creature through magical or social means.',
+    description:
+      'A charmed creature is influenced by another creature through magical or social means.',
     tooltip: 'Magically influenced.'
   },
   {

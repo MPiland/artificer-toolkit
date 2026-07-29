@@ -2,14 +2,16 @@ import type { DBLike } from '@artificer-toolkit/db'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedTrpcContext, TrpcContext } from './dbContext.js'
 
-const listAuthoredDomain = vi.hoisted(() => vi.fn(async () => ({
-  drafts: [],
-  items: [],
-  meta: {}
-})))
+const listAuthoredDomain = vi.hoisted(() =>
+  vi.fn(async () => ({
+    drafts: [],
+    items: [],
+    meta: {}
+  }))
+)
 
 vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@artificer-toolkit/functions')>(),
+  ...(await importOriginal<typeof import('@artificer-toolkit/functions')>()),
   listAuthoredDomain
 }))
 
@@ -20,11 +22,7 @@ vi.mock('./dbContext.js', async (importOriginal) => {
     ...actual,
     withAuthenticatedDb: async <TResult>(
       context: TrpcContext,
-      callback: (
-        db: DBLike,
-        userId: string,
-        auth: AuthenticatedTrpcContext
-      ) => Promise<TResult>
+      callback: (db: DBLike, userId: string, auth: AuthenticatedTrpcContext) => Promise<TResult>
     ): Promise<TResult> => {
       const userId = actual.requireUserId(context)
       return callback({} as DBLike, userId, {
@@ -53,7 +51,24 @@ describe('tRPC router auth', () => {
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-    await expect(caller.routeIds.resolve({ subjectKind: 'SPELL', publicId: '1' })).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
+      caller.characters.restPreview({
+        id: 'character-1',
+        input: {
+          restKind: 'SHORT',
+          expectedVersion: 1,
+          selectedHitDice: [],
+          resetMaximumHitPointModifier: false,
+          healingMode: 'AUTOMATIC',
+          manualHealingAccepted: false,
+          selectedCompanionInstanceIds: [],
+          requestRoll: false
+        }
+      })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
+      caller.routeIds.resolve({ subjectKind: 'SPELL', publicId: '1' })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
       caller.nodeRuntime.resolve({ mapId: 'spell', systemId: 'system-1', values: {} })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })

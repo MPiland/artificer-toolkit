@@ -20,7 +20,10 @@ export function resolveSpellSlots(
     classId: string
     level: number
     isPactMagic: boolean
-    spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>
+    spellLimits: Array<{
+      classLevel: number
+      slots: Array<{ spellLevel: number; slotCount: number }>
+    }>
   }> = []
 
   for (const cls of snapshot.classes) {
@@ -100,9 +103,12 @@ export function resolveSpellSlots(
  * ────────────────────────────────────────────── */
 
 function findSpellLimitsAtLevel(
-  spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>,
+  spellLimits: Array<{
+    classLevel: number
+    slots: Array<{ spellLevel: number; slotCount: number }>
+  }>,
   classLevel: number
-): Array<{ spellLevel: number, slotCount: number }> {
+): Array<{ spellLevel: number; slotCount: number }> {
   // Find the entry at or below classLevel (highest matching)
   const entry = [...spellLimits]
     .filter((e) => e.classLevel <= classLevel)
@@ -112,7 +118,7 @@ function findSpellLimitsAtLevel(
 }
 
 function slotsToRecord(
-  slots: Array<{ spellLevel: number, slotCount: number }>
+  slots: Array<{ spellLevel: number; slotCount: number }>
 ): Record<number, number> {
   const out: Record<number, number> = {}
   for (const s of slots) {
@@ -124,7 +130,10 @@ function slotsToRecord(
 }
 
 function getMaxSpellLevel(
-  spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>
+  spellLimits: Array<{
+    classLevel: number
+    slots: Array<{ spellLevel: number; slotCount: number }>
+  }>
 ): number {
   let max = 0
   for (const entry of spellLimits) {

@@ -49,57 +49,60 @@ function createStructureQueryDb(
 describe('getCharacterAssemblyStructureQuery', () => {
   it('returns selected root, ancestry-option, feature-option, and choice structure only', async () => {
     const traces: QueryTrace[] = []
-    const db = createStructureQueryDb({
-      class_features: [
-        {
-          ownerId: 'class-fighter',
-          featureId: 'feature-extra-attack',
-          order: 2,
-          availableAtLevel: 5
-        }
-      ],
-      feat_features: [
-        {
-          ownerId: 'feat-martial-adept',
-          featureId: 'feature-maneuver',
-          order: 1,
-          availableAtLevel: 1
-        }
-      ],
-      equipment_features: [
-        {
-          ownerId: 'equipment-flame-tongue',
-          featureId: 'feature-flame-blade',
-          order: 3,
-          availableAtLevel: null
-        }
-      ],
-      race_ancestries: [
-        {
-          raceId: 'race-dragonborn',
-          ancestryOptionId: 'ancestry-red',
-          ancestryOptionOrder: 4,
-          featureId: 'feature-fire-breath',
-          featureOrder: 1,
-          availableAtLevel: 1
-        }
-      ],
-      feature_options: [
-        {
-          featureId: 'feature-maneuver',
-          optionId: 'option-trip-attack',
-          order: 2
-        }
-      ],
-      feature_option_levels: [
-        {
-          featureId: 'feature-maneuver',
-          level: 1,
-          count: 2,
-          order: 1
-        }
-      ]
-    }, traces)
+    const db = createStructureQueryDb(
+      {
+        class_features: [
+          {
+            ownerId: 'class-fighter',
+            featureId: 'feature-extra-attack',
+            order: 2,
+            availableAtLevel: 5
+          }
+        ],
+        feat_features: [
+          {
+            ownerId: 'feat-martial-adept',
+            featureId: 'feature-maneuver',
+            order: 1,
+            availableAtLevel: 1
+          }
+        ],
+        equipment_features: [
+          {
+            ownerId: 'equipment-flame-tongue',
+            featureId: 'feature-flame-blade',
+            order: 3,
+            availableAtLevel: null
+          }
+        ],
+        race_ancestries: [
+          {
+            raceId: 'race-dragonborn',
+            ancestryOptionId: 'ancestry-red',
+            ancestryOptionOrder: 4,
+            featureId: 'feature-fire-breath',
+            featureOrder: 1,
+            availableAtLevel: 1
+          }
+        ],
+        feature_options: [
+          {
+            featureId: 'feature-maneuver',
+            optionId: 'option-trip-attack',
+            order: 2
+          }
+        ],
+        feature_option_levels: [
+          {
+            featureId: 'feature-maneuver',
+            level: 1,
+            count: 2,
+            order: 1
+          }
+        ]
+      },
+      traces
+    )
 
     const result = await getCharacterAssemblyStructureQuery(db, {
       raceIds: ['race-dragonborn'],
@@ -171,12 +174,7 @@ describe('getCharacterAssemblyStructureQuery', () => {
     expect(traces.find((trace) => trace.table === 'feature_options')?.filters).toContainEqual([
       'feature_id',
       'in',
-      [
-        'feature-extra-attack',
-        'feature-maneuver',
-        'feature-flame-blade',
-        'feature-fire-breath'
-      ]
+      ['feature-extra-attack', 'feature-maneuver', 'feature-flame-blade', 'feature-fire-breath']
     ])
   })
 

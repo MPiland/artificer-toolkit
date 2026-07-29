@@ -58,7 +58,7 @@ export function getAuthoredPermissions(ownership: AuthoredOwnership, userId: str
 
 export function getAuthoredProvenance(ownership: AuthoredOwnership) {
   return {
-    kind: ownership.isMaster ? 'MASTER' as const : 'OWNED' as const,
+    kind: ownership.isMaster ? ('MASTER' as const) : ('OWNED' as const),
     ownerUserId: ownership.isMaster ? null : ownership.ownerUserId
   }
 }
@@ -74,11 +74,8 @@ function getListOwnership(row: AuthoredListRow): AuthoredOwnership {
 
 export function normalizeAuthoredListResponse<
   TItem extends AuthoredListRow,
-  TResponse extends { items: TItem[], meta: unknown }
->(
-  response: TResponse,
-  userId: string
-) {
+  TResponse extends { items: TItem[]; meta: unknown }
+>(response: TResponse, userId: string) {
   return {
     ...response,
     items: response.items.map((item) => {
@@ -93,7 +90,9 @@ export function normalizeAuthoredListResponse<
   }
 }
 
-function toDraftSummary(draft: AuthoredDefinitionDraft & { publicId?: string }): AuthoredDraftSummaryDto {
+function toDraftSummary(
+  draft: AuthoredDefinitionDraft & { publicId?: string }
+): AuthoredDraftSummaryDto {
   return {
     subjectKind: draft.subjectKind,
     subjectId: draft.subjectId,
@@ -113,8 +112,10 @@ function toDraftSummary(draft: AuthoredDefinitionDraft & { publicId?: string }):
 }
 
 function getDraftPayloadRecord(draft: AuthoredDefinitionDraft): Record<string, unknown> {
-  return typeof draft.payload === 'object' && draft.payload !== null && !Array.isArray(draft.payload)
-    ? draft.payload as Record<string, unknown>
+  return typeof draft.payload === 'object' &&
+    draft.payload !== null &&
+    !Array.isArray(draft.payload)
+    ? (draft.payload as Record<string, unknown>)
     : {}
 }
 
@@ -124,9 +125,12 @@ function getDraftListMetadata(draft: AuthoredDefinitionDraft) {
   const category = typeof payload.category === 'string' ? payload.category : undefined
   const level = typeof payload.level === 'number' ? payload.level : undefined
   const magicSchoolId = typeof payload.magicSchoolId === 'string' ? payload.magicSchoolId : null
-  const castingTime = typeof payload.castingTime === 'object' && payload.castingTime !== null && !Array.isArray(payload.castingTime)
-    ? payload.castingTime as Record<string, unknown>
-    : {}
+  const castingTime =
+    typeof payload.castingTime === 'object' &&
+    payload.castingTime !== null &&
+    !Array.isArray(payload.castingTime)
+      ? (payload.castingTime as Record<string, unknown>)
+      : {}
   const castingTimeUnit = typeof castingTime.unit === 'string' ? castingTime.unit : undefined
   const castingTimeAmount = typeof castingTime.amount === 'number' ? castingTime.amount : undefined
 
@@ -152,13 +156,8 @@ export async function normalizeAuthoredListResponseWithDrafts<
     systemId: string
     description?: string | null
   },
-  TResponse extends { items: TItem[], meta: unknown }
->(
-  db: DBLike,
-  response: TResponse,
-  userId: string,
-  subjectKind: AuthoredSubjectKind
-) {
+  TResponse extends { items: TItem[]; meta: unknown }
+>(db: DBLike, response: TResponse, userId: string, subjectKind: AuthoredSubjectKind) {
   const normalized = normalizeAuthoredListResponse(response, userId)
   const definitionRepository = createAuthoredDefinitionRepository(db)
   const drafts = await definitionRepository.listDraftsByUser({
@@ -170,15 +169,16 @@ export async function normalizeAuthoredListResponseWithDrafts<
     ...normalized.items.map((item) => item.id),
     ...drafts.map((draft) => draft.subjectId)
   ])
-  const publicIdBySubjectId = await createAuthoredRouteIdRepository(db).ensureMany(
-    subjectKind,
-    [...routeSubjectIds]
-  )
+  const publicIdBySubjectId = await createAuthoredRouteIdRepository(db).ensureMany(subjectKind, [
+    ...routeSubjectIds
+  ])
   const definitions = await definitionRepository.findBySubjects({
     subjectKind,
     subjectIds: normalized.items.map((item) => item.id)
   })
-  const definitionBySubjectId = new Map(definitions.map((definition) => [definition.subjectId, definition]))
+  const definitionBySubjectId = new Map(
+    definitions.map((definition) => [definition.subjectId, definition])
+  )
 
   return {
     ...normalized,
@@ -408,7 +408,7 @@ export async function assertDeletableActiveAuthoredSubject(
   subjectId: string,
   userId: string
 ): Promise<void> {
-  if (!await activeAuthoredSubjectExists(db, subjectKind, subjectId)) {
+  if (!(await activeAuthoredSubjectExists(db, subjectKind, subjectId))) {
     throw new AuthoredContentNotFoundError(subjectKind, subjectId)
   }
 
@@ -442,23 +442,29 @@ async function findActiveDeleteDependency(
 ): Promise<{ id: string } | null> {
   switch (table) {
     case 'classes':
-      return await db
-        .selectFrom('classes')
-        .select('id')
-        .where('parent_class_id', '=', subjectId)
-        .executeTakeFirst() ?? null
+      return (
+        (await db
+          .selectFrom('classes')
+          .select('id')
+          .where('parent_class_id', '=', subjectId)
+          .executeTakeFirst()) ?? null
+      )
     case 'equipment':
-      return await db
-        .selectFrom('equipment')
-        .select('id')
-        .where('parent_equipment_id', '=', subjectId)
-        .executeTakeFirst() ?? null
+      return (
+        (await db
+          .selectFrom('equipment')
+          .select('id')
+          .where('parent_equipment_id', '=', subjectId)
+          .executeTakeFirst()) ?? null
+      )
     case 'races':
-      return await db
-        .selectFrom('races')
-        .select('id')
-        .where('parent_race_id', '=', subjectId)
-        .executeTakeFirst() ?? null
+      return (
+        (await db
+          .selectFrom('races')
+          .select('id')
+          .where('parent_race_id', '=', subjectId)
+          .executeTakeFirst()) ?? null
+      )
     default:
       return null
   }

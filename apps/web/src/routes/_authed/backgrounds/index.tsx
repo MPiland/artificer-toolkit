@@ -74,28 +74,36 @@ function BackgroundsRoute() {
         attributeColumns={backgroundListAttributeColumns}
         sortOptions={backgroundListSortOptions}
         onCreate={() => navigate({ to: '/backgrounds/new' })}
-        onView={(item) => navigate({
-          params: buildBackgroundRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildBackgroundRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getBackground({
-            id: item.id,
-            meta: backgroundDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getBackground({
+              id: item.id,
+              meta: backgroundDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildBackgroundRouteParams(item.publicId, item.name),
-          to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildBackgroundRouteParams(item.publicId, item.name),
+            to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+          })
+        }
         onCopy={(item) => duplicateMutation.mutate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

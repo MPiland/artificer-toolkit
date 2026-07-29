@@ -78,17 +78,16 @@ export const input = style({
           color: foundationVars.color.input.placeholder,
           opacity: 1
         },
-        '&:disabled, &[data-disabled="true"], &[readonly], &[data-readonly="true"]':
-          {
-            vars: {
-              '--input-bg': foundationVars.color.input.background.disabled,
-              '--input-bd': foundationVars.color.input.border.disabled,
-              '--input-color': foundationVars.color.text.secondary
-            },
-            backgroundColor: `${foundationVars.color.input.background.disabled}`,
-            borderColor: foundationVars.color.input.border.disabled,
-            color: foundationVars.color.text.secondary
-          }
+        '&:disabled, &[data-disabled="true"], &[readonly], &[data-readonly="true"]': {
+          vars: {
+            '--input-bg': foundationVars.color.input.background.disabled,
+            '--input-bd': foundationVars.color.input.border.disabled,
+            '--input-color': foundationVars.color.text.secondary
+          },
+          backgroundColor: `${foundationVars.color.input.background.disabled}`,
+          borderColor: foundationVars.color.input.border.disabled,
+          color: foundationVars.color.text.secondary
+        }
       }
     }
   }
@@ -193,7 +192,7 @@ export const pillLabel = style({
 export const pillRemove = style({
   '@layer': {
     [app]: {
-      'alignSelf': 'center',
+      alignSelf: 'center',
       '@media': {
         '(max-width: 760px)': {
           minWidth: '44px',

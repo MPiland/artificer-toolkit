@@ -79,28 +79,36 @@ function EquipmentRoute() {
         attributeColumns={equipmentListAttributeColumns}
         sortOptions={equipmentListSortOptions}
         onCreate={() => navigate({ to: '/equipment/new' })}
-        onView={(item) => navigate({
-          params: buildEquipmentRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/equipment/$equipmentPublicId/$equipmentSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildEquipmentRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/equipment/$equipmentPublicId/$equipmentSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getEquipment({
-            id: item.id,
-            meta: equipmentDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getEquipment({
+              id: item.id,
+              meta: equipmentDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildEquipmentRouteParams(item.publicId, item.name),
-          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildEquipmentRouteParams(item.publicId, item.name),
+            to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+          })
+        }
         onCopy={(item) => void handleDuplicate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

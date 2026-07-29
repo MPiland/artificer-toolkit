@@ -14,5 +14,5 @@ export const greatswordPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(271), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

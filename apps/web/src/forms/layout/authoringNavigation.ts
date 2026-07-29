@@ -772,8 +772,10 @@ export function isNavigableAuthoringGroupNode(
     if (!getRecordObjectValue(getAuthoringFieldValue(rootValues, fieldName))) return false
     return node.presentation === 'branch'
   }
-  return isResolvedArrayGroupNode(node) &&
+  return (
+    isResolvedArrayGroupNode(node) &&
     (node.presentation === 'branch' || node.presentation === 'focused')
+  )
 }
 
 function getArrayRows(values: Record<string, unknown>, fieldName: string) {

@@ -10,12 +10,14 @@ Agents working here should treat the repo as a long-running salvage-and-moderniz
 
 Read these before making substantial changes:
 
-1. [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md)
-2. [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md)
+1. [PRODUCT.md](PRODUCT.md)
+2. [DESIGN.md](DESIGN.md)
 
 If working on a specific domain, read the closest owning source, tests, and current product/design docs before editing.
 
 For architecture or cross-package work, also read [README.md](README.md), [CONTEXT.md](CONTEXT.md), and [docs/README.md](docs/README.md). Use the owning workspace README and the relevant guide under `docs/architecture/` before changing a seam. ADRs under `docs/adr/` record load-bearing decisions and should not be casually re-litigated.
+
+Use canonical documentation to establish product purpose, vocabulary, invariants, and ownership before broad code exploration. Then inspect the smallest relevant current implementation and tests to verify behavior. Read a phase roadmap or implementation ledger when working in that phase; do not load unrelated historical plans as general context.
 
 Documentation upkeep:
 
@@ -57,6 +59,8 @@ Assume the user is a principal engineer.
 Make the smallest maintainable change that solves the actual request.
 Prefer existing patterns over new abstractions.
 Avoid broad refactors, speculative helpers, and clever architecture unless clearly justified.
+Prefer colocation and direct props for nearby component ownership. Use a narrowly scoped React context only for stable coordination across a genuinely deep or branching subtree; do not use Context as a general store or merely to avoid passing one or two props.
+Do not pass monolithic controller objects through component trees. Split ownership at real behavioral boundaries, and require every provider or layout wrapper to own necessary behavior, state, accessibility, or visible structure.
 Use judgment. Read enough surrounding code to understand the existing pattern, then avoid unnecessary exploration.
 Optimize for correctness, speed, judgment, and token efficiency.
 Correct the user when appropriate.
@@ -233,8 +237,8 @@ When working on UI components, stories, or design-system-backed props, use the S
 
 The default product register is `product`.
 
-Key design principles in [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md).
-Visual system guidance lives in [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md).
+Key design principles live in [PRODUCT.md](PRODUCT.md).
+Visual system guidance lives in [DESIGN.md](DESIGN.md).
 
 - Reference both of these whenever doing UI/UX work.
 

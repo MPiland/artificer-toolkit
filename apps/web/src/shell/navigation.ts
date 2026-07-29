@@ -13,7 +13,7 @@ import ISack from '#assets/icons/ISack'
 export interface AppShellNavItem {
   label: string
   href?: string
-  icon: ComponentType<{ className?: string, size?: number }>
+  icon: ComponentType<{ className?: string; size?: number }>
 }
 
 export interface AppShellNavGroup {

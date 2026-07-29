@@ -1,12 +1,7 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
-import {
-  type AuthoredDraftDto,
-  type RaceResponseDto
-} from '@artificer-toolkit/schema/api/content'
+import { type AuthoredDraftDto, type RaceResponseDto } from '@artificer-toolkit/schema/api/content'
 import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import {
   AuthoredDetailItemList,
@@ -60,10 +55,11 @@ export function RaceDetailPage({
     duplicate: api.content.races.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: raceId,
-    navigateEdit: async (subject) => navigate({
-      params: buildRaceRouteParams(subject.publicId, subject.label),
-      to: '/races/$racePublicId/$raceSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildRaceRouteParams(subject.publicId, subject.label),
+        to: '/races/$racePublicId/$raceSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/races' })
   })
 
@@ -71,15 +67,19 @@ export function RaceDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This race draft cannot be previewed. Delete it to return to the race list.</Alert>
+          <Alert color='yellow'>
+            This race draft cannot be previewed. Delete it to return to the race list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: raceId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'race draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: raceId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'race draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -100,18 +100,45 @@ export function RaceDetailPage({
 
   const item = detailState.item
   const parentRace = parentResponse?.item?.category === 'BASE' ? parentResponse.item : null
-  const raceParams = buildRaceRouteParams(draft?.publicId ?? response?.publicId ?? raceId, item.label)
+  const raceParams = buildRaceRouteParams(
+    draft?.publicId ?? response?.publicId ?? raceId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({ to: '/races/$racePublicId/$raceSlug/edit', params: raceParams })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/races/$racePublicId/$raceSlug',
+              params: raceParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -119,11 +146,12 @@ export function RaceDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: raceId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: raceId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/races/new' }) }
@@ -143,8 +171,14 @@ export function RaceDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams }),
-          onViewDraft: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams }),
+          onViewDraft: () =>
+            navigate({
+              to: '/races/$racePublicId/$raceSlug',
+              params: raceParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getRaceSections(item, parentRace)}
@@ -169,52 +203,58 @@ function getRaceSections(
   parentRace?: Extract<RaceAuthoredDto, { category: 'BASE' }> | null
 ): AuthoredDetailSectionModel[] {
   const parentDetailItems = parentRace ? toDetailItems(parentRace.details) : []
-  const detailItems = [
-    ...parentDetailItems,
-    ...toDetailItems(race.details)
-  ]
+  const detailItems = [...parentDetailItems, ...toDetailItems(race.details)]
   const parentFeatureItems = parentRace ? toDetailItems(parentRace.features) : []
-  const featureItems = [
-    ...parentFeatureItems,
-    ...toDetailItems(race.features)
-  ].map((item) => ({
+  const featureItems = [...parentFeatureItems, ...toDetailItems(race.features)].map((item) => ({
     id: item.id,
     title: item.title,
     description: item.description
   }))
-  const descriptions = [
-    parentRace?.description,
-    race.description
-  ].filter(hasDetailText)
+  const descriptions = [parentRace?.description, race.description].filter(hasDetailText)
   const ancestry = parentRace?.ancestry ?? (race.category === 'BASE' ? race.ancestry : undefined)
 
   return compactAuthoredDetailSections([
-    descriptions.length ? {
-      id: 'description',
-      title: 'Description',
-      content: (
-        <Stack gap='md'>
-          {descriptions.map((description, index) => (
-            <AuthoredDetailProse html={description} fallback='' key={index} />
-          ))}
-        </Stack>
-      )
-    } : null,
-    ancestry && hasAncestryContent(ancestry) ? {
-      id: 'ancestry',
-      title: 'Ancestry',
-      content: <RaceAncestryContent ancestry={ancestry} />
-    } : null,
-    detailItems.length ? {
-      id: 'details',
-      title: 'Details',
-      content: <AuthoredDetailItemList empty='No race details have been added.' items={detailItems} />
-    } : null,
-    featureItems.length ? {
-      id: 'features',
-      title: 'Features',
-      content: <AuthoredDetailItemList empty='No race features have been added.' items={featureItems} />
-    } : null
+    descriptions.length
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: (
+            <Stack gap='md'>
+              {descriptions.map((description, index) => (
+                <AuthoredDetailProse html={description} fallback='' key={index} />
+              ))}
+            </Stack>
+          )
+        }
+      : null,
+    ancestry && hasAncestryContent(ancestry)
+      ? {
+          id: 'ancestry',
+          title: 'Ancestry',
+          content: <RaceAncestryContent ancestry={ancestry} />
+        }
+      : null,
+    detailItems.length
+      ? {
+          id: 'details',
+          title: 'Details',
+          content: (
+            <AuthoredDetailItemList empty='No race details have been added.' items={detailItems} />
+          )
+        }
+      : null,
+    featureItems.length
+      ? {
+          id: 'features',
+          title: 'Features',
+          content: (
+            <AuthoredDetailItemList
+              empty='No race features have been added.'
+              items={featureItems}
+            />
+          )
+        }
+      : null
   ])
 }
 
@@ -274,13 +314,19 @@ function buildAncestryOptionsTableHtml(options: RaceAncestryOption[]): string {
         </tr>
       </thead>
       <tbody>
-        ${rows.map((row) => row ? `
+        ${rows
+          .map((row) =>
+            row
+              ? `
           <tr>
             <td>${escapeHtml(row.dragon)}</td>
             <td>${escapeHtml(row.damage)}</td>
             <td>${escapeHtml(row.breathWeapon)}</td>
           </tr>
-        ` : '').join('')}
+        `
+              : ''
+          )
+          .join('')}
       </tbody>
     </table>
   `

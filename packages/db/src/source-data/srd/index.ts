@@ -16,7 +16,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 function normalizeVocabularyList(
   values: readonly string[] | undefined,
-  vocabulary: readonly { code: string, id: string, label: string }[],
+  vocabulary: readonly { code: string; id: string; label: string }[],
   context: string
 ): string[] | undefined {
   if (!values) {
@@ -49,10 +49,26 @@ function normalizeVocabularyList(
 function normalizeSrdCreature(creature: CreatureAuthored): CreatureAuthored {
   return {
     ...creature,
-    damageResistances: normalizeVocabularyList(creature.damageResistances, srdSystemRecord.damageTypes, `${creature.label} damage resistance`),
-    damageImmunities: normalizeVocabularyList(creature.damageImmunities, srdSystemRecord.damageTypes, `${creature.label} damage immunity`),
-    damageVulnerabilities: normalizeVocabularyList(creature.damageVulnerabilities, srdSystemRecord.damageTypes, `${creature.label} damage vulnerability`),
-    conditionImmunities: normalizeVocabularyList(creature.conditionImmunities, srdSystemRecord.conditionTypes, `${creature.label} condition immunity`)
+    damageResistances: normalizeVocabularyList(
+      creature.damageResistances,
+      srdSystemRecord.damageTypes,
+      `${creature.label} damage resistance`
+    ),
+    damageImmunities: normalizeVocabularyList(
+      creature.damageImmunities,
+      srdSystemRecord.damageTypes,
+      `${creature.label} damage immunity`
+    ),
+    damageVulnerabilities: normalizeVocabularyList(
+      creature.damageVulnerabilities,
+      srdSystemRecord.damageTypes,
+      `${creature.label} damage vulnerability`
+    ),
+    conditionImmunities: normalizeVocabularyList(
+      creature.conditionImmunities,
+      srdSystemRecord.conditionTypes,
+      `${creature.label} condition immunity`
+    )
   }
 }
 

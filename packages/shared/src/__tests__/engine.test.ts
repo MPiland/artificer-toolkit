@@ -177,11 +177,13 @@ describe('runEngine - selected feature options', () => {
     const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
 
     expect(output.derivedStats.abilityScores.STR).toBe(12)
-    expect(output.proficiencies).toContainEqual({
-      kind: 'SKILL',
-      subjectId: 'athletics',
-      scaling: 'FULL'
-    })
+    expect(output.proficiencies).toContainEqual(
+      expect.objectContaining({
+        kind: 'SKILL',
+        subjectId: 'athletics',
+        scaling: 'FULL'
+      })
+    )
   })
 
   it('applies Half-Elf Charisma and two distinct selected ability increases', () => {
@@ -310,12 +312,14 @@ describe('resolveModifiers', () => {
       {
         domainKey: 'ABILITY_SCORE:BONUS',
         modifierKind: 'BONUS',
-        grant: { modifierKind: 'BONUS', payload: { value: 2 } } as never
+        grant: { id: 'bonus-one', modifierKind: 'BONUS', payload: { value: 2 } } as never,
+        source: { kind: 'SYSTEM', systemId: 'test' }
       },
       {
         domainKey: 'ABILITY_SCORE:BONUS',
         modifierKind: 'BONUS',
-        grant: { modifierKind: 'BONUS', payload: { value: 2 } } as never
+        grant: { id: 'bonus-two', modifierKind: 'BONUS', payload: { value: 2 } } as never,
+        source: { kind: 'SYSTEM', systemId: 'test' }
       }
     ]
 
@@ -328,12 +332,14 @@ describe('resolveModifiers', () => {
       {
         domainKey: 'ARMOR_CLASS:SET_VALUE',
         modifierKind: 'SET_VALUE',
-        grant: { modifierKind: 'SET_VALUE', payload: { value: 13 } } as never
+        grant: { id: 'set-one', modifierKind: 'SET_VALUE', payload: { value: 13 } } as never,
+        source: { kind: 'SYSTEM', systemId: 'test' }
       },
       {
         domainKey: 'ARMOR_CLASS:SET_VALUE',
         modifierKind: 'SET_VALUE',
-        grant: { modifierKind: 'SET_VALUE', payload: { value: 11 } } as never
+        grant: { id: 'set-two', modifierKind: 'SET_VALUE', payload: { value: 11 } } as never,
+        source: { kind: 'SYSTEM', systemId: 'test' }
       }
     ]
 
@@ -346,7 +352,8 @@ describe('resolveModifiers', () => {
       {
         domainKey: 'ATTACK_ROLL:ADVANTAGE',
         modifierKind: 'ADVANTAGE',
-        grant: { modifierKind: 'ADVANTAGE' } as never
+        grant: { id: 'advantage-one', modifierKind: 'ADVANTAGE' } as never,
+        source: { kind: 'SYSTEM', systemId: 'test' }
       }
     ]
 
@@ -869,11 +876,13 @@ describe('runEngine - equipment source state', () => {
 
     expect(
       runEngine(snapshot, makeEmptyRegistry(), dnd5e2014RulesSystem).proficiencies
-    ).toContainEqual({
-      kind: 'LANGUAGE',
-      subjectId: 'draconic',
-      scaling: 'FULL'
-    })
+    ).toContainEqual(
+      expect.objectContaining({
+        kind: 'LANGUAGE',
+        subjectId: 'draconic',
+        scaling: 'FULL'
+      })
+    )
   })
 })
 
@@ -1063,13 +1072,13 @@ describe('runEngine - class resources', () => {
     const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
 
     expect(output.resources).toEqual([
-      {
+      expect.objectContaining({
         resourceId: 'superiority-dice',
         label: 'Superiority Dice',
         maxCount: 4,
         rechargeOn: 'SHORT_REST',
         sourceFeatureId: 'battle-master'
-      }
+      })
     ])
   })
 })

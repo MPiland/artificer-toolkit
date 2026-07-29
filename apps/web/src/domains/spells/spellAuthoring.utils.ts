@@ -88,7 +88,9 @@ export function normalizeSpellForSubmit(
   }
 }
 
-export function hasMaterialComponent(spell: Pick<SpellAuthoredDto, 'components' | 'materialDescription'>): boolean {
+export function hasMaterialComponent(
+  spell: Pick<SpellAuthoredDto, 'components' | 'materialDescription'>
+): boolean {
   return Boolean(spell.components?.includes('MATERIAL') || spell.materialDescription)
 }
 

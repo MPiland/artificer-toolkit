@@ -1,12 +1,7 @@
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared'
 import { z } from 'zod'
 
-import {
-  capacityDtoSchema,
-  containsDtoSchema,
-  costDtoSchema,
-  weightDtoSchema
-} from './shared.js'
+import { capacityDtoSchema, containsDtoSchema, costDtoSchema, weightDtoSchema } from './shared.js'
 import {
   authoredRecordStatusSchema,
   chargeDtoSchema,
@@ -38,12 +33,9 @@ const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   charges: chargeDtoSchema.optional(),
   capacity: capacityDtoSchema.optional(),
   modifiers: z.array(modifierGrantDtoSchema).optional(),
-  maxStack: z.number().int()
-    .optional(),
-  maxBonus: z.number().int()
-    .optional(),
-  armorClass: z.number().int()
-    .optional(),
+  maxStack: z.number().int().optional(),
+  maxBonus: z.number().int().optional(),
+  armorClass: z.number().int().optional(),
   contains: z.array(containsDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional(),
   restrictions: characterFacetDtoSchema.optional(),
@@ -65,8 +57,7 @@ const equipmentVariantAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   modifiers: z.array(modifierGrantDtoSchema).optional(),
-  maxBonus: z.number().int()
-    .optional(),
+  maxBonus: z.number().int().optional(),
   features: z.array(featureDtoSchema).optional(),
   restrictions: characterFacetDtoSchema.optional(),
   requiresAttunement: z.boolean().optional()
@@ -83,13 +74,23 @@ const equipmentVariantAuthoringInputDtoSchemaBase = equipmentVariantAuthoredDtoS
 export type BaseEquipmentAuthoredDto = z.infer<typeof baseEquipmentAuthoredDtoSchemaBase>
 export type EquipmentVariantAuthoredDto = z.infer<typeof equipmentVariantAuthoredDtoSchemaBase>
 export type EquipmentAuthoredDto = BaseEquipmentAuthoredDto | EquipmentVariantAuthoredDto
-export type BaseEquipmentAuthoringInputDto = z.infer<typeof baseEquipmentAuthoringInputDtoSchemaBase>
-export type EquipmentVariantAuthoringInputDto = z.infer<typeof equipmentVariantAuthoringInputDtoSchemaBase>
-export type EquipmentAuthoringInputDto = BaseEquipmentAuthoringInputDto | EquipmentVariantAuthoringInputDto
-export const baseEquipmentAuthoredDtoSchema: z.ZodType<BaseEquipmentAuthoredDto> = baseEquipmentAuthoredDtoSchemaBase
-export const equipmentVariantAuthoredDtoSchema: z.ZodType<EquipmentVariantAuthoredDto> = equipmentVariantAuthoredDtoSchemaBase
-export const baseEquipmentAuthoringInputDtoSchema: z.ZodType<BaseEquipmentAuthoringInputDto> = baseEquipmentAuthoringInputDtoSchemaBase
-export const equipmentVariantAuthoringInputDtoSchema: z.ZodType<EquipmentVariantAuthoringInputDto> = equipmentVariantAuthoringInputDtoSchemaBase
+export type BaseEquipmentAuthoringInputDto = z.infer<
+  typeof baseEquipmentAuthoringInputDtoSchemaBase
+>
+export type EquipmentVariantAuthoringInputDto = z.infer<
+  typeof equipmentVariantAuthoringInputDtoSchemaBase
+>
+export type EquipmentAuthoringInputDto =
+  | BaseEquipmentAuthoringInputDto
+  | EquipmentVariantAuthoringInputDto
+export const baseEquipmentAuthoredDtoSchema: z.ZodType<BaseEquipmentAuthoredDto> =
+  baseEquipmentAuthoredDtoSchemaBase
+export const equipmentVariantAuthoredDtoSchema: z.ZodType<EquipmentVariantAuthoredDto> =
+  equipmentVariantAuthoredDtoSchemaBase
+export const baseEquipmentAuthoringInputDtoSchema: z.ZodType<BaseEquipmentAuthoringInputDto> =
+  baseEquipmentAuthoringInputDtoSchemaBase
+export const equipmentVariantAuthoringInputDtoSchema: z.ZodType<EquipmentVariantAuthoringInputDto> =
+  equipmentVariantAuthoringInputDtoSchemaBase
 export const equipmentAuthoredDtoSchema: z.ZodType<EquipmentAuthoredDto> = z.union([
   baseEquipmentAuthoredDtoSchema,
   equipmentVariantAuthoredDtoSchema

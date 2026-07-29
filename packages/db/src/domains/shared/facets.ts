@@ -63,10 +63,7 @@ type PredicateRow = {
   where_facet_body_id: string | null
 }
 
-function requireLinkedRecord<T>(
-  value: T | null | undefined,
-  message: string
-): T {
+function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
     throw new Error(message)
   }
@@ -74,10 +71,7 @@ function requireLinkedRecord<T>(
   return value
 }
 
-function requireNodeSubject(
-  ownerId: string,
-  value: string
-): NodeSubjectCode {
+function requireNodeSubject(ownerId: string, value: string): NodeSubjectCode {
   if (!(value in NODE_SUBJECT)) {
     throw new Error(`${ownerId} has invalid node_subject_code "${value}".`)
   }
@@ -118,10 +112,7 @@ function requirePredicateCode(
   return value as keyof typeof PREDICATE_REGISTRY
 }
 
-function requireAbilityCode(
-  ownerId: string,
-  value: string
-): keyof typeof ABILITY_CODE {
+function requireAbilityCode(ownerId: string, value: string): keyof typeof ABILITY_CODE {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`${ownerId} has invalid ability_code "${value}".`)
   }
@@ -173,10 +164,7 @@ function requireMeasurementUnitCode(
   return value as keyof typeof MEASUREMENT_UNIT_CODE
 }
 
-function requireRangeKind(
-  ownerId: string,
-  value: string
-): keyof typeof RANGE_KIND {
+function requireRangeKind(ownerId: string, value: string): keyof typeof RANGE_KIND {
   if (!(value in RANGE_KIND)) {
     throw new Error(`${ownerId} has invalid range kind "${value}".`)
   }
@@ -184,10 +172,7 @@ function requireRangeKind(
   return value as keyof typeof RANGE_KIND
 }
 
-function requireDurationKind(
-  ownerId: string,
-  value: string
-): keyof typeof DURATION_KIND {
+function requireDurationKind(ownerId: string, value: string): keyof typeof DURATION_KIND {
   if (!(value in DURATION_KIND)) {
     throw new Error(`${ownerId} has invalid duration kind "${value}".`)
   }
@@ -195,10 +180,7 @@ function requireDurationKind(
   return value as keyof typeof DURATION_KIND
 }
 
-function requireSizeCode(
-  ownerId: string,
-  value: string
-): keyof typeof SIZE_CODE {
+function requireSizeCode(ownerId: string, value: string): keyof typeof SIZE_CODE {
   if (!(value in SIZE_CODE)) {
     throw new Error(`${ownerId} has invalid size code "${value}".`)
   }
@@ -228,10 +210,7 @@ function requireVehicleCategory(
   return value as keyof typeof VEHICLE_CATEGORY_CODE
 }
 
-function requireChargeLimitKind(
-  ownerId: string,
-  value: string
-): keyof typeof CHARGE_LIMIT_KIND {
+function requireChargeLimitKind(ownerId: string, value: string): keyof typeof CHARGE_LIMIT_KIND {
   if (!(value in CHARGE_LIMIT_KIND)) {
     throw new Error(`${ownerId} has invalid charge limit kind "${value}".`)
   }
@@ -239,10 +218,7 @@ function requireChargeLimitKind(
   return value as keyof typeof CHARGE_LIMIT_KIND
 }
 
-function requireChargeResetKind(
-  ownerId: string,
-  value: string
-): keyof typeof CHARGE_RESET_KIND {
+function requireChargeResetKind(ownerId: string, value: string): keyof typeof CHARGE_RESET_KIND {
   if (!(value in CHARGE_RESET_KIND)) {
     throw new Error(`${ownerId} has invalid charge reset kind "${value}".`)
   }
@@ -250,10 +226,7 @@ function requireChargeResetKind(
   return value as keyof typeof CHARGE_RESET_KIND
 }
 
-function requireProficiencyKind(
-  ownerId: string,
-  value: string
-): keyof typeof PROFICIENCY_KIND {
+function requireProficiencyKind(ownerId: string, value: string): keyof typeof PROFICIENCY_KIND {
   if (!(value in PROFICIENCY_KIND)) {
     throw new Error(`${ownerId} has invalid proficiency kind "${value}".`)
   }
@@ -266,7 +239,9 @@ function requireRelationTargetSubject(
   subject: NodeSubjectCode,
   relationCode: string
 ): NodeSubjectCode {
-  const relationMap = RELATIONS[subject as keyof typeof RELATIONS] as Record<string, { to: NodeSubjectCode }> | undefined
+  const relationMap = RELATIONS[subject as keyof typeof RELATIONS] as
+    | Record<string, { to: NodeSubjectCode }>
+    | undefined
   const relation = relationMap?.[relationCode]
 
   if (!relation) {
@@ -281,8 +256,7 @@ function isSelectableSubjectCode(subject: NodeSubjectCode): subject is Selectabl
 }
 
 function createDerivedUuid(baseId: string, purpose: string): string {
-  const hex = createHash('sha256').update(`${baseId}:${purpose}`)
-    .digest('hex')
+  const hex = createHash('sha256').update(`${baseId}:${purpose}`).digest('hex')
   const variant = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')
 
   return [
@@ -318,15 +292,13 @@ function collectAuthoredWhereBodyIds(
   bodyIds.add(getWhereBodyId(bodyGroupId, condition.id))
 
   for (const group of condition.where.groups) {
-    for (const childCondition of (group.conditions ?? [])) {
+    for (const childCondition of group.conditions ?? []) {
       collectAuthoredWhereBodyIds(bodyIds, group.id, childCondition)
     }
   }
 }
 
-function collectAuthoredFacetBodyIds<N extends NodeSubjectCode>(
-  facet: FacetAuthored<N>
-): string[] {
+function collectAuthoredFacetBodyIds<N extends NodeSubjectCode>(facet: FacetAuthored<N>): string[] {
   const bodyIds = new Set<string>()
 
   for (const group of facet.groups) {
@@ -335,7 +307,7 @@ function collectAuthoredFacetBodyIds<N extends NodeSubjectCode>(
 
       bodyIds.add(getContextBodyId(facet.id, context.id))
 
-      for (const condition of (context.conditions ?? [])) {
+      for (const condition of context.conditions ?? []) {
         collectAuthoredWhereBodyIds(bodyIds, bodyGroupId, condition)
       }
     }
@@ -349,7 +321,9 @@ function requireSingleAbility(
   abilityCodes: string[]
 ): keyof typeof ABILITY_CODE {
   if (abilityCodes.length !== 1) {
-    throw new Error(`facet condition "${conditionId}" expected exactly one ability, found ${abilityCodes.length}.`)
+    throw new Error(
+      `facet condition "${conditionId}" expected exactly one ability, found ${abilityCodes.length}.`
+    )
   }
 
   return requireAbilityCode(`facet condition "${conditionId}"`, abilityCodes[0] as string)
@@ -375,7 +349,10 @@ async function replaceSelectionItems(
     column: config.column,
     mode: 'mode' in config ? config.mode : 'many'
   }
-  const authoringModeKind = requireAuthoringMode(`${table}.${ownerColumn} "${ownerId}"`, String(selection.authoringModeKind))
+  const authoringModeKind = requireAuthoringMode(
+    `${table}.${ownerColumn} "${ownerId}"`,
+    String(selection.authoringModeKind)
+  )
 
   if (authoringModeKind !== AUTHORING_MODE_KIND.SELECTED) {
     return
@@ -394,9 +371,10 @@ async function replaceSelectionItems(
       .insertInto(table)
       .values({
         [ownerColumn]: ownerId,
-        [normalizedConfig.column]: normalizedConfig.payloadKey === 'proficiencyKind'
-          ? requireProficiencyKind(`${table}.${ownerColumn} "${ownerId}"`, ids)
-          : ids,
+        [normalizedConfig.column]:
+          normalizedConfig.payloadKey === 'proficiencyKind'
+            ? requireProficiencyKind(`${table}.${ownerColumn} "${ownerId}"`, ids)
+            : ids,
         sort_order: 1
       })
       .execute()
@@ -417,11 +395,13 @@ async function replaceSelectionItems(
 
   await db
     .insertInto(table)
-    .values(ids.map((id, index) => ({
-      [ownerColumn]: ownerId,
-      [normalizedConfig.column]: id,
-      sort_order: index + 1
-    })))
+    .values(
+      ids.map((id, index) => ({
+        [ownerColumn]: ownerId,
+        [normalizedConfig.column]: id,
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -453,7 +433,11 @@ async function hydrateSelection(
     .where(ownerColumn, '=', ownerId)
     .executeTakeFirst()
 
-  const mode = requireAuthoringMode(`${modeTable}.${ownerColumn} "${ownerId}"`, requireLinkedRecord(modeRow, `${modeTable}.${ownerColumn} "${ownerId}" is missing.`).authoring_mode_kind)
+  const mode = requireAuthoringMode(
+    `${modeTable}.${ownerColumn} "${ownerId}"`,
+    requireLinkedRecord(modeRow, `${modeTable}.${ownerColumn} "${ownerId}" is missing.`)
+      .authoring_mode_kind
+  )
 
   if (mode === AUTHORING_MODE_KIND.ALL) {
     return { authoringModeKind: mode }
@@ -484,9 +468,10 @@ async function hydrateSelection(
 
     return {
       authoringModeKind: mode,
-      [normalizedConfig.payloadKey]: normalizedConfig.payloadKey === 'proficiencyKind'
-        ? requireProficiencyKind(`${itemTable}.${ownerColumn} "${ownerId}"`, value)
-        : value
+      [normalizedConfig.payloadKey]:
+        normalizedConfig.payloadKey === 'proficiencyKind'
+          ? requireProficiencyKind(`${itemTable}.${ownerColumn} "${ownerId}"`, value)
+          : value
     }
   }
 
@@ -509,14 +494,23 @@ async function hydrateSelection(
 async function hydratePredicateSelectable(
   db: DBLike,
   conditionId: string
-): Promise<{ authoringModeKind: typeof AUTHORING_MODE_KIND.ALL | typeof AUTHORING_MODE_KIND.SELECTED }> {
-  const selectable = requireLinkedRecord(await db.selectFrom('facet_predicate_selectables')
-    .select(['authoring_mode_kind'])
-    .where('facet_condition_id', '=', conditionId)
-    .executeTakeFirst(), `facet condition "${conditionId}" is missing selectable payload metadata.`)
+): Promise<{
+  authoringModeKind: typeof AUTHORING_MODE_KIND.ALL | typeof AUTHORING_MODE_KIND.SELECTED
+}> {
+  const selectable = requireLinkedRecord(
+    await db
+      .selectFrom('facet_predicate_selectables')
+      .select(['authoring_mode_kind'])
+      .where('facet_condition_id', '=', conditionId)
+      .executeTakeFirst(),
+    `facet condition "${conditionId}" is missing selectable payload metadata.`
+  )
 
   return {
-    authoringModeKind: requireAuthoringMode(`facet condition "${conditionId}"`, selectable.authoring_mode_kind)
+    authoringModeKind: requireAuthoringMode(
+      `facet condition "${conditionId}"`,
+      selectable.authoring_mode_kind
+    )
   }
 }
 
@@ -534,7 +528,10 @@ async function insertPredicateSelectableHeader(
     .insertInto('facet_predicate_selectables')
     .values({
       facet_condition_id: String(condition.id),
-      authoring_mode_kind: requireAuthoringMode(`facet condition "${String(condition.id)}"`, authoringModeKind)
+      authoring_mode_kind: requireAuthoringMode(
+        `facet condition "${String(condition.id)}"`,
+        authoringModeKind
+      )
     })
     .execute()
 }
@@ -550,11 +547,13 @@ async function writeAbilityItems(
 
   await db
     .insertInto('facet_predicate_ability_items')
-    .values(abilities.map((ability, index) => ({
-      facet_condition_id: conditionId,
-      ability_code: requireAbilityCode(`facet condition "${conditionId}"`, ability),
-      sort_order: index + 1
-    })))
+    .values(
+      abilities.map((ability, index) => ({
+        facet_condition_id: conditionId,
+        ability_code: requireAbilityCode(`facet condition "${conditionId}"`, ability),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -569,30 +568,30 @@ async function writeEquipmentPropertyItems(
 
   await db
     .insertInto('facet_predicate_equipment_property_items')
-    .values(properties.map((property, index) => ({
-      facet_condition_id: conditionId,
-      property_code: requireEquipmentProperty(`facet condition "${conditionId}"`, property),
-      sort_order: index + 1
-    })))
+    .values(
+      properties.map((property, index) => ({
+        facet_condition_id: conditionId,
+        property_code: requireEquipmentProperty(`facet condition "${conditionId}"`, property),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
-async function writeSizeItems(
-  db: DBLike,
-  conditionId: string,
-  sizes: string[]
-): Promise<void> {
+async function writeSizeItems(db: DBLike, conditionId: string, sizes: string[]): Promise<void> {
   if (sizes.length === 0) {
     throw new Error(`Facet condition "${conditionId}" requires at least one size.`)
   }
 
   await db
     .insertInto('facet_predicate_size_items')
-    .values(sizes.map((size, index) => ({
-      facet_condition_id: conditionId,
-      size_code: requireSizeCode(`facet condition "${conditionId}"`, size),
-      sort_order: index + 1
-    })))
+    .values(
+      sizes.map((size, index) => ({
+        facet_condition_id: conditionId,
+        size_code: requireSizeCode(`facet condition "${conditionId}"`, size),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -607,11 +606,13 @@ async function writeSubclassSpecializationItems(
 
   await db
     .insertInto('facet_predicate_subclass_specialization_items')
-    .values(specializationIds.map((specializationId, index) => ({
-      facet_condition_id: conditionId,
-      specialization_id: specializationId,
-      sort_order: index + 1
-    })))
+    .values(
+      specializationIds.map((specializationId, index) => ({
+        facet_condition_id: conditionId,
+        specialization_id: specializationId,
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -626,11 +627,16 @@ async function writeChargeLimitKindItems(
 
   await db
     .insertInto('facet_predicate_charge_limit_kind_items')
-    .values(chargeLimitKinds.map((chargeLimitKind, index) => ({
-      facet_condition_id: conditionId,
-      charge_limit_kind: requireChargeLimitKind(`facet condition "${conditionId}"`, chargeLimitKind),
-      sort_order: index + 1
-    })))
+    .values(
+      chargeLimitKinds.map((chargeLimitKind, index) => ({
+        facet_condition_id: conditionId,
+        charge_limit_kind: requireChargeLimitKind(
+          `facet condition "${conditionId}"`,
+          chargeLimitKind
+        ),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -645,11 +651,16 @@ async function writeChargeResetKindItems(
 
   await db
     .insertInto('facet_predicate_charge_reset_kind_items')
-    .values(chargeResetKinds.map((chargeResetKind, index) => ({
-      facet_condition_id: conditionId,
-      charge_reset_kind: requireChargeResetKind(`facet condition "${conditionId}"`, chargeResetKind),
-      sort_order: index + 1
-    })))
+    .values(
+      chargeResetKinds.map((chargeResetKind, index) => ({
+        facet_condition_id: conditionId,
+        charge_reset_kind: requireChargeResetKind(
+          `facet condition "${conditionId}"`,
+          chargeResetKind
+        ),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -664,11 +675,13 @@ async function writeRangeKindItems(
 
   await db
     .insertInto('facet_predicate_range_kind_items')
-    .values(rangeKinds.map((rangeKind, index) => ({
-      facet_condition_id: conditionId,
-      range_kind: requireRangeKind(`facet condition "${conditionId}"`, rangeKind),
-      sort_order: index + 1
-    })))
+    .values(
+      rangeKinds.map((rangeKind, index) => ({
+        facet_condition_id: conditionId,
+        range_kind: requireRangeKind(`facet condition "${conditionId}"`, rangeKind),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -683,11 +696,13 @@ async function writeDurationKindItems(
 
   await db
     .insertInto('facet_predicate_duration_kind_items')
-    .values(durationKinds.map((durationKind, index) => ({
-      facet_condition_id: conditionId,
-      duration_kind: requireDurationKind(`facet condition "${conditionId}"`, durationKind),
-      sort_order: index + 1
-    })))
+    .values(
+      durationKinds.map((durationKind, index) => ({
+        facet_condition_id: conditionId,
+        duration_kind: requireDurationKind(`facet condition "${conditionId}"`, durationKind),
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -728,19 +743,19 @@ async function writeIdItems(
 
   await db
     .insertInto(table)
-    .values(ids.map((id, index) => ({
-      facet_condition_id: conditionId,
-      [column]: id,
-      sort_order: index + 1
-    })))
+    .values(
+      ids.map((id, index) => ({
+        facet_condition_id: conditionId,
+        [column]: id,
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
 async function writeTextItems(
   db: DBLike,
-  table:
-    | 'facet_predicate_creature_category_items'
-    | 'facet_predicate_vehicle_category_items',
+  table: 'facet_predicate_creature_category_items' | 'facet_predicate_vehicle_category_items',
   column: 'category_code',
   conditionId: string,
   values: string[]
@@ -751,11 +766,13 @@ async function writeTextItems(
 
   await db
     .insertInto(table)
-    .values(values.map((value: string, index: number) => ({
-      facet_condition_id: conditionId,
-      [column]: value,
-      sort_order: index + 1
-    })))
+    .values(
+      values.map((value: string, index: number) => ({
+        facet_condition_id: conditionId,
+        [column]: value,
+        sort_order: index + 1
+      }))
+    )
     .execute()
 }
 
@@ -775,7 +792,13 @@ async function writePredicatePayload(
           max_value: condition.max ?? null
         })
         .execute()
-      await writeIdItems(db, 'facet_predicate_class_items', 'class_id', conditionId, condition.classIds)
+      await writeIdItems(
+        db,
+        'facet_predicate_class_items',
+        'class_id',
+        conditionId,
+        condition.classIds
+      )
       return
 
     case 'CHARACTER_LEVEL':
@@ -793,7 +816,13 @@ async function writePredicatePayload(
       return
 
     case 'FEATURE_OBTAINED':
-      await writeIdItems(db, 'facet_predicate_feature_items', 'feature_id', conditionId, condition.featureIds)
+      await writeIdItems(
+        db,
+        'facet_predicate_feature_items',
+        'feature_id',
+        conditionId,
+        condition.featureIds
+      )
       return
 
     case 'SUBCLASS_SPECIALIZATION':
@@ -804,24 +833,54 @@ async function writePredicatePayload(
       return
 
     case 'OPTION_OBTAINED':
-      await writeIdItems(db, 'facet_predicate_option_items', 'option_id', conditionId, condition.optionIds)
+      await writeIdItems(
+        db,
+        'facet_predicate_option_items',
+        'option_id',
+        conditionId,
+        condition.optionIds
+      )
       if (condition.featureIds && condition.featureIds.length > 0) {
-        await writeIdItems(db, 'facet_predicate_feature_items', 'feature_id', conditionId, condition.featureIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_feature_items',
+          'feature_id',
+          conditionId,
+          condition.featureIds
+        )
       }
       return
 
     case 'SPELL_OBTAINED':
-      await writeIdItems(db, 'facet_predicate_spell_items', 'spell_id', conditionId, condition.spellIds)
+      await writeIdItems(
+        db,
+        'facet_predicate_spell_items',
+        'spell_id',
+        conditionId,
+        condition.spellIds
+      )
       return
 
     case 'FEAT_OBTAINED':
-      await writeIdItems(db, 'facet_predicate_feat_items', 'feat_id', conditionId, condition.featIds)
+      await writeIdItems(
+        db,
+        'facet_predicate_feat_items',
+        'feat_id',
+        conditionId,
+        condition.featIds
+      )
       return
 
     case 'HERITAGE':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_heritage_items', 'heritage_id', conditionId, condition.heritageIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_heritage_items',
+          'heritage_id',
+          conditionId,
+          condition.heritageIds
+        )
       }
       return
 
@@ -844,19 +903,26 @@ async function writePredicatePayload(
     case 'RANGE': {
       await insertPredicateSelectableHeader(db, condition)
 
-      const distancePayload = condition as { min?: number, max?: number, unit?: string }
+      const distancePayload = condition as { min?: number; max?: number; unit?: string }
       const isSelected = condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
       const selectedRangeKinds = isSelected
         ? (() => {
-            if (!Array.isArray(condition.rangeKind) || condition.rangeKind.some((value) => typeof value !== 'string')) {
-              throw new Error(`Facet condition "${conditionId}" requires "rangeKind" to be a string array.`)
+            if (
+              !Array.isArray(condition.rangeKind) ||
+              condition.rangeKind.some((value) => typeof value !== 'string')
+            ) {
+              throw new Error(
+                `Facet condition "${conditionId}" requires "rangeKind" to be a string array.`
+              )
             }
 
             if (condition.rangeKind.length === 0) {
               throw new Error(`Facet condition "${conditionId}" requires at least one range kind.`)
             }
 
-            return condition.rangeKind.map((rangeKind) => requireRangeKind(`facet condition "${conditionId}"`, rangeKind))
+            return condition.rangeKind.map((rangeKind) =>
+              requireRangeKind(`facet condition "${conditionId}"`, rangeKind)
+            )
           })()
         : []
       const includesDistance = selectedRangeKinds.includes(RANGE_KIND.DISTANCE)
@@ -875,7 +941,11 @@ async function writePredicatePayload(
         if (typeof distancePayload.unit !== 'string') {
           throw new Error(`Facet condition "${conditionId}" requires unit for DISTANCE range.`)
         }
-      } else if (distancePayload.min != null || distancePayload.max != null || distancePayload.unit != null) {
+      } else if (
+        distancePayload.min != null ||
+        distancePayload.max != null ||
+        distancePayload.unit != null
+      ) {
         throw new Error(
           `Facet condition "${conditionId}" can only persist min/max/unit for DISTANCE range.`
         )
@@ -893,7 +963,10 @@ async function writePredicatePayload(
             range_kind: includesDistance ? RANGE_KIND.DISTANCE : null,
             min_distance: distancePayload.min ?? null,
             max_distance: distancePayload.max ?? null,
-            unit_code: requireMeasurementUnitCode(`facet condition "${conditionId}"`, distancePayload.unit ?? '')
+            unit_code: requireMeasurementUnitCode(
+              `facet condition "${conditionId}"`,
+              distancePayload.unit ?? ''
+            )
           })
           .execute()
       }
@@ -903,19 +976,28 @@ async function writePredicatePayload(
     case 'DURATION': {
       await insertPredicateSelectableHeader(db, condition)
 
-      const timedPayload = condition as { min?: number, max?: number }
+      const timedPayload = condition as { min?: number; max?: number }
       const isSelected = condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
       const selectedDurationKinds = isSelected
         ? (() => {
-            if (!Array.isArray(condition.durationKind) || condition.durationKind.some((value) => typeof value !== 'string')) {
-              throw new Error(`Facet condition "${conditionId}" requires "durationKind" to be a string array.`)
+            if (
+              !Array.isArray(condition.durationKind) ||
+              condition.durationKind.some((value) => typeof value !== 'string')
+            ) {
+              throw new Error(
+                `Facet condition "${conditionId}" requires "durationKind" to be a string array.`
+              )
             }
 
             if (condition.durationKind.length === 0) {
-              throw new Error(`Facet condition "${conditionId}" requires at least one duration kind.`)
+              throw new Error(
+                `Facet condition "${conditionId}" requires at least one duration kind.`
+              )
             }
 
-            return condition.durationKind.map((durationKind) => requireDurationKind(`facet condition "${conditionId}"`, durationKind))
+            return condition.durationKind.map((durationKind) =>
+              requireDurationKind(`facet condition "${conditionId}"`, durationKind)
+            )
           })()
         : []
       const includesInstantaneous = selectedDurationKinds.includes(DURATION_KIND.INSTANTANEOUS)
@@ -957,7 +1039,13 @@ async function writePredicatePayload(
     case 'MAGIC_SCHOOL':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_magic_school_items', 'magic_school_id', conditionId, condition.magicSchoolIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_magic_school_items',
+          'magic_school_id',
+          conditionId,
+          condition.magicSchoolIds
+        )
       }
       return
 
@@ -1005,7 +1093,10 @@ async function writePredicatePayload(
         .insertInto('facet_predicate_proficiency_levels')
         .values({
           facet_condition_id: conditionId,
-          proficiency_level: requireScalingAmountKind(`facet condition "${conditionId}"`, condition.level)
+          proficiency_level: requireScalingAmountKind(
+            `facet condition "${conditionId}"`,
+            condition.level
+          )
         })
         .execute()
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
@@ -1018,7 +1109,10 @@ async function writePredicatePayload(
         .insertInto('facet_predicate_equipment_categories')
         .values({
           facet_condition_id: conditionId,
-          category_code: requireEquipmentCategory(`facet condition "${conditionId}"`, condition.category)
+          category_code: requireEquipmentCategory(
+            `facet condition "${conditionId}"`,
+            condition.category
+          )
         })
         .execute()
       return
@@ -1030,7 +1124,10 @@ async function writePredicatePayload(
           .insertInto('facet_predicate_equipment_categories')
           .values({
             facet_condition_id: conditionId,
-            category_code: requireEquipmentCategory(`facet condition "${conditionId}"`, condition.category)
+            category_code: requireEquipmentCategory(
+              `facet condition "${conditionId}"`,
+              condition.category
+            )
           })
           .execute()
       }
@@ -1045,7 +1142,10 @@ async function writePredicatePayload(
         .insertInto('facet_predicate_proficiency_levels')
         .values({
           facet_condition_id: conditionId,
-          proficiency_level: requireScalingAmountKind(`facet condition "${conditionId}"`, condition.level)
+          proficiency_level: requireScalingAmountKind(
+            `facet condition "${conditionId}"`,
+            condition.level
+          )
         })
         .execute()
       if (condition.category) {
@@ -1053,7 +1153,10 @@ async function writePredicatePayload(
           .insertInto('facet_predicate_equipment_categories')
           .values({
             facet_condition_id: conditionId,
-            category_code: requireEquipmentCategory(`facet condition "${conditionId}"`, condition.category)
+            category_code: requireEquipmentCategory(
+              `facet condition "${conditionId}"`,
+              condition.category
+            )
           })
           .execute()
       }
@@ -1061,7 +1164,13 @@ async function writePredicatePayload(
         await writeEquipmentPropertyItems(db, conditionId, condition.properties)
       }
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_equipment_items', 'equipment_id', conditionId, condition.equipmentIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_equipment_items',
+          'equipment_id',
+          conditionId,
+          condition.equipmentIds
+        )
       }
       return
 
@@ -1072,7 +1181,10 @@ async function writePredicatePayload(
           .insertInto('facet_predicate_equipment_categories')
           .values({
             facet_condition_id: conditionId,
-            category_code: requireEquipmentCategory(`facet condition "${conditionId}"`, condition.category)
+            category_code: requireEquipmentCategory(
+              `facet condition "${conditionId}"`,
+              condition.category
+            )
           })
           .execute()
       }
@@ -1088,7 +1200,10 @@ async function writePredicatePayload(
           .insertInto('facet_predicate_equipment_categories')
           .values({
             facet_condition_id: conditionId,
-            category_code: requireEquipmentCategory(`facet condition "${conditionId}"`, condition.category)
+            category_code: requireEquipmentCategory(
+              `facet condition "${conditionId}"`,
+              condition.category
+            )
           })
           .execute()
       }
@@ -1096,21 +1211,39 @@ async function writePredicatePayload(
         await writeEquipmentPropertyItems(db, conditionId, condition.properties)
       }
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_equipment_items', 'equipment_id', conditionId, condition.equipmentIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_equipment_items',
+          'equipment_id',
+          conditionId,
+          condition.equipmentIds
+        )
       }
       return
 
     case 'DAMAGE_TYPE':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_damage_type_items', 'damage_type_id', conditionId, condition.damageTypeIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_damage_type_items',
+          'damage_type_id',
+          conditionId,
+          condition.damageTypeIds
+        )
       }
       return
 
     case 'CONDITION_TYPE':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_condition_type_items', 'condition_type_id', conditionId, condition.conditionTypeIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_condition_type_items',
+          'condition_type_id',
+          conditionId,
+          condition.conditionTypeIds
+        )
       }
       return
 
@@ -1134,18 +1267,33 @@ async function writePredicatePayload(
         .insertInto('facet_predicate_proficiency_levels')
         .values({
           facet_condition_id: conditionId,
-          proficiency_level: requireScalingAmountKind(`facet condition "${conditionId}"`, condition.level)
+          proficiency_level: requireScalingAmountKind(
+            `facet condition "${conditionId}"`,
+            condition.level
+          )
         })
         .execute()
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_skill_items', 'skill_id', conditionId, condition.skillIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_skill_items',
+          'skill_id',
+          conditionId,
+          condition.skillIds
+        )
       }
       return
 
     case 'SKILL_SCORE':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_skill_items', 'skill_id', conditionId, condition.skillIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_skill_items',
+          'skill_id',
+          conditionId,
+          condition.skillIds
+        )
       }
       return
 
@@ -1155,18 +1303,35 @@ async function writePredicatePayload(
         .insertInto('facet_predicate_proficiency_levels')
         .values({
           facet_condition_id: conditionId,
-          proficiency_level: requireScalingAmountKind(`facet condition "${conditionId}"`, condition.level)
+          proficiency_level: requireScalingAmountKind(
+            `facet condition "${conditionId}"`,
+            condition.level
+          )
         })
         .execute()
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeIdItems(db, 'facet_predicate_language_items', 'language_id', conditionId, condition.languageIds)
+        await writeIdItems(
+          db,
+          'facet_predicate_language_items',
+          'language_id',
+          conditionId,
+          condition.languageIds
+        )
       }
       return
 
     case 'CREATURE_CATEGORY':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(db, 'facet_predicate_creature_category_items', 'category_code', conditionId, condition.categories.map((value) => requireCreatureCategory(`facet condition "${conditionId}"`, value)))
+        await writeTextItems(
+          db,
+          'facet_predicate_creature_category_items',
+          'category_code',
+          conditionId,
+          condition.categories.map((value) =>
+            requireCreatureCategory(`facet condition "${conditionId}"`, value)
+          )
+        )
       }
       return
 
@@ -1175,11 +1340,13 @@ async function writePredicatePayload(
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
         await db
           .insertInto('facet_predicate_creature_type_items')
-          .values(condition.creatureTypeIds.map((creatureTypeId: string, index: number) => ({
-            facet_condition_id: conditionId,
-            creature_type_id: creatureTypeId,
-            sort_order: index + 1
-          })))
+          .values(
+            condition.creatureTypeIds.map((creatureTypeId: string, index: number) => ({
+              facet_condition_id: conditionId,
+              creature_type_id: creatureTypeId,
+              sort_order: index + 1
+            }))
+          )
           .execute()
       }
       return
@@ -1195,7 +1362,15 @@ async function writePredicatePayload(
     case 'VEHICLE_CATEGORY':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(db, 'facet_predicate_vehicle_category_items', 'category_code', conditionId, condition.categories.map((value) => requireVehicleCategory(`facet condition "${conditionId}"`, value)))
+        await writeTextItems(
+          db,
+          'facet_predicate_vehicle_category_items',
+          'category_code',
+          conditionId,
+          condition.categories.map((value) =>
+            requireVehicleCategory(`facet condition "${conditionId}"`, value)
+          )
+        )
       }
       return
 
@@ -1204,7 +1379,9 @@ async function writePredicatePayload(
       return
 
     default:
-      throw new Error(`Facet condition "${conditionId}" uses an unsupported predicate for typed persistence.`)
+      throw new Error(
+        `Facet condition "${conditionId}" uses an unsupported predicate for typed persistence.`
+      )
   }
 }
 
@@ -1214,29 +1391,45 @@ async function writeBody(
   subject: NodeSubjectCode,
   body: FacetBodyAuthored
 ): Promise<void> {
-  await db.insertInto('facet_bodies').values({
-    id: bodyId,
-    node_subject_code: subject
-  })
+  await db
+    .insertInto('facet_bodies')
+    .values({
+      id: bodyId,
+      node_subject_code: subject
+    })
     .execute()
 
-  await db.insertInto('facet_body_selections').values({
-    facet_body_id: bodyId,
-    authoring_mode_kind: requireAuthoringMode(`facet body "${bodyId}"`, String(body.authoringModeKind))
-  })
+  await db
+    .insertInto('facet_body_selections')
+    .values({
+      facet_body_id: bodyId,
+      authoring_mode_kind: requireAuthoringMode(
+        `facet body "${bodyId}"`,
+        String(body.authoringModeKind)
+      )
+    })
     .execute()
 
-  await replaceSelectionItems(db, 'facet_body_selection_items', 'facet_body_id', bodyId, subject, body as Record<string, unknown>)
+  await replaceSelectionItems(
+    db,
+    'facet_body_selection_items',
+    'facet_body_id',
+    bodyId,
+    subject,
+    body as Record<string, unknown>
+  )
 
   for (const group of body.groups) {
-    await db.insertInto('facet_body_groups').values({
-      id: group.id,
-      facet_body_id: bodyId,
-      sort_order: group.order
-    })
+    await db
+      .insertInto('facet_body_groups')
+      .values({
+        id: group.id,
+        facet_body_id: bodyId,
+        sort_order: group.order
+      })
       .execute()
 
-    for (const condition of (group.conditions ?? [])) {
+    for (const condition of group.conditions ?? []) {
       await writeCondition(db, group.id, subject, condition)
     }
   }
@@ -1251,54 +1444,76 @@ async function writeCondition(
   if (condition.kind === 'EXISTS') {
     const whereBodyId = condition.where ? getWhereBodyId(bodyGroupId, condition.id) : null
 
-    await db.insertInto('facet_conditions').values({
-      id: condition.id,
-      facet_body_group_id: bodyGroupId,
-      kind: condition.kind,
-      constraint_code: condition.constraint,
-      sort_order: condition.order,
-      relation_code: condition.relationCode,
-      predicate_code: null,
-      where_facet_body_id: whereBodyId
-    })
+    await db
+      .insertInto('facet_conditions')
+      .values({
+        id: condition.id,
+        facet_body_group_id: bodyGroupId,
+        kind: condition.kind,
+        constraint_code: condition.constraint,
+        sort_order: condition.order,
+        relation_code: condition.relationCode,
+        predicate_code: null,
+        where_facet_body_id: whereBodyId
+      })
       .execute()
 
-    await db.insertInto('facet_exists_selections').values({
-      facet_condition_id: condition.id,
-      authoring_mode_kind: requireAuthoringMode(`facet exists condition "${condition.id}"`, condition.authoringModeKind)
-    })
+    await db
+      .insertInto('facet_exists_selections')
+      .values({
+        facet_condition_id: condition.id,
+        authoring_mode_kind: requireAuthoringMode(
+          `facet exists condition "${condition.id}"`,
+          condition.authoringModeKind
+        )
+      })
       .execute()
 
-    const targetSubject = requireRelationTargetSubject(`facet exists condition "${condition.id}"`, subject, condition.relationCode)
+    const targetSubject = requireRelationTargetSubject(
+      `facet exists condition "${condition.id}"`,
+      subject,
+      condition.relationCode
+    )
 
-    await replaceSelectionItems(db, 'facet_exists_selection_items', 'facet_condition_id', condition.id, targetSubject, condition as Record<string, unknown>)
+    await replaceSelectionItems(
+      db,
+      'facet_exists_selection_items',
+      'facet_condition_id',
+      condition.id,
+      targetSubject,
+      condition as Record<string, unknown>
+    )
 
     if (condition.where) {
-      await writeBody(db, requireLinkedRecord(whereBodyId, 'Missing where body id.'), targetSubject, condition.where)
+      await writeBody(
+        db,
+        requireLinkedRecord(whereBodyId, 'Missing where body id.'),
+        targetSubject,
+        condition.where
+      )
     }
 
     return
   }
 
-  await db.insertInto('facet_conditions').values({
-    id: condition.id,
-    facet_body_group_id: bodyGroupId,
-    kind: condition.kind,
-    constraint_code: condition.constraint,
-    sort_order: condition.order,
-    predicate_code: condition.predicateCode,
-    relation_code: null,
-    where_facet_body_id: null
-  })
+  await db
+    .insertInto('facet_conditions')
+    .values({
+      id: condition.id,
+      facet_body_group_id: bodyGroupId,
+      kind: condition.kind,
+      constraint_code: condition.constraint,
+      sort_order: condition.order,
+      predicate_code: condition.predicateCode,
+      relation_code: null,
+      where_facet_body_id: null
+    })
     .execute()
 
   await writePredicatePayload(db, condition)
 }
 
-async function collectFacetBodyIds(
-  db: DBLike,
-  facetId: string
-): Promise<string[]> {
+async function collectFacetBodyIds(db: DBLike, facetId: string): Promise<string[]> {
   const bodyIds = new Set<string>()
   const contextBodyRows = await db
     .selectFrom('facet_groups')
@@ -1334,18 +1549,13 @@ async function collectFacetBodyIds(
   return [...bodyIds]
 }
 
-async function deleteExistingFacetGraph(
-  db: DBLike,
-  facetId: string
-): Promise<void> {
+async function deleteExistingFacetGraph(db: DBLike, facetId: string): Promise<void> {
   const bodyIds = await collectFacetBodyIds(db, facetId)
 
-  await db.deleteFrom('facets').where('id', '=', facetId)
-    .execute()
+  await db.deleteFrom('facets').where('id', '=', facetId).execute()
 
   if (bodyIds.length > 0) {
-    await db.deleteFrom('facet_bodies').where('id', 'in', bodyIds)
-      .execute()
+    await db.deleteFrom('facet_bodies').where('id', 'in', bodyIds).execute()
   }
 }
 
@@ -1358,21 +1568,24 @@ export async function upsertFacet<N extends NodeSubjectCode = NodeSubjectCode>(
   const authoredBodyIds = collectAuthoredFacetBodyIds(facet)
 
   if (authoredBodyIds.length > 0) {
-    await db.deleteFrom('facet_bodies').where('id', 'in', authoredBodyIds)
-      .execute()
+    await db.deleteFrom('facet_bodies').where('id', 'in', authoredBodyIds).execute()
   }
 
-  await db.insertInto('facets').values({
-    id: facet.id
-  })
+  await db
+    .insertInto('facets')
+    .values({
+      id: facet.id
+    })
     .execute()
 
   for (const group of facet.groups) {
-    await db.insertInto('facet_groups').values({
-      id: group.id,
-      facet_id: facet.id,
-      sort_order: group.order
-    })
+    await db
+      .insertInto('facet_groups')
+      .values({
+        id: group.id,
+        facet_id: facet.id,
+        sort_order: group.order
+      })
       .execute()
 
     for (const context of group.contexts) {
@@ -1380,44 +1593,64 @@ export async function upsertFacet<N extends NodeSubjectCode = NodeSubjectCode>(
       const bodyId = getContextBodyId(facet.id, context.id)
       const bodyGroupId = getContextBodyGroupId(facet.id, context.id)
 
-      await db.insertInto('facet_contexts').values({
-        id: context.id,
-        facet_group_id: group.id,
-        node_subject_code: subject,
-        sort_order: context.order
-      })
+      await db
+        .insertInto('facet_contexts')
+        .values({
+          id: context.id,
+          facet_group_id: group.id,
+          node_subject_code: subject,
+          sort_order: context.order
+        })
         .execute()
 
-      await db.insertInto('facet_bodies').values({
-        id: bodyId,
-        node_subject_code: subject
-      })
+      await db
+        .insertInto('facet_bodies')
+        .values({
+          id: bodyId,
+          node_subject_code: subject
+        })
         .execute()
 
-      await db.insertInto('facet_context_bodies').values({
-        facet_context_id: context.id,
-        facet_body_id: bodyId
-      })
+      await db
+        .insertInto('facet_context_bodies')
+        .values({
+          facet_context_id: context.id,
+          facet_body_id: bodyId
+        })
         .execute()
 
       if (subject !== 'CHARACTER') {
-        await db.insertInto('facet_body_selections').values({
-          facet_body_id: bodyId,
-          authoring_mode_kind: requireAuthoringMode(`facet context "${context.id}"`, String((context as Record<string, unknown>).authoringModeKind))
-        })
+        await db
+          .insertInto('facet_body_selections')
+          .values({
+            facet_body_id: bodyId,
+            authoring_mode_kind: requireAuthoringMode(
+              `facet context "${context.id}"`,
+              String((context as Record<string, unknown>).authoringModeKind)
+            )
+          })
           .execute()
 
-        await replaceSelectionItems(db, 'facet_body_selection_items', 'facet_body_id', bodyId, subject, context as Record<string, unknown>)
+        await replaceSelectionItems(
+          db,
+          'facet_body_selection_items',
+          'facet_body_id',
+          bodyId,
+          subject,
+          context as Record<string, unknown>
+        )
       }
 
-      await db.insertInto('facet_body_groups').values({
-        id: bodyGroupId,
-        facet_body_id: bodyId,
-        sort_order: 1
-      })
+      await db
+        .insertInto('facet_body_groups')
+        .values({
+          id: bodyGroupId,
+          facet_body_id: bodyId,
+          sort_order: 1
+        })
         .execute()
 
-      for (const condition of (context.conditions ?? [])) {
+      for (const condition of context.conditions ?? []) {
         await writeCondition(db, bodyGroupId, subject, condition)
       }
     }
@@ -1429,10 +1662,14 @@ async function hydratePredicateCondition(
   row: PredicateRow
 ): Promise<PredicateConditionAuthored> {
   const predicateCode = requirePredicateCode(`facet condition "${row.id}"`, row.predicate_code)
-  const sortable = requireLinkedRecord(await db.selectFrom('facet_conditions')
-    .select(['sort_order'])
-    .where('id', '=', row.id)
-    .executeTakeFirst(), `facet condition "${row.id}" is missing sort_order.`)
+  const sortable = requireLinkedRecord(
+    await db
+      .selectFrom('facet_conditions')
+      .select(['sort_order'])
+      .where('id', '=', row.id)
+      .executeTakeFirst(),
+    `facet condition "${row.id}" is missing sort_order.`
+  )
   const base = {
     id: row.id,
     order: sortable.sort_order,
@@ -1444,11 +1681,13 @@ async function hydratePredicateCondition(
   switch (predicateCode) {
     case 'CLASS_LEVEL': {
       const [range, classItems] = await Promise.all([
-        db.selectFrom('facet_predicate_numeric_ranges')
+        db
+          .selectFrom('facet_predicate_numeric_ranges')
           .select(['min_value', 'max_value'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_class_items')
+        db
+          .selectFrom('facet_predicate_class_items')
           .select(['class_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
@@ -1471,10 +1710,14 @@ async function hydratePredicateCondition(
     case 'SPELL_LEVEL':
     case 'SAVING_THROW_DC':
     case 'ARMOR_CLASS': {
-      const range = requireLinkedRecord(await db.selectFrom('facet_predicate_numeric_ranges')
-        .select(['min_value', 'max_value'])
-        .where('facet_condition_id', '=', row.id)
-        .executeTakeFirst(), `facet condition "${row.id}" is missing numeric range payload.`)
+      const range = requireLinkedRecord(
+        await db
+          .selectFrom('facet_predicate_numeric_ranges')
+          .select(['min_value', 'max_value'])
+          .where('facet_condition_id', '=', row.id)
+          .executeTakeFirst(),
+        `facet condition "${row.id}" is missing numeric range payload.`
+      )
 
       return {
         ...base,
@@ -1484,7 +1727,8 @@ async function hydratePredicateCondition(
     }
 
     case 'FEATURE_OBTAINED': {
-      const items = await db.selectFrom('facet_predicate_feature_items')
+      const items = await db
+        .selectFrom('facet_predicate_feature_items')
         .select(['feature_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1498,12 +1742,14 @@ async function hydratePredicateCondition(
 
     case 'OPTION_OBTAINED': {
       const [optionItems, featureItems] = await Promise.all([
-        db.selectFrom('facet_predicate_option_items')
+        db
+          .selectFrom('facet_predicate_option_items')
           .select(['option_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_feature_items')
+        db
+          .selectFrom('facet_predicate_feature_items')
           .select(['feature_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
@@ -1513,12 +1759,14 @@ async function hydratePredicateCondition(
       return {
         ...base,
         optionIds: optionItems.map((item) => item.option_id),
-        featureIds: featureItems.length > 0 ? featureItems.map((item) => item.feature_id) : undefined
+        featureIds:
+          featureItems.length > 0 ? featureItems.map((item) => item.feature_id) : undefined
       } as PredicateConditionAuthored
     }
 
     case 'SPELL_OBTAINED': {
-      const items = await db.selectFrom('facet_predicate_spell_items')
+      const items = await db
+        .selectFrom('facet_predicate_spell_items')
         .select(['spell_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1531,7 +1779,8 @@ async function hydratePredicateCondition(
     }
 
     case 'FEAT_OBTAINED': {
-      const items = await db.selectFrom('facet_predicate_feat_items')
+      const items = await db
+        .selectFrom('facet_predicate_feat_items')
         .select(['feat_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1545,7 +1794,8 @@ async function hydratePredicateCondition(
 
     case 'HERITAGE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_heritage_items')
+      const items = await db
+        .selectFrom('facet_predicate_heritage_items')
         .select(['heritage_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1572,32 +1822,51 @@ async function hydratePredicateCondition(
     case 'RANGE': {
       const [selection, rangeRow, rangeKindRows] = await Promise.all([
         hydratePredicateSelectable(db, row.id),
-        db.selectFrom('facet_predicate_ranges')
-          .select([
-            'range_kind', 'min_distance', 'max_distance', 'unit_code'
-          ])
+        db
+          .selectFrom('facet_predicate_ranges')
+          .select(['range_kind', 'min_distance', 'max_distance', 'unit_code'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_range_kind_items')
+        db
+          .selectFrom('facet_predicate_range_kind_items')
           .select(['range_kind', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute()
       ])
-      const rangeKinds = rangeKindRows.length > 0
-        ? rangeKindRows.map((item) => requireRangeKind(`facet condition "${row.id}"`, item.range_kind))
-        : (rangeRow?.range_kind ? [requireRangeKind(`facet condition "${row.id}"`, rangeRow.range_kind)] : [])
+      const rangeKinds =
+        rangeKindRows.length > 0
+          ? rangeKindRows.map((item) =>
+              requireRangeKind(`facet condition "${row.id}"`, item.range_kind)
+            )
+          : rangeRow?.range_kind
+            ? [requireRangeKind(`facet condition "${row.id}"`, rangeRow.range_kind)]
+            : []
       const includesDistance = rangeKinds.includes(RANGE_KIND.DISTANCE)
 
       if (selection.authoringModeKind === AUTHORING_MODE_KIND.ALL) {
-        const range = requireLinkedRecord(rangeRow, `facet condition "${row.id}" is missing range payload.`)
+        const range = requireLinkedRecord(
+          rangeRow,
+          `facet condition "${row.id}" is missing range payload.`
+        )
 
         return {
           ...base,
           ...selection,
-          min: Number(requireLinkedRecord(range.min_distance, `facet condition "${row.id}" is missing min_distance.`)),
+          min: Number(
+            requireLinkedRecord(
+              range.min_distance,
+              `facet condition "${row.id}" is missing min_distance.`
+            )
+          ),
           max: range.max_distance == null ? undefined : Number(range.max_distance),
-          unit: requireMeasurementUnitCode(`facet condition "${row.id}"`, requireLinkedRecord(range.unit_code, `facet condition "${row.id}" is missing unit_code.`))
+          unit: requireMeasurementUnitCode(
+            `facet condition "${row.id}"`,
+            requireLinkedRecord(
+              range.unit_code,
+              `facet condition "${row.id}" is missing unit_code.`
+            )
+          )
         } as PredicateConditionAuthored
       }
 
@@ -1615,9 +1884,23 @@ async function hydratePredicateCondition(
         rangeKind: rangeKinds,
         ...(includesDistance
           ? {
-              min: Number(requireLinkedRecord(requireLinkedRecord(rangeRow, `facet condition "${row.id}" is missing range payload.`).min_distance, `facet condition "${row.id}" is missing min_distance.`)),
+              min: Number(
+                requireLinkedRecord(
+                  requireLinkedRecord(
+                    rangeRow,
+                    `facet condition "${row.id}" is missing range payload.`
+                  ).min_distance,
+                  `facet condition "${row.id}" is missing min_distance.`
+                )
+              ),
               max: rangeRow?.max_distance == null ? undefined : Number(rangeRow.max_distance),
-              unit: requireMeasurementUnitCode(`facet condition "${row.id}"`, requireLinkedRecord(rangeRow?.unit_code, `facet condition "${row.id}" is missing unit_code.`))
+              unit: requireMeasurementUnitCode(
+                `facet condition "${row.id}"`,
+                requireLinkedRecord(
+                  rangeRow?.unit_code,
+                  `facet condition "${row.id}" is missing unit_code.`
+                )
+              )
             }
           : {})
       } as PredicateConditionAuthored
@@ -1626,28 +1909,43 @@ async function hydratePredicateCondition(
     case 'DURATION': {
       const [selection, durationRow, durationKindRows] = await Promise.all([
         hydratePredicateSelectable(db, row.id),
-        db.selectFrom('facet_predicate_durations')
+        db
+          .selectFrom('facet_predicate_durations')
           .select(['duration_kind', 'min_amount', 'max_amount'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_duration_kind_items')
+        db
+          .selectFrom('facet_predicate_duration_kind_items')
           .select(['duration_kind', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute()
       ])
-      const durationKinds = durationKindRows.length > 0
-        ? durationKindRows.map((item) => requireDurationKind(`facet condition "${row.id}"`, item.duration_kind))
-        : (durationRow?.duration_kind ? [requireDurationKind(`facet condition "${row.id}"`, durationRow.duration_kind)] : [])
+      const durationKinds =
+        durationKindRows.length > 0
+          ? durationKindRows.map((item) =>
+              requireDurationKind(`facet condition "${row.id}"`, item.duration_kind)
+            )
+          : durationRow?.duration_kind
+            ? [requireDurationKind(`facet condition "${row.id}"`, durationRow.duration_kind)]
+            : []
       const includesInstantaneous = durationKinds.includes(DURATION_KIND.INSTANTANEOUS)
 
       if (selection.authoringModeKind === AUTHORING_MODE_KIND.ALL) {
-        const duration = requireLinkedRecord(durationRow, `facet condition "${row.id}" is missing duration payload.`)
+        const duration = requireLinkedRecord(
+          durationRow,
+          `facet condition "${row.id}" is missing duration payload.`
+        )
 
         return {
           ...base,
           ...selection,
-          min: Number(requireLinkedRecord(duration.min_amount, `facet condition "${row.id}" is missing min_amount.`)),
+          min: Number(
+            requireLinkedRecord(
+              duration.min_amount,
+              `facet condition "${row.id}" is missing min_amount.`
+            )
+          ),
           max: duration.max_amount == null ? undefined : Number(duration.max_amount)
         } as PredicateConditionAuthored
       }
@@ -1657,7 +1955,9 @@ async function hydratePredicateCondition(
       }
 
       if (includesInstantaneous && durationKinds.length !== 1) {
-        throw new Error(`facet condition "${row.id}" cannot mix INSTANTANEOUS with timed duration kinds.`)
+        throw new Error(
+          `facet condition "${row.id}" cannot mix INSTANTANEOUS with timed duration kinds.`
+        )
       }
 
       return {
@@ -1667,16 +1967,24 @@ async function hydratePredicateCondition(
         ...(includesInstantaneous
           ? {}
           : {
-              min: Number(requireLinkedRecord(requireLinkedRecord(durationRow, `facet condition "${row.id}" is missing duration payload.`).min_amount, `facet condition "${row.id}" is missing min_amount.`)),
+              min: Number(
+                requireLinkedRecord(
+                  requireLinkedRecord(
+                    durationRow,
+                    `facet condition "${row.id}" is missing duration payload.`
+                  ).min_amount,
+                  `facet condition "${row.id}" is missing min_amount.`
+                )
+              ),
               max: durationRow?.max_amount == null ? undefined : Number(durationRow.max_amount)
-            }
-        )
+            })
       } as PredicateConditionAuthored
     }
 
     case 'MAGIC_SCHOOL': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_magic_school_items')
+      const items = await db
+        .selectFrom('facet_predicate_magic_school_items')
         .select(['magic_school_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1694,7 +2002,8 @@ async function hydratePredicateCondition(
     case 'SPELLCASTING_ABILITY':
     case 'SAVING_THROW_ABILITY': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_ability_items')
+      const items = await db
+        .selectFrom('facet_predicate_ability_items')
         .select(['ability_code', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1704,7 +2013,11 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { abilities: items.map((item) => requireAbilityCode(`facet condition "${row.id}"`, item.ability_code)) }
+          ? {
+              abilities: items.map((item) =>
+                requireAbilityCode(`facet condition "${row.id}"`, item.ability_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
@@ -1712,12 +2025,14 @@ async function hydratePredicateCondition(
     case 'ABILITY_SCORE': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [items, range] = await Promise.all([
-        db.selectFrom('facet_predicate_ability_items')
+        db
+          .selectFrom('facet_predicate_ability_items')
           .select(['ability_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_numeric_ranges')
+        db
+          .selectFrom('facet_predicate_numeric_ranges')
           .select(['min_value', 'max_value'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst()
@@ -1726,10 +2041,20 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        min: Number(requireLinkedRecord(range, `facet condition "${row.id}" is missing numeric range payload.`).min_value),
+        min: Number(
+          requireLinkedRecord(
+            range,
+            `facet condition "${row.id}" is missing numeric range payload.`
+          ).min_value
+        ),
         max: range?.max_value == null ? undefined : Number(range.max_value),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { abilities: requireSingleAbility(row.id, items.map((item) => item.ability_code)) }
+          ? {
+              abilities: requireSingleAbility(
+                row.id,
+                items.map((item) => item.ability_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
@@ -1737,12 +2062,14 @@ async function hydratePredicateCondition(
     case 'SAVING_THROW_ABILITY_BONUS': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [items, range] = await Promise.all([
-        db.selectFrom('facet_predicate_ability_items')
+        db
+          .selectFrom('facet_predicate_ability_items')
           .select(['ability_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_numeric_ranges')
+        db
+          .selectFrom('facet_predicate_numeric_ranges')
           .select(['min_value', 'max_value'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst()
@@ -1751,10 +2078,20 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        min: Number(requireLinkedRecord(range, `facet condition "${row.id}" is missing numeric range payload.`).min_value),
+        min: Number(
+          requireLinkedRecord(
+            range,
+            `facet condition "${row.id}" is missing numeric range payload.`
+          ).min_value
+        ),
         max: range?.max_value == null ? undefined : Number(range.max_value),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { abilities: requireSingleAbility(row.id, items.map((item) => item.ability_code)) }
+          ? {
+              abilities: requireSingleAbility(
+                row.id,
+                items.map((item) => item.ability_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
@@ -1762,12 +2099,14 @@ async function hydratePredicateCondition(
     case 'SAVE_ABILITY_PROFICIENCY': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [items, levelRow] = await Promise.all([
-        db.selectFrom('facet_predicate_ability_items')
+        db
+          .selectFrom('facet_predicate_ability_items')
           .select(['ability_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_proficiency_levels')
+        db
+          .selectFrom('facet_predicate_proficiency_levels')
           .select(['proficiency_level'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst()
@@ -1776,18 +2115,31 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        level: requireScalingAmountKind(`facet condition "${row.id}"`, requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`).proficiency_level),
+        level: requireScalingAmountKind(
+          `facet condition "${row.id}"`,
+          requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`)
+            .proficiency_level
+        ),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { abilities: requireSingleAbility(row.id, items.map((item) => item.ability_code)) }
+          ? {
+              abilities: requireSingleAbility(
+                row.id,
+                items.map((item) => item.ability_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'EQUIPMENT_CATEGORY': {
-      const rowData = requireLinkedRecord(await db.selectFrom('facet_predicate_equipment_categories')
-        .select(['category_code'])
-        .where('facet_condition_id', '=', row.id)
-        .executeTakeFirst(), `facet condition "${row.id}" is missing equipment category payload.`)
+      const rowData = requireLinkedRecord(
+        await db
+          .selectFrom('facet_predicate_equipment_categories')
+          .select(['category_code'])
+          .where('facet_condition_id', '=', row.id)
+          .executeTakeFirst(),
+        `facet condition "${row.id}" is missing equipment category payload.`
+      )
 
       return {
         ...base,
@@ -1799,11 +2151,13 @@ async function hydratePredicateCondition(
     case 'EQUIPMENT_PROPERTY_PROFICIENCY': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [categoryRow, propertyItems] = await Promise.all([
-        db.selectFrom('facet_predicate_equipment_categories')
+        db
+          .selectFrom('facet_predicate_equipment_categories')
           .select(['category_code'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_equipment_property_items')
+        db
+          .selectFrom('facet_predicate_equipment_property_items')
           .select(['property_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
@@ -1813,35 +2167,40 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        category: categoryRow ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code) : undefined,
+        category: categoryRow
+          ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code)
+          : undefined,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { properties: propertyItems.map((item) => requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code)) }
+          ? {
+              properties: propertyItems.map((item) =>
+                requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'EQUIPMENT_PROFICIENCY': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const [
-        categoryRow,
-        propertyItems,
-        levelRow,
-        equipmentItems
-      ] = await Promise.all([
-        db.selectFrom('facet_predicate_equipment_categories')
+      const [categoryRow, propertyItems, levelRow, equipmentItems] = await Promise.all([
+        db
+          .selectFrom('facet_predicate_equipment_categories')
           .select(['category_code'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_equipment_property_items')
+        db
+          .selectFrom('facet_predicate_equipment_property_items')
           .select(['property_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_proficiency_levels')
+        db
+          .selectFrom('facet_predicate_proficiency_levels')
           .select(['proficiency_level'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_equipment_items')
+        db
+          .selectFrom('facet_predicate_equipment_items')
           .select(['equipment_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
@@ -1851,11 +2210,20 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        category: categoryRow ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code) : undefined,
-        properties: propertyItems.length > 0
-          ? propertyItems.map((item) => requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code))
+        category: categoryRow
+          ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code)
           : undefined,
-        level: requireScalingAmountKind(`facet condition "${row.id}"`, requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`).proficiency_level),
+        properties:
+          propertyItems.length > 0
+            ? propertyItems.map((item) =>
+                requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code)
+              )
+            : undefined,
+        level: requireScalingAmountKind(
+          `facet condition "${row.id}"`,
+          requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`)
+            .proficiency_level
+        ),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
           ? { equipmentIds: equipmentItems.map((item) => item.equipment_id) }
           : {})
@@ -1865,16 +2233,19 @@ async function hydratePredicateCondition(
     case 'EQUIPMENT_EQUIPPED': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [categoryRow, propertyItems, equipmentItems] = await Promise.all([
-        db.selectFrom('facet_predicate_equipment_categories')
+        db
+          .selectFrom('facet_predicate_equipment_categories')
           .select(['category_code'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst(),
-        db.selectFrom('facet_predicate_equipment_property_items')
+        db
+          .selectFrom('facet_predicate_equipment_property_items')
           .select(['property_code', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_equipment_items')
+        db
+          .selectFrom('facet_predicate_equipment_items')
           .select(['equipment_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
@@ -1884,10 +2255,15 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        category: categoryRow ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code) : undefined,
-        properties: propertyItems.length > 0
-          ? propertyItems.map((item) => requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code))
+        category: categoryRow
+          ? requireEquipmentCategory(`facet condition "${row.id}"`, categoryRow.category_code)
           : undefined,
+        properties:
+          propertyItems.length > 0
+            ? propertyItems.map((item) =>
+                requireEquipmentProperty(`facet condition "${row.id}"`, item.property_code)
+              )
+            : undefined,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
           ? { equipmentIds: equipmentItems.map((item) => item.equipment_id) }
           : {})
@@ -1896,7 +2272,8 @@ async function hydratePredicateCondition(
 
     case 'DAMAGE_TYPE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_damage_type_items')
+      const items = await db
+        .selectFrom('facet_predicate_damage_type_items')
         .select(['damage_type_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1913,7 +2290,8 @@ async function hydratePredicateCondition(
 
     case 'CONDITION_TYPE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_condition_type_items')
+      const items = await db
+        .selectFrom('facet_predicate_condition_type_items')
         .select(['condition_type_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1930,7 +2308,8 @@ async function hydratePredicateCondition(
 
     case 'SUBCLASS_SPECIALIZATION': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_subclass_specialization_items')
+      const items = await db
+        .selectFrom('facet_predicate_subclass_specialization_items')
         .select(['specialization_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1947,7 +2326,8 @@ async function hydratePredicateCondition(
 
     case 'SIZE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_size_items')
+      const items = await db
+        .selectFrom('facet_predicate_size_items')
         .select(['size_code', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1957,14 +2337,19 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { sizes: items.map((item) => requireSizeCode(`facet condition "${row.id}"`, item.size_code)) }
+          ? {
+              sizes: items.map((item) =>
+                requireSizeCode(`facet condition "${row.id}"`, item.size_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'CREATURE_CATEGORY': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_creature_category_items')
+      const items = await db
+        .selectFrom('facet_predicate_creature_category_items')
         .select(['category_code', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1974,14 +2359,19 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { categories: items.map((item) => requireCreatureCategory(`facet condition "${row.id}"`, item.category_code)) }
+          ? {
+              categories: items.map((item) =>
+                requireCreatureCategory(`facet condition "${row.id}"`, item.category_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'CREATURE_TYPE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_creature_type_items')
+      const items = await db
+        .selectFrom('facet_predicate_creature_type_items')
         .select(['creature_type_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -1999,7 +2389,8 @@ async function hydratePredicateCondition(
     case 'CREATURE_SIZE':
     case 'VEHICLE_SIZE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_size_items')
+      const items = await db
+        .selectFrom('facet_predicate_size_items')
         .select(['size_code', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -2009,7 +2400,11 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { sizes: items.map((item) => requireSizeCode(`facet condition "${row.id}"`, item.size_code)) }
+          ? {
+              sizes: items.map((item) =>
+                requireSizeCode(`facet condition "${row.id}"`, item.size_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
@@ -2020,7 +2415,8 @@ async function hydratePredicateCondition(
 
     case 'VEHICLE_CATEGORY': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_vehicle_category_items')
+      const items = await db
+        .selectFrom('facet_predicate_vehicle_category_items')
         .select(['category_code', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -2030,14 +2426,19 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { categories: items.map((item) => requireVehicleCategory(`facet condition "${row.id}"`, item.category_code)) }
+          ? {
+              categories: items.map((item) =>
+                requireVehicleCategory(`facet condition "${row.id}"`, item.category_code)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'CHARGE_LIMIT_KIND': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_charge_limit_kind_items')
+      const items = await db
+        .selectFrom('facet_predicate_charge_limit_kind_items')
         .select(['charge_limit_kind', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -2047,14 +2448,19 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { chargeLimitKind: items.map((item) => requireChargeLimitKind(`facet condition "${row.id}"`, item.charge_limit_kind)) }
+          ? {
+              chargeLimitKind: items.map((item) =>
+                requireChargeLimitKind(`facet condition "${row.id}"`, item.charge_limit_kind)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
 
     case 'CHARGE_RESET_KIND': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_charge_reset_kind_items')
+      const items = await db
+        .selectFrom('facet_predicate_charge_reset_kind_items')
         .select(['charge_reset_kind', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
@@ -2064,7 +2470,11 @@ async function hydratePredicateCondition(
         ...base,
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
-          ? { chargeResetKind: items.map((item) => requireChargeResetKind(`facet condition "${row.id}"`, item.charge_reset_kind)) }
+          ? {
+              chargeResetKind: items.map((item) =>
+                requireChargeResetKind(`facet condition "${row.id}"`, item.charge_reset_kind)
+              )
+            }
           : {})
       } as PredicateConditionAuthored
     }
@@ -2072,24 +2482,33 @@ async function hydratePredicateCondition(
     case 'SKILL_PROFICIENCY':
     case 'SKILL_SCORE': {
       const selection = await hydratePredicateSelectable(db, row.id)
-      const items = await db.selectFrom('facet_predicate_skill_items')
+      const items = await db
+        .selectFrom('facet_predicate_skill_items')
         .select(['skill_id', 'sort_order'])
         .where('facet_condition_id', '=', row.id)
         .orderBy('sort_order')
         .execute()
-      const levelRow = predicateCode === 'SKILL_PROFICIENCY'
-        ? await db.selectFrom('facet_predicate_proficiency_levels')
-            .select(['proficiency_level'])
-            .where('facet_condition_id', '=', row.id)
-            .executeTakeFirst()
-        : null
+      const levelRow =
+        predicateCode === 'SKILL_PROFICIENCY'
+          ? await db
+              .selectFrom('facet_predicate_proficiency_levels')
+              .select(['proficiency_level'])
+              .where('facet_condition_id', '=', row.id)
+              .executeTakeFirst()
+          : null
 
       return {
         ...base,
         ...selection,
         ...(predicateCode === 'SKILL_PROFICIENCY'
           ? {
-              level: requireScalingAmountKind(`facet condition "${row.id}"`, requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`).proficiency_level)
+              level: requireScalingAmountKind(
+                `facet condition "${row.id}"`,
+                requireLinkedRecord(
+                  levelRow,
+                  `facet condition "${row.id}" is missing proficiency level.`
+                ).proficiency_level
+              )
             }
           : {}),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
@@ -2101,12 +2520,14 @@ async function hydratePredicateCondition(
     case 'LANGUAGE_PROFICIENCY': {
       const selection = await hydratePredicateSelectable(db, row.id)
       const [items, levelRow] = await Promise.all([
-        db.selectFrom('facet_predicate_language_items')
+        db
+          .selectFrom('facet_predicate_language_items')
           .select(['language_id', 'sort_order'])
           .where('facet_condition_id', '=', row.id)
           .orderBy('sort_order')
           .execute(),
-        db.selectFrom('facet_predicate_proficiency_levels')
+        db
+          .selectFrom('facet_predicate_proficiency_levels')
           .select(['proficiency_level'])
           .where('facet_condition_id', '=', row.id)
           .executeTakeFirst()
@@ -2115,7 +2536,11 @@ async function hydratePredicateCondition(
       return {
         ...base,
         ...selection,
-        level: requireScalingAmountKind(`facet condition "${row.id}"`, requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`).proficiency_level),
+        level: requireScalingAmountKind(
+          `facet condition "${row.id}"`,
+          requireLinkedRecord(levelRow, `facet condition "${row.id}" is missing proficiency level.`)
+            .proficiency_level
+        ),
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
           ? { languageIds: items.map((item) => item.language_id) }
           : {})
@@ -2143,12 +2568,27 @@ async function hydrateCondition(
   }
 
   const relationCode = String(row.relation_code)
-  const targetSubject = requireRelationTargetSubject(`facet condition "${row.id}"`, parentSubject, relationCode)
-  const selection = await hydrateSelection(db, 'facet_exists_selections', 'facet_exists_selection_items', 'facet_condition_id', row.id, targetSubject)
-  const orderRow = requireLinkedRecord(await db.selectFrom('facet_conditions')
-    .select(['sort_order'])
-    .where('id', '=', row.id)
-    .executeTakeFirst(), `facet condition "${row.id}" is missing sort_order.`)
+  const targetSubject = requireRelationTargetSubject(
+    `facet condition "${row.id}"`,
+    parentSubject,
+    relationCode
+  )
+  const selection = await hydrateSelection(
+    db,
+    'facet_exists_selections',
+    'facet_exists_selection_items',
+    'facet_condition_id',
+    row.id,
+    targetSubject
+  )
+  const orderRow = requireLinkedRecord(
+    await db
+      .selectFrom('facet_conditions')
+      .select(['sort_order'])
+      .where('id', '=', row.id)
+      .executeTakeFirst(),
+    `facet condition "${row.id}" is missing sort_order.`
+  )
 
   return {
     id: row.id,
@@ -2157,52 +2597,64 @@ async function hydrateCondition(
     constraint: requireConstraint(`facet condition "${row.id}"`, row.constraint_code),
     relationCode,
     ...selection,
-    where: row.where_facet_body_id
-      ? await hydrateBodyById(db, row.where_facet_body_id)
-      : undefined
+    where: row.where_facet_body_id ? await hydrateBodyById(db, row.where_facet_body_id) : undefined
   } as ExistsConditionAuthored
 }
 
-async function hydrateBodyById(
-  db: DBLike,
-  bodyId: string
-): Promise<FacetBodyAuthored> {
-  const bodyRow = requireLinkedRecord(await db.selectFrom('facet_bodies')
-    .select(['id', 'node_subject_code'])
-    .where('id', '=', bodyId)
-    .executeTakeFirst(), `facet body "${bodyId}" is missing.`)
+async function hydrateBodyById(db: DBLike, bodyId: string): Promise<FacetBodyAuthored> {
+  const bodyRow = requireLinkedRecord(
+    await db
+      .selectFrom('facet_bodies')
+      .select(['id', 'node_subject_code'])
+      .where('id', '=', bodyId)
+      .executeTakeFirst(),
+    `facet body "${bodyId}" is missing.`
+  )
   const subject = requireNodeSubject(`facet body "${bodyId}"`, bodyRow.node_subject_code)
-  const selection = await hydrateSelection(db, 'facet_body_selections', 'facet_body_selection_items', 'facet_body_id', bodyId, subject)
-  const groupRows = await db.selectFrom('facet_body_groups')
+  const selection = await hydrateSelection(
+    db,
+    'facet_body_selections',
+    'facet_body_selection_items',
+    'facet_body_id',
+    bodyId,
+    subject
+  )
+  const groupRows = await db
+    .selectFrom('facet_body_groups')
     .select(['id', 'sort_order'])
     .where('facet_body_id', '=', bodyId)
     .orderBy('sort_order')
     .execute()
 
-  const groups = await Promise.all(groupRows.map(async (groupRow) => {
-    const conditionRows = await db.selectFrom('facet_conditions')
-      .select([
-        'id',
-        'kind',
-        'constraint_code',
-        'predicate_code',
-        'relation_code',
-        'where_facet_body_id'
-      ])
-      .where('facet_body_group_id', '=', groupRow.id)
-      .orderBy('sort_order')
-      .execute()
+  const groups = await Promise.all(
+    groupRows.map(async (groupRow) => {
+      const conditionRows = await db
+        .selectFrom('facet_conditions')
+        .select([
+          'id',
+          'kind',
+          'constraint_code',
+          'predicate_code',
+          'relation_code',
+          'where_facet_body_id'
+        ])
+        .where('facet_body_group_id', '=', groupRow.id)
+        .orderBy('sort_order')
+        .execute()
 
-    const conditions = await Promise.all(
-      conditionRows.map((conditionRow) => hydrateCondition(db, conditionRow as PredicateRow, subject))
-    )
+      const conditions = await Promise.all(
+        conditionRows.map((conditionRow) =>
+          hydrateCondition(db, conditionRow as PredicateRow, subject)
+        )
+      )
 
-    return {
-      id: groupRow.id,
-      order: groupRow.sort_order,
-      ...(conditions.length > 0 ? { conditions } : {})
-    }
-  }))
+      return {
+        id: groupRow.id,
+        order: groupRow.sort_order,
+        ...(conditions.length > 0 ? { conditions } : {})
+      }
+    })
+  )
 
   return {
     ...selection,
@@ -2224,79 +2676,105 @@ export async function hydrateFacetById<N extends NodeSubjectCode = NodeSubjectCo
     return null
   }
 
-  const groupRows = await db.selectFrom('facet_groups')
+  const groupRows = await db
+    .selectFrom('facet_groups')
     .select(['id', 'sort_order'])
     .where('facet_id', '=', facetId)
     .orderBy('sort_order')
     .execute()
 
-  const groups = await Promise.all(groupRows.map(async (groupRow) => {
-    const contextRows = await db.selectFrom('facet_contexts')
-      .select(['id', 'node_subject_code', 'sort_order'])
-      .where('facet_group_id', '=', groupRow.id)
-      .orderBy('sort_order')
-      .execute()
-
-    const contexts = await Promise.all(contextRows.map(async (contextRow) => {
-      const subject = requireNodeSubject(`facet context "${contextRow.id}"`, contextRow.node_subject_code)
-      const bodyRow = requireLinkedRecord(await db.selectFrom('facet_context_bodies')
-        .select(['facet_body_id'])
-        .where('facet_context_id', '=', contextRow.id)
-        .executeTakeFirst(), `facet context "${contextRow.id}" is missing body mapping.`)
-      const bodyId = bodyRow.facet_body_id
-      const conditionGroupRows = await db.selectFrom('facet_body_groups')
-        .select(['id'])
-        .where('facet_body_id', '=', bodyId)
+  const groups = await Promise.all(
+    groupRows.map(async (groupRow) => {
+      const contextRows = await db
+        .selectFrom('facet_contexts')
+        .select(['id', 'node_subject_code', 'sort_order'])
+        .where('facet_group_id', '=', groupRow.id)
         .orderBy('sort_order')
         .execute()
 
-      const conditions = (
-        await Promise.all(conditionGroupRows.map(async (bodyGroupRow) => {
-          const conditionRows = await db.selectFrom('facet_conditions')
-            .select([
-              'id',
-              'kind',
-              'constraint_code',
-              'predicate_code',
-              'relation_code',
-              'where_facet_body_id'
-            ])
-            .where('facet_body_group_id', '=', bodyGroupRow.id)
+      const contexts = await Promise.all(
+        contextRows.map(async (contextRow) => {
+          const subject = requireNodeSubject(
+            `facet context "${contextRow.id}"`,
+            contextRow.node_subject_code
+          )
+          const bodyRow = requireLinkedRecord(
+            await db
+              .selectFrom('facet_context_bodies')
+              .select(['facet_body_id'])
+              .where('facet_context_id', '=', contextRow.id)
+              .executeTakeFirst(),
+            `facet context "${contextRow.id}" is missing body mapping.`
+          )
+          const bodyId = bodyRow.facet_body_id
+          const conditionGroupRows = await db
+            .selectFrom('facet_body_groups')
+            .select(['id'])
+            .where('facet_body_id', '=', bodyId)
             .orderBy('sort_order')
             .execute()
 
-          return Promise.all(
-            conditionRows.map((conditionRow) => hydrateCondition(db, conditionRow as PredicateRow, subject))
+          const conditions = (
+            await Promise.all(
+              conditionGroupRows.map(async (bodyGroupRow) => {
+                const conditionRows = await db
+                  .selectFrom('facet_conditions')
+                  .select([
+                    'id',
+                    'kind',
+                    'constraint_code',
+                    'predicate_code',
+                    'relation_code',
+                    'where_facet_body_id'
+                  ])
+                  .where('facet_body_group_id', '=', bodyGroupRow.id)
+                  .orderBy('sort_order')
+                  .execute()
+
+                return Promise.all(
+                  conditionRows.map((conditionRow) =>
+                    hydrateCondition(db, conditionRow as PredicateRow, subject)
+                  )
+                )
+              })
+            )
+          ).flat()
+
+          if (subject === 'CHARACTER') {
+            return {
+              id: contextRow.id,
+              order: contextRow.sort_order,
+              subject,
+              ...(conditions.length > 0 ? { conditions } : {})
+            } as unknown as FacetContextAuthored
+          }
+
+          const selection = await hydrateSelection(
+            db,
+            'facet_body_selections',
+            'facet_body_selection_items',
+            'facet_body_id',
+            bodyId,
+            subject
           )
-        }))
-      ).flat()
 
-      if (subject === 'CHARACTER') {
-        return {
-          id: contextRow.id,
-          order: contextRow.sort_order,
-          subject,
-          ...(conditions.length > 0 ? { conditions } : {})
-        } as unknown as FacetContextAuthored
-      }
-
-      const selection = await hydrateSelection(db, 'facet_body_selections', 'facet_body_selection_items', 'facet_body_id', bodyId, subject)
+          return {
+            id: contextRow.id,
+            order: contextRow.sort_order,
+            subject,
+            ...selection,
+            ...(conditions.length > 0 ? { conditions } : {})
+          } as unknown as FacetContextAuthored
+        })
+      )
 
       return {
-        id: contextRow.id,
-        order: contextRow.sort_order,
-        subject,
-        ...selection,
-        ...(conditions.length > 0 ? { conditions } : {})
-      } as unknown as FacetContextAuthored
-    }))
-
-    return {
-      id: groupRow.id,
-      order: groupRow.sort_order,
-      contexts
-    }
-  }))
+        id: groupRow.id,
+        order: groupRow.sort_order,
+        contexts
+      }
+    })
+  )
 
   return {
     id: row.id,

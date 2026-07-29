@@ -174,7 +174,8 @@ function createChoice(
     grantKind: grant.grantKind,
     label: getGrantChoiceLabel(owner.label, grant),
     ownerFeatureId: owner.ownerFeatureId,
-    proficiencyKind: grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.proficiencyKind : undefined,
+    proficiencyKind:
+      grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.proficiencyKind : undefined,
     proficiencyLevel: grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.level : undefined,
     displayCategory: grant.grantKind === GRANT_KIND.PROFICIENCY_GRANT ? grant.category : undefined,
     sourceLabel: owner.sourceLabel,
@@ -213,9 +214,7 @@ function applyProficiencyEligibility(
   fixedLevels: Map<string, ProficiencyLevels>
 ): CharacterBuilderChosenGrantChoice {
   if (!choice.proficiencyKind || !choice.proficiencyLevel) return choice
-  const otherLevels = new Map(
-    [...fixedLevels].map(([key, levels]) => [key, { ...levels }])
-  )
+  const otherLevels = new Map([...fixedLevels].map(([key, levels]) => [key, { ...levels }]))
   for (const other of choices) {
     if (other.id === choice.id || !other.proficiencyKind || !other.proficiencyLevel) continue
     for (const targetId of other.selectedTargetIds) {

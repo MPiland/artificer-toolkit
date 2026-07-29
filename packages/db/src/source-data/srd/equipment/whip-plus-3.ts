@@ -14,5 +14,5 @@ export const whipPlus3: EquipmentVariantAuthored = {
   maxBonus: 3,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(230), 3),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

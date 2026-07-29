@@ -72,27 +72,35 @@ function FeatsRoute() {
         attributeColumns={featListAttributeColumns}
         sortOptions={featListSortOptions}
         onCreate={() => navigate({ to: '/feats/new' })}
-        onView={(item) => navigate({
-          params: buildFeatRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/feats/$featPublicId/$featSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildFeatRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/feats/$featPublicId/$featSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getFeat({
-            id: item.id,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getFeat({
+              id: item.id,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildFeatRouteParams(item.publicId, item.name),
-          to: '/feats/$featPublicId/$featSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildFeatRouteParams(item.publicId, item.name),
+            to: '/feats/$featPublicId/$featSlug/edit'
+          })
+        }
         onCopy={(item) => duplicateMutation.mutate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

@@ -11,4 +11,3 @@ export * from './manualAdjudication.js'
 export * from './effect.js'
 export * from './path.js'
 export * from './targeting.js'
-

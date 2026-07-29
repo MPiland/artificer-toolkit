@@ -190,9 +190,8 @@ async function findSelectedRevision(
   const routePredicate = uuidPattern.test(params.routeId)
     ? sql`route.subject_id = ${params.routeId.toLowerCase()}::uuid`
     : sql`route.public_id = ${params.routeId.toLowerCase()}`
-  const ownerPredicate = params.view === 'draft'
-    ? sql`and definition.owner_user_id = ${params.userId}`
-    : sql``
+  const ownerPredicate =
+    params.view === 'draft' ? sql`and definition.owner_user_id = ${params.userId}` : sql``
 
   const result = await sql<AuthoredDefinitionSelectedRevisionRow>`
     select

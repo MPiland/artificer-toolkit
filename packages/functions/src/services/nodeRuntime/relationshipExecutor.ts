@@ -69,10 +69,7 @@ async function executeRelationship(
       const where = resolveWhere(plan.where, scope, table)
       const selectedColumns = plan.selectColumns ?? implicitTableOptionColumns[plan.table] ?? ['id']
       const columns = requiredColumns(table, selectedColumns, where)
-      return filterRows(
-        await queryTrustedTable(db, table, columns, where, scope.systemId),
-        where
-      )
+      return filterRows(await queryTrustedTable(db, table, columns, where, scope.systemId), where)
     }
     case 'MAP_VALUES':
       return executeMapValues(db, plan, scope, stream)
@@ -379,9 +376,7 @@ function assertTrustedTable(tableName: string): NodeRuntimeSourceTable {
 
 function assertTrustedColumn(table: NodeRuntimeSourceTable, columnName: string): string {
   if (!isNodeRuntimeSourceColumn(table, columnName)) {
-    throw new NodeRuntimeInputError(
-      `Untrusted node runtime column for ${table}: ${columnName}`
-    )
+    throw new NodeRuntimeInputError(`Untrusted node runtime column for ${table}: ${columnName}`)
   }
 
   return columnName

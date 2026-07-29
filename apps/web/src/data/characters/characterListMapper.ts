@@ -1,5 +1,9 @@
 import type { CharacterListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
 function formatStatus(status: string | undefined): string {
   if (!status) return 'Draft'
@@ -62,25 +66,33 @@ function mapCharacterListItemToAuthoredItem(item: CharacterListItem): AuthoredLi
   }
 }
 
-export function mapCharacterListToAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
+export function mapCharacterListToAuthoredItems(
+  response: CharacterListResponseDto
+): AuthoredListItem[] {
   return response.items.map(mapCharacterListItemToAuthoredItem)
 }
 
-export function mapCharacterListToActiveAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
+export function mapCharacterListToActiveAuthoredItems(
+  response: CharacterListResponseDto
+): AuthoredListItem[] {
   return response.items
     .filter((item) => !isDraftOnlyCharacterListItem(item))
     .map(mapCharacterListItemToAuthoredItem)
 }
 
-export function mapCharacterListToDraftAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
-  return response.items
-    .filter(hasCharacterDraftWork)
-    .map(mapCharacterListItemToAuthoredItem)
+export function mapCharacterListToDraftAuthoredItems(
+  response: CharacterListResponseDto
+): AuthoredListItem[] {
+  return response.items.filter(hasCharacterDraftWork).map(mapCharacterListItemToAuthoredItem)
 }
 
-export function buildCharacterListFilters(response: CharacterListResponseDto): AuthoredListFilter[] {
+export function buildCharacterListFilters(
+  response: CharacterListResponseDto
+): AuthoredListFilter[] {
   const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
-  const draftStates = Array.from(new Set(response.items.map((item) => item.draft?.draftState ?? 'ACTIVE'))).sort()
+  const draftStates = Array.from(
+    new Set(response.items.map((item) => item.draft?.draftState ?? 'ACTIVE'))
+  ).sort()
 
   return [
     {
@@ -98,11 +110,12 @@ export function buildCharacterListFilters(response: CharacterListResponseDto): A
       placeholder: 'Any draft state',
       options: draftStates.map((draftState) => ({
         value: draftState,
-        label: draftState === 'ACTIVE'
-          ? 'No draft'
-          : draftState === 'ACTIVE_WITH_DRAFT'
-            ? 'Active with draft'
-            : 'Draft only'
+        label:
+          draftState === 'ACTIVE'
+            ? 'No draft'
+            : draftState === 'ACTIVE_WITH_DRAFT'
+              ? 'Active with draft'
+              : 'Draft only'
       }))
     }
   ]
@@ -118,7 +131,9 @@ export const characterListSortOptions = [
 ]
 
 export function summarizeCharacterList(response: CharacterListResponseDto) {
-  const draftCount = response.items.filter((item) => item.status === 'DRAFT' || item.draft != null).length
+  const draftCount = response.items.filter(
+    (item) => item.status === 'DRAFT' || item.draft != null
+  ).length
   const activeCount = response.items.length - draftCount
 
   return `${response.items.length} characters / ${activeCount} active / ${draftCount} drafts`

@@ -12,4 +12,3 @@ export * from './manualAdjudication.js'
 export * from './outcome.js'
 export * from './path.js'
 export * from './targeting.js'
-

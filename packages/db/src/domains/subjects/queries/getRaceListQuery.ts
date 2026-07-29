@@ -54,17 +54,16 @@ export async function getRaceListQuery(
       'selection_mode as selectionMode',
       'user_id as ownerUserId',
       'is_master as isMaster',
-      details(eb, (eb2) => eb2
-        .selectFrom('race_details as bridge')
-        .whereRef('bridge.race_id', '=', 'id')
-        .select([
-          'bridge.detail_id',
-          'bridge.sort_order as position'
-        ])
-        .orderBy('bridge.sort_order'))
-        .as('details'),
-      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
-        .as('userId')
+      details(eb, (eb2) =>
+        eb2
+          .selectFrom('race_details as bridge')
+          .whereRef('bridge.race_id', '=', 'id')
+          .select(['bridge.detail_id', 'bridge.sort_order as position'])
+          .orderBy('bridge.sort_order')
+      ).as('details'),
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`.as(
+        'userId'
+      )
     ])
 
   if (filter?.systemId) {
@@ -75,8 +74,7 @@ export async function getRaceListQuery(
     itemQuery = itemQuery.where('user_id', '=', filter.userId)
   }
 
-  const items = await itemQuery.execute()
-    .then((rows) => rows?.length ? rows : [])
+  const items = await itemQuery.execute().then((rows) => (rows?.length ? rows : []))
   const raceIds = items.map((item) => item.id)
 
   if (raceIds.length === 0) {
@@ -91,38 +89,47 @@ export async function getRaceListQuery(
     }
   }
 
-  const categories: RaceMetaObject[] = await db
+  const categories: RaceMetaObject[] = (await db
     .selectFrom('races')
     .select((eb) => [
       'category as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
+      eb.fn
+        .agg<string[]>('array_agg', [eb.ref('id')])
+        .distinct()
+        .as('raceIds')
     ])
     .where('id', 'in', raceIds)
     .where('category', 'is not', null)
     .groupBy('category')
-    .execute() as RaceMetaObject[]
+    .execute()) as RaceMetaObject[]
 
-  const selectionModes: RaceMetaObject[] = await db
+  const selectionModes: RaceMetaObject[] = (await db
     .selectFrom('races')
     .select((eb) => [
       'selection_mode as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
+      eb.fn
+        .agg<string[]>('array_agg', [eb.ref('id')])
+        .distinct()
+        .as('raceIds')
     ])
     .where('id', 'in', raceIds)
     .where('selection_mode', 'is not', null)
     .groupBy('selection_mode')
-    .execute() as RaceMetaObject[]
+    .execute()) as RaceMetaObject[]
 
-  const parentRaces: RaceMetaObject[] = await db
+  const parentRaces: RaceMetaObject[] = (await db
     .selectFrom('races')
     .select((eb) => [
       'parent_race_id as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
+      eb.fn
+        .agg<string[]>('array_agg', [eb.ref('id')])
+        .distinct()
+        .as('raceIds')
     ])
     .where('id', 'in', raceIds)
     .where('parent_race_id', 'is not', null)
     .groupBy('parent_race_id')
-    .execute() as RaceMetaObject[]
+    .execute()) as RaceMetaObject[]
 
   const features: RaceMetaObject[] = await db
     .selectFrom('race_features')

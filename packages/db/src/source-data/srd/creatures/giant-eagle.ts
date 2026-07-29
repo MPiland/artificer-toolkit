@@ -16,11 +16,15 @@ export const giantEagle: CreatureAuthored = {
     CONSTITUTION: 13,
     INTELLIGENCE: 8,
     WISDOM: 14,
-    CHARISMA: 10,
+    CHARISMA: 10
   },
   armorClass: 13,
   hitPoints: 26,
-  hitDice: '4d10+4',
+  hitDice: {
+    count: 4,
+    die: 10,
+    modifier: 4
+  },
   speeds: [...S.walk(10), ...S.fly(80)],
   proficiencies: [
     S.grantedSkillProficiency(121, 1, 'PERCEPTION'),
@@ -33,38 +37,39 @@ export const giantEagle: CreatureAuthored = {
     {
       id: S.featureId(121, 1),
       label: 'Keen Sight',
-      description: 'Keen Sight. The eagle has advantage on Wisdom (Perception) checks that rely on sight.',
+      description:
+        'Keen Sight. The eagle has advantage on Wisdom (Perception) checks that rely on sight.',
       order: 1
     },
     {
       id: S.featureId(121, 2),
       label: 'Language Limitation',
-      description: 'Understands Common and Auran but can\'t speak them.',
+      description: "Understands Common and Auran but can't speak them.",
       grants: {
-        proficiencies: [
-          S.grantedLanguageProficiency(121, 3, 'COMMON', 'AURAN')
-        ]
+        proficiencies: [S.grantedLanguageProficiency(121, 3, 'COMMON', 'AURAN')]
       },
       order: 2
     },
     {
       id: S.featureId(121, 3),
       label: 'Multiattack',
-      description: 'Multiattack. The eagle makes two attacks: one with its beak and one with its talons.',
+      description:
+        'Multiattack. The eagle makes two attacks: one with its beak and one with its talons.',
       order: 3
     },
     {
       id: S.featureId(121, 4),
       label: 'Beak',
-      description: 'Beak. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) piercing damage.',
+      description:
+        'Beak. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) piercing damage.',
       order: 4
     },
     {
       id: S.featureId(121, 5),
       label: 'Talons',
-      description: 'Talons. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
+      description:
+        'Talons. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
       order: 5
     }
   ]
 }
-

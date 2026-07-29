@@ -74,9 +74,7 @@ function featureRows(): RowMap {
         available_at_level: 1
       }
     ],
-    feature_effects: [
-      { feature_id: 'feature-active', effect_id: 'effect-feature', sort_order: 1 }
-    ],
+    feature_effects: [{ feature_id: 'feature-active', effect_id: 'effect-feature', sort_order: 1 }],
     feature_details: [],
     feature_attributes: [],
     feature_feat_grants: [],
@@ -86,9 +84,7 @@ function featureRows(): RowMap {
     feature_proficiency_grants: [],
     feature_sense_grants: [],
     feature_spell_grants: [],
-    feature_options: [
-      { feature_id: 'feature-active', option_id: 'option-active', sort_order: 1 }
-    ],
+    feature_options: [{ feature_id: 'feature-active', option_id: 'option-active', sort_order: 1 }],
     feature_option_levels: [],
     options: [
       {
@@ -100,9 +96,7 @@ function featureRows(): RowMap {
         sort_order: 1
       }
     ],
-    option_effects: [
-      { option_id: 'option-active', effect_id: 'effect-option', sort_order: 1 }
-    ],
+    option_effects: [{ option_id: 'option-active', effect_id: 'effect-option', sort_order: 1 }],
     option_details: [],
     option_attributes: [],
     option_feat_grants: [],
@@ -210,36 +204,44 @@ describe('character assembly repository projections', () => {
   it('filters Race root and ancestry-option features before hydration', async () => {
     const trace = createTracingDb({
       ...featureRows(),
-      races: [{
-        id: 'race-1',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Race',
-        quote: null,
-        description: null,
-        status: 'DRAFT',
-        category: 'BASE',
-        selection_mode: 'DIRECT',
-        parent_race_id: null,
-        size_code: 'MEDIUM'
-      }],
+      races: [
+        {
+          id: 'race-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Race',
+          quote: null,
+          description: null,
+          status: 'DRAFT',
+          category: 'BASE',
+          selection_mode: 'DIRECT',
+          parent_race_id: null,
+          size_code: 'MEDIUM'
+        }
+      ],
       race_features: [
         { race_id: 'race-1', feature_id: 'feature-active', sort_order: 1 },
         { race_id: 'race-1', feature_id: 'feature-future', sort_order: 2 }
       ],
-      race_ancestries: [{ id: 'ancestry-1', race_id: 'race-1', label: 'Ancestry', description: null }],
-      race_ancestry_options: [{
-        id: 'ancestry-option-1',
-        ancestry_id: 'ancestry-1',
-        label: 'Future option',
-        description: 'Not yet acquired.',
-        sort_order: 1
-      }],
-      race_ancestry_option_features: [{
-        ancestry_option_id: 'ancestry-option-1',
-        feature_id: 'feature-future',
-        sort_order: 1
-      }]
+      race_ancestries: [
+        { id: 'ancestry-1', race_id: 'race-1', label: 'Ancestry', description: null }
+      ],
+      race_ancestry_options: [
+        {
+          id: 'ancestry-option-1',
+          ancestry_id: 'ancestry-1',
+          label: 'Future option',
+          description: 'Not yet acquired.',
+          sort_order: 1
+        }
+      ],
+      race_ancestry_option_features: [
+        {
+          ancestry_option_id: 'ancestry-option-1',
+          feature_id: 'feature-future',
+          sort_order: 1
+        }
+      ]
     })
 
     const race = await createRaceRepository(trace.db as never).findById('race-1', {
@@ -248,25 +250,29 @@ describe('character assembly repository projections', () => {
     })
 
     expect(race?.features?.map((feature) => feature.id)).toEqual(['feature-active'])
-    expect(race?.category === 'BASE' ? race.ancestry?.options[0]?.features : undefined).toBeUndefined()
+    expect(
+      race?.category === 'BASE' ? race.ancestry?.options[0]?.features : undefined
+    ).toBeUndefined()
     expectOnlyActiveFeatureWasHydrated(trace.queries)
   })
 
   it('filters Class and Background features before hydration', async () => {
     const classTrace = createTracingDb({
       ...featureRows(),
-      classes: [{
-        id: 'class-1',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        category: 'SUBCLASS',
-        parent_class_id: 'class-parent',
-        subclass_selection_level: null,
-        label: 'Subclass',
-        description: null,
-        status: 'DRAFT',
-        starting_equipment_id: null
-      }],
+      classes: [
+        {
+          id: 'class-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          category: 'SUBCLASS',
+          parent_class_id: 'class-parent',
+          subclass_selection_level: null,
+          label: 'Subclass',
+          description: null,
+          status: 'DRAFT',
+          starting_equipment_id: null
+        }
+      ],
       class_features: [
         { class_id: 'class-1', feature_id: 'feature-active', sort_order: 1 },
         { class_id: 'class-1', feature_id: 'feature-future', sort_order: 2 }
@@ -274,15 +280,17 @@ describe('character assembly repository projections', () => {
     })
     const backgroundTrace = createTracingDb({
       ...featureRows(),
-      backgrounds: [{
-        id: 'background-1',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Background',
-        description: null,
-        status: 'DRAFT',
-        starting_equipment_id: null
-      }],
+      backgrounds: [
+        {
+          id: 'background-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Background',
+          description: null,
+          status: 'DRAFT',
+          starting_equipment_id: null
+        }
+      ],
       background_features: [
         { background_id: 'background-1', feature_id: 'feature-active', sort_order: 1 },
         { background_id: 'background-1', feature_id: 'feature-future', sort_order: 2 }
@@ -307,16 +315,18 @@ describe('character assembly repository projections', () => {
   it('filters Feat features and skips its direct and nested mechanics', async () => {
     const trace = createTracingDb({
       ...featureRows(),
-      feats: [{
-        id: 'feat-1',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Feat',
-        description: 'Assembly projection.',
-        status: 'DRAFT',
-        prerequisite_id: null,
-        charge_id: null
-      }],
+      feats: [
+        {
+          id: 'feat-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Feat',
+          description: 'Assembly projection.',
+          status: 'DRAFT',
+          prerequisite_id: null,
+          charge_id: null
+        }
+      ],
       feat_effects: [{ feat_id: 'feat-1', effect_id: 'effect-feat', sort_order: 1 }],
       feat_features: [
         { feat_id: 'feat-1', feature_id: 'feature-active', sort_order: 1 },
@@ -340,35 +350,39 @@ describe('character assembly repository projections', () => {
   it('filters Equipment features and skips its direct and nested mechanics', async () => {
     const trace = createTracingDb({
       ...featureRows(),
-      equipment: [{
-        id: 'equipment-1',
-        system_id: 'system-1',
-        user_id: 'user-1',
-        label: 'Equipment',
-        description: null,
-        quote: null,
-        status: 'DRAFT',
-        category: 'ADVENTURING_GEAR',
-        rarity_id: null,
-        cost_amount: null,
-        cost_currency_id: null,
-        weight_amount: 1,
-        weight_unit: 'POUNDS',
-        capacity_amount: null,
-        capacity_unit: null,
-        max_stack: null,
-        max_bonus: null,
-        armor_class: null,
-        requires_attunement: false,
-        charge_id: null,
-        restriction_id: null,
-        parent_equipment_id: null
-      }],
-      equipment_effects: [{
-        equipment_id: 'equipment-1',
-        effect_id: 'effect-equipment',
-        sort_order: 1
-      }],
+      equipment: [
+        {
+          id: 'equipment-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Equipment',
+          description: null,
+          quote: null,
+          status: 'DRAFT',
+          category: 'ADVENTURING_GEAR',
+          rarity_id: null,
+          cost_amount: null,
+          cost_currency_id: null,
+          weight_amount: 1,
+          weight_unit: 'POUNDS',
+          capacity_amount: null,
+          capacity_unit: null,
+          max_stack: null,
+          max_bonus: null,
+          armor_class: null,
+          requires_attunement: false,
+          charge_id: null,
+          restriction_id: null,
+          parent_equipment_id: null
+        }
+      ],
+      equipment_effects: [
+        {
+          equipment_id: 'equipment-1',
+          effect_id: 'effect-equipment',
+          sort_order: 1
+        }
+      ],
       equipment_features: [
         { equipment_id: 'equipment-1', feature_id: 'feature-active', sort_order: 1 },
         { equipment_id: 'equipment-1', feature_id: 'feature-future', sort_order: 2 }

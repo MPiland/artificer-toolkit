@@ -79,10 +79,7 @@ function requireSpellComponent(
   return value as NonNullable<SpellAuthored['components']>[number]
 }
 
-async function hydrateSpellById(
-  db: DBLike,
-  id: string
-): Promise<SpellAuthored | null> {
+async function hydrateSpellById(db: DBLike, id: string): Promise<SpellAuthored | null> {
   const spellsById = await hydrateSpellsByIds(db, [id])
   return spellsById.get(id) ?? null
 }
@@ -112,17 +109,20 @@ async function hydrateSpellRows(
   }
 
   const [effectLinks, attributes, classes] = await Promise.all([
-    db.selectFrom('spell_effects')
+    db
+      .selectFrom('spell_effects')
       .select(['spell_id', 'effect_id', 'sort_order'])
       .where('spell_id', 'in', spellIds)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('spell_attributes')
+    db
+      .selectFrom('spell_attributes')
       .select(['spell_id', 'attribute_code', 'sort_order'])
       .where('spell_id', 'in', spellIds)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('spell_classes')
+    db
+      .selectFrom('spell_classes')
       .select(['spell_id', 'class_id'])
       .where('spell_id', 'in', spellIds)
       .orderBy('class_id')
@@ -163,7 +163,9 @@ async function hydrateSpellRows(
       .filter((code) => !(code in SPELL_ATTRIBUTE) && !(code in SPELL_COMPONENT_CODES))
 
     if (unknownCodes.length > 0) {
-      throw new Error(`Spell "${id}" has invalid spell_attributes codes: ${unknownCodes.join(', ')}`)
+      throw new Error(
+        `Spell "${id}" has invalid spell_attributes codes: ${unknownCodes.join(', ')}`
+      )
     }
 
     authoredById.set(id, {
@@ -200,11 +202,11 @@ async function hydrateSpellsByIds(
     return new Map()
   }
 
-  const rows = await db
+  const rows = (await db
     .selectFrom('spells')
     .select(SPELL_COLUMNS)
     .where('id', 'in', distinctIds)
-    .execute() as SpellRow[]
+    .execute()) as SpellRow[]
   const rowsById = new Map(rows.map((row) => [row.id, row]))
 
   return hydrateSpellRows(
@@ -231,10 +233,7 @@ export function createSpellRepository(db: DBLike): SpellRepository {
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
-        .selectFrom('spells')
-        .select(SPELL_COLUMNS)
-        .orderBy('label')
+      let query = db.selectFrom('spells').select(SPELL_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
         query = query.where('system_id', '=', filter.systemId)
@@ -252,6 +251,3 @@ export function createSpellRepository(db: DBLike): SpellRepository {
     }
   }
 }
-
-
-

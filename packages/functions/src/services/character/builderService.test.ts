@@ -118,6 +118,32 @@ function createContext(): CharacterBuilderContext {
   return { catalog: createCatalog(), registry: createRegistry() }
 }
 
+function createSystem(): NonNullable<CharacterBuilderRegistry['system']> {
+  return {
+    id: 'dnd5e2014',
+    label: 'D&D 5e 2014',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
+    alignments: [],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [],
+    speeds: [],
+    terrains: [],
+    userId: 'user-1'
+  }
+}
+
 function createHitpointClass(
   id: string,
   dieConfig: string
@@ -384,6 +410,67 @@ describe('character builder ability and hit point rules', () => {
     expect(clamped.intent.hitpoints.levels.map((entry) => entry.value)).toEqual([1, 1])
   })
 
+  it('normalizes fixed hit points from effective ability scores', async () => {
+    const context = createContext()
+    context.registry.system = createSystem()
+    context.registry.races = [
+      {
+        id: 'human',
+        label: 'Human',
+        category: 'BASE',
+        selectionMode: 'DIRECT',
+        size: 'MEDIUM',
+        speeds: [],
+        userId: 'user-1',
+        systemId: 'dnd5e2014',
+        features: [
+          {
+            id: 'human-ability-score-increase',
+            label: 'Ability Score Increase',
+            description: 'Constitution increases by 1.',
+            availableAtLevel: 1,
+            order: 0,
+            grants: {
+              modifiers: [
+                {
+                  id: 'human-constitution-plus-one',
+                  grantKind: GRANT_KIND.MODIFIER_GRANT,
+                  valueDomainCode: 'ABILITY_SCORE',
+                  domain: { ability: 'CONSTITUTION' },
+                  modifierKind: 'BONUS',
+                  scope: 'GLOBAL',
+                  selectionKind: 'GRANTED',
+                  payload: { valueKind: 'FIXED', amount: 1 },
+                  order: 0
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+    context.registry.classes = [createHitpointClass('fighter', 'd10')]
+
+    const character = createCharacter()
+    character.intent.race = { raceId: 'human' }
+    character.intent.classes = [{ classId: 'fighter', classLevel: 1 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'CONSTITUTION', score: 13 }] }
+    }
+    character.intent.hitpoints = {
+      method: 'FIXED',
+      levels: [{ level: 1, classId: 'fighter', classLevel: 1, value: 12 }]
+    }
+
+    const reconciled = await reconcileCharacterBuilderCharacter(unusedDb, character, null, context)
+
+    expect(reconciled.intent.hitpoints.levels).toEqual([
+      { level: 1, classId: 'fighter', classLevel: 1, value: 12 }
+    ])
+    expect(reconciled.state.hitpoints.current).toBe(12)
+  })
+
   it('preserves valid manual rolls and legacy overrides while calculating gained HP', async () => {
     const context = createContext()
     context.registry.classes = [createHitpointClass('fighter', 'd10')]
@@ -484,7 +571,13 @@ describe('character builder ability and hit point rules', () => {
       context
     )
 
-    expect(reconciled.intent.hitpoints.levels.map(({ level, classId, classLevel }) => ({ level, classId, classLevel }))).toEqual([
+    expect(
+      reconciled.intent.hitpoints.levels.map(({ level, classId, classLevel }) => ({
+        level,
+        classId,
+        classLevel
+      }))
+    ).toEqual([
       { level: 1, classId: 'fighter', classLevel: 1 },
       { level: 2, classId: 'wizard', classLevel: 1 },
       { level: 3, classId: 'fighter', classLevel: 2 }

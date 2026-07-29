@@ -14,5 +14,5 @@ export const heavyCrossbowPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(238), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

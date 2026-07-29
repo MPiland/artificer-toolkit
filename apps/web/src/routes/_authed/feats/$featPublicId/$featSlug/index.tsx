@@ -59,9 +59,7 @@ export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug/')(
 })
 
 function FeatDetailRoute() {
-  const {
-    draft, featId, response, view
-  } = Route.useLoaderData()
+  const { draft, featId, response, view } = Route.useLoaderData()
 
   return <FeatDetailPage draft={draft} featId={featId} response={response} view={view} />
 }

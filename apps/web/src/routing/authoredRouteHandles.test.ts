@@ -39,16 +39,20 @@ describe('authored route handles', () => {
     const handle = buildAuthoredRouteHandle('abc123', 'Fixture Spell')
 
     expect(parseAuthoredRouteId(handle.publicId)).toBe('abc123')
-    expect(isCanonicalAuthoredRouteHandle(handle.publicId, handle.slug, {
-      id: uuid,
-      publicId: 'abc123',
-      label: 'Fixture Spell'
-    })).toBe(true)
-    expect(isCanonicalAuthoredRouteHandle('abc123', 'stale-fixture-spell', {
-      id: uuid,
-      publicId: 'abc123',
-      label: 'Fixture Spell'
-    })).toBe(false)
+    expect(
+      isCanonicalAuthoredRouteHandle(handle.publicId, handle.slug, {
+        id: uuid,
+        publicId: 'abc123',
+        label: 'Fixture Spell'
+      })
+    ).toBe(true)
+    expect(
+      isCanonicalAuthoredRouteHandle('abc123', 'stale-fixture-spell', {
+        id: uuid,
+        publicId: 'abc123',
+        label: 'Fixture Spell'
+      })
+    ).toBe(false)
   })
 
   it('rejects malformed handles', () => {

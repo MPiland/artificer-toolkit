@@ -105,13 +105,15 @@ type DetailMetaResolver = (
 export interface AuthoredDomainRuntimeConfig {
   createService: (db: DBLike) => AuthoringService
   listQuery: (db: DBLike) => Promise<{
-    items: Array<AuthoredListRow & {
-      id: string
-      label: string
-      status: string
-      systemId: string
-      description?: string | null
-    }>
+    items: Array<
+      AuthoredListRow & {
+        id: string
+        label: string
+        status: string
+        systemId: string
+        description?: string | null
+      }
+    >
     meta: unknown
   }>
   mapId: NodeRuntimeMapId
@@ -176,7 +178,12 @@ export async function listAuthoredDomain(
   config: AuthoredDomainRuntimeConfig,
   userId: string
 ) {
-  return normalizeAuthoredListResponseWithDrafts(db, await config.listQuery(db), userId, config.subjectKind)
+  return normalizeAuthoredListResponseWithDrafts(
+    db,
+    await config.listQuery(db),
+    userId,
+    config.subjectKind
+  )
 }
 
 export async function getAuthoredDomain(
@@ -257,28 +264,32 @@ async function buildSelectedRevisionDetail(
     isMaster: selected.isMaster,
     ownerUserId: selected.ownerUserId
   }
-  const permissions = view === 'draft'
-    ? { canView: true, canEdit: true, canCopy: false, canDelete: true }
-    : getAuthoredPermissions(ownership, userId)
-  const draft = view === 'draft'
-    ? {
-        subjectKind: selected.subjectKind,
-        subjectId: selected.subjectId,
-        publicId: selected.publicId,
-        userId: itemUserId,
-        systemId: selected.systemId,
-        label: selected.label,
-        status: 'DRAFT' as const,
-        payload: selected.payload,
-        draftState: selected.activeRevisionId ? 'ACTIVE_WITH_DRAFT' as const : 'DRAFT_ONLY' as const,
-        revisionId: selected.revisionId,
-        revisionNumber: selected.revisionNumber,
-        activeRevisionId: selected.activeRevisionId,
-        baseActiveRevisionId: selected.baseActiveRevisionId,
-        createdAt: selected.createdAt,
-        updatedAt: selected.updatedAt
-      }
-    : undefined
+  const permissions =
+    view === 'draft'
+      ? { canView: true, canEdit: true, canCopy: false, canDelete: true }
+      : getAuthoredPermissions(ownership, userId)
+  const draft =
+    view === 'draft'
+      ? {
+          subjectKind: selected.subjectKind,
+          subjectId: selected.subjectId,
+          publicId: selected.publicId,
+          userId: itemUserId,
+          systemId: selected.systemId,
+          label: selected.label,
+          status: 'DRAFT' as const,
+          payload: selected.payload,
+          draftState: selected.activeRevisionId
+            ? ('ACTIVE_WITH_DRAFT' as const)
+            : ('DRAFT_ONLY' as const),
+          revisionId: selected.revisionId,
+          revisionNumber: selected.revisionNumber,
+          activeRevisionId: selected.activeRevisionId,
+          baseActiveRevisionId: selected.baseActiveRevisionId,
+          createdAt: selected.createdAt,
+          updatedAt: selected.updatedAt
+        }
+      : undefined
   if (!parsedItem.success) {
     return {
       ...(draft ? { draft } : {}),
@@ -332,10 +343,10 @@ async function resolveAuthoredRouteSubjectId(
 
     if (routeIdentity) return routeIdentity.subjectId
 
-    return await repository.canAccessSubjectForUser({
+    return (await repository.canAccessSubjectForUser({
       subjectKind,
       subjectId
-    })
+    }))
       ? subjectId
       : null
   }
@@ -356,10 +367,14 @@ export async function saveAuthoredDomainDraft(
 ) {
   return withTransaction(db, async (trx) => {
     await assertWritableAuthoredSubject(trx, config.subjectKind, body.subjectId, userId)
-    return saveAuthoredDraft(trx, {
-      ...body,
-      subjectKind: config.subjectKind
-    }, userId)
+    return saveAuthoredDraft(
+      trx,
+      {
+        ...body,
+        subjectKind: config.subjectKind
+      },
+      userId
+    )
   })
 }
 
@@ -369,12 +384,7 @@ export async function saveAuthoredDomainInputDraft<TInput extends AuthoredConten
   input: TInput,
   userId: string
 ) {
-  return saveAuthoredDomainDraft(
-    db,
-    config,
-    buildDraftRequest(config.subjectKind, input),
-    userId
-  )
+  return saveAuthoredDomainDraft(db, config, buildDraftRequest(config.subjectKind, input), userId)
 }
 
 export async function duplicateAuthoredDomain(
@@ -434,7 +444,13 @@ export async function deleteAuthoredDomainActive(
     }
 
     const draft = await getAuthoredDraft(trx, config.subjectKind, subjectId, userId)
-    await assertDeletableActiveAuthoredSubject(trx, config.table, config.subjectKind, subjectId, userId)
+    await assertDeletableActiveAuthoredSubject(
+      trx,
+      config.table,
+      config.subjectKind,
+      subjectId,
+      userId
+    )
 
     await deleteActiveAuthoredSubject(trx, config.table, config.subjectKind, subjectId, userId)
 
@@ -560,7 +576,8 @@ function collectReferenceIds(value: unknown, singularKey: string, pluralKey: str
 
 async function selectClassOptions(db: DBLike, ids: string[]) {
   if (!ids.length) return []
-  return db.selectFrom('classes')
+  return db
+    .selectFrom('classes')
     .select(['id as value', 'label'])
     .where('id', 'in', ids)
     .orderBy('label')
@@ -569,7 +586,8 @@ async function selectClassOptions(db: DBLike, ids: string[]) {
 
 async function selectEquipmentOptions(db: DBLike, ids: string[]) {
   if (!ids.length) return []
-  return db.selectFrom('equipment')
+  return db
+    .selectFrom('equipment')
     .select(['id as value', 'label'])
     .where('id', 'in', ids)
     .orderBy('label')
@@ -578,7 +596,8 @@ async function selectEquipmentOptions(db: DBLike, ids: string[]) {
 
 async function selectRaceOptions(db: DBLike, ids: string[]) {
   if (!ids.length) return []
-  return db.selectFrom('races')
+  return db
+    .selectFrom('races')
     .select(['id as value', 'label'])
     .where('id', 'in', ids)
     .orderBy('label')
@@ -587,11 +606,23 @@ async function selectRaceOptions(db: DBLike, ids: string[]) {
 
 async function selectVocabularyOptions(
   db: DBLike,
-  table: 'challenge_ratings' | 'condition_types' | 'creature_types' | 'currencies' | 'damage_types' | 'heritages' | 'languages' | 'magic_schools' | 'rarities' | 'skills' | 'speeds',
+  table:
+    | 'challenge_ratings'
+    | 'condition_types'
+    | 'creature_types'
+    | 'currencies'
+    | 'damage_types'
+    | 'heritages'
+    | 'languages'
+    | 'magic_schools'
+    | 'rarities'
+    | 'skills'
+    | 'speeds',
   systemId: string,
   ids?: string[]
 ) {
-  let query = db.selectFrom(table)
+  let query = db
+    .selectFrom(table)
     .select(['id as value', 'label'])
     .where('system_id', '=', systemId)
 
@@ -609,11 +640,17 @@ async function vehicleDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<str
 
   if (!hasMetaKey(keys, 'currencies')) return meta
 
-  const cost = typeof record.cost === 'object' && record.cost !== null && !Array.isArray(record.cost)
-    ? record.cost as Record<string, unknown>
-    : {}
+  const cost =
+    typeof record.cost === 'object' && record.cost !== null && !Array.isArray(record.cost)
+      ? (record.cost as Record<string, unknown>)
+      : {}
   const currencyId = readString(cost.currencyId)
-  meta.currencies = await selectVocabularyOptions(db, 'currencies', item.systemId, currencyId ? [currencyId] : [])
+  meta.currencies = await selectVocabularyOptions(
+    db,
+    'currencies',
+    item.systemId,
+    currencyId ? [currencyId] : []
+  )
   return meta
 }
 
@@ -623,21 +660,37 @@ async function spellDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<strin
   const queries: Array<Promise<void>> = []
 
   if (hasMetaKey(keys, 'classes')) {
-    queries.push(selectClassOptions(db, readStringArray(record.classIds)).then((options) => {
-      meta.classes = options
-    }))
+    queries.push(
+      selectClassOptions(db, readStringArray(record.classIds)).then((options) => {
+        meta.classes = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'magicSchools')) {
-    queries.push(selectVocabularyOptions(db, 'magic_schools', item.systemId, collectReferenceIds(record, 'magicSchoolId', 'magicSchoolIds')).then((options) => {
-      meta.magicSchools = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'magic_schools',
+        item.systemId,
+        collectReferenceIds(record, 'magicSchoolId', 'magicSchoolIds')
+      ).then((options) => {
+        meta.magicSchools = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'damageTypes')) {
-    queries.push(selectVocabularyOptions(db, 'damage_types', item.systemId, collectReferenceIds(record, 'damageTypeId', 'damageTypeIds')).then((options) => {
-      meta.damageTypes = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'damage_types',
+        item.systemId,
+        collectReferenceIds(record, 'damageTypeId', 'damageTypeIds')
+      ).then((options) => {
+        meta.damageTypes = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'conditionTypes')) {
@@ -645,34 +698,50 @@ async function spellDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<strin
       ...collectReferenceIds(record, 'conditionTypeId', 'conditionTypeIds'),
       ...collectReferenceIds(record, 'conditionId', 'conditionIds')
     ])
-    queries.push(selectVocabularyOptions(db, 'condition_types', item.systemId, conditionIds).then((options) => {
-      meta.conditionTypes = options
-    }))
+    queries.push(
+      selectVocabularyOptions(db, 'condition_types', item.systemId, conditionIds).then(
+        (options) => {
+          meta.conditionTypes = options
+        }
+      )
+    )
   }
 
   await Promise.all(queries)
   return meta
 }
 
-async function backgroundDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>): Promise<DetailMeta> {
+async function backgroundDetailMeta(
+  db: DBLike,
+  item: AuthoredRecord,
+  keys: Set<string>
+): Promise<DetailMeta> {
   return authoredReaderReferenceMeta(db, item, keys)
 }
 
-async function classDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>): Promise<DetailMeta> {
+async function classDetailMeta(
+  db: DBLike,
+  item: AuthoredRecord,
+  keys: Set<string>
+): Promise<DetailMeta> {
   const record = item as AuthoredRecord & Record<string, unknown>
   const meta: DetailMeta = {}
   const queries: Array<Promise<void>> = []
 
   if (hasMetaKey(keys, 'classes')) {
     const parentClassId = readString(record.parentClassId)
-    queries.push(selectClassOptions(db, parentClassId ? [parentClassId] : []).then((options) => {
-      meta.classes = options
-    }))
+    queries.push(
+      selectClassOptions(db, parentClassId ? [parentClassId] : []).then((options) => {
+        meta.classes = options
+      })
+    )
   }
 
-  queries.push(authoredReaderReferenceMeta(db, item, keys).then((references) => {
-    Object.assign(meta, references)
-  }))
+  queries.push(
+    authoredReaderReferenceMeta(db, item, keys).then((references) => {
+      Object.assign(meta, references)
+    })
+  )
   await Promise.all(queries)
   return meta
 }
@@ -693,23 +762,26 @@ async function authoredReaderReferenceMeta(
 
   for (const [metaKey, table, singularKey, pluralKey] of referenceQueries) {
     if (!hasMetaKey(keys, metaKey)) continue
-    queries.push(selectVocabularyOptions(
-      db,
-      table,
-      item.systemId,
-      collectReferenceIds(record, singularKey, pluralKey)
-    ).then((options) => {
-      meta[metaKey] = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        table,
+        item.systemId,
+        collectReferenceIds(record, singularKey, pluralKey)
+      ).then((options) => {
+        meta[metaKey] = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'equipment')) {
-    queries.push(selectEquipmentOptions(
-      db,
-      collectReferenceIds(record, 'equipmentId', 'equipmentIds')
-    ).then((options) => {
-      meta.equipment = options
-    }))
+    queries.push(
+      selectEquipmentOptions(db, collectReferenceIds(record, 'equipmentId', 'equipmentIds')).then(
+        (options) => {
+          meta.equipment = options
+        }
+      )
+    )
   }
 
   await Promise.all(queries)
@@ -723,22 +795,35 @@ async function raceDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string
 
   if (hasMetaKey(keys, 'races')) {
     const parentRaceId = readString(record.parentRaceId)
-    queries.push(selectRaceOptions(db, parentRaceId ? [parentRaceId] : []).then((options) => {
-      meta.races = options
-    }))
+    queries.push(
+      selectRaceOptions(db, parentRaceId ? [parentRaceId] : []).then((options) => {
+        meta.races = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'heritages')) {
-    queries.push(selectVocabularyOptions(db, 'heritages', item.systemId, readStringArray(record.heritageIds)).then((options) => {
-      meta.heritages = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'heritages',
+        item.systemId,
+        readStringArray(record.heritageIds)
+      ).then((options) => {
+        meta.heritages = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'speeds')) {
-    const speedIds = uniqueStrings(readRecordArray(record.speeds).map((speed) => readString(speed.speedId)))
-    queries.push(selectVocabularyOptions(db, 'speeds', item.systemId, speedIds).then((options) => {
-      meta.speeds = options
-    }))
+    const speedIds = uniqueStrings(
+      readRecordArray(record.speeds).map((speed) => readString(speed.speedId))
+    )
+    queries.push(
+      selectVocabularyOptions(db, 'speeds', item.systemId, speedIds).then((options) => {
+        meta.speeds = options
+      })
+    )
   }
 
   await Promise.all(queries)
@@ -752,23 +837,41 @@ async function creatureDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<st
 
   if (hasMetaKey(keys, 'challengeRatings')) {
     const challengeRatingId = readString(record.challengeRatingId)
-    queries.push(selectVocabularyOptions(db, 'challenge_ratings', item.systemId, challengeRatingId ? [challengeRatingId] : []).then((options) => {
-      meta.challengeRatings = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'challenge_ratings',
+        item.systemId,
+        challengeRatingId ? [challengeRatingId] : []
+      ).then((options) => {
+        meta.challengeRatings = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'creatureTypes')) {
     const creatureTypeId = readString(record.creatureTypeId)
-    queries.push(selectVocabularyOptions(db, 'creature_types', item.systemId, creatureTypeId ? [creatureTypeId] : []).then((options) => {
-      meta.creatureTypes = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'creature_types',
+        item.systemId,
+        creatureTypeId ? [creatureTypeId] : []
+      ).then((options) => {
+        meta.creatureTypes = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'speeds')) {
-    const speedIds = uniqueStrings(readRecordArray(record.speeds).map((speed) => readString(speed.speedId)))
-    queries.push(selectVocabularyOptions(db, 'speeds', item.systemId, speedIds).then((options) => {
-      meta.speeds = options
-    }))
+    const speedIds = uniqueStrings(
+      readRecordArray(record.speeds).map((speed) => readString(speed.speedId))
+    )
+    queries.push(
+      selectVocabularyOptions(db, 'speeds', item.systemId, speedIds).then((options) => {
+        meta.speeds = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'damageTypes')) {
@@ -777,15 +880,24 @@ async function creatureDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<st
       ...readStringArray(record.damageResistances),
       ...readStringArray(record.damageImmunities)
     ])
-    queries.push(selectVocabularyOptions(db, 'damage_types', item.systemId, damageTypeIds).then((options) => {
-      meta.damageTypes = options
-    }))
+    queries.push(
+      selectVocabularyOptions(db, 'damage_types', item.systemId, damageTypeIds).then((options) => {
+        meta.damageTypes = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'conditionTypes')) {
-    queries.push(selectVocabularyOptions(db, 'condition_types', item.systemId, readStringArray(record.conditionImmunities)).then((options) => {
-      meta.conditionTypes = options
-    }))
+    queries.push(
+      selectVocabularyOptions(
+        db,
+        'condition_types',
+        item.systemId,
+        readStringArray(record.conditionImmunities)
+      ).then((options) => {
+        meta.conditionTypes = options
+      })
+    )
   }
 
   await Promise.all(queries)
@@ -798,18 +910,29 @@ async function equipmentDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<s
   const queries: Array<Promise<void>> = []
 
   if (hasMetaKey(keys, 'equipment')) {
-    const containedEquipmentIds = readRecordArray(record.contains).map((entry) => readString(entry.equipmentId))
-    const equipmentIds = uniqueStrings([readString(record.parentEquipmentId), ...containedEquipmentIds])
-    queries.push(selectEquipmentOptions(db, equipmentIds).then((options) => {
-      meta.equipment = options
-    }))
+    const containedEquipmentIds = readRecordArray(record.contains).map((entry) =>
+      readString(entry.equipmentId)
+    )
+    const equipmentIds = uniqueStrings([
+      readString(record.parentEquipmentId),
+      ...containedEquipmentIds
+    ])
+    queries.push(
+      selectEquipmentOptions(db, equipmentIds).then((options) => {
+        meta.equipment = options
+      })
+    )
   }
 
   if (hasMetaKey(keys, 'rarities')) {
     const rarityId = readString(record.rarityId)
-    queries.push(selectVocabularyOptions(db, 'rarities', item.systemId, rarityId ? [rarityId] : []).then((options) => {
-      meta.rarities = options
-    }))
+    queries.push(
+      selectVocabularyOptions(db, 'rarities', item.systemId, rarityId ? [rarityId] : []).then(
+        (options) => {
+          meta.rarities = options
+        }
+      )
+    )
   }
 
   await Promise.all(queries)

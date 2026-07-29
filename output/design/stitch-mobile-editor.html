@@ -1,247 +1,361 @@
-<!DOCTYPE html><html class="dark" lang="en"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title>Ember Lance Upcast Scaling Editor</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        "colors": {
-                "tertiary-fixed": "#89f5e7",
-                "primary-fixed-dim": "#ffb690",
-                "on-tertiary": "#003732",
-                "primary-container": "#ec6a06",
-                "inverse-on-surface": "#3b2d26",
-                "brand-orange": "#ec6a06",
-                "inverse-surface": "#f6ded3",
-                "surface-container-highest": "#40322a",
-                "on-primary-container": "#4a1c00",
-                "primary-fixed": "#ffdbca",
-                "on-primary": "#542100",
-                "surface-container-lowest": "#0a0f0e",
-                "surface-tint": "#ffb690",
-                "outline-variant": "#3d4947",
-                "on-secondary-fixed-variant": "#5a00c6",
-                "secondary-fixed": "#eaddff",
-                "on-secondary-fixed": "#25005a",
-                "on-secondary-container": "#c9aeff",
-                "on-background": "#dee4e1",
-                "on-error": "#690005",
-                "error-container": "#93000a",
-                "surface-variant": "#303635",
-                "tertiary": "#6bd8cb",
-                "on-surface-variant": "#bcc9c6",
-                "on-tertiary-fixed": "#00201d",
-                "on-surface": "#dee4e1",
-                "primary": "#ffb690",
-                "on-tertiary-container": "#00302b",
-                "on-secondary": "#3f008e",
-                "on-error-container": "#ffdad6",
-                "surface": "#0f1413",
-                "on-primary-fixed": "#331100",
-                "background": "#0f1413",
-                "outline": "#879391",
-                "secondary": "#d2bbff",
-                "on-tertiary-fixed-variant": "#005049",
-                "on-primary-fixed-variant": "#783200",
-                "tertiary-container": "#29a195",
-                "surface-dim": "#0f1413",
-                "surface-container-low": "#171d1c",
-                "surface-container": "#1b2120",
-                "surface-container-high": "#262b2a",
-                "tertiary-fixed-dim": "#6bd8cb",
-                "secondary-fixed-dim": "#d2bbff",
-                "secondary-container": "#6001d1",
-                "error": "#ffb4ab",
-                "surface-bright": "#353a39",
-                "inverse-primary": "#9d4400"
-        },
-        "borderRadius": {
-                "DEFAULT": "0.125rem",
-                "lg": "0.25rem",
-                "xl": "0.5rem",
-                "full": "0.75rem"
-        },
-        "spacing": {
-                "sm": "0.5rem",
-                "xs": "0.25rem",
-                "xl": "2rem",
-                "gutter": "1px",
-                "sidebar_width": "280px",
-                "md": "1rem",
-                "lg": "1.5rem",
-                "inspector_width": "320px"
-        },
-        "fontFamily": {
-                "headline-md": ["Inter"],
-                "label-md": ["Inter"],
-                "headline-sm": ["Inter"],
-                "body-lg": ["Inter"],
-                "body-sm": ["Inter"],
-                "display": ["Inter"],
-                "code-sm": ["JetBrains Mono"],
-                "body-md": ["Inter"]
-        },
-        "fontSize": {
-                "headline-md": ["20px", {"lineHeight": "1.4", "letterSpacing": "-0.01em", "fontWeight": "600"}],
-                "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
-                "headline-sm": ["16px", {"lineHeight": "1.5", "fontWeight": "600"}],
-                "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
-                "body-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
-                "display": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                "code-sm": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
-                "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
-        }
-      },
-    },
-  }
-</script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            vertical-align: middle;
-        }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body { background-color: #0f1413; color: #dee4e1; }
-    </style>
-</head>
-<body class="bg-background text-on-surface font-body-md overflow-x-hidden antialiased">
-<!-- Top Navigation Bar -->
-<header class="fixed top-0 w-full bg-surface-container-low z-50 flex items-center justify-between px-md h-14 border-b border-outline-variant/30">
-<div class="flex items-center gap-sm">
-<span class="material-symbols-outlined text-brand-orange">construction</span>
-<span class="font-display text-headline-sm tracking-tight text-on-surface">Artificer Toolkit</span>
-</div>
-<div class="flex items-center gap-md">
-<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest transition-colors p-2 rounded">search</button>
-<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest transition-colors p-2 rounded">more_vert</button>
-</div>
-</header>
-<main class="mt-14 pb-48 px-md pt-lg max-w-2xl mx-auto">
-<!-- Breadcrumbs & Header -->
-<nav class="flex items-center gap-xs mb-sm">
-<span class="font-label-md text-label-md text-on-surface-variant">Spells</span>
-<span class="material-symbols-outlined text-on-surface-variant text-[12px]">chevron_right</span>
-<span class="font-label-md text-label-md text-on-surface">Ember Lance</span>
-</nav>
-<h1 class="font-display text-headline-md mb-lg text-on-surface">Upcast Scaling Editor</h1>
-<!-- Scaling Model Card -->
-<section class="bg-surface-container border border-outline-variant/30 rounded-lg p-md mb-lg">
-<div class="flex items-center gap-sm mb-md"><span class="material-symbols-outlined text-brand-orange">tune</span><h2 class="font-headline-sm text-headline-sm text-on-surface">Scaling Model</h2></div>
-<div class="space-y-md">
-<div>
-<label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Scaling Type</label>
-<input class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-body-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange" type="text" placeholder="e.g. Linear Progression" value="Linear Progression">
-</div>
-<div class="grid grid-cols-2 gap-sm">
-<div>
-<label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Base Die</label>
-<input class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-code-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange" type="text" value="3d8">
-</div>
-<div>
-<label class="font-label-md text-label-md text-on-surface-variant block mb-xs">Die Type</label>
-<input class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-body-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange" type="text" value="Fire">
-</div>
-</div>
-</div>
-</section>
-<!-- Scaling Progression List -->
-<section class="mb-lg">
-<div class="flex items-center justify-between mb-md"><div class="flex items-center gap-sm"><span class="material-symbols-outlined text-brand-orange">table_rows</span><h2 class="font-headline-sm text-headline-sm text-on-surface">Level Progression</h2></div><button class="text-tertiary font-label-md text-label-md flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">add</span> Add Tier</button></div>
-<div class="space-y-sm">
-<!-- Row 1 -->
-<div class="bg-surface-container border-l-2 border-brand-orange border-y border-r border-outline-variant/30 rounded p-sm flex items-center justify-between">
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Level 4 Slot</p>
-<p class="font-code-sm text-code-sm text-on-surface">4d8 <span class="text-secondary">Fire Damage</span></p>
-</div>
-<div class="flex items-center gap-sm">
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">edit</span>
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">drag_indicator</span>
-</div>
-</div>
-<!-- Row 2 -->
-<div class="bg-surface-container border-l-2 border-outline-variant/50 border-y border-r border-outline-variant/30 rounded p-sm flex items-center justify-between">
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Level 5 Slot</p>
-<p class="font-code-sm text-code-sm text-on-surface">5d8 <span class="text-secondary">Fire Damage</span></p>
-</div>
-<div class="flex items-center gap-sm">
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">edit</span>
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">drag_indicator</span>
-</div>
-</div>
-<!-- Row 3 (Special) -->
-<div class="bg-surface-container border-l-2 border-tertiary border-y border-r border-outline-variant/30 rounded p-sm">
-<div class="flex items-center justify-between mb-xs">
-<div>
-<p class="font-label-md text-label-md text-on-surface-variant">Level 6 Slot</p>
-<p class="font-code-sm text-code-sm text-on-surface">6d8 + 10 <span class="text-tertiary">Burning (Dot)</span></p>
-</div>
-<div class="flex items-center gap-sm">
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">edit</span>
-<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">drag_indicator</span>
-</div>
-</div>
-<div class="bg-tertiary/10 px-xs py-1 rounded inline-block">
-<p class="text-[10px] text-tertiary uppercase font-bold tracking-widest">Breakthrough Point</p>
-</div>
-</div>
-</div>
-</section>
-<!-- Visual Hook / Atmospheric Effect -->
-<div class="relative h-40 w-full rounded-xl overflow-hidden mb-lg border border-outline-variant/30 group">
-<img alt="Artificer Workdesk" class="w-full h-full object-cover grayscale opacity-30 group-hover:opacity-50 transition-all duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-AxYbDDm9LONcbknJDxa5kl24rBh1yy4g_-vdJjnG-gV3d5trpvkgog9ajeemruQVPDln1NamgrAUAisAPquInFAmXDH6JioOL2JNa-6NvS9YyOwFDZ5DxxykdYiDFxdzo5RE1wd2mXD4-6bUrEv8bAEx3LG2hW6XiaFKPAEa3NyDimjYOQDMw5PR7XvAVNNi9fAZE8scq7E9lSoOJ7_4A6_qfsAdmEY0BqBlZZuLC3ec28EK8tTAC3BJFZAd8WcdKrITKW3rTKSp">
-<div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
-<div class="absolute bottom-md left-md">
-<p class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant/70">System Preview</p>
-<p class="font-display text-headline-sm text-on-surface">Black Forge Engine</p>
-</div>
-</div>
-</main>
-<!-- Rule Preview Bottom Sheet -->
-
-<!-- Persistent Bottom Bar -->
-<footer class="fixed bottom-0 w-full h-16 bg-surface-container-low border-t border-outline-variant/30 z-50 flex items-center justify-between px-md">
-<div class="flex items-center gap-md">
-<div class="flex flex-col items-center justify-center text-brand-orange">
-<span class="material-symbols-outlined">edit_note</span>
-<span class="font-label-md text-[10px]">Editor</span>
-</div>
-<div class="flex flex-col items-center justify-center text-on-surface-variant opacity-70">
-<span class="material-symbols-outlined">visibility</span>
-<span class="font-label-md text-[10px]">Preview</span>
-</div>
-</div>
-<button class="px-lg py-2 rounded-full font-label-md text-label-md active:scale-95 transition-transform shadow-lg font-bold bg-secondary text-on-secondary shadow-secondary/20">
-            Done
-        </button>
-</footer>
-<script>
-        let isSheetOpen = false;
-        function toggleSheet() {
-            const content = document.getElementById('sheet-content');
-            const arrow = document.getElementById('sheet-arrow');
-            const sheet = document.getElementById('bottom-sheet');
-            
-            if (isSheetOpen) {
-                content.classList.add('hidden');
-                arrow.textContent = 'expand_less';
-                sheet.style.transform = 'translateY(0)';
-            } else {
-                content.classList.remove('hidden');
-                arrow.textContent = 'expand_more';
-                sheet.style.transform = 'translateY(-60%)'; 
+<!doctype html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Ember Lance Upcast Scaling Editor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'tertiary-fixed': '#89f5e7',
+              'primary-fixed-dim': '#ffb690',
+              'on-tertiary': '#003732',
+              'primary-container': '#ec6a06',
+              'inverse-on-surface': '#3b2d26',
+              'brand-orange': '#ec6a06',
+              'inverse-surface': '#f6ded3',
+              'surface-container-highest': '#40322a',
+              'on-primary-container': '#4a1c00',
+              'primary-fixed': '#ffdbca',
+              'on-primary': '#542100',
+              'surface-container-lowest': '#0a0f0e',
+              'surface-tint': '#ffb690',
+              'outline-variant': '#3d4947',
+              'on-secondary-fixed-variant': '#5a00c6',
+              'secondary-fixed': '#eaddff',
+              'on-secondary-fixed': '#25005a',
+              'on-secondary-container': '#c9aeff',
+              'on-background': '#dee4e1',
+              'on-error': '#690005',
+              'error-container': '#93000a',
+              'surface-variant': '#303635',
+              tertiary: '#6bd8cb',
+              'on-surface-variant': '#bcc9c6',
+              'on-tertiary-fixed': '#00201d',
+              'on-surface': '#dee4e1',
+              primary: '#ffb690',
+              'on-tertiary-container': '#00302b',
+              'on-secondary': '#3f008e',
+              'on-error-container': '#ffdad6',
+              surface: '#0f1413',
+              'on-primary-fixed': '#331100',
+              background: '#0f1413',
+              outline: '#879391',
+              secondary: '#d2bbff',
+              'on-tertiary-fixed-variant': '#005049',
+              'on-primary-fixed-variant': '#783200',
+              'tertiary-container': '#29a195',
+              'surface-dim': '#0f1413',
+              'surface-container-low': '#171d1c',
+              'surface-container': '#1b2120',
+              'surface-container-high': '#262b2a',
+              'tertiary-fixed-dim': '#6bd8cb',
+              'secondary-fixed-dim': '#d2bbff',
+              'secondary-container': '#6001d1',
+              error: '#ffb4ab',
+              'surface-bright': '#353a39',
+              'inverse-primary': '#9d4400'
+            },
+            borderRadius: {
+              DEFAULT: '0.125rem',
+              lg: '0.25rem',
+              xl: '0.5rem',
+              full: '0.75rem'
+            },
+            spacing: {
+              sm: '0.5rem',
+              xs: '0.25rem',
+              xl: '2rem',
+              gutter: '1px',
+              sidebar_width: '280px',
+              md: '1rem',
+              lg: '1.5rem',
+              inspector_width: '320px'
+            },
+            fontFamily: {
+              'headline-md': ['Inter'],
+              'label-md': ['Inter'],
+              'headline-sm': ['Inter'],
+              'body-lg': ['Inter'],
+              'body-sm': ['Inter'],
+              display: ['Inter'],
+              'code-sm': ['JetBrains Mono'],
+              'body-md': ['Inter']
+            },
+            fontSize: {
+              'headline-md': [
+                '20px',
+                { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' }
+              ],
+              'label-md': ['12px', { lineHeight: '1', letterSpacing: '0.02em', fontWeight: '600' }],
+              'headline-sm': ['16px', { lineHeight: '1.5', fontWeight: '600' }],
+              'body-lg': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
+              'body-sm': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+              display: ['32px', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '700' }],
+              'code-sm': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+              'body-md': ['14px', { lineHeight: '1.5', fontWeight: '400' }]
             }
-            isSheetOpen = !isSheetOpen;
+          }
         }
+      }
     </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      body {
+        background-color: #0f1413;
+        color: #dee4e1;
+      }
+    </style>
+  </head>
+  <body class="bg-background text-on-surface font-body-md overflow-x-hidden antialiased">
+    <!-- Top Navigation Bar -->
+    <header
+      class="fixed top-0 w-full bg-surface-container-low z-50 flex items-center justify-between px-md h-14 border-b border-outline-variant/30"
+    >
+      <div class="flex items-center gap-sm">
+        <span class="material-symbols-outlined text-brand-orange">construction</span>
+        <span class="font-display text-headline-sm tracking-tight text-on-surface"
+          >Artificer Toolkit</span
+        >
+      </div>
+      <div class="flex items-center gap-md">
+        <button
+          class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest transition-colors p-2 rounded"
+        >
+          search
+        </button>
+        <button
+          class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-highest transition-colors p-2 rounded"
+        >
+          more_vert
+        </button>
+      </div>
+    </header>
+    <main class="mt-14 pb-48 px-md pt-lg max-w-2xl mx-auto">
+      <!-- Breadcrumbs & Header -->
+      <nav class="flex items-center gap-xs mb-sm">
+        <span class="font-label-md text-label-md text-on-surface-variant">Spells</span>
+        <span class="material-symbols-outlined text-on-surface-variant text-[12px]"
+          >chevron_right</span
+        >
+        <span class="font-label-md text-label-md text-on-surface">Ember Lance</span>
+      </nav>
+      <h1 class="font-display text-headline-md mb-lg text-on-surface">Upcast Scaling Editor</h1>
+      <!-- Scaling Model Card -->
+      <section class="bg-surface-container border border-outline-variant/30 rounded-lg p-md mb-lg">
+        <div class="flex items-center gap-sm mb-md">
+          <span class="material-symbols-outlined text-brand-orange">tune</span>
+          <h2 class="font-headline-sm text-headline-sm text-on-surface">Scaling Model</h2>
+        </div>
+        <div class="space-y-md">
+          <div>
+            <label class="font-label-md text-label-md text-on-surface-variant block mb-xs"
+              >Scaling Type</label
+            >
+            <input
+              class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-body-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange"
+              type="text"
+              placeholder="e.g. Linear Progression"
+              value="Linear Progression"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-sm">
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs"
+                >Base Die</label
+              >
+              <input
+                class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-code-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange"
+                type="text"
+                value="3d8"
+              />
+            </div>
+            <div>
+              <label class="font-label-md text-label-md text-on-surface-variant block mb-xs"
+                >Die Type</label
+              >
+              <input
+                class="w-full bg-surface-container-lowest border border-outline-variant/50 rounded px-sm py-2 text-on-surface font-body-sm focus:ring-1 transition-all outline-none focus:ring-brand-orange focus:border-brand-orange"
+                type="text"
+                value="Fire"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Scaling Progression List -->
+      <section class="mb-lg">
+        <div class="flex items-center justify-between mb-md">
+          <div class="flex items-center gap-sm">
+            <span class="material-symbols-outlined text-brand-orange">table_rows</span>
+            <h2 class="font-headline-sm text-headline-sm text-on-surface">Level Progression</h2>
+          </div>
+          <button class="text-tertiary font-label-md text-label-md flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[16px]">add</span> Add Tier
+          </button>
+        </div>
+        <div class="space-y-sm">
+          <!-- Row 1 -->
+          <div
+            class="bg-surface-container border-l-2 border-brand-orange border-y border-r border-outline-variant/30 rounded p-sm flex items-center justify-between"
+          >
+            <div>
+              <p class="font-label-md text-label-md text-on-surface-variant">Level 4 Slot</p>
+              <p class="font-code-sm text-code-sm text-on-surface">
+                4d8 <span class="text-secondary">Fire Damage</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-sm">
+              <span
+                class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                >edit</span
+              >
+              <span
+                class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                >drag_indicator</span
+              >
+            </div>
+          </div>
+          <!-- Row 2 -->
+          <div
+            class="bg-surface-container border-l-2 border-outline-variant/50 border-y border-r border-outline-variant/30 rounded p-sm flex items-center justify-between"
+          >
+            <div>
+              <p class="font-label-md text-label-md text-on-surface-variant">Level 5 Slot</p>
+              <p class="font-code-sm text-code-sm text-on-surface">
+                5d8 <span class="text-secondary">Fire Damage</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-sm">
+              <span
+                class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                >edit</span
+              >
+              <span
+                class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                >drag_indicator</span
+              >
+            </div>
+          </div>
+          <!-- Row 3 (Special) -->
+          <div
+            class="bg-surface-container border-l-2 border-tertiary border-y border-r border-outline-variant/30 rounded p-sm"
+          >
+            <div class="flex items-center justify-between mb-xs">
+              <div>
+                <p class="font-label-md text-label-md text-on-surface-variant">Level 6 Slot</p>
+                <p class="font-code-sm text-code-sm text-on-surface">
+                  6d8 + 10 <span class="text-tertiary">Burning (Dot)</span>
+                </p>
+              </div>
+              <div class="flex items-center gap-sm">
+                <span
+                  class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                  >edit</span
+                >
+                <span
+                  class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface"
+                  >drag_indicator</span
+                >
+              </div>
+            </div>
+            <div class="bg-tertiary/10 px-xs py-1 rounded inline-block">
+              <p class="text-[10px] text-tertiary uppercase font-bold tracking-widest">
+                Breakthrough Point
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Visual Hook / Atmospheric Effect -->
+      <div
+        class="relative h-40 w-full rounded-xl overflow-hidden mb-lg border border-outline-variant/30 group"
+      >
+        <img
+          alt="Artificer Workdesk"
+          class="w-full h-full object-cover grayscale opacity-30 group-hover:opacity-50 transition-all duration-700"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-AxYbDDm9LONcbknJDxa5kl24rBh1yy4g_-vdJjnG-gV3d5trpvkgog9ajeemruQVPDln1NamgrAUAisAPquInFAmXDH6JioOL2JNa-6NvS9YyOwFDZ5DxxykdYiDFxdzo5RE1wd2mXD4-6bUrEv8bAEx3LG2hW6XiaFKPAEa3NyDimjYOQDMw5PR7XvAVNNi9fAZE8scq7E9lSoOJ7_4A6_qfsAdmEY0BqBlZZuLC3ec28EK8tTAC3BJFZAd8WcdKrITKW3rTKSp"
+        />
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"
+        ></div>
+        <div class="absolute bottom-md left-md">
+          <p
+            class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant/70"
+          >
+            System Preview
+          </p>
+          <p class="font-display text-headline-sm text-on-surface">Black Forge Engine</p>
+        </div>
+      </div>
+    </main>
+    <!-- Rule Preview Bottom Sheet -->
 
+    <!-- Persistent Bottom Bar -->
+    <footer
+      class="fixed bottom-0 w-full h-16 bg-surface-container-low border-t border-outline-variant/30 z-50 flex items-center justify-between px-md"
+    >
+      <div class="flex items-center gap-md">
+        <div class="flex flex-col items-center justify-center text-brand-orange">
+          <span class="material-symbols-outlined">edit_note</span>
+          <span class="font-label-md text-[10px]">Editor</span>
+        </div>
+        <div class="flex flex-col items-center justify-center text-on-surface-variant opacity-70">
+          <span class="material-symbols-outlined">visibility</span>
+          <span class="font-label-md text-[10px]">Preview</span>
+        </div>
+      </div>
+      <button
+        class="px-lg py-2 rounded-full font-label-md text-label-md active:scale-95 transition-transform shadow-lg font-bold bg-secondary text-on-secondary shadow-secondary/20"
+      >
+        Done
+      </button>
+    </footer>
+    <script>
+      let isSheetOpen = false
+      function toggleSheet() {
+        const content = document.getElementById('sheet-content')
+        const arrow = document.getElementById('sheet-arrow')
+        const sheet = document.getElementById('bottom-sheet')
 
-</body></html>
+        if (isSheetOpen) {
+          content.classList.add('hidden')
+          arrow.textContent = 'expand_less'
+          sheet.style.transform = 'translateY(0)'
+        } else {
+          content.classList.remove('hidden')
+          arrow.textContent = 'expand_more'
+          sheet.style.transform = 'translateY(-60%)'
+        }
+        isSheetOpen = !isSheetOpen
+      }
+    </script>
+  </body>
+</html>

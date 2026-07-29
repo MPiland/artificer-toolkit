@@ -33,7 +33,9 @@ export interface ResolveClassEditReadOnlyInput {
   hasActiveClass: boolean
 }
 
-export function createEmptyClass({ systemId }: CreateEmptyClassInput): Extract<ClassFormValues, { category?: undefined }> {
+export function createEmptyClass({
+  systemId
+}: CreateEmptyClassInput): Extract<ClassFormValues, { category?: undefined }> {
   return {
     id: crypto.randomUUID(),
     label: '',

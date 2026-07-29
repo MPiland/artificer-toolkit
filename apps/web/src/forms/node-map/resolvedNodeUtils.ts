@@ -14,8 +14,7 @@ export function getResolvedNode(
   runtimeModel: NodeRuntimeResolveResponseDto | undefined,
   nodeId: string
 ): NodeRuntimeNodeDto | undefined {
-  return getResolvedNodes(runtimeModel)
-    .find((node) => node.id === nodeId)
+  return getResolvedNodes(runtimeModel).find((node) => node.id === nodeId)
 }
 
 export function getResolvedNodeOptions(
@@ -49,9 +48,7 @@ export function resolveResolvedNodeOptions(
   return fallback()
 }
 
-export function isResolvedInputNode(
-  node: NodeRuntimeNodeDto
-): node is NodeRuntimeInputNodeDto {
+export function isResolvedInputNode(node: NodeRuntimeNodeDto): node is NodeRuntimeInputNodeDto {
   return node.kind === 'INPUT'
 }
 
@@ -61,9 +58,7 @@ export function isResolvedSelectInputNode(
   return node.kind === 'INPUT' && (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI')
 }
 
-export function isResolvedGroupNode(
-  node: NodeRuntimeNodeDto
-): node is NodeRuntimeGroupNodeDto {
+export function isResolvedGroupNode(node: NodeRuntimeNodeDto): node is NodeRuntimeGroupNodeDto {
   return node.kind === 'GROUP'
 }
 
@@ -89,8 +84,7 @@ export function useResolvedNodeById(runtimeModel: NodeRuntimeResolveResponseDto 
 export function getResolvedNodes(
   runtimeModel: NodeRuntimeResolveResponseDto | undefined
 ): NodeRuntimeNodeDto[] {
-  return runtimeModel?.steps
-    .flatMap((step) => step.sections)
-    .flatMap((section) => section.nodes)
-    ?? []
+  return (
+    runtimeModel?.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes) ?? []
+  )
 }

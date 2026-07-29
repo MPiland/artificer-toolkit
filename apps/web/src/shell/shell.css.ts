@@ -3,6 +3,7 @@ import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
 const tabletPortrait = 'screen and (max-width: 900px) and (orientation: portrait)'
+const compact = 'screen and (max-width: 760px)'
 const mobile = 'screen and (max-width: 640px)'
 
 export const canvas = style({
@@ -130,13 +131,14 @@ export const contentArea = style({
       marginInline: 'auto',
       padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
       '@media': {
-        [tabletPortrait]: {
-          paddingBlockEnd: 'calc(58px + env(safe-area-inset-bottom) + 24px)'
+        [compact]: {
+          alignContent: 'stretch',
+          blockSize: '100%'
         },
         [mobile]: {
           inlineSize: '100%',
           gap: foundationVars.space[6],
-          padding: `${foundationVars.space[4]} ${foundationVars.space[4]} calc(58px + env(safe-area-inset-bottom) + 24px)`
+          padding: foundationVars.space[4]
         }
       }
     }

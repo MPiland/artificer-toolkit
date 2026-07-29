@@ -13,4 +13,3 @@ export * from '../../domains/engine/rulesRegistry.js'
 export * from '../../domains/engine/resolution/index.js'
 export * from '../../domains/engine/prerequisiteEval.js'
 export * from '../../domains/character/index.js'
-

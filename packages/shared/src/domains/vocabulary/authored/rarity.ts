@@ -23,7 +23,8 @@ export const rarities: RarityOption[] = [
     id: 'ae80f98c-9d79-44b4-a1d5-712a3c73458c',
     code: RarityCode.UNCOMMON,
     label: 'Uncommon',
-    description: 'Uncommon items are less frequently encountered and often have minor magical properties.',
+    description:
+      'Uncommon items are less frequently encountered and often have minor magical properties.',
     tooltip: 'Less common.'
   },
   {

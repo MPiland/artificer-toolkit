@@ -1,9 +1,8 @@
 export const fontFamily = {
   'sans-serif':
     'system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Ubuntu, Helvetica Neue, Noto Sans, Liberation Sans, Cantarell, Noto Sans, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji, sans-serif;',
-  'serif': 'ui-serif, serif;',
-  'mono':
-    'Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, monospace;'
+  serif: 'ui-serif, serif;',
+  mono: 'Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, monospace;'
 }
 
 export const fontWeight = {

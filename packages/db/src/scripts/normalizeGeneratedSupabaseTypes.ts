@@ -11,13 +11,15 @@ const compositeConstraints = [
     redundant: `  PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },`,
-    normalized: '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
+    normalized:
+      '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
   },
   {
     redundant: `  PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },`,
-    normalized: '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
+    normalized:
+      '  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },'
   }
 ] as const
 
@@ -53,7 +55,9 @@ function publicSchemaHasNoCompositeTypes(source: string): boolean {
   const compositeTypesStart = source.indexOf('\n    CompositeTypes:', publicSchemaStart)
 
   if (publicSchemaStart < 0 || compositeTypesStart < 0) {
-    throw new Error('Supabase generated types do not contain the public CompositeTypes declaration.')
+    throw new Error(
+      'Supabase generated types do not contain the public CompositeTypes declaration.'
+    )
   }
   if (nextSchemaStart >= 0 && compositeTypesStart > nextSchemaStart) {
     throw new Error('Supabase generated types do not contain public CompositeTypes.')

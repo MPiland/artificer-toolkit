@@ -44,11 +44,7 @@ export default defineConfig({
           setupFiles: ['./src/test/setup.ts'],
           css: true,
           include: ['src/**/*.{test,spec}.{ts,tsx}'],
-          exclude: [
-            '**/node_modules/**',
-            '**/tests/e2e/**',
-            '**/*.browser.test.tsx'
-          ]
+          exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.browser.test.tsx']
         }
       },
       {
@@ -64,6 +60,10 @@ export default defineConfig({
           fileParallelism: false,
           maxWorkers: 1,
           browser: {
+            api: {
+              host: '127.0.0.1',
+              port: 64115
+            },
             enabled: true,
             fileParallelism: false,
             headless: true,

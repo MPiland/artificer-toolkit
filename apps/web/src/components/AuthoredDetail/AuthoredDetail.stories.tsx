@@ -1,9 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import {
-  AuthoredDetailItemList,
-  AuthoredDetailLayout,
-  AuthoredDetailProse
-} from './AuthoredDetail'
+import { AuthoredDetailItemList, AuthoredDetailLayout, AuthoredDetailProse } from './AuthoredDetail'
 import { storyCanvas } from './AuthoredDetail.css'
 
 const meta = {
@@ -28,7 +24,8 @@ const meta = {
   args: {
     eyebrow: 'Race',
     title: 'Sea Elf',
-    description: 'A clean read surface for table reference, draft preview, and locked master content.',
+    description:
+      'A clean read surface for table reference, draft preview, and locked master content.',
     status: ['Draft Preview', 'Homebrew'],
     facts: [
       { label: 'Category', value: 'Subrace' },
@@ -45,7 +42,9 @@ const meta = {
       {
         id: 'description',
         title: 'Description',
-        content: <AuthoredDetailProse html='<p>Sea elves move through reef cities and moonlit kelp forests with equal grace.</p>' />
+        content: (
+          <AuthoredDetailProse html='<p>Sea elves move through reef cities and moonlit kelp forests with equal grace.</p>' />
+        )
       },
       {
         id: 'features',
@@ -62,7 +61,8 @@ const meta = {
               {
                 id: 'friend-of-the-sea',
                 title: 'Friend of the Sea',
-                description: '<p>You can communicate simple ideas with beasts that have an innate swimming speed.</p>'
+                description:
+                  '<p>You can communicate simple ideas with beasts that have an innate swimming speed.</p>'
               }
             ]}
           />

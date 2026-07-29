@@ -1,7 +1,4 @@
-import {
-  queryOptions,
-  useSuspenseQuery
-} from '@tanstack/react-query'
+import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import type {
   ClassListItemDto,
   CreatureListItemDto,
@@ -43,11 +40,13 @@ type SpellListMeta = {
   schools?: SpellListMetaGroup[]
 }
 
-function toVocabularyOptions(items: Array<{ id: string, label: string }>): SpellReferenceOption[] {
+function toVocabularyOptions(items: Array<{ id: string; label: string }>): SpellReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
-function toContentOptions(items: Array<ClassListItemDto | CreatureListItemDto>): SpellReferenceOption[] {
+function toContentOptions(
+  items: Array<ClassListItemDto | CreatureListItemDto>
+): SpellReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
@@ -58,7 +57,9 @@ function toMetaOptions(items: SpellListMetaGroup[] | undefined): SpellReferenceO
   }))
 }
 
-export function getSpellDetailReferenceDataFromList(response: SpellListResponseDto): SpellDetailReferenceData {
+export function getSpellDetailReferenceDataFromList(
+  response: SpellListResponseDto
+): SpellDetailReferenceData {
   const meta = response.meta as SpellListMeta
 
   return {

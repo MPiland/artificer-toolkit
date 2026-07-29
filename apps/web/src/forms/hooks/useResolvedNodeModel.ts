@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type {
+  NodeRuntimePathDto,
+  NodeRuntimeResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import { fingerprintNodeRuntimeRequest, useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
 export interface UseResolvedNodeModelOptions {
@@ -23,18 +26,22 @@ export function useResolvedNodeModel({
   debounceMs = 150,
   onClearPaths
 }: UseResolvedNodeModelOptions): NodeRuntimeResolveResponseDto | undefined {
-  const request = useMemo(() => ({
-    mapId,
-    values,
-    parentValues,
-    ancestors,
-    systemId: systemId ?? ''
-  }), [
-    ancestors, mapId, parentValues, systemId, values
-  ])
+  const request = useMemo(
+    () => ({
+      mapId,
+      values,
+      parentValues,
+      ancestors,
+      systemId: systemId ?? ''
+    }),
+    [ancestors, mapId, parentValues, systemId, values]
+  )
   const [debouncedRequest, setDebouncedRequest] = useState(request)
   const requestFingerprint = useMemo(() => fingerprintNodeRuntimeRequest(request), [request])
-  const debouncedRequestFingerprint = useMemo(() => fingerprintNodeRuntimeRequest(debouncedRequest), [debouncedRequest])
+  const debouncedRequestFingerprint = useMemo(
+    () => fingerprintNodeRuntimeRequest(debouncedRequest),
+    [debouncedRequest]
+  )
 
   useEffect(() => {
     if (requestFingerprint === debouncedRequestFingerprint) return undefined
@@ -54,7 +61,7 @@ export function useResolvedNodeModel({
   }, [query.data, query.isPlaceholderData])
   const clearPathKey = query.isPlaceholderData
     ? ''
-    : query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? ''
+    : (query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? '')
 
   useEffect(() => {
     if (query.isPlaceholderData) return

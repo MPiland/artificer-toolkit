@@ -68,21 +68,13 @@ describe('authoredFormFactories', () => {
       classFormFactory.normalizeForSubmit(
         classFormFactory.toFormValues(ownedClassResponseFixture.item)
       ),
-      creatureFormFactory.normalizeForSubmit(
-        creatureFormFactory.toFormValues(ownedMonsterFixture)
-      ),
+      creatureFormFactory.normalizeForSubmit(creatureFormFactory.toFormValues(ownedMonsterFixture)),
       equipmentFormFactory.normalizeForSubmit(
         equipmentFormFactory.toFormValues(ownedEquipmentFixture)
       ),
-      featFormFactory.normalizeForSubmit(
-        featFormFactory.toFormValues(ownedFeatFixture)
-      ),
-      raceFormFactory.normalizeForSubmit(
-        raceFormFactory.toFormValues(ownedBaseRaceFixture)
-      ),
-      spellFormFactory.normalizeForSubmit(
-        spellFormFactory.toFormValues(spellFixture)
-      ),
+      featFormFactory.normalizeForSubmit(featFormFactory.toFormValues(ownedFeatFixture)),
+      raceFormFactory.normalizeForSubmit(raceFormFactory.toFormValues(ownedBaseRaceFixture)),
+      spellFormFactory.normalizeForSubmit(spellFormFactory.toFormValues(spellFixture)),
       vehicleFormFactory.normalizeForSubmit(
         vehicleFormFactory.toFormValues(ownedVehicleResponseFixture.item)
       )
@@ -128,25 +120,26 @@ describe('authoredFormFactories', () => {
     ] as const
 
     for (const [domain, session] of sessions) {
-      expect(session).toEqual(expect.objectContaining({
-        domain,
-        mapId: domain,
-        mode: 'create',
-        systemRequired: false
-      }))
-      expect(session?.initialValues).toEqual(expect.objectContaining({
-        label: '',
-        systemId: 'system-1'
-      }))
+      expect(session).toEqual(
+        expect.objectContaining({
+          domain,
+          mapId: domain,
+          mode: 'create',
+          systemRequired: false
+        })
+      )
+      expect(session?.initialValues).toEqual(
+        expect.objectContaining({
+          label: '',
+          systemId: 'system-1'
+        })
+      )
     }
   })
 })
 
 function hasSystemId(value: unknown): value is { systemId: string } {
   return Boolean(
-    value
-      && typeof value === 'object'
-      && 'systemId' in value
-      && typeof value.systemId === 'string'
+    value && typeof value === 'object' && 'systemId' in value && typeof value.systemId === 'string'
   )
 }

@@ -1,9 +1,7 @@
 import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared/core'
 import { z } from 'zod'
 
-import {
-  raceAncestryDtoSchema
-} from './shared.js'
+import { raceAncestryDtoSchema } from './shared.js'
 import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { authoredRecordStatusSchema, sizeCodeSchema } from '../shared/enums.js'
@@ -39,8 +37,10 @@ const subraceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
   features: z.array(featureDtoSchema).optional()
 })
 
-export const baseRaceAuthoredDtoSchema: typeof baseRaceAuthoredDtoSchemaInternal = baseRaceAuthoredDtoSchemaInternal
-export const subraceAuthoredDtoSchema: typeof subraceAuthoredDtoSchemaInternal = subraceAuthoredDtoSchemaInternal
+export const baseRaceAuthoredDtoSchema: typeof baseRaceAuthoredDtoSchemaInternal =
+  baseRaceAuthoredDtoSchemaInternal
+export const subraceAuthoredDtoSchema: typeof subraceAuthoredDtoSchemaInternal =
+  subraceAuthoredDtoSchemaInternal
 
 export type BaseRaceAuthoredDto = z.infer<typeof baseRaceAuthoredDtoSchema>
 export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchema>
@@ -58,14 +58,16 @@ const subraceAuthoringInputDtoSchemaInternal = subraceAuthoredDtoSchema.extend({
   userId: z.string().optional()
 })
 
-export const baseRaceAuthoringInputDtoSchema: typeof baseRaceAuthoringInputDtoSchemaInternal = baseRaceAuthoringInputDtoSchemaInternal
-export const subraceAuthoringInputDtoSchema: typeof subraceAuthoringInputDtoSchemaInternal = subraceAuthoringInputDtoSchemaInternal
+export const baseRaceAuthoringInputDtoSchema: typeof baseRaceAuthoringInputDtoSchemaInternal =
+  baseRaceAuthoringInputDtoSchemaInternal
+export const subraceAuthoringInputDtoSchema: typeof subraceAuthoringInputDtoSchemaInternal =
+  subraceAuthoringInputDtoSchemaInternal
 
 export type BaseRaceAuthoringInputDto = z.infer<typeof baseRaceAuthoringInputDtoSchema>
 export type SubraceAuthoringInputDto = z.infer<typeof subraceAuthoringInputDtoSchema>
 export type RaceAuthoringInputDto = BaseRaceAuthoringInputDto | SubraceAuthoringInputDto
 
-export const raceAuthoringInputDtoSchema: z.ZodType<RaceAuthoringInputDto> = z.discriminatedUnion('category', [
-  baseRaceAuthoringInputDtoSchema,
-  subraceAuthoringInputDtoSchema
-])
+export const raceAuthoringInputDtoSchema: z.ZodType<RaceAuthoringInputDto> = z.discriminatedUnion(
+  'category',
+  [baseRaceAuthoringInputDtoSchema, subraceAuthoringInputDtoSchema]
+)

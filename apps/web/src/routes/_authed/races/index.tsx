@@ -78,28 +78,36 @@ function RacesRoute() {
         attributeColumns={raceListAttributeColumns}
         sortOptions={raceListSortOptions}
         onCreate={() => navigate({ to: '/races/new' })}
-        onView={(item) => navigate({
-          params: buildRaceRouteParams(item.publicId, item.name),
-          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-          to: '/races/$racePublicId/$raceSlug'
-        })}
+        onView={(item) =>
+          navigate({
+            params: buildRaceRouteParams(item.publicId, item.name),
+            search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+            to: '/races/$racePublicId/$raceSlug'
+          })
+        }
         onViewIntent={(item) => {
-          void queryClient.prefetchQuery(getRace({
-            id: item.id,
-            meta: raceDetailMeta,
-            view: item.contentState === 'draft' ? 'draft' : 'active'
-          }))
+          void queryClient.prefetchQuery(
+            getRace({
+              id: item.id,
+              meta: raceDetailMeta,
+              view: item.contentState === 'draft' ? 'draft' : 'active'
+            })
+          )
         }}
-        onEdit={(item) => navigate({
-          params: buildRaceRouteParams(item.publicId, item.name),
-          to: '/races/$racePublicId/$raceSlug/edit'
-        })}
+        onEdit={(item) =>
+          navigate({
+            params: buildRaceRouteParams(item.publicId, item.name),
+            to: '/races/$racePublicId/$raceSlug/edit'
+          })
+        }
         onCopy={(item) => duplicateMutation.mutate(item.id)}
-        onDelete={(item) => deleteAction.requestDelete({
-          id: item.id,
-          kind: item.contentState === 'draft' ? 'draft' : 'active',
-          label: item.name
-        })}
+        onDelete={(item) =>
+          deleteAction.requestDelete({
+            id: item.id,
+            kind: item.contentState === 'draft' ? 'draft' : 'active',
+            label: item.name
+          })
+        }
       />
       {deleteAction.confirmation}
     </>

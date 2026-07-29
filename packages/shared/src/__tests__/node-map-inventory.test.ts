@@ -37,90 +37,85 @@ describe('node map inventory', () => {
   it('registers every active child map reachable from authored root maps', () => {
     const registry = collectNodeMaps(activeRootMaps)
 
-    expect([...registry.keys()].sort()).toEqual(expect.arrayContaining([
-      'background',
-      'charges',
-      'class',
-      'classResource',
-      'contains',
-      'creature',
-      'effect',
-      'equipment',
-      'facet',
-      'feat',
-      'featGrant',
-      'featGrantLevel',
-      'featGrantProgression',
-      'feature',
-      'featureGrants',
-      'modifierGrant',
-      'option',
-      'proficiencyGrant',
-      'race',
-      'raceAncestry',
-      'raceAncestryOption',
-      'spell',
-      'startingEquipment',
-      'startingEquipmentItem',
-      'vehicle'
-    ]))
+    expect([...registry.keys()].sort()).toEqual(
+      expect.arrayContaining([
+        'background',
+        'charges',
+        'class',
+        'classResource',
+        'contains',
+        'creature',
+        'effect',
+        'equipment',
+        'facet',
+        'feat',
+        'featGrant',
+        'featGrantLevel',
+        'featGrantProgression',
+        'feature',
+        'featureGrants',
+        'modifierGrant',
+        'option',
+        'proficiencyGrant',
+        'race',
+        'raceAncestry',
+        'raceAncestryOption',
+        'spell',
+        'startingEquipment',
+        'startingEquipmentItem',
+        'vehicle'
+      ])
+    )
   })
 
   it('does not leave active group nodes without child maps', () => {
     const registry = collectNodeMaps(activeRootMaps)
-    const missingChildren = [...registry.values()].flatMap((nodeMap) => (
-      Object.entries(nodeMap.nodes)
-        .flatMap(([nodeId, node]) => {
-          if (node.kind !== 'GROUP') return []
+    const missingChildren = [...registry.values()].flatMap((nodeMap) =>
+      Object.entries(nodeMap.nodes).flatMap(([nodeId, node]) => {
+        if (node.kind !== 'GROUP') return []
 
-          const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
-          return childMap?.mapId ? [] : [`${nodeMap.mapId}.${nodeId}`]
-        })
-    ))
+        const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+        return childMap?.mapId ? [] : [`${nodeMap.mapId}.${nodeId}`]
+      })
+    )
 
     expect(missingChildren).toEqual([])
   })
 
   it('assigns an explicit supported presentation to every reachable group', () => {
     const registry = collectNodeMaps(activeRootMaps)
-    const supportedArrayPresentations = new Set([
-      'inline',
-      'table',
-      'summary',
-      'branch',
-      'focused',
-    ])
+    const supportedArrayPresentations = new Set(['inline', 'table', 'summary', 'branch', 'focused'])
     const supportedObjectPresentations = new Set(['inline', 'branch'])
-    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) => (
+    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) =>
       Object.entries(nodeMap.nodes).flatMap(([nodeId, node]) => {
         if (node.kind !== 'GROUP') return []
 
-        const supported = node.groupKind === 'OBJECT'
-          ? supportedObjectPresentations
-          : supportedArrayPresentations
+        const supported =
+          node.groupKind === 'OBJECT' ? supportedObjectPresentations : supportedArrayPresentations
         return supported.has(node.presentation)
           ? []
           : [`${mapId}.${nodeId}:${node.groupKind}:${String(node.presentation)}`]
       })
-    ))
+    )
 
     expect(failures).toEqual([])
   })
 
   it('keeps direct staged-drawer child groups inline', () => {
     const registry = collectNodeMaps(activeRootMaps)
-    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) => (
+    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) =>
       Object.entries(nodeMap.nodes).flatMap(([nodeId, node]) => {
         if (
-          node.kind !== 'GROUP'
-          || String(node.groupKind) !== 'ARRAY'
-          || String(node.presentation) !== 'focused'
-        ) return []
+          node.kind !== 'GROUP' ||
+          String(node.groupKind) !== 'ARRAY' ||
+          String(node.presentation) !== 'focused'
+        )
+          return []
 
         const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
         return collectNonTerminalChildren(childMap, `${mapId}.${nodeId}`)
       })
-    ))
+    )
 
     expect(failures).toEqual([])
   })
@@ -144,13 +139,12 @@ describe('node map inventory', () => {
 
   it('uses rich text controls for prose fields', () => {
     const registry = collectNodeMaps(activeRootMaps)
-    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) => (
-      Object.entries(nodeMap.nodes)
-        .flatMap(([nodeId, node]) => {
-          if (node.kind !== 'INPUT' || !isProseField(node) || node.type === 'RICH_TEXT') return []
-          return [`${mapId}.${nodeId}:${node.type}`]
-        })
-    ))
+    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) =>
+      Object.entries(nodeMap.nodes).flatMap(([nodeId, node]) => {
+        if (node.kind !== 'INPUT' || !isProseField(node) || node.type === 'RICH_TEXT') return []
+        return [`${mapId}.${nodeId}:${node.type}`]
+      })
+    )
 
     expect(failures).toEqual([])
   })
@@ -210,9 +204,10 @@ describe('node map inventory', () => {
     const prerequisitesNode = FEAT_NODE_MAP.nodes.prerequisites
     expect(prerequisitesNode.kind).toBe('GROUP')
     if (prerequisitesNode.kind === 'GROUP') {
-      const prerequisiteMap = typeof prerequisitesNode.nodes === 'function'
-        ? prerequisitesNode.nodes()
-        : prerequisitesNode.nodes
+      const prerequisiteMap =
+        typeof prerequisitesNode.nodes === 'function'
+          ? prerequisitesNode.nodes()
+          : prerequisitesNode.nodes
       expect(prerequisiteMap.mapId).toBe('characterFacet')
     }
   })
@@ -226,10 +221,7 @@ function collectNodeMaps(nodeMaps: readonly unknown[]): ReadonlyMap<string, Runt
   return registry
 }
 
-function collectNodeMap(
-  nodeMap: unknown,
-  registry: Map<string, RuntimeMap>
-) {
+function collectNodeMap(nodeMap: unknown, registry: Map<string, RuntimeMap>) {
   const runtimeNodeMap = nodeMap as RuntimeMap
   if (registry.has(runtimeNodeMap.mapId)) return
 
@@ -243,16 +235,13 @@ function collectNodeMap(
   }
 }
 
-function collectNonTerminalChildren(
-  nodeMap: RuntimeMap,
-  parentPath: string
-): string[] {
+function collectNonTerminalChildren(nodeMap: RuntimeMap, parentPath: string): string[] {
   return Object.entries(nodeMap.nodes).flatMap(([nodeId, node]) => {
     if (node.kind !== 'GROUP') return []
 
     const nodePath = `${parentPath}>${nodeMap.mapId}.${nodeId}`
-    return String(node.presentation) === 'inline'
-      || (String(node.groupKind) === 'ARRAY' && String(node.presentation) === 'table')
+    return String(node.presentation) === 'inline' ||
+      (String(node.groupKind) === 'ARRAY' && String(node.presentation) === 'table')
       ? []
       : [`${nodePath}:${node.presentation}`]
   })
@@ -269,9 +258,11 @@ function isProseField(node: RuntimeMap['nodes'][string]): boolean {
   const pathKey = lastPathSegment.toLowerCase()
   const labelKey = node.label.toLowerCase()
 
-  return proseFieldKeys.has(pathKey)
-    || pathKey.endsWith('description')
-    || pathKey.endsWith('detail')
-    || pathKey.endsWith('quote')
-    || proseFieldKeys.has(labelKey)
+  return (
+    proseFieldKeys.has(pathKey) ||
+    pathKey.endsWith('description') ||
+    pathKey.endsWith('detail') ||
+    pathKey.endsWith('quote') ||
+    proseFieldKeys.has(labelKey)
+  )
 }

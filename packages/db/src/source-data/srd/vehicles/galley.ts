@@ -4,7 +4,8 @@ import { gp, SRD_SYSTEM_ID, SRD_USER_ID, VEHICLE_IDS } from './shared.js'
 export const galley: VehicleAuthored = {
   id: VEHICLE_IDS.GALLEY,
   label: 'Galley',
-  description: 'A large warship propelled by oarsmen, capable of high speeds and carrying siege weapons.',
+  description:
+    'A large warship propelled by oarsmen, capable of high speeds and carrying siege weapons.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   category: 'WATER',

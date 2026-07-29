@@ -52,9 +52,7 @@ describe('AuthForms', () => {
     const signIn = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
-    renderAuthForm(
-      <SignInForm authClient={createAuthClient({ signIn })} onSuccess={onSuccess} />
-    )
+    renderAuthForm(<SignInForm authClient={createAuthClient({ signIn })} onSuccess={onSuccess} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'player@example.com' }
@@ -64,10 +62,12 @@ describe('AuthForms', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    await waitFor(() => expect(signIn).toHaveBeenCalledWith({
-      email: 'player@example.com',
-      password: 'password123'
-    }))
+    await waitFor(() =>
+      expect(signIn).toHaveBeenCalledWith({
+        email: 'player@example.com',
+        password: 'password123'
+      })
+    )
     expect(onSuccess).toHaveBeenCalled()
   })
 
@@ -100,11 +100,13 @@ describe('AuthForms', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
-    await waitFor(() => expect(signUp).toHaveBeenCalledWith({
-      name: 'Morgan',
-      email: 'morgan@example.com',
-      password: 'password123'
-    }))
+    await waitFor(() =>
+      expect(signUp).toHaveBeenCalledWith({
+        name: 'Morgan',
+        email: 'morgan@example.com',
+        password: 'password123'
+      })
+    )
   })
 
   it('passes auto-confirm signup sessions to the success handler', async () => {
@@ -124,9 +126,7 @@ describe('AuthForms', () => {
     const signUp = vi.fn(async () => ({ ok: true, session }))
     const onSuccess = vi.fn()
 
-    renderAuthForm(
-      <SignUpForm authClient={createAuthClient({ signUp })} onSuccess={onSuccess} />
-    )
+    renderAuthForm(<SignUpForm authClient={createAuthClient({ signUp })} onSuccess={onSuccess} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: /name/i }), {
       target: { value: 'Morgan' }
@@ -139,10 +139,12 @@ describe('AuthForms', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith({
-      ok: true,
-      session
-    }))
+    await waitFor(() =>
+      expect(onSuccess).toHaveBeenCalledWith({
+        ok: true,
+        session
+      })
+    )
   })
 
   it('marks reset-password email for browser autofill without GET fallback', () => {
@@ -157,18 +159,18 @@ describe('AuthForms', () => {
   it('requests a password reset', async () => {
     const requestPasswordReset = vi.fn(async () => ({ ok: true }))
 
-    renderAuthForm(
-      <ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />
-    )
+    renderAuthForm(<ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'reset@example.com' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
 
-    await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledWith({
-      email: 'reset@example.com'
-    }))
+    await waitFor(() =>
+      expect(requestPasswordReset).toHaveBeenCalledWith({
+        email: 'reset@example.com'
+      })
+    )
   })
 
   it('shows reset-password submit errors only in the form', async () => {
@@ -177,9 +179,7 @@ describe('AuthForms', () => {
       message: 'Unable to reach the reset service.'
     }))
 
-    renderAuthForm(
-      <ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />
-    )
+    renderAuthForm(<ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'reset@example.com' }
@@ -207,10 +207,7 @@ describe('AuthForms', () => {
     const onSuccess = vi.fn()
 
     renderAuthForm(
-      <UpdatePasswordForm
-        authClient={createAuthClient({ updatePassword })}
-        onSuccess={onSuccess}
-      />
+      <UpdatePasswordForm authClient={createAuthClient({ updatePassword })} onSuccess={onSuccess} />
     )
 
     fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
@@ -221,9 +218,11 @@ describe('AuthForms', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
-    await waitFor(() => expect(updatePassword).toHaveBeenCalledWith({
-      password: 'new-password-123'
-    }))
+    await waitFor(() =>
+      expect(updatePassword).toHaveBeenCalledWith({
+        password: 'new-password-123'
+      })
+    )
     expect(onSuccess).toHaveBeenCalled()
   })
 })

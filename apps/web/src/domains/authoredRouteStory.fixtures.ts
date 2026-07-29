@@ -340,7 +340,7 @@ export const seedAcolyteCreature = {
   },
   armorClass: 10,
   hitPoints: 9,
-  hitDice: '2d8',
+  hitDice: { count: 2, die: 8, modifier: 0 },
   speeds: [
     {
       speedId: authoredStoryWalkingSpeedId,
@@ -776,9 +776,7 @@ export function createEditLoaderData<TDomain extends AuthoredFormDomain>(
       : authoredRouteStoryResponses[domain]
   ) as AuthoredRouteStoryResponseMap[TDomain]
   const draft = state === 'ownedDraft' ? authoredRouteStoryDrafts[domain] : null
-  const responseWithDraftState = state === 'ownedDraft'
-    ? { ...response, hasDraft: true }
-    : response
+  const responseWithDraftState = state === 'ownedDraft' ? { ...response, hasDraft: true } : response
   const item = responseWithDraftState.item
   if (!item) throw new Error(`Missing ${domain} story record.`)
 

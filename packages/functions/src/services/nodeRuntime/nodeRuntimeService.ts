@@ -455,9 +455,7 @@ async function resolveOptions(
     case 'INLINE_OPTIONS':
       return applyInlineFilter(db, toOptions(source.options), source.filter, scope)
     case 'INLINE_GROUPS': {
-      const groups = source.optionGroups.filter((group) =>
-        evaluateConditionIf(group.showIf, scope)
-      )
+      const groups = source.optionGroups.filter((group) => evaluateConditionIf(group.showIf, scope))
       const optionSets = await Promise.all(
         groups.map(async (group) => {
           return applyInlineFilter(db, toOptions(group.options), group.filter, scope)
@@ -548,7 +546,4 @@ function dedupeOptions(options: readonly NodeRuntimeOptionDto[]): NodeRuntimeOpt
     return true
   })
 }
-type ResolvedRuntimeScope = Pick<
-  NodeRuntimeResolveResponseDto,
-  'mapId' | 'steps' | 'clearPaths'
->
+type ResolvedRuntimeScope = Pick<NodeRuntimeResolveResponseDto, 'mapId' | 'steps' | 'clearPaths'>

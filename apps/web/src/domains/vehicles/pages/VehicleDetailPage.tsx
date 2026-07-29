@@ -1,6 +1,4 @@
-import { Alert,
-  Button,
-  Stack } from '@mantine/core'
+import { Alert, Button, Stack } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
@@ -68,10 +66,11 @@ export function VehicleDetailPage({
     duplicate: api.content.vehicles.duplicate,
     hasActiveContent: detailState.hasActiveContent,
     id: vehicleId,
-    navigateEdit: async (subject) => navigate({
-      params: buildVehicleRouteParams(subject.publicId, subject.label),
-      to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
-    }),
+    navigateEdit: async (subject) =>
+      navigate({
+        params: buildVehicleRouteParams(subject.publicId, subject.label),
+        to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+      }),
     navigateList: async () => navigate({ to: '/vehicles' })
   })
 
@@ -79,15 +78,19 @@ export function VehicleDetailPage({
     return (
       <>
         <Stack>
-          <Alert color='yellow'>This vehicle draft cannot be previewed. Delete it to return to the vehicle list.</Alert>
+          <Alert color='yellow'>
+            This vehicle draft cannot be previewed. Delete it to return to the vehicle list.
+          </Alert>
           <Button
             color='red'
             loading={actions.isDeleting}
-            onClick={() => actions.deleteContent({
-              id: vehicleId,
-              kind: 'draft',
-              label: detailState.draft?.label ?? 'vehicle draft'
-            })}
+            onClick={() =>
+              actions.deleteContent({
+                id: vehicleId,
+                kind: 'draft',
+                label: detailState.draft?.label ?? 'vehicle draft'
+              })
+            }
           >
             Delete
           </Button>
@@ -107,18 +110,49 @@ export function VehicleDetailPage({
   }
 
   const item = detailState.item
-  const vehicleParams = buildVehicleRouteParams(draft?.publicId ?? response?.publicId ?? vehicleId, item.label)
+  const vehicleParams = buildVehicleRouteParams(
+    draft?.publicId ?? response?.publicId ?? vehicleId,
+    item.label
+  )
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams }) }
+      ? {
+          label: 'Resume Draft',
+          tone: 'primary',
+          onClick: () =>
+            navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams })
+        }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams }) }
+        ? {
+            label: 'Edit',
+            tone: 'primary',
+            onClick: () =>
+              navigate({
+                to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit',
+                params: vehicleParams
+              })
+          }
         : null,
     detailState.mode === 'active' && detailState.draft
-      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } }) }
+      ? {
+          label: 'View Draft',
+          tone: 'secondary',
+          onClick: () =>
+            navigate({
+              to: '/vehicles/$vehiclePublicId/$vehicleSlug',
+              params: vehicleParams,
+              search: { view: 'draft' }
+            })
+        }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? {
+          label: 'Duplicate',
+          tone: 'secondary',
+          disabled: actions.isDuplicating,
+          loading: actions.isDuplicating,
+          onClick: () => void actions.duplicateToDraft()
+        }
       : null,
     detailState.permissions.canDelete
       ? {
@@ -126,11 +160,12 @@ export function VehicleDetailPage({
           tone: 'danger',
           disabled: actions.isDeleting,
           loading: actions.isDeleting,
-          onClick: () => actions.deleteContent({
-            id: vehicleId,
-            kind: detailState.mode === 'draft' ? 'draft' : 'active',
-            label: item.label
-          })
+          onClick: () =>
+            actions.deleteContent({
+              id: vehicleId,
+              kind: detailState.mode === 'draft' ? 'draft' : 'active',
+              label: item.label
+            })
         }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) }
@@ -150,8 +185,14 @@ export function VehicleDetailPage({
           isViewingActive: viewActive,
           mode: detailState.mode,
           onDiscard: () => void actions.discardDraft(),
-          onViewActive: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
-          onViewDraft: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } })
+          onViewActive: () =>
+            navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
+          onViewDraft: () =>
+            navigate({
+              to: '/vehicles/$vehiclePublicId/$vehicleSlug',
+              params: vehicleParams,
+              search: { view: 'draft' }
+            })
         })}
         pendingOperation={actions.pendingOperation}
         sections={getVehicleSections(item, response?.meta?.currencies ?? [])}
@@ -175,7 +216,10 @@ function getVehicleFacts(vehicle: VehicleAuthoringInputDto): AuthoredDetailFact[
     { label: 'Size', value: formatReference(vehicle.size, 'Size selected') },
     { label: 'Armor Class', value: formatNumber(vehicle.armorClass) },
     { label: 'Hit Points', value: formatNumber(vehicle.hitPoints) },
-    { label: 'Speed', value: vehicle.speed ? `${vehicle.speed} ft.` : vehicle.speedNote ?? 'Not set' },
+    {
+      label: 'Speed',
+      value: vehicle.speed ? `${vehicle.speed} ft.` : (vehicle.speedNote ?? 'Not set')
+    },
     { label: 'Properties', value: formatReferenceList(vehicle.properties, 'property') }
   ]
 }
@@ -188,12 +232,14 @@ function getVehicleSections(
     {
       id: 'crew',
       label: 'Crew',
-      value: vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
-        ? `${formatNumber(vehicle.crewMin ?? 0)} - ${formatNumber(vehicle.crewMax ?? vehicle.crewMin ?? 0)}`
-        : '',
-      note: vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
-        ? 'Minimum to maximum operators'
-        : undefined
+      value:
+        vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
+          ? `${formatNumber(vehicle.crewMin ?? 0)} - ${formatNumber(vehicle.crewMax ?? vehicle.crewMin ?? 0)}`
+          : '',
+      note:
+        vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
+          ? 'Minimum to maximum operators'
+          : undefined
     },
     {
       id: 'passengers',
@@ -223,31 +269,56 @@ function getVehicleSections(
   }))
 
   return compactAuthoredDetailSections([
-    hasDetailText(vehicle.description) ? {
-      id: 'description',
-      title: 'Description',
-      content: <AuthoredDetailProse html={vehicle.description} />
-    } : null,
-    capacityItems.length ? {
-      id: 'capacity',
-      title: 'Capacity & Economy',
-      content: <VehicleCapacityEconomy metrics={capacityItems} />
-    } : null,
-    detailItems.length ? {
-      id: 'details',
-      title: 'Details',
-      content: <AuthoredDetailItemList empty='No vehicle details have been added.' items={detailItems} />
-    } : null,
-    featureItems.length ? {
-      id: 'features',
-      title: 'Features',
-      content: <AuthoredDetailItemList empty='No vehicle features have been added.' items={featureItems} />
-    } : null,
-    propertyItems.length ? {
-      id: 'properties',
-      title: 'Properties',
-      content: <AuthoredDetailItemList empty='No vehicle properties have been added.' items={propertyItems} />
-    } : null
+    hasDetailText(vehicle.description)
+      ? {
+          id: 'description',
+          title: 'Description',
+          content: <AuthoredDetailProse html={vehicle.description} />
+        }
+      : null,
+    capacityItems.length
+      ? {
+          id: 'capacity',
+          title: 'Capacity & Economy',
+          content: <VehicleCapacityEconomy metrics={capacityItems} />
+        }
+      : null,
+    detailItems.length
+      ? {
+          id: 'details',
+          title: 'Details',
+          content: (
+            <AuthoredDetailItemList
+              empty='No vehicle details have been added.'
+              items={detailItems}
+            />
+          )
+        }
+      : null,
+    featureItems.length
+      ? {
+          id: 'features',
+          title: 'Features',
+          content: (
+            <AuthoredDetailItemList
+              empty='No vehicle features have been added.'
+              items={featureItems}
+            />
+          )
+        }
+      : null,
+    propertyItems.length
+      ? {
+          id: 'properties',
+          title: 'Properties',
+          content: (
+            <AuthoredDetailItemList
+              empty='No vehicle properties have been added.'
+              items={propertyItems}
+            />
+          )
+        }
+      : null
   ])
 }
 
@@ -269,6 +340,7 @@ function formatVehicleCost(
   cost: NonNullable<VehicleAuthoringInputDto['cost']>,
   currencies: NonNullable<NonNullable<VehicleResponseDto>['meta']>['currencies']
 ) {
-  const currency = currencies?.find((option) => option.value === cost.currencyId)?.label ?? cost.currencyId
+  const currency =
+    currencies?.find((option) => option.value === cost.currencyId)?.label ?? cost.currencyId
   return `${new Intl.NumberFormat('en-US').format(cost.amount)} ${currency}`
 }

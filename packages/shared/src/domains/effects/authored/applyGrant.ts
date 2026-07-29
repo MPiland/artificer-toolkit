@@ -1,8 +1,4 @@
-import type {
-  ModifierGrantAuthored,
-  ProficiencyGrantAuthored,
-  SenseGrantAuthored
-} from '#authored'
+import type { ModifierGrantAuthored, ProficiencyGrantAuthored, SenseGrantAuthored } from '#authored'
 import { EFFECT_KIND } from '#core'
 
 export type ApplyGrantAuthored = {

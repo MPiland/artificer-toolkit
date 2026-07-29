@@ -7,7 +7,6 @@ import type {
 } from '@artificer-toolkit/db'
 import type { NodeRuntimeNormalizeValuesResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
-import type { AuthoredRecord } from './authoredContentService.js'
 import {
   activateAuthoredDomainDraft,
   activateAuthoredDomainInput,
@@ -49,13 +48,15 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 })
 
 const nodeRuntimeMock = vi.hoisted(() => ({
-  normalizeNodeRuntimeValues: vi.fn(async (
-    _db: unknown,
-    request: { values: Record<string, unknown> }
-  ): Promise<NodeRuntimeNormalizeValuesResponseDto> => ({
-    clearedPaths: [],
-    values: request.values
-  }))
+  normalizeNodeRuntimeValues: vi.fn(
+    async (
+      _db: unknown,
+      request: { values: Record<string, unknown> }
+    ): Promise<NodeRuntimeNormalizeValuesResponseDto> => ({
+      clearedPaths: [],
+      values: request.values
+    })
+  )
 }))
 
 vi.mock('../nodeRuntime/index.js', async (importOriginal) => {
@@ -90,7 +91,9 @@ function createConfig(): AuthoredDomainRuntimeConfig {
   }
 }
 
-function createRuntimeConfig(overrides: Partial<AuthoredDomainRuntimeConfig> = {}): AuthoredDomainRuntimeConfig {
+function createRuntimeConfig(
+  overrides: Partial<AuthoredDomainRuntimeConfig> = {}
+): AuthoredDomainRuntimeConfig {
   return {
     ...createConfig(),
     ...overrides
@@ -100,7 +103,9 @@ function createRuntimeConfig(overrides: Partial<AuthoredDomainRuntimeConfig> = {
 type FakeRow = Record<string, unknown>
 
 function createFakeDb(initialRows: Record<string, FakeRow[]>) {
-  const rows = new Map(Object.entries(initialRows).map(([table, tableRows]) => [table, [...tableRows]]))
+  const rows = new Map(
+    Object.entries(initialRows).map(([table, tableRows]) => [table, [...tableRows]])
+  )
 
   return {
     rows,
@@ -113,32 +118,36 @@ function createFakeDb(initialRows: Record<string, FakeRow[]>) {
 }
 
 function createSelectQuery(rows: Map<string, FakeRow[]>, table: string) {
-  const filters: Array<{ field: string, value: unknown }> = []
+  const filters: Array<{ field: string; value: unknown }> = []
   const query = {
     select: () => query,
     where: (field: string, _operator: string, value: unknown) => {
       filters.push({ field, value })
       return query
     },
-    executeTakeFirst: async () => (rows.get(table) ?? []).find((row) => filters.every((filter) => (
-      row[filter.field] === filter.value
-    ))) ?? undefined
+    executeTakeFirst: async () =>
+      (rows.get(table) ?? []).find((row) =>
+        filters.every((filter) => row[filter.field] === filter.value)
+      ) ?? undefined
   }
 
   return query
 }
 
 function createDeleteQuery(rows: Map<string, FakeRow[]>, table: string) {
-  const filters: Array<{ field: string, value: unknown }> = []
+  const filters: Array<{ field: string; value: unknown }> = []
   const query = {
     where: (field: string, _operator: string, value: unknown) => {
       filters.push({ field, value })
       return query
     },
     execute: async () => {
-      rows.set(table, (rows.get(table) ?? []).filter((row) => !filters.every((filter) => (
-        row[filter.field] === filter.value
-      ))))
+      rows.set(
+        table,
+        (rows.get(table) ?? []).filter(
+          (row) => !filters.every((filter) => row[filter.field] === filter.value)
+        )
+      )
     }
   }
 
@@ -238,22 +247,29 @@ describe('getAuthoredDomain', () => {
   })
 
   it('reads active detail from the selected canonical revision without hydrating projections or drafts', async () => {
-    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(createSelectedRevision({
-      label: 'Harm',
-      activeRevisionId: 'spell-revision-1',
-      draftRevisionId: 'spell-revision-2',
-      payload: {
-        id: 'spell-1',
+    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(
+      createSelectedRevision({
         label: 'Harm',
-        requiredText: 'Valid',
-        systemId: 'system-1',
-        userId: 'user-1'
-      }
-    }))
+        activeRevisionId: 'spell-revision-1',
+        draftRevisionId: 'spell-revision-2',
+        payload: {
+          id: 'spell-1',
+          label: 'Harm',
+          requiredText: 'Valid',
+          systemId: 'system-1',
+          userId: 'user-1'
+        }
+      })
+    )
 
-    const response = await getAuthoredDomain(db, createConfig(), {
-      id: 'spell-public'
-    }, 'user-1')
+    const response = await getAuthoredDomain(
+      db,
+      createConfig(),
+      {
+        id: 'spell-public'
+      },
+      'user-1'
+    )
 
     expect(response).toMatchObject({
       activeRevisionId: 'spell-revision-1',
@@ -275,10 +291,15 @@ describe('getAuthoredDomain', () => {
       .mockResolvedValueOnce(createSelectedRevision())
       .mockResolvedValueOnce(null)
 
-    const response = await getAuthoredDomain(db, createConfig(), {
-      id: 'spell-public',
-      view: 'draft'
-    }, 'user-1')
+    const response = await getAuthoredDomain(
+      db,
+      createConfig(),
+      {
+        id: 'spell-public',
+        view: 'draft'
+      },
+      'user-1'
+    )
 
     expect(response).toMatchObject({
       item: null,
@@ -315,21 +336,30 @@ describe('getAuthoredDomain', () => {
       spells: [{ id: 'spell-1', is_master: false, user_id: 'user-1' }]
     })
     domainMocks.draftRepository.findSelectedRevision
-      .mockResolvedValueOnce(createSelectedRevision({
-        activeRevisionId: 'spell-revision-1',
-        baseActiveRevisionId: 'spell-revision-1'
-      }))
-      .mockResolvedValueOnce(createSelectedRevision({
-        label: 'Active Spell',
-        activeRevisionId: 'spell-revision-1',
-        revisionId: 'spell-revision-1',
-        payload: { requiredText: 'Valid' }
-      }))
+      .mockResolvedValueOnce(
+        createSelectedRevision({
+          activeRevisionId: 'spell-revision-1',
+          baseActiveRevisionId: 'spell-revision-1'
+        })
+      )
+      .mockResolvedValueOnce(
+        createSelectedRevision({
+          label: 'Active Spell',
+          activeRevisionId: 'spell-revision-1',
+          revisionId: 'spell-revision-1',
+          payload: { requiredText: 'Valid' }
+        })
+      )
 
-    const response = await getAuthoredDomain(fakeDb, createConfig(), {
-      id: 'spell-public',
-      view: 'draft'
-    }, 'user-1')
+    const response = await getAuthoredDomain(
+      fakeDb,
+      createConfig(),
+      {
+        id: 'spell-public',
+        view: 'draft'
+      },
+      'user-1'
+    )
 
     expect(response).toMatchObject({
       item: { label: 'Active Spell' },
@@ -338,50 +368,53 @@ describe('getAuthoredDomain', () => {
   })
 
   it('duplicates an active item into a new owned draft', async () => {
-    domainMocks.draftRepository.findBySubject.mockImplementation(async ({ subjectId }: { subjectId: string }) => (
-      subjectId === 'spell-1' ? createDefinition() : null
-    ))
-    domainMocks.draftRepository.saveDraft.mockImplementation(async (input: {
-      subjectId: string
-      userId: string
-      systemId: string
-      label: string
-      payload: AuthoredDefinitionDraft['payload']
-    }) => createDraft({
-      subjectId: input.subjectId,
-      userId: input.userId,
-      systemId: input.systemId,
-      label: input.label,
-      payload: input.payload
-    }))
-    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(createSelectedRevision({
-      label: 'Original Spell',
-      activeRevisionId: 'spell-revision-1',
-      draftRevisionId: null,
-      payload: { requiredText: 'Required text' }
-    }))
-
-    const duplicate = await duplicateAuthoredDomain(
-      db,
-      createConfig(),
-      'spell-public',
-      'user-2'
+    domainMocks.draftRepository.findBySubject.mockImplementation(
+      async ({ subjectId }: { subjectId: string }) =>
+        subjectId === 'spell-1' ? createDefinition() : null
     )
+    domainMocks.draftRepository.saveDraft.mockImplementation(
+      async (input: {
+        subjectId: string
+        userId: string
+        systemId: string
+        label: string
+        payload: AuthoredDefinitionDraft['payload']
+      }) =>
+        createDraft({
+          subjectId: input.subjectId,
+          userId: input.userId,
+          systemId: input.systemId,
+          label: input.label,
+          payload: input.payload
+        })
+    )
+    domainMocks.draftRepository.findSelectedRevision.mockResolvedValue(
+      createSelectedRevision({
+        label: 'Original Spell',
+        activeRevisionId: 'spell-revision-1',
+        draftRevisionId: null,
+        payload: { requiredText: 'Required text' }
+      })
+    )
+
+    const duplicate = await duplicateAuthoredDomain(db, createConfig(), 'spell-public', 'user-2')
 
     expect(duplicate).toMatchObject({
       label: 'Original Spell Copy',
       userId: 'user-2'
     })
     expect(duplicate?.subjectId).not.toBe('spell-1')
-    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'Original Spell Copy',
-      payload: expect.objectContaining({
+    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
         label: 'Original Spell Copy',
-        status: 'DRAFT',
+        payload: expect.objectContaining({
+          label: 'Original Spell Copy',
+          status: 'DRAFT',
+          userId: 'user-2'
+        }),
         userId: 'user-2'
-      }),
-      userId: 'user-2'
-    }))
+      })
+    )
   })
 })
 
@@ -414,20 +447,27 @@ describe('authored domain activation', () => {
     domainMocks.draftRepository.findBySubject
       .mockResolvedValueOnce(createDefinition())
       .mockResolvedValue(createDefinition({ activeRevisionId: 'spell-revision-2' }))
-    domainMocks.draftRepository.saveDraft.mockResolvedValue(createDraft({
-      revisionId: 'spell-revision-2',
-      revisionNumber: 2,
-      activeRevisionId: 'spell-revision-1',
-      baseActiveRevisionId: 'spell-revision-1'
-    }))
+    domainMocks.draftRepository.saveDraft.mockResolvedValue(
+      createDraft({
+        revisionId: 'spell-revision-2',
+        revisionNumber: 2,
+        activeRevisionId: 'spell-revision-1',
+        baseActiveRevisionId: 'spell-revision-1'
+      })
+    )
 
-    const response = await activateAuthoredDomainInput(fakeDb, createConfig(), {
-      id: 'spell-1',
-      label: 'Edited Spell',
-      requiredText: 'Required text',
-      systemId: 'system-1',
-      userId: 'client-controlled-user'
-    }, 'user-1')
+    const response = await activateAuthoredDomainInput(
+      fakeDb,
+      createConfig(),
+      {
+        id: 'spell-1',
+        label: 'Edited Spell',
+        requiredText: 'Required text',
+        systemId: 'system-1',
+        userId: 'client-controlled-user'
+      },
+      'user-1'
+    )
 
     expect(response).toMatchObject({
       item: {
@@ -454,14 +494,16 @@ describe('authored domain activation', () => {
       userId: 'user-1',
       revisionId: 'spell-revision-2'
     })
-    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(expect.objectContaining({
-      payload: expect.objectContaining({
-        id: 'spell-1',
-        label: 'Edited Spell',
-        status: 'ACTIVE',
-        userId: 'user-1'
+    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          id: 'spell-1',
+          label: 'Edited Spell',
+          status: 'ACTIVE',
+          userId: 'user-1'
+        })
       })
-    }))
+    )
   })
 
   it('promotes a normalized ACTIVE payload instead of the stored DRAFT payload', async () => {
@@ -471,16 +513,18 @@ describe('authored domain activation', () => {
     domainMocks.draftRepository.findBySubject
       .mockResolvedValueOnce(createDefinition({ draftRevisionId: 'spell-revision-1' }))
       .mockResolvedValue(createDefinition({ activeRevisionId: 'spell-revision-2' }))
-    domainMocks.draftRepository.findDraftBySubject.mockResolvedValue(createDraft({
-      payload: {
-        id: 'spell-1',
-        label: 'Edited Spell',
-        requiredText: 'Before normalization',
-        status: 'DRAFT',
-        systemId: 'system-1',
-        userId: 'user-1'
-      }
-    }))
+    domainMocks.draftRepository.findDraftBySubject.mockResolvedValue(
+      createDraft({
+        payload: {
+          id: 'spell-1',
+          label: 'Edited Spell',
+          requiredText: 'Before normalization',
+          status: 'DRAFT',
+          systemId: 'system-1',
+          userId: 'user-1'
+        }
+      })
+    )
     nodeRuntimeMock.normalizeNodeRuntimeValues.mockResolvedValueOnce({
       clearedPaths: [['obsoleteField']],
       values: {
@@ -492,42 +536,57 @@ describe('authored domain activation', () => {
         userId: 'user-1'
       }
     })
-    domainMocks.draftRepository.saveDraft.mockResolvedValue(createDraft({
-      revisionId: 'spell-revision-2',
-      revisionNumber: 2,
-      activeRevisionId: 'spell-revision-1',
-      baseActiveRevisionId: 'spell-revision-1'
-    }))
+    domainMocks.draftRepository.saveDraft.mockResolvedValue(
+      createDraft({
+        revisionId: 'spell-revision-2',
+        revisionNumber: 2,
+        activeRevisionId: 'spell-revision-1',
+        baseActiveRevisionId: 'spell-revision-1'
+      })
+    )
 
     await activateAuthoredDomainDraft(fakeDb, createConfig(), 'spell-1', 'user-1')
 
-    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(expect.objectContaining({
-      payload: expect.objectContaining({
-        requiredText: 'After normalization',
-        status: 'ACTIVE'
+    expect(domainMocks.draftRepository.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          requiredText: 'After normalization',
+          status: 'ACTIVE'
+        })
       })
-    }))
-    expect(domainMocks.draftRepository.activateDraft).toHaveBeenCalledWith(expect.objectContaining({
-      revisionId: 'spell-revision-2'
-    }))
+    )
+    expect(domainMocks.draftRepository.activateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        revisionId: 'spell-revision-2'
+      })
+    )
   })
 
   it('keeps master definitions locked from direct activation', async () => {
     const { db: fakeDb } = createFakeDb({
       spells: [{ id: 'spell-1', isMaster: true, ownerUserId: 'srd-owner' }]
     })
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition({
-      isMaster: true,
-      ownerUserId: null
-    }))
+    domainMocks.draftRepository.findBySubject.mockResolvedValue(
+      createDefinition({
+        isMaster: true,
+        ownerUserId: null
+      })
+    )
 
-    await expect(activateAuthoredDomainInput(fakeDb, createConfig(), {
-      id: 'spell-1',
-      label: 'Edited SRD Spell',
-      requiredText: 'Required text',
-      systemId: 'system-1',
-      userId: 'client-controlled-user'
-    }, 'admin-user')).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+    await expect(
+      activateAuthoredDomainInput(
+        fakeDb,
+        createConfig(),
+        {
+          id: 'spell-1',
+          label: 'Edited SRD Spell',
+          requiredText: 'Required text',
+          systemId: 'system-1',
+          userId: 'client-controlled-user'
+        },
+        'admin-user'
+      )
+    ).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
   })
 })
 
@@ -596,8 +655,9 @@ describe('authored domain deletes', () => {
     })
     domainMocks.routeIdRepository.resolveByPublicIdForUser.mockResolvedValue(null)
 
-    await expect(deleteAuthoredDomainActive(fakeDb, createConfig(), 'missing-public-id', 'user-1'))
-      .rejects.toHaveProperty('name', 'NotFoundError')
+    await expect(
+      deleteAuthoredDomainActive(fakeDb, createConfig(), 'missing-public-id', 'user-1')
+    ).rejects.toHaveProperty('name', 'NotFoundError')
 
     expect(rows.get('spells')).toHaveLength(1)
     expect(domainMocks.routeIdRepository.delete).not.toHaveBeenCalled()
@@ -607,26 +667,33 @@ describe('authored domain deletes', () => {
     const master = createFakeDb({
       spells: [{ id: 'spell-1', isMaster: true, ownerUserId: null }]
     })
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition({
-      isMaster: true,
-      ownerUserId: null
-    }))
+    domainMocks.draftRepository.findBySubject.mockResolvedValue(
+      createDefinition({
+        isMaster: true,
+        ownerUserId: null
+      })
+    )
 
-    await expect(deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'user-1'))
-      .rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+    await expect(
+      deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'user-1')
+    ).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
 
-    await expect(deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'admin-user'))
-      .rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+    await expect(
+      deleteAuthoredDomainActive(master.db, createConfig(), 'spell-public', 'admin-user')
+    ).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
 
     const foreign = createFakeDb({
       spells: [{ id: 'spell-1', isMaster: false, ownerUserId: 'user-2' }]
     })
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition({
-      ownerUserId: 'user-2'
-    }))
+    domainMocks.draftRepository.findBySubject.mockResolvedValue(
+      createDefinition({
+        ownerUserId: 'user-2'
+      })
+    )
 
-    await expect(deleteAuthoredDomainActive(foreign.db, createConfig(), 'spell-public', 'user-1'))
-      .rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
+    await expect(
+      deleteAuthoredDomainActive(foreign.db, createConfig(), 'spell-public', 'user-1')
+    ).rejects.toHaveProperty('name', 'AuthoredContentOwnershipError')
   })
 
   it('blocks parent active deletes with dependent active records', async () => {
@@ -641,16 +708,25 @@ describe('authored domain deletes', () => {
       subjectId: 'class-1',
       publicId: 'class-public'
     })
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition({
-      subjectId: 'class-1',
-      subjectKind: 'CLASS'
-    }))
+    domainMocks.draftRepository.findBySubject.mockResolvedValue(
+      createDefinition({
+        subjectId: 'class-1',
+        subjectKind: 'CLASS'
+      })
+    )
 
-    await expect(deleteAuthoredDomainActive(fakeDb, createRuntimeConfig({
-      mapId: 'class',
-      subjectKind: 'CLASS',
-      table: 'classes'
-    }), 'class-public', 'user-1')).rejects.toHaveProperty('name', 'AuthoredContentDependencyError')
+    await expect(
+      deleteAuthoredDomainActive(
+        fakeDb,
+        createRuntimeConfig({
+          mapId: 'class',
+          subjectKind: 'CLASS',
+          table: 'classes'
+        }),
+        'class-public',
+        'user-1'
+      )
+    ).rejects.toHaveProperty('name', 'AuthoredContentDependencyError')
   })
 
   it('deletes a draft without deleting the active record', async () => {
@@ -673,10 +749,12 @@ describe('authored domain deletes', () => {
   it('removes orphan route identity when deleting a draft-only record', async () => {
     const { db: fakeDb } = createFakeDb({ spells: [] })
     domainMocks.draftRepository.findDraftBySubject.mockResolvedValue(createDraft())
-    domainMocks.draftRepository.findBySubject.mockResolvedValue(createDefinition({
-      activeRevisionId: null,
-      draftRevisionId: 'spell-revision-1'
-    }))
+    domainMocks.draftRepository.findBySubject.mockResolvedValue(
+      createDefinition({
+        activeRevisionId: null,
+        draftRevisionId: 'spell-revision-1'
+      })
+    )
     domainMocks.routeIdRepository.delete.mockImplementation(async () => {
       expect(domainMocks.draftRepository.discardDraft).toHaveBeenCalledWith({
         subjectKind: 'SPELL',
@@ -768,13 +846,23 @@ describe('cloneAuthoredItem', () => {
     expect(cloned.features[0]?.selectedOptionId).toBe(cloned.features[0]?.options[0]?.id)
     expect(cloned.features[0]?.selectedOptionIds).toEqual([cloned.features[0]?.options[0]?.id])
     expect(cloned.features[0]?.effects[0]?.id).not.toBe(input.features[0]?.effects[0]?.id)
-    expect(cloned.features[0]?.effects[0]?.paths[0]?.id).not.toBe(input.features[0]?.effects[0]?.paths[0]?.id)
-    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.id).not.toBe(input.features[0]?.effects[0]?.paths[0]?.resultBlock.id)
-    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id).not.toBe(input.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id)
+    expect(cloned.features[0]?.effects[0]?.paths[0]?.id).not.toBe(
+      input.features[0]?.effects[0]?.paths[0]?.id
+    )
+    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.id).not.toBe(
+      input.features[0]?.effects[0]?.paths[0]?.resultBlock.id
+    )
+    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id).not.toBe(
+      input.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id
+    )
     expect(cloned.parentRaceId).toBe(input.parentRaceId)
     expect(cloned.equipmentIds).toEqual(input.equipmentIds)
-    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.damageTypeId).toBe('acid')
-    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.equipmentId).toBe('acid-vial')
+    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.damageTypeId).toBe(
+      'acid'
+    )
+    expect(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.equipmentId).toBe(
+      'acid-vial'
+    )
     expect(cloned.label).toBe('Dragonborn Copy')
     expect(cloned.status).toBe('DRAFT')
     expect(secondClone.id).not.toBe(cloned.id)
@@ -782,21 +870,29 @@ describe('cloneAuthoredItem', () => {
     expect(secondClone.features[0]?.id).not.toBe(cloned.features[0]?.id)
     expect(secondClone.features[0]?.options[0]?.id).not.toBe(cloned.features[0]?.options[0]?.id)
     expect(secondClone.features[0]?.effects[0]?.id).not.toBe(cloned.features[0]?.effects[0]?.id)
-    expect(secondClone.features[0]?.effects[0]?.paths[0]?.id).not.toBe(cloned.features[0]?.effects[0]?.paths[0]?.id)
-    expect(secondClone.features[0]?.effects[0]?.paths[0]?.resultBlock.id).not.toBe(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.id)
-    expect(secondClone.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id).not.toBe(cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id)
+    expect(secondClone.features[0]?.effects[0]?.paths[0]?.id).not.toBe(
+      cloned.features[0]?.effects[0]?.paths[0]?.id
+    )
+    expect(secondClone.features[0]?.effects[0]?.paths[0]?.resultBlock.id).not.toBe(
+      cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.id
+    )
+    expect(secondClone.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id).not.toBe(
+      cloned.features[0]?.effects[0]?.paths[0]?.resultBlock.outcomes[0]?.id
+    )
     expect(secondClone.features[0]?.selectedOptionId).toBe(secondClone.features[0]?.options[0]?.id)
     expect(secondClone.parentRaceId).toBe(input.parentRaceId)
     expect(secondClone.equipmentIds).toEqual(input.equipmentIds)
   })
 
   it('registers one canonical service configuration for every root authored domain', () => {
-    expect(Object.entries(authoredDomainConfigs).map(([key, config]) => ({
-      key,
-      mapId: config.mapId,
-      subjectKind: config.subjectKind,
-      table: config.table
-    }))).toEqual([
+    expect(
+      Object.entries(authoredDomainConfigs).map(([key, config]) => ({
+        key,
+        mapId: config.mapId,
+        subjectKind: config.subjectKind,
+        table: config.table
+      }))
+    ).toEqual([
       { key: 'backgrounds', mapId: 'background', subjectKind: 'BACKGROUND', table: 'backgrounds' },
       { key: 'classes', mapId: 'class', subjectKind: 'CLASS', table: 'classes' },
       { key: 'creatures', mapId: 'creature', subjectKind: 'CREATURE', table: 'creatures' },

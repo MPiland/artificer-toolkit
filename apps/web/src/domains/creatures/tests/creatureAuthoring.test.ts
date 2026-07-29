@@ -112,13 +112,15 @@ describe('creature authoring helpers', () => {
         currencyId: 'gold'
       },
       mountProfile: createEmptyMountProfile(),
-      features: [{
-        id: 'trampling-charge',
-        label: 'Trampling Charge',
-        description: 'The hart charges a nearby target.',
-        section: 'ACTION',
-        order: 1
-      }]
+      features: [
+        {
+          id: 'trampling-charge',
+          label: 'Trampling Charge',
+          description: 'The hart charges a nearby target.',
+          section: 'ACTION',
+          order: 1
+        }
+      ]
     })
 
     expect(creatureAuthoredDtoSchema.parse(creature)).toMatchObject({

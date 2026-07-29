@@ -3,10 +3,7 @@ import type {
   ChargeAuthored,
   ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
-import {
-  ABILITY_CODE,
-  AUTHORING_SELECTION_DUPLICATE_POLICY
-} from '@artificer-toolkit/shared'
+import { ABILITY_CODE, AUTHORING_SELECTION_DUPLICATE_POLICY } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { uniqueIds } from '../../../repositories/batch.js'
 
@@ -22,10 +19,7 @@ type ChargeBonusRow = {
   sort_order: number
 }
 
-function requireChargeResetKind(
-  chargeId: string,
-  value: string
-): ChargeAuthored['resetKind'] {
+function requireChargeResetKind(chargeId: string, value: string): ChargeAuthored['resetKind'] {
   if (value !== 'LONG_REST' && value !== 'SHORT_REST' && value !== 'MANUAL') {
     throw new Error(`Charge "${chargeId}" has invalid reset_kind "${value}".`)
   }
@@ -33,10 +27,7 @@ function requireChargeResetKind(
   return value
 }
 
-function requireChargeScalingKind(
-  chargeId: string,
-  value: string
-): 'NONE' | 'PER_LEVEL' {
+function requireChargeScalingKind(chargeId: string, value: string): 'NONE' | 'PER_LEVEL' {
   if (value !== 'NONE' && value !== 'PER_LEVEL') {
     throw new Error(`Charge "${chargeId}" has invalid scaling_kind "${value}".`)
   }
@@ -44,10 +35,7 @@ function requireChargeScalingKind(
   return value
 }
 
-function requireAbilityCode(
-  subject: string,
-  value: string
-): keyof typeof ABILITY_CODE {
+function requireAbilityCode(subject: string, value: string): keyof typeof ABILITY_CODE {
   if (!(value in ABILITY_CODE)) {
     throw new Error(`${subject} has invalid ability_code "${value}".`)
   }
@@ -284,10 +272,7 @@ function hydrateChargeFromRows(
   }
 }
 
-export async function hydrateChargeById(
-  db: DBLike,
-  id: string
-): Promise<ChargeAuthored | null> {
+export async function hydrateChargeById(db: DBLike, id: string): Promise<ChargeAuthored | null> {
   const charge = await db
     .selectFrom('charges')
     .select(['id', 'scaling_kind', 'reset_kind'])
@@ -297,17 +282,39 @@ export async function hydrateChargeById(
   if (!charge) return null
 
   const [limit, scalingLevels, bonuses] = await Promise.all([
-    db.selectFrom('charge_limits')
-      .select(['charge_id', 'limit_kind', 'class_id', 'ability_code', 'amount', 'multiplier', 'min', 'max'])
+    db
+      .selectFrom('charge_limits')
+      .select([
+        'charge_id',
+        'limit_kind',
+        'class_id',
+        'ability_code',
+        'amount',
+        'multiplier',
+        'min',
+        'max'
+      ])
       .where('charge_id', '=', id)
       .executeTakeFirst(),
-    db.selectFrom('charge_scaling_levels')
+    db
+      .selectFrom('charge_scaling_levels')
       .select(['id', 'charge_id', 'level', 'amount', 'sort_order'])
       .where('charge_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('charge_bonuses')
-      .select(['id', 'charge_id', 'bonus_kind', 'ability_code', 'skill_id', 'multiplier', 'min', 'max', 'sort_order'])
+    db
+      .selectFrom('charge_bonuses')
+      .select([
+        'id',
+        'charge_id',
+        'bonus_kind',
+        'ability_code',
+        'skill_id',
+        'multiplier',
+        'min',
+        'max',
+        'sort_order'
+      ])
       .where('charge_id', '=', id)
       .orderBy('sort_order')
       .execute() as Promise<ChargeBonusRow[]>
@@ -437,21 +444,44 @@ export async function hydrateChargesByIds(
   }
 
   const [charges, limits, scalingLevels, bonuses] = await Promise.all([
-    db.selectFrom('charges')
+    db
+      .selectFrom('charges')
       .select(['id', 'scaling_kind', 'reset_kind'])
       .where('id', 'in', distinctIds)
       .execute() as Promise<ChargeRow[]>,
-    db.selectFrom('charge_limits')
-      .select(['charge_id', 'limit_kind', 'class_id', 'ability_code', 'amount', 'multiplier', 'min', 'max'])
+    db
+      .selectFrom('charge_limits')
+      .select([
+        'charge_id',
+        'limit_kind',
+        'class_id',
+        'ability_code',
+        'amount',
+        'multiplier',
+        'min',
+        'max'
+      ])
       .where('charge_id', 'in', distinctIds)
       .execute() as Promise<ChargeLimitRow[]>,
-    db.selectFrom('charge_scaling_levels')
+    db
+      .selectFrom('charge_scaling_levels')
       .select(['id', 'charge_id', 'level', 'amount', 'sort_order'])
       .where('charge_id', 'in', distinctIds)
       .orderBy('sort_order')
       .execute() as Promise<ChargeScalingLevelRow[]>,
-    db.selectFrom('charge_bonuses')
-      .select(['id', 'charge_id', 'bonus_kind', 'ability_code', 'skill_id', 'multiplier', 'min', 'max', 'sort_order'])
+    db
+      .selectFrom('charge_bonuses')
+      .select([
+        'id',
+        'charge_id',
+        'bonus_kind',
+        'ability_code',
+        'skill_id',
+        'multiplier',
+        'min',
+        'max',
+        'sort_order'
+      ])
       .where('charge_id', 'in', distinctIds)
       .orderBy('sort_order')
       .execute() as Promise<ChargeBonusRow[]>

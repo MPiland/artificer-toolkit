@@ -23,8 +23,8 @@ export function planCharacterAssembly(params: {
     if (classIntent.subclassId) classLevels.set(classIntent.subclassId, classIntent.classLevel)
   }
   const selectedRaceIds = new Set(
-    [character.intent.race.raceId, character.intent.race.subraceId].filter(
-      (id): id is string => Boolean(id)
+    [character.intent.race.raceId, character.intent.race.subraceId].filter((id): id is string =>
+      Boolean(id)
     )
   )
   const selectedBackgroundId = character.intent.background.backgroundId

@@ -1,4 +1,12 @@
-import type { AbilityCode, ChargeLimitKind, ChargeResetKind, DurationKind, RangeKind, ShapeKind, CoreMeta } from '#core'
+import type {
+  AbilityCode,
+  ChargeLimitKind,
+  ChargeResetKind,
+  DurationKind,
+  RangeKind,
+  ShapeKind,
+  CoreMeta
+} from '#core'
 import type { SenseCode } from '../vocabulary/authored/sense.js'
 import { type EmptyObject, valuesOf } from '#utils'
 
@@ -53,22 +61,20 @@ export const PARAMETERIZED_VALUE_DOMAINS = {
 export type ParameterizedValueDomainCode = keyof typeof PARAMETERIZED_VALUE_DOMAINS
 
 // Helper: attach isParameterized based on membership in PARAMETERIZED_VALUE_DOMAINS
-type WithParameterizedFlag<V extends ValueDomainCode>
-  = V extends ParameterizedValueDomainCode
-    ? { isParameterized: true }
-    : { isParameterized?: never }
+type WithParameterizedFlag<V extends ValueDomainCode> = V extends ParameterizedValueDomainCode
+  ? { isParameterized: true }
+  : { isParameterized?: never }
 
 // Update your option type so the flag is *correct by construction*
-export type ValueDomainOption<V extends ValueDomainCode = ValueDomainCode>
-  = CoreMeta<V> & WithParameterizedFlag<V>
+export type ValueDomainOption<V extends ValueDomainCode = ValueDomainCode> = CoreMeta<V> &
+  WithParameterizedFlag<V>
 
 export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> = {
   [VALUE_DOMAIN_CODE.HIT_POINTS_MAX]: {
     code: VALUE_DOMAIN_CODE.HIT_POINTS_MAX,
     label: 'Maximum Hit Points',
-    tooltip: 'The character\'s maximum health.',
-    description:
-      'Determines the maximum number of hit points the character can have.'
+    tooltip: "The character's maximum health.",
+    description: 'Determines the maximum number of hit points the character can have.'
   },
 
   [VALUE_DOMAIN_CODE.TEMPORARY_HIT_POINTS]: {
@@ -84,15 +90,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Armor Class',
     tooltip: 'How difficult the character is to hit.',
     description:
-      'Determines the character\'s Armor Class, which is used to resolve whether attacks hit or miss.'
+      "Determines the character's Armor Class, which is used to resolve whether attacks hit or miss."
   },
 
   [VALUE_DOMAIN_CODE.INITIATIVE]: {
     code: VALUE_DOMAIN_CODE.INITIATIVE,
     label: 'Initiative',
     tooltip: 'Bonus applied to initiative rolls.',
-    description:
-      'Modifies the bonus added when rolling initiative.'
+    description: 'Modifies the bonus added when rolling initiative.'
   },
 
   [VALUE_DOMAIN_CODE.ATTACK_ROLL]: {
@@ -107,8 +112,7 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
     label: 'Saving Throw Modifier',
     tooltip: 'Bonuses or penalties applied to saving throws.',
-    description:
-      'Modifies the bonus added to a character\'s saving throws for a specific ability.'
+    description: "Modifies the bonus added to a character's saving throws for a specific ability."
   },
 
   [VALUE_DOMAIN_CODE.SAVE_DC]: {
@@ -123,14 +127,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
     label: 'Skill Modifier',
     tooltip: 'Bonuses or penalties applied to skill checks.',
-    description:
-      'Modifies the bonus applied when making a check with a specific skill.'
+    description: 'Modifies the bonus applied when making a check with a specific skill.'
   },
 
   [VALUE_DOMAIN_CODE.PROFICIENCY_BONUS]: {
     code: VALUE_DOMAIN_CODE.PROFICIENCY_BONUS,
     label: 'Proficiency Bonus',
-    tooltip: 'The character\'s proficiency bonus.',
+    tooltip: "The character's proficiency bonus.",
     description:
       'Represents the proficiency bonus used for attacks, skills, and saving throws. This may be modified by homebrew or campaign rules.'
   },
@@ -139,8 +142,7 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ABILITY_SCORE,
     label: 'Ability Score',
     tooltip: 'An ability score value.',
-    description:
-      'Represents an ability score such as Strength, Dexterity, or Intelligence.'
+    description: 'Represents an ability score such as Strength, Dexterity, or Intelligence.'
   },
 
   [VALUE_DOMAIN_CODE.SPEED]: {
@@ -148,15 +150,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Speed',
     tooltip: 'How fast the character can move.',
     description:
-      'Determines the character\'s movement speed for a given movement type, such as walking, flying, or swimming.'
+      "Determines the character's movement speed for a given movement type, such as walking, flying, or swimming."
   },
 
   [VALUE_DOMAIN_CODE.MOVEMENT_MODE]: {
     code: VALUE_DOMAIN_CODE.MOVEMENT_MODE,
     label: 'Movement Mode',
     tooltip: 'A type of movement.',
-    description:
-      'Represents a movement mode such as walking, flying, climbing, or swimming.'
+    description: 'Represents a movement mode such as walking, flying, climbing, or swimming.'
   },
 
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
@@ -171,32 +172,28 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.DAMAGE,
     label: 'Damage',
     tooltip: 'The amount of damage dealt.',
-    description:
-      'Represents damage dealt by attacks, spells, or other effects.'
+    description: 'Represents damage dealt by attacks, spells, or other effects.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
     label: 'Damage Resistance',
     tooltip: 'Resistance to a type of damage.',
-    description:
-      'Represents resistance that reduces damage of a specific type.'
+    description: 'Represents resistance that reduces damage of a specific type.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
     label: 'Damage Immunity',
     tooltip: 'Immunity to a type of damage.',
-    description:
-      'Represents immunity that prevents damage of a specific type.'
+    description: 'Represents immunity that prevents damage of a specific type.'
   },
 
   [VALUE_DOMAIN_CODE.DAMAGE_VULNERABILITY]: {
     code: VALUE_DOMAIN_CODE.DAMAGE_VULNERABILITY,
     label: 'Damage Vulnerability',
     tooltip: 'Vulnerability to a type of damage.',
-    description:
-      'Represents vulnerability that increases damage of a specific type.'
+    description: 'Represents vulnerability that increases damage of a specific type.'
   },
 
   [VALUE_DOMAIN_CODE.CONDITION_IMMUNITY]: {
@@ -212,7 +209,7 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Range',
     tooltip: 'How far an action, attack, or spell can reach.',
     description:
-      'Determines the effective distance for an action or spell, such as a weapon\'s range or a spell\'s casting range.'
+      "Determines the effective distance for an action or spell, such as a weapon's range or a spell's casting range."
   },
 
   [VALUE_DOMAIN_CODE.DURATION]: {
@@ -235,32 +232,28 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.SPELL_SLOT_COUNT,
     label: 'Spell Slot Count',
     tooltip: 'Number of available spell slots.',
-    description:
-      'Represents how many spell slots are available at a given level.'
+    description: 'Represents how many spell slots are available at a given level.'
   },
 
   [VALUE_DOMAIN_CODE.SPELL_SLOT_LEVEL_MAX]: {
     code: VALUE_DOMAIN_CODE.SPELL_SLOT_LEVEL_MAX,
     label: 'Maximum Spell Slot Level',
     tooltip: 'Highest spell slot level available.',
-    description:
-      'Determines the highest spell level the character can cast.'
+    description: 'Determines the highest spell level the character can cast.'
   },
 
   [VALUE_DOMAIN_CODE.SPELLS_KNOWN]: {
     code: VALUE_DOMAIN_CODE.SPELLS_KNOWN,
     label: 'Spells Known',
     tooltip: 'Number of spells the character knows.',
-    description:
-      'Represents how many spells the character knows.'
+    description: 'Represents how many spells the character knows.'
   },
 
   [VALUE_DOMAIN_CODE.SPELLS_PREPARED]: {
     code: VALUE_DOMAIN_CODE.SPELLS_PREPARED,
     label: 'Spells Prepared',
     tooltip: 'Number of spells the character can prepare.',
-    description:
-      'Represents how many spells the character can have prepared at one time.'
+    description: 'Represents how many spells the character can have prepared at one time.'
   },
 
   [VALUE_DOMAIN_CODE.CHARGE_LIMIT]: {
@@ -283,16 +276,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ACTION_COUNT,
     label: 'Action Count',
     tooltip: 'How many actions can be taken.',
-    description:
-      'Determines how many actions the character can take during their turn.'
+    description: 'Determines how many actions the character can take during their turn.'
   },
 
   [VALUE_DOMAIN_CODE.BONUS_ACTION_COUNT]: {
     code: VALUE_DOMAIN_CODE.BONUS_ACTION_COUNT,
     label: 'Bonus Action Count',
     tooltip: 'How many bonus actions can be taken.',
-    description:
-      'Determines how many bonus actions the character can take during their turn.'
+    description: 'Determines how many bonus actions the character can take during their turn.'
   },
 
   [VALUE_DOMAIN_CODE.REACTION_COUNT]: {
@@ -308,21 +299,18 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Condition',
     tooltip: 'A status effect applied to a creature.',
     description:
-    'Represents a condition applied to a creature, such as Blinded, Charmed, Frightened, Poisoned, or Restrained. Conditions may have durations, saving throws, and other mechanical effects.'
+      'Represents a condition applied to a creature, such as Blinded, Charmed, Frightened, Poisoned, or Restrained. Conditions may have durations, saving throws, and other mechanical effects.'
   },
 
   [VALUE_DOMAIN_CODE.ATTRIBUTE]: {
     code: VALUE_DOMAIN_CODE.ATTRIBUTE,
     label: 'Attribute',
     tooltip: 'A attribute such as ritual, concentration, etc.',
-    description:
-    'Represents a attribute that would be applied to an item, spell, or creature.'
+    description: 'Represents a attribute that would be applied to an item, spell, or creature.'
   }
 } as const
 
-export const VALUE_DOMAIN_OPTIONS = valuesOf(
-  VALUE_DOMAIN_REGISTRY
-) as readonly ValueDomainOption[]
+export const VALUE_DOMAIN_OPTIONS = valuesOf(VALUE_DOMAIN_REGISTRY) as readonly ValueDomainOption[]
 
 export const ATTACK_DOMAIN_CODE = {
   MELEE: 'MELEE',
@@ -340,32 +328,28 @@ export const ATTACK_DOMAIN_REGISTRY: Record<AttackDomainCode, AttackDomainOption
     code: ATTACK_DOMAIN_CODE.MELEE,
     label: 'Melee',
     tooltip: 'A melee attack.',
-    description:
-    'Represents a melee attack using a weapon such as a sword or halbred.'
+    description: 'Represents a melee attack using a weapon such as a sword or halbred.'
   },
 
   [ATTACK_DOMAIN_CODE.RANGED]: {
     code: ATTACK_DOMAIN_CODE.RANGED,
     label: 'Ranged',
     tooltip: 'A ranged attack.',
-    description:
-    'Represents a ranged attack using a weapon such as a bow or crossbow.'
+    description: 'Represents a ranged attack using a weapon such as a bow or crossbow.'
   },
 
   [ATTACK_DOMAIN_CODE.UNARMED]: {
     code: ATTACK_DOMAIN_CODE.UNARMED,
     label: 'Unarmed',
     tooltip: 'An unarmed attack.',
-    description:
-    'Represents an unarmed attack using fists with or without gloves or claws.'
+    description: 'Represents an unarmed attack using fists with or without gloves or claws.'
   },
 
   [ATTACK_DOMAIN_CODE.SPELL]: {
     code: ATTACK_DOMAIN_CODE.SPELL,
     label: 'Spell',
     tooltip: 'A spell attack.',
-    description:
-    'Represents a spell attack using a spell such as a fireball or lightning bolt.'
+    description: 'Represents a spell attack using a spell such as a fireball or lightning bolt.'
   }
 }
 
@@ -387,7 +371,7 @@ export type ValueDomainParamByCode = {
   ATTACK_ROLL: { attackDomain: AttackDomainCode }
 
   // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition
-  SAVING_THROW_MODIFIER: { ability: AbilityCode, conditionTypeId?: string }
+  SAVING_THROW_MODIFIER: { ability: AbilityCode; conditionTypeId?: string }
 
   // Skill bonus is per skill
   SKILL_MODIFIER: { skillId: string }
@@ -467,8 +451,9 @@ export type ValueDomainParamByCode = {
   ATTRIBUTE: EmptyObject
 }
 
-export type ValueDomainParam<V extends ValueDomainCode>
-  = V extends keyof ValueDomainParamByCode ? ValueDomainParamByCode[V] : EmptyObject
+export type ValueDomainParam<V extends ValueDomainCode> = V extends keyof ValueDomainParamByCode
+  ? ValueDomainParamByCode[V]
+  : EmptyObject
 
 /* ============================================================================
  * 2) Domain-correlated payloads for option-like modifier kinds
@@ -506,4 +491,3 @@ export type ValueDomainOptionPayloadByDomain = {
   DURATION: { durationKind: DurationKind }
   SHAPE: { shapeKind: ShapeKind }
 }
-

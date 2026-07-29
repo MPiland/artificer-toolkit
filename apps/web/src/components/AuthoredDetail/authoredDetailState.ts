@@ -1,5 +1,4 @@
-import type {
-  z } from 'zod'
+import type { z } from 'zod'
 import type {
   AuthoredContentPermissionsDto,
   AuthoredContentProvenanceDto
@@ -57,15 +56,11 @@ export function resolveAuthoredDetailState<TItem>({
   const draftItem = parsedDraft.item ?? null
   const draftHasActiveContent = parsedDraft.draft?.draftState === 'ACTIVE_WITH_DRAFT'
   const canViewActive = Boolean(
-    (parsedDraft.draft && draftHasActiveContent) ||
-    (viewActive && response?.hasDraft)
+    (parsedDraft.draft && draftHasActiveContent) || (viewActive && response?.hasDraft)
   )
-  const hasActiveContent = Boolean(activeItem) && (
-    viewActive === true ||
-    !parsedDraft.draft ||
-    !draftItem ||
-    draftHasActiveContent
-  )
+  const hasActiveContent =
+    Boolean(activeItem) &&
+    (viewActive === true || !parsedDraft.draft || !draftItem || draftHasActiveContent)
 
   if (parsedDraft.isInvalid && !activeItem) {
     return {

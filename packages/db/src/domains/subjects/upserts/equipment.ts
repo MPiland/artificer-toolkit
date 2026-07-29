@@ -65,17 +65,14 @@ type EquipmentModifierGrantRow = {
   sort_order: number
 }
 
-function requireCategory(
-  equipmentId: string,
-  value: string
-): EquipmentAuthored['category'] {
+function requireCategory(equipmentId: string, value: string): EquipmentAuthored['category'] {
   if (
-    value !== EQUIPMENT_CATEGORY_CODE.WEAPON
-    && value !== EQUIPMENT_CATEGORY_CODE.ARMOR
-    && value !== EQUIPMENT_CATEGORY_CODE.SHIELD
-    && value !== EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR
-    && value !== EQUIPMENT_CATEGORY_CODE.TOOL
-    && value !== EQUIPMENT_CATEGORY_CODE.VARIANT
+    value !== EQUIPMENT_CATEGORY_CODE.WEAPON &&
+    value !== EQUIPMENT_CATEGORY_CODE.ARMOR &&
+    value !== EQUIPMENT_CATEGORY_CODE.SHIELD &&
+    value !== EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR &&
+    value !== EQUIPMENT_CATEGORY_CODE.TOOL &&
+    value !== EQUIPMENT_CATEGORY_CODE.VARIANT
   ) {
     throw new Error(`Equipment "${equipmentId}" has invalid category "${value}".`)
   }
@@ -83,9 +80,7 @@ function requireCategory(
   return value
 }
 
-function isBaseEquipment(
-  equipment: EquipmentAuthored
-): equipment is BaseEquipmentAuthored {
+function isBaseEquipment(equipment: EquipmentAuthored): equipment is BaseEquipmentAuthored {
   return equipment.category !== EQUIPMENT_CATEGORY_CODE.VARIANT
 }
 
@@ -127,12 +122,13 @@ function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
   const weightUnit = isBaseEquipment(json_data)
     ? requireMeasurementUnit(json_data.id, json_data.weight.unit)
     : null
-  const costAmount = isBaseEquipment(json_data) ? json_data.cost?.amount ?? null : null
-  const costCurrencyId = isBaseEquipment(json_data) ? json_data.cost?.currencyId ?? null : null
-  const capacityAmount = isBaseEquipment(json_data) ? json_data.capacity?.amount ?? null : null
-  const capacityUnit = isBaseEquipment(json_data) && json_data.capacity?.unit
-    ? requireMeasurementUnit(json_data.id, json_data.capacity.unit)
-    : null
+  const costAmount = isBaseEquipment(json_data) ? (json_data.cost?.amount ?? null) : null
+  const costCurrencyId = isBaseEquipment(json_data) ? (json_data.cost?.currencyId ?? null) : null
+  const capacityAmount = isBaseEquipment(json_data) ? (json_data.capacity?.amount ?? null) : null
+  const capacityUnit =
+    isBaseEquipment(json_data) && json_data.capacity?.unit
+      ? requireMeasurementUnit(json_data.id, json_data.capacity.unit)
+      : null
 
   return {
     id: json_data.id,
@@ -150,32 +146,27 @@ function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
     weight_unit: weightUnit,
     capacity_amount: capacityAmount,
     capacity_unit: capacityUnit,
-    max_stack: isBaseEquipment(json_data) ? json_data.maxStack ?? null : null,
+    max_stack: isBaseEquipment(json_data) ? (json_data.maxStack ?? null) : null,
     max_bonus: json_data.maxBonus ?? null,
-    armor_class: isBaseEquipment(json_data) ? json_data.armorClass ?? null : null,
+    armor_class: isBaseEquipment(json_data) ? (json_data.armorClass ?? null) : null,
     requires_attunement: json_data.requiresAttunement ?? false,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
-    parent_equipment_id: isBaseEquipment(json_data)
-      ? null
-      : json_data.parentEquipmentId
+    parent_equipment_id: isBaseEquipment(json_data) ? null : json_data.parentEquipmentId
   }
 }
 
-export async function upsertEquipment(
-  db: DBLike,
-  json_data: EquipmentAuthored,
-  _systemId: string
-) {
-  const attributeRows: EquipmentAttributeRow[] = (isBaseEquipment(json_data) ? (json_data.attributes ?? []) : []).map((attribute, index) => ({
+export async function upsertEquipment(db: DBLike, json_data: EquipmentAuthored, _systemId: string) {
+  const attributeRows: EquipmentAttributeRow[] = (
+    isBaseEquipment(json_data) ? (json_data.attributes ?? []) : []
+  ).map((attribute, index) => ({
     equipment_id: json_data.id,
     attribute_code: requireAttribute(json_data.id, attribute),
     sort_order: index + 1
   }))
 
-  const propertyRows: EquipmentPropertyRow[] = (isBaseEquipment(json_data)
-    ? json_data.properties
-    : (json_data.properties ?? [])
+  const propertyRows: EquipmentPropertyRow[] = (
+    isBaseEquipment(json_data) ? json_data.properties : (json_data.properties ?? [])
   ).map((property, index) => ({
     equipment_id: json_data.id,
     property_code: requireProperty(json_data.id, property),
@@ -189,7 +180,9 @@ export async function upsertEquipment(
   }))
   const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const containsRows: EquipmentContainsRow[] = (isBaseEquipment(json_data) ? (json_data.contains ?? []) : []).map((entry, index) => ({
+  const containsRows: EquipmentContainsRow[] = (
+    isBaseEquipment(json_data) ? (json_data.contains ?? []) : []
+  ).map((entry, index) => ({
     equipment_id: json_data.id,
     contained_equipment_id: entry.equipmentId,
     quantity: entry.quantity,
@@ -208,9 +201,11 @@ export async function upsertEquipment(
       .where('equipment_id', '=', json_data.id)
       .execute()
 
-    if (existingEquipment?.restriction_id && existingEquipment.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingEquipment.restriction_id)
-        .execute()
+    if (
+      existingEquipment?.restriction_id &&
+      existingEquipment.restriction_id !== json_data.restrictions?.id
+    ) {
+      await trx.deleteFrom('facets').where('id', '=', existingEquipment.restriction_id).execute()
     }
 
     if (json_data.charges) {
@@ -224,41 +219,41 @@ export async function upsertEquipment(
     await trx
       .insertInto('equipment')
       .values(mapEquipmentRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet((eb) => ({
-        system_id: eb.ref('excluded.system_id'),
-        user_id: eb.ref('excluded.user_id'),
-        label: eb.ref('excluded.label'),
-        description: eb.ref('excluded.description'),
-        quote: eb.ref('excluded.quote'),
-        status: eb.ref('excluded.status'),
-        category: eb.ref('excluded.category'),
-        rarity_id: eb.ref('excluded.rarity_id'),
-        cost_amount: eb.ref('excluded.cost_amount'),
-        cost_currency_id: eb.ref('excluded.cost_currency_id'),
-        weight_amount: eb.ref('excluded.weight_amount'),
-        weight_unit: eb.ref('excluded.weight_unit'),
-        capacity_amount: eb.ref('excluded.capacity_amount'),
-        capacity_unit: eb.ref('excluded.capacity_unit'),
-        max_stack: eb.ref('excluded.max_stack'),
-        max_bonus: eb.ref('excluded.max_bonus'),
-        armor_class: eb.ref('excluded.armor_class'),
-        requires_attunement: eb.ref('excluded.requires_attunement'),
-        charge_id: eb.ref('excluded.charge_id'),
-        restriction_id: eb.ref('excluded.restriction_id'),
-        parent_equipment_id: eb.ref('excluded.parent_equipment_id')
-      })))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          system_id: eb.ref('excluded.system_id'),
+          user_id: eb.ref('excluded.user_id'),
+          label: eb.ref('excluded.label'),
+          description: eb.ref('excluded.description'),
+          quote: eb.ref('excluded.quote'),
+          status: eb.ref('excluded.status'),
+          category: eb.ref('excluded.category'),
+          rarity_id: eb.ref('excluded.rarity_id'),
+          cost_amount: eb.ref('excluded.cost_amount'),
+          cost_currency_id: eb.ref('excluded.cost_currency_id'),
+          weight_amount: eb.ref('excluded.weight_amount'),
+          weight_unit: eb.ref('excluded.weight_unit'),
+          capacity_amount: eb.ref('excluded.capacity_amount'),
+          capacity_unit: eb.ref('excluded.capacity_unit'),
+          max_stack: eb.ref('excluded.max_stack'),
+          max_bonus: eb.ref('excluded.max_bonus'),
+          armor_class: eb.ref('excluded.armor_class'),
+          requires_attunement: eb.ref('excluded.requires_attunement'),
+          charge_id: eb.ref('excluded.charge_id'),
+          restriction_id: eb.ref('excluded.restriction_id'),
+          parent_equipment_id: eb.ref('excluded.parent_equipment_id')
+        }))
+      )
       .execute()
 
-    await trx.deleteFrom('equipment_modifier_grants').where('equipment_id', '=', json_data.id)
+    await trx
+      .deleteFrom('equipment_modifier_grants')
+      .where('equipment_id', '=', json_data.id)
       .execute()
-    await trx.deleteFrom('equipment_features').where('equipment_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('equipment_attributes').where('equipment_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('equipment_properties').where('equipment_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('equipment_contains').where('equipment_id', '=', json_data.id)
-      .execute()
+    await trx.deleteFrom('equipment_features').where('equipment_id', '=', json_data.id).execute()
+    await trx.deleteFrom('equipment_attributes').where('equipment_id', '=', json_data.id).execute()
+    await trx.deleteFrom('equipment_properties').where('equipment_id', '=', json_data.id).execute()
+    await trx.deleteFrom('equipment_contains').where('equipment_id', '=', json_data.id).execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -279,25 +274,24 @@ export async function upsertEquipment(
       await trx
         .insertInto('equipment_effects')
         .values(effectRows)
-        .onConflict((oc) => oc.columns(['equipment_id', 'effect_id']).doUpdateSet((eb) => ({
-          sort_order: eb.ref('excluded.sort_order')
-        })))
+        .onConflict((oc) =>
+          oc.columns(['equipment_id', 'effect_id']).doUpdateSet((eb) => ({
+            sort_order: eb.ref('excluded.sort_order')
+          }))
+        )
         .execute()
     }
 
     if (attributeRows.length > 0) {
-      await trx.insertInto('equipment_attributes').values(attributeRows)
-        .execute()
+      await trx.insertInto('equipment_attributes').values(attributeRows).execute()
     }
 
     if (propertyRows.length > 0) {
-      await trx.insertInto('equipment_properties').values(propertyRows)
-        .execute()
+      await trx.insertInto('equipment_properties').values(propertyRows).execute()
     }
 
     if (containsRows.length > 0) {
-      await trx.insertInto('equipment_contains').values(containsRows)
-        .execute()
+      await trx.insertInto('equipment_contains').values(containsRows).execute()
     }
 
     const modifierRows: EquipmentModifierGrantRow[] = (json_data.modifiers ?? []).map((grant) => ({
@@ -313,8 +307,7 @@ export async function upsertEquipment(
     }
 
     if (modifierRows.length > 0) {
-      await trx.insertInto('equipment_modifier_grants').values(modifierRows)
-        .execute()
+      await trx.insertInto('equipment_modifier_grants').values(modifierRows).execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -330,9 +323,7 @@ export async function upsertEquipment(
     }
 
     if (featureRows.length > 0) {
-      await trx.insertInto('equipment_features').values(featureRows)
-        .execute()
+      await trx.insertInto('equipment_features').values(featureRows).execute()
     }
-
   })
 }

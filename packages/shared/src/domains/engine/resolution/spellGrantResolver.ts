@@ -6,23 +6,11 @@ import type { CompiledClass } from '../../subjects/compilers/class.js'
 import type { CompiledCharacterClassState } from '../../subjects/compilers/character/state.js'
 import type { CompiledFeature } from '../../features/compilers/feature.js'
 import type { CompiledSpellGrant } from '../../grants/compilers/spell.js'
+import type { EngineSpellAccess } from '../contracts/engineState.js'
 
 export interface ResolvedSpellGrantState {
   spellState?: CompiledCharacterClassState[]
   spellAccess: EngineSpellAccess[]
-}
-
-export interface EngineSpellAccess {
-  id: string
-  spellId: string
-  source:
-    | { kind: 'CLASS', classId: string }
-    | { kind: 'SUBCLASS', subclassId: string }
-  timing: {
-    kind: 'CLASS_LEVEL'
-    classId: string
-    classLevel: number
-  }
 }
 
 type SnapshotClassEntry = CharacterBuildSnapshot['classes'][number]
@@ -38,7 +26,7 @@ export function resolveSpellGrantState(
 ): ResolvedSpellGrantState {
   const spellState: CompiledCharacterClassState[] = []
   const spellAccess: EngineSpellAccess[] = []
-  const seenAccessSpellIds = new Set<string>()
+  const seenAccessIds = new Set<string>()
 
   for (const classEntry of snapshot.classes) {
     const resolved = resolveClassSpellGrantState(classEntry, snapshot, registry)
@@ -53,8 +41,8 @@ export function resolveSpellGrantState(
     }
 
     for (const access of resolved.spellAccess) {
-      if (seenAccessSpellIds.has(access.spellId)) continue
-      seenAccessSpellIds.add(access.spellId)
+      if (seenAccessIds.has(access.id)) continue
+      seenAccessIds.add(access.id)
       spellAccess.push(access)
     }
   }
@@ -87,7 +75,10 @@ function resolveClassSpellGrantState(
 
   if (classEntry.subclassId) {
     const subclass = registry.classes[classEntry.subclassId]
-    if (subclass?.category === CLASS_CATEGORY.SUBCLASS && subclass.parentClassId === classEntry.classId) {
+    if (
+      subclass?.category === CLASS_CATEGORY.SUBCLASS &&
+      subclass.parentClassId === classEntry.classId
+    ) {
       resolveSpellGrantsFromCompiledClass(
         subclass,
         classEntry,
@@ -125,15 +116,7 @@ function resolveFeatureSpellGrants(
   sourceKind: 'CLASS' | 'SUBCLASS'
 ): void {
   for (const grant of feature.spells ?? []) {
-    resolveSpellGrant(
-      grant,
-      classEntry,
-      snapshot,
-      spells,
-      spellAccess,
-      sourceKind,
-      feature.id
-    )
+    resolveSpellGrant(grant, classEntry, snapshot, spells, spellAccess, sourceKind, feature.id)
   }
 }
 
@@ -156,6 +139,9 @@ function resolveSpellGrant(
   const grantAttributes = grant.attributes ?? []
   const isPrepared = grantAttributes.includes('PREPARED')
   const isKnown = grantAttributes.includes('KNOWN')
+  const sourceId =
+    sourceKind === 'SUBCLASS' ? (classEntry.subclassId ?? classEntry.classId) : classEntry.classId
+  const sourceInstanceId = `${sourceKind}:${sourceId}:${classEntry.classId}:${sourceFeatureId}:${grant.id}`
 
   for (const spellId of spellIds) {
     if (isPrepared) {
@@ -166,7 +152,7 @@ function resolveSpellGrant(
     }
 
     spellAccess.push({
-      id: `${sourceFeatureId}:${classEntry.classId}:${spellId}`,
+      id: `${sourceInstanceId}:${spellId}`,
       spellId,
       source:
         sourceKind === 'SUBCLASS'
@@ -176,7 +162,13 @@ function resolveSpellGrant(
         kind: 'CLASS_LEVEL',
         classId: classEntry.classId,
         classLevel: classEntry.level
-      }
+      },
+      sourceFeatureId,
+      grantId: grant.id,
+      sourceInstanceId,
+      attributes: grant.attributes,
+      castAtLevel: grant.castAtLevel,
+      charges: grant.charges
     })
   }
 }
@@ -240,18 +232,14 @@ function spellGrantMatchesSpecialization(
   return restrictionIds.has(specializationId)
 }
 
-function collectSpecializationRestrictionIds(
-  restrictions: unknown
-): Set<string> | undefined {
+function collectSpecializationRestrictionIds(restrictions: unknown): Set<string> | undefined {
   const ids = new Set<string>()
   let found = false
 
   walk(restrictions, (value) => {
     if (value?.predicateCode !== 'SUBCLASS_SPECIALIZATION') return
     found = true
-    const specializationIds = Array.isArray(value.specializationIds)
-      ? value.specializationIds
-      : []
+    const specializationIds = Array.isArray(value.specializationIds) ? value.specializationIds : []
     for (const specializationId of specializationIds) {
       ids.add(String(specializationId))
     }
@@ -260,10 +248,7 @@ function collectSpecializationRestrictionIds(
   return found ? ids : undefined
 }
 
-function walk(
-  value: unknown,
-  visit: (record: Record<string, unknown>) => void
-): void {
+function walk(value: unknown, visit: (record: Record<string, unknown>) => void): void {
   if (!value || typeof value !== 'object') return
   if (Array.isArray(value)) {
     for (const entry of value) walk(entry, visit)

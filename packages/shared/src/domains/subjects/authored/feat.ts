@@ -31,4 +31,3 @@ export interface FeatAuthored {
   userId: string
   systemId: string
 }
-

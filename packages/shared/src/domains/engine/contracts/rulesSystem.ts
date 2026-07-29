@@ -1,9 +1,25 @@
 import type { ValueDomainCode } from '../../core/valueDomain.js'
+import type {
+  CharacterMovementDisplayPreference,
+  CharacterProficiencyLevel
+} from '../../character/sheetAdjustment.js'
 
 export type ModifierStackingRule = 'additive' | 'highest' | 'exclusive' | 'boolean' | 'last'
 
 export interface ModifierStackingConfig {
   rule: ModifierStackingRule
+}
+
+export interface RestRulesPolicy {
+  hitDiceRecoveredAfterLongRest(totalHitDice: number): number
+}
+
+export interface ExhaustionRulesPolicy {
+  label: string
+  description: string
+  minimumLevel: number
+  maximumLevel: number
+  levelAfterLongRest(currentLevel: number): number
 }
 
 /**
@@ -19,6 +35,8 @@ export interface RulesSystem {
     version: string
   }
   label: string
+  rest: RestRulesPolicy
+  exhaustion: ExhaustionRulesPolicy
 
   /**
    * Returns the proficiency bonus for a given total character level.
@@ -31,6 +49,21 @@ export interface RulesSystem {
    * D&D 5e 2014: floor((score - 10) / 2)
    */
   abilityModifier(score: number): number
+
+  /** Converts a Sheet proficiency level into its rules-system multiplier. */
+  proficiencyMultiplier(level: CharacterProficiencyLevel): number
+
+  /** Resolves a passive check from the already-adjusted skill bonus. */
+  passiveScore(skillBonus: number): number
+
+  /**
+   * Selects the primary movement identity from backend-ordered available speeds.
+   * An invalid explicit preference falls back through the system's AUTO policy.
+   */
+  selectPrimaryMovementSpeedId(
+    speeds: ReadonlyArray<{ speedId: string; code?: string }>,
+    preference: CharacterMovementDisplayPreference
+  ): string | undefined
 
   /**
    * Stacking config for a given value domain + modifier kind combination.

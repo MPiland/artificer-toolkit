@@ -16,15 +16,17 @@ export const spy: CreatureAuthored = {
     CONSTITUTION: 10,
     INTELLIGENCE: 12,
     WISDOM: 14,
-    CHARISMA: 16,
+    CHARISMA: 16
   },
   armorClass: 12,
   hitPoints: 27,
-  hitDice: '6d8',
+  hitDice: {
+    count: 6,
+    die: 8,
+    modifier: 0
+  },
   speeds: [...S.walk(30)],
-  proficiencies: [
-    S.grantedSkillProficiency(261, 1, 'DECEPTION', 'INSIGHT', 'INVESTIGATION')
-  ],
+  proficiencies: [S.grantedSkillProficiency(261, 1, 'DECEPTION', 'INSIGHT', 'INVESTIGATION')],
   passivePerception: 16,
   challengeRatingId: S.CR.CR_1,
   xp: 200,
@@ -32,13 +34,15 @@ export const spy: CreatureAuthored = {
     {
       id: S.featureId(261, 1),
       label: 'Cunning Action',
-      description: 'Cunning Action. On each of its turns, the spy can use a bonus action to take the Dash, Disengage, or Hide action.',
+      description:
+        'Cunning Action. On each of its turns, the spy can use a bonus action to take the Dash, Disengage, or Hide action.',
       order: 1
     },
     {
       id: S.featureId(261, 2),
       label: 'Sneak Attack (1/Turn)',
-      description: "Sneak Attack (1/Turn). The spy deals an extra 7 (2d6) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of the spy that isn't incapacitated and the spy doesn't have disadvantage on the attack roll.",
+      description:
+        "Sneak Attack (1/Turn). The spy deals an extra 7 (2d6) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of the spy that isn't incapacitated and the spy doesn't have disadvantage on the attack roll.",
       order: 2
     },
     {
@@ -56,15 +60,16 @@ export const spy: CreatureAuthored = {
     {
       id: S.featureId(261, 5),
       label: 'Shortsword',
-      description: 'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
+      description:
+        'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
       order: 5
     },
     {
       id: S.featureId(261, 6),
       label: 'Hand Crossbow',
-      description: 'Ranged Weapon Attack: +4 to hit, range 30/120 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
+      description:
+        'Ranged Weapon Attack: +4 to hit, range 30/120 ft., one target. Hit: 5 (1d6 + 2) piercing damage.',
       order: 6
     }
   ]
 }
-

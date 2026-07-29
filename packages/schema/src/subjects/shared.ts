@@ -25,12 +25,9 @@ export type ClassSpellSlotDto = z.infer<typeof classSpellSlotDtoSchema>
 export const classSpellLimitDtoSchema = z.object({
   classLevel: z.number().int(),
   slots: z.array(classSpellSlotDtoSchema),
-  learnedSpellsLimit: z.number().int()
-    .optional(),
-  preparedSpellsLimit: z.number().int()
-    .optional(),
-  cantripsLimit: z.number().int()
-    .optional()
+  learnedSpellsLimit: z.number().int().optional(),
+  preparedSpellsLimit: z.number().int().optional(),
+  cantripsLimit: z.number().int().optional()
 })
 export type ClassSpellLimitDto = z.infer<typeof classSpellLimitDtoSchema>
 
@@ -110,8 +107,7 @@ export const raceAncestryOptionDtoSchema = z.object({
 export const raceAncestryDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
-  description: z.string().nullable()
-    .optional(),
+  description: z.string().nullable().optional(),
   options: z.array(raceAncestryOptionDtoSchema)
 })
 

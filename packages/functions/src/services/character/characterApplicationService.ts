@@ -8,14 +8,25 @@ import {
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderResolution
 } from './builderService.js'
-import { buildCharacterSheetResponse, executeCharacterSheetCommand } from './sheetService.js'
+import {
+  buildCharacterSheetResponse,
+  executeCharacterSheetCommand,
+  previewCharacterRest,
+  resolveCharacterSheetEngine
+} from './sheetService.js'
+import {
+  buildCharacterSheetPanel,
+  getAffectedCharacterSheetPanelTargets
+} from './sheetPanelService.js'
 import {
   type Json,
   createAuthoredRouteIdRepository,
   createCharacterBuilderDraftRepository,
   type CharacterBuilderDraft,
   createCharacterEventRepository,
-  createCharacterRepository
+  createCharacterRepository,
+  createCharacterSheetAdjustmentRepository,
+  createCharacterSheetPlayStateRepository
 } from '@artificer-toolkit/db'
 import {
   ABILITY_OPTIONS,
@@ -69,11 +80,18 @@ import {
   type CharacterBuilderSpellOptionDto,
   type CharacterBuilderSpellChoiceViewDto,
   type CharacterListResponseDto,
+  type CharacterRestPreviewRequestDto,
+  type CharacterRestPreviewResponseDto,
   type CharacterSheetCommandResponseDto,
+  type CharacterSheetCommandInputDto,
   characterSheetCommandInputDtoSchema,
   type CharacterSheetResponseDto,
   type CharacterHistoryResponseDto
 } from '@artificer-toolkit/schema/api/characters'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
 import type { CharacterBuilderClassCatalogRecord } from './builderCatalog.js'
 
@@ -81,8 +99,6 @@ type CharacterBuilderMode = 'create' | 'edit'
 
 type CharacterBuilderPreview = ReturnType<typeof createCharacterBuilderChangePreview>
 type CharacterFeatureAcquisition = CharacterAuthored['intent']['featureAcquisitions'][number]
-
-type StartingEquipmentItem = StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
 
 function toStartingEquipmentDto(startingEquipment: StartingEquipmentAuthored) {
   return startingEquipmentDtoSchema.parse(startingEquipment)
@@ -99,14 +115,20 @@ function buildStartingEquipmentChoiceLabels(
     set.groups.flatMap((group) => group.options.flatMap((option) => option.items))
   )) {
     if (
-      item.startingEquipmentKind !== 'EQUIPMENT'
-      || !('selectionKind' in item)
-      || item.selectionKind !== 'CHOSEN'
-      || !('count' in item)
-    ) continue
+      item.startingEquipmentKind !== 'EQUIPMENT' ||
+      !('selectionKind' in item) ||
+      item.selectionKind !== 'CHOSEN' ||
+      !('count' in item)
+    )
+      continue
 
     const properties = item.properties ?? []
-    if (item.authoringModeKind === 'ALL' && item.count === 1 && !item.category && properties.length === 1) {
+    if (
+      item.authoringModeKind === 'ALL' &&
+      item.count === 1 &&
+      !item.category &&
+      properties.length === 1
+    ) {
       const propertyLabel = EQUIPMENT_PROPERTY_REGISTRY[properties[0]]?.label
       if (propertyLabel) {
         labels[item.id] = `Any ${propertyLabel.toLocaleLowerCase()}`
@@ -114,16 +136,26 @@ function buildStartingEquipmentChoiceLabels(
       }
     }
 
-    const target = item.authoringModeKind === 'SELECTED'
-      ? item.equipmentIds.map((equipmentId) => equipmentLabels.get(equipmentId) ?? equipmentId).join(' or ')
-      : [
-          properties
-            .map((property) => EQUIPMENT_PROPERTY_REGISTRY[property]?.label.toLocaleLowerCase() ?? property.toLocaleLowerCase().replaceAll('_', ' '))
-            .join(' '),
-          item.category
-            ? EQUIPMENT_CATEGORY_REGISTRY[item.category]?.label.toLocaleLowerCase() ?? item.category.toLocaleLowerCase().replaceAll('_', ' ')
-            : 'equipment'
-        ].filter(Boolean).join(' ')
+    const target =
+      item.authoringModeKind === 'SELECTED'
+        ? item.equipmentIds
+            .map((equipmentId) => equipmentLabels.get(equipmentId) ?? equipmentId)
+            .join(' or ')
+        : [
+            properties
+              .map(
+                (property) =>
+                  EQUIPMENT_PROPERTY_REGISTRY[property]?.label.toLocaleLowerCase() ??
+                  property.toLocaleLowerCase().replaceAll('_', ' ')
+              )
+              .join(' '),
+            item.category
+              ? (EQUIPMENT_CATEGORY_REGISTRY[item.category]?.label.toLocaleLowerCase() ??
+                item.category.toLocaleLowerCase().replaceAll('_', ' '))
+              : 'equipment'
+          ]
+            .filter(Boolean)
+            .join(' ')
 
     labels[item.id] = `Choose ${item.count} ${target}`
   }
@@ -149,13 +181,76 @@ function getSelectedClassProficiencyGroups(
 }> {
   if (!classRecord || classRecord.category !== CLASS_CATEGORY.BASE) return []
   const groups = new Map([
-    ['ARMOR', { category: 'ARMOR', label: 'Armor', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['WEAPONS', { category: 'WEAPONS', label: 'Weapons', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['TOOLS', { category: 'TOOLS', label: 'Tools', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['SAVING_THROWS', { category: 'SAVING_THROWS', label: 'Saving Throws', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['SKILLS', { category: 'SKILLS', label: 'Skills', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['LANGUAGES', { category: 'LANGUAGES', label: 'Languages', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }],
-    ['OTHER', { category: 'OTHER', label: 'Other', grantedEntries: [] as string[], choiceInstructions: [] as Array<{ label: string; required: boolean }>, choiceIds: [] as string[] }]
+    [
+      'ARMOR',
+      {
+        category: 'ARMOR',
+        label: 'Armor',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'WEAPONS',
+      {
+        category: 'WEAPONS',
+        label: 'Weapons',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'TOOLS',
+      {
+        category: 'TOOLS',
+        label: 'Tools',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'SAVING_THROWS',
+      {
+        category: 'SAVING_THROWS',
+        label: 'Saving Throws',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'SKILLS',
+      {
+        category: 'SKILLS',
+        label: 'Skills',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'LANGUAGES',
+      {
+        category: 'LANGUAGES',
+        label: 'Languages',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ],
+    [
+      'OTHER',
+      {
+        category: 'OTHER',
+        label: 'Other',
+        grantedEntries: [] as string[],
+        choiceInstructions: [] as Array<{ label: string; required: boolean }>,
+        choiceIds: [] as string[]
+      }
+    ]
   ])
   const categoryFor = (kind: string, category?: string): string => {
     if (kind === 'SAVE_ABILITY') return 'SAVING_THROWS'
@@ -179,30 +274,34 @@ function getSelectedClassProficiencyGroups(
     const category = categoryForLabel.get(proficiencyGroup.label) ?? 'OTHER'
     const group = groups.get(category)
     group?.grantedEntries.push(...proficiencyGroup.grantedEntries)
-    group?.choiceInstructions.push(...proficiencyGroup.entries
-      .filter((entry) => !proficiencyGroup.grantedEntries.includes(entry))
-      .map((label) => ({ label, required: true })))
+    group?.choiceInstructions.push(
+      ...proficiencyGroup.entries
+        .filter((entry) => !proficiencyGroup.grantedEntries.includes(entry))
+        .map((label) => ({ label, required: true }))
+    )
   }
   groups.get('SAVING_THROWS')?.grantedEntries.push(...(classRecord.savingThrowLabels ?? []))
 
   for (const choice of choices) {
     if (
-      choice.grantKind !== GRANT_KIND.PROFICIENCY_GRANT
-      || choice.ownerFeatureId !== undefined
-      || choice.source.kind !== 'CLASS'
-      || choice.source.classId !== classId
-      || !choice.proficiencyKind
-    ) continue
+      choice.grantKind !== GRANT_KIND.PROFICIENCY_GRANT ||
+      choice.ownerFeatureId !== undefined ||
+      choice.source.kind !== 'CLASS' ||
+      choice.source.classId !== classId ||
+      !choice.proficiencyKind
+    )
+      continue
 
     groups
       .get(categoryFor(choice.proficiencyKind, choice.displayCategory))
       ?.choiceIds.push(choice.id)
   }
-  return [...groups.values()].filter((group) => (
-    group.grantedEntries.length > 0
-    || group.choiceInstructions.length > 0
-    || group.choiceIds.length > 0
-  ))
+  return [...groups.values()].filter(
+    (group) =>
+      group.grantedEntries.length > 0 ||
+      group.choiceInstructions.length > 0 ||
+      group.choiceIds.length > 0
+  )
 }
 
 async function resolveCharacterRouteSubjectId(
@@ -325,11 +424,12 @@ function getClassDisabledReason(
     const candidate = resolution.registry.classes.find((record) => record.id === classId)
     return candidate && isBaseClass(candidate) ? [candidate] : []
   })
-  const unmetClass = proposedClasses.find((candidate) =>
-    !evaluateMulticlassRequirements(
-      candidate.multiclass.requirementGroups,
-      resolution.summary.abilities
-    ).passes
+  const unmetClass = proposedClasses.find(
+    (candidate) =>
+      !evaluateMulticlassRequirements(
+        candidate.multiclass.requirementGroups,
+        resolution.summary.abilities
+      ).passes
   )
 
   if (!unmetClass) {
@@ -364,17 +464,22 @@ function getChosenGrantChoiceViews(params: {
           : new Map<string, string>()
       return {
         ...choice,
-        options: choice.options.map((option) =>
-          toChoiceOption({
-            ...option,
-            disabledReason:
-              choice.selectedTargetIds.includes(option.id) || choice.grantKind !== GRANT_KIND.SPELL_GRANT
+        options: choice.options.map((option) => {
+          const disabledReason =
+            choice.grantKind !== GRANT_KIND.SPELL_GRANT
+              ? option.disabledReason
+              : choice.selectedTargetIds.includes(option.id)
                 ? undefined
-                : spellIdsSelectedElsewhere.has(option.id)
-                  ? `Granted by ${spellIdsSelectedElsewhere.get(option.id)}`
-                  : undefined
+                : (option.disabledReason ??
+                  (spellIdsSelectedElsewhere.has(option.id)
+                    ? `Granted by ${spellIdsSelectedElsewhere.get(option.id)}`
+                    : undefined))
+
+          return toChoiceOption({
+            ...option,
+            disabledReason
           })
-        )
+        })
       }
     })
 }
@@ -410,19 +515,36 @@ function getSourceLabel(
 ): string {
   switch (source.kind) {
     case 'CLASS':
-      return resolution.registry.classes.find((record) => record.id === source.classId)?.label ?? 'another source'
+      return (
+        resolution.registry.classes.find((record) => record.id === source.classId)?.label ??
+        'another source'
+      )
     case 'SUBCLASS':
-      return resolution.registry.classes.find((record) => record.id === source.subclassId)?.label ?? 'another source'
+      return (
+        resolution.registry.classes.find((record) => record.id === source.subclassId)?.label ??
+        'another source'
+      )
     case 'RACE':
-      return resolution.registry.races.find((record) => record.id === source.raceId)?.label ?? 'another source'
+      return (
+        resolution.registry.races.find((record) => record.id === source.raceId)?.label ??
+        'another source'
+      )
     case 'SUBRACE':
-      return resolution.registry.races.find((record) => record.id === source.subraceId)?.label ?? 'another source'
+      return (
+        resolution.registry.races.find((record) => record.id === source.subraceId)?.label ??
+        'another source'
+      )
     case 'ANCESTRY':
-      return resolution.registry.races
-        .flatMap((race) => race.ancestry?.options ?? [])
-        .find((option) => option.id === source.optionId)?.label ?? 'another source'
+      return (
+        resolution.registry.races
+          .flatMap((race) => race.ancestry?.options ?? [])
+          .find((option) => option.id === source.optionId)?.label ?? 'another source'
+      )
     case 'BACKGROUND':
-      return resolution.registry.backgrounds.find((record) => record.id === source.backgroundId)?.label ?? 'another source'
+      return (
+        resolution.registry.backgrounds.find((record) => record.id === source.backgroundId)
+          ?.label ?? 'another source'
+      )
     default:
       return 'another source'
   }
@@ -485,14 +607,15 @@ function toFeatureGrantSummary(
   const feature = findGrantedFeature(resolution, grant.id)
   return {
     ...grant,
-    details: feature?.details
-      ?.slice()
-      .sort((left, right) => left.order - right.order)
-      .map((detail) => ({
-        id: detail.id,
-        label: detail.label,
-        description: detail.description
-      })) ?? grant.details
+    details:
+      feature?.details
+        ?.slice()
+        .sort((left, right) => left.order - right.order)
+        .map((detail) => ({
+          id: detail.id,
+          label: detail.label,
+          description: detail.description
+        })) ?? grant.details
   }
 }
 
@@ -508,49 +631,51 @@ function getGrantedClassContentViews(params: {
 
   for (const item of featureItems) {
     const key = `${item.id}:${JSON.stringify(item.source)}`
-    featureKeysByIdentity.set(`${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`, key)
-    uniqueItems.set(
-      key,
-      { item: toFeatureGrantSummary(params.resolution, item), kind: 'FEATURE' }
+    featureKeysByIdentity.set(
+      `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`,
+      key
     )
+    uniqueItems.set(key, { item: toFeatureGrantSummary(params.resolution, item), kind: 'FEATURE' })
   }
 
   for (const [kind, items] of [
     ['RESOURCE', params.resolution.grants.resources],
     ['SPELLCASTING', params.resolution.grants.spellcasting]
-  ] as const) for (const item of items) {
-    if (!params.includeSource(item.source)) continue
-    const matchingFeatureKey = featureKeysByIdentity.get(
-      `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
-    )
-    if (matchingFeatureKey) {
-      const feature = uniqueItems.get(matchingFeatureKey)
-      if (feature) {
-        uniqueItems.set(matchingFeatureKey, {
-          ...feature,
-          item: {
-            ...feature.item,
-            description: feature.item.description ?? item.description,
-            details: feature.item.details ?? item.details,
-            sortOrder: feature.item.sortOrder ?? item.sortOrder,
-            availableAtLevel: feature.item.availableAtLevel ?? item.availableAtLevel
-          }
-        })
+  ] as const)
+    for (const item of items) {
+      if (!params.includeSource(item.source)) continue
+      const matchingFeatureKey = featureKeysByIdentity.get(
+        `${JSON.stringify(item.source)}:${item.label.toLocaleLowerCase()}`
+      )
+      if (matchingFeatureKey) {
+        const feature = uniqueItems.get(matchingFeatureKey)
+        if (feature) {
+          uniqueItems.set(matchingFeatureKey, {
+            ...feature,
+            item: {
+              ...feature.item,
+              description: feature.item.description ?? item.description,
+              details: feature.item.details ?? item.details,
+              sortOrder: feature.item.sortOrder ?? item.sortOrder,
+              availableAtLevel: feature.item.availableAtLevel ?? item.availableAtLevel
+            }
+          })
+        }
+        continue
       }
-      continue
+      uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, {
+        item: toFeatureGrantSummary(params.resolution, item),
+        kind
+      })
     }
-    uniqueItems.set(`${item.id}:${JSON.stringify(item.source)}`, {
-      item: toFeatureGrantSummary(params.resolution, item),
-      kind
-    })
-  }
 
   return [...uniqueItems.values()]
-    .sort((left, right) =>
-      (left.item.availableAtLevel ?? 0) - (right.item.availableAtLevel ?? 0) ||
-      (left.item.sortOrder ?? 0) - (right.item.sortOrder ?? 0) ||
-      left.kind.localeCompare(right.kind) ||
-      left.item.id.localeCompare(right.item.id)
+    .sort(
+      (left, right) =>
+        (left.item.availableAtLevel ?? 0) - (right.item.availableAtLevel ?? 0) ||
+        (left.item.sortOrder ?? 0) - (right.item.sortOrder ?? 0) ||
+        left.kind.localeCompare(right.kind) ||
+        left.item.id.localeCompare(right.item.id)
     )
     .map((entry) => entry.item)
 }
@@ -655,15 +780,11 @@ function getSpellChoiceViews(params: {
       isSameCharacterProvenanceIdentity(selection.source, params.source)
     )?.spells ?? []
   const selectedCantripIds = selectedSpellIds.filter((spellId) => {
-    const spell = params.resolution.catalog.spells.find(
-      (record) => record.id === spellId
-    )
+    const spell = params.resolution.catalog.spells.find((record) => record.id === spellId)
     return spell?.level === 0
   })
   const selectedLeveledSpellIds = selectedSpellIds.filter((spellId) => {
-    const spell = params.resolution.catalog.spells.find(
-      (record) => record.id === spellId
-    )
+    const spell = params.resolution.catalog.spells.find((record) => record.id === spellId)
     return spell && spell.level > 0
   })
   const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
@@ -675,19 +796,20 @@ function getSpellChoiceViews(params: {
   )
   const classSpellOptions = params.resolution.catalog.spells.filter(
     (spell) =>
-      (spell.classIds.includes(params.classId) ||
-        spell.classIds.includes(params.classRecord?.id ?? ''))
+      spell.classIds.includes(params.classId) ||
+      spell.classIds.includes(params.classRecord?.id ?? '')
   )
-  const toSpellOption = (spell: (typeof classSpellOptions)[number]): CharacterBuilderSpellOptionDto => ({
+  const toSpellOption = (
+    spell: (typeof classSpellOptions)[number]
+  ): CharacterBuilderSpellOptionDto => ({
     ...toChoiceOption({
       id: spell.id,
       label: spell.label,
-      disabledReason:
-        selectedSpellIds.includes(spell.id)
-          ? undefined
-          : spellSourceLabelsSelectedElsewhere.has(spell.id)
-            ? `Granted by ${spellSourceLabelsSelectedElsewhere.get(spell.id)}`
-            : undefined
+      disabledReason: selectedSpellIds.includes(spell.id)
+        ? undefined
+        : spellSourceLabelsSelectedElsewhere.has(spell.id)
+          ? `Granted by ${spellSourceLabelsSelectedElsewhere.get(spell.id)}`
+          : undefined
     }),
     level: spell.level,
     schoolLabel: params.resolution.registry.system?.magicSchools.find(
@@ -712,9 +834,7 @@ function getSpellChoiceViews(params: {
         : 'Known spells',
       selectedCantripIds,
       selectedSpellIds: selectedLeveledSpellIds,
-      cantripOptions: classSpellOptions
-        .filter((spell) => spell.level === 0)
-        .map(toSpellOption),
+      cantripOptions: classSpellOptions.filter((spell) => spell.level === 0).map(toSpellOption),
       spellOptions: classSpellOptions
         .filter((spell) => spell.level > 0 && spell.level <= maxSpellLevel)
         .map(toSpellOption)
@@ -760,9 +880,7 @@ export function buildCharacterBuilderView(
       properties: equipment.properties
     })
   )
-  const baseRaces = resolution.catalog.races.filter(
-    (race) => race.category !== 'SUBRACE'
-  )
+  const baseRaces = resolution.catalog.races.filter((race) => race.category !== 'SUBRACE')
   const selectedRaceId = character.intent.race.raceId
   const selectedAncestryRace = resolution.registry.races.find(
     (race) => race.id === (character.intent.race.subraceId ?? selectedRaceId)
@@ -975,7 +1093,10 @@ export function buildCharacterBuilderView(
             sourceLabel: primaryBaseClass.label,
             startingGold: primaryBaseClass.startingGold,
             startingEquipment: toStartingEquipmentDto(primaryBaseClass.startingEquipment),
-            choiceLabels: buildStartingEquipmentChoiceLabels(primaryBaseClass.startingEquipment, equipmentOptions)
+            choiceLabels: buildStartingEquipmentChoiceLabels(
+              primaryBaseClass.startingEquipment,
+              equipmentOptions
+            )
           }
         : null,
       backgroundStartingEquipment: selectedBackground?.startingEquipment?.sets.length
@@ -983,7 +1104,10 @@ export function buildCharacterBuilderView(
             source: 'BACKGROUND',
             sourceLabel: selectedBackground.label,
             startingEquipment: toStartingEquipmentDto(selectedBackground.startingEquipment),
-            choiceLabels: buildStartingEquipmentChoiceLabels(selectedBackground.startingEquipment, equipmentOptions)
+            choiceLabels: buildStartingEquipmentChoiceLabels(
+              selectedBackground.startingEquipment,
+              equipmentOptions
+            )
           }
         : null,
       equipmentOptions,
@@ -1235,9 +1359,33 @@ async function buildCharacterBuilderSavePayload(params: {
     targetStatus: params.targetStatus,
     ready: draftResolution.readiness.ready
   })
-  const character = {
+  let character = {
     ...reconciled,
     status: persistedStatus
+  }
+  if (persistedStatus === AUTHORED_RECORD_STATUS.ACTIVE) {
+    const adjustments = await createCharacterSheetAdjustmentRepository(params.db).listByCharacter(
+      character.id
+    )
+    const effectiveMaxHitPoints = Math.max(
+      resolveCharacterSheetEngine({
+        character,
+        resolution: draftResolution,
+        adjustments
+      }).derivedStats.maxHitPoints,
+      0
+    )
+
+    character = {
+      ...character,
+      state: {
+        ...character.state,
+        hitpoints: {
+          ...character.state.hitpoints,
+          current: Math.min(Math.max(character.state.hitpoints.current, 0), effectiveMaxHitPoints)
+        }
+      }
+    }
   }
   const resolution =
     persistedStatus === AUTHORED_RECORD_STATUS.DRAFT
@@ -1603,16 +1751,109 @@ export async function getCharacterSheetForUser(
     subjectId: character.id
   })
 
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
+  const playStateRepository = createCharacterSheetPlayStateRepository(db)
+  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      adjustmentRepository.listByCharacter(character.id),
+      adjustmentRepository.getMovementPreference(character.id),
+      playStateRepository.listResourceUsage(character.id),
+      playStateRepository.listSpellCustomizations(character.id)
+    ])
+
   return {
     ...(await buildCharacterSheetResponse({
       db,
       character,
       resolution: await resolveCharacterBuilder(db, character, 'edit'),
       streamVersion: row?.stream_version ?? 0,
-      hasBuilderDraft: Boolean(draft)
+      hasBuilderDraft: Boolean(draft),
+      adjustments,
+      movementDisplayPreference,
+      resourceUsage,
+      spellCustomizations
     })),
     publicId: routeIdentity.publicId
   }
+}
+
+export async function previewCharacterRestForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  input: CharacterRestPreviewRequestDto,
+  userId: string
+): Promise<CharacterRestPreviewResponseDto> {
+  const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  return previewCharacterRest({
+    db,
+    characterId: resolvedCharacterId,
+    input,
+    userId
+  })
+}
+
+export async function getCharacterSheetPanelForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  target: CharacterSheetPanelTargetDto,
+  userId: string
+): Promise<CharacterSheetPanelDto> {
+  const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+
+  const repository = createCharacterRepository(db)
+  const [row, character] = await Promise.all([
+    repository.findById(resolvedCharacterId),
+    repository.findAuthoredById(resolvedCharacterId)
+  ])
+  if (
+    !row ||
+    !character ||
+    (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE
+  ) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  if (character.userId !== userId) {
+    throw createNamedError(
+      'AuthoredContentOwnershipError',
+      `Character "${resolvedCharacterId}" cannot be viewed by the current user.`
+    )
+  }
+
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
+  const playStateRepository = createCharacterSheetPlayStateRepository(db)
+  const [resolution, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+    await Promise.all([
+      resolveCharacterBuilder(db, character, 'edit'),
+      adjustmentRepository.listByCharacter(resolvedCharacterId),
+      adjustmentRepository.getMovementPreference(resolvedCharacterId),
+      playStateRepository.listResourceUsage(resolvedCharacterId),
+      playStateRepository.listSpellCustomizations(resolvedCharacterId)
+    ])
+  const sheet = await buildCharacterSheetResponse({
+    db,
+    character,
+    resolution,
+    streamVersion: row.stream_version,
+    adjustments,
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
+  })
+  return buildCharacterSheetPanel({
+    character,
+    resolution,
+    sheet,
+    adjustments,
+    movementDisplayPreference,
+    target,
+    editable: true
+  })
 }
 
 export async function resolveCharacterForUser(
@@ -1708,6 +1949,54 @@ export async function upsertCharacterBuilderForUser(
   )
 }
 
+type CorePanelCommand = Extract<
+  CharacterSheetCommandInputDto,
+  {
+    type:
+      | 'UPSERT_SHEET_ADJUSTMENT'
+      | 'REMOVE_SHEET_ADJUSTMENT'
+      | 'RESET_SHEET_PANEL_ADJUSTMENTS'
+      | 'SET_MOVEMENT_DISPLAY_PREFERENCE'
+      | 'SET_SPELL_MECHANIC_CUSTOMIZATION'
+      | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+      | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
+      | 'ADD_SHEET_EXTRA'
+      | 'UPDATE_SHEET_EXTRA'
+      | 'REMOVE_SHEET_EXTRA'
+      | 'SET_PREPARED_SPELLS'
+      | 'USE_SPELL_SLOT'
+      | 'RESTORE_SPELL_SLOT'
+      | 'UPDATE_INVENTORY_ITEM'
+      | 'EQUIP_ITEM'
+      | 'UNEQUIP_ITEM'
+      | 'ATTUNE_ITEM'
+      | 'UNATTUNE_ITEM'
+  }
+>
+
+function isCorePanelCommand(command: CharacterSheetCommandInputDto): command is CorePanelCommand {
+  return (
+    command.type === 'UPSERT_SHEET_ADJUSTMENT' ||
+    command.type === 'REMOVE_SHEET_ADJUSTMENT' ||
+    command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' ||
+    command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE' ||
+    command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
+    command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION' ||
+    command.type === 'ADD_SHEET_EXTRA' ||
+    command.type === 'UPDATE_SHEET_EXTRA' ||
+    command.type === 'REMOVE_SHEET_EXTRA' ||
+    command.type === 'SET_PREPARED_SPELLS' ||
+    command.type === 'USE_SPELL_SLOT' ||
+    command.type === 'RESTORE_SPELL_SLOT' ||
+    command.type === 'UPDATE_INVENTORY_ITEM' ||
+    command.type === 'EQUIP_ITEM' ||
+    command.type === 'UNEQUIP_ITEM' ||
+    command.type === 'ATTUNE_ITEM' ||
+    command.type === 'UNATTUNE_ITEM'
+  )
+}
+
 export async function dispatchCommandForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   characterId: string,
@@ -1735,9 +2024,17 @@ export async function dispatchCommandForUser(
       subjectId: resolvedCharacterId
     })
   ])
+  const panels = isCorePanelCommand(command)
+    ? await Promise.all(
+        getAffectedCharacterSheetPanelTargets(command).map((target) =>
+          getCharacterSheetPanelForUser(db, resolvedCharacterId, target, userId)
+        )
+      )
+    : undefined
 
   return {
     ...result,
+    ...(panels ? { panels } : {}),
     sheet: {
       ...result.sheet,
       meta: {

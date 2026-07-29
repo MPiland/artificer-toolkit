@@ -15,11 +15,15 @@ export const octopus: CreatureAuthored = {
     CONSTITUTION: 11,
     INTELLIGENCE: 3,
     WISDOM: 10,
-    CHARISMA: 4,
+    CHARISMA: 4
   },
   armorClass: 12,
   hitPoints: 3,
-  hitDice: '1d6',
+  hitDice: {
+    count: 1,
+    die: 6,
+    modifier: 0
+  },
   speeds: [...S.walk(5), ...S.swim(30)],
   proficiencies: [S.grantedSkillProficiency(7953, 1, 'PERCEPTION', 'STEALTH')],
   senses: ['darkvision 30 ft.'],
@@ -30,27 +34,30 @@ export const octopus: CreatureAuthored = {
     {
       id: S.featureId(208, 1),
       label: 'Hold Breath',
-      description: 'Hold Breath. While out of water, the octopus can hold its breath for 30 minutes.',
+      description:
+        'Hold Breath. While out of water, the octopus can hold its breath for 30 minutes.',
       order: 1
     },
     {
       id: S.featureId(208, 2),
       label: 'Underwater Camouflage',
-      description: 'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
+      description:
+        'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
       order: 2
     },
     {
       id: S.featureId(208, 3),
       label: 'Tentacles',
-      description: 'Tentacles. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 1 bludgeoning damage, and the target is grappled (escape DC 10).',
+      description:
+        'Tentacles. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 1 bludgeoning damage, and the target is grappled (escape DC 10).',
       order: 3
     },
     {
       id: S.featureId(208, 4),
       label: 'Ink Cloud (Recharges after a Short or Long Rest)',
-      description: 'Ink Cloud (Recharges after a Short or Long Rest). A 5-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, though a significant current can disperse the ink. After releasing the ink, the octopus can take the Dash action as a bonus action.',
+      description:
+        'Ink Cloud (Recharges after a Short or Long Rest). A 5-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, though a significant current can disperse the ink. After releasing the ink, the octopus can take the Dash action as a bonus action.',
       order: 4
     }
   ]
 }
-

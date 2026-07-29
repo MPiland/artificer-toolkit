@@ -14,5 +14,5 @@ export const halfPlateArmorPlus2: EquipmentVariantAuthored = {
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(328), 2),
   userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
+  systemId: S.SRD_SYSTEM_ID
 }

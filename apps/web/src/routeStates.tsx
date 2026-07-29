@@ -42,12 +42,7 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
 
   return (
     <Stack align='center' justify='center' mih='100dvh' p='xl'>
-      <Alert
-        icon={<IAlertCircle size={18} />}
-        title='Route error'
-        color='red'
-        maw={560}
-      >
+      <Alert icon={<IAlertCircle size={18} />} title='Route error' color='red' maw={560}>
         {error instanceof Error ? error.message : 'An unexpected route error occurred.'}
       </Alert>
       <Group>

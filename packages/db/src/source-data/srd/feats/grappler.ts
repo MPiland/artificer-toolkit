@@ -1,7 +1,4 @@
-import {
-  AUTHORING_CONSTRAINT,
-  type FeatAuthored
-} from '@artificer-toolkit/shared'
+import { AUTHORING_CONSTRAINT, type FeatAuthored } from '@artificer-toolkit/shared'
 import { FEAT_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
@@ -15,7 +12,7 @@ export const grappler: FeatAuthored = {
   id: FEAT_IDS.GRAPPLER,
   label: 'Grappler',
   description:
-    'You\'ve developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.',
+    "You've developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.",
   prerequisites: {
     id: featId(0x11f0),
     groups: [
@@ -54,10 +51,11 @@ export const grappler: FeatAuthored = {
     {
       id: featId(0x1102),
       label: 'Pin',
-      description: 'You can use your action to try to pin a creature grappled by you. To do so, make another grapple check. If you succeed, you and the creature are both restrained until the grapple ends.',
+      description:
+        'You can use your action to try to pin a creature grappled by you. To do so, make another grapple check. If you succeed, you and the creature are both restrained until the grapple ends.',
       order: 1
     }
   ],
   userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
+  systemId: SRD_SYSTEM_ID
 }

@@ -57,7 +57,8 @@ describe('static security posture', () => {
   ])
 
   it('keeps web product data away from DB and function internals', () => {
-    const productDataServerImportPattern = /from ['"]@artificer-toolkit\/(?:functions|db(?!\/types))/
+    const productDataServerImportPattern =
+      /from ['"]@artificer-toolkit\/(?:functions|db(?!\/types))/
     const offenders = webFiles
       .filter((filePath) => productDataServerImportPattern.test(read(filePath)))
       .map(toPortablePath)
@@ -74,7 +75,8 @@ describe('static security posture', () => {
   })
 
   it('does not add browser token storage in active web code', () => {
-    const tokenStoragePattern = /(?:localStorage|sessionStorage)\.(?:setItem|getItem)\([^)]*(?:access|refresh|session|token|authorization)/i
+    const tokenStoragePattern =
+      /(?:localStorage|sessionStorage)\.(?:setItem|getItem)\([^)]*(?:access|refresh|session|token|authorization)/i
     const offenders = webFiles
       .filter((filePath) => tokenStoragePattern.test(read(filePath)))
       .map(toPortablePath)
@@ -91,17 +93,14 @@ describe('static security posture', () => {
   })
 
   it('loads the CSP-safe Zod bootstrap before application head content', () => {
-    const bootstrap = read(
-      path.join(repoRoot, 'apps', 'web', 'public', 'zod-csp-bootstrap.js')
-    )
+    const bootstrap = read(path.join(repoRoot, 'apps', 'web', 'public', 'zod-csp-bootstrap.js'))
       .replace(/\r\n/g, '\n')
       .trim()
     const rootDocument = read(path.join(repoRoot, 'apps', 'web', 'src', 'routes', '__root.tsx'))
     const scriptReference = "<script src='/zod-csp-bootstrap.js' />"
 
     expect(bootstrap).toBe(
-      'globalThis.__zod_globalConfig ??= {}\n' +
-        'globalThis.__zod_globalConfig.jitless = true'
+      'globalThis.__zod_globalConfig ??= {}\n' + 'globalThis.__zod_globalConfig.jitless = true'
     )
     expect(bootstrap).not.toMatch(/\beval\s*\(|\bFunction\s*\(|https?:\/\//)
     expect(rootDocument).toContain(scriptReference)
@@ -114,7 +113,9 @@ describe('static security posture', () => {
     const offenders = webFiles
       .filter((filePath) => read(filePath).includes('html-react-parser'))
       .map(toPortablePath)
-      .filter((filePath) => !filePath.endsWith('/apps/web/src/ui/primitives/renderSanitizedRichHtml.tsx'))
+      .filter(
+        (filePath) => !filePath.endsWith('/apps/web/src/ui/primitives/renderSanitizedRichHtml.tsx')
+      )
 
     expect(offenders).toEqual([])
   })
@@ -123,7 +124,12 @@ describe('static security posture', () => {
     const offenders = runtimeServerFiles
       .filter((filePath) => /sql\.raw\s*\(/.test(read(filePath)))
       .map(toPortablePath)
-      .filter((filePath) => !Array.from(allowlistedScriptSqlPaths).some((allowedPath) => filePath.endsWith(`/${allowedPath}`)))
+      .filter(
+        (filePath) =>
+          !Array.from(allowlistedScriptSqlPaths).some((allowedPath) =>
+            filePath.endsWith(`/${allowedPath}`)
+          )
+      )
 
     expect(offenders).toEqual([])
   })

@@ -16,12 +16,16 @@ export const greenHag: CreatureAuthored = {
     CONSTITUTION: 16,
     INTELLIGENCE: 13,
     WISDOM: 14,
-    CHARISMA: 14,
+    CHARISMA: 14
   },
   armorClass: 17,
   armorClassNote: 'natural armor',
   hitPoints: 82,
-  hitDice: '11d8+33',
+  hitDice: {
+    count: 11,
+    die: 8,
+    modifier: 33
+  },
   speeds: [...S.walk(30), ...S.swim(30)],
   proficiencies: [
     S.grantedSkillProficiency(4388, 1, 'ARCANA', 'DECEPTION', 'PERCEPTION', 'STEALTH'),
@@ -41,33 +45,37 @@ export const greenHag: CreatureAuthored = {
     {
       id: S.featureId(151, 2),
       label: 'Innate Spellcasting',
-      description: "Innate Spellcasting. The hag's innate spellcasting ability is Charisma (spell save DC 12). She can innately cast the following spells, requiring no material components: At will: dancing lights, minor illusion, vicious mockery.",
+      description:
+        "Innate Spellcasting. The hag's innate spellcasting ability is Charisma (spell save DC 12). She can innately cast the following spells, requiring no material components: At will: dancing lights, minor illusion, vicious mockery.",
       order: 2
     },
     {
       id: S.featureId(151, 3),
       label: 'Mimicry',
-      description: 'Mimicry. The hag can mimic animal sounds and humanoid voices. A creature that hears the sounds can tell they are imitations with a successful DC 14 Wisdom (Insight) check.',
+      description:
+        'Mimicry. The hag can mimic animal sounds and humanoid voices. A creature that hears the sounds can tell they are imitations with a successful DC 14 Wisdom (Insight) check.',
       order: 3
     },
     {
       id: S.featureId(151, 4),
       label: 'Claws',
-      description: 'Claws. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
+      description:
+        'Claws. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
       order: 4
     },
     {
       id: S.featureId(151, 5),
       label: 'Illusory Appearance',
-      description: 'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like another creature of her general size and humanoid shape. The illusion ends if the hag takes a bonus action to end it or if she dies. The changes wrought by this effect fail to hold up to physical inspection. Otherwise, a creature must take an action to visually inspect the illusion and succeed on a DC 20 Intelligence (Investigation) check to discern that the hag is disguised.',
+      description:
+        'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like another creature of her general size and humanoid shape. The illusion ends if the hag takes a bonus action to end it or if she dies. The changes wrought by this effect fail to hold up to physical inspection. Otherwise, a creature must take an action to visually inspect the illusion and succeed on a DC 20 Intelligence (Investigation) check to discern that the hag is disguised.',
       order: 5
     },
     {
       id: S.featureId(151, 6),
       label: 'Invisible Passage',
-      description: 'Invisible Passage. The hag magically turns invisible until she attacks or casts a spell, or until her concentration ends (as if concentrating on a spell). While invisible, she leaves no physical evidence of her passage, so she can be tracked only by magic. Any equipment she wears or carries is invisible with her.',
+      description:
+        'Invisible Passage. The hag magically turns invisible until she attacks or casts a spell, or until her concentration ends (as if concentrating on a spell). While invisible, she leaves no physical evidence of her passage, so she can be tracked only by magic. Any equipment she wears or carries is invisible with her.',
       order: 6
     }
   ]
 }
-

@@ -51,9 +51,7 @@ export class NodeRuntimeInputError extends Error {
   }
 }
 
-function buildNodeMapRegistry(
-  maps: readonly unknown[]
-): Map<string, RuntimeNodeMap> {
+function buildNodeMapRegistry(maps: readonly unknown[]): Map<string, RuntimeNodeMap> {
   const registry = new Map<string, RuntimeNodeMap>()
 
   for (const nodeMap of maps) {
@@ -63,10 +61,7 @@ function buildNodeMapRegistry(
   return registry
 }
 
-function collectNodeMap(
-  nodeMap: unknown,
-  registry: Map<string, RuntimeNodeMap>
-) {
+function collectNodeMap(nodeMap: unknown, registry: Map<string, RuntimeNodeMap>) {
   const runtimeNodeMap = nodeMap as unknown as RuntimeNodeMap
   const existing = registry.get(runtimeNodeMap.mapId)
   if (existing) {
@@ -95,9 +90,7 @@ function nodeMapContractSignature(nodeMap: RuntimeNodeMap): string {
       if (node.kind === 'INPUT') return [id, node]
 
       const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
-      const contract = Object.fromEntries(
-        Object.entries(node).filter(([key]) => key !== 'nodes')
-      )
+      const contract = Object.fromEntries(Object.entries(node).filter(([key]) => key !== 'nodes'))
       return [id, { ...contract, childMapId: childMap.mapId }]
     })
 

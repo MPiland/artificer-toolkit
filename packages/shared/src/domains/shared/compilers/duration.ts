@@ -2,19 +2,19 @@ import type { DurationAuthored } from '#authored'
 import { DURATION_KIND, DurationKind, type ScalableValueAuthored } from '#core'
 import { assertNever } from '#utils'
 
-export type CompiledDuration
-  = {
-    [K in DurationKind]:
-    K extends typeof DURATION_KIND.INSTANTANEOUS | typeof DURATION_KIND.UNTIL_DISPELLED
-      ? {
-          durationKind: K
-        }
-      : {
-          durationKind: K
-          amount: number
-          scaling?: ScalableValueAuthored<{ amount: number }>
-        }
-  }[DurationKind]
+export type CompiledDuration = {
+  [K in DurationKind]: K extends
+    | typeof DURATION_KIND.INSTANTANEOUS
+    | typeof DURATION_KIND.UNTIL_DISPELLED
+    ? {
+        durationKind: K
+      }
+    : {
+        durationKind: K
+        amount: number
+        scaling?: ScalableValueAuthored<{ amount: number }>
+      }
+}[DurationKind]
 
 export function compileDuration(authored: DurationAuthored): CompiledDuration {
   switch (authored.durationKind) {

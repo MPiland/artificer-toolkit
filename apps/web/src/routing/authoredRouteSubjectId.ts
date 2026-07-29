@@ -1,9 +1,6 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import type { Api, AuthoredSubjectKindDto } from '#app/lib/api'
-import {
-  isLegacyAuthoredRouteId,
-  parseAuthoredRouteId
-} from './authoredRouteHandles'
+import { isLegacyAuthoredRouteId, parseAuthoredRouteId } from './authoredRouteHandles'
 
 interface CachedAuthoredRouteList {
   drafts: Array<{
@@ -34,8 +31,10 @@ export async function resolveAuthoredRouteSubjectId({
 
   const normalizedPublicId = routeId.toLowerCase()
   const cachedList = queryClient.getQueryData<CachedAuthoredRouteList>(listQueryKey)
-  const cachedSubjectId = cachedList?.items.find((item) => item.publicId.toLowerCase() === normalizedPublicId)?.id
-    ?? cachedList?.drafts.find((draft) => draft.publicId.toLowerCase() === normalizedPublicId)?.subjectId
+  const cachedSubjectId =
+    cachedList?.items.find((item) => item.publicId.toLowerCase() === normalizedPublicId)?.id ??
+    cachedList?.drafts.find((draft) => draft.publicId.toLowerCase() === normalizedPublicId)
+      ?.subjectId
   if (cachedSubjectId) return cachedSubjectId
 
   const routeIdentity = await client.routeIds.resolve({

@@ -1,7 +1,13 @@
 import type { CreatureListResponseDto } from '#app/lib/api'
-import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem
+} from '#components/AuthoredList'
 
-function mapPermissions(item: CreatureListResponseDto['items'][number]): AuthoredListItem['permissions'] {
+function mapPermissions(
+  item: CreatureListResponseDto['items'][number]
+): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
     canEdit: item.permissions.canEdit,
@@ -24,7 +30,9 @@ function summarizeDescription(description: string | null | undefined): string {
   return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
-export function mapCreatureListToAuthoredItems(response: CreatureListResponseDto): AuthoredListItem[] {
+export function mapCreatureListToAuthoredItems(
+  response: CreatureListResponseDto
+): AuthoredListItem[] {
   return response.items.map((item) => {
     const category = item.category ?? 'CREATURE'
     const categoryLabel = formatCreatureCategory(category)
@@ -54,7 +62,9 @@ export function mapCreatureListToAuthoredItems(response: CreatureListResponseDto
 }
 
 export function buildCreatureListFilters(response: CreatureListResponseDto): AuthoredListFilter[] {
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'CREATURE'))).sort()
+  const categories = Array.from(
+    new Set(response.items.map((item) => item.category ?? 'CREATURE'))
+  ).sort()
 
   return [
     {
@@ -78,7 +88,9 @@ export function buildCreatureListFilters(response: CreatureListResponseDto): Aut
   ]
 }
 
-export const creatureListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
+export const creatureListAttributeColumns = [
+  { key: 'Category', label: 'Category', width: 180 }
+] satisfies AuthoredListAttributeColumn[]
 
 export const creatureListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
