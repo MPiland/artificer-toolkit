@@ -27,7 +27,7 @@ Deliver Phase 00 through seven sequential local child branches. A child branch m
 | `codex/character-overrides-04-content-resources` | Spells, features, items, backgrounds, resources                                 | `INTEGRATED`      | `3492e0bdea49` | `e61821775834` | green       | green          | green       |
 | `codex/character-overrides-05-companions`        | Extras lifecycle and play panels: companions, mounts, owned creatures, vehicles | `INTEGRATED`      | `3485aef1`     | `0bd47e4b1011` | green       | green          | green       |
 | `codex/character-overrides-06-vitals-rests`      | HP, status, exhaustion, short/long rest                                         | `INTEGRATED`      | `0b9d37574ae7` | `f5f2ef24c2e4` | green       | green          | green       |
-| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, local smoke validation             | `FINAL_VALIDATED` | `3d482b563264` | `fd4ee0ea8c9e` | green       | green          | green       |
+| `codex/character-overrides-07-integration`       | Consistency, regression, roadmap completion, local smoke validation             | `FINAL_VALIDATED` | `3d482b563264` | `960dc4e485a7` | green       | green          | green       |
 
 ## Branch 01 — Foundation and persistence
 
@@ -942,12 +942,24 @@ All 13 captures are final Storybook-rendered Sheet states. Their SHA-256 hashes 
   including rollback and stale-version handling.
 - Post-smoke `yarn turbo:affected:typecheck`: green — 8 tasks.
 
+### PR review follow-up
+
+- Action charge steppers retain their one-at-a-time command semantics, while execution now resolves
+  the rendered resource ID to its stable owner and persists use or restoration through
+  `character_sheet_resource_usage`.
+- Limited-use and charged fixed-level spell casts resolve the source's `resourceOwner`, persist the
+  same owner-keyed usage, and optimistically project the charged resource alongside spell slots.
+- Focused function validation: green — 2 files and 97 tests. Focused web optimistic projection:
+  green — 1 file and 7 tests.
+- The final execution regression is green — 1 file and 26 tests. The affected typecheck, focused
+  formatting check, Character Sheet integration gate, and `git diff --check` are green.
+
 ### Delivered and deferred scope
 
 - Delivered: exhaustive cross-branch command/projector/adapter consistency, focused regressions,
   final Impeccable/browser distillation, 13 curated captures, Phase 01 Dice planning, Phase 02–12
   renumbering, one-source Media crop ownership, Campaign consumption of the shared roll service,
   and isolated local application smoke validation. The final app-bearing SHA is
-  `fd4ee0ea8c9e578671e12dba3b2c451f0c675779`.
+  `960dc4e485a7ed6839ec844538b6eaa22d4124c4`.
 - Deferred by design: all Dice renderer/service/GLB implementation, Campaign/Encounter roll
   persistence, native dice presentation, and deprecated HP-column removal.
