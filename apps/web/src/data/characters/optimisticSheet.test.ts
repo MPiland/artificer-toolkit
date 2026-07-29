@@ -89,6 +89,30 @@ describe('optimistic Character Sheet projections', () => {
     })
   })
 
+  it('projects charged spell casts through the source resource owner', () => {
+    const sheet = structuredClone(characterSheetFixture)
+    const resource = sheet.resources.items[1]!
+    const spell = sheet.spells.spells[0]!
+    const source = spell.sources![0]!
+    source.id = 'limited-spell-source'
+    source.castMode = 'LIMITED_USE'
+    source.resourceGrantId = 'raw-resource-grant'
+    source.resourceOwner = resource.owner
+
+    const projected = projectOptimisticCharacterSheet(sheet, {
+      ...commandBase,
+      type: 'CAST_SPELL',
+      spellId: spell.id,
+      sourceId: source.id
+    })
+
+    expect(projected.resources.items[1]).toMatchObject({
+      used: resource.used + 1,
+      remaining: resource.remaining - 1
+    })
+    expect(projected.spells.slots).toEqual(sheet.spells.slots)
+  })
+
   it('projects resource recovery and HP changes without duplicating engine rules', () => {
     const resource = characterSheetFixture.resources.items[1]
     const itemResource = itemPanelFixture.resources[0]!

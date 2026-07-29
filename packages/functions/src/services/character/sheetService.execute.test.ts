@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
-import { dnd5e2014RulesSystem } from '@artificer-toolkit/shared/core'
+import {
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  SCALING,
+  SPELL_GRANT_ATTRIBUTE,
+  dnd5e2014RulesSystem
+} from '@artificer-toolkit/shared/core'
+import {
+  createCharacterResourceOwnerKey,
+  toCharacterResourceOwnerKey,
+  type CharacterResourceOwnerKey
+} from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
@@ -1248,7 +1260,7 @@ describe('executeCharacterSheetCommand', () => {
     }
   })
 
-  it('persists companion feature resource use and manual recovery', async () => {
+  it('persists owner-based and legacy companion resource commands', async () => {
     const companionInstanceId = '00000000-0000-4000-8000-000000000107'
     const featureId = '00000000-0000-4000-8000-000000000108'
     const chargeId = '00000000-0000-4000-8000-000000000109'
@@ -1329,6 +1341,191 @@ describe('executeCharacterSheetCommand', () => {
     )
     expect(recovered.sheet.resources.items).toContainEqual(
       expect.objectContaining({ owner, used: 0 })
+    )
+
+    const resourceGrantId = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))
+    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 3 })
+    const legacyUsed = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'USE_RESOURCE',
+        expectedVersion: 3,
+        commandId: '00000000-0000-4000-8000-000000000112',
+        resourceGrantId,
+        amount: 2
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 2 })
+    )
+    expect(legacyUsed.sheet.resources.items).toContainEqual(
+      expect.objectContaining({ owner, used: 2 })
+    )
+
+    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 4 })
+    const legacyRecovered = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'RESTORE_RESOURCE',
+        expectedVersion: 4,
+        commandId: '00000000-0000-4000-8000-000000000113',
+        resourceGrantId
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 1 })
+    )
+    expect(legacyRecovered.sheet.resources.items).toContainEqual(
+      expect.objectContaining({ owner, used: 1 })
+    )
+  })
+
+  it('persists charged spell casts by their spell-source owner', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = []
+    character.state.classes = []
+    mocks.findAuthoredById.mockResolvedValue(character)
+
+    const limitedFeature = {
+      id: 'limited-feature',
+      label: 'Limited Magic',
+      description: '',
+      availableAtLevel: 1,
+      order: 0,
+      grants: {
+        spells: [
+          {
+            id: 'limited-grant',
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: ['spell-3'],
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            charges: {
+              id: 'limited-charge',
+              resetKind: 'LONG_REST',
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: 'NONE',
+              amount: 1
+            },
+            order: 0
+          }
+        ]
+      }
+    } satisfies CharacterBuilderResolution['registry']['features'][number]
+    const resolution = createResolution()
+    resolution.registry.features = [limitedFeature]
+    resolution.registry.classes = [
+      {
+        id: 'wizard',
+        label: 'Wizard',
+        category: 'BASE',
+        features: [limitedFeature],
+        spellcasting: {
+          spellLimits: [],
+          attributes: [],
+          maxSpellLevel: 9,
+          charges: {
+            id: 'wizard-spellcasting-charge',
+            resetKind: 'LONG_REST',
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            amount: 1
+          }
+        },
+        startingGold: {
+          multiplier: 1,
+          currencyId: 'gp',
+          dieConfig: '1d4'
+        },
+        startingEquipment: {
+          id: 'wizard-starting-equipment',
+          sets: []
+        },
+        hitpoint: {
+          ability: 'CONSTITUTION',
+          dieConfig: '1d8'
+        },
+        multiclass: {
+          id: 'wizard-multiclass',
+          requirementGroups: { groups: [] }
+        },
+        systemId: 'system-1',
+        userId: 'user-1'
+      }
+    ]
+    resolution.grants.features = [
+      {
+        id: limitedFeature.id,
+        label: limitedFeature.label,
+        sourceLabel: 'Wizard',
+        source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 }
+      }
+    ]
+    resolution.catalog.spells = [
+      {
+        id: 'spell-3',
+        label: 'Shield',
+        description: '',
+        castingTime: { unit: 'ROUND', amount: 1 },
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'ABJURATION'
+      }
+    ]
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+
+    const sourceInstanceId = 'CLASS:wizard:wizard:limited-feature:limited-grant'
+    const resourceGrantId = `${sourceInstanceId}:spell-3`
+    const owner = {
+      kind: 'SPELL_SOURCE' as const,
+      resourceGrantId,
+      spellId: 'spell-3',
+      sourceKind: 'FEATURE' as const,
+      sourceInstanceId
+    }
+    let usage: Array<{ id: string; owner: CharacterResourceOwnerKey; used: number }> = []
+    mocks.listResourceUsage.mockImplementation(async () => usage)
+    mocks.setResourceUsage.mockImplementation(async (input) => {
+      usage = [{ id: input.id, owner: input.owner, used: input.used }]
+    })
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'CAST_SPELL',
+        commandId: '00000000-0000-4000-8000-000000000114',
+        expectedVersion: 1,
+        spellId: 'spell-3',
+        sourceId: resourceGrantId
+      }
+    })
+
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner, used: 1 })
+    )
+    expect(response.sheet.resources.items).toContainEqual(
+      expect.objectContaining({
+        owner: {
+          kind: 'SPELL_SOURCE',
+          resourceGrantId,
+          source: {
+            spellId: owner.spellId,
+            sourceKind: owner.sourceKind,
+            sourceInstanceId: owner.sourceInstanceId
+          }
+        },
+        used: 1,
+        remaining: 0
+      })
     )
   })
 

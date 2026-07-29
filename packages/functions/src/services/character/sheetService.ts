@@ -1339,6 +1339,17 @@ type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 type SheetSpellSlot = CharacterSheetResponseDto['spells']['slots'][number]
 type SheetResource = CharacterSheetResponseDto['resources']['items'][number]
 
+function findResourceByOwner(
+  resources: readonly SheetResource[],
+  owner: CharacterResourceOwnerRef
+): SheetResource | undefined {
+  const ownerKey = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))
+  return resources.find(
+    (resource) =>
+      createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner)) === ownerKey
+  )
+}
+
 function isActiveSpellSource(spell: SheetSpell, source: SheetSpellSource): boolean {
   if (source.acquisition === 'ALWAYS_PREPARED' || source.acquisition === 'GRANTED') return true
   if (spell.level === 0) return source.acquisition === 'KNOWN' || Boolean(source.prepared)
@@ -1406,18 +1417,12 @@ function getSpellCastAvailability(params: {
   if (params.spell.level === 0 || castMode === 'AT_WILL') return { available: true }
 
   if (castMode === 'LIMITED_USE' || castMode === 'FIXED_LEVEL') {
-    if (!params.source.resourceGrantId) {
+    if (!params.source.resourceOwner) {
       return castMode === 'FIXED_LEVEL'
         ? { available: true }
         : { available: false, unavailableReason: 'No linked uses are available.' }
     }
-    const resource = params.resources.find(
-      (candidate) =>
-        candidate.owner.kind === 'SPELL_SOURCE' &&
-        candidate.owner.resourceGrantId === params.source.resourceGrantId &&
-        createCharacterSpellSourceKey(candidate.owner.source) ===
-          createCharacterSpellSourceKey(params.source.source)
-    )
+    const resource = findResourceByOwner(params.resources, params.source.resourceOwner)
     return resource?.remaining
       ? { available: true }
       : { available: false, unavailableReason: 'No uses remaining.' }
@@ -3292,6 +3297,16 @@ function ensureResource(sheet: CharacterSheetResponseDto, resourceGrantId: strin
   return resource
 }
 
+function ensureResourceByOwner(
+  sheet: CharacterSheetResponseDto,
+  owner: CharacterResourceOwnerRef
+): SheetResource {
+  const resource = findResourceByOwner(sheet.resources.items, owner)
+  if (!resource)
+    throw new CharacterSheetCommandError('Resource is not available on this character.')
+  return resource
+}
+
 function ensureSpellSlot(sheet: CharacterSheetResponseDto, slotKey: string) {
   const slot = sheet.spells.slots.find((item) => item.slotKey === slotKey)
   if (!slot)
@@ -3299,6 +3314,28 @@ function ensureSpellSlot(sheet: CharacterSheetResponseDto, slotKey: string) {
       `Spell slot "${slotKey}" is not available on this character.`
     )
   return slot
+}
+
+function resolveSpellCastSource(
+  sheet: CharacterSheetResponseDto,
+  command: Extract<CharacterSheetStateCommand, { type: 'CAST_SPELL' }>
+): { source: SheetSpellSource | undefined; spell: SheetSpell } {
+  const spell = sheet.spells.spells.find((candidate) => candidate.id === command.spellId)
+  if (!spell)
+    throw new CharacterSheetCommandError(
+      `Spell "${command.spellId}" is not available on this character.`
+    )
+  const sources = spell.sources ?? []
+  if (sources.length > 1 && !command.sourceId)
+    throw new CharacterSheetCommandError('Choose a spell source before casting.')
+  const source = command.sourceId
+    ? sources.find((candidate) => candidate.id === command.sourceId)
+    : sources[0]
+  if (command.sourceId && !source)
+    throw new CharacterSheetCommandError(
+      `Spell source "${command.sourceId}" is not available for this spell.`
+    )
+  return { source, spell }
 }
 
 function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
@@ -3868,21 +3905,7 @@ export function applyCharacterSheetCommand(
     }
 
     case 'CAST_SPELL': {
-      const spell = sheet.spells.spells.find((candidate) => candidate.id === command.spellId)
-      if (!spell)
-        throw new CharacterSheetCommandError(
-          `Spell "${command.spellId}" is not available on this character.`
-        )
-      const sources = spell.sources ?? []
-      if (sources.length > 1 && !command.sourceId)
-        throw new CharacterSheetCommandError('Choose a spell source before casting.')
-      const source = command.sourceId
-        ? sources.find((candidate) => candidate.id === command.sourceId)
-        : sources[0]
-      if (command.sourceId && !source)
-        throw new CharacterSheetCommandError(
-          `Spell source "${command.sourceId}" is not available for this spell.`
-        )
+      const { source, spell } = resolveSpellCastSource(sheet, command)
       if (
         source?.canPrepare &&
         source.acquisition !== 'ALWAYS_PREPARED' &&
@@ -3896,23 +3919,23 @@ export function applyCharacterSheetCommand(
       const castMode = source?.castMode ?? 'SPELL_SLOT'
       if (castMode === 'AT_WILL' || spell.level === 0) return clearEmptyStateArrays(next)
       if (castMode === 'LIMITED_USE') {
-        if (!source?.resourceGrantId)
+        if (!source?.resourceOwner)
           throw new CharacterSheetCommandError('This limited-use spell has no linked resource.')
-        const resource = ensureResource(sheet, source.resourceGrantId)
+        const resource = ensureResourceByOwner(sheet, source.resourceOwner)
         if (resource.used >= resource.max)
           throw new CharacterSheetCommandError(
             `Resource "${resource.label}" has no uses remaining.`
           )
-        return updateResourceUsage(next, source.resourceGrantId, resource.max, (used) => used + 1)
+        return updateResourceUsage(next, resource.id, resource.max, () => resource.used + 1)
       }
       if (castMode === 'FIXED_LEVEL') {
-        if (!source?.resourceGrantId) return clearEmptyStateArrays(next)
-        const resource = ensureResource(sheet, source.resourceGrantId)
+        if (!source?.resourceOwner) return clearEmptyStateArrays(next)
+        const resource = ensureResourceByOwner(sheet, source.resourceOwner)
         if (resource.used >= resource.max)
           throw new CharacterSheetCommandError(
             `Resource "${resource.label}" has no uses remaining.`
           )
-        return updateResourceUsage(next, source.resourceGrantId, resource.max, (used) => used + 1)
+        return updateResourceUsage(next, resource.id, resource.max, () => resource.used + 1)
       }
       if (!command.slotKey)
         throw new CharacterSheetCommandError('Choose a spell slot before casting.')
@@ -5087,17 +5110,7 @@ export async function executeCharacterSheetCommand(params: {
     validateSpellSource(command.source, currentSheet)
   }
   if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
-    const resourceOwnerKey = createCharacterResourceOwnerKey(
-      toCharacterResourceOwnerKey(command.owner)
-    )
-    const resource = currentSheet.resources.items.find(
-      (candidate) =>
-        createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
-        resourceOwnerKey
-    )
-    if (!resource) {
-      throw new CharacterSheetCommandError('Resource is not available on this character.')
-    }
+    const resource = ensureResourceByOwner(currentSheet, command.owner)
     if (
       command.type === 'RECOVER_SHEET_RESOURCE' &&
       !resource.recoveries.some((recovery) => recovery.trigger === command.trigger)
@@ -5238,6 +5251,55 @@ export async function executeCharacterSheetCommand(params: {
           )
         }
       }
+    }
+  }
+  let resourceUsageUpdate: { resource: SheetResource; used: number } | undefined
+  switch (command.type) {
+    case 'USE_RESOURCE': {
+      const resource = ensureResource(currentSheet, command.resourceGrantId)
+      resourceUsageUpdate = {
+        resource,
+        used: Math.min(resource.used + (command.amount ?? 1), resource.max)
+      }
+      break
+    }
+    case 'RESTORE_RESOURCE': {
+      const resource = ensureResource(currentSheet, command.resourceGrantId)
+      resourceUsageUpdate = {
+        resource,
+        used: command.all ? 0 : Math.max(resource.used - (command.amount ?? 1), 0)
+      }
+      break
+    }
+    case 'USE_SHEET_RESOURCE': {
+      const resource = ensureResourceByOwner(currentSheet, command.owner)
+      resourceUsageUpdate = {
+        resource,
+        used: Math.min(resource.used + (command.amount ?? 1), resource.max)
+      }
+      break
+    }
+    case 'RECOVER_SHEET_RESOURCE':
+      resourceUsageUpdate = {
+        resource: ensureResourceByOwner(currentSheet, command.owner),
+        used: 0
+      }
+      break
+    case 'CAST_SPELL': {
+      const { source, spell } = resolveSpellCastSource(currentSheet, command)
+      const castMode = source?.castMode ?? 'SPELL_SLOT'
+      if (
+        spell.level > 0 &&
+        (castMode === 'LIMITED_USE' || castMode === 'FIXED_LEVEL') &&
+        source?.resourceOwner
+      ) {
+        const resource = ensureResourceByOwner(currentSheet, source.resourceOwner)
+        resourceUsageUpdate = {
+          resource,
+          used: Math.min(resource.used + 1, resource.max)
+        }
+      }
+      break
     }
   }
   const statePatches = createCharacterSheetStatePatches(character, nextCharacter)
@@ -5392,30 +5454,18 @@ export async function executeCharacterSheetCommand(params: {
             displayAsAttack: command.displayAsAttack ?? existing?.displayAsAttack ?? false
           })
         }
-        if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
-          const resourceOwnerKey = createCharacterResourceOwnerKey(
-            toCharacterResourceOwnerKey(command.owner)
-          )
-          const resource = currentSheet.resources.items.find(
-            (candidate) =>
-              createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(candidate.owner)) ===
-              resourceOwnerKey
-          )
-          if (!resource)
-            throw new CharacterSheetCommandError('Resource is not available on this character.')
+        if (resourceUsageUpdate) {
+          const owner = toCharacterResourceOwnerKey(resourceUsageUpdate.resource.owner)
+          const resourceOwnerKey = createCharacterResourceOwnerKey(owner)
           const existing = resourceUsage.find(
             (usage) => createCharacterResourceOwnerKey(usage.owner) === resourceOwnerKey
           )
-          const used =
-            command.type === 'USE_SHEET_RESOURCE'
-              ? Math.min(resource.used + (command.amount ?? 1), resource.max)
-              : 0
           await typedPlayStateRepository.setResourceUsage({
             id: existing?.id ?? crypto.randomUUID(),
             characterId: params.characterId,
             actorId: params.userId,
-            owner: toCharacterResourceOwnerKey(command.owner),
-            used
+            owner,
+            used: resourceUsageUpdate.used
           })
         }
         if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {

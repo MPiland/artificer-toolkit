@@ -44,6 +44,29 @@ function projectResources(
   sheet: CharacterSheetResponseDto,
   command: CharacterSheetCommandInputDto
 ): CharacterSheetResponseDto {
+  if (command.type === 'CAST_SPELL') {
+    const spell = sheet.spells.spells.find((candidate) => candidate.id === command.spellId)
+    const sources = spell?.sources ?? []
+    if (sources.length > 1 && !command.sourceId) return sheet
+    const source = command.sourceId
+      ? sources.find((candidate) => candidate.id === command.sourceId)
+      : sources[0]
+    const resourceOwner = source?.resourceOwner
+    if (!resourceOwner) return sheet
+
+    return {
+      ...sheet,
+      resources: {
+        ...sheet.resources,
+        items: sheet.resources.items.map((resource) =>
+          sameResourceOwner(resource.owner, resourceOwner)
+            ? updateResource(resource, resource.used + 1)
+            : resource
+        )
+      }
+    }
+  }
+
   if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
     return {
       ...sheet,
@@ -461,8 +484,9 @@ export function projectOptimisticCharacterSheet(
       return projectHitPoints(sheet, command)
     case 'USE_SPELL_SLOT':
     case 'RESTORE_SPELL_SLOT':
-    case 'CAST_SPELL':
       return projectSpellSlots(sheet, command)
+    case 'CAST_SPELL':
+      return projectSpellSlots(projectResources(sheet, command), command)
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'SET_PREPARED_SPELLS':
       return projectSpellSources(sheet, command)

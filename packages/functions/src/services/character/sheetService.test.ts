@@ -2343,11 +2343,22 @@ describe('character sheet command application', () => {
     ).toThrow(/has no uses remaining/)
     expect(slotCharacter.state).toEqual(originalSlotState)
 
-    const resourceCharacter = createCharacter()
-    resourceCharacter.state.resources = [{ resourceGrantId: 'resource-1', used: 2 }]
+    const resourceOwner = {
+      kind: 'SPELL_SOURCE' as const,
+      resourceGrantId: 'resource-1',
+      source: {
+        spellId: 'spell-1',
+        sourceKind: 'FEATURE' as const,
+        sourceInstanceId: 'feature:spell-1'
+      }
+    }
     const resourceSheet = createSheet()
-    resourceSheet.resources.items[0]!.used = 2
-    resourceSheet.resources.items[0]!.remaining = 0
+    resourceSheet.resources.items[0] = createSheetResource({
+      id: 'SPELL_SOURCE:feature:spell-1:spell-1:resource-1',
+      owner: resourceOwner,
+      used: 1,
+      remaining: 1
+    })
     resourceSheet.spells.spells[0]!.sources = [
       createSheetSpellSource('spell-1', {
         id: 'feature:spell-1',
@@ -2356,9 +2367,34 @@ describe('character sheet command application', () => {
         prepared: true,
         acquisition: 'GRANTED',
         castMode: 'LIMITED_USE',
-        resourceGrantId: 'resource-1'
+        resourceGrantId: 'resource-1',
+        resourceOwner
       })
     ]
+    const castCharacter = createCharacter()
+    castCharacter.state.resources = [
+      { resourceGrantId: 'SPELL_SOURCE:feature:spell-1:spell-1:resource-1', used: 1 }
+    ]
+    const castResource = applyCharacterSheetCommand(
+      castCharacter,
+      {
+        type: 'CAST_SPELL',
+        spellId: 'spell-1',
+        sourceId: 'feature:spell-1',
+        expectedVersion: 1
+      },
+      resourceSheet
+    )
+    expect(castResource.state.resources).toEqual([
+      { resourceGrantId: 'SPELL_SOURCE:feature:spell-1:spell-1:resource-1', used: 2 }
+    ])
+
+    const resourceCharacter = createCharacter()
+    resourceCharacter.state.resources = [
+      { resourceGrantId: 'SPELL_SOURCE:feature:spell-1:spell-1:resource-1', used: 2 }
+    ]
+    resourceSheet.resources.items[0]!.used = 2
+    resourceSheet.resources.items[0]!.remaining = 0
     const originalResourceState = structuredClone(resourceCharacter.state)
     expect(() =>
       applyCharacterSheetCommand(
