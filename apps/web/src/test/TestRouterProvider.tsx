@@ -50,6 +50,10 @@ function createTestRouter(initialPath: string, user: User | null) {
     createStaticRoute('/auth/confirmed', getParentRoute),
     createStaticRoute('/home', getParentRoute),
     createStaticRoute('/characters', getParentRoute),
+    createStaticRoute('/settings', getParentRoute),
+    createStaticRoute('/settings/profile', getParentRoute),
+    createStaticRoute('/settings/preferences', getParentRoute),
+    createStaticRoute('/settings/account', getParentRoute),
     createStaticRoute('/races', getParentRoute),
     createStaticRoute('/spells', getParentRoute),
     createStaticRoute('/backgrounds', getParentRoute)

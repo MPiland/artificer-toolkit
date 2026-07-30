@@ -1,9 +1,18 @@
-import { ActionIcon, Button, Drawer, Group, Menu, TextInput, UnstyledButton } from '@mantine/core'
-import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
+import {
+  ActionIcon,
+  Button,
+  Drawer,
+  Group,
+  Menu,
+  SegmentedControl,
+  TextInput,
+  UnstyledButton,
+  useMantineColorScheme
+} from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
 import { type ReactNode, useMemo, useState } from 'react'
-import { BookOpen, LogOut, Moon, PlusCircle, Search, Sun } from 'lucide-react'
+import { BookOpen, LogOut, Monitor, Moon, PlusCircle, Search, Settings, Sun } from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
 import { ShellHeaderSupplementContext, type ShellHeaderSupplement } from './headerSupplement'
@@ -134,7 +143,7 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
 
 function UserMenu() {
   return (
-    <Menu position='bottom-end' width={220} withinPortal>
+    <Menu position='bottom-end' width={180} withinPortal>
       <Menu.Target>
         <ActionIcon
           className={styles.userIconButton}
@@ -152,37 +161,43 @@ function UserMenu() {
 }
 
 function AccountMenuItems() {
-  const { setColorScheme } = useMantineColorScheme()
-  const computedColorScheme = useComputedColorScheme('dark')
-  const nextColorScheme = computedColorScheme === 'dark' ? 'light' : 'dark'
+  const { colorScheme, setColorScheme } = useMantineColorScheme()
 
   return (
     <>
+      <Menu.Label>Theme</Menu.Label>
+      <SegmentedControl
+        aria-label='Theme preference'
+        className={styles.themeSelector}
+        classNames={{
+          label: styles.themeSelectorLabel,
+          innerLabel: styles.themeSelectorOption
+        }}
+        data={[
+          {
+            label: <Monitor size={13} aria-hidden='true' />,
+            value: 'auto'
+          },
+          {
+            label: <Sun size={13} aria-hidden='true' />,
+            value: 'light'
+          },
+          {
+            label: <Moon size={13} aria-hidden='true' />,
+            value: 'dark'
+          }
+        ]}
+        fullWidth
+        size='xs'
+        value={colorScheme}
+        onChange={(value) => setColorScheme(value === 'light' || value === 'dark' ? value : 'auto')}
+      />
       <Menu.Item
-        aria-label={`Switch to ${nextColorScheme} mode`}
-        onClick={() => setColorScheme(nextColorScheme)}
-        rightSection={
-          <span className={styles.themeModePill} aria-hidden='true'>
-            <span
-              className={clsx(
-                styles.themeModePillOption,
-                computedColorScheme === 'light' && styles.themeModePillOptionActive
-              )}
-            >
-              <Sun size={12} />
-            </span>
-            <span
-              className={clsx(
-                styles.themeModePillOption,
-                computedColorScheme === 'dark' && styles.themeModePillOptionActive
-              )}
-            >
-              <Moon size={12} />
-            </span>
-          </span>
-        }
+        component={Link}
+        to='/settings'
+        leftSection={<Settings size={16} aria-hidden='true' />}
       >
-        Theme
+        Settings
       </Menu.Item>
       <SentryFeedbackMenuItem />
       <Menu.Item

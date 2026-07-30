@@ -52,6 +52,7 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'AuthoredDefinitionRevisionConflictError') return 'CONFLICT'
   if (error.name === 'CharacterBuilderDraftConflictError') return 'CONFLICT'
   if (error.name === 'ConcurrencyError') return 'CONFLICT'
+  if (error.name === 'UsernameConflictError') return 'CONFLICT'
   if (error.name === 'CharacterSheetCommandError') return 'BAD_REQUEST'
 
   return 'INTERNAL_SERVER_ERROR'
@@ -97,6 +98,17 @@ export async function withAuthenticatedDb<TResult>(
 
   try {
     return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId, auth))
+  } catch (error) {
+    throw toTrpcError(error)
+  }
+}
+
+export async function withDb<TResult>(
+  ctx: TrpcContext,
+  callback: (db: DBLike) => Promise<TResult>
+): Promise<TResult> {
+  try {
+    return await callback(getSharedDb(ctx.databaseConnectionString))
   } catch (error) {
     throw toTrpcError(error)
   }

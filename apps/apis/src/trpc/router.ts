@@ -1,6 +1,11 @@
-import { initTRPC } from '@trpc/server'
+import { initTRPC, TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
+  USERNAME_NOT_ALLOWED_MESSAGE,
+  validateUsername
+} from '@artificer-toolkit/shared/account/username'
+import {
+  createAccountProfileRepository,
   createAuthoredRouteIdRepository,
   createSystemRepository,
   getSystemListQuery
@@ -122,10 +127,16 @@ import {
 } from '@artificer-toolkit/schema/api/routeIds'
 import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import {
+  accountProfileDtoSchema,
+  accountProfileUpdateInputSchema,
+  accountUsernameStatusDtoSchema,
+  accountUsernameStatusInputSchema
+} from '@artificer-toolkit/schema/api/account'
+import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
 } from '@artificer-toolkit/schema/api/systems'
-import { requireUserId, withAuthenticatedDb, type TrpcContext } from './dbContext.js'
+import { requireUserId, withAuthenticatedDb, withDb, type TrpcContext } from './dbContext.js'
 import { getApplicationFeatureFlags } from '../applicationConfig.js'
 
 interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
@@ -332,6 +343,56 @@ export const appRouter = createTRPCRouter({
     featureFlags: t.procedure
       .output(applicationFeatureFlagsDtoSchema)
       .query(() => getApplicationFeatureFlags())
+  }),
+
+  account: createTRPCRouter({
+    usernameStatus: t.procedure
+      .input(accountUsernameStatusInputSchema)
+      .output(accountUsernameStatusDtoSchema)
+      .query(({ ctx, input }) => {
+        const validation = validateUsername(input.username)
+        if (validation.message) {
+          return { status: 'not_allowed' as const }
+        }
+
+        return withDb(ctx, async (db) => ({
+          status: (await createAccountProfileRepository(db).isUsernameTaken(validation.username))
+            ? ('taken' as const)
+            : ('available' as const)
+        }))
+      }),
+
+    profile: authenticatedProcedure
+      .output(accountProfileDtoSchema.nullable())
+      .query(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          accountProfileDtoSchema
+            .nullable()
+            .parse(await createAccountProfileRepository(db).findForUser(userId))
+        )
+      ),
+
+    updateProfile: authenticatedProcedure
+      .input(accountProfileUpdateInputSchema)
+      .output(accountProfileDtoSchema)
+      .mutation(({ ctx, input }) => {
+        const validation = validateUsername(input.username)
+        if (validation.message) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: USERNAME_NOT_ALLOWED_MESSAGE
+          })
+        }
+
+        return withAuthenticatedDb(ctx, async (db, userId) =>
+          accountProfileDtoSchema.parse(
+            await createAccountProfileRepository(db).upsertForUser(userId, {
+              ...input,
+              username: validation.username
+            })
+          )
+        )
+      })
   }),
 
   routeIds: createTRPCRouter({

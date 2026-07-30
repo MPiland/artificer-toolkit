@@ -137,7 +137,9 @@ export const tableShell = style({
       minWidth: 0,
       minHeight: 0,
       overflow: 'hidden',
-      backgroundColor: 'transparent'
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      backgroundColor: foundationVars.color.surface.panel
     }
   }
 })
@@ -172,7 +174,7 @@ export const tableHead = style({
       position: 'sticky',
       top: 0,
       zIndex: 2,
-      backgroundColor: foundationVars.color.surface.panel
+      backgroundColor: foundationVars.color.surface.recessed
     }
   }
 })
@@ -182,7 +184,6 @@ export const tableHeaderCell = style({
     [app]: {
       height: '36px',
       padding: `0 ${foundationVars.space[2]}`,
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
       borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
       color: foundationVars.color.text.muted,
       fontFamily: foundationVars.font.mono,
@@ -199,7 +200,7 @@ export const tableHeaderCell = style({
 export const tableHeaderEdgeStart = style({
   '@layer': {
     [app]: {
-      borderLeft: `1px solid ${foundationVars.color.border.subtle}`
+      borderLeft: 0
     }
   }
 })
@@ -207,7 +208,7 @@ export const tableHeaderEdgeStart = style({
 export const tableHeaderEdgeEnd = style({
   '@layer': {
     [app]: {
-      borderRight: `1px solid ${foundationVars.color.border.subtle}`
+      borderRight: 0
     }
   }
 })
@@ -217,8 +218,8 @@ export const tableBodyCell = style({
     [app]: {
       height: '52px',
       padding: `0 ${foundationVars.space[2]}`,
-      borderTop: `1px solid ${foundationVars.color.border.strong}`,
-      borderBottom: `1px solid ${foundationVars.color.border.strong}`,
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      backgroundColor: foundationVars.color.surface.panel,
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       whiteSpace: 'nowrap',
@@ -237,7 +238,7 @@ export const tableBodyCell = style({
 export const tableBodyEdgeStart = style({
   '@layer': {
     [app]: {
-      borderLeft: `1px solid ${foundationVars.color.border.strong}`
+      borderLeft: 0
     }
   }
 })
@@ -245,7 +246,7 @@ export const tableBodyEdgeStart = style({
 export const tableBodyEdgeEnd = style({
   '@layer': {
     [app]: {
-      borderRight: `1px solid ${foundationVars.color.border.strong}`
+      borderRight: 0
     }
   }
 })
@@ -650,7 +651,7 @@ export const card = style({
       gap: foundationVars.space[4],
       minHeight: '176px',
       padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.strong}`,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.lg,
       backgroundColor: foundationVars.color.surface.panel,
       cursor: 'pointer',

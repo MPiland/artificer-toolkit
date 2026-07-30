@@ -15,6 +15,10 @@ export function createMockAuthClient(options: MockAuthClientOptions = {}): AuthC
   const result = options.result ?? { ok: true }
 
   return {
+    completeInvitation: fn(async () => {
+      await wait(options.delayMs)
+      return result
+    }),
     signIn: fn(async () => {
       await wait(options.delayMs)
       return result

@@ -14,9 +14,11 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems/index'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
+import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
 import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
@@ -34,6 +36,9 @@ import { Route as AuthedVehiclesVehiclePublicIdRouteImport } from './routes/_aut
 import { Route as AuthedSystemsSystemIdRouteImport } from './routes/_authed/systems/$systemId'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellPublicIdRouteImport } from './routes/_authed/spells/$spellPublicId'
+import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
+import { Route as AuthedSettingsPreferencesRouteImport } from './routes/_authed/settings/preferences'
+import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings/account'
 import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
 import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
@@ -103,6 +108,11 @@ const GuestAuthRoute = GuestAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedVehiclesIndexRoute = AuthedVehiclesIndexRouteImport.update({
   id: '/vehicles/',
   path: '/vehicles/',
@@ -117,6 +127,11 @@ const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
   id: '/spells/',
   path: '/spells/',
   getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedSettingsRoute,
 } as any)
 const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
   id: '/races/',
@@ -205,6 +220,22 @@ const AuthedSpellsSpellPublicIdRoute =
     path: '/spells/$spellPublicId',
     getParentRoute: () => AuthedRoute,
   } as any)
+const AuthedSettingsProfileRoute = AuthedSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsPreferencesRoute =
+  AuthedSettingsPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => AuthedSettingsRoute,
+  } as any)
+const AuthedSettingsAccountRoute = AuthedSettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
 const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
   id: '/races/new',
   path: '/races/new',
@@ -477,6 +508,7 @@ const AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
+  '/settings': typeof AuthedSettingsRouteWithChildren
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/characters/$characterPublicId': typeof AuthedCharactersCharacterPublicIdRouteWithChildren
@@ -491,6 +523,9 @@ export interface FileRoutesByFullPath {
   '/feats/new': typeof AuthedFeatsNewRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
+  '/settings/account': typeof AuthedSettingsAccountRoute
+  '/settings/preferences': typeof AuthedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthedSettingsProfileRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -508,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/feats/': typeof AuthedFeatsIndexRoute
   '/home/': typeof AuthedHomeIndexRoute
   '/races/': typeof AuthedRacesIndexRoute
+  '/settings/': typeof AuthedSettingsIndexRoute
   '/spells/': typeof AuthedSpellsIndexRoute
   '/systems/': typeof AuthedSystemsIndexRoute
   '/vehicles/': typeof AuthedVehiclesIndexRoute
@@ -561,6 +597,9 @@ export interface FileRoutesByTo {
   '/feats/new': typeof AuthedFeatsNewRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
+  '/settings/account': typeof AuthedSettingsAccountRoute
+  '/settings/preferences': typeof AuthedSettingsPreferencesRoute
+  '/settings/profile': typeof AuthedSettingsProfileRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -578,6 +617,7 @@ export interface FileRoutesByTo {
   '/feats': typeof AuthedFeatsIndexRoute
   '/home': typeof AuthedHomeIndexRoute
   '/races': typeof AuthedRacesIndexRoute
+  '/settings': typeof AuthedSettingsIndexRoute
   '/spells': typeof AuthedSpellsIndexRoute
   '/systems': typeof AuthedSystemsIndexRoute
   '/vehicles': typeof AuthedVehiclesIndexRoute
@@ -614,6 +654,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
   '/logout': typeof LogoutRoute
+  '/_authed/settings': typeof AuthedSettingsRouteWithChildren
   '/_guest/_auth': typeof GuestAuthRouteWithChildren
   '/_guest/': typeof GuestIndexRoute
   '/_authed/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
@@ -630,6 +671,9 @@ export interface FileRoutesById {
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
   '/_authed/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/_authed/races/new': typeof AuthedRacesNewRoute
+  '/_authed/settings/account': typeof AuthedSettingsAccountRoute
+  '/_authed/settings/preferences': typeof AuthedSettingsPreferencesRoute
+  '/_authed/settings/profile': typeof AuthedSettingsProfileRoute
   '/_authed/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
   '/_authed/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -647,6 +691,7 @@ export interface FileRoutesById {
   '/_authed/feats/': typeof AuthedFeatsIndexRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
   '/_authed/races/': typeof AuthedRacesIndexRoute
+  '/_authed/settings/': typeof AuthedSettingsIndexRoute
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_authed/systems/': typeof AuthedSystemsIndexRoute
   '/_authed/vehicles/': typeof AuthedVehiclesIndexRoute
@@ -688,6 +733,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/logout'
+    | '/settings'
     | '/backgrounds/$backgroundPublicId'
     | '/backgrounds/new'
     | '/characters/$characterPublicId'
@@ -702,6 +748,9 @@ export interface FileRouteTypes {
     | '/feats/new'
     | '/races/$racePublicId'
     | '/races/new'
+    | '/settings/account'
+    | '/settings/preferences'
+    | '/settings/profile'
     | '/spells/$spellPublicId'
     | '/spells/new'
     | '/systems/$systemId'
@@ -719,6 +768,7 @@ export interface FileRouteTypes {
     | '/feats/'
     | '/home/'
     | '/races/'
+    | '/settings/'
     | '/spells/'
     | '/systems/'
     | '/vehicles/'
@@ -772,6 +822,9 @@ export interface FileRouteTypes {
     | '/feats/new'
     | '/races/$racePublicId'
     | '/races/new'
+    | '/settings/account'
+    | '/settings/preferences'
+    | '/settings/profile'
     | '/spells/$spellPublicId'
     | '/spells/new'
     | '/systems/$systemId'
@@ -789,6 +842,7 @@ export interface FileRouteTypes {
     | '/feats'
     | '/home'
     | '/races'
+    | '/settings'
     | '/spells'
     | '/systems'
     | '/vehicles'
@@ -824,6 +878,7 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/_guest'
     | '/logout'
+    | '/_authed/settings'
     | '/_guest/_auth'
     | '/_guest/'
     | '/_authed/backgrounds/$backgroundPublicId'
@@ -840,6 +895,9 @@ export interface FileRouteTypes {
     | '/_authed/feats/new'
     | '/_authed/races/$racePublicId'
     | '/_authed/races/new'
+    | '/_authed/settings/account'
+    | '/_authed/settings/preferences'
+    | '/_authed/settings/profile'
     | '/_authed/spells/$spellPublicId'
     | '/_authed/spells/new'
     | '/_authed/systems/$systemId'
@@ -857,6 +915,7 @@ export interface FileRouteTypes {
     | '/_authed/feats/'
     | '/_authed/home/'
     | '/_authed/races/'
+    | '/_authed/settings/'
     | '/_authed/spells/'
     | '/_authed/systems/'
     | '/_authed/vehicles/'
@@ -937,6 +996,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestAuthRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/vehicles/': {
       id: '/_authed/vehicles/'
       path: '/vehicles'
@@ -957,6 +1023,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/'
       preLoaderRoute: typeof AuthedSpellsIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings/': {
+      id: '/_authed/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthedSettingsIndexRouteImport
+      parentRoute: typeof AuthedSettingsRoute
     }
     '/_authed/races/': {
       id: '/_authed/races/'
@@ -1076,6 +1149,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/$spellPublicId'
       preLoaderRoute: typeof AuthedSpellsSpellPublicIdRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings/profile': {
+      id: '/_authed/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthedSettingsProfileRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/preferences': {
+      id: '/_authed/settings/preferences'
+      path: '/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof AuthedSettingsPreferencesRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/account': {
+      id: '/_authed/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof AuthedSettingsAccountRouteImport
+      parentRoute: typeof AuthedSettingsRoute
     }
     '/_authed/races/new': {
       id: '/_authed/races/new'
@@ -1402,6 +1496,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthedSettingsRouteChildren {
+  AuthedSettingsAccountRoute: typeof AuthedSettingsAccountRoute
+  AuthedSettingsPreferencesRoute: typeof AuthedSettingsPreferencesRoute
+  AuthedSettingsProfileRoute: typeof AuthedSettingsProfileRoute
+  AuthedSettingsIndexRoute: typeof AuthedSettingsIndexRoute
+}
+
+const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
+  AuthedSettingsAccountRoute: AuthedSettingsAccountRoute,
+  AuthedSettingsPreferencesRoute: AuthedSettingsPreferencesRoute,
+  AuthedSettingsProfileRoute: AuthedSettingsProfileRoute,
+  AuthedSettingsIndexRoute: AuthedSettingsIndexRoute,
+}
+
+const AuthedSettingsRouteWithChildren = AuthedSettingsRoute._addFileChildren(
+  AuthedSettingsRouteChildren,
+)
+
 interface AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteChildren {
   AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute
   AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute
@@ -1660,6 +1772,7 @@ const AuthedVehiclesVehiclePublicIdRouteWithChildren =
   )
 
 interface AuthedRouteChildren {
+  AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedBackgroundsBackgroundPublicIdRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
   AuthedCharactersCharacterPublicIdRoute: typeof AuthedCharactersCharacterPublicIdRouteWithChildren
@@ -1693,6 +1806,7 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedBackgroundsBackgroundPublicIdRoute:
     AuthedBackgroundsBackgroundPublicIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,
@@ -1773,3 +1887,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

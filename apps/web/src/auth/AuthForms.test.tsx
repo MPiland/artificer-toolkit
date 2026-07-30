@@ -15,6 +15,7 @@ function renderAuthForm(ui: ReactElement) {
 
 function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
   return {
+    completeInvitation: async () => ({ ok: true }),
     signIn: async () => ({ ok: true }),
     signUp: async () => ({ ok: true }),
     requestPasswordReset: async () => ({ ok: true }),
@@ -23,6 +24,8 @@ function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
     ...overrides
   }
 }
+
+const getAvailableUsername = async () => ({ status: 'available' as const })
 
 describe('AuthForms', () => {
   it('marks sign-in credentials for safe browser autofill without GET fallback', () => {
@@ -72,28 +75,42 @@ describe('AuthForms', () => {
   })
 
   it('marks sign-up credentials for account creation autofill', () => {
-    renderAuthForm(<SignUpForm authClient={createAuthClient()} />)
+    renderAuthForm(
+      <SignUpForm authClient={createAuthClient()} getUsernameStatus={getAvailableUsername} />
+    )
 
-    const nameInput = screen.getByRole('textbox', { name: /name/i })
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
+    const usernameInput = screen.getByRole('textbox', { name: /^username/i })
     const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
 
-    expect(nameInput.closest('form')).toHaveAttribute('method', 'post')
-    expect(nameInput).toHaveAttribute('autocomplete', 'name')
+    expect(emailInput.closest('form')).toHaveAttribute('method', 'post')
+    expect(screen.queryByRole('textbox', { name: /^name/i })).not.toBeInTheDocument()
     expect(emailInput).toHaveAttribute('autocomplete', 'email')
+    expect(usernameInput).toHaveAttribute('autocomplete', 'nickname')
     expect(passwordInput).toHaveAttribute('autocomplete', 'new-password')
+    expect(passwordInput).toHaveAttribute('minlength', '8')
+    expect(
+      screen.getByText(
+        'Use at least 8 characters. A mix of letters and numbers is easier to keep secure.'
+      )
+    ).toBeInTheDocument()
   })
 
-  it('submits signup with the display name', async () => {
+  it('submits the required signup fields and shows neutral confirmation copy', async () => {
     const signUp = vi.fn(async () => ({ ok: true }))
 
-    renderAuthForm(<SignUpForm authClient={createAuthClient({ signUp })} />)
+    renderAuthForm(
+      <SignUpForm
+        authClient={createAuthClient({ signUp })}
+        getUsernameStatus={getAvailableUsername}
+      />
+    )
 
-    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), {
-      target: { value: 'Morgan' }
-    })
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'morgan@example.com' }
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
+      target: { value: 'Morgan' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
       target: { value: 'password123' }
@@ -102,10 +119,13 @@ describe('AuthForms', () => {
 
     await waitFor(() =>
       expect(signUp).toHaveBeenCalledWith({
-        name: 'Morgan',
         email: 'morgan@example.com',
-        password: 'password123'
+        password: 'password123',
+        username: 'Morgan'
       })
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'If an account can be created for that email, a confirmation email has been sent.'
     )
   })
 
@@ -126,13 +146,19 @@ describe('AuthForms', () => {
     const signUp = vi.fn(async () => ({ ok: true, session }))
     const onSuccess = vi.fn()
 
-    renderAuthForm(<SignUpForm authClient={createAuthClient({ signUp })} onSuccess={onSuccess} />)
+    renderAuthForm(
+      <SignUpForm
+        authClient={createAuthClient({ signUp })}
+        getUsernameStatus={getAvailableUsername}
+        onSuccess={onSuccess}
+      />
+    )
 
-    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), {
-      target: { value: 'Morgan' }
-    })
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'morgan@example.com' }
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
+      target: { value: 'morgan' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
       target: { value: 'password123' }
@@ -224,5 +250,67 @@ describe('AuthForms', () => {
       })
     )
     expect(onSuccess).toHaveBeenCalled()
+  })
+
+  it('collects a username only when completing an invitation', async () => {
+    const completeInvitation = vi.fn(async () => ({ ok: true }))
+    const onSuccess = vi.fn()
+
+    renderAuthForm(
+      <UpdatePasswordForm
+        authClient={createAuthClient({ completeInvitation })}
+        invitation
+        onSuccess={onSuccess}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
+      target: { value: 'Morgan_Emberfall' }
+    })
+    fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
+
+    await waitFor(() =>
+      expect(completeInvitation).toHaveBeenCalledWith({
+        password: 'new-password-123',
+        username: 'Morgan_Emberfall'
+      })
+    )
+    expect(onSuccess).toHaveBeenCalled()
+  })
+
+  it('keeps invitation fields open when profile creation loses a username race', async () => {
+    const completeInvitation = vi.fn(async () => ({
+      ok: false,
+      message: 'That username is already taken.'
+    }))
+    const onSuccess = vi.fn()
+
+    renderAuthForm(
+      <UpdatePasswordForm
+        authClient={createAuthClient({ completeInvitation })}
+        invitation
+        onSuccess={onSuccess}
+      />
+    )
+
+    const usernameInput = screen.getByRole('textbox', { name: /^username/i })
+    fireEvent.change(usernameInput, { target: { value: 'raced_name' } })
+    fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
+
+    expect(await screen.findByText('That username is already taken.')).toBeInTheDocument()
+    expect(usernameInput).toHaveValue('raced_name')
+    expect(onSuccess).not.toHaveBeenCalled()
   })
 })

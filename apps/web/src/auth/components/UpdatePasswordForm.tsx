@@ -1,9 +1,9 @@
 import { type SubmitEvent, useState } from 'react'
-import { Anchor, Button, PasswordInput } from '@mantine/core'
+import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
+import { usernameInputSchema } from '@artificer-toolkit/schema/api/auth'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
-  authFieldHint,
   authFooterRow,
   authForm,
   authFormMessage,
@@ -18,7 +18,13 @@ import { AuthDivider } from './AuthDivider'
 import { AuthFormProps } from './authForm.types'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 
-export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
+export function UpdatePasswordForm({
+  authClient = browserAuthClient,
+  invitation = false,
+  onSuccess
+}: AuthFormProps & { invitation?: boolean }) {
+  const [username, setUsername] = useState('')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -29,6 +35,15 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setFeedback(null)
+    setUsernameError(null)
+
+    const parsedUsername = invitation ? usernameInputSchema.safeParse(username) : null
+    if (parsedUsername && !parsedUsername.success) {
+      setUsernameError(
+        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+      )
+      return
+    }
 
     if (password.length < 8) {
       const message = 'Use at least 8 characters for your new password.'
@@ -45,16 +60,27 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
     setIsSubmitting(true)
 
     try {
-      const result = await authClient.updatePassword({ password })
+      const result =
+        invitation && parsedUsername?.success
+          ? await authClient.completeInvitation({
+              password,
+              username: parsedUsername.data
+            })
+          : await authClient.updatePassword({ password })
 
       if (!result.ok) {
-        const message =
-          result.message ?? 'Try the recovery link again or request a new reset email.'
-        setFeedback({ tone: 'error', message })
+        const message = result.message ?? 'Could not complete this account update.'
+        if (invitation && message.toLowerCase().includes('username')) {
+          setUsernameError(message)
+        } else {
+          setFeedback({ tone: 'error', message })
+        }
         return
       }
 
-      const message = 'Use your new password the next time you sign in.'
+      const message = invitation
+        ? 'Your account is ready.'
+        : 'Use your new password the next time you sign in.'
       setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
     } finally {
@@ -64,12 +90,34 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
 
   return (
     <form className={authForm} method='post' onSubmit={handleSubmit}>
+      {invitation && (
+        <TextInput
+          label='Username'
+          description='Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+          classNames={{
+            input: textInput
+          }}
+          autoComplete='nickname'
+          error={usernameError}
+          maxLength={30}
+          name='username'
+          placeholder='morgan_emberfall'
+          value={username}
+          onChange={(event) => {
+            setUsername(event.currentTarget.value)
+            setUsernameError(null)
+          }}
+          required
+        />
+      )}
       <PasswordInput
         label='New password'
+        description='Use at least 8 characters. Avoid a password you use at another table or tool.'
         classNames={{
           input: textInput
         }}
         autoComplete='new-password'
+        minLength={8}
         name='password'
         type='password'
         placeholder='********'
@@ -77,15 +125,13 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
         onChange={(event) => setPassword(event.currentTarget.value)}
         required
       />
-      <p className={authFieldHint}>
-        Use at least 8 characters. Avoid a password you use at another table or tool.
-      </p>
       <PasswordInput
         label='Confirm password'
         classNames={{
           input: textInput
         }}
         autoComplete='new-password'
+        minLength={8}
         name='confirmPassword'
         type='password'
         placeholder='********'
@@ -94,7 +140,13 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
         required
       />
       <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Updating password...' : 'Update password'}
+        {isSubmitting
+          ? invitation
+            ? 'Completing registration...'
+            : 'Updating password...'
+          : invitation
+            ? 'Complete registration'
+            : 'Update password'}
       </Button>
       {feedback && (
         <div

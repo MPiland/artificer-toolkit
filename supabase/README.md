@@ -30,12 +30,16 @@ Inspect the relevant migration and run the narrow DB/repository test first. For 
 The application flag is not the security boundary: a client can call the public Supabase Auth API directly when Supabase permits sign-ups. During closed alpha and beta, configure the hosted Supabase project as follows:
 
 1. In Authentication settings, disable **Allow new users to sign up**. Keep email/password sign-in and password recovery enabled for existing users, and keep anonymous sign-ins disabled.
-2. In Authentication URL Configuration, set the production Site URL and add `https://<your-domain>/auth/confirmed` and `https://<your-domain>/update-password` to Redirect URLs.
+2. In Authentication URL Configuration, set the production Site URL and add `https://<your-domain>/auth/confirmed`, `https://<your-domain>/update-password`, and `https://<your-domain>/settings/account` to Redirect URLs.
 3. The Send Email Hook builds invitation links from the signed application redirect as `<redirect-url>/auth/confirmed?token_hash=<token-hash>&type=invite`. The app verifies that token server-side, establishes the invitation session, and redirects the invitee to password setup. Supabase's configured email templates are bypassed while the hook is enabled.
 4. Configure the branded Send Email Hook before inviting external testers. The default Supabase mail service is restricted and is not suitable for alpha delivery; this project deliberately uses the Resend API hook instead of SMTP.
 5. Invite testers from Authentication → Users → Add user → Send invitation. The application does not provide an admin invitation interface.
 
-The invitation callback and `/update-password` remain enabled when public registration is disabled. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret key in web environment variables or client-side code.
+The invitation callback and `/update-password` remain enabled when public registration is disabled. Invitees choose their required username with their password; password recovery uses the same form without the username field. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret key in web environment variables or client-side code.
+
+Before applying the required-username settings migration, manually create any missing alpha profile rows and assign every existing auth user a valid unique username. The migration intentionally aborts if that preflight is incomplete. Apply it during a short no-invitation maintenance window, then deploy the matching app before sending another invitation.
+
+Username profanity and reserved-name checks run in the application server. Direct calls to Supabase's public signup endpoint can bypass that heuristic, so public launch must pair it with reporting/moderation or move the policy behind a database-controlled boundary.
 
 ## Branded authentication email delivery
 

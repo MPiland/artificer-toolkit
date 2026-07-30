@@ -1,7 +1,6 @@
 import { PageHeader } from '#app/shell'
 import {
   homeGrid,
-  homeMeta,
   homePanel,
   homePanelCopy,
   homePanelText,
@@ -12,18 +11,15 @@ import {
 const homePanels = [
   {
     title: 'Open a content list',
-    copy: 'Find spells, classes, races, backgrounds, feats, equipment, creatures, and vehicles from one consistent place.',
-    meta: 'Content'
+    copy: 'Find spells, classes, races, backgrounds, feats, equipment, creatures, and vehicles from one consistent place.'
   },
   {
     title: 'Keep drafts separate',
-    copy: 'Work on changes without losing the active version your table already trusts.',
-    meta: 'Drafts'
+    copy: 'Work on changes without losing the active version your table already trusts.'
   },
   {
     title: 'Start from the SRD',
-    copy: 'Use locked SRD records for reference, then duplicate one when you need your own version.',
-    meta: 'Reference'
+    copy: 'Use locked SRD records for reference, then duplicate one when you need your own version.'
   }
 ] as const
 
@@ -39,7 +35,6 @@ export function HomePage() {
         {homePanels.map((panel) => (
           <article className={homePanel} key={panel.title}>
             <div className={homePanelCopy}>
-              <span className={homeMeta}>{panel.meta}</span>
               <h2 className={homePanelTitle}>{panel.title}</h2>
               <p className={homePanelText}>{panel.copy}</p>
             </div>

@@ -1,8 +1,12 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { Shell } from './Shell'
 
 describe('Shell', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   it('wraps normal authed pages in the scrollable content area', () => {
     renderShell('/home')
 
@@ -36,6 +40,45 @@ describe('Shell', () => {
     )
 
     expect(screen.getByRole('link', { name: 'Create account' })).toHaveAttribute('href', '/sign-up')
+  })
+
+  it('links the signed-in account menu to settings', async () => {
+    renderShell('/home')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open account menu' }))
+
+    expect(await screen.findByRole('menuitem', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/settings'
+    )
+  })
+
+  it('offers system, light, and dark themes before settings', async () => {
+    renderShell('/home')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open account menu' }))
+
+    const themeSelector = await screen.findByRole('radiogroup', { name: 'Theme preference' })
+    const settingsLink = screen.getByText('Settings')
+
+    expect(themeSelector.querySelector('input[value="auto"]')).toBeChecked()
+    expect(screen.getByText('Light')).toBeInTheDocument()
+    expect(screen.getByText('Dark')).toBeInTheDocument()
+    expect(themeSelector.compareDocumentPosition(settingsLink) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy()
+
+    fireEvent.click(screen.getByText('Light'))
+
+    await waitFor(() => {
+      expect(document.documentElement).toHaveAttribute('data-mantine-color-scheme', 'light')
+      expect(window.localStorage.getItem('mantine-color-scheme-value')).toBe('light')
+    })
+
+    fireEvent.click(screen.getByText('System'))
+
+    await waitFor(() =>
+      expect(window.localStorage.getItem('mantine-color-scheme-value')).toBe('auto')
+    )
   })
 })
 

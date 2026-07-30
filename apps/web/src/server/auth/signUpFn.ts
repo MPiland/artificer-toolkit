@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequestUrl } from '@tanstack/react-start/server'
 import { getApplicationFeatureFlags } from '@artificer-toolkit/apis/application-config'
 import { authSignUpInputSchema } from '@artificer-toolkit/schema/api/auth'
+import { validateUsername } from '@artificer-toolkit/shared/account/username'
 import { getSupabaseServerClient } from '#supabase/server.server'
 import { getBlockedAuthRequest } from './requestSecurity'
 
@@ -21,13 +22,18 @@ export const signUpFn = createServerFn({ method: 'POST' })
       }
     }
 
+    const username = validateUsername(data.username)
+    if (username.message) {
+      return { ok: false, message: username.message, session: null }
+    }
+
     const supabase = getSupabaseServerClient()
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: {
-          display_name: data.name
+          username: username.username
         },
         emailRedirectTo: new URL('/auth/confirmed', getRequestUrl()).toString()
       }

@@ -2,7 +2,7 @@
  * USER MANAGEMENT
  *
  * Defines:
- *   - profiles              (public user profile, mirrors auth.users)
+ *   - profiles              (private account profile, mirrors auth.users)
  *   - handle_new_user()     (trigger: auto-create profile on signup)
  *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
@@ -28,30 +28,38 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     REFERENCES auth.users ON DELETE CASCADE NOT NULL,
 
   updated_at timestamptz,
-  username   text UNIQUE,
+  username   text NOT NULL,
   full_name  text,
+  bio        text,
   avatar_url text,
   website    text,
 
-  CONSTRAINT username_length CHECK (char_length(username) >= 3)
+  CONSTRAINT profiles_username_length CHECK (char_length(username) BETWEEN 3 AND 30),
+  CONSTRAINT profiles_username_format CHECK (username ~ '^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$'),
+  CONSTRAINT profiles_full_name_length CHECK (full_name IS NULL OR char_length(full_name) <= 100),
+  CONSTRAINT profiles_bio_length CHECK (bio IS NULL OR char_length(bio) <= 500)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_key ON public.profiles (lower(username));
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
-CREATE POLICY "Public profiles are viewable by everyone."
-  ON public.profiles FOR SELECT
-  USING (true);
+DROP POLICY IF EXISTS "Users can select own profile." ON public.profiles;
+CREATE POLICY "Users can select own profile."
+  ON public.profiles FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
 CREATE POLICY "Users can insert their own profile."
-  ON public.profiles FOR INSERT
+  ON public.profiles FOR INSERT TO authenticated
   WITH CHECK ((SELECT auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can update own profile." ON public.profiles;
 CREATE POLICY "Users can update own profile."
-  ON public.profiles FOR UPDATE
-  USING ((SELECT auth.uid()) = id);
+  ON public.profiles FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = id)
+  WITH CHECK ((SELECT auth.uid()) = id);
 
 
 /* ──────────────────────────────────────────────
@@ -67,9 +75,14 @@ SET search_path = pg_catalog, public
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
+  IF NEW.raw_user_meta_data ->> 'username' IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.profiles (id, username, full_name, avatar_url)
   VALUES (
     NEW.id,
+    trim(NEW.raw_user_meta_data ->> 'username'),
     NEW.raw_user_meta_data ->> 'full_name',
     NEW.raw_user_meta_data ->> 'avatar_url'
   );
