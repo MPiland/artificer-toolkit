@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { createElement, type ReactNode } from 'react'
 import type { z } from 'zod'
 import type { AuthoredDraftDto, EquipmentResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
@@ -105,6 +105,8 @@ import type {
 } from './authoredFormFactories.types'
 import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 import { authoredPreviewFactories } from '../previews/authoredPreviewFactories'
+import { EquipmentParentPreview } from '../previews/EquipmentParentPreview'
+import { renderEquipmentPreview } from '../previews/equipmentParentPreview.utils'
 
 export type AuthoredFormSystemCreateData = {
   system?: SystemResponseDto | null
@@ -133,7 +135,7 @@ type EquipmentFormEditData = AuthoredFormEditData<EquipmentAuthoredDto> & {
 }
 
 type EquipmentFormContext = {
-  parentEquipment: EquipmentAuthoredDto | null
+  parentEquipment?: EquipmentAuthoredDto
 }
 
 type AuthoredFormDomainDataByDomain = {
@@ -409,9 +411,9 @@ const equipmentSessionConfig = {
   actionFactory: authoredFormActionFactories.equipment,
   createEmptyValues: createEmptyEquipment,
   domain: 'equipment',
-  getCreateContext: () => ({ parentEquipment: null }),
+  getCreateContext: () => ({}),
   getCreateSystems: (data) => data.systems,
-  getEditContext: (data) => ({ parentEquipment: data.parentResponse?.item ?? null }),
+  getEditContext: (data) => ({ parentEquipment: data.parentResponse?.item ?? undefined }),
   normalizeForSubmit: (values) => normalizeEquipmentForSubmit(values),
   operations: {
     activate: api.content.equipment.activate,
@@ -424,24 +426,19 @@ const equipmentSessionConfig = {
   resolveCreateSystemId: (systems) => resolveCreateEquipmentSystemId(systems),
   renderPreview: (previewContext, context) => {
     const parentEquipment = context.parentEquipment
-    const inheritedEconomy =
-      parentEquipment &&
-      previewContext.values.category === 'VARIANT' &&
-      parentEquipment.category !== 'VARIANT' &&
-      previewContext.values.parentEquipmentId === parentEquipment.id
-        ? {
-            cost: parentEquipment.cost,
-            weight: parentEquipment.weight
-          }
+    const selectedParentId =
+      previewContext.values.category === 'VARIANT'
+        ? previewContext.values.parentEquipmentId
         : undefined
 
-    return authoredPreviewFactories.equipment({
-      ...previewContext,
-      values: {
-        ...previewContext.values,
-        ...inheritedEconomy
-      }
-    })
+    if (selectedParentId && selectedParentId !== parentEquipment?.id) {
+      return createElement(EquipmentParentPreview, {
+        context: previewContext,
+        parentEquipmentId: selectedParentId
+      })
+    }
+
+    return renderEquipmentPreview(previewContext, parentEquipment)
   },
   schema: equipmentAuthoringInputDtoSchema,
   subjectKindLabel: 'Equipment',

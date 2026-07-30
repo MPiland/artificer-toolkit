@@ -58,7 +58,7 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
 }
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
-  const { isWideDesktop, label, setPreviewContent, status } = useAuthoringLayout()
+  const { isWideDesktop, setPreviewContent, status } = useAuthoringLayout()
   const authoring = useAuthoringForm()
   const session = authoring.authoredSession
   const characterSession = authoring.characterSession
@@ -91,7 +91,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         {(nextValues) =>
           session.renderPreview?.({
             domain: session.domain,
-            label,
+            label: readPreviewLabel(nextValues, session.fallbackLabel),
             statusLabel: status.label,
             system: session.system,
             values: nextValues
@@ -99,7 +99,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         }
       </form.Subscribe>
     )
-  }, [form, label, session, status.label])
+  }, [form, session, status.label])
 
   useEffect(() => {
     setPreviewContent(previewContent)
@@ -337,4 +337,10 @@ function isAuthoredFormRouteMode(value: unknown): value is AuthoredFormRouteMode
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function readPreviewLabel(values: object, fallbackLabel: string): string {
+  if (!('label' in values) || typeof values.label !== 'string') return fallbackLabel
+
+  return values.label.trim() || fallbackLabel
 }

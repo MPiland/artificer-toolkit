@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   authoredRouteStoryEquipmentParentResponse,
   authoredRouteStoryResponses,
@@ -13,6 +15,7 @@ import { ownedFeatFixture } from '../../domains/feats/feat.fixtures'
 import { ownedBaseRaceFixture } from '../../domains/races/race.fixtures'
 import { spellFixture } from '../../domains/spells/spellAuthoring.fixtures'
 import { ownedVehicleResponseFixture } from '../../domains/vehicles/vehicle.fixtures'
+import { getEquipment } from '#app/data/equipment/queries'
 import { authoredFormFactories } from './authoredFormFactories'
 
 const {
@@ -163,6 +166,42 @@ describe('authoredFormFactories', () => {
       values: session.initialValues
     })
     const markup = renderToStaticMarkup(preview)
+
+    expect(markup).toContain('Weight')
+    expect(markup).toContain('2 lb.')
+    expect(markup).toContain('Value')
+    expect(markup).toContain('10 gp')
+  })
+
+  it('resolves a selected equipment parent in create previews', () => {
+    const parentResponse = authoredRouteStoryEquipmentParentResponse
+    if (!parentResponse.item) throw new Error('Expected the equipment parent fixture.')
+
+    const session = equipmentFormFactory.createSession?.({
+      data: {
+        system: authoredRouteStorySystem,
+        systems: [authoredRouteStorySystem]
+      },
+      mode: 'create'
+    })
+    if (!session) throw new Error('Expected an equipment create session.')
+
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(getEquipment(parentResponse.item.id).queryKey, parentResponse)
+    const preview = session.renderPreview?.({
+      domain: 'equipment',
+      label: 'New Variant',
+      statusLabel: 'Draft',
+      system: authoredRouteStorySystem,
+      values: {
+        ...session.initialValues,
+        category: 'VARIANT',
+        parentEquipmentId: parentResponse.item.id
+      }
+    })
+    const markup = renderToStaticMarkup(
+      createElement(QueryClientProvider, { client: queryClient }, preview)
+    )
 
     expect(markup).toContain('Weight')
     expect(markup).toContain('2 lb.')

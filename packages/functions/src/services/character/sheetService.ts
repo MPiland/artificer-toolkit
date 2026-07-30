@@ -2315,8 +2315,7 @@ export async function buildCharacterSheetResponse(params: {
         label: feature.label,
         ...(feature.description ? { description: feature.description } : {}),
         ...(feature.attributes ? { attributes: feature.attributes } : {}),
-        sourceLabel:
-          equipmentChargeSourceLabelsByItemId.get(use.itemInstanceId) ?? feature.label,
+        sourceLabel: equipmentChargeSourceLabelsByItemId.get(use.itemInstanceId) ?? feature.label,
         source: {
           kind: 'EQUIPMENT_INSTANCE' as const,
           equipmentId: use.equipmentId,
@@ -2358,9 +2357,7 @@ export async function buildCharacterSheetResponse(params: {
             ...(chargeUse ? [chargeUse.itemInstanceId] : []),
             mechanic.effectId
           ].join(':')
-          const itemState = chargeUse
-            ? inventoryStateById.get(chargeUse.itemInstanceId)
-            : undefined
+          const itemState = chargeUse ? inventoryStateById.get(chargeUse.itemInstanceId) : undefined
           const itemLabel = chargeUse
             ? (equipmentChargeSourceLabelsByItemId.get(chargeUse.itemInstanceId) ??
               itemState?.customName ??
@@ -3989,11 +3986,19 @@ export function applyCharacterSheetCommand(
 
     case 'USE_RESOURCE': {
       const resource = ensureResource(sheet, command.resourceGrantId)
+      const amount = command.amount ?? 1
+      if (amount > resource.remaining) {
+        throw new CharacterSheetCommandError(
+          `Resource "${resource.label}" only has ${resource.remaining} ${
+            resource.remaining === 1 ? 'use' : 'uses'
+          } remaining.`
+        )
+      }
       return updateResourceUsage(
         next,
         command.resourceGrantId,
         resource.max,
-        (used) => used + (command.amount ?? 1)
+        (used) => used + amount
       )
     }
 
@@ -4134,10 +4139,7 @@ export function applyCharacterSheetCommand(
           `"${equipment.label}" stacks may contain at most ${equipment.maxStack} items.`
         )
       }
-      if (
-        equipment.maxStack === 1 &&
-        command.quantity > MAX_NON_STACKABLE_COPIES_PER_COMMAND
-      ) {
+      if (equipment.maxStack === 1 && command.quantity > MAX_NON_STACKABLE_COPIES_PER_COMMAND) {
         throw new CharacterSheetCommandError(
           `Add at most ${MAX_NON_STACKABLE_COPIES_PER_COMMAND} non-stackable copies at a time.`
         )
@@ -4154,10 +4156,7 @@ export function applyCharacterSheetCommand(
           notes: command.notes
         })
       )
-      next.state.equipment.inventory = [
-        ...next.state.equipment.inventory,
-        ...addedItems
-      ]
+      next.state.equipment.inventory = [...next.state.equipment.inventory, ...addedItems]
       return clearEmptyStateArrays(next)
     }
 
@@ -5401,7 +5400,7 @@ export async function executeCharacterSheetCommand(params: {
       const resource = ensureResource(currentSheet, command.resourceGrantId)
       resourceUsageUpdate = {
         resource,
-        used: Math.min(resource.used + (command.amount ?? 1), resource.max)
+        used: resource.used + (command.amount ?? 1)
       }
       break
     }

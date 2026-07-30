@@ -1429,17 +1429,22 @@ describe('character sheet command application', () => {
     expect(resolution.registry.equipment).toEqual([])
   })
 
-  it('caps resource and spell slot usage at the sheet maximum', () => {
-    const resourceNext = applyCharacterSheetCommand(
-      createCharacter(),
-      {
-        type: 'USE_RESOURCE',
-        resourceGrantId: 'resource-1',
-        amount: 10,
-        expectedVersion: 1
-      },
-      createSheet()
-    )
+  it('rejects resource costs that exceed the remaining uses', () => {
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'USE_RESOURCE',
+          resourceGrantId: 'resource-1',
+          amount: 2,
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow('Resource "Second Wind" only has 1 use remaining.')
+  })
+
+  it('caps spell slot usage at the sheet maximum', () => {
     const slotNext = applyCharacterSheetCommand(
       createCharacter(),
       {
@@ -1450,7 +1455,6 @@ describe('character sheet command application', () => {
       createSheet()
     )
 
-    expect(resourceNext.state.resources).toEqual([{ resourceGrantId: 'resource-1', used: 2 }])
     expect(slotNext.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
   })
 

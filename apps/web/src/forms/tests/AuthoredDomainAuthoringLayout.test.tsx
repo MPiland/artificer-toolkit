@@ -56,6 +56,21 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByRole('link', { name: /^back$/i })).toHaveAttribute('href')
   })
 
+  it('updates the live preview title from the current form name', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+
+    render(<TestRouterProvider>{renderCreateLayout('equipment')}</TestRouterProvider>)
+
+    const preview = await screen.findByLabelText('Authoring preview')
+    expect(within(preview).getByText('Untitled Equipment')).toBeInTheDocument()
+
+    await user.type(await screen.findByRole('textbox', { name: /name/i }), 'Moon Blade')
+
+    expect(await within(preview).findByText('Moon Blade')).toBeInTheDocument()
+    expect(within(preview).queryByText('Untitled Equipment')).not.toBeInTheDocument()
+  })
+
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {
     useStaticNodeRuntimeResolver()
 
