@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { chargeDtoSchema } from '../shared/charge.js'
+import { chargeDtoSchema, chargeUseDtoSchema } from '../shared/charge.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { facetDtoSchema } from '../shared/facet.js'
@@ -242,6 +242,39 @@ describe('schema package parsing', () => {
     }
 
     expect(parsed.levels).toHaveLength(2)
+  })
+
+  it('parses item charges that recover at dawn', () => {
+    expect(
+      chargeDtoSchema.parse({
+        id: 'astral-tear-charges',
+        resetKind: 'DAWN',
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: 'NONE',
+        amount: 3
+      })
+    ).toMatchObject({
+      amount: 3,
+      resetKind: 'DAWN'
+    })
+  })
+
+  it('allows nested source charge consumption without allowing it as an owned pool', () => {
+    const sourceCharge = {
+      id: 'warping-strike-charges',
+      limitKind: 'SOURCE_CHARGES',
+      scalingKind: 'NONE',
+      cost: 1
+    } as const
+
+    expect(chargeUseDtoSchema.parse(sourceCharge)).toEqual(sourceCharge)
+    expect(chargeDtoSchema.safeParse(sourceCharge).success).toBe(false)
+    expect(
+      chargeUseDtoSchema.safeParse({
+        ...sourceCharge,
+        cost: 0
+      }).success
+    ).toBe(false)
   })
 
   it('parses effects with nested saving throw invocations and fixed paths', () => {
@@ -2454,6 +2487,7 @@ describe('schema package parsing', () => {
         {
           id: 'basics',
           label: 'Basics',
+          description: 'Define the core identity for this item.',
           order: 10,
           sections: [
             {
@@ -2530,6 +2564,7 @@ describe('schema package parsing', () => {
       { options: [{ value: 'longsword' }] },
       { presentation: 'focused' }
     ])
+    expect(response.steps[0]?.description).toBe('Define the core identity for this item.')
     expect(normalizeRequest.mapId).toBe('startingEquipmentItem')
   })
 })

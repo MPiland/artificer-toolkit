@@ -1,7 +1,8 @@
 import type {
   AuthoringSelectionDuplicatePolicy,
   ChargeAuthored,
-  ChargeBonusAuthored
+  ChargeBonusAuthored,
+  OwnedChargeAuthored
 } from '@artificer-toolkit/shared'
 import { ABILITY_CODE, AUTHORING_SELECTION_DUPLICATE_POLICY } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
@@ -19,8 +20,18 @@ type ChargeBonusRow = {
   sort_order: number
 }
 
-function requireChargeResetKind(chargeId: string, value: string): ChargeAuthored['resetKind'] {
-  if (value !== 'LONG_REST' && value !== 'SHORT_REST' && value !== 'MANUAL') {
+function requireChargeResetKind(
+  chargeId: string,
+  value: string | null
+): OwnedChargeAuthored['resetKind'] {
+  if (
+    value !== 'DAILY' &&
+    value !== 'DAWN' &&
+    value !== 'DUSK' &&
+    value !== 'LONG_REST' &&
+    value !== 'SHORT_REST' &&
+    value !== 'MANUAL'
+  ) {
     throw new Error(`Charge "${chargeId}" has invalid reset_kind "${value}".`)
   }
 
@@ -114,7 +125,7 @@ function hydrateChargeBonus(row: ChargeBonusRow): ChargeBonusAuthored {
 type ChargeRow = {
   id: string
   scaling_kind: string
-  reset_kind: string
+  reset_kind: string | null
 }
 
 type ChargeLimitRow = {
@@ -123,6 +134,7 @@ type ChargeLimitRow = {
   class_id: string | null
   ability_code: string | null
   amount: number | null
+  cost: number | null
   multiplier: number | null
   min: number | null
   max: number | null
@@ -158,10 +170,33 @@ function hydrateChargeFromRows(
   limit: ChargeLimitRow | undefined,
   scalingLevels: readonly ChargeScalingLevelRow[],
   bonuses: readonly ChargeBonusRow[]
-): ChargeAuthored {
+): ChargeAuthored<true> {
   const authoredBonuses = bonuses.map(hydrateChargeBonus)
-  const resetKind = requireChargeResetKind(charge.id, charge.reset_kind)
   const scalingKind = requireChargeScalingKind(charge.id, charge.scaling_kind)
+
+  if (limit?.limit_kind === 'SOURCE_CHARGES') {
+    if (scalingKind !== 'NONE') {
+      throw new Error(`Source charge "${id}" must use NONE scaling.`)
+    }
+    if (charge.reset_kind != null) {
+      throw new Error(`Source charge "${id}" cannot define reset_kind.`)
+    }
+    if (limit.cost == null || !Number.isInteger(limit.cost) || limit.cost <= 0) {
+      throw new Error(`Source charge "${id}" must define a positive integer cost.`)
+    }
+    if (authoredBonuses.length > 0 || scalingLevels.length > 0) {
+      throw new Error(`Source charge "${id}" cannot define bonuses or scaling levels.`)
+    }
+
+    return {
+      id: charge.id,
+      limitKind: 'SOURCE_CHARGES',
+      scalingKind: 'NONE',
+      cost: limit.cost
+    }
+  }
+
+  const resetKind = requireChargeResetKind(charge.id, charge.reset_kind)
 
   if (scalingKind === 'PER_LEVEL') {
     return {
@@ -272,7 +307,11 @@ function hydrateChargeFromRows(
   }
 }
 
-export async function hydrateChargeById(db: DBLike, id: string): Promise<ChargeAuthored | null> {
+export async function hydrateChargeById<AllowSourceCharges extends boolean = false>(
+  db: DBLike,
+  id: string,
+  allowSourceCharges?: AllowSourceCharges
+): Promise<ChargeAuthored<AllowSourceCharges> | null> {
   const charge = await db
     .selectFrom('charges')
     .select(['id', 'scaling_kind', 'reset_kind'])
@@ -290,6 +329,7 @@ export async function hydrateChargeById(db: DBLike, id: string): Promise<ChargeA
         'class_id',
         'ability_code',
         'amount',
+        'cost',
         'multiplier',
         'min',
         'max'
@@ -320,123 +360,36 @@ export async function hydrateChargeById(db: DBLike, id: string): Promise<ChargeA
       .execute() as Promise<ChargeBonusRow[]>
   ])
 
-  const authoredBonuses = bonuses.map(hydrateChargeBonus)
-  const resetKind = requireChargeResetKind(charge.id, charge.reset_kind)
-  const scalingKind = requireChargeScalingKind(charge.id, charge.scaling_kind)
+  const hydrated = hydrateChargeFromRows(
+    id,
+    charge,
+    limit,
+    scalingLevels,
+    bonuses
+  )
 
-  if (scalingKind === 'PER_LEVEL') {
-    return {
-      id: charge.id,
-      resetKind,
-      bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-      limitKind: 'FIXED_AMOUNT',
-      scalingKind: 'PER_LEVEL',
-      levels: scalingLevels.map((level) => ({
-        id: level.id,
-        level: level.level,
-        amount: level.amount
-      }))
-    }
+  if (hydrated.limitKind === 'SOURCE_CHARGES' && allowSourceCharges !== true) {
+    throw new Error(`Charge "${id}" cannot use SOURCE_CHARGES in this authored position.`)
   }
 
-  if (!limit) {
-    throw new Error(`Charge "${id}" is missing its limit row.`)
-  }
-
-  switch (limit.limit_kind) {
-    case 'FIXED_AMOUNT':
-      if (limit.amount == null) {
-        throw new Error(`Charge "${id}" fixed amount limit is missing amount.`)
-      }
-
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: 'NONE',
-        amount: limit.amount
-      }
-
-    case 'CHARACTER_LEVEL':
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'CHARACTER_LEVEL',
-        scalingKind: 'NONE',
-        multiplier: limit.multiplier ?? undefined,
-        min: limit.min ?? undefined,
-        max: limit.max ?? undefined
-      }
-
-    case 'ABILITY_MODIFIER':
-      if (!limit.ability_code) {
-        throw new Error(`Charge "${id}" ability-modifier limit is missing ability_code.`)
-      }
-
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'ABILITY_MODIFIER',
-        scalingKind: 'NONE',
-        ability: requireAbilityCode(`Charge "${id}"`, limit.ability_code),
-        multiplier: limit.multiplier ?? undefined,
-        min: limit.min ?? undefined,
-        max: limit.max ?? undefined
-      }
-
-    case 'CLASS_LEVEL':
-      if (!limit.class_id) {
-        throw new Error(`Charge "${id}" class-level limit is missing class_id.`)
-      }
-
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'CLASS_LEVEL',
-        scalingKind: 'NONE',
-        classId: limit.class_id,
-        multiplier: limit.multiplier ?? undefined,
-        min: limit.min ?? undefined,
-        max: limit.max ?? undefined
-      }
-
-    case 'PARENT_CLASS_LEVEL':
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'PARENT_CLASS_LEVEL',
-        scalingKind: 'NONE',
-        multiplier: limit.multiplier ?? undefined,
-        min: limit.min ?? undefined,
-        max: limit.max ?? undefined
-      }
-
-    case 'SPELL_CAST_LEVEL':
-      return {
-        id: charge.id,
-        resetKind,
-        bonuses: authoredBonuses.length > 0 ? authoredBonuses : undefined,
-        limitKind: 'SPELL_CAST_LEVEL',
-        scalingKind: 'NONE',
-        multiplier: limit.multiplier ?? undefined,
-        min: limit.min ?? undefined,
-        max: limit.max ?? undefined
-      }
-
-    default:
-      throw new Error(`Unsupported charge limit kind "${limit.limit_kind}".`)
-  }
+  return hydrated as ChargeAuthored<AllowSourceCharges>
 }
 
 export async function hydrateChargesByIds(
   db: DBLike,
-  ids: readonly string[]
-): Promise<Map<string, ChargeAuthored>> {
+  ids: readonly string[],
+  allowSourceCharges?: false
+): Promise<Map<string, ChargeAuthored>>
+export async function hydrateChargesByIds(
+  db: DBLike,
+  ids: readonly string[],
+  allowSourceCharges: true
+): Promise<Map<string, ChargeAuthored<true>>>
+export async function hydrateChargesByIds(
+  db: DBLike,
+  ids: readonly string[],
+  allowSourceCharges = false
+): Promise<Map<string, ChargeAuthored<true>>> {
   const distinctIds = uniqueIds(ids)
 
   if (distinctIds.length === 0) {
@@ -457,6 +410,7 @@ export async function hydrateChargesByIds(
         'class_id',
         'ability_code',
         'amount',
+        'cost',
         'multiplier',
         'min',
         'max'
@@ -490,23 +444,26 @@ export async function hydrateChargesByIds(
   const limitsByChargeId = new Map(limits.map((limit) => [limit.charge_id, limit]))
   const scalingLevelsByChargeId = groupByChargeId(scalingLevels)
   const bonusesByChargeId = groupByChargeId(bonuses)
-  const hydrated = new Map<string, ChargeAuthored>()
+  const hydrated = new Map<string, ChargeAuthored<true>>()
 
   for (const id of distinctIds) {
     const charge = chargesById.get(id)
 
     if (!charge) continue
 
-    hydrated.set(
+    const hydratedCharge = hydrateChargeFromRows(
       id,
-      hydrateChargeFromRows(
-        id,
-        charge,
-        limitsByChargeId.get(id),
-        scalingLevelsByChargeId.get(id) ?? [],
-        bonusesByChargeId.get(id) ?? []
-      )
+      charge,
+      limitsByChargeId.get(id),
+      scalingLevelsByChargeId.get(id) ?? [],
+      bonusesByChargeId.get(id) ?? []
     )
+
+    if (hydratedCharge.limitKind === 'SOURCE_CHARGES' && !allowSourceCharges) {
+      throw new Error(`Charge "${id}" cannot use SOURCE_CHARGES in this authored position.`)
+    }
+
+    hydrated.set(id, hydratedCharge)
   }
 
   return hydrated

@@ -117,6 +117,7 @@ function sectionToStep(section: NodeSectionSpec): NodeStepSpec {
   return {
     id: section.id,
     label: section.label,
+    description: section.description,
     order: section.order
   }
 }

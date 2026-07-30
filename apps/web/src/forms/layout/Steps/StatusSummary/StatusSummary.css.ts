@@ -18,7 +18,7 @@ export const summaryValue = style({
   '@layer': {
     [app]: {
       color: 'inherit',
-      fontSize: '11px',
+      fontSize: '10px',
       fontWeight: foundationVars.fontWeight.medium,
       lineHeight: '14px',
       whiteSpace: 'nowrap'

@@ -13,8 +13,8 @@ export const footer = style({
       flexShrink: 0,
       minBlockSize: 72,
       padding: 0,
-      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.recessed
+      borderBlockStart: `1px solid ${foundationVars.color.authoring.border}`,
+      backgroundColor: foundationVars.color.authoring.rail
     }
   }
 })
@@ -25,7 +25,7 @@ export const cancelRow = style({
       boxSizing: 'border-box',
       inlineSize: '100%',
       minInlineSize: 0,
-      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`
+      padding: `4px ${foundationVars.space[4]}`
     }
   }
 })
@@ -73,7 +73,7 @@ export const progressTrack = style({
       inlineSize: '100%',
       overflow: 'hidden',
       borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.surface.raised
+      backgroundColor: foundationVars.color.authoring.active
     }
   }
 })
@@ -85,7 +85,7 @@ export const progressFill = style({
       blockSize: '100%',
       inlineSize: 'var(--authoring-progress, 0%)',
       borderRadius: 'inherit',
-      backgroundColor: foundationVars.color.accent.tertiarySolid,
+      backgroundColor: foundationVars.color.accent.solid,
       transition: `inline-size ${foundationVars.motion.base} cubic-bezier(0.2, 0, 0, 1)`,
       '@media': {
         '(prefers-reduced-motion: reduce)': {

@@ -22,6 +22,7 @@ export type CharacterSheetPlayableAction = {
   target?: CharacterSheet['spells']['activeGroups'][number]['entries'][number]['target']
   description?: string
   resource?: {
+    cost: number
     id: string
     max: number
     remaining: number
@@ -149,7 +150,7 @@ function toPlayableSheetAction(
     mechanics: mechanic ? [mechanic] : undefined,
     playFacts: mechanic ? toPlayableActionFacts(mechanic) : undefined,
     description: action.description ? toPlainText(action.description) : undefined,
-    resource: toPlayableResource(resource),
+    resource: toPlayableResource(resource, action.resourceCost),
     rollable: action.rollable === true
   }
 }
@@ -199,10 +200,12 @@ function toResourceAction(resource: SheetResource): CharacterSheetPlayableAction
 }
 
 function toPlayableResource(
-  resource: SheetResource | undefined
+  resource: SheetResource | undefined,
+  cost = 1
 ): CharacterSheetPlayableAction['resource'] {
   return resource
     ? {
+        cost,
         id: resource.id,
         max: resource.max,
         remaining: resource.remaining,

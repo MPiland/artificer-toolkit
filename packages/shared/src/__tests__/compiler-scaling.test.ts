@@ -24,6 +24,7 @@ import {
 } from '#core'
 import {
   compileCharge,
+  compileChargeUse,
   compileDamageEffect,
   compileEffectResult,
   compileFeat,
@@ -89,6 +90,22 @@ describe('shared compiler scaling', () => {
           amount: 2
         }
       ]
+    })
+  })
+
+  it('preserves source charge consumption without compiling another resource pool', () => {
+    expect(
+      compileChargeUse({
+        id: 'warping-strike-charges',
+        limitKind: 'SOURCE_CHARGES',
+        scalingKind: SCALING.NONE,
+        cost: 1
+      })
+    ).toEqual({
+      id: 'warping-strike-charges',
+      limitKind: 'SOURCE_CHARGES',
+      scalingKind: SCALING.NONE,
+      cost: 1
     })
   })
   it('returns a compile result and preserves nested spell-grant scaling on features', () => {

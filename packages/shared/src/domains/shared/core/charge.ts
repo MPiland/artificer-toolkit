@@ -96,10 +96,12 @@ export const CHARGE_LIMIT_KIND = {
   CLASS_LEVEL: 'CLASS_LEVEL',
   PARENT_CLASS_LEVEL: 'PARENT_CLASS_LEVEL',
   SPELL_CAST_LEVEL: 'SPELL_CAST_LEVEL',
-  ABILITY_MODIFIER: 'ABILITY_MODIFIER'
+  ABILITY_MODIFIER: 'ABILITY_MODIFIER',
+  SOURCE_CHARGES: 'SOURCE_CHARGES'
 } as const
 
 export type ChargeLimitKind = keyof typeof CHARGE_LIMIT_KIND
+export type OwnedChargeLimitKind = Exclude<ChargeLimitKind, 'SOURCE_CHARGES'>
 
 export type ChargeLimitOption = CoreMeta<ChargeLimitKind>
 
@@ -145,10 +147,24 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption> =
     tooltip: 'Uses equal to an ability score modifier.',
     description:
       'The number of uses equals a chosen ability score modifier (e.g. Charisma modifier for Bardic Inspiration).'
+  },
+
+  [CHARGE_LIMIT_KIND.SOURCE_CHARGES]: {
+    code: CHARGE_LIMIT_KIND.SOURCE_CHARGES,
+    label: 'Source Charges',
+    tooltip: 'Consumes charges from the containing source.',
+    description:
+      'Uses the charge pool defined by the containing item, feature, or other authored source.'
   }
 } as const
 
-export const CHARGE_LIMIT_OPTIONS = valuesOf(CHARGE_LIMIT_REGISTRY) as readonly ChargeLimitOption[]
+export const SOURCE_CHARGE_LIMIT_OPTION =
+  CHARGE_LIMIT_REGISTRY[CHARGE_LIMIT_KIND.SOURCE_CHARGES]
+
+export const CHARGE_LIMIT_OPTIONS = valuesOf(CHARGE_LIMIT_REGISTRY).filter(
+  (option): option is ChargeLimitOption & { code: OwnedChargeLimitKind } =>
+    option.code !== CHARGE_LIMIT_KIND.SOURCE_CHARGES
+)
 
 export const CHARGE_BONUS_KIND = {
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',

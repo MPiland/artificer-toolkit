@@ -11,6 +11,7 @@ import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubject
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import type { EquipmentEditLoaderData } from '#app/routes/-routeLoaderData'
 import { AuthoringLayout } from '#forms'
+import { equipmentAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import {
   createAuthoredFormRouteContext,
   createAuthoredFormRouteLoaderData
@@ -44,9 +45,20 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       })
     }
 
+    const parsedDraft = equipmentAuthoringInputDtoSchema.safeParse(draft?.payload)
+    const currentEquipment = parsedDraft.success ? parsedDraft.data : response?.item
+    const parentResponse =
+      currentEquipment?.category === 'VARIANT'
+        ? await ensureOptionalActiveContent(
+            context.queryClient,
+            getEquipment(currentEquipment.parentEquipmentId, client)
+          )
+        : null
+
     return createAuthoredFormRouteLoaderData({
       breadcrumbLabel: routeSubject?.label,
       draft,
+      parentResponse,
       response,
       subjectId: equipmentId
     })

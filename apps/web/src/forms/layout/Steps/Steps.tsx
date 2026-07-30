@@ -1,23 +1,26 @@
 import { useAuthoringLayout } from '#app/forms/layout/AuthoringLayoutContext'
 import { useCallback, useMemo } from 'react'
 import { useAuthoringForm } from '../AuthoringFormContext'
-import { Rail, useBreakpoints } from '#ui'
+import { Rail } from '#ui'
 import { Header } from './Header/Header'
 import { Item } from './Item/Item'
 import { Content } from './Content/Content'
 import { Footer } from './Footer/Footer'
-import { Collapse, Drawer } from '@mantine/core'
+import { Drawer } from '@mantine/core'
 import * as styles from './Steps.css'
 import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.utils'
-import { clsx } from 'clsx'
 import { useLocation } from '@tanstack/react-router'
 
 export function Steps() {
-  const { stepsNavigationOpen, toggleStepsNavigation, activeSections, stepId, visibleSteps } =
-    useAuthoringLayout()
-  const { isMobile, isTabletPortrait } = useBreakpoints()
+  const {
+    isWideDesktop,
+    stepsNavigationOpen,
+    toggleStepsNavigation,
+    activeSections,
+    stepId,
+    visibleSteps
+  } = useAuthoringLayout()
   const currentHref = useLocation({ select: (location) => location.href })
-  const usesOverlayNavigation = isMobile || isTabletPortrait
 
   const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses, visitedStepIds } =
     useAuthoringForm()
@@ -25,20 +28,20 @@ export function Steps() {
   const handleStepSelect = useCallback(
     (stepId: string) => {
       goToStep(stepId)
-      if (usesOverlayNavigation) {
+      if (!isWideDesktop) {
         toggleStepsNavigation()
       }
     },
-    [goToStep, toggleStepsNavigation, usesOverlayNavigation]
+    [goToStep, isWideDesktop, toggleStepsNavigation]
   )
   const handleTargetSelect = useCallback(
     (targetId: string, hasChildren: boolean) => {
       goToNavigationTarget(targetId)
-      if (usesOverlayNavigation && !hasChildren) {
+      if (!isWideDesktop && !hasChildren) {
         toggleStepsNavigation()
       }
     },
-    [goToNavigationTarget, toggleStepsNavigation, usesOverlayNavigation]
+    [goToNavigationTarget, isWideDesktop, toggleStepsNavigation]
   )
 
   const railItems = useMemo(() => {
@@ -78,7 +81,7 @@ export function Steps() {
 
   const stepItems = railItems.map((item) => <Item key={item.id} item={item} />)
 
-  return usesOverlayNavigation ? (
+  return !isWideDesktop ? (
     <Drawer
       classNames={{
         body: styles.drawerBody,
@@ -104,23 +107,14 @@ export function Steps() {
       </Rail>
     </Drawer>
   ) : (
-    <Collapse
-      expanded={stepsNavigationOpen}
-      orientation='horizontal'
-      transitionDuration={180}
-      transitionTimingFunction='ease'
-      aria-label='Authoring steps'
+    <Rail
+      aria-label='Authoring steps navigation'
+      className={styles.shell}
+      id='authoring-steps-navigation'
     >
-      <Rail
-        aria-hidden={!stepsNavigationOpen}
-        className={clsx(styles.shell, { ['hidden']: !stepsNavigationOpen })}
-        aria-label={'Authoring steps navigation'}
-        id='authoring-steps-navigation'
-      >
-        <Header />
-        <Content>{stepItems}</Content>
-        <Footer />
-      </Rail>
-    </Collapse>
+      <Header />
+      <Content>{stepItems}</Content>
+      <Footer />
+    </Rail>
   )
 }

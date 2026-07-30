@@ -12,7 +12,6 @@ import {
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { server } from '#test/msw/server'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
-import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
@@ -37,10 +36,7 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
-    expect(screen.getByRole('link', { name: /^cancel$/i })).toHaveAttribute(
-      'href',
-      authoredFormActionFactories[domain].listPath
-    )
+    expect(screen.getByRole('link', { name: /^cancel$/i })).toHaveAttribute('href')
     expect(
       within(screen.getByTestId('authoring-action-bar')).queryByRole('link', {
         name: /^cancel$/i

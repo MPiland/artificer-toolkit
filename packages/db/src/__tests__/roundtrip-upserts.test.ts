@@ -575,6 +575,7 @@ describe('round-trip upsert correctness', () => {
         ability_code: null,
         class_id: null,
         amount: 5,
+        cost: null,
         multiplier: null,
         min: null,
         max: null

@@ -23,10 +23,12 @@ function formatNoteDate(value: string) {
 }
 
 export function CharacterSheetNotes({
+  hideTitle,
   pending,
   sheet,
   submitCommand
 }: {
+  hideTitle?: boolean
   pending: boolean
   sheet: CharacterSheet
   submitCommand: SubmitSheetCommand
@@ -94,6 +96,7 @@ export function CharacterSheetNotes({
   return (
     <CharacterSheetDetailPanel
       ariaId='character-sheet-notes'
+      hideTitle={hideTitle}
       title='Notes'
       headerActions={
         <div className={rowStyles.compactActions}>

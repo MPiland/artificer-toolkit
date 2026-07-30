@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { z } from 'zod'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import type { AuthoredDraftDto, EquipmentResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import {
@@ -128,6 +128,14 @@ export type AuthoredFormEditData<TAuthored extends object> = {
   system?: SystemResponseDto | null
 }
 
+type EquipmentFormEditData = AuthoredFormEditData<EquipmentAuthoredDto> & {
+  parentResponse?: EquipmentResponseDto | null
+}
+
+type EquipmentFormContext = {
+  parentEquipment: EquipmentAuthoredDto | null
+}
+
 type AuthoredFormDomainDataByDomain = {
   background: {
     create: AuthoredFormSystemCreateData
@@ -143,7 +151,7 @@ type AuthoredFormDomainDataByDomain = {
   }
   equipment: {
     create: AuthoredFormSystemCreateData
-    edit: AuthoredFormEditData<EquipmentAuthoredDto>
+    edit: EquipmentFormEditData
   }
   feat: {
     create: AuthoredFormSystemCreateData
@@ -401,7 +409,9 @@ const equipmentSessionConfig = {
   actionFactory: authoredFormActionFactories.equipment,
   createEmptyValues: createEmptyEquipment,
   domain: 'equipment',
+  getCreateContext: () => ({ parentEquipment: null }),
   getCreateSystems: (data) => data.systems,
+  getEditContext: (data) => ({ parentEquipment: data.parentResponse?.item ?? null }),
   normalizeForSubmit: (values) => normalizeEquipmentForSubmit(values),
   operations: {
     activate: api.content.equipment.activate,
@@ -412,6 +422,27 @@ const equipmentSessionConfig = {
   },
   queryKeys: queryKeys.content.equipment,
   resolveCreateSystemId: (systems) => resolveCreateEquipmentSystemId(systems),
+  renderPreview: (previewContext, context) => {
+    const parentEquipment = context.parentEquipment
+    const inheritedEconomy =
+      parentEquipment &&
+      previewContext.values.category === 'VARIANT' &&
+      parentEquipment.category !== 'VARIANT' &&
+      previewContext.values.parentEquipmentId === parentEquipment.id
+        ? {
+            cost: parentEquipment.cost,
+            weight: parentEquipment.weight
+          }
+        : undefined
+
+    return authoredPreviewFactories.equipment({
+      ...previewContext,
+      values: {
+        ...previewContext.values,
+        ...inheritedEconomy
+      }
+    })
+  },
   schema: equipmentAuthoringInputDtoSchema,
   subjectKindLabel: 'Equipment',
   toCreateData: toSystemCreateData,
@@ -422,7 +453,8 @@ const equipmentSessionConfig = {
   EquipmentAuthoringInputDto,
   EquipmentAuthoredDto,
   AuthoredFormSystemCreateData,
-  AuthoredFormEditData<EquipmentAuthoredDto>
+  EquipmentFormEditData,
+  EquipmentFormContext
 >
 
 const featSessionConfig = {
@@ -618,7 +650,10 @@ type AuthoredSessionConfig<
   normalizeForSubmit: (values: TValues, context: TContext) => TSubmit
   operations: AuthoredFormOperations<TSubmit>
   queryKeys: AuthoredFormQueryKeys
-  renderPreview?: (context: AuthoredFormPreviewContext<TValues>) => ReactNode
+  renderPreview?: (
+    context: AuthoredFormPreviewContext<TValues>,
+    sessionContext: TContext
+  ) => ReactNode
   resolveCreateSystemId: (systems: readonly { id: string }[], context: TContext) => string | null
   schema: z.ZodType<TSubmit>
   subjectKindLabel: string
@@ -800,7 +835,10 @@ function createAuthoredSessionBase<
   systemRequired: boolean
 }): AuthoredFormSession {
   const { actionFactory, domain, operations, queryKeys, subjectKindLabel } = config
-  const renderPreview = config.renderPreview ?? authoredPreviewFactories[domain]
+  const renderPreview:
+    | ((previewContext: AuthoredFormPreviewContext<TValues>, sessionContext: TContext) => ReactNode)
+    | undefined = config.renderPreview ?? authoredPreviewFactories[domain]
+  const sessionContext = context
 
   return {
     actionFactory,
@@ -830,7 +868,7 @@ function createAuthoredSessionBase<
     key,
     mapId: domain,
     mode,
-    normalizeForSubmit: (values) => config.normalizeForSubmit(values as TValues, context),
+    normalizeForSubmit: (values) => config.normalizeForSubmit(values as TValues, sessionContext),
     notFound,
     operations: {
       activate: (payload) => operations.activate(payload as TSubmit),
@@ -862,13 +900,16 @@ function createAuthoredSessionBase<
     provenanceKind,
     readOnly,
     renderPreview: renderPreview
-      ? (context) =>
-          renderPreview({
-            ...context,
-            domain,
-            system,
-            values: context.values as TValues
-          })
+      ? (previewContext) =>
+          renderPreview(
+            {
+              ...previewContext,
+              domain,
+              system,
+              values: previewContext.values as TValues
+            },
+            sessionContext
+          )
       : undefined,
     subjectId,
     subjectKindLabel,

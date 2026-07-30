@@ -108,11 +108,48 @@ export const EQUIPMENT_MODIFIER_NODE_MAP = MODIFIER_GRANT_NODE_MAP as NodeMap<
 >
 
 const EQUIPMENT_SECTIONS = {
-  basics: { id: 'basics', label: 'Basics', order: 10 },
-  properties: { id: 'properties', label: 'Properties', order: 20 },
-  economy: { id: 'economy', label: 'Cost and Weight', order: 30 },
-  mechanics: { id: 'mechanics', label: 'Mechanics', order: 40 },
-  contents: { id: 'contents', label: 'Contents', order: 50 }
+  basics: {
+    id: 'basics',
+    label: 'Basics',
+    description: "Define the item's identity and core details.",
+    order: 10
+  },
+  properties: {
+    id: 'properties',
+    label: 'Properties',
+    description: 'Choose the rules and traits that shape how this item behaves.',
+    order: 20
+  },
+  economy: {
+    id: 'economy',
+    label: 'Cost and Weight',
+    description: "Set the item's physical and market details.",
+    order: 30
+  },
+  effects: {
+    id: 'effects',
+    label: 'Effects',
+    description: 'Configure the outcomes produced by using this item.',
+    order: 40
+  },
+  grants: {
+    id: 'grants',
+    label: 'Grants',
+    description: 'Add modifiers and other benefits this item provides.',
+    order: 50
+  },
+  features: {
+    id: 'features',
+    label: 'Features',
+    description: 'Add and organize the abilities this item provides.',
+    order: 60
+  },
+  contents: {
+    id: 'contents',
+    label: 'Contents',
+    description: 'Define the items or resources contained within this item.',
+    order: 70
+  }
 } as const
 
 const equipment = buildNodeMap<EquipmentMapAuthored>()
@@ -192,7 +229,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         'effects',
         groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
           presentation: 'branch',
-          section: EQUIPMENT_SECTIONS.mechanics,
+          section: EQUIPMENT_SECTIONS.effects,
           order: 10
         })
       )
@@ -200,8 +237,8 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         'charges',
         groupObject(['charges'], 'Charges', () => EQUIPMENT_CHARGE_NODE_MAP, {
           presentation: 'inline',
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 20,
+          section: EQUIPMENT_SECTIONS.basics,
+          order: 40,
           showIf: logic.or([isVariant, local.field(['attributes']).contains(['LIMITED_USE'])]),
           hiddenBehavior: 'CLEAR'
         })
@@ -220,8 +257,8 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         'modifiers',
         groupArray(['modifiers'], 'Modifiers', () => EQUIPMENT_MODIFIER_NODE_MAP, {
           presentation: 'focused',
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 30
+          section: EQUIPMENT_SECTIONS.grants,
+          order: 10
         })
       )
       .set(
@@ -249,13 +286,13 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
       )
       .set(
         'maxBonus',
-        number(['maxBonus'], 'Max Bonus', { section: EQUIPMENT_SECTIONS.mechanics, order: 40 })
+        number(['maxBonus'], 'Max Bonus', { section: EQUIPMENT_SECTIONS.properties, order: 80 })
       )
       .set(
         'armorClass',
         number(['armorClass'], 'Armor Class', {
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 50,
+          section: EQUIPMENT_SECTIONS.properties,
+          order: 90,
           showIf: isBaseEquipment,
           hiddenBehavior: 'CLEAR'
         })
@@ -274,16 +311,16 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
         'features',
         groupArray(['features'], 'Features', () => EQUIPMENT_FEATURE_NODE_MAP, {
           presentation: 'branch',
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 60
+          section: EQUIPMENT_SECTIONS.features,
+          order: 10
         })
       )
       .set(
         'restrictions',
         groupObject(['restrictions'], 'Restrictions', () => EQUIPMENT_RESTRICTIONS_NODE_MAP, {
-          presentation: 'branch',
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 70,
+          presentation: 'inline',
+          section: EQUIPMENT_SECTIONS.basics,
+          order: 50,
           authoring: {
             actions: [
               {
@@ -298,8 +335,8 @@ export const EQUIPMENT_NODE_MAP = equipment.define(
       .set(
         'requiresAttunement',
         toggle(['requiresAttunement'], 'Requires Attunement', {
-          section: EQUIPMENT_SECTIONS.mechanics,
-          order: 80
+          section: EQUIPMENT_SECTIONS.basics,
+          order: 60
         })
       )
       .set('userId', text(['userId'], 'User ID'))

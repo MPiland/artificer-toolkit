@@ -209,6 +209,7 @@ const groupModel = {
     {
       id: 'features',
       label: 'Features',
+      description: 'Add and organize the abilities this item provides.',
       order: 1,
       sections: [
         {
@@ -235,6 +236,41 @@ const groupModel = {
       ]
     }
   ]
+} satisfies NodeRuntimeResolveResponseDto
+
+const sectionedGroupModel = {
+  ...groupModel,
+  steps: groupModel.steps.map((step) => ({
+    ...step,
+    label: 'Mechanics'
+  }))
+} satisfies NodeRuntimeResolveResponseDto
+
+const surfacedGroupModel = {
+  ...groupModel,
+  steps: groupModel.steps.map((step) => ({
+    ...step,
+    label: 'Mechanics',
+    sections: step.sections.map((section) => ({
+      ...section,
+      label: 'Abilities'
+    }))
+  }))
+} satisfies NodeRuntimeResolveResponseDto
+
+const branchGroupModel = {
+  ...groupModel,
+  steps: groupModel.steps.map((step) => ({
+    ...step,
+    sections: step.sections.map((section) => ({
+      ...section,
+      nodes: section.nodes.map((node) => ({
+        ...node,
+        presentation: 'branch' as const,
+        authoring: arrayAuthoring('Feature', 'branch')
+      }))
+    }))
+  }))
 } satisfies NodeRuntimeResolveResponseDto
 
 const summaryGroupModel = {
@@ -563,6 +599,9 @@ describe('authoring form platform', () => {
     expect(screen.queryByRole('textbox', { name: /^id$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('spinbutton', { name: /order/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Basics' }).parentElement
+    ).toHaveTextContent(/^Basics$/)
   })
 
   it('keeps Cancel out of the floating step-navigation action bar', () => {
@@ -645,10 +684,45 @@ describe('authoring form platform', () => {
     )
 
     expect(screen.queryByText('Overview')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /features/i })).toBeInTheDocument()
+    const editor = within(screen.getByTestId('authoring-form-content'))
+    expect(editor.getAllByText('Features')).toHaveLength(1)
+    expect(editor.getByRole('heading', { level: 2, name: /features/i })).toBeInTheDocument()
+    expect(
+      editor.getByText('Add and organize the abilities this item provides.')
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^add feature$/i })).toBeInTheDocument()
     expect(screen.getByText('No features added yet.')).toBeInTheDocument()
     expect(screen.queryByText('Feature 1')).not.toBeInTheDocument()
+  })
+
+  it('does not repeat a collection heading already owned by its section', () => {
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm model={sectionedGroupModel} />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getAllByRole('heading', { name: /features/i })).toHaveLength(1)
+    expect(screen.getByText('No features added yet.')).toBeInTheDocument()
+    expect(
+      screen
+        .getByTestId('authoring-form-content')
+        .querySelector('[data-section-surface="rows-only"]')
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the parent section surface when the collection owns a distinct heading', () => {
+    render(
+      <TestRouterProvider>
+        <TestAuthoringForm model={surfacedGroupModel} />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Abilities' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Features' })).toBeInTheDocument()
+    expect(
+      screen.getByTestId('authoring-form-content').querySelector('[data-section-surface="panel"]')
+    ).toBeInTheDocument()
   })
 
   it('adds a focused array item in the overlay editor', async () => {
@@ -921,6 +995,27 @@ describe('authoring navigation tree', () => {
     expect(JSON.stringify(navigation.navigationTree)).not.toContain('Feature 1')
   })
 
+  it('makes populated branch collections selectable without a synthetic Overview row', () => {
+    const values = { ...testDefaults, features: [{ label: 'Arcane Ward' }] }
+    const navigation = buildAuthoringNavigationTree({
+      mapId: branchGroupModel.mapId,
+      model: withStaticResolvedScopes(branchGroupModel, values),
+      values
+    })
+    const features = navigation.navigationTree[0]
+
+    expect(features).toEqual(
+      expect.objectContaining({
+        label: 'Features',
+        target: expect.objectContaining({
+          collectionFieldName: 'features',
+          kind: 'overview'
+        })
+      })
+    )
+    expect(features?.children?.map((child) => child.label)).not.toContain('Overview')
+  })
+
   it('adds focused array rows as drawer leaves when values exist', () => {
     const values = { ...testDefaults, features: [{ label: '' }] }
     const navigation = buildAuthoringNavigationTree({
@@ -1012,7 +1107,11 @@ describe('authoring navigation tree', () => {
         })
       ])
     )
-    expect(JSON.stringify(navigation.navigationTree)).toContain('Feature Configuration')
+    expect(navigation.navigationTree).toEqual([
+      expect.objectContaining({
+        label: 'Configuration'
+      })
+    ])
   })
 
   it('keeps absent complex and populated simple object groups in their owning leaf', () => {

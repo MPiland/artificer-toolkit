@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import {
+  authoredRouteStoryEquipmentParentResponse,
+  authoredRouteStoryResponses,
+  authoredRouteStorySystem
+} from '#domains/authoredRouteStory.fixtures'
 import { ownedBackgroundFixture } from '../../domains/backgrounds/background.fixtures'
 import { ownedClassResponseFixture } from '../../domains/classes/class.fixtures'
 import { ownedMonsterFixture } from '../../domains/creatures/creature.fixtures'
@@ -135,6 +141,33 @@ describe('authoredFormFactories', () => {
         })
       )
     }
+  })
+
+  it('inherits weight and value from the selected equipment parent in the live preview', () => {
+    const response = authoredRouteStoryResponses.equipment
+    const session = equipmentFormFactory.createSession?.({
+      data: {
+        draft: null,
+        parentResponse: authoredRouteStoryEquipmentParentResponse,
+        response,
+        subjectId: response.item.id,
+        system: authoredRouteStorySystem
+      },
+      mode: 'edit'
+    })
+    const preview = session?.renderPreview?.({
+      domain: 'equipment',
+      label: response.item.label,
+      statusLabel: 'Draft',
+      system: authoredRouteStorySystem,
+      values: session.initialValues
+    })
+    const markup = renderToStaticMarkup(preview)
+
+    expect(markup).toContain('Weight')
+    expect(markup).toContain('2 lb.')
+    expect(markup).toContain('Value')
+    expect(markup).toContain('10 gp')
   })
 })
 

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
 import { characterSheetSpellStatesFixture } from '../fixtures/characterSpell.fixtures'
+import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
 import { CharacterSheetView } from './CharacterSheetView'
 import {
   characterSheetStoryMeta,
@@ -84,6 +85,20 @@ export const SpellStates: Story = {
   args: {
     initialTab: 'spells',
     sheet: characterSheetSpellStatesFixture
+  }
+}
+
+export const AstralTearInventory: Story = {
+  args: {
+    initialTab: 'inventory',
+    sheet: astralTearCharacterSheetFixture
+  }
+}
+
+export const AstralTearFeatures: Story = {
+  args: {
+    initialTab: 'reference',
+    sheet: astralTearCharacterSheetFixture
   }
 }
 

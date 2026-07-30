@@ -242,7 +242,8 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
   ] = await Promise.all([
     hydrateChargesByIds(
       db,
-      rows.flatMap((row) => (row.charge_id ? [row.charge_id] : []))
+      rows.flatMap((row) => (row.charge_id ? [row.charge_id] : [])),
+      true
     ),
     hydrateByIds(
       rows.flatMap((row) => (row.restriction_id ? [row.restriction_id] : [])),

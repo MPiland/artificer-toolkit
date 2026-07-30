@@ -73,6 +73,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
                 variant='transparent'
               >
                 <ArrowLeft aria-hidden='true' className={styles.icon} />
+                <span className={styles.buttonLabel}>Back</span>
               </ActionIcon>
             ) : (
               <ActionIcon
@@ -83,6 +84,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
                 variant='transparent'
               >
                 <ArrowLeft aria-hidden='true' className={styles.icon} />
+                <span className={styles.buttonLabel}>Back</span>
               </ActionIcon>
             )}
           </Tooltip>
@@ -98,6 +100,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
                 onClick={handleNext}
                 variant='transparent'
               >
+                <span className={styles.buttonLabel}>Next</span>
                 <ArrowRight aria-hidden='true' className={styles.icon} />
               </ActionIcon>
             ) : (
@@ -108,6 +111,7 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
                 type='button'
                 variant='transparent'
               >
+                <span className={styles.buttonLabel}>Next</span>
                 <ArrowRight aria-hidden='true' className={styles.icon} />
               </ActionIcon>
             )}

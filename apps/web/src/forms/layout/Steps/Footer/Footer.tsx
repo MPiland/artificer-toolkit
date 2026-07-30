@@ -3,9 +3,9 @@ import { Button } from '@mantine/core'
 import { X } from 'lucide-react'
 import { useAuthoringForm } from '../../AuthoringFormContext'
 import { useAuthoringLayout } from '../../AuthoringLayoutContext'
-import { Rail, useBreakpoints } from '#ui'
+import { Rail } from '#ui'
 import { StatusSummary } from '../StatusSummary/StatusSummary'
-import { toAuthoringRailSummaries } from '../Steps.utils'
+import { toAuthoringNavigationRailItems, toAuthoringRailSummaries } from '../Steps.utils'
 import * as styles from './Footer.css'
 
 export function Footer() {
@@ -15,21 +15,29 @@ export function Footer() {
     cancelLabel,
     hasChanges,
     mode,
+    navigationTree,
     progressSummary,
     stagedEditorOpen,
     stepStatuses,
     visitedStepIds
   } = useAuthoringForm()
-  const { stepsNavigationOpen, toggleStepsNavigation, visibleSteps } = useAuthoringLayout()
-  const { isMobile, isTabletPortrait } = useBreakpoints()
-  const usesOverlayNavigation = isMobile || isTabletPortrait
-  const visibleStepCount = visibleSteps.length
+  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation, visibleSteps } =
+    useAuthoringLayout()
+  const navigationProgressItems = navigationTree?.length
+    ? toAuthoringNavigationRailItems({
+        mode,
+        navigationTree,
+        onTargetSelect: () => undefined,
+        visitedStepIds
+      })
+    : undefined
+  const visibleStepCount = navigationProgressItems?.length ?? visibleSteps.length
   const completedSteps =
-    visibleStepCount > 0
-      ? visibleSteps.filter(
-          (step) => stepStatuses?.[step.id] === 'complete' && visitedStepIds.has(step.id)
-        ).length
-      : (progressSummary?.completeCount ?? 0)
+    navigationProgressItems != null
+      ? navigationProgressItems.filter((item) => item.status === 'complete').length
+      : visibleStepCount > 0
+        ? visibleSteps.filter((step) => stepStatuses?.[step.id] === 'complete').length
+        : (progressSummary?.completeCount ?? 0)
   const summary = {
     completeCount: completedSteps,
     errorCount: progressSummary?.errorCount ?? 0,
@@ -64,7 +72,7 @@ export function Footer() {
     }
 
     event.preventDefault()
-    if (usesOverlayNavigation && stepsNavigationOpen) toggleStepsNavigation()
+    if (!isWideDesktop && stepsNavigationOpen) toggleStepsNavigation()
     void cancel()
   }
 

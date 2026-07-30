@@ -81,7 +81,8 @@ const engine: EngineCharacterOutput = {
   spellAccess: [],
   itemMechanics: [],
   companions: [],
-  activeItemContributions: []
+  activeItemContributions: [],
+  equipmentFeatureChargeUses: []
 }
 
 describe('projectCharacterSheetMechanics', () => {

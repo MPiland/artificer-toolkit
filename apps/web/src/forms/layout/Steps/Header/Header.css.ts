@@ -5,10 +5,10 @@ import { app } from '../../../../css/layers.css.ts'
 export const header = style({
   '@layer': {
     [app]: {
-      minBlockSize: 60,
-      paddingInline: foundationVars.space[4],
-      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.recessed
+      minBlockSize: 50,
+      paddingInline: foundationVars.space[5],
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      backgroundColor: foundationVars.color.authoring.band
     }
   }
 })
@@ -65,7 +65,7 @@ export const sectionTitle = style({
       color: foundationVars.color.text.primary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       fontWeight: foundationVars.fontWeight.bold,
-      letterSpacing: '0.02em',
+      letterSpacing: '0.06em',
       lineHeight: '24px',
       textTransform: 'uppercase',
       textOverflow: 'ellipsis',

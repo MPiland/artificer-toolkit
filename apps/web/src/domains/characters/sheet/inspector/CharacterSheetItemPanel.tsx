@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import type { CharacterSheetPanelDto } from '#app/lib/api'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
+import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeatureUseControl'
+import { CharacterSheetResourceStepper } from '../shared/CharacterSheetResourceStepper'
+import * as featureUseStyles from '../shared/featureUse.css'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { getSheetAdjustmentMetadata } from './inspector.model'
 import { CharacterSheetTextEditor } from './CharacterSheetTextEditor'
@@ -11,6 +14,15 @@ import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
 
 type ItemPanel = Extract<CharacterSheetPanelDto, { kind: 'ITEM' }>
+
+function formatRecoveryTrigger(
+  trigger: ItemPanel['resources'][number]['recoveries'][number]['trigger']
+): string {
+  return trigger
+    .replaceAll('_', ' ')
+    .toLocaleLowerCase()
+    .replace(/\b\w/gu, (letter) => letter.toLocaleUpperCase())
+}
 
 export function CharacterSheetItemPanelContent({
   expectedVersion,
@@ -70,48 +82,87 @@ export function CharacterSheetItemPanelContent({
           <h3 className={inspectorShellStyles.sectionTitle}>Limited uses</h3>
           <div className={inspectorEditorStyles.entries}>
             {panel.resources.map((resource) => (
-              <div className={inspectorEditorStyles.entry} key={resource.label}>
+              <div className={inspectorEditorStyles.entry} key={resource.id}>
                 <div>
                   <Text fw={700}>{resource.label}</Text>
-                  <Text className={inspectorShellStyles.muted}>
-                    {resource.remaining} / {resource.maximum} remaining
-                  </Text>
+                  {resource.recoveries.length ? (
+                    <Text className={inspectorShellStyles.muted}>
+                      Resets:{' '}
+                      {resource.recoveries
+                        .map(({ trigger }) => formatRecoveryTrigger(trigger))
+                        .join(', ')}
+                    </Text>
+                  ) : null}
                 </div>
-                <div className={inspectorEditorStyles.actions}>
-                  <Button
-                    disabled={
-                      pending || !canRecoverResource || resource.remaining >= resource.maximum
-                    }
-                    size='xs'
-                    variant='default'
-                    onClick={() =>
-                      void submitCommand({
-                        type: 'RECOVER_SHEET_RESOURCE',
-                        expectedVersion,
-                        owner: resource.target.owner,
-                        trigger: 'MANUAL'
-                      })
-                    }
-                  >
-                    Restore
-                  </Button>
-                  <Button
-                    disabled={pending || !canUseResource || resource.remaining <= 0}
-                    size='xs'
-                    variant='default'
-                    onClick={() =>
-                      void submitCommand({
-                        type: 'USE_SHEET_RESOURCE',
-                        expectedVersion,
-                        owner: resource.target.owner
-                      })
-                    }
-                  >
-                    Use
-                  </Button>
-                </div>
+                <CharacterSheetResourceStepper
+                  decreaseDisabled={pending || !canUseResource}
+                  decreaseLabel={`Use one ${resource.label}`}
+                  increaseDisabled={pending || !canRecoverResource}
+                  increaseLabel={`Restore one ${resource.label}`}
+                  label={resource.label}
+                  maximum={resource.maximum}
+                  remaining={resource.remaining}
+                  onDecrease={() =>
+                    void submitCommand({
+                      type: 'USE_RESOURCE',
+                      expectedVersion,
+                      resourceGrantId: resource.id
+                    })
+                  }
+                  onIncrease={() =>
+                    void submitCommand({
+                      type: 'RESTORE_RESOURCE',
+                      expectedVersion,
+                      resourceGrantId: resource.id
+                    })
+                  }
+                />
               </div>
             ))}
+          </div>
+        </section>
+      ) : null}
+
+      {panel.features.length ? (
+        <section className={inspectorShellStyles.section}>
+          <h3 className={inspectorShellStyles.sectionTitle}>Features</h3>
+          <div className={inspectorShellStyles.featureList}>
+            {panel.features.map((feature) => {
+              const resource = feature.resourceGrantId
+                ? panel.resources.find((candidate) => candidate.id === feature.resourceGrantId)
+                : undefined
+              const resourceCost = feature.resourceCost ?? 1
+
+              return (
+                <article className={inspectorShellStyles.featureEntry} key={feature.id}>
+                  <div className={featureUseStyles.heading}>
+                    <Text fw={700}>{feature.label}</Text>
+                    {resource ? (
+                      <CharacterSheetFeatureUseControl
+                        cost={resourceCost}
+                        disabled={pending || !canUseResource || resource.remaining < resourceCost}
+                        label={feature.label}
+                        maximum={resource.maximum}
+                        remaining={resource.remaining}
+                        onUse={() =>
+                          void submitCommand({
+                            type: 'USE_RESOURCE',
+                            expectedVersion,
+                            resourceGrantId: resource.id,
+                            ...(resourceCost > 1 ? { amount: resourceCost } : {})
+                          })
+                        }
+                      />
+                    ) : null}
+                  </div>
+                  {feature.description ? (
+                    <div className={inspectorShellStyles.featureDescription}>
+                      <AuthoredDetailProse html={feature.description} fallback='' />
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
           </div>
         </section>
       ) : null}

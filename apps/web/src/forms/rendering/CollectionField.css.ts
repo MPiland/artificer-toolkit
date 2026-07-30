@@ -4,6 +4,8 @@ import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
 import { fieldGrid, groupEditorContent, sectionStack } from './FormRenderer.css'
 
+const collectionRowSeparator = `color-mix(in srgb, ${foundationVars.color.authoring.border} 80%, transparent)`
+
 export const collectionContainerDefault = style({})
 
 export const collectionContainerCard = style({
@@ -11,7 +13,7 @@ export const collectionContainerCard = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      gap: foundationVars.space[3]
+      gap: foundationVars.space[2]
     }
   }
 })
@@ -74,7 +76,7 @@ export const collectionListCompactTable = style({
   '@layer': {
     [app]: {
       gap: 0,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.md,
       overflow: 'hidden'
     }
@@ -95,7 +97,7 @@ export const collectionItem = style({
       display: 'grid',
       gap: foundationVars.space['3'],
       paddingBlock: foundationVars.space['3'],
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      borderBottom: `1px solid ${foundationVars.color.authoring.border}`,
 
       ':last-child': {
         borderBottom: 0
@@ -110,7 +112,7 @@ export const collectionItemCompactTable = style({
       gap: 0,
       paddingBlock: foundationVars.space[2],
       paddingInline: foundationVars.space[3],
-      background: foundationVars.color.surface.panel
+      background: foundationVars.color.authoring.row
     }
   }
 })
@@ -121,12 +123,12 @@ export const collectionItemCard = style({
       position: 'relative',
       marginBlockEnd: 0,
       padding: `${foundationVars.space[8]} ${foundationVars.space[3]} ${foundationVars.space[3]}`,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.md,
-      background: foundationVars.color.surface.panel,
+      background: foundationVars.color.authoring.row,
 
       ':last-child': {
-        borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+        borderBottom: `1px solid ${foundationVars.color.authoring.border}`
       }
     }
   }
@@ -191,9 +193,9 @@ export const collectionItemBody = style({
     [app]: {
       marginTop: foundationVars.space['2'],
       padding: foundationVars.space['4'],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.md,
-      background: foundationVars.color.surface.raised
+      background: foundationVars.color.authoring.row
     }
   }
 })
@@ -359,14 +361,14 @@ export const collectionDivider = style({
         content: '',
         blockSize: 1,
         flex: 1,
-        background: foundationVars.color.border.subtle
+        background: foundationVars.color.authoring.border
       },
 
       '::after': {
         content: '',
         blockSize: 1,
         flex: 1,
-        background: foundationVars.color.border.subtle
+        background: foundationVars.color.authoring.border
       }
     }
   }
@@ -406,14 +408,14 @@ export const collectionHeadingHelpIcon = style({
 export const collectionCard = style({
   '@layer': {
     [app]: {
-      padding: foundationVars.space[3],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.surface.panel,
+      backgroundColor: foundationVars.color.authoring.row,
       transition: `border-color ${foundationVars.motion.fast} ease, background-color ${foundationVars.motion.fast} ease`,
 
       ':hover': {
-        borderColor: foundationVars.color.border.strong,
+        borderColor: foundationVars.color.authoring.border,
         backgroundColor: foundationVars.color.card.background.hover
       },
 
@@ -427,7 +429,7 @@ export const collectionCard = style({
       },
 
       ':last-child': {
-        borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+        borderBottom: `1px solid ${foundationVars.color.authoring.border}`
       }
     }
   }
@@ -464,9 +466,9 @@ export const collectionCardChip = style({
       alignItems: 'center',
       minBlockSize: 22,
       paddingInline: foundationVars.space[2],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.surface.canvas,
+      backgroundColor: foundationVars.color.authoring.canvas,
       color: foundationVars.color.text.secondary,
       fontSize: '11px',
       lineHeight: '16px'
@@ -490,19 +492,263 @@ export const collectionOverviewHeader = style({
     [app]: {
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: foundationVars.space[3]
     }
   }
 })
 
-export const collectionOverviewHeaderRule = style({
+export const collectionLedgerHeader = style({
   '@layer': {
     [app]: {
-      blockSize: 1,
-      flex: 1,
-      background: foundationVars.color.border.subtle
+      display: 'grid',
+      gridTemplateColumns: '28px minmax(0, 1fr) 112px',
+      alignItems: 'center',
+      gap: foundationVars.space[2],
+      minBlockSize: 32,
+      paddingInline: foundationVars.space[3],
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      color: foundationVars.color.text.muted,
+      '@media': {
+        '(max-width: 768px)': {
+          display: 'none'
+        }
+      }
     }
   }
+})
+
+export const collectionLedgerCells = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(12rem, 1.5fr) minmax(7rem, 0.75fr) minmax(10rem, 1fr)',
+      alignItems: 'center',
+      gap: foundationVars.space[3],
+      minInlineSize: 0,
+      inlineSize: '100%',
+      '@media': {
+        '(max-width: 768px)': {
+          gridTemplateColumns: 'minmax(0, 1fr)',
+          gap: foundationVars.space[1]
+        }
+      }
+    }
+  }
+})
+
+export const collectionLedgerColumnLabel = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      fontSize: '11px',
+      fontWeight: foundationVars.fontWeight.semibold,
+      letterSpacing: '0.02em',
+      lineHeight: '16px',
+      textOverflow: 'ellipsis',
+      textTransform: 'uppercase',
+      whiteSpace: 'nowrap'
+    }
+  }
+})
+
+export const collectionLedgerRow = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: '28px minmax(0, 1fr) auto',
+      alignItems: 'center',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
+export const collectionLedgerTrigger = style({
+  '@layer': {
+    [app]: {
+      minBlockSize: 48,
+      paddingBlock: foundationVars.space[2]
+    }
+  }
+})
+
+export const collectionLedgerPrimaryCell = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      color: foundationVars.color.text.primary,
+      fontSize: '14px',
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: '20px',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }
+})
+
+export const collectionLedgerCell = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      color: foundationVars.color.text.secondary,
+      fontSize: '13px',
+      lineHeight: '18px',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      '@media': {
+        '(max-width: 768px)': {
+          display: 'grid',
+          gridTemplateColumns: '5.5rem minmax(0, 1fr)',
+          gap: foundationVars.space[2],
+          whiteSpace: 'normal',
+          selectors: {
+            '&::before': {
+              content: 'attr(data-label)',
+              color: foundationVars.color.text.muted,
+              fontSize: '11px',
+              fontWeight: foundationVars.fontWeight.semibold,
+              textTransform: 'uppercase'
+            }
+          }
+        }
+      }
+    }
+  }
+})
+
+export const collectionEmptyLabel = style({
+  '@layer': {
+    [app]: {
+      padding: `${foundationVars.space[3]} ${foundationVars.space[3]}`
+    }
+  }
+})
+
+export const collectionAddRow = style({
+  '@layer': {
+    [app]: {
+      borderBlockStart: `1px solid ${collectionRowSeparator}`,
+      backgroundColor: foundationVars.color.authoring.row
+    }
+  }
+})
+
+export const collectionAddAction = style({
+  '@layer': {
+    [app]: {
+      inlineSize: '100%',
+      minBlockSize: 42,
+      justifyContent: 'flex-start',
+      paddingInline: foundationVars.space[3],
+      border: 0,
+      borderRadius: 0,
+      backgroundColor: foundationVars.color.authoring.row,
+      color: foundationVars.color.text.accent,
+      fontWeight: foundationVars.fontWeight.semibold,
+      ':hover': {
+        backgroundColor: foundationVars.color.authoring.active,
+        color: foundationVars.color.text.accent
+      }
+    }
+  }
+})
+
+globalStyle(`${collectionAddAction} .mantine-Button-inner`, {
+  justifyContent: 'flex-start'
+})
+
+export const collectionOverview = style({
+  '@layer': {
+    [app]: {
+      minInlineSize: 0,
+      marginInline: `calc(0px - ${foundationVars.space[3]})`,
+      borderRadius: 0
+    }
+  }
+})
+
+export const collectionOverviewSurface = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.authoring.border}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.authoring.panel
+    }
+  }
+})
+
+export const collectionOverviewRowsOnly = style({})
+
+globalStyle(`${collectionOverview} + ${collectionOverview}`, {
+  position: 'relative',
+  paddingBlockStart: foundationVars.space[3],
+  borderBlockStart: 0
+})
+
+globalStyle(`${collectionOverview} + ${collectionOverview}::before`, {
+  content: '',
+  position: 'absolute',
+  insetBlockStart: 0,
+  insetInline: foundationVars.space[3],
+  blockSize: 1,
+  backgroundColor: foundationVars.color.authoring.border
+})
+
+globalStyle(`${collectionOverview}:last-child`, {
+  marginBlockEnd: `calc(0px - ${foundationVars.space[3]})`
+})
+
+globalStyle(`${collectionOverview} ${collectionOverviewHeader}`, {
+  paddingInline: foundationVars.space[3]
+})
+
+globalStyle(`${collectionOverviewSurface} ${collectionOverviewHeader}`, {
+  paddingBlockStart: foundationVars.space[3]
+})
+
+globalStyle(`${collectionOverview} ${collectionList}`, {
+  gap: 0
+})
+
+globalStyle(`${collectionOverview} ${collectionCard}`, {
+  paddingBlock: 0,
+  borderInline: 0,
+  borderBlockColor: collectionRowSeparator,
+  borderRadius: 0
+})
+
+globalStyle(`${collectionOverview} ${collectionCard} + ${collectionCard}`, {
+  borderBlockStart: 0
+})
+
+globalStyle(`${collectionOverviewRowsOnly} ${collectionCard}`, {
+  borderInline: `1px solid ${collectionRowSeparator}`
+})
+
+globalStyle(`${collectionOverviewRowsOnly} ${collectionList} > :first-child ${collectionCard}`, {
+  borderTopLeftRadius: foundationVars.radius.md,
+  borderTopRightRadius: foundationVars.radius.md
+})
+
+globalStyle(
+  `${collectionOverviewRowsOnly} ${collectionList}:last-child > :last-child ${collectionCard}`,
+  {
+    borderBottomRightRadius: foundationVars.radius.md,
+    borderBottomLeftRadius: foundationVars.radius.md
+  }
+)
+
+globalStyle(`${collectionOverviewRowsOnly} ${collectionAddRow}`, {
+  borderInline: `1px solid ${collectionRowSeparator}`,
+  borderBlockEnd: `1px solid ${collectionRowSeparator}`,
+  borderBottomRightRadius: foundationVars.radius.md,
+  borderBottomLeftRadius: foundationVars.radius.md,
+  overflow: 'hidden'
+})
+
+globalStyle(`${collectionOverviewRowsOnly} ${collectionList} + ${collectionAddRow}`, {
+  borderBlockStart: 0
 })
 
 globalStyle(`${groupEditorContent} ${collectionItem}`, {
@@ -513,7 +759,7 @@ globalStyle(`${groupEditorContent} ${collectionItem}`, {
 
 globalStyle(`${groupEditorContent} ${collectionItemCard}`, {
   paddingBlockStart: `calc(44px + ${foundationVars.space[2]})`,
-  borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`
+  borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`
 })
 
 globalStyle(`${groupEditorContent} ${collectionItemBody}`, {

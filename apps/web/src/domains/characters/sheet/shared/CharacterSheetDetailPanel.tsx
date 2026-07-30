@@ -15,23 +15,27 @@ export function CharacterSheetDetailPanel({
   hideTitle,
   children
 }: CharacterSheetDetailPanelProps) {
+  const showHeader = !hideTitle || Boolean(description) || Boolean(headerActions)
+
   return (
     <section
       aria-label={hideTitle ? title : undefined}
       aria-labelledby={hideTitle ? undefined : ariaId}
       className={panelStyles.panel}
     >
-      <div className={panelStyles.panelHeader}>
-        <div>
-          {hideTitle ? null : (
-            <Title id={ariaId} className={panelStyles.panelTitle}>
-              {title}
-            </Title>
-          )}
-          {description ? <Text className={panelStyles.muted}>{description}</Text> : null}
+      {showHeader ? (
+        <div className={panelStyles.panelHeader}>
+          <div>
+            {hideTitle ? null : (
+              <Title id={ariaId} className={panelStyles.panelTitle}>
+                {title}
+              </Title>
+            )}
+            {description ? <Text className={panelStyles.muted}>{description}</Text> : null}
+          </div>
+          {headerActions ? <div>{headerActions}</div> : null}
         </div>
-        {headerActions ? <div>{headerActions}</div> : null}
-      </div>
+      ) : null}
       {children}
     </section>
   )

@@ -1,18 +1,14 @@
 import { Rail, useBreakpoints } from '#ui'
 import * as styles from './Previews.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
-import { CloseButton, Collapse, Drawer } from '@mantine/core'
+import { CloseButton, Drawer } from '@mantine/core'
+import { Info } from 'lucide-react'
 
 function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean }) {
-  const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { previewContent, status, togglePreview } = useAuthoringLayout()
 
   return (
-    <Rail
-      aria-hidden={!previewOpen}
-      id='authoring-preview'
-      aria-label='Authoring preview'
-      className={styles.shell}
-    >
+    <Rail id='authoring-preview' aria-label='Authoring preview' className={styles.shell}>
       <Rail.Header className={styles.header}>
         {showCloseButton ? (
           <CloseButton
@@ -21,21 +17,29 @@ function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean
             className={styles.closeButton}
           />
         ) : null}
-        Preview
+        Live output
       </Rail.Header>
-      <Rail.Content className={styles.content}>{previewContent}</Rail.Content>
+      <Rail.Content className={styles.content}>
+        <div className={styles.previewFrame}>{previewContent}</div>
+        <div className={styles.previewNotice}>
+          <Info aria-hidden='true' className={styles.previewNoticeIcon} size={18} />
+          <span className={styles.previewNoticeCopy}>
+            <span>{`This preview reflects your current ${status.label.toLowerCase()}.`}</span>
+            <span>Values and formatting may change.</span>
+          </span>
+        </div>
+      </Rail.Content>
     </Rail>
   )
 }
 
 export function Previews() {
-  const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
-  const { isMobile, isTabletPortrait } = useBreakpoints()
-  const usesOverlayPreview = isMobile || isTabletPortrait
+  const { isWideDesktop, previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { isMobile } = useBreakpoints()
 
   if (!previewContent) return null
 
-  return usesOverlayPreview ? (
+  return !isWideDesktop ? (
     <Drawer
       opened={previewOpen}
       onClose={togglePreview}
@@ -43,19 +47,14 @@ export function Previews() {
       size={isMobile ? 'min(80dvh, 42rem)' : '18rem'}
       withCloseButton={false}
       classNames={{
-        body: styles.drawerBody
+        body: styles.drawerBody,
+        header: styles.drawerAccessibleHeader
       }}
+      title='Authoring preview'
     >
       <PreviewContent showCloseButton />
     </Drawer>
   ) : (
-    <Collapse
-      expanded={previewOpen}
-      orientation='horizontal'
-      transitionDuration={180}
-      transitionTimingFunction='ease'
-    >
-      <PreviewContent />
-    </Collapse>
+    <PreviewContent />
   )
 }

@@ -107,7 +107,6 @@ export function CharacterSheetView({
     <Tabs
       className={isTabletLandscape ? coreStyles.desktopWorkspaceTabs : undefined}
       keepMounted={false}
-      styles={{ tab: { borderWidth: 0 } }}
       value={activeTabletPage}
       onChange={(value) => {
         if (isCharacterSheetMobilePageId(value)) {
@@ -222,7 +221,6 @@ export function CharacterSheetView({
               <Tabs
                 className={coreStyles.desktopWorkspaceTabs}
                 keepMounted={false}
-                styles={{ tab: { borderWidth: 0 } }}
                 value={activeTab === 'overview' ? 'actions' : activeTab}
                 onChange={(value) => {
                   if (isCharacterSheetTabId(value) && value !== 'overview') setActiveTab(value)

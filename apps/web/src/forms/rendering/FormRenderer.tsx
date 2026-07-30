@@ -75,6 +75,10 @@ type SharedRendererProps = {
 
 const EMPTY_VISIBLE_STEPS: VisibleAuthoringSteps = []
 
+function isSameAuthoringLabel(left: string, right: string) {
+  return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
+}
+
 export function FormRenderer<TValues extends object>({
   defaultValues
 }: FormRendererOptions<TValues>) {
@@ -525,7 +529,27 @@ export function FormRenderer<TValues extends object>({
             authoring.activeNavigationTarget.fieldPathPrefix === resolvedFieldPathPrefix
           ? authoring.activeNavigationTarget
           : undefined
-
+      const soleRenderedSection = renderedSections.length === 1 ? renderedSections[0] : undefined
+      const soleRenderableNodes = soleRenderedSection?.nodes.filter(isRenderableNode) ?? []
+      const soleRenderableNode =
+        soleRenderableNodes.length === 1 ? soleRenderableNodes[0] : undefined
+      const soleNavigableCollectionNode =
+        soleRenderableNode?.kind === 'GROUP' &&
+        soleRenderableNode.groupKind === 'ARRAY' &&
+        isNavigableAuthoringGroupNode(soleRenderableNode, rootValues, resolvedFieldPathPrefix)
+          ? soleRenderableNode
+          : undefined
+      const stepOwnsSoleSectionLabel =
+        soleRenderedSection !== undefined &&
+        isSameAuthoringLabel(soleRenderedSection.label, currentStep.label)
+      const usesRowsOnlySectionStack =
+        rendersNavigationTarget &&
+        soleRenderedSection !== undefined &&
+        soleNavigableCollectionNode !== undefined &&
+        ((!stepOwnsSoleSectionLabel &&
+          isSameAuthoringLabel(soleRenderedSection.label, soleNavigableCollectionNode.label)) ||
+          isSameAuthoringLabel(currentStep.label, soleNavigableCollectionNode.label))
+      const stepDescription = currentStep.description?.trim()
       return (
         <AuthoringRendererScopeProvider value={rendererScope}>
           <AuthoringRendererInteractionsProvider value={rendererInteractions}>
@@ -535,14 +559,25 @@ export function FormRenderer<TValues extends object>({
             />
             {rendersNavigationTarget ? (
               <div className={styles.canvasStepHeader}>
-                <span className={styles.canvasStepTitle}>{currentStep.label}</span>
-                <CircleHelp size={17} aria-label={`About ${currentStep.label}`} />
+                <h2 className={styles.canvasStepTitle}>{currentStep.label}</h2>
+                {stepDescription ? (
+                  <>
+                    <span className={styles.canvasStepDivider} aria-hidden='true' />
+                    <span className={styles.canvasStepDescription}>{stepDescription}</span>
+                  </>
+                ) : null}
               </div>
             ) : null}
-            <div className={styles.sectionStack}>
+            <div
+              className={`${styles.canvasSectionStack} ${
+                usesRowsOnlySectionStack ? styles.canvasSectionStackRowsOnly : ''
+              }`}
+              data-section-surface={usesRowsOnlySectionStack ? 'rows-only' : 'panel'}
+            >
               {renderedSections.map((section) => {
-                const sectionCount = renderedSections.length
-                const showSectionHeader = sectionCount > 1
+                const stepOwnsSectionLabel =
+                  rendersNavigationTarget && isSameAuthoringLabel(section.label, currentStep.label)
+                const showSectionHeader = !stepOwnsSectionLabel
 
                 return (
                   <section
@@ -553,12 +588,12 @@ export function FormRenderer<TValues extends object>({
                   >
                     {showSectionHeader ? (
                       <div className={styles.sectionHeading}>
-                        <h2
+                        <h3
                           className={styles.sectionHeadingTitle}
                           id={`authoring-section-${section.id}`}
                         >
                           {section.label}
-                        </h2>
+                        </h3>
                         <CircleHelp size={15} aria-label={`About ${section.label}`} />
                       </div>
                     ) : null}
@@ -610,6 +645,12 @@ export function FormRenderer<TValues extends object>({
                                     key={node.id}
                                     drawerTarget={drawerTarget}
                                     form={form}
+                                    hideHeading={
+                                      (showSectionHeader &&
+                                        isSameAuthoringLabel(section.label, node.label)) ||
+                                      (rendersNavigationTarget &&
+                                        isSameAuthoringLabel(currentStep.label, node.label))
+                                    }
                                     target={overviewTarget}
                                     validationTargets={validationTargets}
                                   />
@@ -620,7 +661,10 @@ export function FormRenderer<TValues extends object>({
                           }
 
                           const hideHeading =
-                            section.label.trim().toLowerCase() === node.label.trim().toLowerCase()
+                            (showSectionHeader &&
+                              isSameAuthoringLabel(section.label, node.label)) ||
+                            (rendersNavigationTarget &&
+                              isSameAuthoringLabel(currentStep.label, node.label))
                           return node.groupKind === 'ARRAY' ? (
                             <ResolvedArrayGroup
                               key={node.id}

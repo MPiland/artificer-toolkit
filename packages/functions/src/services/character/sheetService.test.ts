@@ -1154,6 +1154,174 @@ describe('character sheet command application', () => {
     )
   })
 
+  it('binds source-charged feature actions to each physical equipment copy', async () => {
+    const character = createCharacter()
+    character.state.equipment.inventory = [
+      {
+        id: 'astral-tear-one',
+        equipmentId: 'astral-tear',
+        quantity: 1,
+        customName: 'Vyrre’s Blade'
+      },
+      {
+        id: 'astral-tear-two',
+        equipmentId: 'astral-tear',
+        quantity: 1,
+        customName: 'Vyrre’s Blade'
+      }
+    ]
+    character.state.equipment.attuned = ['astral-tear-one', 'astral-tear-two']
+    const resolution = createResolution()
+    const equipment = createEquipment({
+      category: 'WEAPON',
+      id: 'astral-tear',
+      label: 'Astral Tear'
+    })
+    equipment.requiresAttunement = true
+    equipment.charges = {
+      id: 'astral-tear-charges',
+      resetKind: 'DAWN',
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      amount: 3
+    }
+    equipment.features = [
+      {
+        id: 'astral-tear-warping-strike',
+        label: 'Warping Strike',
+        description: 'Teleport before or after the attack.',
+        attributes: ['LIMITED_USE'],
+        charges: {
+          id: 'astral-tear-warping-strike-charges',
+          limitKind: 'SOURCE_CHARGES',
+          scalingKind: 'NONE',
+          cost: 2
+        },
+        section: 'ACTION',
+        order: 1
+      },
+      {
+        id: 'astral-tear-void-step',
+        label: 'Void Step',
+        description: 'Step through the void.',
+        attributes: ['LIMITED_USE'],
+        charges: {
+          id: 'astral-tear-void-step-charges',
+          limitKind: 'SOURCE_CHARGES',
+          scalingKind: 'NONE',
+          cost: 1
+        },
+        section: 'ACTION',
+        order: 2
+      }
+    ]
+    resolution.registry.equipment = [equipment]
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb([], {
+        features: [
+          {
+            ownerId: 'astral-tear-warping-strike',
+            label: 'Warping Strike',
+            description: 'Teleport before or after the attack.',
+            sectionCode: 'ACTION',
+            availableAtLevel: 1,
+            chargeId: 'astral-tear-warping-strike-charges',
+            effectId: 'warping-strike-effect',
+            ownerEffectOrder: 1,
+            effectOrder: 1
+          }
+        ],
+        effect_invocations: [
+          {
+            effectId: 'warping-strike-effect',
+            triggerCode: 'ACTIVATED',
+            activationType: 'ACTION',
+            activationValue: 1,
+            rangeCharacteristicId: null,
+            shapeCharacteristicId: null,
+            savingThrowId: null,
+            targetSelectionKind: null,
+            targetDispositionKind: null,
+            maxTargets: null,
+            maxTargetsScaling: null,
+            excludedCreatureTypeIds: null
+          }
+        ]
+      }),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    const actions = sheet.actions.items.filter(({ label }) => label === 'Warping Strike')
+    expect(actions).toEqual([
+      expect.objectContaining({
+        id: 'FEATURE:astral-tear-warping-strike:astral-tear-one:warping-strike-effect',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-one:astral-tear-charges',
+        resourceCost: 2,
+        sourceLabel: 'Vyrre’s Blade #1'
+      }),
+      expect.objectContaining({
+        id: 'FEATURE:astral-tear-warping-strike:astral-tear-two:warping-strike-effect',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-two:astral-tear-charges',
+        resourceCost: 2,
+        sourceLabel: 'Vyrre’s Blade #2'
+      })
+    ])
+    expect(
+      sheet.resources.items
+        .filter(({ owner }) => owner.kind === 'ITEM_INSTANCE')
+        .map(({ owner }) => (owner.kind === 'ITEM_INSTANCE' ? owner.itemInstanceId : ''))
+    ).toEqual(['astral-tear-one', 'astral-tear-two'])
+    expect(
+      sheet.reference.features
+        .filter((feature) => feature.source.kind === 'EQUIPMENT_INSTANCE')
+        .map((feature) => ({
+          id: feature.id,
+          resourceGrantId: feature.resourceGrantId,
+          source: feature.source
+        }))
+    ).toEqual([
+      {
+        id: 'astral-tear-warping-strike:astral-tear-one',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-one:astral-tear-charges',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'astral-tear',
+          itemInstanceId: 'astral-tear-one'
+        }
+      },
+      {
+        id: 'astral-tear-void-step:astral-tear-one',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-one:astral-tear-charges',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'astral-tear',
+          itemInstanceId: 'astral-tear-one'
+        }
+      },
+      {
+        id: 'astral-tear-warping-strike:astral-tear-two',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-two:astral-tear-charges',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'astral-tear',
+          itemInstanceId: 'astral-tear-two'
+        }
+      },
+      {
+        id: 'astral-tear-void-step:astral-tear-two',
+        resourceGrantId: 'ITEM_INSTANCE:astral-tear-two:astral-tear-charges',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'astral-tear',
+          itemInstanceId: 'astral-tear-two'
+        }
+      }
+    ])
+  })
+
   it('hydrates spell casting reference details into sheet spells', async () => {
     const resolution = createResolution()
     const spell = createSpell({
@@ -1584,6 +1752,74 @@ describe('character sheet command application', () => {
     ])
     expect(next.state.equipment.equipped).toEqual(['item-1'])
     expect(next.state.equipment.attuned).toEqual(['item-1'])
+  })
+
+  it('creates a separate owned instance for each non-stackable physical copy', () => {
+    const character = createCharacter()
+    const sheet = createSheet()
+    sheet.reference.equipmentOptions[0] = {
+      ...sheet.reference.equipmentOptions[0]!,
+      maxStack: 1
+    }
+
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'ADD_INVENTORY_ITEM',
+        equipmentId: 'equipment-1',
+        quantity: 2,
+        expectedVersion: 1
+      },
+      sheet
+    )
+
+    const addedItems = next.state.equipment.inventory.slice(-2)
+    expect(addedItems).toHaveLength(2)
+    expect(addedItems.map(({ quantity }) => quantity)).toEqual([1, 1])
+    expect([...new Set(addedItems.map(({ id }) => id))]).toHaveLength(2)
+  })
+
+  it('does not allow a non-stackable owned instance to represent multiple physical copies', () => {
+    const character = createCharacter()
+    const sheet = createSheet()
+    sheet.reference.equipmentOptions[0] = {
+      ...sheet.reference.equipmentOptions[0]!,
+      maxStack: 1
+    }
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'UPDATE_INVENTORY_ITEM',
+          itemId: 'item-1',
+          quantity: 2,
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(/at most 1 item/i)
+  })
+
+  it('bounds multi-copy expansion for non-stackable equipment', () => {
+    const sheet = createSheet()
+    sheet.reference.equipmentOptions[0] = {
+      ...sheet.reference.equipmentOptions[0]!,
+      maxStack: 1
+    }
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'ADD_INVENTORY_ITEM',
+          equipmentId: 'equipment-1',
+          quantity: 101,
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(/at most 100 non-stackable copies/i)
   })
 
   it('removes inventory rows and flags when removing a full stack', () => {

@@ -102,6 +102,7 @@ export const EQUIPMENT_PROPERTY_CODE = {
   WOOD: 'WOOD',
   METAL: 'METAL',
   MAGIC: 'MAGIC',
+  VEX: 'VEX',
   CLOTHING: 'CLOTHING'
 } as const
 
@@ -360,6 +361,13 @@ export const EQUIPMENT_PROPERTY_REGISTRY: Record<EquipmentPropertyCode, Equipmen
     description: 'May interact with anti-magic effects.'
   },
 
+  [EQUIPMENT_PROPERTY_CODE.VEX]: {
+    code: EQUIPMENT_PROPERTY_CODE.VEX,
+    label: 'Vex',
+    tooltip: 'Weapon mastery property.',
+    description: 'Marks a weapon that uses the Vex mastery property.'
+  },
+
   [EQUIPMENT_PROPERTY_CODE.CLOTHING]: {
     code: EQUIPMENT_PROPERTY_CODE.CLOTHING,
     label: 'Clothing',
@@ -390,6 +398,7 @@ export const PROPERTIES_BY_CATEGORY = {
     EQUIPMENT_PROPERTY_CODE.LOADING,
     EQUIPMENT_PROPERTY_CODE.SPECIAL,
     EQUIPMENT_PROPERTY_CODE.MAGIC,
+    EQUIPMENT_PROPERTY_CODE.VEX,
     EQUIPMENT_PROPERTY_CODE.WONDEROUS_ITEM
   ],
 

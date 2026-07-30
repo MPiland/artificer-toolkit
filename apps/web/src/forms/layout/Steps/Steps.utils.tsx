@@ -48,7 +48,6 @@ type RailSection = {
 }
 
 type RailStep = {
-  description?: string
   id: string
   label: string
 }
@@ -90,7 +89,6 @@ export function toAuthoringRailItems({
 
     return {
       children,
-      description: step.description,
       expanded: isActive,
       icon: iconForStep(step.label),
       id: step.id,

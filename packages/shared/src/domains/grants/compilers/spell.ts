@@ -7,8 +7,8 @@ import {
   GRANT_KIND,
   type NodeSubjectCode
 } from '#core'
-import { compileCharge, compileScalingSource } from '#compilers'
-import type { CompiledCharge, CompiledScalingGrant, CompiledGrantTarget } from '#compilers'
+import { compileChargeUse, compileScalingSource } from '#compilers'
+import type { CompiledChargeUse, CompiledScalingGrant, CompiledGrantTarget } from '#compilers'
 import { SCALING } from '#core'
 import type { SpellGrantAttribute } from '#core'
 
@@ -17,7 +17,7 @@ export type CompiledSpellGrant = CompiledScalingGrant<
   CompiledGrantTarget<{ spellIds: string[] }>
 > & {
   castAtLevel?: number
-  charges?: CompiledCharge
+  charges?: CompiledChargeUse
   attributes?: SpellGrantAttribute[]
   filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
   restrictions?: FacetAuthored
@@ -46,7 +46,7 @@ export function compileSpellGrantResult(
     id: authored.id,
     castAtLevel: authored.castAtLevel,
     charges:
-      'charges' in authored && authored.charges ? compileCharge(authored.charges) : undefined,
+      'charges' in authored && authored.charges ? compileChargeUse(authored.charges) : undefined,
     attributes: authored.attributes && authored.attributes.length ? authored.attributes : undefined,
     filters: authored.filters,
     restrictions: authored.restrictions,

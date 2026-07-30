@@ -27,10 +27,30 @@ const FEATURE_OPTION_CHOICE_NODE_MAP = optionChoice.define(
 const feature = buildNodeMap<FeatureAuthored>()
 
 const FEATURE_STEPS = {
-  basics: { id: 'basics', label: 'Basics', order: 10 },
-  mechanics: { id: 'mechanics', label: 'Mechanics', order: 20 },
-  grants: { id: 'grants', label: 'Grants', order: 30 },
-  options: { id: 'options', label: 'Options', order: 40 }
+  basics: {
+    id: 'basics',
+    label: 'Basics',
+    description: 'Define this feature and how often it can be used.',
+    order: 10
+  },
+  effects: {
+    id: 'effects',
+    label: 'Effects',
+    description: 'Configure the outcomes this feature produces.',
+    order: 20
+  },
+  grants: {
+    id: 'grants',
+    label: 'Grants',
+    description: 'Add the benefits this feature provides.',
+    order: 30
+  },
+  options: {
+    id: 'options',
+    label: 'Options',
+    description: 'Define selectable variants of this feature.',
+    order: 40
+  }
 } as const
 
 const FEATURE_BASICS_SECTIONS = {
@@ -39,13 +59,13 @@ const FEATURE_BASICS_SECTIONS = {
 
 const FEATURE_SECTIONS = {
   basics: FEATURE_BASICS_SECTIONS.basics,
-  effects: { id: 'effects', label: 'Effects', order: 10, step: FEATURE_STEPS.mechanics },
-  usage: { id: 'usage', label: 'Usage', order: 20, step: FEATURE_STEPS.mechanics },
+  effects: { id: 'effects', label: 'Effects', order: 10, step: FEATURE_STEPS.effects },
+  usage: { id: 'usage', label: 'Usage', order: 20, step: FEATURE_STEPS.basics },
   restrictions: {
     id: 'restrictions',
     label: 'Restrictions',
     order: 30,
-    step: FEATURE_STEPS.mechanics
+    step: FEATURE_STEPS.basics
   },
   grants: { id: 'grants', label: 'Grants', order: 10, step: FEATURE_STEPS.grants },
   options: { id: 'options', label: 'Options', order: 10, step: FEATURE_STEPS.options }
@@ -140,7 +160,7 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
     .set(
       'restrictions',
       groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
-        presentation: 'branch',
+        presentation: 'inline',
         section: FEATURE_SECTIONS.restrictions,
         order: 30,
         authoring: {

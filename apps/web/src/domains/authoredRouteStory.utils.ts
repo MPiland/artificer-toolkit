@@ -7,6 +7,7 @@ import {
   authoredRouteStorySystem,
   authoredRouteStorySystems,
   createEditLoaderData,
+  type AuthoredRouteStoryRecordMap,
   type AuthoredRouteStoryEditState
 } from './authoredRouteStory.fixtures'
 
@@ -45,13 +46,14 @@ export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: 
   }
 }
 
-export function createAuthoredEditRouteOverrides(
-  domain: AuthoredFormDomain,
+export function createAuthoredEditRouteOverrides<TDomain extends AuthoredFormDomain>(
+  domain: TDomain,
   routeId: string,
   publicPath: string,
-  state: AuthoredRouteStoryEditState = 'ownedActive'
+  state: AuthoredRouteStoryEditState = 'ownedActive',
+  recordOverride?: AuthoredRouteStoryRecordMap[TDomain]
 ) {
-  const loader = async () => createEditLoaderData(domain, state)
+  const loader = async () => createEditLoaderData(domain, state, recordOverride)
 
   return {
     [routeId]: { loader },

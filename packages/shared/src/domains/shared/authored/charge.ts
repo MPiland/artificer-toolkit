@@ -74,8 +74,19 @@ export type ChargeBonusAuthored =
       order: number
     }
 
-export type ChargeAuthored = {
+export type OwnedChargeAuthored = {
   id: string
   resetKind: ChargeResetKind
   bonuses?: ChargeBonusAuthored[]
 } & ChargeLimitPayload
+
+export type SourceChargeAuthored = {
+  id: string
+  limitKind: 'SOURCE_CHARGES'
+  scalingKind: typeof SCALING.NONE
+  cost: number
+}
+
+export type ChargeAuthored<AllowSourceCharges extends boolean = false> =
+  | OwnedChargeAuthored
+  | (AllowSourceCharges extends true ? SourceChargeAuthored : never)

@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   ABILITIES,
+  FEATURE_ATTRIBUTE,
   SIZE_OPTIONS,
   type CharacterCalculation,
   type CharacterMechanicSourceRef,
@@ -19,7 +20,10 @@ import type {
   CharacterMovementDisplayPreference,
   CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
-import { createCharacterSpellSourceKey } from '@artificer-toolkit/shared/character'
+import {
+  createCharacterResourceOwnerKey,
+  createCharacterSpellSourceKey
+} from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
@@ -806,6 +810,35 @@ function buildItemPanel(
   const mechanics = engine.itemMechanics.find(
     (candidate) => candidate.itemInstanceId === target.itemInstanceId
   )
+  const equipment = params.resolution.registry.equipment.find(
+    (candidate) => candidate.id === item.equipmentId
+  )
+  const features = (equipment?.features ?? []).flatMap((feature) => {
+    if (feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)) return []
+    const chargeUse = engine.equipmentFeatureChargeUses.find(
+      (use) =>
+        use.featureId === feature.id &&
+        use.equipmentId === item.equipmentId &&
+        use.itemInstanceId === item.id
+    )
+    return [
+      {
+        id: feature.id,
+        label: feature.label,
+        ...(feature.description ? { description: feature.description } : {}),
+        ...(chargeUse
+          ? {
+              resourceCost: chargeUse.cost,
+              resourceGrantId: createCharacterResourceOwnerKey({
+                kind: 'ITEM_INSTANCE',
+                chargeId: chargeUse.chargeId,
+                itemInstanceId: chargeUse.itemInstanceId
+              })
+            }
+          : {})
+      }
+    ]
+  })
   const numericEditors = [
     ['ATTACK_BONUS', 'Attack bonus', { integer: true }],
     ['ATTACK_OVERRIDE', 'Attack override', { integer: true }],
@@ -872,10 +905,12 @@ function buildItemPanel(
     resource.owner.kind === 'ITEM_INSTANCE' && resource.owner.itemInstanceId === item.id
       ? [
           {
+            id: resource.id,
             target: { kind: 'RESOURCE' as const, owner: resource.owner },
             label: resource.label,
             remaining: resource.remaining,
-            maximum: resource.max
+            maximum: resource.max,
+            recoveries: resource.recoveries
           }
         ]
       : []
@@ -909,6 +944,7 @@ function buildItemPanel(
     equipped: item.equipped,
     attuned: item.attuned,
     requiresAttunement: item.requiresAttunement,
+    features,
     numericEditors: numericEditors.map(([field, label, validation]) => {
       const adjustment = findItemAdjustment(params, item.id, field)
       return {

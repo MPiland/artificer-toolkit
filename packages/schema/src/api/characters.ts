@@ -218,6 +218,20 @@ export const characterBuilderGrantSummaryItemDtoSchema = z.object({
   source: characterProvenanceDtoSchema
 })
 
+export const characterSheetReferenceFeatureDtoSchema =
+  characterBuilderGrantSummaryItemDtoSchema.extend({
+    source: z.union([
+      characterProvenanceDtoSchema,
+      z.object({
+        kind: z.literal('EQUIPMENT_INSTANCE'),
+        equipmentId: z.string(),
+        itemInstanceId: z.string()
+      })
+    ]),
+    resourceCost: z.number().int().positive().optional(),
+    resourceGrantId: z.string().min(1).optional()
+  })
+
 export const characterBuilderGrantedContentDtoSchema = z.object({
   features: z.array(characterBuilderGrantSummaryItemDtoSchema),
   resources: z.array(characterBuilderGrantSummaryItemDtoSchema),
@@ -751,7 +765,8 @@ export const characterSheetActionDtoSchema = z.object({
   description: z.string().optional(),
   rollable: z.boolean().optional(),
   mechanic: characterSheetMechanicDtoSchema.optional(),
-  resourceGrantId: z.string().optional()
+  resourceGrantId: z.string().optional(),
+  resourceCost: z.number().int().positive().optional()
 })
 
 const characterSheetExtraKindOptionDtoSchema = z.object({
@@ -1049,7 +1064,7 @@ export const characterSheetCurrencyDtoSchema = z.object({
 })
 
 export const characterSheetReferenceDtoSchema = z.object({
-  features: z.array(characterBuilderGrantSummaryItemDtoSchema),
+  features: z.array(characterSheetReferenceFeatureDtoSchema),
   proficiencies: z.array(characterSheetProficiencyFactDtoSchema),
   defenses: z.array(
     characterSheetFactDtoSchema.extend({
@@ -1071,6 +1086,7 @@ export const characterSheetReferenceDtoSchema = z.object({
   equipmentOptions: z.array(
     characterSheetOptionDtoSchema.extend({
       isContainer: z.boolean(),
+      maxStack: z.number().int().positive().optional(),
       requiresAttunement: z.boolean()
     })
   ),

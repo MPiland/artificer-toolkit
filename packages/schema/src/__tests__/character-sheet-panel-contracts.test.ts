@@ -4,13 +4,33 @@ import {
   characterSheetPanelDtoSchema,
   characterSheetPanelTargetDtoSchema
 } from '../api/characterSheetPanel.js'
-import { characterSheetCommandInputDtoSchema } from '../api/characters.js'
+import {
+  characterSheetCommandInputDtoSchema,
+  characterSheetReferenceFeatureDtoSchema
+} from '../api/characters.js'
 
 const characterId = '00000000-0000-4000-8000-000000000001'
 const adjustmentId = '00000000-0000-4000-8000-000000000002'
 const deterministicSrdSpellId = '00000000-0000-0000-0020-00c600000000'
 
 describe('character sheet panel contracts', () => {
+  it('accepts an equipment-instance sheet reference feature', () => {
+    expect(
+      characterSheetReferenceFeatureDtoSchema.safeParse({
+        id: 'warping-strike:item-1',
+        label: 'Warping Strike',
+        sourceLabel: 'Astral Tear',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'equipment-1',
+          itemInstanceId: 'item-1'
+        },
+        resourceCost: 2,
+        resourceGrantId: 'ITEM_INSTANCE:item-1:charges-1'
+      }).success
+    ).toBe(true)
+  })
+
   it('accepts a backend-authored ability panel with calculation provenance', () => {
     const result = characterSheetPanelDtoSchema.safeParse({
       kind: 'ABILITY',

@@ -8,7 +8,7 @@ export const panel = style({
     [app]: {
       background: foundationVars.color.surface.panel,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xl,
+      borderRadius: foundationVars.radius.lg,
       display: 'grid',
       gap: '16px',
       padding: '18px',

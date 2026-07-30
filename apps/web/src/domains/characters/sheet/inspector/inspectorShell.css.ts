@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
@@ -156,6 +156,45 @@ export const sectionTitle = style({
       fontWeight: 760,
       lineHeight: 1.2,
       margin: 0
+    }
+  }
+})
+
+export const featureList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid'
+    }
+  }
+})
+
+export const featureEntry = style({
+  '@layer': {
+    [app]: {
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gap: '8px',
+      paddingBlock: '12px',
+      selectors: {
+        '&:first-child': {
+          paddingTop: 0
+        },
+        '&:last-child': {
+          borderBottom: 0,
+          paddingBottom: 0
+        }
+      }
+    }
+  }
+})
+
+export const featureDescription = style({})
+
+globalStyle(`${featureDescription} > *`, {
+  '@layer': {
+    [app]: {
+      fontSize: '0.875rem',
+      lineHeight: 1.55
     }
   }
 })

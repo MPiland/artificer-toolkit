@@ -57,7 +57,9 @@ export function HeaderIconAction({
 }
 
 export function StepsNavigationAction() {
-  const { stepsNavigationOpen, toggleStepsNavigation } = useAuthoringLayout()
+  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation } = useAuthoringLayout()
+  if (isWideDesktop) return null
+
   const label = stepsNavigationOpen ? 'Hide steps' : 'Show steps'
 
   return (
@@ -155,8 +157,8 @@ export function ActivateAction() {
 }
 
 export function PreviewToggleAction() {
-  const { previewContent, previewOpen, togglePreview } = useAuthoringLayout()
-  if (!previewContent) return null
+  const { isWideDesktop, previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  if (isWideDesktop || !previewContent) return null
 
   const label = previewOpen ? 'Hide preview' : 'Show preview'
 

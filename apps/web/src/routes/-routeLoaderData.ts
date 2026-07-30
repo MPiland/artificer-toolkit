@@ -131,7 +131,9 @@ export type CreatureEditLoaderData = AuthoredFormRouteLoaderData<
 >
 
 export type EquipmentEditLoaderData = AuthoredFormRouteLoaderData<
-  AuthoredEditData<EquipmentResponseDto>
+  AuthoredEditData<EquipmentResponseDto> & {
+    parentResponse?: EquipmentResponseDto | null
+  }
 >
 
 export type FeatEditLoaderData = AuthoredFormRouteLoaderData<AuthoredEditData<FeatResponseDto>>

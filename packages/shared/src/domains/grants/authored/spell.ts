@@ -15,7 +15,7 @@ export type SpellGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sc
     | {
         grantKind: typeof GRANT_KIND.SPELL_GRANT
         castAtLevel?: number
-        charges?: ChargeAuthored
+        charges?: ChargeAuthored<true>
         attributes?: SpellGrantAttribute[]
         filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
       }

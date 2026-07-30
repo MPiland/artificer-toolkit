@@ -97,5 +97,16 @@ export const chargeDtoSchema = z.union([
   })
 ])
 
+export const sourceChargeDtoSchema = z.object({
+  id: z.string(),
+  limitKind: z.literal(chargeLimitKindSchema.enum.SOURCE_CHARGES),
+  scalingKind: z.literal(scalingKindSchema.enum.NONE),
+  cost: z.number().int().positive()
+})
+
+export const chargeUseDtoSchema = z.union([chargeDtoSchema, sourceChargeDtoSchema])
+
 export type ChargeBonusDto = z.infer<typeof chargeBonusDtoSchema>
 export type ChargeDto = z.infer<typeof chargeDtoSchema>
+export type SourceChargeDto = z.infer<typeof sourceChargeDtoSchema>
+export type ChargeUseDto = z.infer<typeof chargeUseDtoSchema>

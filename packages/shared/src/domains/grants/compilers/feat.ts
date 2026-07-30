@@ -2,14 +2,14 @@ import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } 
 
 import type { GrantPayloadAuthored, FeatGrantAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND, SCALING } from '#core'
-import type { CompiledCharge, CompiledGrantTarget, CompiledScalingGrant } from '#compilers'
-import { compileCharge, compileScalingSource } from '#compilers'
+import type { CompiledChargeUse, CompiledGrantTarget, CompiledScalingGrant } from '#compilers'
+import { compileChargeUse, compileScalingSource } from '#compilers'
 
 export type CompiledFeatGrant = CompiledScalingGrant<
   typeof GRANT_KIND.FEAT_GRANT,
   CompiledGrantTarget<{ featIds: string[] }>
 > & {
-  charges?: CompiledCharge
+  charges?: CompiledChargeUse
 }
 
 // IMPORTANT: return `authored` for ALL so you don't drop extra fields (like `count`)
@@ -37,7 +37,7 @@ export function compileFeatGrantResult(
     order: authored.order
   }
 
-  const charges = authored.charges ? compileCharge(authored.charges) : undefined
+  const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { chargeDtoSchema } from '../shared/charge.js'
+import { chargeUseDtoSchema } from '../shared/charge.js'
 import { authoringModeKindSchema } from '../shared/enums.js'
 import {
   createGrantProgressionFieldsDtoSchema,
@@ -23,7 +23,7 @@ const featGrantProgressionFieldsDtoSchema =
 export const featGrantDtoSchema = scalingGrantBaseDtoSchema
   .extend({
     grantKind: z.literal('FEAT_GRANT'),
-    charges: chargeDtoSchema.optional()
+    charges: chargeUseDtoSchema.optional()
   })
   .and(featGrantTargetDtoSchema)
   .and(

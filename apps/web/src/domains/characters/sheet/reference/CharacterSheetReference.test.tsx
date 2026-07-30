@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { createSheet } from '../tests/sheetTestHarness'
@@ -35,7 +36,13 @@ describe('Character Sheet reference', () => {
     ]
     sheet.reference.senses = [{ senseId: 'darkvision', label: 'Darkvision', value: '60 feet' }]
 
-    renderWithAppProviders(<CharacterSheetReference sheet={sheet} />)
+    renderWithAppProviders(
+      <CharacterSheetReference
+        pending={false}
+        sheet={sheet}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+      />
+    )
 
     expect(screen.getByText(/action surge/i)).toBeInTheDocument()
     expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
@@ -43,5 +50,58 @@ describe('Character Sheet reference', () => {
     expect(screen.getByText(/equipment · proficient/i)).toBeInTheDocument()
     expect(screen.getByText(/darkvision/i)).toBeInTheDocument()
     expect(screen.getByText(/60 feet/i)).toBeInTheDocument()
+  })
+
+  it('spends the linked item resource from an equipment feature', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    sheet.reference.features = [
+      {
+        id: 'warping-strike:item-1',
+        label: 'Warping Strike',
+        sourceLabel: 'The Astral Tear Awakened',
+        source: {
+          kind: 'EQUIPMENT_INSTANCE',
+          equipmentId: 'equipment-1',
+          itemInstanceId: 'item-1'
+        },
+        resourceGrantId: 'item-resource-1',
+        resourceCost: 1
+      }
+    ]
+    sheet.resources.items = [
+      {
+        id: 'item-resource-1',
+        owner: {
+          kind: 'ITEM_INSTANCE',
+          chargeId: 'charges-1',
+          itemInstanceId: 'item-1'
+        },
+        label: 'The Astral Tear Awakened charges',
+        sourceLabel: 'The Astral Tear Awakened',
+        used: 1,
+        max: 3,
+        remaining: 2,
+        recoveries: [{ trigger: 'DAWN', amount: { kind: 'ALL' } }]
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetReference
+        mode='features'
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    expect(screen.getByText('1 charge · 2 / 3')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Use Warping Strike' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_RESOURCE',
+      expectedVersion: sheet.meta.streamVersion,
+      resourceGrantId: 'item-resource-1'
+    })
   })
 })

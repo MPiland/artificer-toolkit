@@ -22,6 +22,8 @@ import {
 import { createDefaultAuthoringArrayItem } from './authoringNodeDefaults'
 import {
   getCollectionPresentation,
+  getCollectionColumns,
+  getCollectionRowCells,
   getCollectionRowDescription,
   getCollectionRowIcon,
   getCollectionRowLabel,
@@ -50,6 +52,7 @@ import {
 
 type ResolvedCollectionOverviewProps = {
   drawerTarget?: AuthoringNavigationTarget
+  hideHeading?: boolean
   target: AuthoringNavigationTarget
   validationTargets: readonly AuthoringNavigationTarget[]
 }
@@ -58,7 +61,13 @@ export function createResolvedCollectionOverview<TValues extends object>(default
   return withForm({
     defaultValues,
     props: {} as ResolvedCollectionOverviewProps,
-    render: function ResolvedCollectionOverview({ drawerTarget, form, target, validationTargets }) {
+    render: function ResolvedCollectionOverview({
+      drawerTarget,
+      form,
+      hideHeading = false,
+      target,
+      validationTargets
+    }) {
       const authoring = useAuthoringForm()
       const presentationContext = useAuthoringPresentationContext()
       const { model, readOnly } = useAuthoringRendererScope()
@@ -130,6 +139,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
 
       const nodeReadOnly = readOnly
       const collection = getCollectionPresentation(node)
+      const collectionColumns = getCollectionColumns(node)
       const collectionStyleSet = getCollectionStyleSet(collection.rowLayout, false)
       const fieldName = collectionFieldName as ReturnType<
         typeof toTypedAuthoringArrayFieldName<TValues>
@@ -147,6 +157,8 @@ export function createResolvedCollectionOverview<TValues extends object>(default
               id: getCollectionItemIdentity(row, index, ordering),
               label: getCollectionRowLabel(node, row, index)
             }))
+            const showsHeading = !hideHeading && Boolean(collection.heading)
+            const usesRowsOnlyPresentation = hideHeading
             const moveRow = (fromIndex: number, toIndex: number) => {
               field.moveValue(fromIndex, toIndex)
               if (ordering.mode === 'manual' && ordering.orderPath) {
@@ -198,334 +210,364 @@ export function createResolvedCollectionOverview<TValues extends object>(default
 
             return (
               <div
-                className={`${styles.sectionStack} ${styles.wideField}`}
-                style={resolveAuthoringSurfaceStyle(
-                  node.authoring.appearance?.surface,
-                  presentationContext
-                )}
+                className={`${styles.wideField} ${collectionStyles.collectionOverview} ${
+                  usesRowsOnlyPresentation
+                    ? collectionStyles.collectionOverviewRowsOnly
+                    : collectionStyles.collectionOverviewSurface
+                }`}
+                style={
+                  usesRowsOnlyPresentation
+                    ? undefined
+                    : resolveAuthoringSurfaceStyle(
+                        node.authoring.appearance?.surface,
+                        presentationContext
+                      )
+                }
               >
-                <section>
-                  <div className={styles.fieldGrid}>
-                    <div className={styles.wideField}>
-                      <Group
-                        className={collectionStyles.collectionOverviewHeader}
-                        justify='space-between'
-                        align='center'
-                        mb='xs'
+                {showsHeading && collection.heading ? (
+                  <Group
+                    className={collectionStyles.collectionOverviewHeader}
+                    justify='flex-start'
+                    align='center'
+                    mb='xs'
+                  >
+                    <Group gap='xs'>
+                      <span className={collectionStyles.collectionHeadingIcon} aria-hidden='true'>
+                        {collection.headingIcon === 'controls' ? (
+                          <SlidersHorizontal size={19} />
+                        ) : (
+                          <CircleHelp size={18} />
+                        )}
+                      </span>
+                      <Text
+                        component='h3'
+                        className={collectionStyles.collectionHeading}
+                        style={resolveAuthoringTextStyle(
+                          node.authoring.appearance?.heading,
+                          presentationContext
+                        )}
                       >
-                        <Group gap='xs'>
-                          <span
-                            className={collectionStyles.collectionHeadingIcon}
-                            aria-hidden='true'
-                          >
-                            {collection.headingIcon === 'controls' ? (
-                              <SlidersHorizontal size={19} />
-                            ) : (
-                              <CircleHelp size={18} />
-                            )}
-                          </span>
-                          <Text
-                            component='h2'
-                            className={collectionStyles.collectionHeading}
-                            style={resolveAuthoringTextStyle(
-                              node.authoring.appearance?.heading,
-                              presentationContext
-                            )}
-                          >
-                            {node.label}
-                          </Text>
-                          <CircleHelp
-                            className={collectionStyles.collectionHeadingHelpIcon}
-                            size={15}
-                            aria-label={`About ${node.label}`}
-                          />
-                        </Group>
+                        {collection.heading}
+                      </Text>
+                      <CircleHelp
+                        className={collectionStyles.collectionHeadingHelpIcon}
+                        size={15}
+                        aria-label={`About ${collection.heading}`}
+                      />
+                    </Group>
+                  </Group>
+                ) : null}
+                <AuthoringValidationAlert target={target} validationTargets={validationTargets} />
+                {rows.length > 0 && collectionColumns.length > 0 ? (
+                  <div className={collectionStyles.collectionLedgerHeader} aria-hidden='true'>
+                    <span />
+                    <span className={collectionStyles.collectionLedgerCells}>
+                      {collectionColumns.map((column) => (
                         <span
-                          aria-hidden='true'
-                          className={collectionStyles.collectionOverviewHeaderRule}
-                        />
-                        {!nodeReadOnly && collection.addAction ? (
-                          <AuthoringActionControl
-                            action={collection.addAction}
-                            icon={<Plus size={15} aria-hidden='true' />}
-                            onClick={(event) =>
-                              dispatchCollectionAction(collection.addAction!, event, {
-                                'collection.add': (actionEvent) => {
-                                  const rowIndex = rows.length
-                                  const snapshot = captureGroupEditorSnapshot({
-                                    collection: rows,
-                                    collectionFieldName,
-                                    fieldMeta: form.state.fieldMeta,
-                                    rowIndex
-                                  })
-                                  field.pushValue(
-                                    createDefaultAuthoringArrayItem(node, rowIndex) as Parameters<
-                                      typeof field.pushValue
-                                    >[0]
-                                  )
-                                  const usesDrawer = node.presentation === 'focused'
+                          className={collectionStyles.collectionLedgerColumnLabel}
+                          key={column.key}
+                        >
+                          {column.label}
+                        </span>
+                      ))}
+                    </span>
+                    <span />
+                  </div>
+                ) : null}
+                {rows.length === 0 ? (
+                  <Text className={collectionStyles.collectionEmptyLabel} size='sm' c='dimmed'>
+                    {collection.emptyLabel}
+                  </Text>
+                ) : (
+                  <ManualCollectionOrderingProvider
+                    disabled={nodeReadOnly || groupEditor !== undefined}
+                    enabled={usesManualOrdering}
+                    items={orderingItems}
+                    onMove={moveRow}
+                  >
+                    <div className={collectionStyleSet.list}>
+                      {rows.map((row, index) => {
+                        const label = getCollectionRowLabel(node, row, index)
+                        const description = getCollectionRowDescription(node, row)
+                        const metadata = getCollectionRowMetadata(node, row)
+                        const rowCells = getCollectionRowCells(node, row, label)
+                        const rowIcon = getCollectionRowIcon(node, row)
+                        const usesDrawer = node.presentation === 'focused'
+                        const targetId = usesDrawer
+                          ? getArrayItemDrawerTargetId({
+                              collectionFieldName,
+                              collectionNode: node,
+                              rowIndex: index
+                            })
+                          : getFirstArrayItemNavigationTargetId({
+                              collectionFieldName,
+                              collectionNode: node,
+                              model,
+                              rowIndex: index
+                            })
+                        const isEditing = editorForField?.rowIndex === index
+
+                        const rowContent = (
+                          <div
+                            className={`${collectionStyleSet.item} ${collectionStyles.collectionCard}`}
+                            data-editing={isEditing || undefined}
+                          >
+                            <div
+                              className={`${collectionStyleSet.itemHeader} ${
+                                rowCells.length > 0 ? collectionStyles.collectionLedgerRow : ''
+                              }`}
+                            >
+                              <span
+                                className={collectionStyles.collectionCardIcon}
+                                aria-hidden='true'
+                              >
+                                {rowIcon === 'sword' ? (
+                                  <Sword size={21} />
+                                ) : rowIcon === 'sparkles' ? (
+                                  <Sparkles size={21} />
+                                ) : (
+                                  <Box size={20} />
+                                )}
+                              </span>
+                              <button
+                                id={
+                                  usesDrawer && targetId
+                                    ? `authoring-target-${toDomId(targetId)}`
+                                    : undefined
+                                }
+                                aria-label={usesDrawer ? `Open ${label}` : undefined}
+                                type='button'
+                                className={`${collectionStyles.collectionItemBodyTrigger} ${
+                                  rowCells.length > 0
+                                    ? collectionStyles.collectionLedgerTrigger
+                                    : ''
+                                }`}
+                                onClick={(event) => {
                                   if (usesDrawer) {
+                                    const snapshot = captureGroupEditorSnapshot({
+                                      collection: rows,
+                                      collectionFieldName,
+                                      fieldMeta: form.state.fieldMeta,
+                                      rowIndex: index
+                                    })
                                     setGroupEditor({
                                       fieldName: collectionFieldName,
-                                      label:
-                                        collection.addAction?.label ??
-                                        `Add ${collection.itemLabel}`,
-                                      mode: 'add',
-                                      opener: actionEvent.currentTarget,
-                                      rowIndex,
+                                      label: `Edit ${label}`,
+                                      mode: 'edit',
+                                      opener: event.currentTarget,
+                                      rowIndex: index,
                                       ...snapshot
                                     })
                                   }
-                                  const targetId = usesDrawer
-                                    ? getArrayItemDrawerTargetId({
-                                        collectionFieldName,
-                                        collectionNode: node,
-                                        rowIndex
-                                      })
-                                    : getFirstArrayItemNavigationTargetId({
-                                        collectionFieldName,
-                                        collectionNode: node,
-                                        model,
-                                        rowIndex
-                                      })
-                                  if (targetId) {
-                                    authoring.goToNavigationTarget(targetId)
-                                  } else if (!usesDrawer) {
-                                    setPendingNavigationRowIndex(rowIndex)
-                                  }
-                                }
+                                  if (targetId) authoring.goToNavigationTarget(targetId)
+                                }}
+                              >
+                                {rowCells.length > 0 ? (
+                                  <span className={collectionStyles.collectionLedgerCells}>
+                                    {rowCells.map((cell, cellIndex) => (
+                                      <span
+                                        className={
+                                          cellIndex === 0
+                                            ? collectionStyles.collectionLedgerPrimaryCell
+                                            : collectionStyles.collectionLedgerCell
+                                        }
+                                        data-label={cell.label}
+                                        key={cell.key}
+                                      >
+                                        {cell.value}
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : (
+                                  <span>
+                                    <Text className={collectionStyles.collectionItemTitle}>
+                                      {label}
+                                    </Text>
+                                    {metadata.length > 0 ? (
+                                      <span className={collectionStyles.collectionCardMeta}>
+                                        {metadata.map((item) => (
+                                          <span
+                                            key={item}
+                                            className={collectionStyles.collectionCardChip}
+                                          >
+                                            {item}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    ) : description ? (
+                                      <Text className={collectionStyles.collectionItemDescription}>
+                                        {description}
+                                      </Text>
+                                    ) : null}
+                                  </span>
+                                )}
+                              </button>
+                              {!nodeReadOnly ? (
+                                <div className={collectionStyles.collectionCardActions}>
+                                  {usesDrawer && collection.editAction ? (
+                                    <AuthoringActionControl
+                                      action={{
+                                        ...collection.editAction,
+                                        label: `Edit ${label}`
+                                      }}
+                                      className={styles.inlineArrayRemoveAction}
+                                      icon={<Pencil size={16} aria-hidden='true' />}
+                                      onClick={(event) =>
+                                        dispatchCollectionAction(collection.editAction!, event, {
+                                          'collection.edit': (actionEvent) => {
+                                            const snapshot = captureGroupEditorSnapshot({
+                                              collection: rows,
+                                              collectionFieldName,
+                                              fieldMeta: form.state.fieldMeta,
+                                              rowIndex: index
+                                            })
+                                            setGroupEditor({
+                                              fieldName: collectionFieldName,
+                                              label: `Edit ${label}`,
+                                              mode: 'edit',
+                                              opener: actionEvent.currentTarget,
+                                              rowIndex: index,
+                                              ...snapshot
+                                            })
+                                            if (targetId) {
+                                              authoring.goToNavigationTarget(targetId)
+                                            }
+                                          }
+                                        })
+                                      }
+                                    />
+                                  ) : null}
+                                  {collection.duplicateAction ? (
+                                    <AuthoringActionControl
+                                      action={{
+                                        ...collection.duplicateAction,
+                                        label: `Duplicate ${label}`
+                                      }}
+                                      className={styles.inlineArrayRemoveAction}
+                                      icon={<Copy size={16} aria-hidden='true' />}
+                                      onClick={(event) =>
+                                        dispatchCollectionAction(
+                                          collection.duplicateAction!,
+                                          event,
+                                          {
+                                            'collection.duplicate': () =>
+                                              field.pushValue(
+                                                cloneAuthoringGroupValue(
+                                                  row,
+                                                  rows.length + 1
+                                                ) as Parameters<typeof field.pushValue>[0]
+                                              )
+                                          }
+                                        )
+                                      }
+                                    />
+                                  ) : null}
+                                  {collection.removeAction ? (
+                                    <AuthoringActionControl
+                                      action={{
+                                        ...collection.removeAction,
+                                        label: `Remove ${label}`
+                                      }}
+                                      className={styles.inlineArrayRemoveAction}
+                                      icon={<Trash2 size={16} aria-hidden='true' />}
+                                      onClick={(event) =>
+                                        dispatchCollectionAction(collection.removeAction!, event, {
+                                          'collection.remove': () => field.removeValue(index)
+                                        })
+                                      }
+                                    />
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        )
+
+                        return usesManualOrdering ? (
+                          <ManualCollectionOrderingRow
+                            disabled={nodeReadOnly || groupEditor !== undefined}
+                            id={orderingItems[index]?.id ?? String(index)}
+                            index={index}
+                            key={orderingItems[index]?.id ?? String(index)}
+                            label={label}
+                          >
+                            {rowContent}
+                          </ManualCollectionOrderingRow>
+                        ) : (
+                          <div key={getGroupRowKey(row, index)}>{rowContent}</div>
+                        )
+                      })}
+                    </div>
+                  </ManualCollectionOrderingProvider>
+                )}
+                {!nodeReadOnly && collection.addAction ? (
+                  <div className={collectionStyles.collectionAddRow}>
+                    <AuthoringActionControl
+                      action={{
+                        ...collection.addAction,
+                        label: `Add ${collection.itemLabel.toLowerCase()}`
+                      }}
+                      className={collectionStyles.collectionAddAction}
+                      icon={<Plus size={15} aria-hidden='true' />}
+                      onClick={(event) =>
+                        dispatchCollectionAction(collection.addAction!, event, {
+                          'collection.add': (actionEvent) => {
+                            const rowIndex = rows.length
+                            const snapshot = captureGroupEditorSnapshot({
+                              collection: rows,
+                              collectionFieldName,
+                              fieldMeta: form.state.fieldMeta,
+                              rowIndex
+                            })
+                            field.pushValue(
+                              createDefaultAuthoringArrayItem(node, rowIndex) as Parameters<
+                                typeof field.pushValue
+                              >[0]
+                            )
+                            const usesDrawer = node.presentation === 'focused'
+                            if (usesDrawer) {
+                              setGroupEditor({
+                                fieldName: collectionFieldName,
+                                label: `Add ${collection.itemLabel}`,
+                                mode: 'add',
+                                opener: actionEvent.currentTarget,
+                                rowIndex,
+                                ...snapshot
                               })
                             }
-                          />
-                        ) : null}
-                      </Group>
-                      <AuthoringValidationAlert
-                        target={target}
-                        validationTargets={validationTargets}
-                      />
-                      {rows.length === 0 ? (
-                        <Text size='sm' c='dimmed'>
-                          {collection.emptyLabel}
-                        </Text>
-                      ) : (
-                        <ManualCollectionOrderingProvider
-                          disabled={nodeReadOnly || groupEditor !== undefined}
-                          enabled={usesManualOrdering}
-                          items={orderingItems}
-                          onMove={moveRow}
-                        >
-                          <div className={collectionStyleSet.list}>
-                            {rows.map((row, index) => {
-                              const label = getCollectionRowLabel(node, row, index)
-                              const description = getCollectionRowDescription(node, row)
-                              const metadata = getCollectionRowMetadata(node, row)
-                              const rowIcon = getCollectionRowIcon(node, row)
-                              const usesDrawer = node.presentation === 'focused'
-                              const targetId = usesDrawer
-                                ? getArrayItemDrawerTargetId({
-                                    collectionFieldName,
-                                    collectionNode: node,
-                                    rowIndex: index
-                                  })
-                                : getFirstArrayItemNavigationTargetId({
-                                    collectionFieldName,
-                                    collectionNode: node,
-                                    model,
-                                    rowIndex: index
-                                  })
-                              const isEditing = editorForField?.rowIndex === index
-
-                              const rowContent = (
-                                <div
-                                  className={`${collectionStyleSet.item} ${collectionStyles.collectionCard}`}
-                                  data-editing={isEditing || undefined}
-                                >
-                                  <div className={collectionStyleSet.itemHeader}>
-                                    <span
-                                      className={collectionStyles.collectionCardIcon}
-                                      aria-hidden='true'
-                                    >
-                                      {rowIcon === 'sword' ? (
-                                        <Sword size={21} />
-                                      ) : rowIcon === 'sparkles' ? (
-                                        <Sparkles size={21} />
-                                      ) : (
-                                        <Box size={20} />
-                                      )}
-                                    </span>
-                                    <button
-                                      id={
-                                        usesDrawer && targetId
-                                          ? `authoring-target-${toDomId(targetId)}`
-                                          : undefined
-                                      }
-                                      aria-label={usesDrawer ? `Open ${label}` : undefined}
-                                      type='button'
-                                      className={collectionStyles.collectionItemBodyTrigger}
-                                      onClick={(event) => {
-                                        if (usesDrawer) {
-                                          const snapshot = captureGroupEditorSnapshot({
-                                            collection: rows,
-                                            collectionFieldName,
-                                            fieldMeta: form.state.fieldMeta,
-                                            rowIndex: index
-                                          })
-                                          setGroupEditor({
-                                            fieldName: collectionFieldName,
-                                            label: `Edit ${label}`,
-                                            mode: 'edit',
-                                            opener: event.currentTarget,
-                                            rowIndex: index,
-                                            ...snapshot
-                                          })
-                                        }
-                                        if (targetId) authoring.goToNavigationTarget(targetId)
-                                      }}
-                                    >
-                                      <span>
-                                        <Text className={collectionStyles.collectionItemTitle}>
-                                          {label}
-                                        </Text>
-                                        {metadata.length > 0 ? (
-                                          <span className={collectionStyles.collectionCardMeta}>
-                                            {metadata.map((item) => (
-                                              <span
-                                                key={item}
-                                                className={collectionStyles.collectionCardChip}
-                                              >
-                                                {item}
-                                              </span>
-                                            ))}
-                                          </span>
-                                        ) : description ? (
-                                          <Text
-                                            className={collectionStyles.collectionItemDescription}
-                                          >
-                                            {description}
-                                          </Text>
-                                        ) : null}
-                                      </span>
-                                    </button>
-                                    {!nodeReadOnly ? (
-                                      <div className={collectionStyles.collectionCardActions}>
-                                        {usesDrawer && collection.editAction ? (
-                                          <AuthoringActionControl
-                                            action={{
-                                              ...collection.editAction,
-                                              label: `Edit ${label}`
-                                            }}
-                                            className={styles.inlineArrayRemoveAction}
-                                            icon={<Pencil size={16} aria-hidden='true' />}
-                                            onClick={(event) =>
-                                              dispatchCollectionAction(
-                                                collection.editAction!,
-                                                event,
-                                                {
-                                                  'collection.edit': (actionEvent) => {
-                                                    const snapshot = captureGroupEditorSnapshot({
-                                                      collection: rows,
-                                                      collectionFieldName,
-                                                      fieldMeta: form.state.fieldMeta,
-                                                      rowIndex: index
-                                                    })
-                                                    setGroupEditor({
-                                                      fieldName: collectionFieldName,
-                                                      label: `Edit ${label}`,
-                                                      mode: 'edit',
-                                                      opener: actionEvent.currentTarget,
-                                                      rowIndex: index,
-                                                      ...snapshot
-                                                    })
-                                                    if (targetId) {
-                                                      authoring.goToNavigationTarget(targetId)
-                                                    }
-                                                  }
-                                                }
-                                              )
-                                            }
-                                          />
-                                        ) : null}
-                                        {collection.duplicateAction ? (
-                                          <AuthoringActionControl
-                                            action={{
-                                              ...collection.duplicateAction,
-                                              label: `Duplicate ${label}`
-                                            }}
-                                            className={styles.inlineArrayRemoveAction}
-                                            icon={<Copy size={16} aria-hidden='true' />}
-                                            onClick={(event) =>
-                                              dispatchCollectionAction(
-                                                collection.duplicateAction!,
-                                                event,
-                                                {
-                                                  'collection.duplicate': () =>
-                                                    field.pushValue(
-                                                      cloneAuthoringGroupValue(
-                                                        row,
-                                                        rows.length + 1
-                                                      ) as Parameters<typeof field.pushValue>[0]
-                                                    )
-                                                }
-                                              )
-                                            }
-                                          />
-                                        ) : null}
-                                        {collection.removeAction ? (
-                                          <AuthoringActionControl
-                                            action={{
-                                              ...collection.removeAction,
-                                              label: `Remove ${label}`
-                                            }}
-                                            className={styles.inlineArrayRemoveAction}
-                                            icon={<Trash2 size={16} aria-hidden='true' />}
-                                            onClick={(event) =>
-                                              dispatchCollectionAction(
-                                                collection.removeAction!,
-                                                event,
-                                                {
-                                                  'collection.remove': () =>
-                                                    field.removeValue(index)
-                                                }
-                                              )
-                                            }
-                                          />
-                                        ) : null}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              )
-
-                              return usesManualOrdering ? (
-                                <ManualCollectionOrderingRow
-                                  disabled={nodeReadOnly || groupEditor !== undefined}
-                                  id={orderingItems[index]?.id ?? String(index)}
-                                  index={index}
-                                  key={orderingItems[index]?.id ?? String(index)}
-                                  label={label}
-                                >
-                                  {rowContent}
-                                </ManualCollectionOrderingRow>
-                              ) : (
-                                <div key={getGroupRowKey(row, index)}>{rowContent}</div>
-                              )
-                            })}
-                          </div>
-                        </ManualCollectionOrderingProvider>
-                      )}
-                      {drawerTarget && editorForField ? (
-                        <GroupEditorDrawer
-                          editor={editorForField}
-                          fieldPath={`${collectionFieldName}[${editorForField.rowIndex}]`}
-                          node={node}
-                          onClose={closeEditor}
-                          validationTarget={drawerTarget}
-                          validationTargets={validationTargets}
-                        />
-                      ) : null}
-                    </div>
+                            const targetId = usesDrawer
+                              ? getArrayItemDrawerTargetId({
+                                  collectionFieldName,
+                                  collectionNode: node,
+                                  rowIndex
+                                })
+                              : getFirstArrayItemNavigationTargetId({
+                                  collectionFieldName,
+                                  collectionNode: node,
+                                  model,
+                                  rowIndex
+                                })
+                            if (targetId) {
+                              authoring.goToNavigationTarget(targetId)
+                            } else if (!usesDrawer) {
+                              setPendingNavigationRowIndex(rowIndex)
+                            }
+                          }
+                        })
+                      }
+                    />
                   </div>
-                </section>
+                ) : null}
+                {drawerTarget && editorForField ? (
+                  <GroupEditorDrawer
+                    editor={editorForField}
+                    fieldPath={`${collectionFieldName}[${editorForField.rowIndex}]`}
+                    node={node}
+                    onClose={closeEditor}
+                    validationTarget={drawerTarget}
+                    validationTargets={validationTargets}
+                  />
+                ) : null}
               </div>
             )
           }}

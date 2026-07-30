@@ -38,6 +38,7 @@ export {
   fontWeightScale,
   breakpoints,
   motionScale,
+  blackForgeSurfaceScale,
   lightColorTokens,
   darkColorTokens,
   brandColorScale,

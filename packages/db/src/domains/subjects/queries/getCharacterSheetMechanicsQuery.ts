@@ -255,11 +255,12 @@ export interface CharacterSheetMechanicsGenericOutcomeRow {
 export interface CharacterSheetMechanicsChargeRow {
   chargeId: string
   scalingKind: string
-  resetKind: string
+  resetKind: string | null
   limitKind: string | null
   classId: string | null
   abilityCode: string | null
   amount: number | null
+  cost: number | null
   multiplier: number | null
   min: number | null
   max: number | null
@@ -1059,6 +1060,7 @@ export async function getCharacterSheetMechanicsQuery(
             'charge_limits.class_id as classId',
             'charge_limits.ability_code as abilityCode',
             'charge_limits.amount as amount',
+            'charge_limits.cost as cost',
             'charge_limits.multiplier as multiplier',
             'charge_limits.min as min',
             'charge_limits.max as max'

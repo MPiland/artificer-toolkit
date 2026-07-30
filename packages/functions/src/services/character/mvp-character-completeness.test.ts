@@ -237,6 +237,7 @@ describe('MVP character Builder-to-engine completeness', () => {
         resources: [],
         spellMechanics: [],
         itemMechanics: [],
+        equipmentFeatureChargeUses: [],
         companions: [],
         activeItemContributions: []
       }

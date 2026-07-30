@@ -20,8 +20,9 @@ export const FEAT_GRANTS_NODE_MAP = FEATURE_GRANTS_NODE_MAP as NodeMap<
 const FEAT_SECTIONS = {
   basics: { id: 'basics', label: 'Basics', order: 10 },
   requirements: { id: 'requirements', label: 'Requirements', order: 20 },
-  mechanics: { id: 'mechanics', label: 'Mechanics', order: 30 },
-  features: { id: 'features', label: 'Features', order: 40 }
+  effects: { id: 'effects', label: 'Effects', order: 30 },
+  grants: { id: 'grants', label: 'Grants', order: 40 },
+  features: { id: 'features', label: 'Features', order: 50 }
 } as const
 
 export const FEAT_NODE_MAP = featNode.define('feat', ({ map, nodes }) => {
@@ -70,7 +71,7 @@ export const FEAT_NODE_MAP = featNode.define('feat', ({ map, nodes }) => {
       'effects',
       groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
         presentation: 'branch',
-        section: FEAT_SECTIONS.mechanics,
+        section: FEAT_SECTIONS.effects,
         order: 10
       })
     )
@@ -78,16 +79,16 @@ export const FEAT_NODE_MAP = featNode.define('feat', ({ map, nodes }) => {
       'charges',
       groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
         presentation: 'inline',
-        section: FEAT_SECTIONS.mechanics,
-        order: 20
+        section: FEAT_SECTIONS.basics,
+        order: 40
       })
     )
     .set(
       'grants',
       groupObject(['grants'], 'Grants', () => FEAT_GRANTS_NODE_MAP, {
         presentation: 'branch',
-        section: FEAT_SECTIONS.mechanics,
-        order: 30
+        section: FEAT_SECTIONS.grants,
+        order: 10
       })
     )
     .set(

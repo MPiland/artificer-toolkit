@@ -22,11 +22,13 @@ import { getInventoryCurrencyTotals } from './characterSheetInventory.utils'
 import { toNumber } from '../core/characterSheet.utils'
 
 export function CharacterSheetInventory({
+  hideTitle,
   openPanel,
   pending,
   sheet,
   submitCommand
 }: {
+  hideTitle?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
   sheet: CharacterSheet
@@ -57,6 +59,7 @@ export function CharacterSheetInventory({
   return (
     <CharacterSheetDetailPanel
       ariaId='character-sheet-inventory'
+      hideTitle={hideTitle}
       title='Equipment'
       headerActions={
         <Button
@@ -78,7 +81,7 @@ export function CharacterSheetInventory({
         ))}
       </div>
 
-      <Tabs defaultValue='carried' styles={{ tab: { borderWidth: 0 } }}>
+      <Tabs defaultValue='carried'>
         <Tabs.List className={inventoryStyles.subsectionTabs}>
           <Tabs.Tab className={coreStyles.tab} value='carried'>
             Carried

@@ -4,6 +4,7 @@ import type {
   AuthoredPreviewModel,
   DamagePreviewItem,
   DamagePreviewTone,
+  EquipmentPreviewIcon,
   PreviewFact,
   PreviewListItem,
   PreviewSection
@@ -21,10 +22,49 @@ export function createAuthoredPreviewModel(
   context: AuthoredFormPreviewContext
 ): AuthoredPreviewModel {
   const values = toRecord(context.values)
-  if (!values) return { sections: [] }
+  if (!values) {
+    return {
+      domain: context.domain,
+      label: context.label,
+      sections: [],
+      statusLabel: context.statusLabel
+    }
+  }
 
   const sections = createDomainSections(context.domain, values, context.system)
-  return { sections: sections.filter(isUsefulSection) }
+  return {
+    domain: context.domain,
+    equipmentIcon: context.domain === 'equipment' ? resolveEquipmentPreviewIcon(values) : undefined,
+    label: context.label,
+    sections: sections.filter(isUsefulSection),
+    statusLabel: context.statusLabel
+  }
+}
+
+function resolveEquipmentPreviewIcon(values: RuntimeRecord): EquipmentPreviewIcon {
+  const searchValue = [
+    readString(values.label),
+    readString(values.parentEquipmentId),
+    readString(values.category),
+    ...readStrings(values.properties)
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (/\bshield\b/.test(searchValue)) return 'shield'
+  if (/\barmor\b/.test(searchValue)) return 'armor'
+  if (/\b(bow|crossbow|ammunition|ranged)\b/.test(searchValue)) return 'bow'
+  if (/\baxe\b/.test(searchValue)) return 'axe'
+  if (/\b(hammer|mace|maul|club)\b/.test(searchValue)) return 'hammer'
+  if (
+    /\b(shortsword|longsword|greatsword|sword|rapier|dagger|blade|scimitar)\b/.test(searchValue)
+  ) {
+    return 'sword'
+  }
+  if (/\b(tool|instrument)\b/.test(searchValue)) return 'tool'
+  if (/\b(adventuring|gear|backpack|pack|container)\b/.test(searchValue)) return 'gear'
+  return readString(values.category) === 'WEAPON' ? 'sword' : 'gear'
 }
 
 export function collectDamagePreviewItems(
@@ -130,9 +170,15 @@ function createDomainSections(
         createFactsSection('equipment-facts', 'Item Snapshot', [
           ['Category', formatEnumLabel(readString(values.category))],
           ['Rarity', labelForVocabularyId(system, 'rarities', readString(values.rarityId))],
-          ['Cost', formatCost(readRecord(values.cost), system)],
-          ['Weight', formatMeasurement(readRecord(values.weight))]
+          ['Weight', formatMeasurement(readRecord(values.weight))],
+          ['Value', formatCost(readRecord(values.cost), system)]
         ]),
+        createProseSection(
+          'equipment-prose',
+          'Description',
+          values,
+          'Add a description to preview its reader copy.'
+        ),
         createChipsSection(
           'equipment-properties',
           'Properties',
@@ -337,14 +383,13 @@ function createDamageSection(
 }
 
 function createChargesSection(values: RuntimeRecord): PreviewSection {
-  const charges = collectRecords(values)
+  const rows = collectRecords(values)
     .filter(
       (record) => typeof record.resetKind === 'string' && typeof record.limitKind === 'string'
     )
-    .map(formatCharge)
-    .filter(Boolean)
+    .flatMap(formatChargeRows)
 
-  return createChipsSection('charges-preview', 'Charges', charges)
+  return createRowsSection('charges-preview', 'Charges', rows)
 }
 
 function createListItem(record: RuntimeRecord, index: number): PreviewListItem {
@@ -352,7 +397,6 @@ function createListItem(record: RuntimeRecord, index: number): PreviewListItem {
   return {
     description: readString(record.description),
     id: readString(record.id) ?? `${label}:${index}`,
-    meta: formatOrder(record.order),
     title: label
   }
 }
@@ -404,13 +448,17 @@ function formatScalingValue(value: string | number | undefined): string | undefi
   return undefined
 }
 
-function formatCharge(record: RuntimeRecord): string {
+function formatChargeRows(record: RuntimeRecord): PreviewFact[] {
   const limitKind = readString(record.limitKind)
   const resetKind = readString(record.resetKind)
   const amount = readNumber(record.amount)
   const limit = amount !== undefined ? `${amount}` : (formatEnumLabel(limitKind) ?? 'Scaling')
-  const reset = formatEnumLabel(resetKind)?.toLowerCase()
-  return reset ? `${limit}, ${reset}` : limit
+  const reset = formatEnumLabel(resetKind)
+
+  return [
+    { label: 'Uses', value: limit },
+    ...(reset ? [{ label: 'Resets', value: reset }] : [])
+  ]
 }
 
 function formatCost(
@@ -425,7 +473,8 @@ function formatCost(
 
 function formatMeasurement(record: RuntimeRecord | undefined): string | undefined {
   const amount = readNumber(record?.amount)
-  const unit = formatEnumLabel(readString(record?.unit))?.toLowerCase()
+  const unitCode = readString(record?.unit)
+  const unit = unitCode === 'POUNDS' ? 'lb.' : formatEnumLabel(unitCode)?.toLowerCase()
   if (amount === undefined) return undefined
   return unit ? `${formatNumber(amount)} ${unit}` : formatNumber(amount)
 }
@@ -498,11 +547,6 @@ function getOrdinalSuffix(value: number): string {
     default:
       return 'th'
   }
-}
-
-function formatOrder(value: unknown): string | undefined {
-  const order = readNumber(value)
-  return order === undefined ? undefined : `Order ${order + 1}`
 }
 
 function formatCount(count: number, label: string): string | undefined {

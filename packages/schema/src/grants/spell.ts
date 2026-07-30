@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { chargeDtoSchema } from '../shared/charge.js'
+import { chargeUseDtoSchema } from '../shared/charge.js'
 import { authoringModeKindSchema, spellGrantAttributeSchema } from '../shared/enums.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import {
@@ -27,7 +27,7 @@ export const spellGrantDtoSchema = scalingGrantBaseDtoSchema
     castAtLevel: z.number().int().optional(),
     attributes: z.array(spellGrantAttributeSchema).optional(),
     filters: facetDtoSchema.optional(),
-    charges: chargeDtoSchema.optional()
+    charges: chargeUseDtoSchema.optional()
   })
   .and(spellGrantTargetDtoSchema)
   .and(

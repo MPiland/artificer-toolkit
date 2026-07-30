@@ -26,6 +26,23 @@ export const foundationVars = createGlobalThemeContract(
         focus: null,
         contrast: null
       },
+      authoring: {
+        active: null,
+        band: null,
+        border: null,
+        canvas: null,
+        dock: null,
+        field: null,
+        fieldBorder: null,
+        header: null,
+        notice: null,
+        noticeBorder: null,
+        panel: null,
+        preview: null,
+        previewBorder: null,
+        rail: null,
+        row: null
+      },
       button: {
         primary: {
           background: null,
