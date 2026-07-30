@@ -11,6 +11,6 @@ export async function getAccountProfileRedirect({
 }): Promise<'invite' | 'sign-in' | null> {
   if (!user) return 'sign-in'
 
-  const profile = await queryClient.ensureQueryData(getAccountProfileQuery())
+  const profile = await queryClient.ensureQueryData(getAccountProfileQuery(user.id))
   return profile ? null : 'invite'
 }

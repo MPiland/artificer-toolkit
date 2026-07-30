@@ -16,9 +16,12 @@ describe('authenticated profile guard', () => {
 
   it('redirects a signed-in user without a profile to invitation completion', async () => {
     const queryClient = new QueryClient()
-    vi.spyOn(queryClient, 'ensureQueryData').mockResolvedValue(null)
+    const ensureQueryData = vi.spyOn(queryClient, 'ensureQueryData').mockResolvedValue(null)
 
     await expect(getAccountProfileRedirect({ queryClient, user })).resolves.toBe('invite')
+    expect(ensureQueryData).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['account', 'profile', 'user-1'] })
+    )
   })
 
   it('allows a signed-in user with a required profile', async () => {

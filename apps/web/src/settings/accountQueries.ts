@@ -3,9 +3,9 @@ import { api } from '#app/lib/api'
 
 export const accountProfileQueryKey = ['account', 'profile'] as const
 
-export function getAccountProfileQuery() {
+export function getAccountProfileQuery(userId: string) {
   return queryOptions({
-    queryKey: accountProfileQueryKey,
+    queryKey: [...accountProfileQueryKey, userId],
     queryFn: () => api.account.profile()
   })
 }

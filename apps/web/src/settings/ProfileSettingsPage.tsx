@@ -8,11 +8,11 @@ import type {
   AccountProfileUpdateInput
 } from '@artificer-toolkit/schema/api/account'
 import { ApiError, api } from '#app/lib/api'
-import { accountProfileQueryKey, getAccountProfileQuery } from './accountQueries'
+import { getAccountProfileQuery } from './accountQueries'
 import * as styles from './settings.css'
 
-export function ProfileSettingsPage() {
-  const profileQuery = useQuery(getAccountProfileQuery())
+export function ProfileSettingsPage({ userId }: { userId: string }) {
+  const profileQuery = useQuery(getAccountProfileQuery(userId))
 
   if (profileQuery.isPending) {
     return (
@@ -33,10 +33,16 @@ export function ProfileSettingsPage() {
 
   if (!profileQuery.data) return null
 
-  return <ProfileForm initialProfile={profileQuery.data} />
+  return <ProfileForm initialProfile={profileQuery.data} userId={userId} />
 }
 
-function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) {
+function ProfileForm({
+  initialProfile,
+  userId
+}: {
+  initialProfile: AccountProfileDto
+  userId: string
+}) {
   const queryClient = useQueryClient()
   const [username, setUsername] = useState(initialProfile.username)
   const [usernameError, setUsernameError] = useState<string | null>(null)
@@ -45,7 +51,7 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
   const updateProfile = useMutation({
     mutationFn: (input: AccountProfileUpdateInput) => api.account.updateProfile(input),
     onSuccess: (profile) => {
-      queryClient.setQueryData(accountProfileQueryKey, profile)
+      queryClient.setQueryData(getAccountProfileQuery(userId).queryKey, profile)
       setUsername(profile.username)
       setName(profile.name ?? '')
       setBio(profile.bio ?? '')
