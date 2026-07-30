@@ -21,6 +21,7 @@ describe('authoring rail Cancel action', () => {
   beforeEach(() => {
     mocks.cancel.mockReset()
     mocks.useAuthoringLayout.mockReturnValue({
+      isWideDesktop: false,
       visibleSteps: [{ id: 'basics' }]
     })
     mocks.useAuthoringForm.mockReturnValue(createAuthoringState({ stagedEditorOpen: false }))
@@ -65,6 +66,48 @@ describe('authoring rail Cancel action', () => {
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
     expect(screen.queryByRole('link', { name: 'Cancel' })).not.toBeInTheDocument()
+  })
+
+  it('uses the visible navigation statuses for rail progress', () => {
+    mocks.useAuthoringLayout.mockReturnValue({
+      isWideDesktop: true,
+      visibleSteps: [{ id: 'basics' }, { id: 'properties' }, { id: 'mechanics' }]
+    })
+    mocks.useAuthoringForm.mockReturnValue({
+      ...createAuthoringState({ stagedEditorOpen: false }),
+      mode: 'edit',
+      navigationTree: ['basics', 'properties', 'mechanics'].map((id) => ({
+        id,
+        label: id,
+        level: 0,
+        status: 'complete',
+        target: {
+          id: `${id}-target`,
+          kind: 'step',
+          label: id,
+          mapId: 'equipment',
+          ownedFieldPaths: [],
+          stepId: id
+        }
+      })),
+      stepStatuses: {
+        basics: 'incomplete',
+        properties: 'incomplete',
+        mechanics: 'incomplete'
+      },
+      visitedStepIds: new Set()
+    })
+
+    render(
+      <TestRouterProvider>
+        <Footer />
+      </TestRouterProvider>
+    )
+
+    expect(screen.getByRole('progressbar', { name: '3 of 3 steps complete' })).toHaveAttribute(
+      'aria-valuenow',
+      '3'
+    )
   })
 })
 

@@ -251,7 +251,13 @@ function buildStepNode(
             ownerStep: step
           })
         : buildObjectGroupNode(node, context)
-    if (groupNode) children.push(groupNode)
+    if (groupNode) {
+      children.push(
+        !hasDirectContent && navigableGroupNodes.length === 1
+          ? { ...groupNode, label: step.label }
+          : groupNode
+      )
+    }
   }
 
   if (children.length === 0) return undefined
@@ -371,14 +377,7 @@ function buildArrayCollectionNode(
     }
   }
 
-  const children: AuthoringNavigationNode[] = [
-    {
-      id: overviewTarget.id,
-      label: overviewTarget.label,
-      level: 0,
-      target: overviewTarget
-    }
-  ]
+  const children: AuthoringNavigationNode[] = []
 
   rows.forEach((row, index) => {
     const rowPrefix = `${collectionFieldName}[${index}]`
@@ -394,10 +393,11 @@ function buildArrayCollectionNode(
   })
 
   return {
-    children,
+    children: children.length ? children : undefined,
     id: `collection:${collectionFieldName}`,
     label: node.label,
-    level: 0
+    level: 0,
+    target: overviewTarget
   }
 }
 
@@ -559,14 +559,7 @@ function createOverviewTarget({
 }
 
 function getOwningCanvasLabel(ownerStep: NodeRuntimeStepDto | undefined) {
-  if (!ownerStep) return undefined
-
-  const visibleNodeCount = ownerStep.sections.reduce(
-    (count, section) => count + section.nodes.filter((node) => node.visible).length,
-    0
-  )
-
-  return visibleNodeCount > 1 ? ownerStep.label : undefined
+  return ownerStep?.label
 }
 
 function getTargetStatus(

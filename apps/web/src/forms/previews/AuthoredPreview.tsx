@@ -1,8 +1,14 @@
 import { AuthoredDetailItemList, AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import { ContextCard } from '#app/ui/components/ContextCard/ContextCard'
 import * as contextStyles from '#ui/components/ContextCard/ContextCard.css'
+import { Axe, Backpack, BowArrow, Hammer, Shield, Shirt, Sword, Wrench } from 'lucide-react'
 import type { ReactNode } from 'react'
-import type { AuthoredPreviewModel, PreviewSection } from './authoredPreview.types'
+import type {
+  AuthoredPreviewModel,
+  EquipmentPreviewIcon,
+  PreviewFact,
+  PreviewSection
+} from './authoredPreview.types'
 import * as styles from './AuthoredPreview.css'
 
 type AuthoredPreviewProps = {
@@ -14,11 +20,126 @@ export function AuthoredPreview({ model }: AuthoredPreviewProps) {
 
   return (
     <div className={styles.root}>
-      {model.sections.map((section) => (
-        <PreviewSectionView key={section.id} section={section} />
-      ))}
+      {model.domain === 'equipment' ? (
+        <EquipmentPreview model={model} />
+      ) : (
+        <>
+          <PreviewIdentity model={model} />
+          {model.sections.map((section) => (
+            <PreviewSectionView key={section.id} section={section} />
+          ))}
+        </>
+      )}
     </div>
   )
+}
+
+function PreviewIdentity({ model }: { model: AuthoredPreviewModel }) {
+  return (
+    <section className={styles.previewIdentity}>
+      <span className={styles.previewStatus}>{model.statusLabel}</span>
+      <strong className={styles.previewTitle}>{model.label}</strong>
+    </section>
+  )
+}
+
+function EquipmentPreview({ model }: { model: AuthoredPreviewModel }) {
+  const facts = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'facts' }> =>
+      section.id === 'equipment-facts' && section.type === 'facts'
+  )
+  const prose = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'prose' }> =>
+      section.id === 'equipment-prose' && section.type === 'prose'
+  )
+  const properties = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'chips' }> =>
+      section.id === 'equipment-properties' && section.type === 'chips'
+  )
+  const damage = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'damage' }> =>
+      section.id === 'damage-preview' && section.type === 'damage'
+  )
+  const category = facts?.facts.find((fact) => fact.label === 'Category')?.value
+  const rarity = facts?.facts.find((fact) => fact.label === 'Rarity')?.value
+  const metadata = [rarity, category].filter(Boolean)
+  const stats: PreviewFact[] = [
+    ...(damage?.items.length
+      ? [
+          {
+            label: 'Damage',
+            value: damage.items.map((item) => `${item.amount} ${item.label}`).join(', ')
+          }
+        ]
+      : []),
+    ...(properties?.items.length
+      ? [{ label: 'Properties', value: properties.items.join(', ') }]
+      : []),
+    ...(facts?.facts.filter((fact) => fact.label === 'Weight' || fact.label === 'Value') ?? [])
+  ]
+  const consumedSectionIds = new Set([
+    'damage-preview',
+    'equipment-facts',
+    'equipment-properties',
+    'equipment-prose'
+  ])
+
+  return (
+    <>
+      <section className={styles.equipmentHero}>
+        <div className={styles.equipmentVisual} aria-hidden='true'>
+          <EquipmentIcon icon={model.equipmentIcon ?? 'gear'} />
+        </div>
+        <div className={styles.equipmentIdentity}>
+          <span className={styles.previewStatus}>{model.statusLabel}</span>
+          <strong className={styles.previewTitle}>{model.label}</strong>
+          {metadata.length ? (
+            <span className={styles.equipmentMeta}>{metadata.map(String).join(' · ')}</span>
+          ) : null}
+          {prose?.quote ? <p className={styles.equipmentQuote}>{prose.quote}</p> : null}
+        </div>
+        {stats.length ? (
+          <dl className={styles.equipmentStats}>
+            {stats.map((fact, index) => renderPreviewRow(fact, index))}
+          </dl>
+        ) : null}
+      </section>
+      {prose ? (
+        <section className={styles.equipmentProse}>
+          <AuthoredDetailProse html={prose.html} fallback={prose.fallback} />
+        </section>
+      ) : null}
+      {model.sections
+        .filter((section) => !consumedSectionIds.has(section.id))
+        .map((section) => (
+          <PreviewSectionView key={section.id} section={section} />
+        ))}
+    </>
+  )
+}
+
+function EquipmentIcon({ icon }: { icon: EquipmentPreviewIcon }) {
+  const props = { size: 58, strokeWidth: 1.35 }
+
+  switch (icon) {
+    case 'armor':
+      return <Shirt {...props} />
+    case 'axe':
+      return <Axe {...props} />
+    case 'bow':
+      return <BowArrow {...props} />
+    case 'hammer':
+      return <Hammer {...props} />
+    case 'shield':
+      return <Shield {...props} />
+    case 'sword':
+      return <Sword {...props} />
+    case 'tool':
+      return <Wrench {...props} />
+    case 'gear':
+    default:
+      return <Backpack {...props} />
+  }
 }
 
 function PreviewSectionView({ section }: { section: PreviewSection }) {

@@ -23,6 +23,7 @@ export type AuthoringLayoutState = {
 }
 
 export type AuthoringLayoutConstants = {
+  isWideDesktop: boolean
   title: string
   label: string
   status: { label: string }

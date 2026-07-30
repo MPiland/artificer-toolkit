@@ -2,11 +2,11 @@ import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } 
 
 import type { GrantPayloadAuthored, SenseGrantAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
-import { compileCharge, compileRange, compileScalingSource } from '#compilers'
+import { compileChargeUse, compileRange, compileScalingSource } from '#compilers'
 import type {
   CompiledGrantTarget,
   CompiledScalingGrant,
-  CompiledCharge,
+  CompiledChargeUse,
   CompiledRange
 } from '#compilers'
 import { SCALING } from '#core'
@@ -15,7 +15,7 @@ export type CompiledSenseGrant = CompiledScalingGrant<
   typeof GRANT_KIND.SENSE_GRANT,
   CompiledGrantTarget<{ senseIds: string[] }>
 > & {
-  charges?: CompiledCharge
+  charges?: CompiledChargeUse
   range?: CompiledRange
 }
 
@@ -44,7 +44,7 @@ export function compileSenseGrantResult(
     order: authored.order
   }
 
-  const charges = authored.charges ? compileCharge(authored.charges) : undefined
+  const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
   const range = authored.range ? compileRange(authored.range) : undefined
 
   switch (authored.scalingKind) {

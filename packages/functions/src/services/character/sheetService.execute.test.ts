@@ -1365,6 +1365,22 @@ describe('executeCharacterSheetCommand', () => {
     )
 
     mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 4 })
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'USE_RESOURCE',
+          expectedVersion: 4,
+          commandId: '00000000-0000-4000-8000-000000000114',
+          resourceGrantId,
+          amount: 1
+        }
+      })
+    ).rejects.toThrow('only has 0 uses remaining')
+    expect(mocks.setResourceUsage).toHaveBeenCalledTimes(3)
+
     const legacyRecovered = await executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',

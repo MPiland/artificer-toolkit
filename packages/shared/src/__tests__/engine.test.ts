@@ -884,6 +884,68 @@ describe('runEngine - equipment source state', () => {
       })
     )
   })
+
+  it('binds source-charge equipment features to each active item instance', () => {
+    const compiledItem = {
+      id: 'wand-of-sparks',
+      category: 'ADVENTURING_GEAR',
+      properties: [],
+      rarityId: 'uncommon',
+      requiresAttunement: true,
+      charges: {
+        id: 'wand-of-sparks-charges',
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: 'NONE',
+        resetKind: 'DAWN',
+        amount: 7
+      },
+      features: [
+        {
+          id: 'wand-of-sparks-cast',
+          order: 1,
+          charges: {
+            id: 'wand-of-sparks-cast-charges',
+            limitKind: 'SOURCE_CHARGES',
+            scalingKind: 'NONE',
+            cost: 2
+          }
+        }
+      ]
+    } as unknown as CharacterBuildSnapshot['equipmentItems'][number]['compiledItem']
+    const equipmentItems = ['instance-wand-one', 'instance-wand-two'].map((instanceId) => ({
+      instanceId,
+      contentRef: {
+        definitionId: 'wand-of-sparks',
+        binding: { kind: 'ACTIVE' as const },
+        systemId: 'dnd5e2014'
+      },
+      attuned: true,
+      compiledItem
+    }))
+
+    const output = runEngine(
+      makeSnapshot({ equipmentItems }),
+      makeEmptyRegistry(),
+      dnd5e2014RulesSystem
+    )
+
+    expect(output.equipmentFeatureChargeUses).toEqual([
+      {
+        featureId: 'wand-of-sparks-cast',
+        equipmentId: 'wand-of-sparks',
+        itemInstanceId: 'instance-wand-one',
+        chargeId: 'wand-of-sparks-charges',
+        cost: 2
+      },
+      {
+        featureId: 'wand-of-sparks-cast',
+        equipmentId: 'wand-of-sparks',
+        itemInstanceId: 'instance-wand-two',
+        chargeId: 'wand-of-sparks-charges',
+        cost: 2
+      }
+    ])
+  })
 })
 
 /* ──────────────────────────────────────────────

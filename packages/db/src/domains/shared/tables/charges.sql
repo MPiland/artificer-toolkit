@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.charges (
   id uuid PRIMARY KEY,
 
   scaling_kind text NOT NULL,     -- SCALING_KIND
-  reset_kind text NOT NULL,       -- CHARGE_RESET_KIND
+  reset_kind text,                -- CHARGE_RESET_KIND; null for SOURCE_CHARGES
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -48,15 +48,28 @@ CREATE TABLE IF NOT EXISTS public.charge_limits (
   /* FIXED_AMOUNT */
   amount integer,
 
+  /* SOURCE_CHARGES */
+  cost integer,
+
   /* CHARACTER_LEVEL | CLASS_LEVEL | PARENT_CLASS_LEVEL | SPELL_CAST_LEVEL | ABILITY_MODIFIER */
   multiplier numeric,
   min integer,
   max integer,
 
   CONSTRAINT charge_limits_fixed_amount_chk CHECK (
-    (limit_kind = 'FIXED_AMOUNT' AND amount IS NOT NULL AND class_id IS NULL AND ability_code IS NULL)
-    OR (limit_kind IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL') AND amount IS NULL AND ability_code IS NULL)
-    OR (limit_kind = 'ABILITY_MODIFIER' AND ability_code IS NOT NULL AND amount IS NULL AND class_id IS NULL)
+    (limit_kind = 'FIXED_AMOUNT' AND amount IS NOT NULL AND cost IS NULL AND class_id IS NULL AND ability_code IS NULL)
+    OR (limit_kind IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL') AND amount IS NULL AND cost IS NULL AND ability_code IS NULL)
+    OR (limit_kind = 'ABILITY_MODIFIER' AND ability_code IS NOT NULL AND amount IS NULL AND cost IS NULL AND class_id IS NULL)
+    OR (
+      limit_kind = 'SOURCE_CHARGES'
+      AND cost > 0
+      AND amount IS NULL
+      AND class_id IS NULL
+      AND ability_code IS NULL
+      AND multiplier IS NULL
+      AND min IS NULL
+      AND max IS NULL
+    )
   ),
   CONSTRAINT charge_limits_class_level_chk CHECK (
     (limit_kind = 'CLASS_LEVEL' AND class_id IS NOT NULL)

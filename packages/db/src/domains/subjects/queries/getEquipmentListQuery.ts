@@ -11,6 +11,9 @@ export interface EquipmentListItem {
   systemId: string
   category: string | null
   capacityAmount: number | null
+  chargeId: string | null
+  maxStack: number | null
+  parentEquipmentId: string | null
   properties: string[]
   requiresAttunement: boolean
   userId: string
@@ -50,6 +53,9 @@ export async function getEquipmentListQuery(
       'system_id as systemId',
       'category',
       'capacity_amount as capacityAmount',
+      'charge_id as chargeId',
+      'max_stack as maxStack',
+      'parent_equipment_id as parentEquipmentId',
       'requires_attunement as requiresAttunement',
       'user_id as ownerUserId',
       'is_master as isMaster',

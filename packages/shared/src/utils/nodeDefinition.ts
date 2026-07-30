@@ -1246,6 +1246,7 @@ export const GROUP_PRESENTATION = {
 export type NodeSectionSpec = {
   id: string
   label: string
+  description?: string
   order: number
   step?: NodeStepSpec
 }
@@ -1253,6 +1254,7 @@ export type NodeSectionSpec = {
 export type NodeStepSpec = {
   id: string
   label: string
+  description?: string
   order: number
 }
 

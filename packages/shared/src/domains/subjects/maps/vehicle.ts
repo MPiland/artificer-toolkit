@@ -8,7 +8,8 @@ const VEHICLE_STEPS = {
   stats: { id: 'stats', label: 'Stats', order: 20 },
   capacity: { id: 'capacity', label: 'Crew and Capacity', order: 30 },
   economy: { id: 'economy', label: 'Cost and Properties', order: 40 },
-  content: { id: 'content', label: 'Features and Details', order: 50 }
+  features: { id: 'features', label: 'Features', order: 50 },
+  details: { id: 'details', label: 'Details', order: 60 }
 } as const
 
 const VEHICLE_SECTIONS = {
@@ -16,7 +17,8 @@ const VEHICLE_SECTIONS = {
   stats: { id: 'stats', label: 'Stats', order: 10, step: VEHICLE_STEPS.stats },
   capacity: { id: 'capacity', label: 'Capacity', order: 10, step: VEHICLE_STEPS.capacity },
   economy: { id: 'economy', label: 'Cost and Properties', order: 10, step: VEHICLE_STEPS.economy },
-  content: { id: 'content', label: 'Features and Details', order: 10, step: VEHICLE_STEPS.content }
+  features: { id: 'features', label: 'Features', order: 10, step: VEHICLE_STEPS.features },
+  details: { id: 'details', label: 'Details', order: 10, step: VEHICLE_STEPS.details }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
@@ -139,7 +141,7 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       'features',
       groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
         presentation: 'branch',
-        section: VEHICLE_SECTIONS.content,
+        section: VEHICLE_SECTIONS.features,
         order: 10
       })
     )
@@ -147,8 +149,8 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       'details',
       groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, {
         presentation: 'inline',
-        section: VEHICLE_SECTIONS.content,
-        order: 20
+        section: VEHICLE_SECTIONS.details,
+        order: 10
       })
     )
 })

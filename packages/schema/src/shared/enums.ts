@@ -202,14 +202,22 @@ export const scalingSourceSchema = z.enum([
 ])
 export const scalingAmountKindSchema = z.enum(['FULL', 'HALF', 'DOUBLE'])
 
-export const chargeResetKindSchema = z.enum(['LONG_REST', 'SHORT_REST', 'MANUAL'])
+export const chargeResetKindSchema = z.enum([
+  'DAILY',
+  'DAWN',
+  'DUSK',
+  'LONG_REST',
+  'SHORT_REST',
+  'MANUAL'
+])
 export const chargeLimitKindSchema = z.enum([
   'FIXED_AMOUNT',
   'CHARACTER_LEVEL',
   'CLASS_LEVEL',
   'PARENT_CLASS_LEVEL',
   'SPELL_CAST_LEVEL',
-  'ABILITY_MODIFIER'
+  'ABILITY_MODIFIER',
+  'SOURCE_CHARGES'
 ])
 export const chargeBonusKindSchema = z.enum([
   'PROFICIENCY_BONUS',
@@ -413,6 +421,7 @@ export const equipmentPropertyCodeSchema = z.enum([
   'WOOD',
   'METAL',
   'MAGIC',
+  'VEX',
   'CLOTHING'
 ])
 

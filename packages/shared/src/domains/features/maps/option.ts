@@ -12,20 +12,35 @@ import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 const option = buildNodeMap<OptionAuthored>()
 
 const OPTION_STEPS = {
-  basics: { id: 'basics', label: 'Basics', order: 10 },
-  mechanics: { id: 'mechanics', label: 'Mechanics', order: 20 },
-  grants: { id: 'grants', label: 'Grants', order: 30 }
+  basics: {
+    id: 'basics',
+    label: 'Basics',
+    description: 'Define this option and how often it can be used.',
+    order: 10
+  },
+  effects: {
+    id: 'effects',
+    label: 'Effects',
+    description: 'Configure the outcomes this option produces.',
+    order: 20
+  },
+  grants: {
+    id: 'grants',
+    label: 'Grants',
+    description: 'Add the benefits this option provides.',
+    order: 30
+  }
 } as const
 
 const OPTION_SECTIONS = {
   basics: { id: 'basics', label: 'Option Basics', order: 10, step: OPTION_STEPS.basics },
-  effects: { id: 'effects', label: 'Effects', order: 10, step: OPTION_STEPS.mechanics },
-  usage: { id: 'usage', label: 'Usage', order: 20, step: OPTION_STEPS.mechanics },
+  effects: { id: 'effects', label: 'Effects', order: 10, step: OPTION_STEPS.effects },
+  usage: { id: 'usage', label: 'Usage', order: 20, step: OPTION_STEPS.basics },
   restrictions: {
     id: 'restrictions',
     label: 'Restrictions',
     order: 30,
-    step: OPTION_STEPS.mechanics
+    step: OPTION_STEPS.basics
   },
   grants: { id: 'grants', label: 'Grants', order: 10, step: OPTION_STEPS.grants }
 } as const
@@ -82,7 +97,7 @@ export const OPTION_NODE_MAP = option.define('option', ({ map, nodes, cond }) =>
     .set(
       'restrictions',
       groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
-        presentation: 'branch',
+        presentation: 'inline',
         section: OPTION_SECTIONS.restrictions,
         order: 30,
         authoring: {

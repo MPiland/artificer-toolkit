@@ -6,6 +6,7 @@ import {
   actionEmphasis,
   actionPresentationPresets,
   actionWidth,
+  blackForgeSurfaceScale,
   breakpoints,
   breakpointsKeys,
   darkColorTokens,
@@ -93,10 +94,55 @@ describe('semantic color tokens', () => {
       background: 'transparent',
       border: '#ec8c06',
       hover: 'rgba(236, 106, 6, 0.18)',
-      active: '#262b2a',
+      active: blackForgeSurfaceScale.raised,
       text: '#ffb690'
     })
-    expect(darkColorTokens.color.button.secondary.background).toBe('#12161c')
+    expect(darkColorTokens.color.button.secondary.background).toBe(blackForgeSurfaceScale.rail)
     expect(darkColorTokens.color.status.danger).toBe('#e8795f')
+  })
+
+  it('builds global dark surfaces from the same Black Forge scale as authoring', () => {
+    expect(darkColorTokens.color.surface).toMatchObject({
+      canvas: blackForgeSurfaceScale.canvas,
+      panel: blackForgeSurfaceScale.panel,
+      sidebar: blackForgeSurfaceScale.rail,
+      header: blackForgeSurfaceScale.header
+    })
+    expect(darkColorTokens.color.authoring).toMatchObject({
+      canvas: blackForgeSurfaceScale.canvas,
+      panel: blackForgeSurfaceScale.panel,
+      rail: blackForgeSurfaceScale.rail
+    })
+    expect(darkColorTokens.color.border).toEqual({
+      subtle: blackForgeSurfaceScale.structuralBorder,
+      strong: blackForgeSurfaceScale.fieldBorder
+    })
+  })
+
+  it('exports shared authoring workspace roles for both themes', () => {
+    expect(lightColorTokens.color.authoring).toMatchObject({
+      band: '#ffffff',
+      border: '#dfe4ea',
+      dock: '#ffffff',
+      field: '#ffffff',
+      fieldBorder: '#b5b9c6',
+      header: '#ffffff',
+      notice: '#fff8e8',
+      preview: '#fffaf1',
+      previewBorder: '#d6b67a'
+    })
+    expect(darkColorTokens.color.authoring).toMatchObject({
+      band: '#101214',
+      border: 'rgba(255, 255, 255, 0.07)',
+      canvas: '#101315',
+      dock: '#171a1d',
+      field: '#101315',
+      fieldBorder: '#343a40',
+      header: '#101214',
+      notice: '#191917',
+      panel: '#171a1d',
+      preview: '#15181a',
+      previewBorder: 'rgba(214, 182, 122, 0.16)'
+    })
   })
 })

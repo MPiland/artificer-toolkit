@@ -458,8 +458,7 @@ const modifierGrant = buildNodeMap<ModifierGrantUnion>()
 const MODIFIER_GRANT_SECTIONS = {
   modifier: { id: 'modifier', label: 'Modifier', order: 10 },
   domain: { id: 'domain', label: 'Domain', order: 20 },
-  value: { id: 'value', label: 'Value', order: 30 },
-  restrictions: { id: 'restrictions', label: 'Restrictions', order: 40 }
+  value: { id: 'value', label: 'Value', order: 30 }
 } as const
 
 export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
@@ -579,8 +578,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
         'restrictions',
         groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, {
           presentation: 'inline',
-          section: MODIFIER_GRANT_SECTIONS.restrictions,
-          order: 10,
+          section: MODIFIER_GRANT_SECTIONS.modifier,
+          order: 40,
           authoring: {
             actions: [
               {

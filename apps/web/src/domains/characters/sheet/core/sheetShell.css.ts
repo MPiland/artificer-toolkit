@@ -62,7 +62,7 @@ export const desktopWorkspace = style({
     [app]: {
       background: foundationVars.color.surface.panel,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xl,
+      borderRadius: foundationVars.radius.lg,
       display: 'grid',
       minWidth: 0,
       minHeight: 0,
@@ -196,6 +196,8 @@ export const tab = style({
   '@layer': {
     [app]: {
       backgroundColor: 'transparent',
+      border: 0,
+      borderBottom: '2px solid transparent',
       flex: '0 0 auto',
       whiteSpace: 'nowrap',
       '@media': {

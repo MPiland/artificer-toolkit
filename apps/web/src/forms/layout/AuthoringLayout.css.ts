@@ -5,6 +5,10 @@ import { app } from '../../css/layers.css.ts'
 export const canvas = style({
   '@layer': {
     [app]: {
+      vars: {
+        [foundationVars.color.input.background.default]: foundationVars.color.authoring.field,
+        [foundationVars.color.input.border.default]: foundationVars.color.authoring.fieldBorder
+      },
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
@@ -14,7 +18,7 @@ export const canvas = style({
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'hidden',
-      backgroundColor: foundationVars.color.surface.canvas
+      backgroundColor: foundationVars.color.authoring.canvas
     }
   }
 })

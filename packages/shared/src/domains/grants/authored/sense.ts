@@ -6,6 +6,6 @@ export type SenseGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sc
   N
 > & {
   grantKind: typeof GRANT_KIND.SENSE_GRANT
-  charges?: ChargeAuthored
+  charges?: ChargeAuthored<true>
   range?: RangeAuthored
 }

@@ -5,8 +5,10 @@ import {
   CharacterSheetDetailRow,
   CharacterSheetDetailRowList
 } from '../shared/CharacterSheetDetailPanel'
+import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeatureUseControl'
+import * as featureUseStyles from '../shared/featureUse.css'
 import * as panelStyles from '../shared/panel.css'
-import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 
 function ReferenceFactRows({
   badge,
@@ -38,11 +40,17 @@ function ReferenceFactRows({
 }
 
 export function CharacterSheetReference({
+  hideTitle,
   mode = 'all',
-  sheet
+  pending,
+  sheet,
+  submitCommand
 }: {
+  hideTitle?: boolean
   mode?: 'all' | 'features' | 'proficiencies'
+  pending: boolean
   sheet: CharacterSheet
+  submitCommand: SubmitSheetCommand
 }) {
   const showFeatures = mode !== 'proficiencies'
   const showProficiencies = mode !== 'features'
@@ -50,24 +58,55 @@ export function CharacterSheetReference({
     mode === 'features' ? 'Features' : mode === 'proficiencies' ? 'Proficiencies' : 'Reference'
 
   return (
-    <CharacterSheetDetailPanel ariaId={`character-sheet-${mode}`} title={title}>
+    <CharacterSheetDetailPanel
+      ariaId={`character-sheet-${mode}`}
+      hideTitle={hideTitle}
+      title={title}
+    >
       <CharacterSheetDetailRowList>
         {showFeatures && sheet.reference.features.length ? (
-          sheet.reference.features.map((feature) => (
-            <CharacterSheetDetailRow
-              key={`${feature.sourceLabel}:${feature.id}`}
-              left={
-                <>
-                  <Text fw={700}>{feature.label}</Text>
-                  <Text className={panelStyles.muted}>{feature.sourceLabel}</Text>
-                  {feature.description ? (
-                    <AuthoredDetailProse html={feature.description} fallback='' />
-                  ) : null}
-                </>
-              }
-              right={<Badge variant='light'>Feature</Badge>}
-            />
-          ))
+          sheet.reference.features.map((feature) => {
+            const resource = feature.resourceGrantId
+              ? sheet.resources.items.find((candidate) => candidate.id === feature.resourceGrantId)
+              : undefined
+            const resourceCost = feature.resourceCost ?? 1
+
+            return (
+              <CharacterSheetDetailRow
+                key={`${feature.sourceLabel}:${feature.id}`}
+                left={
+                  <>
+                    <div className={featureUseStyles.heading}>
+                      <Text fw={700}>{feature.label}</Text>
+                      {resource ? (
+                        <CharacterSheetFeatureUseControl
+                          cost={resourceCost}
+                          disabled={pending || resource.remaining < resourceCost}
+                          label={feature.label}
+                          maximum={resource.max}
+                          remaining={resource.remaining}
+                          onUse={() =>
+                            void submitCommand({
+                              type: 'USE_RESOURCE',
+                              expectedVersion: sheet.meta.streamVersion,
+                              resourceGrantId: resource.id,
+                              ...(resourceCost > 1 ? { amount: resourceCost } : {})
+                            })
+                          }
+                        />
+                      ) : (
+                        <Badge variant='light'>Feature</Badge>
+                      )}
+                    </div>
+                    <Text className={panelStyles.muted}>{feature.sourceLabel}</Text>
+                    {feature.description ? (
+                      <AuthoredDetailProse html={feature.description} fallback='' />
+                    ) : null}
+                  </>
+                }
+              />
+            )
+          })
         ) : showFeatures ? (
           <Text className={panelStyles.muted}>No feature references are currently available.</Text>
         ) : null}

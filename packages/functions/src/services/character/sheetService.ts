@@ -822,6 +822,7 @@ const DEFAULT_NOTE_GROUPS = [
   { id: 'characters', label: 'Characters', sortOrder: 2, kind: 'CHARACTERS' as const },
   { id: 'places', label: 'Places', sortOrder: 3, kind: 'PLACES' as const }
 ]
+const MAX_NON_STACKABLE_COPIES_PER_COMMAND = 100
 
 function getNoteGroups(character: CharacterAuthored) {
   const persistedGroups = character.state.noteGroups ?? []
@@ -2207,10 +2208,23 @@ export async function buildCharacterSheetResponse(params: {
     passiveChecks: engineOutput.derivedStats.passiveChecks
   })
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
+  const equipmentActionFeatureIds = engineOutput.equipmentFeatureChargeUses.flatMap((use) => {
+    const feature = equipmentById
+      .get(use.equipmentId)
+      ?.features?.find((candidate) => candidate.id === use.featureId)
+    return feature && !feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)
+      ? [feature.id]
+      : []
+  })
   const selectedFeatureOptionIds = getSelectedFeatureOptionIds(character)
   const mechanicsQuery = await getCharacterSheetMechanicsQuery(params.db, {
     spellIds: [...displayedSpellIds],
-    featureIds: sheetReferenceFeatures.map((feature) => feature.id),
+    featureIds: [
+      ...new Set([
+        ...sheetReferenceFeatures.map((feature) => feature.id),
+        ...equipmentActionFeatureIds
+      ])
+    ],
     featureOptionIds: [...selectedFeatureOptionIds],
     featIds: (resolution.registry.feats ?? []).map((feat) => feat.id),
     equipmentIds: [...new Set(character.state.equipment.inventory.map((item) => item.equipmentId))]
@@ -2249,6 +2263,73 @@ export async function buildCharacterSheetResponse(params: {
       }
     }
   }
+  const equipmentFeatureChargeUsesByFeatureId = new Map<
+    string,
+    (typeof engineOutput.equipmentFeatureChargeUses)[number][]
+  >()
+  for (const use of engineOutput.equipmentFeatureChargeUses ?? []) {
+    const uses = equipmentFeatureChargeUsesByFeatureId.get(use.featureId) ?? []
+    uses.push(use)
+    equipmentFeatureChargeUsesByFeatureId.set(use.featureId, uses)
+  }
+  const inventoryStateById = new Map(
+    character.state.equipment.inventory.map((item) => [item.id, item] as const)
+  )
+  const chargeBearingItemsByEquipmentId = new Map<
+    string,
+    (typeof character.state.equipment.inventory)[number][]
+  >()
+  for (const item of character.state.equipment.inventory) {
+    if (!equipmentById.get(item.equipmentId)?.charges) continue
+    const copies = chargeBearingItemsByEquipmentId.get(item.equipmentId) ?? []
+    copies.push(item)
+    chargeBearingItemsByEquipmentId.set(item.equipmentId, copies)
+  }
+  const equipmentChargeSourceLabelsByItemId = new Map<string, string>()
+  for (const copies of chargeBearingItemsByEquipmentId.values()) {
+    const copyCountsByLabel = new Map<string, number>()
+    for (const item of copies) {
+      const label = item.customName ?? equipmentById.get(item.equipmentId)?.label ?? 'Item'
+      copyCountsByLabel.set(label, (copyCountsByLabel.get(label) ?? 0) + 1)
+    }
+    const copyIndexesByLabel = new Map<string, number>()
+    copies.forEach((item) => {
+      const baseLabel = item.customName ?? equipmentById.get(item.equipmentId)?.label ?? 'Item'
+      const labelIndex = (copyIndexesByLabel.get(baseLabel) ?? 0) + 1
+      copyIndexesByLabel.set(baseLabel, labelIndex)
+      equipmentChargeSourceLabelsByItemId.set(
+        item.id,
+        (copyCountsByLabel.get(baseLabel) ?? 0) > 1 ? `${baseLabel} #${labelIndex}` : baseLabel
+      )
+    })
+  }
+  const equipmentReferenceFeatures = engineOutput.equipmentFeatureChargeUses.flatMap((use) => {
+    const feature = equipmentById
+      .get(use.equipmentId)
+      ?.features?.find((candidate) => candidate.id === use.featureId)
+    if (!feature || feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)) return []
+
+    return [
+      {
+        id: `${feature.id}:${use.itemInstanceId}`,
+        label: feature.label,
+        ...(feature.description ? { description: feature.description } : {}),
+        ...(feature.attributes ? { attributes: feature.attributes } : {}),
+        sourceLabel: equipmentChargeSourceLabelsByItemId.get(use.itemInstanceId) ?? feature.label,
+        source: {
+          kind: 'EQUIPMENT_INSTANCE' as const,
+          equipmentId: use.equipmentId,
+          itemInstanceId: use.itemInstanceId
+        },
+        resourceCost: use.cost,
+        resourceGrantId: createCharacterResourceOwnerKey({
+          kind: 'ITEM_INSTANCE',
+          chargeId: use.chargeId,
+          itemInstanceId: use.itemInstanceId
+        })
+      }
+    ]
+  })
   const actionItems: CharacterSheetResponseDto['actions']['items'] = []
   const actionSourceFeatureIds = new Map<string, string>()
   for (const ownerKind of ['FEATURE', 'FEATURE_OPTION', 'FEAT', 'EQUIPMENT'] as const) {
@@ -2266,17 +2347,44 @@ export async function buildCharacterSheetResponse(params: {
               ? featureSourceLabels.get(sourceFeatureId)?.join(', ')
               : undefined
       for (const mechanic of mechanics) {
-        const actionId = `${ownerKind}:${ownerId}:${mechanic.effectId}`
-        actionItems.push({
-          id: actionId,
-          label: owner.label,
-          kind: toSheetActionKind(mechanic),
-          sourceLabel,
-          description: owner.description ?? undefined,
-          rollable: isRollableSheetMechanic(mechanic),
-          mechanic
-        })
-        if (sourceFeatureId) actionSourceFeatureIds.set(actionId, sourceFeatureId)
+        const equipmentChargeUses =
+          ownerKind === 'FEATURE' ? equipmentFeatureChargeUsesByFeatureId.get(ownerId) : undefined
+        const actionChargeUses = equipmentChargeUses?.length ? equipmentChargeUses : [undefined]
+        for (const chargeUse of actionChargeUses) {
+          const actionId = [
+            ownerKind,
+            ownerId,
+            ...(chargeUse ? [chargeUse.itemInstanceId] : []),
+            mechanic.effectId
+          ].join(':')
+          const itemState = chargeUse ? inventoryStateById.get(chargeUse.itemInstanceId) : undefined
+          const itemLabel = chargeUse
+            ? (equipmentChargeSourceLabelsByItemId.get(chargeUse.itemInstanceId) ??
+              itemState?.customName ??
+              equipmentById.get(chargeUse.equipmentId)?.label ??
+              sourceLabel)
+            : sourceLabel
+          const resourceGrantId = chargeUse
+            ? createCharacterResourceOwnerKey({
+                kind: 'ITEM_INSTANCE',
+                chargeId: chargeUse.chargeId,
+                itemInstanceId: chargeUse.itemInstanceId
+              })
+            : undefined
+          actionItems.push({
+            id: actionId,
+            label: owner.label,
+            kind: toSheetActionKind(mechanic),
+            sourceLabel: itemLabel,
+            description: owner.description ?? undefined,
+            rollable: isRollableSheetMechanic(mechanic),
+            mechanic,
+            ...(chargeUse && resourceGrantId
+              ? { resourceGrantId, resourceCost: chargeUse.cost }
+              : {})
+          })
+          if (sourceFeatureId) actionSourceFeatureIds.set(actionId, sourceFeatureId)
+        }
       }
     }
   }
@@ -2396,9 +2504,9 @@ export async function buildCharacterSheetResponse(params: {
         {
           id: createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner)),
           owner,
-          label: `${item.label} charges`,
+          label: `${equipmentChargeSourceLabelsByItemId.get(item.id) ?? item.label} charges`,
           description: item.description ?? undefined,
-          sourceLabel: item.label,
+          sourceLabel: equipmentChargeSourceLabelsByItemId.get(item.id) ?? item.label,
           used,
           max,
           remaining: Math.max(max - used, 0),
@@ -2413,7 +2521,7 @@ export async function buildCharacterSheetResponse(params: {
     const creature = creaturesById.get(instance.creatureId)
     if (!creature) return []
     return (creature.features ?? []).flatMap((feature) => {
-      if (!feature.charges) return []
+      if (!feature.charges || feature.charges.limitKind === 'SOURCE_CHARGES') return []
       const charge = compileCharge(feature.charges)
       const owner: CharacterResourceOwnerRef = {
         kind: 'COMPANION_FEATURE',
@@ -2451,7 +2559,7 @@ export async function buildCharacterSheetResponse(params: {
   })
   const spellResourceItems: CharacterSheetResponseDto['resources']['items'] =
     engineOutput.spellAccess.flatMap((access) => {
-      if (!access.charges) return []
+      if (!access.charges || access.charges.limitKind === 'SOURCE_CHARGES') return []
       const source = {
         spellId: access.spellId,
         sourceKind: 'FEATURE' as const,
@@ -2703,7 +2811,7 @@ export async function buildCharacterSheetResponse(params: {
         }))
     },
     reference: {
-      features: sheetReferenceFeatures,
+      features: [...sheetReferenceFeatures, ...equipmentReferenceFeatures],
       proficiencies: engineOutput.proficiencies.reduce<
         CharacterSheetResponseDto['reference']['proficiencies']
       >((proficiencies, proficiency) => {
@@ -2742,6 +2850,7 @@ export async function buildCharacterSheetResponse(params: {
         id: equipment.id,
         label: equipment.label,
         isContainer: equipment.isContainer,
+        ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
         requiresAttunement: equipment.requiresAttunement
       })),
       currencyOptions
@@ -3877,11 +3986,19 @@ export function applyCharacterSheetCommand(
 
     case 'USE_RESOURCE': {
       const resource = ensureResource(sheet, command.resourceGrantId)
+      const amount = command.amount ?? 1
+      if (amount > resource.remaining) {
+        throw new CharacterSheetCommandError(
+          `Resource "${resource.label}" only has ${resource.remaining} ${
+            resource.remaining === 1 ? 'use' : 'uses'
+          } remaining.`
+        )
+      }
       return updateResourceUsage(
         next,
         command.resourceGrantId,
         resource.max,
-        (used) => used + (command.amount ?? 1)
+        (used) => used + amount
       )
     }
 
@@ -4017,18 +4134,29 @@ export function applyCharacterSheetCommand(
       if (command.containerId && equipment.isContainer) {
         throw new CharacterSheetCommandError('Nested containers are not supported.')
       }
+      if (equipment.maxStack && equipment.maxStack > 1 && command.quantity > equipment.maxStack) {
+        throw new CharacterSheetCommandError(
+          `"${equipment.label}" stacks may contain at most ${equipment.maxStack} items.`
+        )
+      }
+      if (equipment.maxStack === 1 && command.quantity > MAX_NON_STACKABLE_COPIES_PER_COMMAND) {
+        throw new CharacterSheetCommandError(
+          `Add at most ${MAX_NON_STACKABLE_COPIES_PER_COMMAND} non-stackable copies at a time.`
+        )
+      }
       ensureContainer(command.containerId)
-      next.state.equipment.inventory = [
-        ...next.state.equipment.inventory,
-        {
+      const addedItems = Array.from(
+        { length: equipment.maxStack === 1 ? command.quantity : 1 },
+        () => ({
           id: createId(),
           equipmentId: command.equipmentId,
-          quantity: command.quantity,
+          quantity: equipment.maxStack === 1 ? 1 : command.quantity,
           containerId: command.containerId,
           customName: command.customName,
           notes: command.notes
-        }
-      ]
+        })
+      )
+      next.state.equipment.inventory = [...next.state.equipment.inventory, ...addedItems]
       return clearEmptyStateArrays(next)
     }
 
@@ -4056,7 +4184,20 @@ export function applyCharacterSheetCommand(
     }
 
     case 'UPDATE_INVENTORY_ITEM': {
-      ensureInventoryItem(next, command.itemId)
+      const existingItem = ensureInventoryItem(next, command.itemId)
+      const equipment = sheet.reference.equipmentOptions.find(
+        (candidate) => candidate.id === existingItem.equipmentId
+      )
+      if (
+        command.quantity !== undefined &&
+        command.quantity > 0 &&
+        equipment?.maxStack !== undefined &&
+        command.quantity > equipment.maxStack
+      ) {
+        throw new CharacterSheetCommandError(
+          `"${equipment.label}" stacks may contain at most ${equipment.maxStack} items.`
+        )
+      }
       if (command.quantity === 0) {
         ensureEmptyContainer(command.itemId)
         next.state.equipment.inventory = next.state.equipment.inventory.filter(
@@ -5259,7 +5400,7 @@ export async function executeCharacterSheetCommand(params: {
       const resource = ensureResource(currentSheet, command.resourceGrantId)
       resourceUsageUpdate = {
         resource,
-        used: Math.min(resource.used + (command.amount ?? 1), resource.max)
+        used: resource.used + (command.amount ?? 1)
       }
       break
     }

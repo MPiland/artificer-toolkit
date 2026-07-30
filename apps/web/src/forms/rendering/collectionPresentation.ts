@@ -35,6 +35,22 @@ type CollectionPresentation = {
 }
 
 type CollectionRowIcon = 'box' | 'sparkles' | 'sword'
+type CollectionColumnKey = 'name' | 'source' | 'restrictions'
+
+export type CollectionColumn = {
+  key: CollectionColumnKey
+  label: string
+}
+
+export type CollectionRowCell = CollectionColumn & {
+  value: string
+}
+
+const MODIFIER_COLUMNS: readonly CollectionColumn[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'source', label: 'Source' },
+  { key: 'restrictions', label: 'Restrictions' }
+]
 
 export function getCollectionPresentation(
   node: NodeRuntimeArrayGroupNodeDto
@@ -131,6 +147,33 @@ export function getCollectionRowIcon(
 ): CollectionRowIcon {
   if (node.authoring?.collection?.rowSummary !== 'modifier') return 'box'
   return isRecord(row) && row.valueDomainCode === 'ATTACK_ROLL' ? 'sword' : 'sparkles'
+}
+
+export function getCollectionColumns(
+  node: NodeRuntimeArrayGroupNodeDto
+): readonly CollectionColumn[] {
+  return node.authoring?.collection?.rowSummary === 'modifier' ? MODIFIER_COLUMNS : []
+}
+
+export function getCollectionRowCells(
+  node: NodeRuntimeArrayGroupNodeDto,
+  row: unknown,
+  label: string
+): readonly CollectionRowCell[] {
+  if (!isRecord(row) || node.authoring?.collection?.rowSummary !== 'modifier') return []
+
+  const source =
+    row.scope === 'SOURCE'
+      ? 'This item'
+      : row.scope === 'GLOBAL'
+        ? 'Global'
+        : 'Not specified'
+
+  return [
+    { ...MODIFIER_COLUMNS[0], value: label },
+    { ...MODIFIER_COLUMNS[1], value: source },
+    { ...MODIFIER_COLUMNS[2], value: getRestrictionLabel(row) ?? 'None' }
+  ]
 }
 
 function findCollectionAction<TType extends NodeRuntimeCollectionActionDto['type']>(

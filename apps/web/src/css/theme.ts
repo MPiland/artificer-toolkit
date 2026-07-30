@@ -15,7 +15,7 @@ export const theme = createTheme({
   },
   fontFamilyMonospace: foundationVars.font.mono,
   radius: foundationVars.radius,
-  defaultRadius: 'lg',
+  defaultRadius: 'md',
   components: {
     Button: Button.extend({
       vars: (mantineTheme, props) => {

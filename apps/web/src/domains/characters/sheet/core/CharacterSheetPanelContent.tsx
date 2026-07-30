@@ -51,6 +51,7 @@ export function CharacterSheetPanelContent({
         />
       ) : (
         <CharacterSheetActions
+          hideTitle
           openPanel={openPanel}
           pending={pending}
           sheet={sheet}
@@ -60,7 +61,7 @@ export function CharacterSheetPanelContent({
     case 'spells':
       return (
         <CharacterSheetSpells
-          hideTitle={mobile}
+          hideTitle
           openPanel={openPanel}
           pending={pending}
           sheet={sheet}
@@ -70,7 +71,7 @@ export function CharacterSheetPanelContent({
     case 'extras':
       return (
         <CharacterSheetExtras
-          hideTitle={mobile}
+          hideTitle
           openPanel={openPanel}
           pending={pending}
           sheet={sheet}
@@ -80,6 +81,7 @@ export function CharacterSheetPanelContent({
     case 'equipment':
       return (
         <CharacterSheetInventory
+          hideTitle
           openPanel={openPanel}
           pending={pending}
           sheet={sheet}
@@ -87,10 +89,19 @@ export function CharacterSheetPanelContent({
         />
       )
     case 'features':
-      return <CharacterSheetReference mode='features' sheet={sheet} />
+      return (
+        <CharacterSheetReference
+          hideTitle
+          mode='features'
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+        />
+      )
     case 'inventory':
       return (
         <CharacterSheetInventory
+          hideTitle
           openPanel={openPanel}
           pending={pending}
           sheet={sheet}
@@ -98,12 +109,25 @@ export function CharacterSheetPanelContent({
         />
       )
     case 'reference':
-      return <CharacterSheetReference mode='features' sheet={sheet} />
+      return (
+        <CharacterSheetReference
+          hideTitle
+          mode='features'
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+        />
+      )
     case 'notes':
       return mobile ? (
         <CharacterSheetMobileNotes pending={pending} sheet={sheet} submitCommand={submitCommand} />
       ) : (
-        <CharacterSheetNotes pending={pending} sheet={sheet} submitCommand={submitCommand} />
+        <CharacterSheetNotes
+          hideTitle
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+        />
       )
     case 'skills':
       return (

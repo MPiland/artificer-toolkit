@@ -86,6 +86,46 @@ describe('authoring node map visibility', () => {
     ).toBe(false)
   })
 
+  it('offers source charge consumption only when a containing authored source owns a pool', () => {
+    const limitKindNode = CHARGE_NODE_MAP.nodes.limitKind
+    const costNode = CHARGE_NODE_MAP.nodes.cost
+    const resetKindNode = CHARGE_NODE_MAP.nodes.resetKind
+
+    if (
+      !limitKindNode ||
+      limitKindNode.kind !== 'INPUT' ||
+      limitKindNode.type !== 'SELECT_SINGLE' ||
+      limitKindNode.source.kind !== 'INLINE_GROUPS'
+    ) {
+      throw new Error('Expected charge limit kind to use conditional inline groups')
+    }
+
+    const optionsWithoutSource = limitKindNode.source.optionGroups
+      .filter((group) =>
+        evaluateConditionIf(group.showIf, {
+          values: {},
+          ancestors: [{ attributes: ['LIMITED_USE'] }]
+        })
+      )
+      .flatMap((group) => group.options)
+    const optionsWithSource = limitKindNode.source.optionGroups
+      .filter((group) =>
+        evaluateConditionIf(group.showIf, {
+          values: {},
+          ancestors: [
+            { id: 'feature' },
+            { attributes: ['LIMITED_USE'] }
+          ]
+        })
+      )
+      .flatMap((group) => group.options)
+
+    expect(optionsWithoutSource.some((option) => option.code === 'SOURCE_CHARGES')).toBe(false)
+    expect(optionsWithSource.some((option) => option.code === 'SOURCE_CHARGES')).toBe(true)
+    expect(isVisible(costNode, { limitKind: 'SOURCE_CHARGES' })).toBe(true)
+    expect(isVisible(resetKindNode, { limitKind: 'SOURCE_CHARGES' })).toBe(false)
+  })
+
   it('exposes damage multipliers for every value kind and heal multipliers only for pools', () => {
     const resultBlockNode = PATH_NODE_MAP.nodes.resultBlock
 

@@ -7,7 +7,6 @@ import { ResetFormConfirmation } from './Actions/ResetFormConfirmation'
 import { Steps } from './Steps/Steps'
 import { useAuthoringLayout } from './AuthoringLayoutContext'
 import { Previews } from './Previews/Previews'
-import { Header } from './Header/Header'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { Editor } from './Editor/Editor'
 import {
@@ -23,9 +22,9 @@ import type { AuthoredFormDomainRegistration } from '../factories/authoredFormFa
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import type { AuthoredFormRouteMode, CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import { CharacterBuilderAuthoringRuntime } from '#domains/characters/builder/core/CharacterBuilderAuthoringRuntime'
-import { useBreakpoints } from '#ui'
 import { useShellHeaderSupplement } from '#app/shell'
 import { getRulesetLabel } from './AuthoringLayout.utils'
+import { useAuthoringSaveShortcut } from './useAuthoringSaveShortcut'
 
 type EmptyAuthoringLayoutProps = {
   children?: ReactNode
@@ -59,9 +58,7 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
 }
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
-  const { stepsNavigationOpen, setPreviewContent } = useAuthoringLayout()
-  const { isMobile, isTabletPortrait } = useBreakpoints()
-  const usesOverlayNavigation = isMobile || isTabletPortrait
+  const { isWideDesktop, setPreviewContent, status } = useAuthoringLayout()
   const authoring = useAuthoringForm()
   const session = authoring.authoredSession
   const characterSession = authoring.characterSession
@@ -69,6 +66,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   useShellHeaderSupplement(rulesetLabel ?? null)
   const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
     authoring
+  useAuthoringSaveShortcut()
   const defaultValues = useMemo(() => session?.initialValues ?? EMPTY_FORM_VALUES, [session])
   const form = useAppForm({
     defaultValues,
@@ -93,13 +91,15 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         {(nextValues) =>
           session.renderPreview?.({
             domain: session.domain,
+            label: readPreviewLabel(nextValues, session.fallbackLabel),
+            statusLabel: status.label,
             system: session.system,
             values: nextValues
           })
         }
       </form.Subscribe>
     )
-  }, [form, session])
+  }, [form, session, status.label])
 
   useEffect(() => {
     setPreviewContent(previewContent)
@@ -189,9 +189,8 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       <main
         className={styles.canvas}
         data-testid='authoring-form-canvas'
-        data-structure-open={!usesOverlayNavigation && stepsNavigationOpen ? 'true' : 'false'}
+        data-structure-open={isWideDesktop ? 'true' : 'false'}
       >
-        <Header />
         <section id='authoring-workspace' className={styles.workspace}>
           <Steps />
           <Editor>{editorContent}</Editor>
@@ -338,4 +337,10 @@ function isAuthoredFormRouteMode(value: unknown): value is AuthoredFormRouteMode
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function readPreviewLabel(values: object, fallbackLabel: string): string {
+  if (!('label' in values) || typeof values.label !== 'string') return fallbackLabel
+
+  return values.label.trim() || fallbackLabel
 }

@@ -124,6 +124,14 @@ const STATIC_RELATIONSHIP_OPTIONS: Readonly<Record<string, readonly NodeRuntimeO
     { value: 'sorcerer', label: 'Sorcerer' },
     { value: 'wizard', label: 'Wizard' }
   ],
+  equipment: [
+    {
+      value: '00000000-0000-0000-0060-001600000000',
+      label: 'Shortsword'
+    },
+    { value: 'longsword', label: 'Longsword' },
+    { value: 'backpack', label: 'Backpack' }
+  ],
   magic_schools: [
     { value: '00000000-0000-0000-0007-000500000000', label: 'Evocation' },
     { value: 'evocation', label: 'Evocation' },
@@ -175,6 +183,7 @@ export function createResolvedFormModelFromNodeMap<TValues extends object>(
   const steps = resolveStaticNodeMapSteps(nodeMap).map((step) => ({
     id: step.id,
     label: step.label,
+    description: step.description,
     order: step.order,
     sections: step.sections.map((section) => ({
       id: section.id,

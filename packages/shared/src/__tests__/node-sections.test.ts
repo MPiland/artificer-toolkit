@@ -8,7 +8,9 @@ import {
   CREATURE_NODE_MAP,
   EQUIPMENT_NODE_MAP,
   FEAT_NODE_MAP,
+  FEATURE_GRANTS_NODE_MAP,
   FEATURE_NODE_MAP,
+  MODIFIER_GRANT_NODE_MAP,
   OPTION_NODE_MAP,
   RACE_NODE_MAP,
   SPELL_NODE_MAP,
@@ -33,6 +35,27 @@ describe('node map sections', () => {
       'effects'
     ])
     expect(sections[0]?.nodes.map((node) => node.id)).toContain('label')
+  })
+
+  it('forwards a section description to its derived step', () => {
+    const nodeMap = buildNodeMap<{ label?: string }>().define('described-step', ({ map, nodes }) => {
+      map.set('label', nodes.text(['label'], 'Name', {
+        section: {
+          id: 'basics',
+          label: 'Basics',
+          description: 'Define the core identity for this item.',
+          order: 10
+        }
+      }))
+    })
+
+    expect(resolveNodeMapSteps(nodeMap)).toMatchObject([
+      {
+        id: 'basics',
+        label: 'Basics',
+        description: 'Define the core identity for this item.'
+      }
+    ])
   })
 
   it('inherits nearest parent sections for nested nodes', () => {
@@ -154,7 +177,8 @@ describe('node map sections', () => {
       'stats',
       'capacity',
       'economy',
-      'content'
+      'features',
+      'details'
     ])
     const descriptionNode = VEHICLE_NODE_MAP.nodes.description
 
@@ -239,11 +263,48 @@ describe('node map sections', () => {
 
     expect(featureSteps.map((step) => step.id)).toEqual([
       'basics',
-      'mechanics',
+      'effects',
       'grants',
       'options'
     ])
-    expect(optionSteps.map((step) => step.id)).toEqual(['basics', 'mechanics', 'grants'])
+    expect(optionSteps.map((step) => step.id)).toEqual(['basics', 'effects', 'grants'])
+    expect(resolveNodeMapSteps(EQUIPMENT_NODE_MAP).map((step) => step.id)).toEqual([
+      'basics',
+      'properties',
+      'economy',
+      'effects',
+      'grants',
+      'features',
+      'contents'
+    ])
+    expect(resolveNodeMapSteps(FEAT_NODE_MAP).map((step) => step.id)).toEqual([
+      'basics',
+      'requirements',
+      'effects',
+      'grants',
+      'features'
+    ])
+    expect(resolveNodeMapSteps(CREATURE_NODE_MAP).map((step) => step.id)).toEqual([
+      'basics',
+      'stats',
+      'defenses',
+      'details',
+      'features',
+      'proficiencies',
+      'profiles'
+    ])
+    expect(resolveNodeMapSteps(FEATURE_GRANTS_NODE_MAP).map((step) => step.id)).toEqual([
+      'feats',
+      'modifiers',
+      'proficiencies',
+      'senses',
+      'spells'
+    ])
+    expect(resolveNodeMapSteps(MODIFIER_GRANT_NODE_MAP).map((step) => step.id)).toEqual([
+      'modifier',
+      'domain',
+      'value'
+    ])
 
     expect(FEATURE_NODE_MAP.nodes.description.kind).toBe('INPUT')
     if (FEATURE_NODE_MAP.nodes.description.kind === 'INPUT') {
@@ -270,6 +331,45 @@ describe('node map sections', () => {
     expect(OPTION_NODE_MAP.nodes.grants).toMatchObject({
       kind: 'GROUP',
       groupKind: 'OBJECT'
+    })
+    expect(MODIFIER_GRANT_NODE_MAP.nodes.restrictions.section?.id).toBe('modifier')
+    expect(FEATURE_NODE_MAP.nodes.charges.section?.step?.id).toBe('basics')
+    expect(OPTION_NODE_MAP.nodes.charges.section?.step?.id).toBe('basics')
+    expect(FEAT_NODE_MAP.nodes.charges.section?.id).toBe('basics')
+    expect(FEATURE_NODE_MAP.nodes.restrictions).toMatchObject({
+      presentation: 'inline',
+      section: expect.objectContaining({ step: expect.objectContaining({ id: 'basics' }) })
+    })
+    expect(OPTION_NODE_MAP.nodes.restrictions).toMatchObject({
+      presentation: 'inline',
+      section: expect.objectContaining({ step: expect.objectContaining({ id: 'basics' }) })
+    })
+    expect(EQUIPMENT_NODE_MAP.nodes.charges.section?.id).toBe('basics')
+    expect(EQUIPMENT_NODE_MAP.nodes.restrictions).toMatchObject({
+      presentation: 'inline',
+      section: expect.objectContaining({ id: 'basics' })
+    })
+  })
+
+  it('uses semantic authoring steps across every authored domain map', () => {
+    const maps: NodeMap<object>[] = [
+      BACKGROUND_NODE_MAP,
+      CLASS_NODE_MAP,
+      CREATURE_NODE_MAP,
+      EQUIPMENT_NODE_MAP,
+      FEAT_NODE_MAP,
+      FEATURE_NODE_MAP,
+      OPTION_NODE_MAP,
+      RACE_NODE_MAP,
+      SPELL_NODE_MAP,
+      VEHICLE_NODE_MAP
+    ]
+
+    maps.forEach((nodeMap) => {
+      expect(
+        resolveNodeMapSteps(nodeMap).map((step) => step.label),
+        `${nodeMap.mapId} should not expose a generic Mechanics step`
+      ).not.toContain('Mechanics')
     })
   })
 

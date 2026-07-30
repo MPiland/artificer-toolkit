@@ -255,6 +255,7 @@ export const nodeRuntimeSectionDtoSchema = z.strictObject({
 export const nodeRuntimeStepDtoSchema = z.strictObject({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   order: z.number(),
   sections: z.array(nodeRuntimeSectionDtoSchema)
 })

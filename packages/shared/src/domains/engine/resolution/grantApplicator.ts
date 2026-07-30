@@ -4,7 +4,11 @@ import type { CompiledModifierGrant } from '../../grants/compilers/modifier.js'
 import type { CompiledProficiencyGrant } from '../../grants/compilers/proficiency.js'
 import type { CompiledSenseGrant } from '../../grants/compilers/sense.js'
 import type { CompiledRange } from '../../shared/compilers/range.js'
-import type { EngineProficiency, EngineSense } from '../contracts/engineState.js'
+import type {
+  EngineEquipmentFeatureChargeUse,
+  EngineProficiency,
+  EngineSense
+} from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry, CharacterAssemblyRegistryFeature } from '../registry.js'
 import {
@@ -48,6 +52,8 @@ export interface EngineAccumulatedState {
   unlockedSpellIds: string[]
   /** Equipment instances whose root eligibility and attunement requirements passed. */
   activeEquipmentInstanceIds: string[]
+  /** Equipment feature uses bound to their active item's owned charges. */
+  equipmentFeatureChargeUses: EngineEquipmentFeatureChargeUse[]
 }
 
 /* ──────────────────────────────────────────────
@@ -433,7 +439,7 @@ function applyGrantBearingSource(
     activeLevel: number
     sourceState?: CharacterEligibilityContext['sourceState']
   }
-): void {
+): boolean {
   if (
     !evaluateCharacterFacet(
       source.restrictions,
@@ -441,7 +447,7 @@ function applyGrantBearingSource(
       registry
     ).passed
   )
-    return
+    return false
 
   for (const grantKind of rules.grantApplicationOrder) {
     switch (grantKind) {
@@ -481,6 +487,8 @@ function applyGrantBearingSource(
         break
     }
   }
+
+  return true
 }
 
 function getSelectedOrGrantedScalingIds(
@@ -614,7 +622,8 @@ export function applyGrants(
     modifierEntries: [],
     unlockedFeatIds: [],
     unlockedSpellIds: [],
-    activeEquipmentInstanceIds: []
+    activeEquipmentInstanceIds: [],
+    equipmentFeatureChargeUses: []
   }
 
   // Sort active features by source order
@@ -787,7 +796,7 @@ function applyEquipmentGrants(
 
     acc.activeEquipmentInstanceIds.push(item.instanceId)
     for (const feature of item.compiledItem.features ?? []) {
-      applyGrantBearingSource(
+      const featureIsEligible = applyGrantBearingSource(
         feature,
         { kind: 'FEATURE', featureId: feature.id },
         {
@@ -805,6 +814,21 @@ function applyEquipmentGrants(
           sourceState
         }
       )
+
+      if (
+        featureIsEligible &&
+        feature.charges?.limitKind === 'SOURCE_CHARGES' &&
+        item.compiledItem.charges &&
+        feature.charges.cost > 0
+      ) {
+        acc.equipmentFeatureChargeUses.push({
+          featureId: feature.id,
+          equipmentId: item.contentRef.definitionId,
+          itemInstanceId: item.instanceId,
+          chargeId: item.compiledItem.charges.id,
+          cost: feature.charges.cost
+        })
+      }
     }
   }
 }

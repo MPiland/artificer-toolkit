@@ -110,6 +110,22 @@ export const motionScale = {
 /**
  * Canonical non-theme primitive colors.
  */
+export const blackForgeSurfaceScale = {
+  header: '#07090b',
+  band: '#101214',
+  canvas: '#101315',
+  rail: '#121517',
+  row: '#141719',
+  preview: '#15181a',
+  panel: '#171a1d',
+  hover: '#1d2125',
+  raised: '#262a2f',
+  emphasized: '#31363c',
+  recessed: '#0b0e10',
+  fieldBorder: '#343a40',
+  structuralBorder: 'rgba(255, 255, 255, 0.07)'
+} as const
+
 export const colorScale = {
   accent: {
     solid: '#ec8c06',
@@ -123,6 +139,23 @@ export const colorScale = {
     emphasisBorder: '#ec8c06',
     focus: 'rgba(8, 145, 178, 0.24)',
     contrast: '#241002'
+  },
+  authoring: {
+    active: '#eef2f6',
+    band: '#ffffff',
+    border: '#dfe4ea',
+    canvas: '#f7f9fb',
+    dock: '#ffffff',
+    field: '#ffffff',
+    fieldBorder: '#b5b9c6',
+    header: '#ffffff',
+    notice: '#fff8e8',
+    noticeBorder: '#d6b67a',
+    panel: '#ffffff',
+    preview: '#fffaf1',
+    previewBorder: '#d6b67a',
+    rail: '#f1f5f9',
+    row: '#fbfcfd'
   },
   button: {
     primary: {
@@ -300,48 +333,65 @@ export const darkColorTokens = {
       focus: 'rgba(14, 165, 197, 0.3)',
       contrast: '#241002'
     },
+    authoring: {
+      active: blackForgeSurfaceScale.panel,
+      band: blackForgeSurfaceScale.band,
+      border: blackForgeSurfaceScale.structuralBorder,
+      canvas: blackForgeSurfaceScale.canvas,
+      dock: blackForgeSurfaceScale.panel,
+      field: blackForgeSurfaceScale.canvas,
+      fieldBorder: blackForgeSurfaceScale.fieldBorder,
+      header: blackForgeSurfaceScale.band,
+      notice: '#191917',
+      noticeBorder: 'rgba(214, 182, 122, 0.1)',
+      panel: blackForgeSurfaceScale.panel,
+      preview: blackForgeSurfaceScale.preview,
+      previewBorder: 'rgba(214, 182, 122, 0.16)',
+      rail: blackForgeSurfaceScale.rail,
+      row: blackForgeSurfaceScale.row
+    },
     button: {
       primary: {
         background: 'transparent',
         border: '#ec8c06',
         hover: 'rgba(236, 106, 6, 0.18)',
-        active: '#262b2a',
+        active: blackForgeSurfaceScale.raised,
         text: '#ffb690'
       },
       secondary: {
-        background: '#12161c',
+        background: blackForgeSurfaceScale.rail,
         border: '#2a3038',
-        hover: '#191e25',
-        active: '#0b0f14',
+        hover: blackForgeSurfaceScale.hover,
+        active: blackForgeSurfaceScale.canvas,
         text: '#b7bdc4'
       }
     },
     card: {
       background: {
-        default: '#171d1c',
-        hover: '#1b2120',
-        active: '#262b2a'
+        default: blackForgeSurfaceScale.panel,
+        hover: blackForgeSurfaceScale.hover,
+        active: blackForgeSurfaceScale.raised
       },
       border: {
-        default: '#2f3836',
+        default: blackForgeSurfaceScale.structuralBorder,
         selected: '#ec8c06'
       }
     },
     input: {
       background: {
-        default: '#0a0f0e',
-        hover: '#111716',
-        active: '#171d1c',
-        disabled: '#101513'
+        default: blackForgeSurfaceScale.canvas,
+        hover: blackForgeSurfaceScale.row,
+        active: blackForgeSurfaceScale.panel,
+        disabled: blackForgeSurfaceScale.rail
       },
       border: {
-        default: '#3d4947',
+        default: blackForgeSurfaceScale.fieldBorder,
         focus: '#0ea5c5',
         error: '#e8795f',
-        disabled: '#2f3836'
+        disabled: '#2a3035'
       },
       placeholder: '#7e8790',
-      sideButton: '#262b2a'
+      sideButton: blackForgeSurfaceScale.raised
     },
     text: {
       primary: '#f2f4f0',
@@ -352,18 +402,18 @@ export const darkColorTokens = {
       accent: '#ffb690'
     },
     surface: {
-      canvas: '#0a0f0e',
-      subtle: '#1b2120',
-      panel: '#171d1c',
-      raised: '#262b2a',
-      recessed: '#050806',
-      sidebar: '#0f1413',
-      header: '#0f1413',
-      emphasized: '#313131'
+      canvas: blackForgeSurfaceScale.canvas,
+      subtle: blackForgeSurfaceScale.row,
+      panel: blackForgeSurfaceScale.panel,
+      raised: blackForgeSurfaceScale.raised,
+      recessed: blackForgeSurfaceScale.recessed,
+      sidebar: blackForgeSurfaceScale.rail,
+      header: blackForgeSurfaceScale.header,
+      emphasized: blackForgeSurfaceScale.emphasized
     },
     border: {
-      subtle: '#2f3836',
-      strong: '#3d4947'
+      subtle: blackForgeSurfaceScale.structuralBorder,
+      strong: blackForgeSurfaceScale.fieldBorder
     },
     status: {
       success: '#6fca8b',
@@ -432,8 +482,8 @@ export const darkColorTokens = {
     },
     steps: {
       default: {
-        border: '#333941',
-        background: '#10151b',
+        border: blackForgeSurfaceScale.fieldBorder,
+        background: blackForgeSurfaceScale.canvas,
         text: '#858d96'
       },
       current: {

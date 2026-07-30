@@ -1,11 +1,11 @@
 import { assertNever } from '#utils'
 
-import type { ChargeAuthored, ChargeBonusAuthored } from '#authored'
+import type { ChargeAuthored, ChargeBonusAuthored, OwnedChargeAuthored } from '#authored'
 import {
   CHARGE_BONUS_KIND,
   SCALING,
   type AbilityCode,
-  type ChargeLimitKind,
+  type OwnedChargeLimitKind,
   type ChargeResetKind
 } from '#core'
 
@@ -67,7 +67,7 @@ export type CompiledChargeBonus =
       order: number
     }
 
-export type CompiledCharge<L extends ChargeLimitKind = ChargeLimitKind> =
+export type CompiledCharge<L extends OwnedChargeLimitKind = OwnedChargeLimitKind> =
   | ({
       id: string
       resetKind: ChargeResetKind
@@ -132,7 +132,16 @@ function compileChargeBonus(bonus: ChargeBonusAuthored): CompiledChargeBonus {
   }
 }
 
-export function compileCharge(authored: ChargeAuthored): CompiledCharge {
+export type CompiledSourceCharge = {
+  id: string
+  limitKind: 'SOURCE_CHARGES'
+  scalingKind: typeof SCALING.NONE
+  cost: number
+}
+
+export type CompiledChargeUse = CompiledCharge | CompiledSourceCharge
+
+export function compileCharge(authored: OwnedChargeAuthored): CompiledCharge {
   const bonuses =
     authored.bonuses && authored.bonuses.length
       ? authored.bonuses.map(compileChargeBonus)
@@ -208,6 +217,19 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
     default:
       return assertNever(authored)
   }
+}
+
+export function compileChargeUse(authored: ChargeAuthored<true>): CompiledChargeUse {
+  if (authored.limitKind === 'SOURCE_CHARGES') {
+    return {
+      id: authored.id,
+      limitKind: authored.limitKind,
+      scalingKind: SCALING.NONE,
+      cost: authored.cost
+    }
+  }
+
+  return compileCharge(authored)
 }
 
 export interface ResolveCompiledChargeMaximumContext {

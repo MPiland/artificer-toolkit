@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Text } from '@mantine/core'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
+import { CharacterSheetResourceStepper } from '../shared/CharacterSheetResourceStepper'
 import * as actionSummaryStyles from './actionSummary.css'
 import * as actionTableStyles from './actionTable.css'
 import * as panelStyles from '../shared/panel.css'
@@ -258,36 +259,23 @@ function ActionResourceStepper({
     const succeeded = await submitCommand({
       type,
       resourceGrantId: resource.id,
+      ...(type === 'USE_RESOURCE' && resource.cost > 1 ? { amount: resource.cost } : {}),
       expectedVersion: version
     })
     if (!succeeded) setFailedResourceId(resource.id)
   }
 
   return (
-    <div aria-label={`${actionLabel} charges`} className={rowStyles.resourceStepper} role='group'>
-      <Button
-        aria-label={`Use one ${actionLabel} charge`}
-        className={rowStyles.resourceStepButton}
-        disabled={pending || resource.remaining <= 0}
-        size='compact-xs'
-        variant='default'
-        onClick={() => void updateResource('USE_RESOURCE')}
-      >
-        −
-      </Button>
-      <Text aria-live='polite' className={rowStyles.resourceStepValue} component='output'>
-        {resource.remaining} / {resource.max}
-      </Text>
-      <Button
-        aria-label={`Restore one ${actionLabel} charge`}
-        className={rowStyles.resourceStepButton}
-        disabled={pending || resource.used <= 0}
-        size='compact-xs'
-        variant='default'
-        onClick={() => void updateResource('RESTORE_RESOURCE')}
-      >
-        +
-      </Button>
-    </div>
+    <CharacterSheetResourceStepper
+      decreaseDisabled={pending || resource.remaining < resource.cost}
+      decreaseLabel={`Use ${resource.cost === 1 ? 'one' : resource.cost} ${actionLabel} charge${resource.cost === 1 ? '' : 's'}`}
+      increaseDisabled={pending || resource.used <= 0}
+      increaseLabel={`Restore one ${actionLabel} charge`}
+      label={`${actionLabel} charges`}
+      maximum={resource.max}
+      remaining={resource.remaining}
+      onDecrease={() => void updateResource('USE_RESOURCE')}
+      onIncrease={() => void updateResource('RESTORE_RESOURCE')}
+    />
   )
 }

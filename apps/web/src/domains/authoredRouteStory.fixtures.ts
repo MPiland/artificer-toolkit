@@ -108,9 +108,19 @@ export const authoredRouteStorySystem = {
       label: 'Fire'
     },
     {
+      id: '00000000-0000-0000-0004-000700000000',
+      code: 'NECROTIC',
+      label: 'Necrotic'
+    },
+    {
       id: '00000000-0000-0000-0004-000800000000',
       code: 'PIERCING',
       label: 'Piercing'
+    },
+    {
+      id: '00000000-0000-0000-0004-000b00000000',
+      code: 'RADIANT',
+      label: 'Radiant'
     }
   ],
   heritages: [],
@@ -129,6 +139,11 @@ export const authoredRouteStorySystem = {
       id: '00000000-0000-0000-0009-000100000000',
       code: 'COMMON',
       label: 'Common'
+    },
+    {
+      id: '00000000-0000-0000-0009-000500000000',
+      code: 'LEGENDARY',
+      label: 'Legendary'
     }
   ],
   senses: [],
@@ -362,6 +377,27 @@ export const seedAcolyteCreature = {
   ]
 } satisfies CreatureAuthoredDto
 
+export const seedShortswordEquipment = {
+  kind: 'EQUIPMENT',
+  id: '00000000-0000-0000-0060-001600000000',
+  label: 'Shortsword',
+  description: 'A light, balanced blade made for close combat.',
+  category: 'WEAPON',
+  properties: ['FINESSE', 'LIGHT'],
+  cost: {
+    amount: 10,
+    currencyId: '00000000-0000-0000-0003-000400000000'
+  },
+  weight: {
+    amount: 2,
+    unit: 'POUNDS'
+  },
+  rarityId: '00000000-0000-0000-0009-000100000000',
+  status: 'ACTIVE',
+  userId: seedStoryUserId,
+  systemId: seedStorySystemId
+} satisfies EquipmentAuthoredDto
+
 export const seedShortswordPlusOneEquipment = {
   kind: 'EQUIPMENT',
   id: '00000000-0000-0000-0060-021600000000',
@@ -372,12 +408,12 @@ export const seedShortswordPlusOneEquipment = {
   properties: ['MAGIC'],
   maxBonus: 1,
   modifiers: [
-    createShortswordModifier({
+    createMeleeWeaponModifier({
       id: 'shortsword-plus-one-attack-modifier',
       order: 1,
       valueDomainCode: 'ATTACK_ROLL'
     }),
-    createShortswordModifier({
+    createMeleeWeaponModifier({
       id: 'shortsword-plus-one-damage-modifier',
       order: 2,
       valueDomainCode: 'DAMAGE'
@@ -437,7 +473,7 @@ export const seedShortswordPlusOneEquipment = {
   systemId: seedStorySystemId
 } satisfies EquipmentAuthoredDto
 
-function createShortswordModifier({
+function createMeleeWeaponModifier({
   id,
   order,
   valueDomainCode
@@ -486,6 +522,158 @@ function createShortswordModifier({
     }
   }
 }
+
+export const seedAstralTearAwakenedEquipment = {
+  kind: 'EQUIPMENT',
+  id: '00000000-0000-0000-0060-0a5700000000',
+  label: 'The Astral Tear Awakened',
+  description:
+    'This mighty blade belongs to the Astral Champion of Vedur. While attuned to it, its wielder can call it to hand from a special demiplane.',
+  category: 'WEAPON',
+  attributes: ['LIMITED_USE'],
+  properties: ['FINESSE', 'LIGHT', 'VEX'],
+  cost: {
+    amount: 2000,
+    currencyId: '00000000-0000-0000-0003-000400000000'
+  },
+  weight: {
+    amount: 2,
+    unit: 'POUNDS'
+  },
+  effects: [
+    {
+      id: 'astral-tear-melee-effect',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'MELEE_WEAPON_ATTACK',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'astral-tear-melee-range',
+          rangeKind: 'DISTANCE',
+          amount: 5,
+          unit: 'FEET'
+        },
+        targeting: {
+          selectionKind: 'SINGLE_TARGET',
+          dispositionKind: 'ANY'
+        }
+      },
+      paths: [
+        {
+          id: 'astral-tear-hit-path',
+          order: 1,
+          pathCode: 'ON_HIT',
+          groupType: 'CHOICE',
+          originKind: 'SOURCE',
+          selectionKind: 'CHOICE',
+          options: [
+            {
+              id: 'astral-tear-radiant-option',
+              order: 1,
+              label: 'Radiant',
+              description: 'The Astral Tear deals radiant damage.',
+              resultBlock: {
+                id: 'astral-tear-radiant-result',
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: 'astral-tear-radiant-damage',
+                    effectKind: 'DAMAGE',
+                    damageTypeId: '00000000-0000-0000-0004-000b00000000',
+                    valueKind: 'DICE',
+                    scalingKind: 'NONE',
+                    diceConfig: '1d6'
+                  }
+                ]
+              }
+            },
+            {
+              id: 'astral-tear-necrotic-option',
+              order: 2,
+              label: 'Necrotic',
+              description: 'The Astral Tear deals necrotic damage.',
+              resultBlock: {
+                id: 'astral-tear-necrotic-result',
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: 'astral-tear-necrotic-damage',
+                    effectKind: 'DAMAGE',
+                    damageTypeId: '00000000-0000-0000-0004-000700000000',
+                    valueKind: 'DICE',
+                    scalingKind: 'NONE',
+                    diceConfig: '1d6'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  charges: {
+    id: 'astral-tear-charges',
+    resetKind: 'DAWN',
+    limitKind: 'FIXED_AMOUNT',
+    scalingKind: 'NONE',
+    amount: 3
+  },
+  modifiers: [
+    createMeleeWeaponModifier({
+      id: 'astral-tear-attack-modifier',
+      order: 1,
+      valueDomainCode: 'ATTACK_ROLL'
+    }),
+    createMeleeWeaponModifier({
+      id: 'astral-tear-damage-modifier',
+      order: 2,
+      valueDomainCode: 'DAMAGE'
+    })
+  ],
+  maxBonus: 1,
+  features: [
+    {
+      id: 'astral-tear-warping-strike',
+      label: 'Warping Strike',
+      description:
+        'While holding the sword, you can expend 1 of its charges as part of making an attack with it. You can teleport to an unoccupied space you can see within 30 feet either before or after the attack. On a hit, the target also takes 4d6 force damage.',
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: 'astral-tear-warping-strike-charges',
+        limitKind: 'SOURCE_CHARGES',
+        scalingKind: 'NONE',
+        cost: 1
+      },
+      section: 'OTHER',
+      order: 1
+    },
+    {
+      id: 'astral-tear-spells',
+      label: 'Spells',
+      description:
+        'While holding the sword, you can use an action to expend 1 of its charges to cast a 2nd-level or lower spell without expending a spell slot.',
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: 'astral-tear-spells-charges',
+        limitKind: 'SOURCE_CHARGES',
+        scalingKind: 'NONE',
+        cost: 1
+      },
+      section: 'ACTION',
+      order: 2
+    }
+  ],
+  requiresAttunement: true,
+  rarityId: '00000000-0000-0000-0009-000500000000',
+  status: 'ACTIVE',
+  userId: seedStoryUserId,
+  systemId: seedStorySystemId
+} satisfies EquipmentAuthoredDto
 
 export const seedGrapplerFeat = {
   id: '00000000-0000-0000-0050-000b00000000',
@@ -639,6 +827,11 @@ export const authoredRouteStoryResponses = {
   vehicle: createResponse(seedSailingShipVehicle, 'ownedActive')
 } satisfies AuthoredRouteStoryResponseMap
 
+export const authoredRouteStoryEquipmentParentResponse = createResponse(
+  seedShortswordEquipment,
+  'masterLocked'
+)
+
 export const authoredRouteStoryMasterResponses = {
   background: createResponse(seedAcolyteBackground, 'masterLocked'),
   class: createResponse(seedWizardClass, 'masterLocked'),
@@ -768,21 +961,32 @@ function createResponse<TRecord extends AuthoredRouteStoryRecord>(
 
 export function createEditLoaderData<TDomain extends AuthoredFormDomain>(
   domain: TDomain,
-  state: AuthoredRouteStoryEditState
+  state: AuthoredRouteStoryEditState,
+  recordOverride?: AuthoredRouteStoryRecordMap[TDomain]
 ) {
-  const response = (
-    state === 'masterLocked'
+  const response = recordOverride
+    ? createResponse(recordOverride, state === 'masterLocked' ? 'masterLocked' : 'ownedActive')
+    : state === 'masterLocked'
       ? authoredRouteStoryMasterResponses[domain]
       : authoredRouteStoryResponses[domain]
-  ) as AuthoredRouteStoryResponseMap[TDomain]
-  const draft = state === 'ownedDraft' ? authoredRouteStoryDrafts[domain] : null
+  const draft =
+    state === 'ownedDraft'
+      ? recordOverride
+        ? createDraft(domain, recordOverride)
+        : authoredRouteStoryDrafts[domain]
+      : null
   const responseWithDraftState = state === 'ownedDraft' ? { ...response, hasDraft: true } : response
   const item = responseWithDraftState.item
   if (!item) throw new Error(`Missing ${domain} story record.`)
+  const parentResponse =
+    domain === 'equipment' && 'category' in item && item.category === 'VARIANT'
+      ? authoredRouteStoryEquipmentParentResponse
+      : undefined
 
   return createAuthoredFormRouteLoaderData({
     breadcrumbLabel: item.label,
     draft,
+    ...(parentResponse ? { parentResponse } : {}),
     response: responseWithDraftState,
     subjectId: item.id,
     system: authoredRouteStorySystem

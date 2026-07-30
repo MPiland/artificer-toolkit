@@ -82,6 +82,7 @@ describe('Character Sheet shell', () => {
     )
 
     expect(screen.getByRole('tab', { name: /spells/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('heading', { name: /^spells$/i })).not.toBeInTheDocument()
 
     rerender(
       <CharacterSheetView
@@ -96,6 +97,7 @@ describe('Character Sheet shell', () => {
       'aria-selected',
       'true'
     )
+    expect(screen.queryByRole('heading', { name: /^equipment$/i })).not.toBeInTheDocument()
   })
 
   it('keeps skills and proficiencies in the tablet overview instead of duplicating tabs', () => {

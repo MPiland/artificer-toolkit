@@ -37,6 +37,16 @@ export type DamagePreviewTone =
   | 'slashing'
   | 'thunder'
 
+export type EquipmentPreviewIcon =
+  | 'armor'
+  | 'axe'
+  | 'bow'
+  | 'gear'
+  | 'hammer'
+  | 'shield'
+  | 'sword'
+  | 'tool'
+
 export type PreviewSection =
   | {
       facts: PreviewFact[]
@@ -81,5 +91,9 @@ export type PreviewSection =
     }
 
 export type AuthoredPreviewModel = {
+  domain: AuthoredFormPreviewContext['domain']
+  equipmentIcon?: EquipmentPreviewIcon
+  label: string
   sections: PreviewSection[]
+  statusLabel: string
 }

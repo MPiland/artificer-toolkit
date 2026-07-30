@@ -77,7 +77,8 @@ export function runEngine(
     spellSlots,
     resources,
     ...subjectMechanics,
-    activeItemContributions
+    activeItemContributions,
+    equipmentFeatureChargeUses: accumulated.equipmentFeatureChargeUses
   }
 }
 

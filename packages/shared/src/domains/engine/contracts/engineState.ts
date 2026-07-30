@@ -17,7 +17,7 @@ import type { CharacterProficiencyLevel } from '../../character/sheetAdjustment.
 import type { CharacterSpellSourceRef } from '../../character/sheetResource.js'
 import type { MeasurementUnitCode } from '../../core/measurement.js'
 import type { SizeCode } from '../../core/size.js'
-import type { CompiledCharge } from '../../shared/compilers/charge.js'
+import type { CompiledChargeUse } from '../../shared/compilers/charge.js'
 import type { SpellGrantAttribute } from '../../grants/core/spell.js'
 
 export interface EngineProficiency {
@@ -124,7 +124,7 @@ export interface EngineSpellAccess {
   sourceInstanceId: string
   attributes?: SpellGrantAttribute[]
   castAtLevel?: number
-  charges?: CompiledCharge
+  charges?: CompiledChargeUse
 }
 
 export interface EngineItemMechanics {
@@ -215,6 +215,15 @@ export interface EngineItemContribution {
   modifiersApplied: string[]
 }
 
+/** A feature use that spends charges owned by one active equipment instance. */
+export interface EngineEquipmentFeatureChargeUse {
+  featureId: string
+  equipmentId: string
+  itemInstanceId: string
+  chargeId: string
+  cost: number
+}
+
 export interface EngineCharacterOutput {
   characterId: string
   systemId: string
@@ -236,4 +245,6 @@ export interface EngineCharacterOutput {
   companions: EngineCompanionStats[]
   /** Which equipped items contributed to derived stat resolution */
   activeItemContributions: EngineItemContribution[]
+  /** Feature uses bound to charges owned by active equipment instances. */
+  equipmentFeatureChargeUses: EngineEquipmentFeatureChargeUse[]
 }

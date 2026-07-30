@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, within } from 'storybook/test'
+import { expect, userEvent, within } from 'storybook/test'
 import { Route } from '#routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
 import { Shell, platformNavigation } from '#app/shell'
 import {
   authoredRouteStoryParams,
   authoredRouteStoryRecords,
+  seedAstralTearAwakenedEquipment,
   authoredRouteStoryUser
 } from '#domains/authoredRouteStory.fixtures'
 import {
@@ -89,14 +90,13 @@ export const ShortswordPlusOne: Story = {
   play: OwnedDraft.play
 }
 
-export const ShortswordPlusOneMechanics: Story = {
+export const ShortswordPlusOneStructure: Story = {
   decorators: ShortswordPlusOne.decorators,
   parameters: OwnedDraft.parameters,
   play: async ({ canvasElement }) => {
     await expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.equipment.label)
-    await expandAuthoringBranch(canvasElement, /^mechanics\b/i)
     await expandAuthoringBranch(canvasElement, /^effects\b/i)
-    await expandAuthoringBranch(canvasElement, /^modifiers\b/i)
+    await expandAuthoringBranch(canvasElement, /^grants\b/i)
     await expectAuthoringTargetLabels(canvasElement, [
       /melee weapon attack/i,
       /\+1 attack rolls/i,
@@ -114,8 +114,7 @@ export const ShortswordPlusOneDamageModifierDrawer: Story = {
   parameters: OwnedDraft.parameters,
   play: async ({ canvasElement }) => {
     await expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.equipment.label)
-    await expandAuthoringBranch(canvasElement, /^mechanics\b/i)
-    await expandAuthoringBranch(canvasElement, /^modifiers\b/i)
+    await expandAuthoringBranch(canvasElement, /^grants\b/i)
     await selectAuthoringTarget(canvasElement, /\+1 damage rolls/i)
 
     const story = getStoryDocument(canvasElement)
@@ -131,6 +130,80 @@ export const ShortswordPlusOneDamageModifierDrawer: Story = {
     await expect(drawerCanvas.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument()
     await expect(drawerCanvas.getByRole('button', { name: /^save$/i })).toBeInTheDocument()
     await expect(drawerCanvas.queryByText('DAMAGE')).not.toBeInTheDocument()
+  }
+}
+
+export const AstralTearAwakenedStructure: Story = {
+  decorators: [
+    (Story) => (
+      <Shell
+        currentPath='/equipment/the-astral-tear-awakened/the-astral-tear-awakened/edit'
+        isAuthenticated
+        navigation={platformNavigation}
+        userEmail={authoredRouteStoryUser.email}
+      >
+        <Story />
+      </Shell>
+    )
+  ],
+  parameters: {
+    tanstack: {
+      router: {
+        query: { step: 'overview:feature:features:overview' },
+        routeOverrides: createAuthoredEditRouteOverrides(
+          'equipment',
+          '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit',
+          '/equipment/$equipmentPublicId/$equipmentSlug/edit',
+          'ownedDraft',
+          seedAstralTearAwakenedEquipment
+        )
+      }
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const story = getStoryDocument(canvasElement)
+    await expect(
+      await story.findByRole('heading', {
+        level: 1,
+        name: seedAstralTearAwakenedEquipment.label
+      })
+    ).toBeInTheDocument()
+    await expect(story.getByText(/all changes saved/i)).toBeInTheDocument()
+    await expect(story.getByRole('button', { name: /save draft/i })).toBeInTheDocument()
+    const showSteps = story.queryByRole('button', { name: /show steps/i })
+    const railRoot = showSteps ? canvasElement.ownerDocument.body : canvasElement
+    if (showSteps) {
+      await userEvent.click(showSteps)
+      await expect(
+        await story.findByRole('navigation', { name: /^authoring steps$/i })
+      ).toBeInTheDocument()
+    }
+    await expandAuthoringBranch(railRoot, /^effects\b/i)
+    await expandAuthoringBranch(railRoot, /^grants\b/i)
+    await expandAuthoringBranch(railRoot, /^features\b/i)
+    await expectAuthoringTargetLabels(railRoot, [
+      /melee weapon attack/i,
+      /\+1 attack rolls/i,
+      /\+1 damage rolls/i,
+      /warping strike/i,
+      /spells/i
+    ])
+    const editor = within(story.getByTestId('authoring-form-content'))
+    await expect(editor.getAllByText('Features')).toHaveLength(1)
+    await expect(
+      editor.getByText('Add and organize the abilities this item provides.')
+    ).toBeInTheDocument()
+    await expect(
+      story.getByRole('heading', { level: 1, name: 'The Astral Tear Awakened' })
+    ).toBeInTheDocument()
+    const hideSteps = story.queryByRole('button', { name: /hide steps/i })
+    if (hideSteps) await userEvent.click(hideSteps)
+    const showPreview = story.queryByRole('button', { name: /show preview/i })
+    if (showPreview) await userEvent.click(showPreview)
+    await expect(
+      await story.findByRole('heading', { level: 3, name: 'Warping Strike' })
+    ).toBeInTheDocument()
+    await expect(await story.findByRole('heading', { level: 3, name: 'Spells' })).toBeInTheDocument()
   }
 }
 

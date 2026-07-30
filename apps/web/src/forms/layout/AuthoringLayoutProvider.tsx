@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useDisclosure } from '@mantine/hooks'
+import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { useAuthoringForm } from './AuthoringFormContext'
-import { useBreakpoints } from '#ui'
 import {
   AuthoringLayoutContext,
   type AuthoringLayoutContextValue,
@@ -13,6 +12,7 @@ import {
   CHARACTER_BUILDER_TIMING_MARK,
   markCharacterBuilderTiming
 } from '#domains/characters/builder/core/characterBuilder.performance'
+import { AUTHORING_COMPACT_WORKSPACE_QUERY } from './authoringWorkspace.constants'
 
 export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   const {
@@ -28,8 +28,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     mode,
     isDraft
   } = useAuthoringForm()
-  const { isMobile, isTablet, isTabletPortrait } = useBreakpoints()
-  const usesOverlayNavigation = isMobile || isTabletPortrait
+  const isWideDesktop = !useMediaQuery(AUTHORING_COMPACT_WORKSPACE_QUERY, false)
   const [
     stepsNavigationOpen,
     { close: closeStepsNavigation, open: openStepsNavigation, toggle: toggleStepsNavigation }
@@ -50,22 +49,22 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (usesOverlayNavigation) {
-      closeStepsNavigation()
+    if (isWideDesktop) {
+      openStepsNavigation()
       return
     }
 
-    openStepsNavigation()
-  }, [closeStepsNavigation, openStepsNavigation, usesOverlayNavigation])
+    closeStepsNavigation()
+  }, [closeStepsNavigation, isWideDesktop, openStepsNavigation])
 
   useEffect(() => {
-    if (isMobile || isTablet) {
-      closePreview()
+    if (isWideDesktop) {
+      openPreview()
       return
     }
 
-    openPreview()
-  }, [closePreview, isMobile, isTablet, openPreview])
+    closePreview()
+  }, [closePreview, isWideDesktop, openPreview])
 
   useEffect(() => {
     if (!characterSession || visibleSteps.length === 0) return
@@ -78,6 +77,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthoringLayoutContextValue>(
     () => ({
+      isWideDesktop,
       stepsNavigationOpen,
       toggleStepsNavigation,
       previewOpen,
@@ -97,6 +97,7 @@ export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
     }),
     [
       stepsNavigationOpen,
+      isWideDesktop,
       toggleStepsNavigation,
       previewOpen,
       togglePreview,

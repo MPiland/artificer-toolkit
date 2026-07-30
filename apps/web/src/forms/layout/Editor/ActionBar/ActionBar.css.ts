@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../../../../css/foundations.css.ts'
 import { app } from '../../../../css/layers.css.ts'
+import { AUTHORING_WIDE_DESKTOP_QUERY } from '../../authoringWorkspace.constants'
 
 const mobile = 'screen and (max-width: 760px)'
 const overlayRail =
@@ -25,7 +26,13 @@ export const root = style({
       borderBottom: 0,
       borderLeft: 0,
       overflow: 'visible',
-      pointerEvents: 'none'
+      pointerEvents: 'none',
+      '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          borderBlockStart: `1px solid ${foundationVars.color.authoring.border}`,
+          backgroundColor: foundationVars.color.authoring.dock
+        }
+      }
     }
   }
 })
@@ -35,6 +42,9 @@ export const padded = style({
     [app]: {
       padding: `${foundationVars.space[2]} ${foundationVars.space[3]} calc(${foundationVars.space[2]} + env(safe-area-inset-bottom))`,
       '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          padding: foundationVars.space[3]
+        },
         [overlayRail]: {
           minHeight: 56
         },
@@ -87,6 +97,13 @@ export const inner = style({
       marginInline: 'auto',
       pointerEvents: 'none',
       '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          minBlockSize: 48,
+          padding: 0,
+          border: 0,
+          borderRadius: 0,
+          backgroundColor: 'transparent'
+        },
         [overlayRail]: {
           gridTemplateColumns: 'auto 1fr auto',
           maxWidth: 'none'
@@ -188,6 +205,17 @@ export const secondaryButton = style({
         color: foundationVars.color.text.dim,
         boxShadow: 'none',
         cursor: 'default'
+      },
+      '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          gap: foundationVars.space[2],
+          inlineSize: 'auto',
+          minInlineSize: '7rem',
+          blockSize: 44,
+          paddingInline: foundationVars.space[4],
+          borderRadius: foundationVars.radius.md,
+          boxShadow: 'none'
+        }
       }
     }
   }
@@ -218,6 +246,20 @@ export const primaryButton = style({
         color: foundationVars.color.text.muted,
         boxShadow: 'none',
         cursor: 'default'
+      },
+      '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          gap: foundationVars.space[2],
+          inlineSize: 'auto',
+          minInlineSize: '7.5rem',
+          blockSize: 44,
+          paddingInline: foundationVars.space[4],
+          borderRadius: foundationVars.radius.md,
+          backgroundColor: foundationVars.color.accent.solid,
+          borderColor: foundationVars.color.accent.solid,
+          color: foundationVars.color.accent.contrast,
+          boxShadow: 'none'
+        }
       }
     }
   }
@@ -228,6 +270,22 @@ export const icon = style({
     [app]: {
       inlineSize: 'var(--at-authoring-floating-action-icon-size)',
       blockSize: 'var(--at-authoring-floating-action-icon-size)'
+    }
+  }
+})
+
+export const buttonLabel = style({
+  '@layer': {
+    [app]: {
+      display: 'none',
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: foundationVars.typography.bodySm.lineHeight,
+      '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          display: 'inline'
+        }
+      }
     }
   }
 })

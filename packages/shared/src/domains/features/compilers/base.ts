@@ -5,9 +5,9 @@ import {
   type CompiledProficiencyGrant,
   type CompiledSenseGrant,
   type CompiledSpellGrant,
-  type CompiledCharge,
+  type CompiledChargeUse,
   type CompiledEffectGroup,
-  compileCharge,
+  compileChargeUse,
   compileEffect,
   compileFeatGrant,
   compileSpellGrant,
@@ -22,7 +22,7 @@ export type CompiledFeatureBase = {
   attributes?: FeatureAttribute[]
   restrictions?: FacetAuthored
   effects?: CompiledEffectGroup[]
-  charges?: CompiledCharge
+  charges?: CompiledChargeUse
   feats?: CompiledFeatGrant[]
   modifiers?: CompiledModifierGrant[]
   proficiencies?: CompiledProficiencyGrant[]
@@ -32,7 +32,7 @@ export type CompiledFeatureBase = {
 }
 
 export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatureBase {
-  const charges = authored.charges ? compileCharge(authored.charges) : undefined
+  const charges = authored.charges ? compileChargeUse(authored.charges) : undefined
 
   const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
 

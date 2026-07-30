@@ -4031,6 +4031,7 @@ export type Database = {
           amount: number | null
           charge_id: string
           class_id: string | null
+          cost: number | null
           limit_kind: string
           max: number | null
           min: number | null
@@ -4041,6 +4042,7 @@ export type Database = {
           amount?: number | null
           charge_id: string
           class_id?: string | null
+          cost?: number | null
           limit_kind: string
           max?: number | null
           min?: number | null
@@ -4051,6 +4053,7 @@ export type Database = {
           amount?: number | null
           charge_id?: string
           class_id?: string | null
+          cost?: number | null
           limit_kind?: string
           max?: number | null
           min?: number | null
@@ -4108,21 +4111,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          reset_kind: string
+          reset_kind: string | null
           scaling_kind: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id: string
-          reset_kind: string
+          reset_kind?: string | null
           scaling_kind: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
-          reset_kind?: string
+          reset_kind?: string | null
           scaling_kind?: string
           updated_at?: string
         }

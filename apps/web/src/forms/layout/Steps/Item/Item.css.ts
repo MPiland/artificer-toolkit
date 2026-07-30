@@ -2,43 +2,50 @@ import { style, styleVariants } from '@vanilla-extract/css'
 import { foundationVars } from '../../../../css/foundations.css.ts'
 import { app } from '../../../../css/layers.css.ts'
 
+const rowSeparator = `color-mix(in srgb, ${foundationVars.color.authoring.border} 80%, transparent)`
+
 export const itemRow = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns: '18px 24px minmax(0, 1fr) 22px',
+      gridTemplateColumns: '44px 24px minmax(0, 1fr) 22px',
       alignItems: 'center',
-      gap: foundationVars.space[1],
-      minBlockSize: 44,
-      paddingBlock: foundationVars.space[1],
+      gap: foundationVars.space[2],
+      minBlockSize: 46,
       paddingInlineStart: `calc(${foundationVars.space[3]} + min(calc(var(--authoring-rail-level, 0) * ${foundationVars.space[3]}), ${foundationVars.space[7]}))`,
-      paddingInlineEnd: foundationVars.space[3],
+      paddingInlineEnd: foundationVars.space[4],
       inlineSize: '100%',
+      borderBlockEnd: `1px solid ${rowSeparator}`,
       color: foundationVars.color.text.secondary,
-      cursor: 'pointer',
       transition: `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
       ':hover': {
         backgroundColor: foundationVars.color.nav.pillHover,
         color: foundationVars.color.text.primary
       },
-      ':focus-visible': {
-        outline: 'none',
-        boxShadow: foundationVars.shadow.focus
-      },
       selectors: {
         [`&.active`]: {
           position: 'relative',
-          color: foundationVars.color.text.primary,
-          backgroundColor: foundationVars.color.surface.raised
+          color: foundationVars.color.text.accent,
+          backgroundColor: foundationVars.color.authoring.row,
+          backgroundImage: `linear-gradient(90deg, color-mix(in srgb, ${foundationVars.color.accent.solid} 5%, ${foundationVars.color.authoring.active}) 0%, ${foundationVars.color.authoring.active} 52%, ${foundationVars.color.authoring.rail} 100%)`
         },
-        ['&.active::after']: {
-          content: "''",
+        '&.active::before': {
           position: 'absolute',
           insetBlock: 0,
-          insetInlineEnd: 0,
-          inlineSize: 3,
+          insetInlineStart: 0,
+          inlineSize: 1,
           backgroundColor: foundationVars.color.accent.solid,
-          borderRadius: 'unset'
+          content: "''"
+        },
+        '&[data-level="0"]': {
+          gridTemplateColumns: '44px minmax(0, 1fr) 22px',
+          minBlockSize: 46
+        },
+        '&[data-level="0"].active': {
+          backgroundColor: foundationVars.color.authoring.active
+        },
+        '&[data-level="0"]:hover': {
+          backgroundColor: foundationVars.color.authoring.active
         }
       }
     }
@@ -56,10 +63,40 @@ export const itemRowMuted = style({
 export const expander = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: foundationVars.color.text.muted
+      display: 'grid',
+      placeItems: 'center',
+      alignSelf: 'stretch',
+      minBlockSize: 44,
+      minInlineSize: 44,
+      inlineSize: 44,
+      position: 'relative',
+      color: foundationVars.color.text.muted,
+      transition: `background-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
+      '::after': {
+        position: 'absolute',
+        insetBlock: foundationVars.space[2],
+        insetInlineEnd: 0,
+        inlineSize: 1,
+        backgroundColor: rowSeparator,
+        content: "''",
+        pointerEvents: 'none'
+      },
+      ':hover': {
+        backgroundColor: foundationVars.color.authoring.active,
+        color: foundationVars.color.text.primary
+      },
+      ':focus-visible': {
+        outline: 'none',
+        boxShadow: foundationVars.shadow.focus
+      }
+    }
+  }
+})
+
+export const expanderPlaceholder = style({
+  '@layer': {
+    [app]: {
+      inlineSize: 44
     }
   }
 })
@@ -73,7 +110,26 @@ export const itemIcon = style({
       inlineSize: 20,
       blockSize: 20,
       color: 'inherit',
-      opacity: 0.82
+      opacity: 0.9
+    }
+  }
+})
+
+export const itemTarget = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      minBlockSize: 44,
+      minInlineSize: 0,
+      padding: 0,
+      color: 'inherit',
+      textAlign: 'start',
+      ':focus-visible': {
+        outline: 'none',
+        boxShadow: foundationVars.shadow.focus
+      }
     }
   }
 })
@@ -82,7 +138,7 @@ export const itemText = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: 1,
+      gap: 2,
       minInlineSize: 0
     }
   }

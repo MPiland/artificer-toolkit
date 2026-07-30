@@ -84,6 +84,7 @@ export const lifecycleButton = style({
       inlineSize: 'auto',
       minInlineSize: 96,
       minBlockSize: 36,
+      blockSize: 36,
       paddingInline: foundationVars.space[3],
       flexShrink: 0,
       borderRadius: foundationVars.radius.sm,
@@ -99,15 +100,16 @@ export const lifecycleButton = style({
 export const activateButton = style({
   '@layer': {
     [app]: {
-      borderColor: foundationVars.color.button.primary.border,
-      backgroundColor: foundationVars.color.button.primary.background,
-      color: foundationVars.color.button.primary.text,
+      borderColor: foundationVars.color.accent.solid,
+      backgroundColor: foundationVars.color.accent.solid,
+      color: foundationVars.color.accent.contrast,
       ':hover': {
-        backgroundColor: foundationVars.color.button.primary.hover,
-        color: foundationVars.color.button.primary.text
+        borderColor: foundationVars.color.accent.hover,
+        backgroundColor: foundationVars.color.accent.hover,
+        color: foundationVars.color.accent.contrast
       },
       ':active': {
-        backgroundColor: foundationVars.color.button.primary.active
+        backgroundColor: foundationVars.color.accent.hover
       },
       ':disabled': {
         borderColor: foundationVars.color.border.strong,

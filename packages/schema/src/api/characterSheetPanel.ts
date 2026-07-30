@@ -441,6 +441,15 @@ const itemPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   equipped: z.boolean(),
   attuned: z.boolean(),
   requiresAttunement: z.boolean(),
+  features: z.array(
+    z.object({
+      id: z.string().min(1),
+      label: z.string().min(1),
+      description: z.string().optional(),
+      resourceCost: z.number().int().positive().optional(),
+      resourceGrantId: z.string().min(1).optional()
+    })
+  ),
   numericEditors: z.array(
     numericAdjustmentEditorBaseDtoSchema.extend({
       field: z.enum([
@@ -460,10 +469,12 @@ const itemPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   textEditors: z.array(textEditorDtoSchema),
   resources: z.array(
     z.object({
+      id: z.string().min(1),
       target: z.object({ kind: z.literal('RESOURCE'), owner: characterResourceOwnerRefDtoSchema }),
       label: z.string().min(1),
       remaining: z.number().int().nonnegative(),
-      maximum: z.number().int().nonnegative()
+      maximum: z.number().int().nonnegative(),
+      recoveries: z.array(characterResourceRecoveryDtoSchema)
     })
   )
 })

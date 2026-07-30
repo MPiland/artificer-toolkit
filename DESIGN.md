@@ -17,11 +17,12 @@ colors:
   surface-canvas-light: '#f7f9fb'
   surface-panel-light: '#ffffff'
   surface-subtle-light: '#eef2f6'
-  surface-canvas-dark: '#0a0f0e'
-  surface-panel-dark: '#171d1c'
-  surface-subtle-dark: '#1b2120'
-  surface-sidebar-dark: '#0f1413'
-  surface-raised-dark: '#262b2a'
+  surface-canvas-dark: '#101315'
+  surface-panel-dark: '#171a1d'
+  surface-subtle-dark: '#141719'
+  surface-sidebar-dark: '#121517'
+  surface-header-dark: '#07090b'
+  surface-raised-dark: '#262a2f'
   success: '#2f9b63'
   warning: '#8a5a00'
   danger: '#c15336'
@@ -164,10 +165,10 @@ The frontmatter records current web primitives. Native implementations preserve 
 - **Paper Canvas** (`#f7f9fb`): Light-theme page canvas.
 - **Panel White** (`#ffffff`): Light-theme cards, forms, and raised working surfaces.
 - **Frost Surface** (`#eef2f6`): Light-theme headers, sidebars, and subtle framing bands.
-- **Night Canvas** (`#0a0f0e`): Dark-theme page canvas.
-- **Forge Panel** (`#171d1c`): Dark-theme card and shell surface.
-- **Night Header** (`#0f1413`): Dark-theme header and framing band.
-- **Raised Iron** (`#262b2a`): Dark-theme lifted surface for active panels, compact drawers, and strong section headers.
+- **Night Canvas** (`#101315`): Dark-theme page canvas and recessed working field.
+- **Forge Panel** (`#171a1d`): Dark-theme card, sheet, and working-panel surface.
+- **Night Header** (`#07090b`): Dark-theme app header; a cooler near-black frame keeps the global shell visually behind the authoring workspace.
+- **Raised Iron** (`#262a2f`): Dark-theme lifted surface for active panels, compact drawers, and strong section headers.
 
 ### Named Rules
 
@@ -287,7 +288,7 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 - **App Shell:** Signed-in desktop and tablet landscape use a top header with brand, breadcrumb context, Library and Create menu buttons, search, theme, and account. Library and Create are separate menus because browsing and starting new content are different intents. Signed-out pages use the marketing/auth header and do not render signed-in app navigation.
 - **Mobile App Navigation:** Mobile and tablet portrait use a sticky app footer for Library, Create, Search, and Account. Search opens a bottom drawer; account uses the same menu actions as desktop. The mobile footer is app-wide navigation and must never appear on desktop.
 - **Structure Rail:** The rail belongs to the current authoring item only. It shows the step hierarchy, active step, child steps for the active branch, completion/dirty/warning markers, and the contextual footer summary. It is not a domain library, not a sidebar replacement, and not a place for global Create actions.
-- **Rail Behavior:** Desktop and tablet landscape can render the structure rail inline beside the editor. Mobile and tablet portrait open the rail in a drawer. Closing the desktop rail removes the rail column and lets the editor expand; overlay rails start closed.
+- **Rail Behavior:** At wide desktop (`>=1280px`), the Structure rail and useful Preview rail stay inline for the whole authoring session; they are the studio composition, not optional chrome. Smaller widths use the existing drawer pattern for both rails, and those overlays start closed.
 - **Active State:** Active authoring rows use orange text and a restrained left fill/marker. Avoid loud full-row fills unless needed for clarity.
 
 ### Empty / First-Run States
@@ -304,12 +305,18 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 
 ### Authoring Workspace
 
-- **Structure:** The workspace is header, optional structure rail, editor canvas, optional context/preview rail, and persistent action bar. The editor canvas owns the current step. The preview rail appears only when it adds useful output or context.
-- **Editor Sections:** Sections are modular working surfaces sized to their content. Avoid full-width slabs unless the content truly needs the full row. Section headers should be compact, readable, and visually tied to the section body.
+- **Visual Thesis:** Authoring is a dense creative studio, not a generic form floating in empty space. Wide desktop is an edge-to-edge composition of near-black structural panels, hairline borders, restrained orange lifecycle accents, and teal authored-output accents.
+- **Structure:** The workspace is a layered document header, Structure rail, bounded editor stage, useful Live output rail, and structural action dock. At wide desktop, both rails are present whenever the preview adds useful output; the editor stage stays centered and bounded between them. Below that threshold, rails become contextual drawers. The editor canvas owns the current step.
+- **Surface Hierarchy:** Rails and editor meet edge-to-edge. Header bands, the active-step banner, the working section, and the bottom dock create hierarchy through surface shifts and rules rather than isolated floating cards or large empty gutters.
+- **Foundation Roles:** The shared design system owns the semantic authoring palette for canvas, rail, band, document header, panel, preview, row, active state, dock, recessed field, field stroke, structural border, and notice surfaces in both themes. Authoring components consume those roles through the web foundation contract rather than choosing generic surfaces or local color values.
+- **Black Forge Reference Values:** Dark surfaces use the measured mockup palette: app header `#07090b`; band and document header `#101214`; canvas and recessed fields `#101315`; rail `#121517`; row `#141719`; preview sheet `#15181a`; panel, active banner, and dock `#171a1d`; notice `#191917`; field stroke `#343a40`; structural rules `rgba(255, 255, 255, 0.07)`. The app-wide surface roles and authoring-specific roles derive from the same shared Black Forge scale so authoring, reference, Builder, and Sheet surfaces keep one brand foundation while preserving their semantic composition.
+- **Structure Rows:** Top-level steps are authored rows with real semantic destinations such as Basics, Effects, Grants, and Features; do not add a generic Mechanics bucket around those modules. Charges and restrictions stay with the Basics destination of their owning source. Step numbers are omitted because order and hierarchy already communicate sequence. A populated collection heading navigates to its overview, while its chevron expands or collapses children without navigation; do not add a redundant Overview child. The active row may use a restrained orange-to-iron gradient that reads as forge light rather than a loud fill. Nested navigation remains visibly hierarchical and denser so deep collection targets stay scannable without imitating another top-level step.
+- **Editor Sections:** Sections share one bounded working panel and use subtly inset horizontal rules to mark transitions. Pair short, independent fields and keep collections scannable as edge-to-edge compact ledgers whose rows touch and share hairline boundaries; reserve full rows for prose, rich text, or structurally wide content. Section headings keep a compact inset while comparable row data uses the available width.
 - **Field Layout:** Use responsive Mantine-backed controls styled through vanilla-extract. Field grids should collapse by content need, not by arbitrary copied dimensions. Numeric inputs use Mantine `NumberInput` with controls hidden where spinner arrows make the row feel noisy.
-- **Row Modules:** Repeated modular rows should support scanning first, editing second. Wide layouts may allow inline editing for existing rows. Add actions open a staged drawer so accidental adds do not mutate draft data.
+- **Row Modules:** Repeated modular rows should support scanning first, editing second. Wide layouts may allow inline editing for existing rows. Add actions sit as the final, left-aligned ledger row and open a staged drawer so accidental adds do not mutate draft data.
 - **Staged Drawer:** Drawers stage add/edit changes and require explicit commit actions such as `Add tier` or `Save tier`. Cancel closes the drawer and discards the staged draft. Mobile portrait uses a minimal-height bottom drawer; mobile landscape and tablet can use the drawer pattern that best preserves reach and readable fields.
-- **Context / Preview:** Preview cards should render the authored output users will see after activation, including rich prose. Avoid generic "outcome context" cards unless the active step genuinely has an outcome to summarize.
+- **Context / Preview:** Live output reads as one subtly warm, opaque sheet-like artifact with the real item identity and internally divided sections, not a loose stack of unrelated cards. Equipment identity combines a category-aware placeholder visual, title metadata, compact stats including weight and value when available, and flowing prose; charges use the same label/value row rhythm (`Uses`, `Resets`) rather than a chip. Do not add redundant headings such as "Item Snapshot" or "Description." Preview content should render the authored output users will see after activation. Avoid generic "outcome context" cards unless the active step genuinely has an outcome to summarize.
+- **Progress and Actions:** The Structure rail footer is the single progress summary. Do not duplicate progress in the editor dock. Wide desktop uses a compact dock with clearly labelled Back and Next actions; compact actions remain above the app footer and never replace app navigation.
 
 ### Character Sheet Inspectors
 

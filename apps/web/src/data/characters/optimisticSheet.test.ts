@@ -1,3 +1,4 @@
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import {
   itemPanelFixture,
@@ -90,7 +91,7 @@ describe('optimistic Character Sheet projections', () => {
   })
 
   it('projects charged spell casts through the source resource owner', () => {
-    const sheet = structuredClone(characterSheetFixture)
+    const sheet: CharacterSheetResponseDto = structuredClone(characterSheetFixture)
     const resource = sheet.resources.items[1]!
     const spell = sheet.spells.spells[0]!
     const source = spell.sources![0]!
@@ -167,6 +168,27 @@ describe('optimistic Character Sheet projections', () => {
       temp: 2
     })
     expect(set.overview).toMatchObject({ currentHitPoints: 4, tempHitPoints: 2 })
+  })
+
+  it('projects generic item resource adjustments into the open item panel', () => {
+    const itemResource = itemPanelFixture.resources[0]!
+    const used = projectOptimisticCharacterSheetPanel(itemPanelFixture, {
+      ...commandBase,
+      type: 'USE_RESOURCE',
+      resourceGrantId: itemResource.id
+    })
+    expect(used).toMatchObject({
+      resources: [expect.objectContaining({ remaining: itemResource.remaining - 1 })]
+    })
+
+    const restored = projectOptimisticCharacterSheetPanel(used, {
+      ...commandBase,
+      type: 'RESTORE_RESOURCE',
+      resourceGrantId: itemResource.id
+    })
+    expect(restored).toMatchObject({
+      resources: [expect.objectContaining({ remaining: itemResource.remaining })]
+    })
   })
 
   it('projects condition changes and preserves exhaustion notes on level-only updates', () => {

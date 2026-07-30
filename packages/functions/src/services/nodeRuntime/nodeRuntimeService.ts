@@ -73,6 +73,7 @@ async function resolveNodeRuntimeScope(
     resolvedSteps.push({
       id: step.id,
       label: step.label,
+      description: step.description,
       order: step.order,
       sections: resolvedSections
     })

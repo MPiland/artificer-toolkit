@@ -78,6 +78,7 @@ export type CharacterBuilderEquipmentCatalogRecord = {
   label: string
   category?: EquipmentCategoryCode
   isContainer: boolean
+  maxStack?: number
   properties: EquipmentPropertyCode[]
   requiresAttunement: boolean
 }
@@ -251,6 +252,33 @@ export async function loadCharacterBuilderCatalog(
   ])
   const racesById = new Map(resolvedRaces.map((race) => [race.id, race]))
   const equipmentById = new Map(equipmentResult.items.map((item) => [item.id, item]))
+  const effectiveMaxStackByEquipmentId = new Map<string, number | undefined>()
+  const resolveEffectiveMaxStack = (
+    equipmentId: string,
+    lineage: ReadonlySet<string> = new Set()
+  ): number | undefined => {
+    if (effectiveMaxStackByEquipmentId.has(equipmentId)) {
+      return effectiveMaxStackByEquipmentId.get(equipmentId)
+    }
+    if (lineage.has(equipmentId)) return undefined
+
+    const equipment = equipmentById.get(equipmentId)
+    if (!equipment) return undefined
+
+    const authoredMaxStack =
+      equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
+    const maxStack = equipment.chargeId
+      ? 1
+      : (authoredMaxStack ??
+        (equipment.parentEquipmentId
+          ? resolveEffectiveMaxStack(
+              equipment.parentEquipmentId,
+              new Set([...lineage, equipmentId])
+            )
+          : undefined))
+    effectiveMaxStackByEquipmentId.set(equipmentId, maxStack)
+    return maxStack
+  }
 
   return {
     races: raceResult.items.map((record) => {
@@ -334,6 +362,7 @@ export async function loadCharacterBuilderCatalog(
       label: record.label,
       category: requireEquipmentCategory(record.id, record.category),
       isContainer: record.capacityAmount !== null,
+      maxStack: resolveEffectiveMaxStack(record.id),
       properties: record.properties.map((property) =>
         requireEquipmentProperty(record.id, property)
       ),

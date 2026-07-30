@@ -1,4 +1,10 @@
 import type { CharacterSheetPanelDto } from '#app/lib/api'
+import {
+  astralTearChargeId,
+  astralTearEquipmentId,
+  astralTearItemInstanceId,
+  astralTearResourceId
+} from '../fixtures/astralTearSheet.fixtures'
 
 const characterId = '00000000-0000-4000-8000-000000000101'
 const systemId = '00000000-0000-4000-8000-000000000102'
@@ -1010,8 +1016,10 @@ export const itemPanelFixture = {
       commitIntent: 'ON_BLUR_OR_ENTER'
     }
   ],
+  features: [],
   resources: [
     {
+      id: 'item:00000000-0000-4000-8000-000000000130:charge:00000000-0000-4000-8000-000000000133',
       target: {
         kind: 'RESOURCE',
         owner: {
@@ -1022,7 +1030,70 @@ export const itemPanelFixture = {
       },
       label: 'Moon-Touched Longsword charges',
       remaining: 2,
-      maximum: 3
+      maximum: 3,
+      recoveries: [{ trigger: 'DAWN', amount: { kind: 'ALL' } }]
+    }
+  ]
+} satisfies CharacterSheetPanelDto
+
+export const astralTearItemPanelFixture = {
+  ...itemPanelFixture,
+  panelId: `item:${astralTearItemInstanceId}`,
+  target: {
+    kind: 'ITEM',
+    itemInstanceId: astralTearItemInstanceId
+  },
+  title: 'The Astral Tear Awakened',
+  state: 'DEFAULT',
+  itemInstanceId: astralTearItemInstanceId,
+  equipmentId: astralTearEquipmentId,
+  authoredName: 'The Astral Tear Awakened',
+  displayName: 'The Astral Tear Awakened',
+  description:
+    '<p>This mighty blade belongs to the Astral Champion of Vedur. While attuned to it, its wielder can call it to hand from a special demiplane.</p>',
+  facts: [
+    { label: 'Category', value: 'Weapon' },
+    { label: 'Quantity', value: '1' },
+    { label: 'Weight', value: '2 pounds' },
+    { label: 'Cost', value: '2,000 gold pieces' },
+    { label: 'Properties', value: 'Finesse, Light, Vex' }
+  ],
+  equipped: true,
+  attuned: true,
+  requiresAttunement: true,
+  features: [
+    {
+      id: 'astral-tear-warping-strike',
+      label: 'Warping Strike',
+      description:
+        '<p>While holding the sword, you can expend 1 of its charges as part of making an attack with it. You can teleport to an unoccupied space you can see within 30 feet either before or after the attack. On a hit, the target also takes 4d6 force damage.</p>',
+      resourceGrantId: astralTearResourceId,
+      resourceCost: 1
+    },
+    {
+      id: 'astral-tear-spells',
+      label: 'Spells',
+      description:
+        '<p>While holding the sword, you can use an action to expend 1 of its charges to cast a 2nd-level or lower spell without expending a spell slot.</p>',
+      resourceGrantId: astralTearResourceId,
+      resourceCost: 1
+    }
+  ],
+  resources: [
+    {
+      id: astralTearResourceId,
+      target: {
+        kind: 'RESOURCE',
+        owner: {
+          kind: 'ITEM_INSTANCE',
+          chargeId: astralTearChargeId,
+          itemInstanceId: astralTearItemInstanceId
+        }
+      },
+      label: 'The Astral Tear Awakened charges',
+      remaining: 2,
+      maximum: 3,
+      recoveries: [{ trigger: 'DAWN', amount: { kind: 'ALL' } }]
     }
   ]
 } satisfies CharacterSheetPanelDto

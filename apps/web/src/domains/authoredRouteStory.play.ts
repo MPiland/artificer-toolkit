@@ -4,10 +4,20 @@ async function findAuthoringRailItem(container: HTMLElement, name: RegExp) {
   const scope = within(container)
 
   return await waitFor(() => {
-    const target = scope.queryByRole('link', { name }) ?? scope.queryByRole('button', { name })
+    const target =
+      scope.queryByRole('link', { name }) ??
+      scope.queryAllByRole('button', { name }).find((button) => !button.hasAttribute('aria-expanded'))
     if (!target) throw new Error(`Unable to find authoring rail item matching ${name}.`)
     return target
   })
+}
+
+function getAuthoringRailExpander(target: HTMLElement) {
+  const expander = target.parentElement?.querySelector<HTMLButtonElement>('button[aria-expanded]')
+  if (!expander) {
+    throw new Error(`Unable to find the authoring rail expander for "${target.textContent}".`)
+  }
+  return expander
 }
 
 export async function expectCreateEmptyAuthoringRoute(canvasElement: HTMLElement) {
@@ -70,16 +80,17 @@ export async function selectAuthoringTarget(canvasElement: HTMLElement, name: Re
 export async function expandAuthoringBranch(canvasElement: HTMLElement, name: RegExp) {
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
-  const branch = await findAuthoringRailItem(steps, name)
+  const target = await findAuthoringRailItem(steps, name)
+  const expander = getAuthoringRailExpander(target)
 
-  if (branch.getAttribute('aria-expanded') !== 'true') {
-    await userEvent.click(branch)
+  if (expander.getAttribute('aria-expanded') !== 'true') {
+    await userEvent.click(expander)
   }
 
   await waitFor(async () => {
-    await expect(branch).toHaveAttribute('aria-expanded', 'true')
+    await expect(expander).toHaveAttribute('aria-expanded', 'true')
 
-    const controlledId = branch.getAttribute('aria-controls')
+    const controlledId = expander.getAttribute('aria-controls')
     await expect(controlledId).toBeTruthy()
     await expect(
       canvasElement.ownerDocument.getElementById(controlledId ?? '')?.firstElementChild
@@ -97,7 +108,7 @@ export async function selectAuthoringChildTarget(
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
   const parent = await findAuthoringRailItem(steps, parentName)
-  const controlledId = parent.getAttribute('aria-controls')
+  const controlledId = getAuthoringRailExpander(parent).getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
 
   await expect(controlledRegion).toBeInTheDocument()
@@ -116,19 +127,20 @@ export async function expandAuthoringChildBranch(
   const canvas = within(canvasElement)
   const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
   const parent = await findAuthoringRailItem(steps, parentName)
-  const controlledId = parent.getAttribute('aria-controls')
+  const controlledId = getAuthoringRailExpander(parent).getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
 
   await expect(controlledRegion).toBeInTheDocument()
   const child = await findAuthoringRailItem(controlledRegion as HTMLElement, childName)
-  if (child.getAttribute('aria-expanded') !== 'true') {
-    await userEvent.click(child)
+  const childExpander = getAuthoringRailExpander(child)
+  if (childExpander.getAttribute('aria-expanded') !== 'true') {
+    await userEvent.click(childExpander)
   }
 
   await waitFor(async () => {
-    await expect(child).toHaveAttribute('aria-expanded', 'true')
+    await expect(childExpander).toHaveAttribute('aria-expanded', 'true')
 
-    const childControlledId = child.getAttribute('aria-controls')
+    const childControlledId = childExpander.getAttribute('aria-controls')
     await expect(
       canvasElement.ownerDocument.getElementById(childControlledId ?? '')?.firstElementChild
     ).toHaveAttribute('aria-hidden', 'false')

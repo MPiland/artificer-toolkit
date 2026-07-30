@@ -1,15 +1,74 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
+import * as richTextStyles from '../../ui/primitives/RichTextEditor/RichTextEditor.css'
+import { AUTHORING_WIDE_DESKTOP_QUERY } from '../layout/authoringWorkspace.constants'
 
 export const sectionStack = style({
   '@layer': {
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      gap: foundationVars.space['5']
+      gap: foundationVars.space[4],
+      padding: foundationVars.space[3],
+      border: `1px solid ${foundationVars.color.authoring.border}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.authoring.panel
     }
   }
+})
+
+export const canvasSectionStack = style([
+  sectionStack,
+  {
+    '@layer': {
+      [app]: {
+        gap: 0,
+        minInlineSize: 0,
+        inlineSize: '100%',
+        padding: 0,
+        boxSizing: 'border-box'
+      }
+    }
+  }
+])
+
+export const canvasSectionStackRowsOnly = style({
+  '@layer': {
+    [app]: {
+      border: 0,
+      borderRadius: 0,
+      backgroundColor: 'transparent'
+    }
+  }
+})
+
+globalStyle(`${canvasSectionStack} > section`, {
+  padding: foundationVars.space[3]
+})
+
+globalStyle(`${canvasSectionStackRowsOnly} > section`, {
+  paddingBlock: 0
+})
+
+globalStyle(`${canvasSectionStack} > section + section`, {
+  position: 'relative'
+})
+
+globalStyle(`${canvasSectionStack} > section + section::before`, {
+  content: '',
+  position: 'absolute',
+  insetBlockStart: 0,
+  insetInline: foundationVars.space[3],
+  blockSize: 1,
+  backgroundColor: foundationVars.color.authoring.border
+})
+
+globalStyle(`${sectionStack} ${sectionStack}`, {
+  padding: 0,
+  border: 0,
+  borderRadius: 0,
+  backgroundColor: 'transparent'
 })
 
 export const fieldGrid = style({
@@ -17,7 +76,8 @@ export const fieldGrid = style({
     [app]: {
       display: 'grid',
       gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: foundationVars.space['4'],
+      gap: foundationVars.space['3'],
+      minInlineSize: 0,
 
       '@media': {
         '(max-width: 768px)': {
@@ -42,14 +102,24 @@ export const canvasStepHeader = style({
       display: 'flex',
       alignItems: 'center',
       gap: foundationVars.space[2],
-      marginBlockEnd: foundationVars.space[4],
+      minBlockSize: 56,
+      minInlineSize: 0,
+      inlineSize: '100%',
+      marginBlockEnd: 0,
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`,
+      border: `1px solid ${foundationVars.color.authoring.border}`,
+      borderRadius: foundationVars.radius.sm,
+      boxSizing: 'border-box',
+      backgroundColor: foundationVars.color.authoring.active,
       color: foundationVars.color.text.secondary,
-
-      '::after': {
-        content: '',
-        blockSize: 1,
-        flex: 1,
-        background: foundationVars.color.border.subtle
+      '@media': {
+        [AUTHORING_WIDE_DESKTOP_QUERY]: {
+          inlineSize: `calc(100% + ${foundationVars.space[4]} + ${foundationVars.space[4]})`,
+          marginBlockStart: `calc(0px - ${foundationVars.space[4]})`,
+          marginInline: `calc(0px - ${foundationVars.space[4]})`,
+          borderInline: 0,
+          borderRadius: 0
+        }
       }
     }
   }
@@ -58,10 +128,36 @@ export const canvasStepHeader = style({
 export const canvasStepTitle = style({
   '@layer': {
     [app]: {
+      margin: 0,
       color: foundationVars.color.text.primary,
-      fontSize: foundationVars.typography.heading.fontSize,
-      fontWeight: foundationVars.fontWeight.semibold,
+      fontSize: '20px',
+      fontWeight: foundationVars.fontWeight.bold,
       lineHeight: foundationVars.typography.heading.lineHeight
+    }
+  }
+})
+
+export const canvasStepDivider = style({
+  '@layer': {
+    [app]: {
+      inlineSize: 1,
+      blockSize: 20,
+      flexShrink: 0,
+      backgroundColor: foundationVars.color.authoring.border
+    }
+  }
+})
+
+export const canvasStepDescription = style({
+  '@layer': {
+    [app]: {
+      minInlineSize: 0,
+      overflow: 'hidden',
+      color: foundationVars.color.text.muted,
+      fontSize: '12px',
+      lineHeight: '18px',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }
 })
@@ -72,10 +168,18 @@ export const sectionHeading = style({
       display: 'flex',
       alignItems: 'center',
       gap: foundationVars.space[2],
-      marginBlockEnd: foundationVars.space[3],
+      marginBlockEnd: foundationVars.space[2],
       color: foundationVars.color.text.secondary
     }
   }
+})
+
+globalStyle(`${fieldGrid} ${richTextStyles.editorRoot}`, {
+  minHeight: '6rem'
+})
+
+globalStyle(`${fieldGrid} ${richTextStyles.editorContent} .ProseMirror`, {
+  minHeight: '3.5rem'
 })
 
 export const sectionHeadingTitle = style({
@@ -127,7 +231,7 @@ export const nestedShell = style({
       display: 'flex',
       flexDirection: 'column',
       gap: foundationVars.space['3'],
-      border: `1px dashed ${foundationVars.color.border.subtle}`,
+      border: `1px dashed ${foundationVars.color.authoring.border}`,
       borderRadius: foundationVars.radius.md,
       padding: foundationVars.space['4']
     }
@@ -140,7 +244,7 @@ export const groupEditorBody = style({
       blockSize: '100%',
       boxSizing: 'border-box',
       padding: `${foundationVars.space['4']} ${foundationVars.space['5']} 0`,
-      backgroundColor: foundationVars.color.surface.panel
+      backgroundColor: foundationVars.color.authoring.panel
     }
   }
 })
@@ -148,8 +252,8 @@ export const groupEditorBody = style({
 export const groupEditorSurface = style({
   '@layer': {
     [app]: {
-      borderInlineStart: `1px solid ${foundationVars.color.border.strong}`,
-      backgroundColor: foundationVars.color.surface.panel,
+      borderInlineStart: `1px solid ${foundationVars.color.authoring.border}`,
+      backgroundColor: foundationVars.color.authoring.panel,
       color: foundationVars.color.text.primary
     }
   }
@@ -185,8 +289,8 @@ export const groupEditorHeader = style({
     [app]: {
       minBlockSize: 72,
       paddingInline: foundationVars.space[5],
-      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.panel
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      backgroundColor: foundationVars.color.authoring.panel
     }
   }
 })
@@ -268,8 +372,8 @@ export const groupEditorActions = style({
       marginBlockStart: 'auto',
       paddingBlockStart: foundationVars.space['3'],
       paddingBlockEnd: foundationVars.space['5'],
-      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
-      background: foundationVars.color.surface.panel
+      borderBlockStart: `1px solid ${foundationVars.color.authoring.border}`,
+      background: foundationVars.color.authoring.panel
     }
   }
 })
@@ -283,7 +387,7 @@ globalStyle(`${groupEditorActions} > *`, {
 
 globalStyle(`${groupEditorContent} > ${sectionStack} > section`, {
   paddingBlockEnd: foundationVars.space[5],
-  borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+  borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
   counterIncrement: 'authoring-drawer-section'
 })
 
@@ -303,6 +407,13 @@ globalStyle(`${groupEditorContent} ${fieldGrid}`, {
 
 globalStyle(`${groupEditorContent} ${sectionStack}`, {
   gap: foundationVars.space[6]
+})
+
+globalStyle(`${groupEditorContent} > ${sectionStack}`, {
+  padding: 0,
+  border: 0,
+  borderRadius: 0,
+  background: 'transparent'
 })
 
 globalStyle(`${groupEditorContent} ${sectionHeading}`, {

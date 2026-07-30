@@ -258,6 +258,43 @@ describe('Character Sheet actions', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('spends the authored charge cost for a source-backed action', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    sheet.actions.items = [
+      {
+        id: 'action-warping-strike',
+        label: 'Warping Strike',
+        kind: 'ACTION',
+        sourceLabel: 'Astral Tear',
+        resourceGrantId: 'resource-1',
+        resourceCost: 2
+      }
+    ]
+    sheet.resources.items[0] = {
+      ...sheet.resources.items[0]!,
+      used: 0,
+      max: 3,
+      remaining: 3
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetActions pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /use 2 warping strike charges/i })
+    )
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_RESOURCE',
+      resourceGrantId: 'resource-1',
+      amount: 2,
+      expectedVersion: 4
+    })
+  })
+
   it('keeps attack rows aligned while limiting their resource controls to Limited Use', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()

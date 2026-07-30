@@ -6,5 +6,5 @@ export type FeatGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sca
   N
 > & {
   grantKind: typeof GRANT_KIND.FEAT_GRANT
-  charges?: ChargeAuthored
+  charges?: ChargeAuthored<true>
 }

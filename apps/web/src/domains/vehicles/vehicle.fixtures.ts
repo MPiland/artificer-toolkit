@@ -215,18 +215,28 @@ export const vehicleRuntimeFixture = {
       ]
     },
     {
-      id: 'content',
-      label: 'Features and Details',
+      id: 'features',
+      label: 'Features',
       order: 50,
       sections: [
         {
-          id: 'content',
-          label: 'Features and Details',
+          id: 'features',
+          label: 'Features',
           order: 10,
-          nodes: [
-            groupNode('features', ['features'], 'Features', 'ARRAY', 'feature'),
-            groupNode('details', ['details'], 'Details', 'ARRAY', 'vehicleDetail')
-          ]
+          nodes: [groupNode('features', ['features'], 'Features', 'ARRAY', 'feature')]
+        }
+      ]
+    },
+    {
+      id: 'details',
+      label: 'Details',
+      order: 60,
+      sections: [
+        {
+          id: 'details',
+          label: 'Details',
+          order: 10,
+          nodes: [groupNode('details', ['details'], 'Details', 'ARRAY', 'vehicleDetail')]
         }
       ]
     }

@@ -35,6 +35,8 @@ export type AuthoredFormSessionInput = {
 
 export type AuthoredFormPreviewContext<TValues extends object = object> = {
   domain: AuthoredFormDomain
+  label: string
+  statusLabel: string
   system?: SystemResponseDto | null
   values: TValues
 }

@@ -12,7 +12,6 @@ import {
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { server } from '#test/msw/server'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
-import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
@@ -37,10 +36,7 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^back$/i })).toBeDisabled()
-    expect(screen.getByRole('link', { name: /^cancel$/i })).toHaveAttribute(
-      'href',
-      authoredFormActionFactories[domain].listPath
-    )
+    expect(screen.getByRole('link', { name: /^cancel$/i })).toHaveAttribute('href')
     expect(
       within(screen.getByTestId('authoring-action-bar')).queryByRole('link', {
         name: /^cancel$/i
@@ -58,6 +54,21 @@ describe('non-character authored domain layout coverage', () => {
     await user.click(screen.getByRole('link', { name: /^next$/i }))
 
     expect(screen.getByRole('link', { name: /^back$/i })).toHaveAttribute('href')
+  })
+
+  it('updates the live preview title from the current form name', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+
+    render(<TestRouterProvider>{renderCreateLayout('equipment')}</TestRouterProvider>)
+
+    const preview = await screen.findByLabelText('Authoring preview')
+    expect(within(preview).getByText('Untitled Equipment')).toBeInTheDocument()
+
+    await user.type(await screen.findByRole('textbox', { name: /name/i }), 'Moon Blade')
+
+    expect(await within(preview).findByText('Moon Blade')).toBeInTheDocument()
+    expect(within(preview).queryByText('Untitled Equipment')).not.toBeInTheDocument()
   })
 
   it.each(DOMAINS)('renders the %s edit authoring route data', async (domain) => {

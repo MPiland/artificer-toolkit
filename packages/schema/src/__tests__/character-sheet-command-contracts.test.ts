@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  characterSheetActionDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetExtrasDtoSchema,
   characterSheetInventoryItemDtoSchema,
@@ -14,6 +15,21 @@ import {
 } from '../api/characterSheet.js'
 
 describe('character sheet command contracts', () => {
+  it('accepts positive source-charge action costs and rejects zero cost', () => {
+    const action = {
+      id: 'action-warping-strike',
+      label: 'Warping Strike',
+      kind: 'ACTION',
+      resourceGrantId: 'ITEM_INSTANCE:item-1:astral-tear-charges',
+      resourceCost: 2
+    } as const
+
+    expect(characterSheetActionDtoSchema.safeParse(action).success).toBe(true)
+    expect(
+      characterSheetActionDtoSchema.safeParse({ ...action, resourceCost: 0 }).success
+    ).toBe(false)
+  })
+
   it('requires property codes and authoritative labels in Sheet inventory rows', () => {
     const item = {
       id: 'item-1',

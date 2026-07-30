@@ -5,10 +5,13 @@ import { app } from '../../../css/layers.css.ts'
 export const shell = style({
   '@layer': {
     [app]: {
-      borderInlineEnd: `1px solid ${foundationVars.color.border.strong}`,
-      inlineSize: '20rem',
+      borderInlineEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      inlineSize: 'clamp(260px, 20vw, 304px)',
+      blockSize: '100%',
+      minBlockSize: 0,
+      flexShrink: 0,
       maxInlineSize: '100%',
-      backgroundColor: foundationVars.color.surface.recessed
+      backgroundColor: foundationVars.color.authoring.rail
     }
   }
 })
@@ -21,8 +24,8 @@ export const drawerContent = style({
       blockSize: '100%',
       minBlockSize: 0,
       overflow: 'hidden',
-      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.recessed,
+      borderBlockStart: `1px solid ${foundationVars.color.authoring.border}`,
+      backgroundColor: foundationVars.color.authoring.rail,
       color: foundationVars.color.text.primary
     }
   }
@@ -37,7 +40,7 @@ export const drawerBody = style({
       minBlockSize: 0,
       overflow: 'hidden',
       padding: 0,
-      backgroundColor: foundationVars.color.surface.recessed
+      backgroundColor: foundationVars.color.authoring.rail
     }
   }
 })

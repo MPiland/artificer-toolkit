@@ -23,8 +23,10 @@ export const CREATURE_SECTIONS = {
   basics: { id: 'basics', label: 'Basics', order: 10 },
   stats: { id: 'stats', label: 'Stats', order: 20 },
   defenses: { id: 'defenses', label: 'Defenses', order: 30 },
-  content: { id: 'content', label: 'Content', order: 40 },
-  profiles: { id: 'profiles', label: 'Profiles', order: 50 }
+  details: { id: 'details', label: 'Details', order: 40 },
+  features: { id: 'features', label: 'Features', order: 50 },
+  proficiencies: { id: 'proficiencies', label: 'Proficiencies', order: 60 },
+  profiles: { id: 'profiles', label: 'Profiles', order: 70 }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
@@ -224,7 +226,7 @@ export const CREATURE_NODE_MAP = creatureNode.define(
         'details',
         groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP, {
           presentation: 'inline',
-          section: CREATURE_SECTIONS.content,
+          section: CREATURE_SECTIONS.details,
           order: 10
         })
       )
@@ -232,16 +234,16 @@ export const CREATURE_NODE_MAP = creatureNode.define(
         'features',
         groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
           presentation: 'branch',
-          section: CREATURE_SECTIONS.content,
-          order: 20
+          section: CREATURE_SECTIONS.features,
+          order: 10
         })
       )
       .set(
         'proficiencies',
         groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, {
           presentation: 'branch',
-          section: CREATURE_SECTIONS.content,
-          order: 30
+          section: CREATURE_SECTIONS.proficiencies,
+          order: 10
         })
       )
       .set('userId', text(['userId'], 'User ID'))

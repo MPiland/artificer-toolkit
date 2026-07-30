@@ -1,13 +1,14 @@
 import {
   ABILITY_CODE,
   type ChargeAuthored,
-  type ChargeBonusAuthored
+  type ChargeBonusAuthored,
+  type OwnedChargeAuthored
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { assertNever, withTransaction } from '../../../utils/index.js'
 
 type ChargeAuthoredWrite =
-  | ChargeAuthored
+  | ChargeAuthored<true>
   | ((
       | {
           limitKind: 'CLASS_LEVEL'
@@ -25,7 +26,7 @@ type ChargeAuthoredWrite =
           max?: number
         }
     ) &
-      Pick<ChargeAuthored, 'id' | 'resetKind' | 'bonuses'>)
+      Pick<OwnedChargeAuthored, 'id' | 'resetKind' | 'bonuses'>)
 
 type ChargeBonusRow = {
   id: string
@@ -45,6 +46,7 @@ type ChargeLimitRow = {
   class_id: string | null
   ability_code: string | null
   amount: number | null
+  cost: number | null
   multiplier: number | null
   min: number | null
   max: number | null
@@ -58,8 +60,15 @@ type ChargeScalingLevelRow = {
   amount: number
 }
 
-function requireChargeResetKind(chargeId: string, value: string): ChargeAuthored['resetKind'] {
-  if (value !== 'LONG_REST' && value !== 'SHORT_REST' && value !== 'MANUAL') {
+function requireChargeResetKind(chargeId: string, value: string): OwnedChargeAuthored['resetKind'] {
+  if (
+    value !== 'DAILY' &&
+    value !== 'DAWN' &&
+    value !== 'DUSK' &&
+    value !== 'LONG_REST' &&
+    value !== 'SHORT_REST' &&
+    value !== 'MANUAL'
+  ) {
     throw new Error(`Charge "${chargeId}" has invalid resetKind "${value}".`)
   }
 
@@ -81,7 +90,8 @@ function requireChargeLimitKind(chargeId: string, value: string): void {
     value !== 'CLASS_LEVEL' &&
     value !== 'PARENT_CLASS_LEVEL' &&
     value !== 'SPELL_CAST_LEVEL' &&
-    value !== 'ABILITY_MODIFIER'
+    value !== 'ABILITY_MODIFIER' &&
+    value !== 'SOURCE_CHARGES'
   ) {
     throw new Error(`Charge "${chargeId}" has invalid limitKind "${value}".`)
   }
@@ -109,6 +119,14 @@ function requireFixedAmount(chargeId: string, amount: number | undefined): numbe
   }
 
   return amount
+}
+
+function requireSourceChargeCost(chargeId: string, cost: number): number {
+  if (!Number.isInteger(cost) || cost <= 0) {
+    throw new Error(`Charge "${chargeId}" must have a positive integer source charge cost.`)
+  }
+
+  return cost
 }
 
 function requireScalingLevels(
@@ -191,6 +209,7 @@ export function mapChargeLimitToRow(
         class_id: null,
         ability_code: requireAbilityCode(charge_id, json_data.ability),
         amount: null,
+        cost: null,
         multiplier: json_data.multiplier ?? null,
         min: json_data.min ?? null,
         max: json_data.max ?? null
@@ -204,6 +223,7 @@ export function mapChargeLimitToRow(
         ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
+        cost: null,
         min: json_data.min ?? null,
         max: json_data.max ?? null
       }
@@ -216,6 +236,7 @@ export function mapChargeLimitToRow(
         ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
+        cost: null,
         min: json_data.min ?? null,
         max: json_data.max ?? null
       }
@@ -229,6 +250,7 @@ export function mapChargeLimitToRow(
         ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
+        cost: null,
         min: json_data.min ?? null,
         max: json_data.max ?? null
       }
@@ -240,6 +262,20 @@ export function mapChargeLimitToRow(
         class_id: null,
         ability_code: null,
         amount: requireFixedAmount(charge_id, json_data.amount),
+        cost: null,
+        multiplier: null,
+        min: null,
+        max: null
+      }
+
+    case 'SOURCE_CHARGES':
+      return {
+        charge_id,
+        limit_kind: json_data.limitKind,
+        class_id: null,
+        ability_code: null,
+        amount: null,
+        cost: requireSourceChargeCost(charge_id, json_data.cost),
         multiplier: null,
         min: null,
         max: null
@@ -266,14 +302,19 @@ export function mapChargeScalingToRow(
   }))
 }
 
-export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
+export async function upsertCharge(db: DBLike, json_data: ChargeAuthored<true>) {
   const chargeData = json_data as ChargeAuthoredWrite
   const scalingKind = requireChargeScalingKind(chargeData.id, chargeData.scalingKind)
-  const resetKind = requireChargeResetKind(chargeData.id, chargeData.resetKind)
+  const resetKind =
+    chargeData.limitKind === 'SOURCE_CHARGES'
+      ? null
+      : requireChargeResetKind(chargeData.id, chargeData.resetKind)
   const limit = mapChargeLimitToRow(chargeData, chargeData.id)
   const levels = mapChargeScalingToRow(chargeData, chargeData.id)
   const bonuses =
-    chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? []
+    chargeData.limitKind === 'SOURCE_CHARGES'
+      ? []
+      : (chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? [])
   return withTransaction(db, async (trx) => {
     await trx
       .insertInto('charges')
@@ -307,6 +348,7 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
                 class_id: eb.ref('excluded.class_id'),
                 ability_code: eb.ref('excluded.ability_code'),
                 amount: eb.ref('excluded.amount'),
+                cost: eb.ref('excluded.cost'),
                 multiplier: eb.ref('excluded.multiplier'),
                 min: eb.ref('excluded.min'),
                 max: eb.ref('excluded.max')

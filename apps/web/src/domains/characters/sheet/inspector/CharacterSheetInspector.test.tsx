@@ -18,6 +18,7 @@ import { CharacterSheetRulesPanel } from './CharacterSheetRulesPanel'
 import { CharacterSheetSpellCustomizationEditor } from './CharacterSheetSpellCustomizationEditor'
 import {
   abilityPanelFixture,
+  astralTearItemPanelFixture,
   companionPanelFixture,
   itemPanelFixture,
   savingThrowPanelFixture,
@@ -269,11 +270,20 @@ describe('Character Sheet inspector', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: 'Use' }))
+    await user.click(screen.getByRole('button', { name: 'Use one Moon-Touched Longsword charges' }))
     expect(submitCommand).toHaveBeenCalledWith({
-      type: 'USE_SHEET_RESOURCE',
+      type: 'USE_RESOURCE',
       expectedVersion: 4,
-      owner: itemPanelFixture.resources[0]!.target.owner
+      resourceGrantId: itemPanelFixture.resources[0]!.id
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: 'Restore one Moon-Touched Longsword charges' })
+    )
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'RESTORE_RESOURCE',
+      expectedVersion: 4,
+      resourceGrantId: itemPanelFixture.resources[0]!.id
     })
 
     await user.click(screen.getByRole('button', { name: 'Customize' }))
@@ -296,6 +306,42 @@ describe('Character Sheet inspector', () => {
       itemId: itemPanelFixture.itemInstanceId
     })
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('shows one owned item pool and lets each charged feature spend it', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+
+    renderWithAppProviders(
+      <CharacterSheetItemPanelContent
+        expectedVersion={4}
+        panel={astralTearItemPanelFixture}
+        pending={false}
+        submitCommand={submitCommand}
+        onClose={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('The Astral Tear Awakened charges')).toBeInTheDocument()
+    expect(screen.getByText('2 / 3')).toBeInTheDocument()
+    expect(screen.getByText('Resets: Dawn')).toBeInTheDocument()
+    expect(screen.getByText('Warping Strike')).toBeInTheDocument()
+    expect(screen.getByText('Spells')).toBeInTheDocument()
+    expect(screen.getAllByText('1 charge · 2 / 3')).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: 'Use Warping Strike' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_RESOURCE',
+      expectedVersion: 4,
+      resourceGrantId: astralTearItemPanelFixture.resources[0]!.id
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Use Spells' }))
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'USE_RESOURCE',
+      expectedVersion: 4,
+      resourceGrantId: astralTearItemPanelFixture.resources[0]!.id
+    })
   })
 
   it('dispatches companion adjustments and resource commands', async () => {

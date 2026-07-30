@@ -5,7 +5,8 @@ import {
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
   SCALING_OPTIONS,
-  CHARGE_LIMIT_KIND
+  CHARGE_LIMIT_KIND,
+  SOURCE_CHARGE_LIMIT_OPTION
 } from '#core'
 import { buildNodeMap } from '#utils'
 import { AllUnionFields } from 'type-fest'
@@ -110,12 +111,26 @@ const CHARGE_LEVEL_SCALING_NODE_MAP = chargeLevelScaling.define('levels', ({ map
     )
 })
 
-const charges = buildNodeMap<ChargeAuthored>()
+type ChargeOwner = {
+  attributes?: string[]
+}
+
+const charges = buildNodeMap<ChargeAuthored<true>>()
 
 export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, cond }) => {
   const { selectSingle, groupArray, number } = nodes
   const { or, and, not } = logic
   const local = cond.local()
+  const isSourceCharges = local
+    .field(['limitKind'])
+    .eq(CHARGE_LIMIT_KIND.SOURCE_CHARGES)
+  const always = not(and([isSourceCharges, not(isSourceCharges)]))
+  const hasChargeSource = or(
+    [2, 3, 4, 5, 6].map((up) => {
+      const ancestor = cond.ancestor<ChargeOwner>(up)
+      return ancestor.field(['attributes']).contains(['LIMITED_USE'])
+    })
+  )
 
   map
     .set(
@@ -129,7 +144,9 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         },
         {
           order: 1,
-          requiredIf: true
+          requiredIf: true,
+          showIf: not(isSourceCharges),
+          hiddenBehavior: 'CLEAR'
         }
       )
     )
@@ -139,8 +156,17 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         ['limitKind'],
         'Limit Kind',
         {
-          kind: 'INLINE_OPTIONS',
-          options: CHARGE_LIMIT_OPTIONS
+          kind: 'INLINE_GROUPS',
+          optionGroups: [
+            {
+              showIf: always,
+              options: CHARGE_LIMIT_OPTIONS
+            },
+            {
+              showIf: hasChargeSource,
+              options: [SOURCE_CHARGE_LIMIT_OPTION]
+            }
+          ]
         },
         {
           order: 1,
@@ -152,7 +178,17 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
       'bonuses',
       groupArray(['bonuses'], 'Bonuses', () => CHARGE_BONUS_NODE_MAP, {
         presentation: 'inline',
-        order: 2
+        order: 2,
+        showIf: not(isSourceCharges),
+        hiddenBehavior: 'CLEAR'
+      })
+    )
+    .set(
+      'cost',
+      number(['cost'], 'Charge Cost', {
+        order: 2,
+        requiredIf: true,
+        showIf: isSourceCharges
       })
     )
     .set(
@@ -167,7 +203,8 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         {
           order: 3,
           requiredIf: true,
-          showIf: local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.ABILITY_MODIFIER)
+          showIf: local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.ABILITY_MODIFIER),
+          hiddenBehavior: 'CLEAR'
         }
       )
     )
@@ -181,7 +218,8 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
           local.field(['limitKind']).eq('PARENT_CLASS_LEVEL'),
           local.field(['limitKind']).eq('SPELL_CAST_LEVEL'),
           local.field(['limitKind']).eq('ABILITY_MODIFIER')
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
@@ -200,7 +238,8 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         {
           order: 4,
           requiredIf: true,
-          showIf: local.field(['limitKind']).eq('CLASS_LEVEL')
+          showIf: local.field(['limitKind']).eq('CLASS_LEVEL'),
+          hiddenBehavior: 'CLEAR'
         }
       )
     )
@@ -228,21 +267,30 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         showIf: and([
           local.field(['limitKind']).eq('FIXED_AMOUNT'),
           local.field(['scalingKind']).eq('NONE')
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
       'min',
       number(['min'], 'Min. Amount', {
         order: 5,
-        showIf: not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT))
+        showIf: and([
+          not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT)),
+          not(isSourceCharges)
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
       'max',
       number(['max'], 'Max. Amount', {
         order: 6,
-        showIf: not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT))
+        showIf: and([
+          not(local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT)),
+          not(isSourceCharges)
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
     .set(
@@ -253,7 +301,8 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         showIf: and([
           local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.FIXED_AMOUNT),
           local.field(['scalingKind']).eq('PER_LEVEL')
-        ])
+        ]),
+        hiddenBehavior: 'CLEAR'
       })
     )
 })

@@ -638,7 +638,7 @@ export function projectOptimisticCharacterSheetPanel(
           : updatePanelResource(panel.remaining, panel.maximum, amount)
       return { ...panel, remaining, used: panel.maximum - remaining }
     }
-    if (panel.kind === 'FEATURE' || panel.kind === 'ITEM') {
+    if (panel.kind === 'FEATURE') {
       return {
         ...panel,
         resources: panel.resources.map((resource) =>
@@ -653,6 +653,44 @@ export function projectOptimisticCharacterSheetPanel(
             : resource
         )
       }
+    }
+    if (panel.kind === 'ITEM') {
+      return {
+        ...panel,
+        resources: panel.resources.map((resource) =>
+          sameResourceOwner(resource.target.owner, command.owner)
+            ? {
+                ...resource,
+                remaining:
+                  command.type === 'RECOVER_SHEET_RESOURCE'
+                    ? resource.maximum
+                    : updatePanelResource(resource.remaining, resource.maximum, amount)
+              }
+            : resource
+        )
+      }
+    }
+  }
+
+  if (
+    panel.kind === 'ITEM' &&
+    (command.type === 'USE_RESOURCE' || command.type === 'RESTORE_RESOURCE')
+  ) {
+    const amount = command.amount ?? 1
+    return {
+      ...panel,
+      resources: panel.resources.map((resource) => {
+        if (resource.id !== command.resourceGrantId) return resource
+        const remaining =
+          command.type === 'RESTORE_RESOURCE' && command.all
+            ? resource.maximum
+            : updatePanelResource(
+                resource.remaining,
+                resource.maximum,
+                command.type === 'USE_RESOURCE' ? amount : -amount
+              )
+        return { ...resource, remaining }
+      })
     }
   }
 

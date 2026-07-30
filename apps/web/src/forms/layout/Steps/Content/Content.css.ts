@@ -7,10 +7,10 @@ export const tree = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      gap: 2,
+      gap: 0,
       minBlockSize: 0,
       overflowY: 'auto',
-      paddingBlock: foundationVars.space[2],
+      paddingBlock: 0,
       paddingInline: 0
     }
   }
