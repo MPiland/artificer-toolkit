@@ -286,17 +286,6 @@ export const authFormMessageSuccess = style({
   }
 })
 
-export const authFieldHint = style({
-  '@layer': {
-    [app]: {
-      margin: `-${foundationVars.space[2]} 0 0`,
-      color: foundationVars.color.text.muted,
-      fontSize: foundationVars.typography.caption.fontSize,
-      lineHeight: foundationVars.typography.caption.lineHeight
-    }
-  }
-})
-
 export const fieldGroup = style({
   '@layer': {
     [app]: {

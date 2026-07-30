@@ -99,6 +99,14 @@ import {
   type RouteIdentityResolveRequestDto
 } from '@artificer-toolkit/schema/api/routeIds'
 import {
+  accountProfileDtoSchema,
+  accountUsernameStatusDtoSchema,
+  type AccountProfileDto,
+  type AccountProfileUpdateInput,
+  type AccountUsernameStatusDto,
+  type AccountUsernameStatusInput
+} from '@artificer-toolkit/schema/api/account'
+import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema,
   type SystemListItemDto,
@@ -120,6 +128,10 @@ export type {
   AuthoredDraftDto,
   AuthoredDraftSaveRequestDto,
   AuthoredSubjectKindDto,
+  AccountProfileDto,
+  AccountProfileUpdateInput,
+  AccountUsernameStatusDto,
+  AccountUsernameStatusInput,
   BackgroundListItemDto,
   BackgroundListResponseDto,
   BackgroundResponseDto,
@@ -281,6 +293,11 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
 }
 
 interface TrpcClient {
+  account: {
+    profile: EmptyQueryProcedure<AccountProfileDto | null>
+    updateProfile: MutationProcedure<AccountProfileUpdateInput, AccountProfileDto>
+    usernameStatus: QueryProcedure<AccountUsernameStatusInput, AccountUsernameStatusDto>
+  }
   characters: {
     command: MutationProcedure<
       { id: string; input: CharacterSheetCommandInputDto },
@@ -492,6 +509,21 @@ function buildApi(client: TrpcClient) {
   }
 
   return {
+    account: {
+      profile: () =>
+        request('account.profile', accountProfileDtoSchema.nullable(), () =>
+          client.account.profile.query()
+        ),
+      updateProfile: (input: AccountProfileUpdateInput) =>
+        request('account.updateProfile', accountProfileDtoSchema, () =>
+          client.account.updateProfile.mutate(input)
+        ),
+      usernameStatus: (input: AccountUsernameStatusInput) =>
+        request('account.usernameStatus', accountUsernameStatusDtoSchema, () =>
+          client.account.usernameStatus.query(input)
+        )
+    },
+
     characters: {
       command: (id: string, input: CharacterSheetCommandInputDto) =>
         request('characters.command', characterSheetCommandResponseDtoSchema, () =>

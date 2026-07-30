@@ -10,6 +10,26 @@ const listAuthoredDomain = vi.hoisted(() =>
   }))
 )
 
+const accountProfileRepository = vi.hoisted(() => ({
+  findForUser: vi.fn(async () => ({
+    username: 'morgan',
+    name: 'Morgan',
+    bio: 'Forge keeper.'
+  })),
+  isUsernameTaken: vi.fn(async (username: string) => username === 'taken_name'),
+  upsertForUser: vi.fn(
+    async (
+      _userId: string,
+      profile: { username: string; name: string | null; bio: string | null }
+    ) => profile
+  )
+}))
+
+vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
+  createAccountProfileRepository: () => accountProfileRepository
+}))
+
 vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/functions')>()),
   listAuthoredDomain
@@ -20,6 +40,10 @@ vi.mock('./dbContext.js', async (importOriginal) => {
 
   return {
     ...actual,
+    withDb: async <TResult>(
+      _context: TrpcContext,
+      callback: (db: DBLike) => Promise<TResult>
+    ): Promise<TResult> => callback({} as DBLike),
     withAuthenticatedDb: async <TResult>(
       context: TrpcContext,
       callback: (db: DBLike, userId: string, auth: AuthenticatedTrpcContext) => Promise<TResult>
@@ -45,10 +69,29 @@ describe('tRPC router auth', () => {
     })
   })
 
+  it('checks username policy and availability without exposing profile data', async () => {
+    const caller = appRouter.createCaller({ userId: null })
+
+    await expect(caller.account.usernameStatus({ username: 'open_name' })).resolves.toEqual({
+      status: 'available'
+    })
+    await expect(caller.account.usernameStatus({ username: 'taken_name' })).resolves.toEqual({
+      status: 'taken'
+    })
+    await expect(caller.account.usernameStatus({ username: 'admin' })).resolves.toEqual({
+      status: 'not_allowed'
+    })
+    expect(accountProfileRepository.isUsernameTaken).toHaveBeenCalledTimes(2)
+  })
+
   it('requires server-side auth context for product data procedures', async () => {
     const caller = appRouter.createCaller({ userId: null })
 
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(caller.account.profile()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
+      caller.account.updateProfile({ username: 'player_one', name: null, bio: null })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
@@ -72,6 +115,34 @@ describe('tRPC router auth', () => {
     await expect(
       caller.nodeRuntime.resolve({ mapId: 'spell', systemId: 'system-1', values: {} })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  })
+
+  it('reads and updates only the authenticated user profile', async () => {
+    const caller = appRouter.createCaller({ userId: 'user-1' })
+
+    await expect(caller.account.profile()).resolves.toEqual({
+      username: 'morgan',
+      name: 'Morgan',
+      bio: 'Forge keeper.'
+    })
+    await expect(
+      caller.account.updateProfile({
+        username: '  MORGAN_EMBERFALL  ',
+        name: '  Morgan Emberfall  ',
+        bio: '  Builds worlds.  '
+      })
+    ).resolves.toEqual({
+      username: 'MORGAN_EMBERFALL',
+      name: 'Morgan Emberfall',
+      bio: 'Builds worlds.'
+    })
+
+    expect(accountProfileRepository.findForUser).toHaveBeenCalledWith('user-1')
+    expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
+      username: 'MORGAN_EMBERFALL',
+      name: 'Morgan Emberfall',
+      bio: 'Builds worlds.'
+    })
   })
 
   it('registers the same authenticated list contract for all authored domains', async () => {

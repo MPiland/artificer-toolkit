@@ -6,8 +6,7 @@ export const homeStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[8],
-      padding: foundationVars.space[4]
+      gap: foundationVars.space[6]
     }
   }
 })
@@ -17,7 +16,11 @@ export const homeGrid = style({
     [app]: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-      gap: foundationVars.space[4]
+      gap: '1px',
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      backgroundColor: foundationVars.color.border.subtle
     }
   }
 })
@@ -26,14 +29,11 @@ export const homePanel = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      alignContent: 'space-between',
-      gap: foundationVars.space[6],
-      minHeight: '12rem',
-      padding: foundationVars.space[6],
-      border: `1px solid ${foundationVars.color.card.border.default}`,
-      borderRadius: foundationVars.radius.xl,
-      backgroundColor: foundationVars.color.card.background.default,
-      boxShadow: foundationVars.shadow.card
+      alignContent: 'start',
+      gap: foundationVars.space[4],
+      minHeight: '9rem',
+      padding: foundationVars.space[5],
+      backgroundColor: foundationVars.color.surface.panel
     }
   }
 })
@@ -66,19 +66,6 @@ export const homePanelText = style({
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       lineHeight: foundationVars.typography.bodySm.lineHeight
-    }
-  }
-})
-
-export const homeMeta = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.accent,
-      fontSize: foundationVars.typography.caption.fontSize,
-      fontWeight: foundationVars.fontWeight.bold,
-      letterSpacing: '0.08em',
-      lineHeight: foundationVars.typography.caption.lineHeight,
-      textTransform: 'uppercase'
     }
   }
 })

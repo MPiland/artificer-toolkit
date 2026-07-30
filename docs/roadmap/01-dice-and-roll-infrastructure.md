@@ -32,6 +32,8 @@ Provide one restricted, server-authoritative roll service and a convincing but n
 ### Web presentation
 
 - Dynamically load Three.js, React Three Fiber, Rapier, and optimized dice assets only when an animated roll begins. The normal Sheet route must not pay their initial download or initialization cost.
+- When the renderer ships, add device-local Settings controls for animated 3D dice, post-processing, and `HIGH | MEDIUM | LOW` shadow quality. Default animation and post-processing to enabled and shadow quality to `MEDIUM`.
+- Operating-system reduced-motion always disables animated dice regardless of the saved device preference.
 - Render one fixed, transparent, viewport-sized orthographic canvas. The application remains the visible tabletop beneath it.
 - Use a transparent shadow catcher, a screen-aligned floor, and responsive invisible boundaries so dice contact the visible viewport, collide with one another, and remain on screen.
 - Spawn dice near the triggering control when its geometry is available, with a safe viewport fallback. Apply real linear impulse, angular velocity, gravity toward the screen plane, convex-hull collision shapes, friction, and restitution.
@@ -89,7 +91,7 @@ The application viewport is the table. Perspective tricks must not make the dice
 3. Add the application service and thin API procedures for the first approved Sheet roll actions.
 4. Add the accessible static result path and owning interaction tests before the 3D adapter.
 5. Add the lazy viewport overlay, real throw, collisions, target-assisted settle, timeout, cleanup, and error boundary.
-6. Prove reduced-motion, WebGL failure, renderer failure, focus return, resize, route change, and repeated-roll cleanup.
+6. Add the three device-local presentation controls to Settings, then prove reduced-motion override, WebGL failure, renderer failure, focus return, resize, route change, and repeated-roll cleanup.
 7. Measure initial route weight, lazy chunk weight, model transfer size, frame time, and memory on representative desktop and mobile hardware.
 8. Publish the semantic contract for Phase 05 Campaign persistence and Phase 06 Encounter persistence without implementing either history model here.
 
@@ -101,6 +103,7 @@ The application viewport is the table. Perspective tricks must not make the dice
 - Every supported model has a tested orientation map; the visible settled face matches every authoritative test face.
 - The main throw remains visibly unconstrained, while the low-energy assist settles without a perceptible snap.
 - The normal Sheet route excludes the renderer, physics runtime, and dice models until the first animated roll.
+- Animated dice, post-processing, and shadow quality persist on the current device; reduced motion still guarantees the static path.
 - Reduced motion and every renderer/load/timeout failure reveal the authoritative static result immediately.
 - The overlay introduces no pointer trap, keyboard trap, focus loss, horizontal overflow, or persistent state after dismissal.
 - Desktop and representative mobile measurements meet limits chosen by the implementation subplan.
@@ -108,7 +111,7 @@ The application viewport is the table. Perspective tricks must not make the dice
 
 ## Out of scope
 
-- Campaign or Encounter roll history, chat visibility, replayable browser trajectories, animation seeds, global dice state, native 3D presentation, dice customization, and user-selectable visual themes.
+- Campaign or Encounter roll history, chat visibility, replayable browser trajectories, animation seeds, global dice state, native 3D presentation, dice skins/materials/colors, sound controls, particle controls, and shared-versus-private roll visibility.
 - Client-side expression evaluation, physics-derived outcomes, or a general parser surface matching every capability of the underlying library.
 - Reintroducing the removed renderer, provider, Zustand store, or GLB changes during Phase 00 completion.
 

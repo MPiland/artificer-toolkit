@@ -8,7 +8,7 @@
 
 ## Goal
 
-Create one authorized upload, processing, association, delivery, and deletion pipeline for user-provided images and supporting files. The first image consumers are Characters, user-authored content, and Campaign logos. Each Character or authored-content image uses one source asset plus normalized, user-selected thumbnail crop metadata; server-generated variants derive from that source. Marketplace assets and larger VTT maps reuse the same foundation through purpose-specific profiles rather than building separate upload systems.
+Create one authorized upload, processing, association, delivery, and deletion pipeline for user-provided images and supporting files. The first image consumers are account avatars, Characters, user-authored content, and Campaign logos. Each Character or authored-content image uses one source asset plus normalized, user-selected thumbnail crop metadata; server-generated variants derive from that source. Marketplace assets and larger VTT maps reuse the same foundation through purpose-specific profiles rather than building separate upload systems.
 
 This phase establishes the pipeline, portable contracts, and first web surfaces. [Phase 03](03-cross-platform-foundation.md) displays the same assets in native and adds native upload controls only for editing experiences included in the mobile release; complex authored-content administration remains web-first.
 
@@ -39,6 +39,7 @@ Define centrally validated profiles for at least:
 
 | Profile                  | Owner/reference                                  | Initial purpose                                                                          |
 | ------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `ACCOUNT_AVATAR`         | Account profile                                  | One private source image and generated account-menu/profile variants                     |
 | `CHARACTER_PORTRAIT`     | Character                                        | One source image and crop-derived variants; initially rendered in the Sheet header       |
 | `AUTHORED_IMAGE`         | Exact authored revision                          | One source image and crop-derived variants reserved for owning authored-content surfaces |
 | `CAMPAIGN_LOGO`          | Campaign                                         | Compact Campaign identity and roster/list surfaces                                       |
@@ -50,7 +51,7 @@ Define centrally validated profiles for at least:
 
 - A profile defines allowed verified media types, maximum bytes, image pixel/dimension limits, transfer method, required processing, generated variants, quota accounting, and delivery behavior.
 - Clients submit the intended profile and domain target. They never choose an arbitrary bucket, object path, public visibility, or authorization policy.
-- Account avatars remain separate from Character portraits. A user may own many characters with different portraits.
+- Phase 02 adds the account-avatar control to Profile Settings. Account avatars remain separate from Character portraits, and account deletion removes their owned source and variants through the asset lifecycle.
 - Character portraits are mutable Character presentation metadata outside structural `CharacterAuthored` intent. Builder replacement writes must not delete the source asset or its crop metadata.
 - Authored images bind to exact authored revisions. Updating draft artwork creates a new immutable source asset, while a published revision retains its exact source reference and crop metadata.
 - Thumbnail crop metadata uses normalized source-image coordinates so server and platform adapters derive the same framing at any output size. The crop must remain inside the source bounds after image orientation is normalized.

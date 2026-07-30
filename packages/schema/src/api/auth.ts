@@ -1,9 +1,16 @@
 import { z } from 'zod'
 
+export const usernameInputSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(30)
+  .regex(/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$/)
+
 export const authSignUpInputSchema = z.object({
   email: z.string().email(),
-  name: z.string().trim().min(1),
-  password: z.string().min(8)
+  password: z.string().min(8),
+  username: usernameInputSchema
 })
 
 export type AuthSignUpInput = z.infer<typeof authSignUpInputSchema>

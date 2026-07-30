@@ -240,39 +240,34 @@ export const menuItemText = style({
   }
 })
 
-export const themeModePill = style({
+export const themeSelector = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 2,
-      padding: 2,
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.surface.recessed
+      backgroundColor: foundationVars.color.surface.recessed,
+      margin: `0 ${foundationVars.space[2]} ${foundationVars.space[2]}`
     }
   }
 })
 
-export const themeModePillOption = style({
+export const themeSelectorLabel = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
+      height: foundationVars.space[6]
+    }
+  }
+})
+
+export const themeSelectorOption = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      inlineSize: 20,
-      blockSize: 20,
-      borderRadius: foundationVars.radius.pill,
-      color: foundationVars.color.text.muted
-    }
-  }
-})
-
-export const themeModePillOptionActive = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.surface.subtle,
-      color: foundationVars.color.text.primary
+      gap: foundationVars.space[1],
+      whiteSpace: 'nowrap',
+      width: '100%',
+      height: '100%'
     }
   }
 })

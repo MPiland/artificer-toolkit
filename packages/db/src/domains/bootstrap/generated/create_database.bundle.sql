@@ -178,7 +178,7 @@ $$;
  * USER MANAGEMENT
  *
  * Defines:
- *   - profiles              (public user profile, mirrors auth.users)
+ *   - profiles              (private account profile, mirrors auth.users)
  *   - handle_new_user()     (trigger: auto-create profile on signup)
  *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
@@ -204,30 +204,38 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     REFERENCES auth.users ON DELETE CASCADE NOT NULL,
 
   updated_at timestamptz,
-  username   text UNIQUE,
+  username   text NOT NULL,
   full_name  text,
+  bio        text,
   avatar_url text,
   website    text,
 
-  CONSTRAINT username_length CHECK (char_length(username) >= 3)
+  CONSTRAINT profiles_username_length CHECK (char_length(username) BETWEEN 3 AND 30),
+  CONSTRAINT profiles_username_format CHECK (username ~ '^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$'),
+  CONSTRAINT profiles_full_name_length CHECK (full_name IS NULL OR char_length(full_name) <= 100),
+  CONSTRAINT profiles_bio_length CHECK (bio IS NULL OR char_length(bio) <= 500)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_key ON public.profiles (lower(username));
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
-CREATE POLICY "Public profiles are viewable by everyone."
-  ON public.profiles FOR SELECT
-  USING (true);
+DROP POLICY IF EXISTS "Users can select own profile." ON public.profiles;
+CREATE POLICY "Users can select own profile."
+  ON public.profiles FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
 CREATE POLICY "Users can insert their own profile."
-  ON public.profiles FOR INSERT
+  ON public.profiles FOR INSERT TO authenticated
   WITH CHECK ((SELECT auth.uid()) = id);
 
 DROP POLICY IF EXISTS "Users can update own profile." ON public.profiles;
 CREATE POLICY "Users can update own profile."
-  ON public.profiles FOR UPDATE
-  USING ((SELECT auth.uid()) = id);
+  ON public.profiles FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = id)
+  WITH CHECK ((SELECT auth.uid()) = id);
 
 
 /* ──────────────────────────────────────────────
@@ -243,9 +251,14 @@ SET search_path = pg_catalog, public
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
+  IF NEW.raw_user_meta_data ->> 'username' IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.profiles (id, username, full_name, avatar_url)
   VALUES (
     NEW.id,
+    trim(NEW.raw_user_meta_data ->> 'username'),
     NEW.raw_user_meta_data ->> 'full_name',
     NEW.raw_user_meta_data ->> 'avatar_url'
   );
@@ -5483,7 +5496,7 @@ CREATE TABLE IF NOT EXISTS public.classes (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  user_id uuid REFERENCES auth.users(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
   category text NOT NULL, -- ClassCategoryCode (BASE|SUBCLASS)
 
@@ -9657,8 +9670,8 @@ CREATE TABLE IF NOT EXISTS public.character_ability_adjustments (
   field_kind text NOT NULL,
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, ability_code, field_kind),
@@ -9678,8 +9691,8 @@ CREATE TABLE IF NOT EXISTS public.character_saving_throw_adjustments (
   integer_value integer,
   proficiency_value text,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, ability_code, field_kind),
@@ -9709,8 +9722,8 @@ CREATE TABLE IF NOT EXISTS public.character_skill_adjustments (
   proficiency_value text,
   ability_value text,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, skill_id, field_kind),
@@ -9743,8 +9756,8 @@ CREATE TABLE IF NOT EXISTS public.character_passive_adjustments (
   field_kind text NOT NULL DEFAULT 'TOTAL_OVERRIDE',
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, skill_id, field_kind),
@@ -9758,8 +9771,8 @@ CREATE TABLE IF NOT EXISTS public.character_sense_adjustments (
   field_kind text NOT NULL DEFAULT 'RANGE_OVERRIDE',
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, sense_id, field_kind),
@@ -9775,8 +9788,8 @@ CREATE TABLE IF NOT EXISTS public.character_movement_adjustments (
   field_kind text NOT NULL DEFAULT 'SPEED_OVERRIDE',
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, speed_id, field_kind),
@@ -9791,8 +9804,8 @@ CREATE TABLE IF NOT EXISTS public.character_hitpoint_adjustments (
   field_kind text NOT NULL,
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, field_kind),
@@ -9811,8 +9824,8 @@ CREATE TABLE IF NOT EXISTS public.character_spell_adjustments (
   field_kind text NOT NULL,
   integer_value integer NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, spell_id, source_kind, source_instance_id, field_kind),
@@ -9832,8 +9845,8 @@ CREATE TABLE IF NOT EXISTS public.character_item_adjustments (
   numeric_value numeric,
   boolean_value boolean,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, item_instance_id, field_kind),
@@ -9873,8 +9886,8 @@ CREATE TABLE IF NOT EXISTS public.character_companion_adjustments (
   reference_value uuid,
   text_value text,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, companion_instance_id, field_kind),
@@ -9921,8 +9934,8 @@ CREATE TABLE IF NOT EXISTS public.character_defense_additions (
   defense_kind text NOT NULL,
   damage_type_id uuid NOT NULL REFERENCES public.damage_types (id) ON DELETE RESTRICT,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, defense_kind, damage_type_id),
@@ -9937,8 +9950,8 @@ CREATE TABLE IF NOT EXISTS public.character_proficiency_additions (
   proficiency_kind text NOT NULL,
   target_id uuid NOT NULL,
   source_note text,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, proficiency_kind, target_id),
@@ -9951,7 +9964,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_preferences (
   character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE,
   movement_display_mode text NOT NULL DEFAULT 'AUTO',
   movement_speed_id uuid REFERENCES public.speeds (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_sheet_preferences_movement_chk CHECK (
@@ -9969,8 +9982,8 @@ CREATE TABLE IF NOT EXISTS public.character_spell_customizations (
   custom_name text,
   notes text,
   display_as_attack boolean NOT NULL DEFAULT FALSE,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   UNIQUE (character_id, spell_id, source_kind, source_instance_id),
@@ -9999,8 +10012,8 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
   companion_instance_id uuid,
   feature_id uuid REFERENCES public.features (id) ON DELETE RESTRICT,
   used integer NOT NULL DEFAULT 0,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
-  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_sheet_resource_usage_used_chk CHECK (used >= 0),

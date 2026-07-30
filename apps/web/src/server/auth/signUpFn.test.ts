@@ -37,8 +37,8 @@ import { signUpFn } from './signUpFn'
 describe('signUpFn', () => {
   const input = {
     email: 'player@example.com',
-    name: 'Morgan Emberfall',
-    password: 'password123'
+    password: 'password123',
+    username: 'Morgan_Emberfall'
   }
 
   function configureEnabledSignUp() {
@@ -51,6 +51,8 @@ describe('signUpFn', () => {
       }
     })
   }
+
+  beforeEach(() => vi.clearAllMocks())
 
   it('rejects public registration before calling Supabase when disabled', async () => {
     mocks.getApplicationFeatureFlags.mockReturnValue({ publicSignUpEnabled: false })
@@ -76,9 +78,28 @@ describe('signUpFn', () => {
       email: input.email,
       password: input.password,
       options: {
-        data: { display_name: input.name },
+        data: { username: input.username },
         emailRedirectTo: 'https://app.example.test/auth/confirmed'
       }
     })
+  })
+
+  it('rejects a disallowed username before calling Supabase', async () => {
+    configureEnabledSignUp()
+
+    await expect(
+      signUpFn({
+        data: {
+          email: input.email,
+          password: input.password,
+          username: 'admin'
+        }
+      })
+    ).resolves.toEqual({
+      ok: false,
+      message: "That username isn't allowed.",
+      session: null
+    })
+    expect(mocks.signUp).not.toHaveBeenCalled()
   })
 })

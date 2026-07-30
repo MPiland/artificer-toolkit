@@ -1673,6 +1673,51 @@ export type Database = {
           }
         ]
       }
+      character_creature_hit_dice_state: {
+        Row: {
+          character_creature_id: string
+          character_id: string
+          created_at: string
+          die: number
+          total: number
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_creature_id: string
+          character_id: string
+          created_at?: string
+          die: number
+          total: number
+          updated_at?: string
+          used: number
+        }
+        Update: {
+          character_creature_id?: string
+          character_id?: string
+          created_at?: string
+          die?: number
+          total?: number
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_creature_hit_dice_state_creature_owner_fkey'
+            columns: ['character_id', 'character_creature_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
+          }
+        ]
+      }
       character_creatures: {
         Row: {
           character_id: string
@@ -1730,51 +1775,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'creatures'
             referencedColumns: ['id']
-          }
-        ]
-      }
-      character_creature_hit_dice_state: {
-        Row: {
-          character_creature_id: string
-          character_id: string
-          created_at: string
-          die: number
-          total: number
-          updated_at: string
-          used: number
-        }
-        Insert: {
-          character_creature_id: string
-          character_id: string
-          created_at?: string
-          die: number
-          total: number
-          updated_at?: string
-          used: number
-        }
-        Update: {
-          character_creature_id?: string
-          character_id?: string
-          created_at?: string
-          die?: number
-          total?: number
-          updated_at?: string
-          used?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'character_creature_hit_dice_state_character_id_fkey'
-            columns: ['character_id']
-            isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'character_creature_hit_dice_state_creature_owner_fkey'
-            columns: ['character_id', 'character_creature_id']
-            isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
           }
         ]
       }
@@ -3282,8 +3282,8 @@ export type Database = {
       }
       character_sheet_resource_usage: {
         Row: {
-          charge_id: string | null
           character_id: string
+          charge_id: string | null
           companion_instance_id: string | null
           created_at: string
           created_by: string
@@ -3301,8 +3301,8 @@ export type Database = {
           used: number
         }
         Insert: {
-          charge_id?: string | null
           character_id: string
+          charge_id?: string | null
           companion_instance_id?: string | null
           created_at?: string
           created_by: string
@@ -3320,8 +3320,8 @@ export type Database = {
           used?: number
         }
         Update: {
-          charge_id?: string | null
           character_id?: string
+          charge_id?: string | null
           companion_instance_id?: string | null
           created_at?: string
           created_by?: string
@@ -3338,7 +3338,50 @@ export type Database = {
           updated_by?: string
           used?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'character_sheet_resource_usage_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_sheet_resource_usage_charge_id_fkey'
+            columns: ['charge_id']
+            isOneToOne: false
+            referencedRelation: 'charges'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_sheet_resource_usage_companion_fkey'
+            columns: ['character_id', 'companion_instance_id']
+            isOneToOne: false
+            referencedRelation: 'character_creatures'
+            referencedColumns: ['character_id', 'id']
+          },
+          {
+            foreignKeyName: 'character_sheet_resource_usage_feature_id_fkey'
+            columns: ['feature_id']
+            isOneToOne: false
+            referencedRelation: 'features'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_sheet_resource_usage_item_fkey'
+            columns: ['character_id', 'item_instance_id']
+            isOneToOne: false
+            referencedRelation: 'character_equipment'
+            referencedColumns: ['character_id', 'id']
+          },
+          {
+            foreignKeyName: 'character_sheet_resource_usage_spell_id_fkey'
+            columns: ['spell_id']
+            isOneToOne: false
+            referencedRelation: 'spells'
+            referencedColumns: ['id']
+          }
+        ]
       }
       character_skill_adjustments: {
         Row: {
@@ -3400,51 +3443,6 @@ export type Database = {
           }
         ]
       }
-      character_spell_customizations: {
-        Row: {
-          character_id: string
-          created_at: string
-          created_by: string
-          custom_name: string | null
-          display_as_attack: boolean
-          id: string
-          notes: string | null
-          source_instance_id: string
-          source_kind: string
-          spell_id: string
-          updated_at: string
-          updated_by: string
-        }
-        Insert: {
-          character_id: string
-          created_at?: string
-          created_by: string
-          custom_name?: string | null
-          display_as_attack?: boolean
-          id?: string
-          notes?: string | null
-          source_instance_id: string
-          source_kind: string
-          spell_id: string
-          updated_at?: string
-          updated_by: string
-        }
-        Update: {
-          character_id?: string
-          created_at?: string
-          created_by?: string
-          custom_name?: string | null
-          display_as_attack?: boolean
-          id?: string
-          notes?: string | null
-          source_instance_id?: string
-          source_kind?: string
-          spell_id?: string
-          updated_at?: string
-          updated_by?: string
-        }
-        Relationships: []
-      }
       character_spell_adjustments: {
         Row: {
           character_id: string
@@ -3498,6 +3496,66 @@ export type Database = {
           },
           {
             foreignKeyName: 'character_spell_adjustments_spell_id_fkey'
+            columns: ['spell_id']
+            isOneToOne: false
+            referencedRelation: 'spells'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      character_spell_customizations: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_by: string
+          custom_name: string | null
+          display_as_attack: boolean
+          id: string
+          notes: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_by: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id: string
+          source_kind: string
+          spell_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          custom_name?: string | null
+          display_as_attack?: boolean
+          id?: string
+          notes?: string | null
+          source_instance_id?: string
+          source_kind?: string
+          spell_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'character_spell_customizations_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'character_spell_customizations_spell_id_fkey'
             columns: ['spell_id']
             isOneToOne: false
             referencedRelation: 'spells'
@@ -9827,26 +9885,29 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           full_name: string | null
           id: string
           updated_at: string | null
-          username: string | null
+          username: string
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           full_name?: string | null
           id: string
           updated_at?: string | null
-          username?: string | null
+          username: string
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
-          username?: string | null
+          username?: string
           website?: string | null
         }
         Relationships: []

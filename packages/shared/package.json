@@ -68,6 +68,10 @@
       "types": "./dist/domains/character/index.d.ts",
       "default": "./dist/domains/character/index.js"
     },
+    "./account/username": {
+      "types": "./dist/domains/account/usernamePolicy.d.ts",
+      "default": "./dist/domains/account/usernamePolicy.js"
+    },
     "./subjects/authored": {
       "types": "./dist/domains/subjects/authored/index.d.ts",
       "default": "./dist/domains/subjects/authored/index.js"
@@ -92,6 +96,7 @@
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/shared/src/__tests__"
   },
   "dependencies": {
+    "@2toad/profanity": "^3.3.0",
     "@artificer-toolkit/design-system": "workspace:^"
   },
   "devDependencies": {
