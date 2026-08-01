@@ -381,6 +381,31 @@ export const appearanceControl = style({
   }
 })
 
+export const diceSettings = style({
+  '@layer': {
+    [app]: {
+      display: 'contents',
+      selectors: {
+        '&[data-compact]': {
+          display: 'grid',
+          gap: foundationVars.space[4]
+        }
+      }
+    }
+  }
+})
+
+export const compactDiceSettingRow = style({
+  '@layer': {
+    [app]: {
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      gap: foundationVars.space[3],
+      paddingBlock: 0,
+      borderBlockEnd: 0
+    }
+  }
+})
+
 export const accountSection = style({
   '@layer': {
     [app]: {

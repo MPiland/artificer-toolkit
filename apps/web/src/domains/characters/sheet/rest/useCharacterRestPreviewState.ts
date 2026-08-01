@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CharacterRestPreviewRequestDto, CharacterRestPreviewResponseDto } from '#app/lib/api'
 import { useCharacterRestPreviewMutation } from '#app/data/characters/mutations'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
+import { useCharacterSheetRoll } from '../dice/rollContext'
 
 export function useCharacterRestPreviewState({
   onComplete,
@@ -19,6 +20,7 @@ export function useCharacterRestPreviewState({
   submitCommand: SubmitSheetCommand
 }) {
   const previewMutation = useCharacterRestPreviewMutation(sheet.meta.characterId)
+  const rollController = useCharacterSheetRoll()
   const [preview, setPreview] = useState<CharacterRestPreviewResponseDto>()
   const [selectedHitDice, setSelectedHitDice] = useState<
     CharacterRestPreviewRequestDto['selectedHitDice']
@@ -28,9 +30,11 @@ export function useCharacterRestPreviewState({
     useState<CharacterRestPreviewRequestDto['healingMode']>('AUTOMATIC')
   const [manualHealingAccepted, setManualHealingAccepted] = useState(false)
   const [selectedCompanionInstanceIds, setSelectedCompanionInstanceIds] = useState<string[]>([])
+  const [rollId, setRollId] = useState<string>()
   const [previewError, setPreviewError] = useState<string>()
   const [applyError, setApplyError] = useState<string>()
-  const interactionPending = pending || previewMutation.isPending
+  const interactionPending =
+    pending || previewMutation.isPending || Boolean(rollController?.pending)
 
   async function requestPreview(
     overrides: Partial<CharacterRestPreviewRequestDto> = {}
@@ -43,6 +47,7 @@ export function useCharacterRestPreviewState({
       healingMode,
       manualHealingAccepted,
       selectedCompanionInstanceIds,
+      rollId,
       rollEvidence: preview?.rollEvidence,
       requestRoll: false,
       ...overrides
@@ -81,6 +86,7 @@ export function useCharacterRestPreviewState({
     setHealingMode('AUTOMATIC')
     setManualHealingAccepted(false)
     setSelectedCompanionInstanceIds([])
+    setRollId(undefined)
     setPreviewError(undefined)
     setApplyError(undefined)
     onOpen()
@@ -90,6 +96,7 @@ export function useCharacterRestPreviewState({
       healingMode: 'AUTOMATIC',
       manualHealingAccepted: false,
       selectedCompanionInstanceIds: [],
+      rollId: undefined,
       rollEvidence: undefined,
       requestRoll: false
     })
@@ -108,6 +115,7 @@ export function useCharacterRestPreviewState({
       healingMode,
       manualHealingAccepted,
       selectedCompanionInstanceIds,
+      rollId,
       rollEvidence: preview.rollEvidence,
       expectedVersion: preview.streamVersion
     })
@@ -126,8 +134,10 @@ export function useCharacterRestPreviewState({
       ...(count > 0 ? [{ die, count }] : [])
     ].sort((left, right) => right.die - left.die)
     setSelectedHitDice(nextSelections)
+    setRollId(undefined)
     void requestPreview({
       selectedHitDice: nextSelections,
+      rollId: undefined,
       rollEvidence: undefined,
       requestRoll: false,
       manualHealingAccepted: false
@@ -148,12 +158,50 @@ export function useCharacterRestPreviewState({
     })
   }
 
-  function requestRoll() {
-    void requestPreview({
-      requestRoll: true,
-      rollEvidence: undefined,
+  async function requestRoll() {
+    if (!rollController || !preview?.canonicalExpression) {
+      setPreviewError('The dice roller is not available. Close the rest panel and try again.')
+      return
+    }
+
+    const roll = await rollController.executeRoll({
+      expression: preview.canonicalExpression,
+      source: {
+        kind: 'HIT_DIE',
+        label: `${restKind === 'SHORT' ? 'Short' : 'Long'} rest hit dice`
+      }
+    })
+    if (!roll) return
+
+    const terms = selectedHitDice.flatMap((selection) => {
+      const pool = preview.hitDice.find((candidate) => candidate.die === selection.die)
+      const rolled = roll.evidence.terms.find((candidate) => candidate.die === selection.die)
+      if (!pool || !rolled) return []
+      return [
+        {
+          die: selection.die,
+          count: selection.count,
+          modifierPerDie: pool.constitutionModifier,
+          rolls: rolled.rolls
+        }
+      ]
+    })
+    if (terms.length !== selectedHitDice.length) {
+      setPreviewError('The hit-die result did not match the selected dice. Try the roll again.')
+      return
+    }
+
+    const nextPreview = await requestPreview({
+      requestRoll: false,
+      rollId: roll.id,
+      rollEvidence: {
+        expression: roll.normalizedExpression,
+        terms,
+        total: roll.evidence.total
+      },
       manualHealingAccepted: false
     })
+    if (nextPreview) setRollId(roll.id)
   }
 
   function acceptManualHealing() {

@@ -15,7 +15,10 @@ export function characterSheetAdjustmentMatchesPanelTarget(
     case 'SKILLS':
       return adjustment.family === 'SKILL'
     case 'SENSES':
-      return adjustment.family === 'PASSIVE' || adjustment.family === 'SENSE'
+      if (!target.entry) return adjustment.family === 'PASSIVE' || adjustment.family === 'SENSE'
+      return target.entry.kind === 'PASSIVE'
+        ? adjustment.family === 'PASSIVE' && adjustment.skillId === target.entry.skillId
+        : adjustment.family === 'SENSE' && adjustment.senseId === target.entry.senseId
     case 'MOVEMENT':
       return adjustment.family === 'MOVEMENT'
     case 'HIT_POINTS':

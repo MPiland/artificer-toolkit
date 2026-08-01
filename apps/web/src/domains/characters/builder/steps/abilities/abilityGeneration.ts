@@ -12,10 +12,12 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterBuilderIntentCacheDto } from '@artificer-toolkit/schema/api/characters'
+import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import type { SelectOption } from '#forms/utils/formUtils'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
 
 type AbilityIntentCache = NonNullable<CharacterBuilderIntentCacheDto['abilities']>
+export const DEFAULT_ABILITY_ROLL_CONFIGURATION = '4d6dl1r1'
 export type CharacterAbilityGenerationMethod = CharacterFormValues['intent']['abilities']['method']
 type StandardArrayAbilities = Extract<
   CharacterFormValues['intent']['abilities'],
@@ -160,18 +162,27 @@ export function setAbilityDraftSlots(
   const activeCache = mergeAbilityIntentCache(cache, currentAbilities)
 
   if (method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
+    const manualState =
+      currentAbilities.method === method
+        ? currentAbilities.state
+        : activeCache.methods[method]?.method === method
+          ? activeCache.methods[method].state
+          : undefined
     const abilities: CharacterFormValues['intent']['abilities'] = {
       method,
       state: {
+        configuration: manualState?.configuration,
         assignments: normalizedSlots.flatMap((slot) =>
           slot.ability !== undefined && slot.score !== undefined
             ? [{ ability: slot.ability, score: slot.score }]
             : []
         ),
-        rollGroups:
-          activeCache.methods[method]?.method === method
-            ? activeCache.methods[method].state.rollGroups
-            : []
+        rollGroups: manualState?.rollGroups?.map((group) => {
+          const slotIndex = Number(/^assignment-(\d+):/.exec(group.id)?.[1])
+          return Number.isInteger(slotIndex) && slotIndex >= 0 && slotIndex < normalizedSlots.length
+            ? { ...group, assignedAbility: normalizedSlots[slotIndex].ability }
+            : group
+        })
       }
     }
 
@@ -268,6 +279,73 @@ export function setAbilityDraftSlots(
       },
       methods: { ...activeCache.methods, [method]: abilities }
     }
+  }
+}
+
+export function applyManualAbilityRoll(
+  cache: AbilityIntentCache | undefined,
+  currentAbilities: CharacterFormValues['intent']['abilities'],
+  slots: CharacterAbilityDraftSlot[],
+  slotIndex: number,
+  result: RollResultDto
+): {
+  abilities: CharacterFormValues['intent']['abilities']
+  cache: AbilityIntentCache
+  slots: CharacterAbilityDraftSlot[]
+} {
+  if (currentAbilities.method !== CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
+    throw new RangeError('Ability rolls require the Manual / Rolled method.')
+  }
+  const term = result.evidence.terms[0]
+  if (!term) throw new RangeError('Ability roll result contains no dice.')
+
+  const nextSlots = toSixAbilitySlots(slots).map((slot, index) =>
+    index === slotIndex ? { ...slot, score: result.evidence.total } : slot
+  )
+  const next = setAbilityDraftSlots(
+    cache,
+    currentAbilities,
+    CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+    nextSlots
+  )
+  if (next.abilities.method !== CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
+    throw new RangeError('Ability roll result could not be applied.')
+  }
+
+  const keptIndexes = term.keptRollIndexes ?? term.rolls.map((_, index) => index)
+  const groupIdPrefix = `assignment-${slotIndex}:`
+  const rollGroup = {
+    id: `${groupIdPrefix}${result.id}`,
+    rolls: (term.rollSequences ?? term.rolls.map((value) => [value])).flatMap((sequence) =>
+      sequence.map((value) => ({ die: term.die, value }))
+    ),
+    kept: keptIndexes.flatMap((index) => {
+      const value = term.rolls[index]
+      return value === undefined ? [] : [{ die: term.die, value }]
+    }),
+    assignedAbility: nextSlots[slotIndex]?.ability,
+    score: result.evidence.total,
+    applied: true,
+    rolling: false
+  }
+  const abilities: CharacterFormValues['intent']['abilities'] = {
+    ...next.abilities,
+    state: {
+      ...next.abilities.state,
+      configuration: result.normalizedExpression,
+      rollGroups: [
+        ...(next.abilities.state.rollGroups ?? []).filter(
+          (group) => !group.id.startsWith(groupIdPrefix)
+        ),
+        rollGroup
+      ]
+    }
+  }
+
+  return {
+    abilities,
+    cache: mergeAbilityIntentCache(next.cache, abilities),
+    slots: nextSlots
   }
 }
 

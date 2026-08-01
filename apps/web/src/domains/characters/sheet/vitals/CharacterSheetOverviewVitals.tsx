@@ -1,6 +1,5 @@
 import { Button, CloseButton, Drawer, Popover, Text } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type {
   CharacterSheet,
@@ -17,6 +16,8 @@ import * as overviewStyles from '../overview/overview.css'
 import * as proficiencyStyles from '../overview/proficiencies.css'
 import * as rowStyles from '../shared/rows.css'
 import * as vitalsStyles from './vitals.css'
+import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
+import { withRollModifier } from '../dice/dice.utils'
 
 export function CharacterSheetOverviewVitals({
   closePanel,
@@ -55,26 +56,22 @@ export function CharacterSheetOverviewVitals({
     { kind: 'IMMUNITY', label: 'Immunities' },
     { kind: 'VULNERABILITY', label: 'Vulnerabilities' }
   ] as const
-  const restActions = (
-    <div className={vitalsStyles.restActionDock} aria-label='Recovery actions'>
-      {(['SHORT', 'LONG'] as const).map((restKind) => (
-        <CharacterSheetRestControl
-          key={restKind}
-          opened={activeRestKind === restKind}
-          pending={pending}
-          restKind={restKind}
-          sheet={sheet}
-          submitCommand={submitCommand}
-          onClose={() => setActiveRestKind(undefined)}
-          onOpen={() => {
-            setHpControlsOpen(false)
-            closePanel?.()
-            setActiveRestKind(restKind)
-          }}
-        />
-      ))}
-    </div>
-  )
+  const restActions = (['SHORT', 'LONG'] as const).map((restKind) => (
+    <CharacterSheetRestControl
+      key={restKind}
+      opened={activeRestKind === restKind}
+      pending={pending}
+      restKind={restKind}
+      sheet={sheet}
+      submitCommand={submitCommand}
+      onClose={() => setActiveRestKind(undefined)}
+      onOpen={() => {
+        setHpControlsOpen(false)
+        closePanel?.()
+        setActiveRestKind(restKind)
+      }}
+    />
+  ))
 
   useEffect(() => {
     setHpControlsOpen(false)
@@ -114,22 +111,27 @@ export function CharacterSheetOverviewVitals({
                       {'mobileLabel' in fact ? fact.mobileLabel : fact.label}
                     </span>
                   </Text>
-                  <Text className={overviewStyles.metricValue}>{fact.value}</Text>
+                  <Text className={overviewStyles.metricValue} component='div'>
+                    {fact.label === 'Initiative' ? (
+                      <CharacterSheetRollValue
+                        request={{
+                          expression: withRollModifier('1d20', sheet.overview.initiative),
+                          rollMode: sheet.overview.initiativeRollMode,
+                          source: { kind: 'INITIATIVE', label: 'Initiative' }
+                        }}
+                      >
+                        {fact.value}
+                      </CharacterSheetRollValue>
+                    ) : (
+                      fact.value
+                    )}
+                  </Text>
                 </div>
               )
             )}
           </div>
           {showDefenses ? (
             <div className={vitalsStyles.desktopDefenseSummary}>
-              <button
-                className={overviewStyles.panelHeadingTrigger}
-                disabled={!openPanel}
-                type='button'
-                onClick={() => openPanel?.({ kind: 'DEFENSES' })}
-              >
-                <Text className={overviewStyles.metricLabel}>Defenses</Text>
-                <ChevronRight aria-hidden='true' size={14} />
-              </button>
               <div className={vitalsStyles.desktopDefenseGrid}>
                 {defenseGroups.map((group) => {
                   const labels = sheet.reference.defenses
@@ -137,40 +139,49 @@ export function CharacterSheetOverviewVitals({
                     .map((defense) => defense.label)
 
                   return (
-                    <div className={vitalsStyles.desktopDefenseGroup} key={group.kind}>
+                    <button
+                      aria-label={`Manage ${group.label}: ${labels.length ? labels.join(', ') : 'None'}`}
+                      className={vitalsStyles.desktopDefenseGroupButton}
+                      disabled={!openPanel}
+                      key={group.kind}
+                      type='button'
+                      onClick={() => openPanel?.({ kind: 'DEFENSES' })}
+                    >
                       <Text className={proficiencyStyles.proficiencyMeta}>{group.label}</Text>
                       <Text className={vitalsStyles.desktopDefenseValue}>
                         {labels.length ? labels.join(', ') : 'None'}
                       </Text>
-                    </div>
+                    </button>
                   )
                 })}
               </div>
             </div>
           ) : null}
         </div>
-        <div className={vitalsStyles.hpReadout}>
-          <div className={vitalsStyles.hpTopLine}>
-            <Text className={overviewStyles.metricLabel}>HP</Text>
-            <Text className={vitalsStyles.hpValue}>
-              {sheet.overview.currentHitPoints}
-              <span className={vitalsStyles.hpValueSeparator}>/</span>
-              {sheet.overview.maxHitPoints}
-            </Text>
-          </div>
-          <div className={vitalsStyles.hpMinorFacts}>
-            <Text className={vitalsStyles.hpMinorFact}>
-              <span>Temp</span>
-              <strong className={vitalsStyles.hpMinorValue}>
-                {sheet.overview.tempHitPoints || '-'}
-              </strong>
-            </Text>
-            <Text className={vitalsStyles.hpMinorFact}>
-              <span>Hit Dice</span>
-              <strong className={`${vitalsStyles.hpMinorValue} ${vitalsStyles.hpHitDiceValue}`}>
-                {formatHitDiceSummary(sheet.overview.hitDice)}
-              </strong>
-            </Text>
+        <div className={vitalsStyles.hpCard}>
+          <div className={vitalsStyles.hpReadout}>
+            <div className={vitalsStyles.hpTopLine}>
+              <Text className={overviewStyles.metricLabel}>HP</Text>
+              <Text className={vitalsStyles.hpValue}>
+                {sheet.overview.currentHitPoints}
+                <span className={vitalsStyles.hpValueSeparator}>/</span>
+                {sheet.overview.maxHitPoints}
+              </Text>
+            </div>
+            <div className={vitalsStyles.hpMinorFacts}>
+              <Text className={vitalsStyles.hpMinorFact}>
+                <span>Temp</span>
+                <strong className={vitalsStyles.hpMinorValue}>
+                  {sheet.overview.tempHitPoints || '-'}
+                </strong>
+              </Text>
+              <Text className={vitalsStyles.hpMinorFact}>
+                <span>Hit Dice</span>
+                <strong className={`${vitalsStyles.hpMinorValue} ${vitalsStyles.hpHitDiceValue}`}>
+                  {formatHitDiceSummary(sheet.overview.hitDice)}
+                </strong>
+              </Text>
+            </div>
           </div>
           <div className={vitalsStyles.hpActionCluster}>
             {isMobile ? (
@@ -188,7 +199,7 @@ export function CharacterSheetOverviewVitals({
                   setHpControlsOpen(true)
                 }}
               >
-                <span className={vitalsStyles.hpManageLabel}>Manage HP</span>
+                Manage HP
               </Button>
             ) : (
               <Popover
@@ -215,7 +226,7 @@ export function CharacterSheetOverviewVitals({
                       setHpControlsOpen((current) => !current)
                     }}
                   >
-                    <span className={vitalsStyles.hpManageLabel}>Manage HP</span>
+                    Manage HP
                   </Button>
                 </Popover.Target>
                 <Popover.Dropdown

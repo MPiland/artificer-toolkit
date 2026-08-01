@@ -4026,6 +4026,66 @@ export type Database = {
           }
         ]
       }
+      user_roll_history: {
+        Row: {
+          character_id: string | null
+          character_label: string
+          consumed_at: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          normalized_expression: string
+          ruleset_code: string
+          ruleset_version: string
+          source: Json
+          system_id: string
+          user_id: string
+        }
+        Insert: {
+          character_id?: string | null
+          character_label: string
+          consumed_at?: string | null
+          created_at?: string
+          evidence: Json
+          id?: string
+          normalized_expression: string
+          ruleset_code: string
+          ruleset_version: string
+          source: Json
+          system_id: string
+          user_id: string
+        }
+        Update: {
+          character_id?: string | null
+          character_label?: string
+          consumed_at?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          normalized_expression?: string
+          ruleset_code?: string
+          ruleset_version?: string
+          source?: Json
+          system_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_roll_history_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'user_roll_history_system_id_fkey'
+            columns: ['system_id']
+            isOneToOne: false
+            referencedRelation: 'systems'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       charge_bonuses: {
         Row: {
           ability_code: string | null

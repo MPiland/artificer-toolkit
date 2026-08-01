@@ -16,12 +16,22 @@ import {
 const uuidSchema = z.guid()
 const identifierSchema = z.string().trim().min(1)
 
+const sensesPanelTargetDtoSchema = z.object({
+  kind: z.literal('SENSES'),
+  entry: z
+    .discriminatedUnion('kind', [
+      z.object({ kind: z.literal('PASSIVE'), skillId: identifierSchema }),
+      z.object({ kind: z.literal('SENSE'), senseId: identifierSchema })
+    ])
+    .optional()
+})
+
 export const characterSheetPanelTargetDtoSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('ABILITY'), ability: abilityCodeSchema }),
   z.object({ kind: z.literal('SAVING_THROW'), ability: abilityCodeSchema }),
   z.object({ kind: z.literal('SKILL'), skillId: uuidSchema }),
   z.object({ kind: z.literal('SKILLS') }),
-  z.object({ kind: z.literal('SENSES') }),
+  sensesPanelTargetDtoSchema,
   z.object({ kind: z.literal('MOVEMENT') }),
   z.object({ kind: z.literal('HIT_POINTS') }),
   z.object({ kind: z.literal('DEFENSES') }),
@@ -225,7 +235,7 @@ const skillsPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
 
 const sensesPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   kind: z.literal('SENSES'),
-  target: z.object({ kind: z.literal('SENSES') }),
+  target: sensesPanelTargetDtoSchema,
   passiveChecks: z.array(
     z.object({
       skillId: uuidSchema,
@@ -306,7 +316,7 @@ const proficiencyPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   proficiencies: z.array(
     z.object({
       kind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
-      targetId: uuidSchema,
+      targetId: identifierSchema,
       label: z.string().min(1),
       sourceLabel: z.string().min(1),
       adjustmentId: uuidSchema.optional()
@@ -315,7 +325,7 @@ const proficiencyPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   additionOptions: z.array(
     z.object({
       kind: z.enum(['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON']),
-      targetId: uuidSchema,
+      targetId: identifierSchema,
       label: z.string().min(1)
     })
   )

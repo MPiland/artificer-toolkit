@@ -26,6 +26,7 @@ export const VALUE_DOMAIN_CODE = {
   CHARGE_LIMIT: 'CHARGE_LIMIT',
   CHARGE_RESET: 'CHARGE_RESET',
   INITIATIVE: 'INITIATIVE',
+  ABILITY_CHECK: 'ABILITY_CHECK',
   ABILITY_SCORE: 'ABILITY_SCORE',
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
@@ -49,6 +50,7 @@ export type ValueDomainCode = keyof typeof VALUE_DOMAIN_CODE
 
 export const PARAMETERIZED_VALUE_DOMAINS = {
   ATTACK_ROLL: true,
+  ABILITY_CHECK: true,
   SAVING_THROW_MODIFIER: true,
   SKILL_MODIFIER: true,
   ABILITY_SCORE: true,
@@ -98,6 +100,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Initiative',
     tooltip: 'Bonus applied to initiative rolls.',
     description: 'Modifies the bonus added when rolling initiative.'
+  },
+
+  [VALUE_DOMAIN_CODE.ABILITY_CHECK]: {
+    code: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+    label: 'Ability Check',
+    tooltip: 'Advantage or disadvantage applied to ability checks.',
+    description: 'Changes how ability checks are rolled, globally or for a specific ability.'
   },
 
   [VALUE_DOMAIN_CODE.ATTACK_ROLL]: {
@@ -369,6 +378,9 @@ export type ValueDomainParamByCode = {
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed
   ATTACK_ROLL: { attackDomain: AttackDomainCode }
+
+  // Ability checks may apply globally or to one ability.
+  ABILITY_CHECK: { ability?: AbilityCode }
 
   // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition
   SAVING_THROW_MODIFIER: { ability: AbilityCode; conditionTypeId?: string }

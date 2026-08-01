@@ -78,11 +78,19 @@ function modifierContributions(
   state: ResolvedModifierState,
   predicate: (parsed: ReturnType<typeof parseModifierDomainKey>) => boolean
 ): CharacterCalculationContribution<number>[] {
-  return Object.entries(state.calculations).flatMap(([domainKey, calculation]) =>
-    predicate(parseModifierDomainKey(domainKey))
+  return Object.entries(state.calculations).flatMap(([domainKey, calculation]) => {
+    const parsed = parseModifierDomainKey(domainKey)
+    return predicate(parsed) &&
+      [
+        'BONUS',
+        'PENALTY',
+        'SET_VALUE',
+        'ABILITY_MODIFIER_BONUS',
+        'OPTIONAL_ABILITY_MODIFIER_BONUS'
+      ].includes(parsed.modifierKind)
       ? calculation.contributions.map((contribution) => ({ ...contribution }))
       : []
-  )
+  })
 }
 
 function abilityMatches(left: string | undefined, right: string): boolean {

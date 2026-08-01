@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest'
 
 const sourceRoot = join(process.cwd(), 'src')
 const blockedImports = ['@artificer-toolkit/db', '@artificer-toolkit/functions', '@apis']
-const typeOnlyAllowList = [`${sep}supabase${sep}client.ts`, `${sep}supabase${sep}server.server.ts`]
+const typeOnlyAllowList = [
+  `${sep}supabase${sep}admin.server.ts`,
+  `${sep}supabase${sep}client.ts`,
+  `${sep}supabase${sep}server.server.ts`
+]
 
 function collectSourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {

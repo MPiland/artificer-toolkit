@@ -23,7 +23,12 @@ export const mobilePager = style({
       minHeight: 0,
       minWidth: 0,
       overflow: 'hidden',
-      position: 'relative'
+      position: 'relative',
+      '@media': {
+        '(min-width: 761px)': {
+          display: 'contents'
+        }
+      }
     }
   }
 })
@@ -35,7 +40,12 @@ export const mobilePageLabel = style({
       fontSize: '1.05rem',
       fontWeight: 850,
       lineHeight: 1.15,
-      paddingInline: '2px'
+      paddingInline: '2px',
+      '@media': {
+        '(min-width: 761px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -52,6 +62,9 @@ export const mobilePageViewport = style({
       scrollbarWidth: 'none',
       touchAction: 'pan-y',
       '@media': {
+        '(min-width: 761px)': {
+          display: 'contents'
+        },
         '(prefers-reduced-motion: reduce)': {
           animation: 'none'
         }
@@ -104,15 +117,28 @@ export const mobileFloatingDock = style({
   '@layer': {
     [app]: {
       alignItems: 'center',
-      bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+      bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
       boxSizing: 'border-box',
       display: 'flex',
       insetInline: 0,
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
       paddingInline: '18px',
       pointerEvents: 'none',
       position: 'absolute',
-      zIndex: 2
+      zIndex: 2,
+      '@media': {
+        '(min-width: 761px)': {
+          bottom: '20px',
+          insetInline: 'auto',
+          left: '20px',
+          paddingInline: 0,
+          position: 'fixed',
+          zIndex: 120
+        },
+        '(min-width: 761px) and (max-width: 959px) and (orientation: portrait)': {
+          bottom: '76px'
+        }
+      }
     }
   }
 })
@@ -129,6 +155,15 @@ export const mobileFloatingButton = style({
       selectors: {
         '&:disabled': {
           opacity: 0.45
+        }
+      },
+      '@media': {
+        '(min-width: 761px)': {
+          selectors: {
+            '&[data-section-navigation="true"]': {
+              display: 'none'
+            }
+          }
         }
       }
     }

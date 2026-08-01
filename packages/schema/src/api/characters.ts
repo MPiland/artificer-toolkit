@@ -626,7 +626,8 @@ export const characterSheetIdentityDtoSchema = z.object({
 export const characterSheetAbilityDtoSchema = z.object({
   ability: abilityCodeSchema,
   score: z.number().int(),
-  modifier: z.number().int()
+  modifier: z.number().int(),
+  rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
 })
 
 export const characterSheetHitDiceDtoSchema = z.object({
@@ -671,6 +672,7 @@ export const characterSheetOverviewDtoSchema = z.object({
   facts: z.array(characterSheetFactDtoSchema),
   armorClass: z.number().int(),
   initiative: z.number().int(),
+  initiativeRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
   proficiencyBonus: z.number().int(),
   inspiration: z.boolean().optional(),
   currentHitPoints: z.number().int(),
@@ -684,6 +686,7 @@ export const characterSheetOverviewDtoSchema = z.object({
       ability: abilityCodeSchema,
       label: z.string(),
       total: z.number().int(),
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
     })
   ),
@@ -694,6 +697,7 @@ export const characterSheetOverviewDtoSchema = z.object({
       label: z.string(),
       ability: abilityCodeSchema,
       total: z.number().int(),
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
       proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
     })
   ),
@@ -748,6 +752,7 @@ export const characterSheetMechanicDtoSchema = z.object({
     .optional(),
   rangeLabel: z.string().optional(),
   attackBonus: z.number().int().optional(),
+  attackRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).optional(),
   save: z
     .object({
       ability: abilityCodeSchema,
@@ -1012,6 +1017,7 @@ export const characterSheetActiveSpellEntryDtoSchema = z.object({
   rangeLabel: z.string().min(1).optional(),
   hitOrDcLabel: z.string().min(1).optional(),
   primaryEffect: z.string().min(1).optional(),
+  mechanics: z.array(characterSheetMechanicDtoSchema).optional(),
   available: z.boolean(),
   unavailableReason: z.string().min(1).optional(),
   cast: z.object({
@@ -1149,6 +1155,7 @@ export const characterSheetResponseDtoSchema = z.object({
   spells: z.object({
     saveDc: z.number().int().nullable(),
     attackBonus: z.number().int().nullable(),
+    attackRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).optional(),
     slots: z.array(characterSheetSpellSlotDtoSchema),
     activeGroups: z.array(characterSheetActiveSpellGroupDtoSchema),
     spells: z.array(characterSheetSpellDtoSchema),
@@ -1188,8 +1195,9 @@ export const characterRestPreviewRequestDtoSchema = z
     healingMode: characterRestHealingModeDtoSchema,
     manualHealingAccepted: z.boolean(),
     selectedCompanionInstanceIds: z.array(z.guid()),
+    rollId: z.string().uuid().optional(),
     rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional(),
-    requestRoll: z.boolean()
+    requestRoll: z.literal(false)
   })
   .superRefine((request, context) => {
     if (
@@ -1202,11 +1210,11 @@ export const characterRestPreviewRequestDtoSchema = z
         message: 'A companion may be selected only once.'
       })
     }
-    if (request.requestRoll && request.rollEvidence) {
+    if (Boolean(request.rollId) !== Boolean(request.rollEvidence)) {
       context.addIssue({
         code: 'custom',
-        path: ['requestRoll'],
-        message: 'A new roll request cannot also provide prior roll evidence.'
+        path: ['rollId'],
+        message: 'Hit-die evidence must reference its authoritative roll.'
       })
     }
   })
@@ -1411,6 +1419,7 @@ export const characterSheetCommandInputDtoSchema = z
       healingMode: characterRestHealingModeDtoSchema,
       manualHealingAccepted: z.boolean(),
       selectedCompanionInstanceIds: z.array(z.guid()),
+      rollId: z.string().uuid().optional(),
       rollEvidence: characterRestHitDiceRollEvidenceDtoSchema.optional()
     }),
     characterSheetCommandBaseDtoSchema.extend({

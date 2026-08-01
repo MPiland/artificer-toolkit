@@ -1,8 +1,11 @@
 import { SegmentedControl, useMantineColorScheme } from '@mantine/core'
+import { DiceSettingsControls } from './DiceSettingsControls'
+import { useDicePresentationPreferences } from './dicePreferences'
 import * as styles from './settings.css'
 
 export function PreferencesSettingsPage() {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
+  const [dicePreferences, setDicePreferences] = useDicePresentationPreferences()
 
   return (
     <section aria-labelledby='preferences-settings-title'>
@@ -33,6 +36,7 @@ export function PreferencesSettingsPage() {
           }
         />
       </div>
+      <DiceSettingsControls value={dicePreferences} onChange={setDicePreferences} />
     </section>
   )
 }

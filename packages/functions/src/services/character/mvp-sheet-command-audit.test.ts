@@ -294,6 +294,7 @@ describe('MVP character Sheet command audit', () => {
         facts: [],
         armorClass: 10,
         initiative: 0,
+        initiativeRollMode: 'NORMAL' as const,
         proficiencyBonus: 2,
         currentHitPoints: 10,
         maxHitPoints: 10,

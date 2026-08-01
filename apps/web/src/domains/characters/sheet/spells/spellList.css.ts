@@ -156,14 +156,10 @@ export const spellRow = style({
 export const spellEntryButton = style({
   '@layer': {
     [app]: {
-      appearance: 'none',
       background: 'transparent',
-      border: 0,
       borderRadius: foundationVars.radius.sm,
       color: 'inherit',
-      cursor: 'pointer',
       display: 'grid',
-      font: 'inherit',
       gap: '8px',
       gridTemplateColumns: 'minmax(132px, 1.15fr) 58px 66px 74px minmax(108px, 0.82fr)',
       alignItems: 'center',
@@ -180,9 +176,27 @@ export const spellEntryButton = style({
           padding: '6px 4px'
         }
       },
+      selectors: {}
+    }
+  }
+})
+
+export const spellNameButton = style({
+  '@layer': {
+    [app]: {
+      appearance: 'none',
+      background: 'transparent',
+      border: 0,
+      borderRadius: foundationVars.radius.sm,
+      color: 'inherit',
+      cursor: 'pointer',
+      font: 'inherit',
+      minWidth: 0,
+      padding: 0,
+      textAlign: 'left',
       selectors: {
         '&:hover': {
-          background: foundationVars.color.surface.subtle
+          color: foundationVars.color.text.accent
         },
         '&:focus-visible': {
           boxShadow: foundationVars.shadow.focus,

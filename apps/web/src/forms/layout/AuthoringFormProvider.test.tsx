@@ -9,6 +9,7 @@ import { useAuthoringForm } from './AuthoringFormContext'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
 import type { AuthoringNavigationTarget } from './authoringNavigation'
+import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
 describe('AuthoringFormProvider domain registration', () => {
   it('registers authored form domain metadata from registerDomain', async () => {
@@ -91,21 +92,23 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider
-          data={{ payload: characterBuilderPayloadFixture, systems: [] }}
-          kind='character-builder'
-          mode='create'
-        >
-          <CancelProbe hasChanges={false} />
-        </AuthoringFormProvider>
+        <ShellReturnHrefContext value='/spells'>
+          <AuthoringFormProvider
+            data={{ payload: characterBuilderPayloadFixture, systems: [] }}
+            kind='character-builder'
+            mode='create'
+          >
+            <CancelProbe hasChanges={false} />
+          </AuthoringFormProvider>
+        </ShellReturnHrefContext>
       </TestRouterProvider>
     )
 
-    expect(screen.getByTestId('cancel-href').textContent).toBe('/characters')
+    expect(screen.getByTestId('cancel-href').textContent).toBe('/spells')
     await user.click(screen.getByRole('button', { name: 'Cancel form' }))
 
     await waitFor(() => {
-      expect(screen.getByTestId('history-pathname').textContent).toBe('/characters')
+      expect(screen.getByTestId('history-pathname').textContent).toBe('/spells')
     })
     expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })).not.toBeInTheDocument()
   })
@@ -289,7 +292,7 @@ describe('AuthoringFormProvider URL navigation', () => {
     await waitFor(() => {
       expect(screen.getByTestId('active-step-id').textContent).toBe('CLASSES')
       expect(screen.getByTestId('search').textContent).toContain('"source":"owned"')
-      expect(screen.getByTestId('search').textContent).toContain('"step":"CLASSES"')
+      expect(screen.getByTestId('search').textContent).toContain('"step":"classes"')
       expect(screen.getByTestId('history-state').textContent).toContain(
         '"__authoringStepNavigation":true'
       )

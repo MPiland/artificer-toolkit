@@ -73,6 +73,38 @@ export const compactDataRow = style({
   }
 })
 
+export const compactDataRowButton = style([
+  compactDataRow,
+  {
+    '@layer': {
+      [app]: {
+        appearance: 'none',
+        background: 'transparent',
+        borderLeft: 0,
+        borderRight: 0,
+        borderTop: 0,
+        cursor: 'pointer',
+        font: 'inherit',
+        textAlign: 'left',
+        width: '100%',
+        selectors: {
+          '&:hover': {
+            background: foundationVars.color.surface.recessed
+          },
+          '&:active': {
+            background: foundationVars.color.surface.recessed
+          },
+          '&:focus-visible': {
+            borderRadius: foundationVars.radius.sm,
+            boxShadow: foundationVars.shadow.focus,
+            outline: 0
+          }
+        }
+      }
+    }
+  }
+])
+
 export const rowList = style({
   '@layer': {
     [app]: {

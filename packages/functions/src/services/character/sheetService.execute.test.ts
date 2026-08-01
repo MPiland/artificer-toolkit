@@ -30,6 +30,8 @@ const mocks = vi.hoisted(() => ({
   listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
   removeAdjustment: vi.fn(),
+  consumeRollForUser: vi.fn(),
+  findRollByIdForUser: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
   setMovementPreference: vi.fn(),
   setResourceUsage: vi.fn(),
@@ -57,6 +59,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
+    }),
+    createRollHistoryRepository: () => ({
+      consumeForUser: mocks.consumeRollForUser,
+      findAvailableByIdForUser: mocks.findRollByIdForUser
     }),
     createCreatureRepository: () => ({
       findByIds: async () =>
@@ -240,6 +246,9 @@ describe('executeCharacterSheetCommand', () => {
     mocks.findById.mockReset()
     mocks.findByCommandId.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.consumeRollForUser.mockReset()
+    mocks.consumeRollForUser.mockResolvedValue(true)
+    mocks.findRollByIdForUser.mockReset()
     mocks.getMovementPreference.mockReset()
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
@@ -304,6 +313,26 @@ describe('executeCharacterSheetCommand', () => {
     resolution.summary.abilities.CONSTITUTION = 16
     mocks.findAuthoredById.mockResolvedValue(character)
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+    const rollId = '00000000-0000-4000-8000-000000000097'
+    const rollEvidence = {
+      expression: '1d10 + 3',
+      terms: [{ die: 10, count: 1, modifierPerDie: 3, rolls: [1] }],
+      total: 4
+    }
+    mocks.findRollByIdForUser.mockResolvedValue({
+      id: rollId,
+      characterId: 'character-1',
+      source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
+      normalizedExpression: '1d10 + 3',
+      evidence: {
+        terms: [{ count: 1, die: 10, rolls: [1], subtotal: 1 }],
+        modifier: 3,
+        mode: 'NORMAL',
+        subtotal: 4,
+        transform: { kind: 'NONE' },
+        total: 4
+      }
+    })
 
     const preview = await previewCharacterRest({
       db: db as unknown as DBLike,
@@ -317,20 +346,17 @@ describe('executeCharacterSheetCommand', () => {
         healingMode: 'AUTOMATIC',
         manualHealingAccepted: false,
         selectedCompanionInstanceIds: [],
-        requestRoll: true
-      },
-      random: { nextInt: () => 0 }
+        rollId,
+        rollEvidence,
+        requestRoll: false
+      }
     })
 
     expect(preview).toMatchObject({
       canonicalExpression: '1d10 + 3',
       stagedHealing: 4,
       canApply: true,
-      rollEvidence: {
-        expression: '1d10 + 3',
-        terms: [{ die: 10, count: 1, modifierPerDie: 3, rolls: [1] }],
-        total: 4
-      }
+      rollEvidence
     })
 
     const response = await executeCharacterSheetCommand({
@@ -348,6 +374,7 @@ describe('executeCharacterSheetCommand', () => {
         healingMode: 'AUTOMATIC',
         manualHealingAccepted: false,
         selectedCompanionInstanceIds: [],
+        rollId,
         rollEvidence: preview.rollEvidence
       }
     })
@@ -378,6 +405,7 @@ describe('executeCharacterSheetCommand', () => {
         }
       })
     )
+    expect(mocks.consumeRollForUser).toHaveBeenCalledWith(rollId, 'user-1')
     expect(response.result).toEqual(
       expect.objectContaining({
         type: 'COMPLETE_REST',

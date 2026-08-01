@@ -1,19 +1,20 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
-import { sheetDesktop } from '../core/sheetShell.css'
-import { overviewPanel } from './overview.css'
 
-export const proficiencyPanel = style([
-  overviewPanel,
-  {
-    '@layer': {
-      [app]: {
-        gap: '8px'
+export const proficiencyPanel = style({
+  '@layer': {
+    [app]: {
+      gap: '8px',
+      padding: '12px',
+      '@media': {
+        '(max-width: 520px)': {
+          padding: '10px'
+        }
       }
     }
   }
-])
+})
 
 export const savingThrowsPanel = style({
   '@layer': {
@@ -36,10 +37,8 @@ export const skillsPanel = style({
           height: '100%',
           minHeight: 0,
           overflow: 'hidden'
-        }
-      },
-      selectors: {
-        [`${sheetDesktop} &`]: {
+        },
+        '(min-width: 1200px)': {
           gridTemplateRows: 'auto minmax(0, 1fr)',
           height: '100%',
           minHeight: 0,
@@ -57,16 +56,12 @@ export const skillsList = style({
         '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)': {
           minHeight: 0,
           overflowY: 'auto',
-          paddingBlockEnd: '12px',
           paddingInlineEnd: '4px',
           scrollbarGutter: 'stable'
-        }
-      },
-      selectors: {
-        [`${sheetDesktop} &`]: {
+        },
+        '(min-width: 1200px)': {
           minHeight: 0,
           overflowY: 'auto',
-          paddingBlockEnd: '12px',
           paddingInlineEnd: '4px',
           scrollbarGutter: 'stable'
         }
@@ -78,8 +73,8 @@ export const skillsList = style({
 export const proficiencySummaryPanel = style({
   '@layer': {
     [app]: {
-      selectors: {
-        [`${sheetDesktop} &`]: {
+      '@media': {
+        '(min-width: 1200px)': {
           gridTemplateRows: 'auto minmax(0, 1fr)',
           minHeight: 0,
           overflow: 'hidden'
@@ -95,8 +90,8 @@ export const proficiencySummaryList = style({
       alignContent: 'start',
       display: 'grid',
       gap: 0,
-      selectors: {
-        [`${sheetDesktop} &`]: {
+      '@media': {
+        '(min-width: 1200px)': {
           minHeight: 0,
           overflowY: 'auto',
           paddingInlineEnd: '4px',
@@ -260,6 +255,7 @@ export const savingThrowCard = style({
       minHeight: '58px',
       minWidth: 0,
       padding: '7px 8px 8px',
+      position: 'relative',
       textAlign: 'center'
     }
   }
@@ -299,6 +295,42 @@ export const savingThrowCardLabel = style({
   }
 })
 
+export const savingThrowInspectorTrigger = style([
+  savingThrowCardLabel,
+  {
+    '@layer': {
+      [app]: {
+        appearance: 'none',
+        background: 'transparent',
+        border: 0,
+        borderRadius: foundationVars.radius.sm,
+        cursor: 'pointer',
+        font: 'inherit',
+        margin: 0,
+        padding: 0,
+        position: 'static',
+        selectors: {
+          '&::after': {
+            content: '',
+            inset: 0,
+            position: 'absolute'
+          },
+          '&:hover, &:active': {
+            background: foundationVars.color.surface.recessed
+          },
+          '&:focus-visible': {
+            boxShadow: foundationVars.shadow.focus,
+            outline: 0
+          },
+          '&:disabled': {
+            cursor: 'default'
+          }
+        }
+      }
+    }
+  }
+])
+
 export const savingThrowCardValue = style({
   '@layer': {
     [app]: {
@@ -308,6 +340,8 @@ export const savingThrowCardValue = style({
       fontWeight: 780,
       lineHeight: 1,
       margin: 'auto 0',
+      position: 'relative',
+      zIndex: 1,
       width: '100%'
     }
   }
@@ -331,6 +365,13 @@ export const skillRow = style({
       '@media': {
         '(max-width: 560px)': {
           gridTemplateColumns: 'minmax(0, 1fr) 36px 34px 36px 40px'
+        },
+        '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)': {
+          gap: '6px',
+          gridTemplateColumns: 'minmax(0, 1fr) 38px 43px 43px 45px'
+        },
+        '(pointer: coarse)': {
+          minHeight: '44px'
         }
       },
       selectors: {
@@ -358,6 +399,12 @@ export const skillTableHeader = style({
       '@media': {
         '(max-width: 560px)': {
           gridTemplateColumns: 'minmax(0, 1fr) 36px 34px 36px 40px'
+        },
+        '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)': {
+          fontSize: '0.58rem',
+          gap: '6px',
+          gridTemplateColumns: 'minmax(0, 1fr) 38px 43px 43px 45px',
+          letterSpacing: '0.02em'
         }
       }
     }
@@ -403,6 +450,45 @@ export const proficiencyName = style({
     }
   }
 })
+
+export const skillInspectorTrigger = style([
+  proficiencyName,
+  {
+    '@layer': {
+      [app]: {
+        appearance: 'none',
+        background: 'transparent',
+        border: 0,
+        borderRadius: foundationVars.radius.sm,
+        cursor: 'pointer',
+        font: 'inherit',
+        margin: 0,
+        padding: 0,
+        textAlign: 'left',
+        '@media': {
+          '(pointer: coarse)': {
+            alignItems: 'center',
+            display: 'flex',
+            minHeight: '44px',
+            width: '100%'
+          }
+        },
+        selectors: {
+          '&:hover, &:active': {
+            background: foundationVars.color.surface.recessed
+          },
+          '&:focus-visible': {
+            boxShadow: foundationVars.shadow.focus,
+            outline: 0
+          },
+          '&:disabled': {
+            cursor: 'default'
+          }
+        }
+      }
+    }
+  }
+])
 
 export const proficiencyMeta = style({
   '@layer': {

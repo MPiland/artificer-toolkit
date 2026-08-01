@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { Shell } from './Shell'
+import { useShellReturnHref } from './returnLocation'
 
 describe('Shell', () => {
   beforeEach(() => {
@@ -21,6 +22,34 @@ describe('Shell', () => {
 
     expect(screen.getByTestId('app-shell-main')).toContainElement(screen.getByTestId('normal-page'))
     expect(screen.queryByTestId('app-shell-content')).not.toBeInTheDocument()
+  })
+
+  it('retains the last non-authoring URL while an authoring route is open', () => {
+    const { rerender } = renderWithAppProviders(
+      <Shell
+        currentHref='/characters/7mcwy/dice-roll-test-fighter?tab=actions'
+        currentPath='/characters/7mcwy/dice-roll-test-fighter'
+        isAuthenticated
+        navigation={[]}
+      >
+        <ReturnHrefProbe />
+      </Shell>
+    )
+
+    rerender(
+      <Shell
+        currentHref='/characters/7mcwy/dice-roll-test-fighter/edit?step=abilities'
+        currentPath='/characters/7mcwy/dice-roll-test-fighter/edit'
+        isAuthenticated
+        navigation={[]}
+      >
+        <ReturnHrefProbe />
+      </Shell>
+    )
+
+    expect(screen.getByTestId('return-href')).toHaveTextContent(
+      '/characters/7mcwy/dice-roll-test-fighter?tab=actions'
+    )
   })
 
   it('hides public registration from signed-out actions unless enabled', () => {
@@ -60,21 +89,25 @@ describe('Shell', () => {
 
     const themeSelector = await screen.findByRole('radiogroup', { name: 'Theme preference' })
     const settingsLink = screen.getByText('Settings')
+    const systemOption = themeSelector.querySelector('input[value="auto"]')
+    const lightOption = themeSelector.querySelector('input[value="light"]')
+    const darkOption = themeSelector.querySelector('input[value="dark"]')
 
-    expect(themeSelector.querySelector('input[value="auto"]')).toBeChecked()
-    expect(screen.getByText('Light')).toBeInTheDocument()
-    expect(screen.getByText('Dark')).toBeInTheDocument()
-    expect(themeSelector.compareDocumentPosition(settingsLink) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .toBeTruthy()
+    expect(systemOption).toBeChecked()
+    expect(lightOption).toBeInTheDocument()
+    expect(darkOption).toBeInTheDocument()
+    expect(
+      themeSelector.compareDocumentPosition(settingsLink) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
 
-    fireEvent.click(screen.getByText('Light'))
+    fireEvent.click(lightOption!)
 
     await waitFor(() => {
       expect(document.documentElement).toHaveAttribute('data-mantine-color-scheme', 'light')
       expect(window.localStorage.getItem('mantine-color-scheme-value')).toBe('light')
     })
 
-    fireEvent.click(screen.getByText('System'))
+    fireEvent.click(systemOption!)
 
     await waitFor(() =>
       expect(window.localStorage.getItem('mantine-color-scheme-value')).toBe('auto')
@@ -89,4 +122,8 @@ function renderShell(currentPath: string) {
     </Shell>,
     { initialPath: currentPath }
   )
+}
+
+function ReturnHrefProbe() {
+  return <output data-testid='return-href'>{useShellReturnHref()}</output>
 }

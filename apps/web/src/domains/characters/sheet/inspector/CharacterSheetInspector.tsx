@@ -41,7 +41,7 @@ export function CharacterSheetInspector({
       aria-busy={pending}
       classNames={{
         body: sheetOverlayStyles.drawerBody,
-        content: sheetOverlayStyles.drawerContent,
+        content: `${sheetOverlayStyles.drawerContent} ${inspectorShellStyles.drawerContent}`,
         header: sheetOverlayStyles.drawerHeader,
         title: sheetOverlayStyles.drawerTitle
       }}
@@ -49,7 +49,7 @@ export function CharacterSheetInspector({
       opened
       overlayProps={{ backgroundOpacity: 0.55, blur: 0 }}
       position={isMobile ? 'bottom' : 'right'}
-      size={isMobile ? '92%' : '30rem'}
+      size={isMobile ? 'auto' : '26rem'}
       title={panelQuery.data?.title ?? 'Character details'}
       onClose={onClose}
     >

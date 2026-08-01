@@ -7,8 +7,8 @@ export const editor = style({
     [app]: {
       borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
       display: 'grid',
-      gap: '10px',
-      paddingBlock: '14px',
+      gap: '8px',
+      paddingBlock: '10px',
       selectors: {
         '&:last-child': {
           borderBottom: 0,
@@ -101,8 +101,8 @@ export const entry = style({
       display: 'grid',
       gap: '12px',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
-      minHeight: '48px',
-      paddingBlock: '8px',
+      minHeight: '40px',
+      paddingBlock: '6px',
       selectors: {
         '&:last-child': {
           borderBottom: 0
@@ -125,8 +125,8 @@ export const entryButton = style({
       font: 'inherit',
       gap: '12px',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
-      minHeight: '48px',
-      padding: '8px 4px',
+      minHeight: '40px',
+      padding: '6px 4px',
       textAlign: 'left',
       width: '100%',
       selectors: {
@@ -278,8 +278,8 @@ export const loading = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: '14px',
-      padding: '20px'
+      gap: '10px',
+      padding: '14px 16px'
     }
   }
 })

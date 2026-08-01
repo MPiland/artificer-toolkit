@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
 import type { CharacterRestPreviewRequestDto } from '#app/lib/api'
+import { CharacterSheetRollContext } from '../dice/rollContext'
 import {
   createRestPreview,
   createSheet,
@@ -41,6 +42,24 @@ describe('Character Sheet rests', () => {
   it('previews and completes a short rest with backend-owned roll evidence', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(true)
+    const rollId = '00000000-0000-4000-8000-000000000097'
+    const executeRoll = vi.fn().mockResolvedValue({
+      id: rollId,
+      characterId: 'character-1',
+      characterLabel: 'Test Character',
+      source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
+      ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
+      normalizedExpression: '1d8 + 1',
+      evidence: {
+        terms: [{ count: 1, die: 8, rolls: [5], subtotal: 5 }],
+        modifier: 1,
+        mode: 'NORMAL',
+        subtotal: 6,
+        transform: { kind: 'NONE' },
+        total: 6
+      },
+      createdAt: '2026-07-31T12:00:00.000Z'
+    })
 
     server.use(
       http.post('*/api/trpc/characters.restPreview', async ({ request }) => {
@@ -53,11 +72,21 @@ describe('Character Sheet rests', () => {
     )
 
     renderWithAppProviders(
-      <CharacterSheetOverviewVitals
-        pending={false}
-        sheet={createSheet()}
-        submitCommand={submitCommand}
-      />
+      <CharacterSheetRollContext.Provider
+        value={{
+          clearManualRoll: vi.fn(),
+          dismissRoll: vi.fn(),
+          executeRoll,
+          hasManualRoll: false,
+          pending: false
+        }}
+      >
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={createSheet()}
+          submitCommand={submitCommand}
+        />
+      </CharacterSheetRollContext.Provider>
     )
 
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
@@ -82,6 +111,7 @@ describe('Character Sheet rests', () => {
       healingMode: 'AUTOMATIC',
       manualHealingAccepted: false,
       selectedCompanionInstanceIds: ['11111111-1111-4111-8111-111111111111'],
+      rollId,
       rollEvidence: {
         expression: '1d8 + 1',
         terms: [{ die: 8, count: 1, modifierPerDie: 1, rolls: [5] }],

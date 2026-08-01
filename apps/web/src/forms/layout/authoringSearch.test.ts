@@ -10,12 +10,12 @@ import {
 describe('authoring search', () => {
   it('preserves unrelated search parameters and the hash in step links', () => {
     expect(getAuthoringStepHref('/characters/new?source=owned#builder', 'RACE')).toBe(
-      '/characters/new?source=owned&step=RACE#builder'
+      '/characters/new?source=owned&step=race#builder'
     )
   })
 
   it('reads only non-empty step values', () => {
-    expect(readAuthoringStep({ step: 'RACE' })).toBe('RACE')
+    expect(readAuthoringStep({ step: ' RACE ' })).toBe('race')
     expect(readAuthoringStep({ step: '' })).toBeUndefined()
     expect(readAuthoringStep({ step: 1 })).toBeUndefined()
   })

@@ -1,4 +1,10 @@
-import { Outlet, createFileRoute, redirect, useLocation } from '@tanstack/react-router'
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useMatches,
+  useRouterState
+} from '@tanstack/react-router'
 import { Shell, platformNavigation } from '#app/shell'
 import { authoringSearchSchema } from '#app/forms/layout/authoringSearch'
 import { getAccountProfileRedirect } from '#app/settings/accountProfileGuard'
@@ -17,12 +23,18 @@ export const Route = createFileRoute('/_authed')({
 
 function AuthedLayout() {
   const { featureFlags, user } = Route.useRouteContext()
-  const location = useLocation()
+  const currentPath = useMatches({
+    select: (matches) => matches.at(-1)?.pathname ?? '/'
+  })
+  const currentHref = useRouterState({
+    select: (state) => (state.resolvedLocation ?? state.location).href
+  })
 
   return (
     <Shell
       navigation={platformNavigation}
-      currentPath={location.pathname}
+      currentHref={currentHref}
+      currentPath={currentPath}
       isAuthenticated={Boolean(user)}
       publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
       userEmail={user?.email}

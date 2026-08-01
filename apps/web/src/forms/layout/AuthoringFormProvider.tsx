@@ -44,11 +44,14 @@ import {
 } from '#domains/characters/builder/core/characterBuilder.performance'
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import {
+  areAuthoringStepIdsEqual,
   isAuthoringStepNavigationState,
   isAuthoringStepOnlyNavigation,
   markAuthoringStepNavigationState,
-  readAuthoringStep
+  readAuthoringStep,
+  toAuthoringStepSearchValue
 } from './authoringSearch'
+import { useShellReturnHref } from '#app/shell/returnLocation'
 
 const EMPTY_STEP_DIRTY = {}
 const EMPTY_STEP_STATUSES = {}
@@ -97,10 +100,12 @@ export function AuthoringFormProvider({
   const pendingStepIdRef = useRef<string | undefined>(undefined)
   const requestedStepIdRef = useRef(requestedStepId)
   const authoredSession = session.authoredSession
+  const shellReturnHref = useShellReturnHref()
   const cancelHref =
-    session.authoringKind === 'character-builder'
+    shellReturnHref ??
+    (session.authoringKind === 'character-builder'
       ? '/characters'
-      : authoredSession?.actionFactory.listPath
+      : authoredSession?.actionFactory.listPath)
   const navigate = useNavigate()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -137,11 +142,12 @@ export function AuthoringFormProvider({
   )
   const navigateToAuthoringStep = useCallback(
     (stepId: string, replace = false) => {
-      pendingStepIdRef.current = stepId
-      requestedStepIdRef.current = stepId
+      const searchStepId = toAuthoringStepSearchValue(stepId)
+      pendingStepIdRef.current = searchStepId
+      requestedStepIdRef.current = searchStepId
       void navigate({
         to: '.',
-        search: (current: Record<string, unknown>) => ({ ...current, step: stepId }),
+        search: (current: Record<string, unknown>) => ({ ...current, step: searchStepId }),
         state: markAuthoringStepNavigationState,
         replace,
         resetScroll: false
@@ -684,7 +690,7 @@ export function AuthoringFormProvider({
         const fallbackStepId =
           session.characterSession?.initialAuthoringState?.activeStepId ?? session.activeStepId
         const targetStep =
-          visibleSteps.find((step) => step.id === stepId) ??
+          visibleSteps.find((step) => areAuthoringStepIdsEqual(step.id, stepId)) ??
           visibleSteps.find((step) => step.id === fallbackStepId) ??
           visibleSteps[0]
         if (targetStep) setActiveProviderStep(targetStep.id)
@@ -692,7 +698,9 @@ export function AuthoringFormProvider({
       }
 
       if (navigationTargets.length === 0) return
-      const target = navigationTargets.find((entry) => entry.id === stepId) ?? navigationTargets[0]
+      const target =
+        navigationTargets.find((entry) => areAuthoringStepIdsEqual(entry.id, stepId)) ??
+        navigationTargets[0]
       if (target) setActiveNavigationTarget(target.id)
     },
     [
@@ -717,12 +725,12 @@ export function AuthoringFormProvider({
 
   useEffect(() => {
     const pendingStepId = pendingStepIdRef.current
-    if (pendingStepId && pendingStepId !== requestedStepId) return
-    if (pendingStepId === requestedStepId) {
+    if (pendingStepId && !areAuthoringStepIdsEqual(pendingStepId, requestedStepId)) return
+    if (pendingStepId && areAuthoringStepIdsEqual(pendingStepId, requestedStepId)) {
       const targetIsPublished =
         session.authoringKind === 'character-builder'
-          ? visibleSteps.some((step) => step.id === pendingStepId)
-          : navigationTargets.some((target) => target.id === pendingStepId)
+          ? visibleSteps.some((step) => areAuthoringStepIdsEqual(step.id, pendingStepId))
+          : navigationTargets.some((target) => areAuthoringStepIdsEqual(target.id, pendingStepId))
       if (!targetIsPublished) return
       pendingStepIdRef.current = undefined
       return
@@ -732,13 +740,13 @@ export function AuthoringFormProvider({
 
   useEffect(() => {
     if (!requestedStepId) return
-    if (pendingStepIdRef.current === requestedStepId) return
+    if (areAuthoringStepIdsEqual(pendingStepIdRef.current, requestedStepId)) return
 
     const isValid =
       session.authoringKind === 'character-builder'
-        ? visibleSteps.some((step) => step.id === requestedStepId)
+        ? visibleSteps.some((step) => areAuthoringStepIdsEqual(step.id, requestedStepId))
         : navigationTargets.length === 0 ||
-          navigationTargets.some((target) => target.id === requestedStepId)
+          navigationTargets.some((target) => areAuthoringStepIdsEqual(target.id, requestedStepId))
     if (isValid) return
 
     const fallbackStepId =
@@ -1216,7 +1224,7 @@ function resolveRequestedNavigation(
     const fallbackStepId =
       session.activeStepId ?? session.characterSession?.initialAuthoringState?.activeStepId
     const activeStep =
-      session.visibleSteps?.find((step) => step.id === requestedStepId) ??
+      session.visibleSteps?.find((step) => areAuthoringStepIdsEqual(step.id, requestedStepId)) ??
       session.visibleSteps?.find((step) => step.id === fallbackStepId) ??
       session.visibleSteps?.[0]
     if (!activeStep) return session
@@ -1234,7 +1242,8 @@ function resolveRequestedNavigation(
     return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
   }
 
-  const target = targets.find((entry) => entry.id === requestedStepId) ?? targets[0]
+  const target =
+    targets.find((entry) => areAuthoringStepIdsEqual(entry.id, requestedStepId)) ?? targets[0]
   if (!target) return session
 
   return {

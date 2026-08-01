@@ -17,6 +17,8 @@ import {
   CHARACTER_SHEET_SPELL_ACTION_FILTERS,
   type CharacterSheetSpellActionFilter
 } from './characterSheetSpells.utils'
+import { CharacterSheetRollText, CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
+import { getMechanicRollTargets, withRollModifier } from '../dice/dice.utils'
 
 export function CharacterSheetSpells({
   hideTitle,
@@ -91,7 +93,19 @@ export function CharacterSheetSpells({
           <span>
             <small>Spell attack</small>
             <strong>
-              {sheet.spells.attackBonus == null ? '—' : formatSigned(sheet.spells.attackBonus)}
+              {sheet.spells.attackBonus == null ? (
+                '—'
+              ) : (
+                <CharacterSheetRollValue
+                  request={{
+                    expression: withRollModifier('1d20', sheet.spells.attackBonus),
+                    rollMode: sheet.spells.attackRollMode,
+                    source: { kind: 'ATTACK', label: 'Spell attack' }
+                  }}
+                >
+                  {formatSigned(sheet.spells.attackBonus)}
+                </CharacterSheetRollValue>
+              )}
             </strong>
           </span>
           <span>
@@ -194,6 +208,7 @@ export function CharacterSheetSpells({
                   const castLevelContext =
                     entry.castLevel === 0 ? ' as a cantrip' : ` at level ${entry.castLevel}`
                   const accessibleSpellName = `${entry.displayName}${sourceContext}${castLevelContext}`
+                  const rollTargets = getMechanicRollTargets(entry.mechanics, entry.displayName)
 
                   return (
                     <div
@@ -202,26 +217,28 @@ export function CharacterSheetSpells({
                       key={entry.rowId}
                       role='group'
                     >
-                      <button
-                        aria-label={`Open details for ${accessibleSpellName}`}
-                        className={spellListStyles.spellEntryButton}
-                        type='button'
-                        onClick={() => openPanel?.(entry.target)}
-                      >
-                        <span className={spellListStyles.spellNameLine}>
-                          <Text component='span' fw={700}>
-                            {entry.displayName}
-                          </Text>
-                          {sourceLabel ? (
-                            <Text
-                              className={spellListStyles.spellQualifier}
-                              component='span'
-                              size='xs'
-                            >
-                              {sourceLabel}
+                      <div className={spellListStyles.spellEntryButton}>
+                        <button
+                          aria-label={`Open details for ${accessibleSpellName}`}
+                          className={spellListStyles.spellNameButton}
+                          type='button'
+                          onClick={() => openPanel?.(entry.target)}
+                        >
+                          <span className={spellListStyles.spellNameLine}>
+                            <Text component='span' fw={700}>
+                              {entry.displayName}
                             </Text>
-                          ) : null}
-                        </span>
+                            {sourceLabel ? (
+                              <Text
+                                className={spellListStyles.spellQualifier}
+                                component='span'
+                                size='xs'
+                              >
+                                {sourceLabel}
+                              </Text>
+                            ) : null}
+                          </span>
+                        </button>
                         <Text
                           className={`${spellListStyles.spellFact} ${spellListStyles.spellActivationFact}`}
                           component='span'
@@ -232,12 +249,24 @@ export function CharacterSheetSpells({
                           {entry.rangeLabel ?? '—'}
                         </Text>
                         <Text className={spellListStyles.spellFact} component='span'>
-                          {entry.hitOrDcLabel ?? '—'}
+                          <CharacterSheetRollText
+                            targets={rollTargets.filter(
+                              (target) => target.source.kind === 'ATTACK'
+                            )}
+                            text={entry.hitOrDcLabel ?? '—'}
+                          />
                         </Text>
                         <span className={spellListStyles.spellEffectLine}>
                           {entry.primaryEffect ? (
                             <Text className={spellListStyles.spellPrimaryEffect} component='span'>
-                              {entry.primaryEffect}
+                              <CharacterSheetRollText
+                                targets={rollTargets.filter(
+                                  (target) =>
+                                    target.source.kind === 'DAMAGE' ||
+                                    target.source.kind === 'HEALING'
+                                )}
+                                text={entry.primaryEffect}
+                              />
                             </Text>
                           ) : null}
                           {!entry.available && entry.unavailableReason ? (
@@ -261,7 +290,7 @@ export function CharacterSheetSpells({
                             </>
                           ) : null}
                         </span>
-                      </button>
+                      </div>
                       <Button
                         aria-describedby={
                           !entry.available && entry.unavailableReason

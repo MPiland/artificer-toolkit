@@ -48,6 +48,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/subjects/tables/spells.sql'
 \i :etl_root'/subjects/tables/vehicles.sql'
 \i :etl_root'/subjects/tables/characters.sql'
+\i :etl_root'/subjects/tables/user_roll_history.sql'
 \i :etl_root'/subjects/tables/character_sheet_adjustments.sql'
 \i :etl_root'/subjects/tables/character_events.sql'
 \i :etl_root'/bootstrap/constraints/cross_domain_foreign_keys.sql'

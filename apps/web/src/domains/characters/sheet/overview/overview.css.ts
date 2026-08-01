@@ -1,7 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
-import { sheetDesktop } from '../core/sheetShell.css'
 
 export const overviewLayout = style({
   '@layer': {
@@ -9,8 +8,8 @@ export const overviewLayout = style({
       display: 'grid',
       gap: '16px',
       minWidth: 0,
-      selectors: {
-        [`${sheetDesktop} &`]: {
+      '@media': {
+        '(min-width: 1200px)': {
           gridTemplateRows: 'minmax(0, 1fr)',
           height: '100%',
           minHeight: 0
@@ -26,20 +25,12 @@ export const tabletOverviewGrid = style({
       alignContent: 'start',
       display: 'grid',
       gap: '10px',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gridTemplateColumns: 'minmax(0, 1fr)',
       minHeight: 0,
       minWidth: 0,
       overflowY: 'auto',
       paddingInlineEnd: '4px',
       scrollbarGutter: 'stable'
-    }
-  }
-})
-
-globalStyle(`${tabletOverviewGrid} > :first-child, ${tabletOverviewGrid} > :last-child`, {
-  '@layer': {
-    [app]: {
-      gridColumn: '1 / -1'
     }
   }
 })
@@ -76,10 +67,7 @@ export const abilityStrip = style({
       gridTemplateColumns: 'repeat(6, minmax(96px, 1fr))',
       minWidth: 0,
       '@media': {
-        '(max-width: 920px)': {
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
-        },
-        '(max-width: 520px)': {
+        '(max-width: 760px)': {
           gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
         },
         '(max-width: 340px)': {
@@ -87,6 +75,9 @@ export const abilityStrip = style({
         },
         '(min-width: 761px) and (max-width: 1199px) and (orientation: portrait)': {
           gap: '8px',
+          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
+        },
+        '(min-width: 921px) and (max-width: 1199px) and (orientation: landscape)': {
           gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'
         }
       }
@@ -102,8 +93,9 @@ export const abilityCard = style({
       borderRadius: foundationVars.radius.lg,
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '92px',
-      padding: '10px 12px 9px',
+      justifyContent: 'center',
+      minHeight: '80px',
+      padding: '8px 10px',
       position: 'relative',
       textAlign: 'center'
     }
@@ -122,8 +114,11 @@ export const sheetInspectorTrigger = style({
       width: '100%',
       selectors: {
         '&:hover': {
-          background: foundationVars.color.surface.subtle,
+          background: foundationVars.color.surface.recessed,
           borderColor: foundationVars.color.border.strong
+        },
+        '&:active': {
+          background: foundationVars.color.surface.recessed
         },
         '&:focus-visible': {
           boxShadow: foundationVars.shadow.focus
@@ -153,7 +148,10 @@ export const panelHeadingTrigger = style({
       padding: '4px',
       selectors: {
         '&:hover': {
-          background: foundationVars.color.surface.subtle
+          background: foundationVars.color.surface.recessed
+        },
+        '&:active': {
+          background: foundationVars.color.surface.recessed
         },
         '&:focus-visible': {
           boxShadow: foundationVars.shadow.focus,
@@ -174,7 +172,12 @@ export const abilityIcon = style({
       left: '10px',
       opacity: 0.86,
       position: 'absolute',
-      top: '10px'
+      top: '8px',
+      '@media': {
+        '(min-width: 761px) and (max-width: 1120px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -193,15 +196,63 @@ export const abilityLabel = style({
   }
 })
 
+export const abilityInspectorTrigger = style({
+  '@layer': {
+    [app]: {
+      appearance: 'none',
+      background: 'transparent',
+      border: 0,
+      borderRadius: foundationVars.radius.sm,
+      cursor: 'pointer',
+      font: 'inherit',
+      margin: 0,
+      padding: 0,
+      position: 'static',
+      selectors: {
+        '&::after': {
+          content: '',
+          inset: 0,
+          position: 'absolute'
+        },
+        '&:hover, &:active': {
+          background: foundationVars.color.surface.recessed
+        },
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus,
+          outline: 0
+        },
+        '&:disabled': {
+          cursor: 'default'
+        }
+      }
+    }
+  }
+})
+
 export const abilityModifier = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '1.52rem',
+      fontSize: '1.2rem',
       fontWeight: 780,
       lineHeight: 1,
-      margin: 'auto 0',
-      width: '100%'
+      fontVariantNumeric: 'tabular-nums'
+    }
+  }
+})
+
+export const abilityValues = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'baseline',
+      color: foundationVars.color.text.secondary,
+      display: 'flex',
+      fontVariantNumeric: 'tabular-nums',
+      gap: '4px',
+      justifyContent: 'center',
+      marginTop: '8px',
+      position: 'relative',
+      zIndex: 1
     }
   }
 })
@@ -210,12 +261,9 @@ export const abilityScore = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.secondary,
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
-      fontSize: '0.74rem',
+      fontSize: '0.94rem',
       fontVariantNumeric: 'tabular-nums',
-      paddingTop: '4px',
-      lineHeight: 1.2,
-      width: '100%'
+      lineHeight: 1
     }
   }
 })
@@ -242,7 +290,7 @@ export const playSheetGrid = style({
       alignItems: 'start',
       display: 'grid',
       gap: '12px',
-      gridTemplateColumns: 'minmax(220px, 0.82fr) minmax(300px, 1.08fr) minmax(360px, 1.6fr)',
+      gridTemplateColumns: 'minmax(220px, 0.82fr) minmax(300px, 1.08fr)',
       minWidth: 0,
       '@media': {
         '(max-width: 980px)': {
@@ -255,11 +303,9 @@ export const playSheetGrid = style({
           gridTemplateColumns: 'minmax(240px, 0.78fr) minmax(0, 1.22fr)'
         },
         '(min-width: 761px) and (max-width: 1199px) and (orientation: landscape)': {
-          gridTemplateColumns: 'minmax(270px, 0.72fr) minmax(0, 1.28fr)'
-        }
-      },
-      selectors: {
-        [`${sheetDesktop} &`]: {
+          gridTemplateColumns: 'minmax(240px, 0.72fr) minmax(0, 1.28fr)'
+        },
+        '(min-width: 1200px)': {
           alignItems: 'stretch',
           gridTemplateColumns: 'minmax(190px, 0.78fr) minmax(260px, 1.22fr)',
           height: '100%',
@@ -278,8 +324,8 @@ export const overviewLeftRail = style({
       gap: '10px',
       minHeight: 0,
       minWidth: 0,
-      selectors: {
-        [`${sheetDesktop} &`]: {
+      '@media': {
+        '(min-width: 1200px)': {
           gridTemplateRows: 'auto auto minmax(0, 1fr)'
         }
       }
@@ -287,23 +333,18 @@ export const overviewLeftRail = style({
   }
 })
 
-export const playAreaStack = style({
-  '@layer': {
-    [app]: {
-      alignContent: 'start',
-      display: 'grid',
-      gap: '12px',
-      minWidth: 0,
-      '@media': {
-        '(min-width: 761px) and (max-width: 1199px)': {
-          display: 'none'
-        }
-      },
-      selectors: {
-        [`${sheetDesktop} &`]: {
-          display: 'none'
-        }
-      }
+export const tabletSkillsOnlyGrid = style({
+  '@media': {
+    '(min-width: 761px) and (max-width: 1199px)': {
+      gridTemplateColumns: 'minmax(0, 1fr)'
+    }
+  }
+})
+
+export const tabletHiddenFacts = style({
+  '@media': {
+    '(min-width: 761px) and (max-width: 1199px)': {
+      display: 'none'
     }
   }
 })

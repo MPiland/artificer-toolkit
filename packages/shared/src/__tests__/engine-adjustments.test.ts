@@ -50,6 +50,149 @@ function createRegistry(
 }
 
 describe('character engine adjustments and provenance', () => {
+  it('does not add advantage grants to numeric derived totals', () => {
+    const snapshot = createSnapshot({
+      features: [
+        {
+          acquisitionId: 'acquisition-advantage',
+          featureId: 'initiative-advantage',
+          source: { kind: 'CLASS', classId: 'fighter' },
+          timing: { kind: 'CLASS_LEVEL', classId: 'fighter', classLevel: 1 }
+        }
+      ]
+    })
+    const registry = createRegistry({
+      features: {
+        'initiative-advantage': {
+          modifiers: [
+            {
+              id: 'initiative-advantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'INITIATIVE',
+              modifierKind: 'ADVANTAGE',
+              domain: {},
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 0
+            }
+          ]
+        }
+      }
+    })
+
+    const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
+    expect(output.derivedStats.initiative).toBe(2)
+    expect(output.rollModes.initiative).toBe('ADVANTAGE')
+
+    registry.features['initiative-advantage']?.modifiers?.push({
+      id: 'initiative-disadvantage',
+      grantKind: 'MODIFIER_GRANT',
+      valueDomainCode: 'INITIATIVE',
+      modifierKind: 'DISADVANTAGE',
+      domain: {},
+      scope: 'GLOBAL',
+      selectionKind: 'GRANTED',
+      order: 1
+    })
+    expect(runEngine(snapshot, registry, dnd5e2014RulesSystem).rollModes.initiative).toBe('NORMAL')
+  })
+
+  it('combines global, ability, and skill roll modes without last-wins behavior', () => {
+    const featureIds = ['global-advantage', 'dexterity-disadvantage', 'athletics-disadvantage']
+    const snapshotFor = (activeFeatureIds: string[]) =>
+      createSnapshot({
+        features: activeFeatureIds.map((featureId) => ({
+          acquisitionId: `acquisition-${featureId}`,
+          featureId,
+          source: { kind: 'CLASS' as const, classId: 'fighter' },
+          timing: { kind: 'CLASS_LEVEL' as const, classId: 'fighter', classLevel: 1 }
+        }))
+      })
+    const registry = createRegistry({
+      system: {
+        skills: [{ id: 'skill-athletics', code: 'ATHLETICS', label: 'Athletics' }]
+      },
+      features: {
+        'global-advantage': {
+          modifiers: [
+            {
+              id: 'global-advantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'ABILITY_CHECK',
+              modifierKind: 'ADVANTAGE',
+              domain: {},
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 0
+            }
+          ]
+        },
+        'dexterity-disadvantage': {
+          modifiers: [
+            {
+              id: 'dexterity-disadvantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'ABILITY_CHECK',
+              modifierKind: 'DISADVANTAGE',
+              domain: { ability: 'DEXTERITY' },
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 0
+            }
+          ]
+        },
+        'athletics-disadvantage': {
+          modifiers: [
+            {
+              id: 'athletics-disadvantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'SKILL_MODIFIER',
+              modifierKind: 'DISADVANTAGE',
+              domain: { skillId: 'skill-athletics' },
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 0
+            }
+          ]
+        }
+      }
+    })
+
+    const normal = runEngine(snapshotFor([]), registry, dnd5e2014RulesSystem).rollModes
+    expect(normal.abilityChecks.DEXTERITY).toBe('NORMAL')
+    expect(normal.skillChecks.athletics).toBe('NORMAL')
+
+    const globalAdvantage = runEngine(
+      snapshotFor(['global-advantage']),
+      registry,
+      dnd5e2014RulesSystem
+    ).rollModes
+    expect(globalAdvantage.abilityChecks.STRENGTH).toBe('ADVANTAGE')
+    expect(globalAdvantage.skillChecks.athletics).toBe('ADVANTAGE')
+
+    const abilityDisadvantage = runEngine(
+      snapshotFor(['dexterity-disadvantage']),
+      registry,
+      dnd5e2014RulesSystem
+    ).rollModes
+    expect(abilityDisadvantage.abilityChecks.DEXTERITY).toBe('DISADVANTAGE')
+    expect(abilityDisadvantage.skillChecks.acrobatics).toBe('DISADVANTAGE')
+
+    const skillDisadvantage = runEngine(
+      snapshotFor(['athletics-disadvantage']),
+      registry,
+      dnd5e2014RulesSystem
+    ).rollModes
+    expect(skillDisadvantage.abilityChecks.STRENGTH).toBe('NORMAL')
+    expect(skillDisadvantage.skillChecks.athletics).toBe('DISADVANTAGE')
+
+    const cancelled = runEngine(snapshotFor(featureIds), registry, dnd5e2014RulesSystem).rollModes
+    expect(cancelled.abilityChecks.DEXTERITY).toBe('NORMAL')
+    expect(cancelled.skillChecks.acrobatics).toBe('NORMAL')
+    expect(cancelled.abilityChecks.STRENGTH).toBe('ADVANTAGE')
+    expect(cancelled.skillChecks.athletics).toBe('NORMAL')
+  })
+
   it('applies authored and manual additions before an absolute override and restores them when cleared', () => {
     const snapshot = createSnapshot({
       abilities: { STRENGTH: 14 },

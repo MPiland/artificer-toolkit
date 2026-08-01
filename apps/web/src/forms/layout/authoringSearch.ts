@@ -8,7 +8,10 @@ declare module '@tanstack/history' {
 
 export const authoringSearchSchema = z.object({
   step: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined),
+    (value) =>
+      typeof value === 'string' && value.trim().length > 0
+        ? toAuthoringStepSearchValue(value)
+        : undefined,
     z.string().optional()
   )
 })
@@ -26,13 +29,28 @@ export function isAuthoringStepNavigationState(state: unknown): boolean {
 export function readAuthoringStep(search: unknown): string | undefined {
   if (!isRecord(search)) return undefined
   const step = search.step
-  return typeof step === 'string' && step.length > 0 ? step : undefined
+  return typeof step === 'string' && step.length > 0 ? toAuthoringStepSearchValue(step) : undefined
 }
 
 export function getAuthoringStepHref(currentHref: string, stepId: string): string {
   const url = new URL(currentHref, 'http://authoring.local')
-  url.searchParams.set('step', stepId)
+  url.searchParams.set('step', toAuthoringStepSearchValue(stepId))
   return `${url.pathname}${url.search}${url.hash}`
+}
+
+export function toAuthoringStepSearchValue(stepId: string): string {
+  return stepId.trim().toLowerCase()
+}
+
+export function areAuthoringStepIdsEqual(
+  left: string | undefined,
+  right: string | undefined
+): boolean {
+  return (
+    left !== undefined &&
+    right !== undefined &&
+    toAuthoringStepSearchValue(left) === toAuthoringStepSearchValue(right)
+  )
 }
 
 export function isAuthoringStepOnlyNavigation(

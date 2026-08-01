@@ -56,6 +56,7 @@ export interface CharacterSheetProjectedMechanic {
   }
   rangeLabel?: string
   attackBonus?: number
+  attackRollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
   save?: {
     ability: AbilityCode
     dc?: number
@@ -221,6 +222,16 @@ function projectMechanic(
     context.owner.ownerKind === 'SPELL' && invocation.triggerCode === 'SPELL_ATTACK'
       ? context.engine.derivedStats.spellAttackBonus
       : undefined
+  const attackDomain =
+    invocation.triggerCode === 'MELEE_WEAPON_ATTACK'
+      ? 'MELEE'
+      : invocation.triggerCode === 'RANGED_WEAPON_ATTACK'
+        ? 'RANGED'
+        : invocation.triggerCode === 'UNARMED_ATTACK'
+          ? 'UNARMED'
+          : invocation.triggerCode === 'SPELL_ATTACK'
+            ? 'SPELL'
+            : undefined
   const outcomes = paths.flatMap((path) => projectPathOutcomes(path, context))
 
   return {
@@ -229,6 +240,7 @@ function projectMechanic(
     ...(activation ? { activation } : {}),
     ...(rangeLabel ? { rangeLabel } : {}),
     ...(attackBonus !== undefined ? { attackBonus } : {}),
+    ...(attackDomain ? { attackRollMode: context.engine.rollModes.attacks[attackDomain] } : {}),
     ...(save ? { save } : {}),
     outcomes
   }
