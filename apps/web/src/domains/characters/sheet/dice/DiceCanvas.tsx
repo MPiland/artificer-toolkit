@@ -224,10 +224,14 @@ function DicePlayback({
 function DiceTable({
   dice,
   onDieSettled,
+  onReady,
+  rollId,
   shadowMapSize
 }: {
   dice: VisualDie[]
   onDieSettled: (id: string) => void
+  onReady: (rollId: string) => void
+  rollId?: string
   shadowMapSize: number
 }) {
   const diceTypes = useMemo(() => [...new Set(dice.map((die) => die.die))], [dice])
@@ -257,6 +261,10 @@ function DiceTable({
     [diceTypes, models]
   )
 
+  useEffect(() => {
+    if (rollId) onReady(rollId)
+  }, [onReady, rollId])
+
   return (
     <>
       <ambientLight intensity={1.15} />
@@ -276,11 +284,13 @@ function DiceTable({
 }
 
 export default function DiceCanvas({
+  onReady,
   onRollSettled,
   preferences,
   roll,
   staticFallback
 }: {
+  onReady: (rollId: string) => void
   onRollSettled: (rollId: string) => void
   preferences: DicePresentationPreferences
   roll?: RollResultDto
@@ -347,7 +357,13 @@ export default function DiceCanvas({
         shadows='percentage'
         style={{ pointerEvents: 'none' }}
       >
-        <DiceTable dice={dice} onDieSettled={handleDieSettled} shadowMapSize={shadowMapSize} />
+        <DiceTable
+          dice={dice}
+          onDieSettled={handleDieSettled}
+          onReady={onReady}
+          rollId={roll?.id}
+          shadowMapSize={shadowMapSize}
+        />
       </Canvas>
       {roll && settledRollId === roll.id ? staticFallback : null}
     </div>

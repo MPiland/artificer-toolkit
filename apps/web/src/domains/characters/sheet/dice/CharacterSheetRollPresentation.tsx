@@ -7,6 +7,7 @@ import { DiceCanvasErrorBoundary } from './DiceCanvasErrorBoundary'
 import * as diceStyles from './dice.css'
 
 const DiceCanvas = lazy(() => import('./DiceCanvas'))
+const DICE_LOAD_TIMEOUT_MS = 10_000
 
 function StaticDiceResult({ roll }: { roll: RollResultDto }) {
   return (
@@ -55,6 +56,7 @@ export function CharacterSheetRollPresentation({
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
   const [rendererFailed, setRendererFailed] = useState(false)
   const [canvasMounted, setCanvasMounted] = useState(false)
+  const [readyRollId, setReadyRollId] = useState<string>()
   const [webGLAvailable, setWebGLAvailable] = useState<boolean>()
   const revealedRollId = useRef<string | undefined>(undefined)
   const rollFitsCanvas = roll ? getVisualDiceCount(roll) <= MAX_3D_DICE : false
@@ -86,6 +88,12 @@ export function CharacterSheetRollPresentation({
   }, [animatedRoll, canAnimate, pending])
 
   useEffect(() => {
+    if (!animatedRoll || readyRollId === animatedRoll.id) return
+    const timeout = window.setTimeout(() => setRendererFailed(true), DICE_LOAD_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [animatedRoll, readyRollId])
+
+  useEffect(() => {
     if (roll && roll.id !== revealedRollId.current && !animatedRoll && !waitingForWebGL) {
       revealRoll(roll.id)
     }
@@ -93,12 +101,14 @@ export function CharacterSheetRollPresentation({
 
   const fallback = roll ? <StaticDiceResult roll={roll} /> : null
   if (waitingForWebGL) return null
+  if (rendererFailed) return fallback
   if (!canvasMounted && !animatedRoll) return fallback
 
   return (
     <DiceCanvasErrorBoundary fallback={fallback} onError={() => setRendererFailed(true)}>
       <Suspense fallback={null}>
         <DiceCanvas
+          onReady={setReadyRollId}
           onRollSettled={revealRoll}
           preferences={preferences}
           roll={animatedRoll}

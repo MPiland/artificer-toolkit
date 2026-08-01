@@ -12,12 +12,15 @@ import {
   trpcJson
 } from '../tests/sheetTestHarness'
 
+const diceCanvasMocks = vi.hoisted(() => ({ preloadDiceModels: vi.fn() }))
+
 vi.mock('../dice/dice.utils', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../dice/dice.utils')>()),
   supportsWebGL: () => true
 }))
 
 vi.mock('../dice/DiceCanvas', () => ({
+  preloadDiceModels: diceCanvasMocks.preloadDiceModels,
   default: ({ roll }: { roll?: { id: string } }) => (
     <div data-testid='dice-canvas'>{roll?.id ?? 'idle'}</div>
   )
@@ -44,6 +47,8 @@ function createRollRecord(id: string) {
 }
 
 describe('Character Sheet shell', () => {
+  beforeEach(() => diceCanvasMocks.preloadDiceModels.mockReset())
+
   it('rolls the displayed ability modifier and adds the authoritative result to history', async () => {
     const user = userEvent.setup()
     let submittedRoll: unknown
@@ -82,6 +87,7 @@ describe('Character Sheet shell', () => {
         })
       )
       expect(await screen.findByText('Rolled 14')).toBeInTheDocument()
+      expect(diceCanvasMocks.preloadDiceModels).not.toHaveBeenCalled()
 
       await user.click(screen.getByRole('button', { name: 'Open roll history' }))
       expect(await screen.findByText('Tess')).toBeInTheDocument()

@@ -31,10 +31,15 @@ export function useDiscardRollMutation() {
 
   return useMutation({
     mutationFn: (rollId: string) => api.rolls.discard(rollId),
-    onMutate: (rollId) =>
+    onMutate: (rollId) => {
+      const previousHistory = queryClient.getQueryData<RollRecordDto[]>(queryKeys.rolls.history())
       queryClient.setQueryData<RollRecordDto[]>(queryKeys.rolls.history(), (current) =>
         current?.filter((roll) => roll.id !== rollId)
-      ),
+      )
+      return previousHistory
+    },
+    onError: (_error, _rollId, previousHistory) =>
+      queryClient.setQueryData(queryKeys.rolls.history(), previousHistory),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.rolls.history() })
   })
 }

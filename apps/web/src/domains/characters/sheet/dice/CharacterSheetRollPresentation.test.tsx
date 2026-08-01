@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { CharacterSheetRollPresentation } from './CharacterSheetRollPresentation'
@@ -36,10 +36,12 @@ vi.mock('./dice.utils', async (importOriginal) => ({
 
 vi.mock('./DiceCanvas', () => ({
   default: ({
+    onReady,
     onRollSettled,
     roll,
     staticFallback
   }: {
+    onReady: (rollId: string) => void
     onRollSettled: (rollId: string) => void
     roll?: RollRecordDto
     staticFallback: ReactNode
@@ -54,6 +56,10 @@ vi.mock('./DiceCanvas', () => ({
     }, [])
 
     useEffect(() => setSettledRollId(undefined), [roll?.id])
+
+    useEffect(() => {
+      if (roll && !testState.suspendCanvas) onReady(roll.id)
+    }, [onReady, roll])
 
     if (testState.suspendCanvas) {
       suspendedCanvasRenders += 1
@@ -127,18 +133,24 @@ describe('CharacterSheetRollPresentation', () => {
     rollRevealed = vi.fn()
   })
 
-  it('does not reveal the authoritative result while the 3D canvas is loading', async () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('uses the static result when 3D loading exceeds its deadline', async () => {
+    vi.useFakeTimers()
     testState.suspendCanvas = true
+    const roll = createRoll('roll-loading')
 
     render(
-      <CharacterSheetRollPresentation
-        onRollRevealed={rollRevealed}
-        roll={createRoll('roll-loading')}
-      />
+      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />
     )
 
     await vi.waitFor(() => expect(suspendedCanvasRenders).toBeGreaterThan(0))
     expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000))
+
+    expect(screen.getByText('Rolled 14')).toBeInTheDocument()
+    expect(rollRevealed).toHaveBeenCalledWith(roll.id)
   })
 
   it('keeps one 3D canvas mounted between clearing and rerolling', async () => {
