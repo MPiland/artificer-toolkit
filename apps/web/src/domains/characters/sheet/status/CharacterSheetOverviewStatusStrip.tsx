@@ -3,7 +3,6 @@ import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
-import * as rowStyles from '../shared/rows.css'
 import { ConditionsEditor } from './ConditionsEditor'
 import { ExhaustionEditor } from './ExhaustionEditor'
 import * as statusEditorStyles from './statusEditor.css'
@@ -21,24 +20,9 @@ export function CharacterSheetOverviewStatusStrip({
   submitCommand: SubmitSheetCommand
 }) {
   const [conditionsOpen, setConditionsOpen] = useState(false)
-  const [summaryError, setSummaryError] = useState<string | null>(null)
   const conditions = sheet.overview.conditions.length
     ? sheet.overview.conditions.map((condition) => condition.label).join(', ')
     : 'Add Condition'
-
-  async function setExhaustionLevel(level: number) {
-    setSummaryError(null)
-    const succeeded = await submitCommand({
-      type: 'SET_EXHAUSTION',
-      level,
-      notes: sheet.overview.exhaustion.notes,
-      expectedVersion: sheet.meta.streamVersion
-    })
-
-    if (!succeeded) {
-      setSummaryError('Exhaustion could not be updated. The Sheet was refreshed; try again.')
-    }
-  }
 
   return (
     <section
@@ -55,52 +39,27 @@ export function CharacterSheetOverviewStatusStrip({
             {sheet.overview.exhaustion.label}
           </Text>
           <div
-            className={`${statusSummaryStyles.statusStripContent} ${statusSummaryStyles.statusStripContentStart}`}
+            className={`${statusSummaryStyles.statusStripContent} ${statusSummaryStyles.statusStripContentCenter}`}
           >
-            <div className={statusSummaryStyles.statusStripStack}>
-              <Text className={statusSummaryStyles.statusStripValue}>
-                Level {sheet.overview.exhaustion.level}
-              </Text>
-              <div className={statusSummaryStyles.exhaustionPips}>
-                {Array.from(
-                  {
-                    length:
-                      sheet.overview.exhaustion.maximumLevel -
-                      sheet.overview.exhaustion.minimumLevel
-                  },
-                  (_, index) => {
-                    const level = sheet.overview.exhaustion.minimumLevel + index + 1
-                    const active = level <= sheet.overview.exhaustion.level
-                    const nextLevel =
-                      active && level === sheet.overview.exhaustion.level
-                        ? sheet.overview.exhaustion.minimumLevel
-                        : level
-
-                    return (
-                      <button
-                        aria-label={
-                          nextLevel === sheet.overview.exhaustion.minimumLevel
-                            ? 'Clear exhaustion'
-                            : `Set exhaustion level ${level}`
-                        }
-                        aria-pressed={active}
-                        className={statusSummaryStyles.exhaustionPip}
-                        data-active={active}
-                        disabled={pending}
-                        key={level}
-                        type='button'
-                        onClick={() => void setExhaustionLevel(nextLevel)}
-                      >
-                        <span
-                          aria-hidden='true'
-                          className={statusSummaryStyles.exhaustionPipVisual}
-                          data-active={active}
-                        />
-                      </button>
-                    )
-                  }
-                )}
-              </div>
+            <div
+              className={`${statusSummaryStyles.statusStripStack} ${statusSummaryStyles.statusStripCenteredStack}`}
+            >
+              {conditionsOnly ? (
+                <Text className={statusSummaryStyles.statusStripValue}>
+                  Level {sheet.overview.exhaustion.level}
+                </Text>
+              ) : (
+                <button
+                  aria-expanded={conditionsOpen}
+                  aria-label={`Manage exhaustion, currently level ${sheet.overview.exhaustion.level}`}
+                  className={statusSummaryStyles.statusValueButton}
+                  disabled={pending}
+                  type='button'
+                  onClick={() => setConditionsOpen((current) => !current)}
+                >
+                  Level {sheet.overview.exhaustion.level}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -145,7 +104,9 @@ export function CharacterSheetOverviewStatusStrip({
                 type='button'
                 onClick={() => setConditionsOpen((current) => !current)}
               >
-                <Text truncate>{conditions}</Text>
+                <Text className={statusSummaryStyles.conditionAddText} truncate>
+                  {conditions}
+                </Text>
                 <CirclePlus aria-hidden='true' size={16} />
               </button>
             )}
@@ -164,11 +125,6 @@ export function CharacterSheetOverviewStatusStrip({
         >
           <ConditionsEditor pending={pending} sheet={sheet} submitCommand={submitCommand} />
           <ExhaustionEditor pending={pending} sheet={sheet} submitCommand={submitCommand} />
-          {summaryError ? (
-            <Text className={rowStyles.commandInlineError} role='alert'>
-              {summaryError}
-            </Text>
-          ) : null}
         </div>
       </Collapse>
     </section>

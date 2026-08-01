@@ -40,7 +40,7 @@ export function getCharacterBuilderDeferredResolutionFingerprint(
   return JSON.stringify({
     manualAbilities:
       abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-        ? abilities.state
+        ? abilities.state.assignments
         : null,
     hitpointLevels: character.intent.hitpoints.levels
   })

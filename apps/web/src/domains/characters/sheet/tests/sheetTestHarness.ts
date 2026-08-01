@@ -24,12 +24,12 @@ export function createSheet(): CharacterSheetResponseDto {
     },
     overview: {
       abilities: [
-        { ability: 'STRENGTH', score: 10, modifier: 0 },
-        { ability: 'DEXTERITY', score: 14, modifier: 2 },
-        { ability: 'CONSTITUTION', score: 12, modifier: 1 },
-        { ability: 'INTELLIGENCE', score: 8, modifier: -1 },
-        { ability: 'WISDOM', score: 13, modifier: 1 },
-        { ability: 'CHARISMA', score: 11, modifier: 0 }
+        { ability: 'STRENGTH', score: 10, modifier: 0, rollMode: 'NORMAL' },
+        { ability: 'DEXTERITY', score: 14, modifier: 2, rollMode: 'NORMAL' },
+        { ability: 'CONSTITUTION', score: 12, modifier: 1, rollMode: 'NORMAL' },
+        { ability: 'INTELLIGENCE', score: 8, modifier: -1, rollMode: 'NORMAL' },
+        { ability: 'WISDOM', score: 13, modifier: 1, rollMode: 'NORMAL' },
+        { ability: 'CHARISMA', score: 11, modifier: 0, rollMode: 'NORMAL' }
       ],
       facts: [
         { label: 'Speed', value: '30 feet' },
@@ -39,6 +39,7 @@ export function createSheet(): CharacterSheetResponseDto {
       ],
       armorClass: 12,
       initiative: 2,
+      initiativeRollMode: 'NORMAL',
       proficiencyBonus: 2,
       currentHitPoints: 10,
       maxHitPoints: 12,
@@ -56,12 +57,48 @@ export function createSheet(): CharacterSheetResponseDto {
       conditions: [],
       hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }],
       savingThrows: [
-        { ability: 'STRENGTH', label: 'Strength', total: 2, proficiency: 'FULL' },
-        { ability: 'DEXTERITY', label: 'Dexterity', total: 2, proficiency: 'NONE' },
-        { ability: 'CONSTITUTION', label: 'Constitution', total: 3, proficiency: 'FULL' },
-        { ability: 'INTELLIGENCE', label: 'Intelligence', total: -1, proficiency: 'NONE' },
-        { ability: 'WISDOM', label: 'Wisdom', total: 1, proficiency: 'NONE' },
-        { ability: 'CHARISMA', label: 'Charisma', total: 0, proficiency: 'NONE' }
+        {
+          ability: 'STRENGTH',
+          label: 'Strength',
+          total: 2,
+          rollMode: 'NORMAL',
+          proficiency: 'FULL'
+        },
+        {
+          ability: 'DEXTERITY',
+          label: 'Dexterity',
+          total: 2,
+          rollMode: 'NORMAL',
+          proficiency: 'NONE'
+        },
+        {
+          ability: 'CONSTITUTION',
+          label: 'Constitution',
+          total: 3,
+          rollMode: 'NORMAL',
+          proficiency: 'FULL'
+        },
+        {
+          ability: 'INTELLIGENCE',
+          label: 'Intelligence',
+          total: -1,
+          rollMode: 'NORMAL',
+          proficiency: 'NONE'
+        },
+        {
+          ability: 'WISDOM',
+          label: 'Wisdom',
+          total: 1,
+          rollMode: 'NORMAL',
+          proficiency: 'NONE'
+        },
+        {
+          ability: 'CHARISMA',
+          label: 'Charisma',
+          total: 0,
+          rollMode: 'NORMAL',
+          proficiency: 'NONE'
+        }
       ],
       skills: [
         {
@@ -70,6 +107,7 @@ export function createSheet(): CharacterSheetResponseDto {
           label: 'Athletics',
           ability: 'STRENGTH',
           total: 2,
+          rollMode: 'NORMAL',
           proficiency: 'FULL'
         },
         {
@@ -78,6 +116,7 @@ export function createSheet(): CharacterSheetResponseDto {
           label: 'Perception',
           ability: 'WISDOM',
           total: 1,
+          rollMode: 'NORMAL',
           proficiency: 'NONE'
         },
         {
@@ -86,6 +125,7 @@ export function createSheet(): CharacterSheetResponseDto {
           label: 'Investigation',
           ability: 'INTELLIGENCE',
           total: -1,
+          rollMode: 'NORMAL',
           proficiency: 'NONE'
         },
         {
@@ -94,6 +134,7 @@ export function createSheet(): CharacterSheetResponseDto {
           label: 'Insight',
           ability: 'WISDOM',
           total: 1,
+          rollMode: 'NORMAL',
           proficiency: 'NONE'
         },
         {
@@ -102,6 +143,7 @@ export function createSheet(): CharacterSheetResponseDto {
           label: 'Stealth',
           ability: 'DEXTERITY',
           total: 2,
+          rollMode: 'NORMAL',
           proficiency: 'NONE'
         }
       ]

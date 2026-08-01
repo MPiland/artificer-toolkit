@@ -39,6 +39,10 @@ export const queryKeys = {
     panel: (id: string, target: object) => ['characters', 'sheet', id, 'panel', target] as const
   },
 
+  rolls: {
+    history: () => ['rolls', 'history'] as const
+  },
+
   content: {
     referenceData: (systemId: string) => ['content', 'reference-data', systemId] as const,
     backgrounds: {

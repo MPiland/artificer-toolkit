@@ -42,6 +42,8 @@ export function getCharacterSheetPanel(
 ) {
   return queryOptions({
     queryKey: queryKeys.characters.panel(id, target),
-    queryFn: async () => await client.characters.panel(id, target)
+    queryFn: async () => await client.characters.panel(id, target),
+    retry: false,
+    staleTime: Infinity
   })
 }

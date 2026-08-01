@@ -39,6 +39,7 @@ import {
   saveCharacterBuilderDraftForUser,
   upsertCharacterBuilderForUser
 } from '../services/character/characterApplicationService.js'
+import { executeRollForUser } from '../services/rolls/rollService.js'
 
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 
@@ -1183,6 +1184,47 @@ async function proveHitPointRestAndResourceCommands(
     temp: 4
   })
 
+  const shortRestSelection = await previewCharacterRestForUser(
+    db,
+    fixture.characterId,
+    {
+      restKind: 'SHORT',
+      expectedVersion: current.meta.streamVersion,
+      selectedHitDice: [{ die: hitDie.die, count: 1 }],
+      resetMaximumHitPointModifier: true,
+      healingMode: 'AUTOMATIC',
+      manualHealingAccepted: false,
+      selectedCompanionInstanceIds: [],
+      requestRoll: false
+    },
+    fixture.userId
+  )
+  assert.ok(shortRestSelection.canonicalExpression, 'Short rest did not expose a roll expression.')
+  const hitDieRoll = await executeRollForUser(
+    db,
+    {
+      characterId: fixture.characterId,
+      expression: shortRestSelection.canonicalExpression,
+      source: { kind: 'HIT_DIE', label: 'Short rest hit dice' }
+    },
+    fixture.userId
+  )
+  const selectedPool = shortRestSelection.hitDice.find(({ die }) => die === hitDie.die)
+  assert.ok(selectedPool, 'Short rest did not expose the selected hit-die pool.')
+  const rolledTerm = hitDieRoll.evidence.terms.find(({ die }) => die === hitDie.die)
+  assert.ok(rolledTerm, 'Short-rest roll did not return the selected hit die.')
+  const rollEvidence = {
+    expression: hitDieRoll.normalizedExpression,
+    terms: [
+      {
+        die: hitDie.die,
+        count: 1,
+        modifierPerDie: selectedPool.constitutionModifier,
+        rolls: rolledTerm.rolls
+      }
+    ],
+    total: hitDieRoll.evidence.total
+  }
   const shortRestPreview = await previewCharacterRestForUser(
     db,
     fixture.characterId,
@@ -1194,11 +1236,12 @@ async function proveHitPointRestAndResourceCommands(
       healingMode: 'AUTOMATIC',
       manualHealingAccepted: false,
       selectedCompanionInstanceIds: [],
-      requestRoll: true
+      rollId: hitDieRoll.id,
+      rollEvidence,
+      requestRoll: false
     },
     fixture.userId
   )
-  assert.ok(shortRestPreview.rollEvidence, 'Short-rest preview did not return exact roll evidence.')
   assert.equal(shortRestPreview.canApply, true)
   const shortRestCommandId = randomUUID()
   const shortRestResult = await dispatchCommandForUser(
@@ -1215,7 +1258,8 @@ async function proveHitPointRestAndResourceCommands(
       healingMode: 'AUTOMATIC',
       manualHealingAccepted: false,
       selectedCompanionInstanceIds: [],
-      rollEvidence: shortRestPreview.rollEvidence
+      rollId: hitDieRoll.id,
+      rollEvidence
     },
     fixture.userId
   )

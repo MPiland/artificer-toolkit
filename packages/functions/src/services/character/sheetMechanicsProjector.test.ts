@@ -75,6 +75,32 @@ const engine: EngineCharacterOutput = {
     spellSaveDC: numericCalculation(15),
     spellAttackBonus: numericCalculation(7)
   },
+  rollModes: {
+    initiative: 'NORMAL',
+    abilityChecks: {
+      CHARISMA: 'NORMAL',
+      CONSTITUTION: 'NORMAL',
+      DEXTERITY: 'NORMAL',
+      INTELLIGENCE: 'NORMAL',
+      STRENGTH: 'NORMAL',
+      WISDOM: 'NORMAL'
+    },
+    savingThrows: {
+      CHARISMA: 'NORMAL',
+      CONSTITUTION: 'NORMAL',
+      DEXTERITY: 'NORMAL',
+      INTELLIGENCE: 'NORMAL',
+      STRENGTH: 'NORMAL',
+      WISDOM: 'NORMAL'
+    },
+    skillChecks: {},
+    attacks: {
+      MELEE: 'NORMAL',
+      RANGED: 'NORMAL',
+      SPELL: 'ADVANTAGE',
+      UNARMED: 'NORMAL'
+    }
+  },
   spellSlots: { maxByLevel: {}, fusionStrategy: 'SINGLE_CLASS' },
   resources: [],
   spellMechanics: [],
@@ -133,6 +159,7 @@ describe('projectCharacterSheetMechanics', () => {
       activation: { kind: 'ACTION', amount: 1 },
       rangeLabel: '120 ft',
       attackBonus: 7,
+      attackRollMode: 'ADVANTAGE',
       outcomes: [
         {
           kind: 'DAMAGE',

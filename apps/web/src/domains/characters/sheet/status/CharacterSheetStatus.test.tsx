@@ -21,7 +21,7 @@ describe('Character Sheet status', () => {
     )
 
     expect(screen.getByRole('button', { name: /manage (?:hp|hit points)/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /clear exhaustion/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /manage exhaustion/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /add condition/i })).toBeDisabled()
   })
 
@@ -82,7 +82,7 @@ describe('Character Sheet status', () => {
     expect(screen.getByRole('button', { name: /add condition/i })).toBeDisabled()
   })
 
-  it('sets exhaustion through the compact status strip', async () => {
+  it('opens exhaustion controls through the compact status strip', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
 
@@ -94,12 +94,13 @@ describe('Character Sheet status', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /set exhaustion level 2/i }))
+    await user.click(screen.getByRole('button', { name: /manage exhaustion/i }))
+    await user.click(await screen.findByRole('button', { name: /increase exhaustion level/i }))
 
     expect(submitCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'SET_EXHAUSTION',
-        level: 2,
+        level: 1,
         expectedVersion: 4
       })
     )

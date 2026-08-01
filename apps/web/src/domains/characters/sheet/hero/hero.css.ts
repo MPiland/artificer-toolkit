@@ -11,7 +11,7 @@ export const hero = style({
       gridTemplateColumns: 'minmax(0, 1fr) auto',
       maxWidth: '100%',
       minWidth: 0,
-      padding: '10px 14px',
+      padding: '8px 12px',
       '@media': {
         '(max-width: 1000px)': {
           borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
@@ -31,7 +31,7 @@ export const hero = style({
 export const heroIdentity = style({
   '@layer': {
     [app]: {
-      alignItems: 'center',
+      alignItems: 'start',
       display: 'grid',
       gap: '12px',
       gridTemplateColumns: '64px minmax(0, 1fr)',
@@ -188,6 +188,18 @@ export const heroIconAction = style({
           alignSelf: 'center'
         }
       }
+    }
+  }
+})
+
+export const heroActions = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      alignSelf: 'start',
+      display: 'flex',
+      flexDirection: 'row',
+      gap: '6px'
     }
   }
 })

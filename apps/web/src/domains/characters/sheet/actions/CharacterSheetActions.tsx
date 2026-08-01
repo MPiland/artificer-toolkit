@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Text } from '@mantine/core'
+import { Text } from '@mantine/core'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetResourceStepper } from '../shared/CharacterSheetResourceStepper'
 import * as actionSummaryStyles from './actionSummary.css'
@@ -18,6 +18,8 @@ import type {
   OpenSheetPanel,
   SubmitSheetCommand
 } from '../core/CharacterSheet.types'
+import { CharacterSheetRollText } from '../dice/CharacterSheetRollValue'
+import { getMechanicRollTargets } from '../dice/dice.utils'
 
 export function CharacterSheetActions({
   hideTitle,
@@ -113,6 +115,7 @@ export function CharacterSheetActions({
                       : (formatPlayableActionSummary(action) ??
                         action.playFacts?.effect ??
                         undefined)
+                  const rollTargets = getMechanicRollTargets(action.mechanics, action.label)
 
                   if (!isTabularAttack)
                     return (
@@ -164,7 +167,7 @@ export function CharacterSheetActions({
                         </div>
                         {effect ? (
                           <Text className={actionSummaryStyles.actionDescriptionText}>
-                            {effect}
+                            <CharacterSheetRollText targets={rollTargets} text={effect} />
                           </Text>
                         ) : null}
                         {resource && failedResourceId === resource.id ? (
@@ -217,13 +220,28 @@ export function CharacterSheetActions({
                         aria-label={`Hit or DC ${action.playFacts?.hitOrDc ?? 'not applicable'}`}
                         className={actionTableStyles.actionDataCell}
                       >
-                        <strong>{action.playFacts?.hitOrDc ?? '—'}</strong>
+                        <strong>
+                          <CharacterSheetRollText
+                            targets={rollTargets.filter(
+                              (target) => target.source.kind === 'ATTACK'
+                            )}
+                            text={action.playFacts?.hitOrDc ?? '—'}
+                          />
+                        </strong>
                       </div>
                       <div
                         aria-label={`Damage ${action.playFacts?.effect ?? 'not applicable'}`}
                         className={actionTableStyles.actionDataCell}
                       >
-                        <strong>{action.playFacts?.effect ?? '—'}</strong>
+                        <strong>
+                          <CharacterSheetRollText
+                            targets={rollTargets.filter(
+                              (target) =>
+                                target.source.kind === 'DAMAGE' || target.source.kind === 'HEALING'
+                            )}
+                            text={action.playFacts?.effect ?? '—'}
+                          />
+                        </strong>
                       </div>
                     </div>
                   )

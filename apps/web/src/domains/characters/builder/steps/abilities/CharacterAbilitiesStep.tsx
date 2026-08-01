@@ -1,12 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
+import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/rolls'
+import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { withForm } from '#forms/app-form/AppForm'
+import { useExecuteDiceConfigurationMutation } from '#app/data/rolls'
 import { AppSelect } from '#ui/primitives/Select'
 import {
+  applyManualAbilityRoll,
   cacheActiveAbilityIntent,
+  DEFAULT_ABILITY_ROLL_CONFIGURATION,
   getAbilityDraftSlots,
   getAbilityGenerationMethod,
   setAbilityDraftSlots
@@ -17,12 +22,33 @@ import * as sharedStyles from '../../shared/builderShared.css'
 import { syncHitpointLevels } from './characterAbilities'
 import { CharacterAbilityAssignments } from './CharacterAbilityAssignments'
 import { CharacterHitpointProgression } from './CharacterHitpointProgression'
+import { CharacterSheetRollPresentation } from '../../../sheet/dice/CharacterSheetRollPresentation'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
+
+function preloadAbilityDice(configuration: string) {
+  try {
+    parseStandaloneDiceConfiguration(configuration)
+  } catch {
+    return
+  }
+
+  void import('../../../sheet/dice/DiceCanvas')
+    .then(({ preloadDiceModels }) => preloadDiceModels(configuration))
+    .catch(() => undefined)
+}
 
 export const CharacterAbilitiesStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterAbilities({ form, payload, readOnly }) {
+    const executeConfiguration = useExecuteDiceConfigurationMutation()
+    const [presentedRoll, setPresentedRoll] = useState<RollResultDto>()
+    const [activeRollSlot, setActiveRollSlot] = useState<number>()
+    const abilityIntent = form.state.values.intent.abilities
+    const abilityRollConfiguration =
+      abilityIntent.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+        ? (abilityIntent.state.configuration ?? DEFAULT_ABILITY_ROLL_CONFIGURATION)
+        : DEFAULT_ABILITY_ROLL_CONFIGURATION
     const abilityOptions = selectOptions(payload.references.abilities)
     const abilityMethodOptions = selectOptions(payload.references.abilityGenerationMethods)
     const hitpointMethodOptions = selectOptions(payload.references.hitpointCalculationMethods)
@@ -45,8 +71,24 @@ export const CharacterAbilitiesStep = withForm({
     useEffect(() => {
       if (JSON.stringify(form.state.values.intent.hitpoints.levels) === hitpointRowsFingerprint)
         return
-      form.setFieldValue('intent.hitpoints.levels', hitpointRows)
+      form.setFieldValue('intent.hitpoints.levels', hitpointRows, { dontUpdateMeta: true })
     }, [form, hitpointRows, hitpointRowsFingerprint])
+
+    useEffect(() => {
+      if (abilityIntent.method !== CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) return
+      preloadAbilityDice(abilityRollConfiguration)
+    }, [abilityIntent.method, abilityRollConfiguration])
+
+    useEffect(() => {
+      if (!presentedRoll) return
+
+      const dismissRoll = () => {
+        setPresentedRoll(undefined)
+        setActiveRollSlot(undefined)
+      }
+      document.addEventListener('click', dismissRoll, { capture: true })
+      return () => document.removeEventListener('click', dismissRoll, { capture: true })
+    }, [presentedRoll])
 
     return (
       <div className={sharedStyles.section}>
@@ -61,6 +103,18 @@ export const CharacterAbilitiesStep = withForm({
               form.state.values.builderIntent?.abilities,
               abilityField.state.value
             )
+            const configuration =
+              abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+                ? (abilityField.state.value.state.configuration ??
+                  DEFAULT_ABILITY_ROLL_CONFIGURATION)
+                : DEFAULT_ABILITY_ROLL_CONFIGURATION
+            let configurationError: string | undefined
+            try {
+              parseStandaloneDiceConfiguration(configuration)
+            } catch (error) {
+              configurationError =
+                error instanceof Error ? error.message : 'Invalid dice configuration.'
+            }
             const pointBuySpent =
               abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
                 ? slots.reduce((total, slot) => total + getPointBuyCost(slot.option), 0)
@@ -85,10 +139,14 @@ export const CharacterAbilitiesStep = withForm({
                       label='Ability Method'
                       data={abilityMethodOptions}
                       value={abilityMethod}
+                      searchable={false}
                       disabled={readOnly}
                       onChange={(value) => {
                         const method = getAbilityGenerationMethod(value ?? '')
                         if (!method) return
+                        setPresentedRoll(undefined)
+                        setActiveRollSlot(undefined)
+                        executeConfiguration.reset()
                         const cache = cacheActiveAbilityIntent(
                           form.state.values.builderIntent?.abilities,
                           abilityField.state.value
@@ -99,6 +157,14 @@ export const CharacterAbilitiesStep = withForm({
                           method,
                           getAbilityDraftSlots(cache, abilityField.state.value, method)
                         )
+                        if (
+                          next.abilities.method ===
+                          CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+                        ) {
+                          preloadAbilityDice(
+                            next.abilities.state.configuration ?? DEFAULT_ABILITY_ROLL_CONFIGURATION
+                          )
+                        }
 
                         abilityField.handleChange(next.abilities)
                         form.setFieldValue('builderIntent.abilities', next.cache)
@@ -113,6 +179,7 @@ export const CharacterAbilitiesStep = withForm({
                           data={hitpointMethodOptions}
                           value={field.state.value.method}
                           required
+                          searchable={false}
                           disabled={readOnly}
                           onChange={(value) => {
                             if (!value) return
@@ -144,12 +211,80 @@ export const CharacterAbilitiesStep = withForm({
                   abilityMethod={abilityMethod}
                   abilityOptions={abilityOptions}
                   assignmentOptions={assignmentOptions}
+                  configuration={configuration}
+                  configurationError={
+                    configurationError ??
+                    (executeConfiguration.error
+                      ? 'Unable to roll dice. Please try again.'
+                      : undefined)
+                  }
                   getPointBuyCost={getPointBuyCost}
+                  isRolling={executeConfiguration.isPending}
                   pointBuySpent={pointBuySpent}
                   pointBuyTotalPoints={pointBuyTotalPoints}
                   readOnly={readOnly}
+                  rollingSlotIndex={activeRollSlot}
                   slots={slots}
                   onChange={updateSlots}
+                  onConfigurationChange={(nextConfiguration) => {
+                    if (
+                      abilityField.state.value.method !==
+                      CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+                    )
+                      return
+                    executeConfiguration.reset()
+                    preloadAbilityDice(nextConfiguration)
+                    const abilities = {
+                      ...abilityField.state.value,
+                      state: {
+                        ...abilityField.state.value.state,
+                        configuration: nextConfiguration
+                      }
+                    }
+                    abilityField.handleChange(abilities)
+                    form.setFieldValue(
+                      'builderIntent.abilities',
+                      cacheActiveAbilityIntent(
+                        form.state.values.builderIntent?.abilities,
+                        abilities
+                      )
+                    )
+                  }}
+                  onRoll={(slotIndex) => {
+                    if (configurationError) return
+                    setPresentedRoll(undefined)
+                    setActiveRollSlot(slotIndex)
+                    preloadAbilityDice(configuration)
+                    void executeConfiguration
+                      .mutateAsync({ configuration })
+                      .then(setPresentedRoll)
+                      .catch(() => setActiveRollSlot(undefined))
+                  }}
+                />
+                <CharacterSheetRollPresentation
+                  pending={executeConfiguration.isPending}
+                  roll={presentedRoll}
+                  onRollRevealed={(rollId) => {
+                    if (
+                      !presentedRoll ||
+                      presentedRoll.id !== rollId ||
+                      activeRollSlot === undefined ||
+                      abilityField.state.value.method !==
+                        CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+                    )
+                      return
+
+                    const next = applyManualAbilityRoll(
+                      form.state.values.builderIntent?.abilities,
+                      abilityField.state.value,
+                      slots,
+                      activeRollSlot,
+                      presentedRoll
+                    )
+                    abilityField.handleChange(next.abilities)
+                    form.setFieldValue('builderIntent.abilities', next.cache)
+                    setActiveRollSlot(undefined)
+                  }}
                 />
               </>
             )

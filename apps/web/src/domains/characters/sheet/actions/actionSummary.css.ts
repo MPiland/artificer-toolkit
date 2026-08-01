@@ -281,3 +281,21 @@ export const actionDescriptionText = style({
     }
   }
 })
+
+globalStyle(`${actionDescriptionText} > div`, {
+  '@layer': {
+    [app]: {
+      fontSize: 'inherit',
+      lineHeight: 'inherit',
+      maxWidth: 'inherit'
+    }
+  }
+})
+
+globalStyle(`${actionDescriptionText} p`, {
+  '@layer': {
+    [app]: {
+      margin: 0
+    }
+  }
+})

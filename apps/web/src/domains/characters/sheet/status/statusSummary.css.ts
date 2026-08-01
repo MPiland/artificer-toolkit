@@ -157,10 +157,13 @@ export const statusStrip = style({
       borderRadius: foundationVars.radius.lg,
       display: 'grid',
       gap: 0,
-      gridTemplateColumns: 'minmax(112px, 0.9fr) minmax(96px, 0.72fr) minmax(164px, 1.2fr)',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
       minWidth: 0,
       overflow: 'hidden',
       '@media': {
+        '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)': {
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
+        },
         '(max-width: 620px)': {
           gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
         }
@@ -172,7 +175,7 @@ export const statusStrip = style({
 export const conditionsOnlyStrip = style({
   '@layer': {
     [app]: {
-      gridTemplateColumns: 'minmax(120px, 0.8fr) minmax(0, 1.2fr)'
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
     }
   }
 })
@@ -183,9 +186,9 @@ export const statusStripItem = style({
       borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '92px',
+      minHeight: '80px',
       minWidth: 0,
-      padding: '10px 12px 9px',
+      padding: '8px 10px',
       selectors: {
         '&:last-child': {
           borderInlineEnd: 0
@@ -269,57 +272,31 @@ export const statusStripValue = style({
   }
 })
 
-export const exhaustionPips = style({
+export const statusValueButton = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      gap: 0
-    }
-  }
-})
-
-export const exhaustionPip = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
       appearance: 'none',
       background: 'transparent',
       border: 0,
+      borderRadius: foundationVars.radius.sm,
+      color: foundationVars.color.text.primary,
       cursor: 'pointer',
-      display: 'inline-flex',
-      height: '24px',
-      justifyContent: 'center',
-      padding: 0,
-      width: '24px',
+      font: 'inherit',
+      fontSize: '0.84rem',
+      fontWeight: 750,
+      lineHeight: 1.1,
+      padding: '5px 7px',
       selectors: {
+        '&:hover, &:active': {
+          background: foundationVars.color.surface.recessed
+        },
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus,
+          outline: 0
+        },
         '&:disabled': {
           cursor: 'not-allowed',
           opacity: 0.55
-        }
-      },
-      '@media': {
-        '(pointer: coarse)': {
-          height: '44px',
-          width: '44px'
-        }
-      }
-    }
-  }
-})
-
-export const exhaustionPipVisual = style({
-  '@layer': {
-    [app]: {
-      background: 'transparent',
-      border: `1px solid ${foundationVars.color.border.strong}`,
-      borderRadius: foundationVars.radius.pill,
-      height: '10px',
-      pointerEvents: 'none',
-      width: '10px',
-      selectors: {
-        '&[data-active="true"]': {
-          background: foundationVars.color.status.warning,
-          borderColor: foundationVars.color.status.warning
         }
       }
     }
@@ -386,11 +363,33 @@ export const conditionAddShell = style({
       textAlign: 'left',
       width: '100%',
       selectors: {
+        '&:hover, &:active': {
+          background: foundationVars.color.surface.recessed
+        },
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus,
+          outline: 0
+        },
         '&:disabled': {
           cursor: 'not-allowed',
           opacity: 0.55
         }
+      },
+      '@media': {
+        '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)': {
+          minHeight: '30px',
+          padding: '4px 7px'
+        }
       }
+    }
+  }
+})
+
+export const conditionAddText = style({
+  '@layer': {
+    [app]: {
+      fontSize: '0.84rem',
+      lineHeight: 1.1
     }
   }
 })

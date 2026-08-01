@@ -7,9 +7,9 @@ export const CHARACTER_SHEET_DESKTOP_TABS: ReadonlyArray<{
   { id: 'overview', label: 'Overview' },
   { id: 'actions', label: 'Actions' },
   { id: 'spells', label: 'Spells' },
-  { id: 'extras', label: 'Extras' },
   { id: 'inventory', label: 'Inventory' },
   { id: 'reference', label: 'Features & Traits' },
+  { id: 'extras', label: 'Extras' },
   { id: 'notes', label: 'Notes' }
 ]
 
@@ -20,22 +20,13 @@ export const CHARACTER_SHEET_MOBILE_PAGES: ReadonlyArray<{
   { id: 'overview', label: 'Overview' },
   { id: 'actions', label: 'Actions' },
   { id: 'spells', label: 'Spells' },
+  { id: 'equipment', label: 'Inventory' },
+  { id: 'features', label: 'Features & Traits' },
   { id: 'extras', label: 'Extras' },
-  { id: 'equipment', label: 'Equipment' },
-  { id: 'features', label: 'Features' },
   { id: 'notes', label: 'Notes' },
   { id: 'skills', label: 'Skills' },
   { id: 'proficiencies', label: 'Proficiencies' }
 ]
-
-export const CHARACTER_SHEET_TABLET_TABS = CHARACTER_SHEET_MOBILE_PAGES.filter(
-  (page) => page.id !== 'skills' && page.id !== 'proficiencies'
-)
-
-export function getCharacterSheetPageIndex(pageId: CharacterSheetMobilePageId) {
-  const index = CHARACTER_SHEET_MOBILE_PAGES.findIndex((page) => page.id === pageId)
-  return index >= 0 ? index : 0
-}
 
 export function getMobilePageForTab(tabId: CharacterSheetTabId): CharacterSheetMobilePageId {
   if (tabId === 'actions') return tabId

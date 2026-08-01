@@ -29,6 +29,26 @@ beforeAll(() => {
 })
 
 describe('CharacterBuilderRenderer', () => {
+  it('keeps a pristine form clean when navigating between steps', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES'
+        }
+      }
+    })
+
+    expect(screen.getByRole('status', { name: 'builder dirty state' })).toHaveTextContent('false')
+
+    await user.click(screen.getByRole('link', { name: 'Race' }))
+
+    expect(screen.getByRole('status', { name: 'builder dirty state' })).toHaveTextContent('false')
+  })
+
   it('renders the recommended builder step and navigates through steps', async () => {
     const user = userEvent.setup()
 
@@ -1447,6 +1467,8 @@ describe('CharacterBuilderRenderer', () => {
 
     expect(screen.getAllByRole('textbox', { name: /^score/i })).toHaveLength(6)
     expect(screen.getAllByRole('combobox', { name: /ability/i })).toHaveLength(7)
+    expect(screen.getByRole('textbox', { name: /roll configuration/i })).toHaveValue('4d6dl1r1')
+    expect(screen.getAllByRole('button', { name: /^roll$/i })).toHaveLength(6)
   })
 
   it('updates ancestry choice UI from the live form value before resolver refresh', async () => {
@@ -1797,6 +1819,13 @@ function CharacterBuilderTestHarness({
         resolveDebounceMs={resolveDebounceMs}
         onResolve={onResolve}
       />
+      <form.Subscribe selector={(state) => state.isDirty}>
+        {(isDirty) => (
+          <output aria-label='builder dirty state' role='status'>
+            {String(isDirty)}
+          </output>
+        )}
+      </form.Subscribe>
       <CharacterBuilderStateProbe />
     </form.AppForm>
   )

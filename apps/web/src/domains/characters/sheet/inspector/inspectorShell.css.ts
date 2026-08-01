@@ -2,12 +2,24 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
+export const drawerContent = style({
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(max-width: 760px)': {
+          maxHeight: '92dvh'
+        }
+      }
+    }
+  }
+})
+
 export const inspector = style({
   '@layer': {
     [app]: {
+      alignContent: 'start',
       color: foundationVars.color.text.primary,
-      display: 'grid',
-      minHeight: '100%'
+      display: 'grid'
     }
   }
 })
@@ -17,8 +29,8 @@ export const section = style({
     [app]: {
       borderTop: `1px solid ${foundationVars.color.border.subtle}`,
       display: 'grid',
-      gap: '12px',
-      padding: '20px',
+      gap: '8px',
+      padding: '14px 16px',
       selectors: {
         '&:first-child': {
           borderTop: 0
@@ -121,7 +133,7 @@ export const summaryValue = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '2rem',
+      fontSize: '1.65rem',
       fontWeight: 780,
       letterSpacing: '-0.025em',
       lineHeight: 1
@@ -225,7 +237,7 @@ export const calculationRow = style({
       display: 'grid',
       gap: '12px',
       gridTemplateColumns: 'minmax(0, 1fr) auto',
-      paddingBlock: '9px',
+      paddingBlock: '6px',
       selectors: {
         '&:last-child': {
           borderBottom: 0

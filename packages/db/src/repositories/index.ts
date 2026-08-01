@@ -1,5 +1,6 @@
 export * from './contracts.js'
 export * from './accountProfile.js'
+export * from './rollHistory.js'
 export * from '../domains/effects/repositories/index.js'
 export * from '../domains/features/repositories/index.js'
 export * from '../domains/grants/repositories/index.js'

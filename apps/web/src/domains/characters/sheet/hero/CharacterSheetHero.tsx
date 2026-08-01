@@ -1,6 +1,6 @@
 import { ActionIcon, Badge, Text, Title, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings } from 'lucide-react'
+import { MessageCircle, Settings } from 'lucide-react'
 import IShield from '#assets/icons/IShield'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
@@ -9,10 +9,12 @@ import * as heroStyles from './hero.css'
 export function CharacterSheetHero({
   characterPublicId,
   hasDraft,
+  onOpenRollHistory,
   sheet
 }: {
   characterPublicId: string
   hasDraft: boolean
+  onOpenRollHistory?: () => void
   sheet: CharacterSheet
 }) {
   const navigate = useNavigate()
@@ -40,22 +42,36 @@ export function CharacterSheetHero({
           </Text>
         </div>
       </div>
-      <Tooltip label={hasDraft ? 'Resume builder draft' : 'Edit character'}>
-        <ActionIcon
-          aria-label={hasDraft ? 'Resume builder draft' : 'Edit character'}
-          className={heroStyles.heroIconAction}
-          size='lg'
-          variant='default'
-          onClick={() =>
-            navigate({
-              to: '/characters/$characterPublicId/$characterSlug/edit',
-              params: characterParams
-            })
-          }
-        >
-          <Settings aria-hidden='true' size={18} />
-        </ActionIcon>
-      </Tooltip>
+      <div className={heroStyles.heroActions}>
+        <Tooltip label='Roll history'>
+          <ActionIcon
+            aria-label='Open roll history'
+            className={heroStyles.heroIconAction}
+            disabled={!onOpenRollHistory}
+            size='lg'
+            variant='default'
+            onClick={onOpenRollHistory}
+          >
+            <MessageCircle aria-hidden='true' size={18} />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label={hasDraft ? 'Resume builder draft' : 'Edit character'}>
+          <ActionIcon
+            aria-label={hasDraft ? 'Resume builder draft' : 'Edit character'}
+            className={heroStyles.heroIconAction}
+            size='lg'
+            variant='default'
+            onClick={() =>
+              navigate({
+                to: '/characters/$characterPublicId/$characterSlug/edit',
+                params: characterParams
+              })
+            }
+          >
+            <Settings aria-hidden='true' size={18} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
     </header>
   )
 }

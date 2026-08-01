@@ -6,6 +6,8 @@ import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 import { getAbilityShortLabel } from './characterSheetOverview.utils'
+import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
+import { withRollModifier } from '../dice/dice.utils'
 
 const ABILITY_ICONS = {
   STRENGTH: Dumbbell,
@@ -35,26 +37,46 @@ export function CharacterSheetOverviewAbilities({
   return (
     <section className={overviewStyles.abilityStrip} aria-label='Ability scores'>
       {abilities.map((ability) => (
-        <button
-          aria-label={`Inspect ${ABILITY_LABELS[ability.ability]} ability`}
-          className={clsx(overviewStyles.abilityCard, overviewStyles.sheetInspectorTrigger)}
-          disabled={!openPanel}
-          key={ability.ability}
-          type='button'
-          onClick={() => openPanel?.({ kind: 'ABILITY', ability: ability.ability })}
-        >
+        <div className={overviewStyles.abilityCard} key={ability.ability}>
           {(() => {
             const Icon = ABILITY_ICONS[ability.ability as keyof typeof ABILITY_ICONS]
             return Icon ? (
               <Icon className={overviewStyles.abilityIcon} aria-hidden='true' size={16} />
             ) : null
           })()}
-          <Text className={overviewStyles.abilityLabel}>
+          <button
+            aria-label={`Inspect ${ABILITY_LABELS[ability.ability]} ability`}
+            className={clsx(overviewStyles.abilityLabel, overviewStyles.abilityInspectorTrigger)}
+            disabled={!openPanel}
+            type='button'
+            onClick={() => openPanel?.({ kind: 'ABILITY', ability: ability.ability })}
+          >
             {getAbilityShortLabel(ability.ability)}
-          </Text>
-          <Text className={overviewStyles.abilityModifier}>{formatSigned(ability.modifier)}</Text>
-          <Text className={overviewStyles.abilityScore}>Score {ability.score}</Text>
-        </button>
+          </button>
+          <div
+            aria-label={`Score ${ability.score}, modifier ${formatSigned(ability.modifier)}`}
+            className={overviewStyles.abilityValues}
+          >
+            <Text className={overviewStyles.abilityScore} component='span'>
+              {ability.score}
+            </Text>
+            <span aria-hidden='true'>/</span>
+            <Text className={overviewStyles.abilityModifier} component='span'>
+              <CharacterSheetRollValue
+                request={{
+                  expression: withRollModifier('1d20', ability.modifier),
+                  rollMode: ability.rollMode,
+                  source: {
+                    kind: 'ABILITY_CHECK',
+                    label: `${ABILITY_LABELS[ability.ability]} check`
+                  }
+                }}
+              >
+                {formatSigned(ability.modifier)}
+              </CharacterSheetRollValue>
+            </Text>
+          </div>
+        </div>
       ))}
     </section>
   )

@@ -25,6 +25,10 @@ const abilityParamDtoSchema = z.object({
   ability: abilityCodeSchema
 })
 
+const abilityCheckParamDtoSchema = z.object({
+  ability: abilityCodeSchema.optional()
+})
+
 const savingThrowParamDtoSchema = z.object({
   ability: abilityCodeSchema,
   conditionTypeId: z.string().optional()
@@ -217,6 +221,8 @@ const modifierGrantVariants = [
   ),
   buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema.optional()),
   buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema.optional()),
+  buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', abilityCheckParamDtoSchema),
+  buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', abilityCheckParamDtoSchema),
   buildModifierGrantVariant(
     'SAVE_DC',
     'BONUS',
@@ -283,6 +289,8 @@ const modifierGrantVariants = [
     skillParamDtoSchema,
     modifierScalarValueDtoSchema
   ),
+  buildModifierGrantVariant('SKILL_MODIFIER', 'ADVANTAGE', skillParamDtoSchema),
+  buildModifierGrantVariant('SKILL_MODIFIER', 'DISADVANTAGE', skillParamDtoSchema),
   buildModifierGrantVariant(
     'SKILL_MODIFIER',
     'PENALTY',

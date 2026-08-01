@@ -1275,6 +1275,34 @@ describe('schema package parsing', () => {
     expect(parsed.modifierKind).toBe('DISADVANTAGE')
   })
 
+  it('parses ability-check and skill-check roll modes without payloads', () => {
+    expect(
+      modifierGrantDtoSchema.parse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'global-check-advantage',
+        order: 1,
+        selectionKind: 'GRANTED',
+        valueDomainCode: 'ABILITY_CHECK',
+        domain: {},
+        modifierKind: 'ADVANTAGE',
+        scope: 'GLOBAL'
+      }).valueDomainCode
+    ).toBe('ABILITY_CHECK')
+
+    expect(
+      modifierGrantDtoSchema.parse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'athletics-disadvantage',
+        order: 1,
+        selectionKind: 'GRANTED',
+        valueDomainCode: 'SKILL_MODIFIER',
+        domain: { skillId: 'skill-athletics' },
+        modifierKind: 'DISADVANTAGE',
+        scope: 'GLOBAL'
+      }).modifierKind
+    ).toBe('DISADVANTAGE')
+  })
+
   it('parses explicit ALL grant authoring mode', () => {
     const parsed = featGrantDtoSchema.parse({
       grantKind: 'FEAT_GRANT',

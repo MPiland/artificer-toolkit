@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 import { BookOpen, LogOut, Monitor, Moon, PlusCircle, Search, Settings, Sun } from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
@@ -21,6 +21,7 @@ import { isNavItemActive } from './navigation'
 import { Header } from './Header/Header'
 import { MobileAppFooter } from './MobileAppFooter/MobileAppFooter'
 import { SentryFeedbackMenuItem } from './SentryFeedbackMenuItem'
+import { ShellReturnHrefContext } from './returnLocation'
 import type {
   MobileAppFooterItem,
   MobileAppFooterMenuItem
@@ -30,6 +31,7 @@ import * as styles from './shell.css'
 export interface ShellProps {
   navigation: AppShellNavGroup[]
   currentPath: string
+  currentHref?: string
   isAuthenticated?: boolean
   publicSignUpEnabled?: boolean
   userEmail?: string | null
@@ -53,6 +55,7 @@ type NavigationMenuItem = {
 export function Shell({
   navigation,
   currentPath,
+  currentHref = currentPath,
   isAuthenticated,
   publicSignUpEnabled = false,
   userEmail,
@@ -83,11 +86,14 @@ export function Shell({
     [openSearch, createItems, libraryItems]
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
+  const authoring = isAuthoringPath(currentPath)
+  const returnHrefRef = useRef<string | undefined>(authoring ? undefined : currentHref)
+  if (!authoring) returnHrefRef.current = currentHref
   const usesWideContent = isCharacterSheetPath(currentPath)
   const appNavigationActions = hasLibraryNavigation ? (
     <AppNavigationMenus createItems={createItems} libraryItems={libraryItems} />
   ) : null
-  const content = isAuthoringPath(currentPath) ? (
+  const content = authoring ? (
     <main className={styles.authoringMain} data-testid='app-shell-main'>
       {children}
     </main>
@@ -103,28 +109,30 @@ export function Shell({
   )
 
   return (
-    <ShellHeaderSupplementContext value={headerSupplementContext}>
-      <div className={styles.canvas} data-testid='app-shell'>
-        <Header
-          accountControl={
-            isSignedIn ? (
-              <UserMenu />
-            ) : (
-              <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />
-            )
-          }
-          accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
-          actions={headerSupplement?.actions}
-          navigationActions={appNavigationActions}
-          supplement={headerSupplement?.content}
-        />
-        {content}
-        {hasMobileFooter ? <MobileAppFooter items={mobileFooterItems} /> : null}
-        {hasMobileFooter ? (
-          <MobileSearchDrawer opened={searchOpened} onClose={closeSearch} />
-        ) : null}
-      </div>
-    </ShellHeaderSupplementContext>
+    <ShellReturnHrefContext value={returnHrefRef.current}>
+      <ShellHeaderSupplementContext value={headerSupplementContext}>
+        <div className={styles.canvas} data-testid='app-shell'>
+          <Header
+            accountControl={
+              isSignedIn ? (
+                <UserMenu />
+              ) : (
+                <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />
+              )
+            }
+            accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
+            actions={headerSupplement?.actions}
+            navigationActions={appNavigationActions}
+            supplement={headerSupplement?.content}
+          />
+          {content}
+          {hasMobileFooter ? <MobileAppFooter items={mobileFooterItems} /> : null}
+          {hasMobileFooter ? (
+            <MobileSearchDrawer opened={searchOpened} onClose={closeSearch} />
+          ) : null}
+        </div>
+      </ShellHeaderSupplementContext>
+    </ShellReturnHrefContext>
   )
 }
 

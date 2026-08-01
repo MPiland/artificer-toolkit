@@ -92,6 +92,37 @@ describe('character sheet panel contracts', () => {
     ).toBe(false)
   })
 
+  it('accepts focused sense targets and category proficiency identifiers', () => {
+    expect(
+      characterSheetPanelTargetDtoSchema.safeParse({
+        kind: 'SENSES',
+        entry: { kind: 'PASSIVE', skillId: 'insight' }
+      }).success
+    ).toBe(true)
+
+    expect(
+      characterSheetPanelDtoSchema.safeParse({
+        kind: 'PROFICIENCIES',
+        panelId: 'proficiencies',
+        characterId,
+        target: { kind: 'PROFICIENCIES' },
+        title: 'Proficiencies',
+        state: 'DEFAULT',
+        editable: true,
+        allowedCommands: ['UPSERT_ADJUSTMENT'],
+        proficiencies: [
+          {
+            kind: 'WEAPON',
+            targetId: 'SIMPLE',
+            label: 'Simple Weapons',
+            sourceLabel: 'Fighter'
+          }
+        ],
+        additionOptions: []
+      }).success
+    ).toBe(true)
+  })
+
   it('accepts typed immediate adjustment commands', () => {
     expect(
       characterSheetCommandInputDtoSchema.safeParse({

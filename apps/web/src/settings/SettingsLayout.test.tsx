@@ -38,7 +38,7 @@ describe('SettingsLayout', () => {
 
     await user.click(screen.getByRole('button', { name: /open settings navigation/i }))
 
-    const drawer = screen.getByRole('dialog', { name: 'Settings navigation' })
+    const drawer = await screen.findByRole('dialog', { name: 'Settings navigation' })
     expect(within(drawer).getByRole('link', { name: 'Profile' })).toBeInTheDocument()
     expect(within(drawer).getByRole('link', { name: 'Preferences' })).toBeInTheDocument()
     expect(within(drawer).getByRole('link', { name: 'Account' })).toBeInTheDocument()

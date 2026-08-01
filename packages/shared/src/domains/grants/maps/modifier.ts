@@ -47,6 +47,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             showIf: or([
               parent.field(['valueDomainCode']).eq('ABILITY_SCORE'),
+              parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
               parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER')
             ])
           }
@@ -539,6 +540,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
           order: 10,
           showIf: or([
             local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+            local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
             local.field(['valueDomainCode']).eq('ABILITY_SCORE'),

@@ -6,6 +6,8 @@ import {
   CharacterSheetDetailRowList
 } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeatureUseControl'
+import * as actionSummaryStyles from '../actions/actionSummary.css'
+import * as actionTableStyles from '../actions/actionTable.css'
 import * as featureUseStyles from '../shared/featureUse.css'
 import * as panelStyles from '../shared/panel.css'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
@@ -77,7 +79,7 @@ export function CharacterSheetReference({
                 left={
                   <>
                     <div className={featureUseStyles.heading}>
-                      <Text fw={700}>{feature.label}</Text>
+                      <Text className={actionTableStyles.playRowTitle}>{feature.label}</Text>
                       {resource ? (
                         <CharacterSheetFeatureUseControl
                           cost={resourceCost}
@@ -98,9 +100,13 @@ export function CharacterSheetReference({
                         <Badge variant='light'>Feature</Badge>
                       )}
                     </div>
-                    <Text className={panelStyles.muted}>{feature.sourceLabel}</Text>
+                    <Text className={actionTableStyles.actionCompactSource}>
+                      {feature.sourceLabel}
+                    </Text>
                     {feature.description ? (
-                      <AuthoredDetailProse html={feature.description} fallback='' />
+                      <div className={actionSummaryStyles.actionDescriptionText}>
+                        <AuthoredDetailProse html={feature.description} fallback='' />
+                      </div>
                     ) : null}
                   </>
                 }

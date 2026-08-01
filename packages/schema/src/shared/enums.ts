@@ -321,6 +321,7 @@ export const valueDomainCodeSchema = z.enum([
   'CHARGE_LIMIT',
   'CHARGE_RESET',
   'INITIATIVE',
+  'ABILITY_CHECK',
   'ABILITY_SCORE',
   'SKILL_MODIFIER',
   'PROFICIENCY_BONUS',

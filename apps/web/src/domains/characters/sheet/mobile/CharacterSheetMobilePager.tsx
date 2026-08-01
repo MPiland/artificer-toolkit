@@ -13,10 +13,7 @@ import {
   Swords
 } from 'lucide-react'
 import type { CharacterSheetMobilePageId } from '../core/CharacterSheet.types'
-import {
-  CHARACTER_SHEET_MOBILE_PAGES,
-  getCharacterSheetPageIndex
-} from '../core/characterSheetTabs'
+import { CHARACTER_SHEET_MOBILE_PAGES } from '../core/characterSheetTabs'
 import * as mobileStyles from './mobile.css'
 
 const swipeThreshold = 52
@@ -36,22 +33,23 @@ const mobilePageIcons = {
 export function CharacterSheetMobilePager({
   activePage,
   children,
+  manualRollAction,
+  pages = CHARACTER_SHEET_MOBILE_PAGES,
   onPageChange
 }: {
   activePage: CharacterSheetMobilePageId
   children: ReactNode
+  manualRollAction: ReactNode
+  pages?: typeof CHARACTER_SHEET_MOBILE_PAGES
   onPageChange: (page: CharacterSheetMobilePageId) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
-  const activeIndex = getCharacterSheetPageIndex(activePage)
-  const activePageLabel = CHARACTER_SHEET_MOBILE_PAGES[activeIndex]?.label ?? 'Overview'
-  const previousPage =
-    activeIndex > 0 ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex - 1]?.id : undefined
-  const nextPage =
-    activeIndex < CHARACTER_SHEET_MOBILE_PAGES.length - 1
-      ? CHARACTER_SHEET_MOBILE_PAGES[activeIndex + 1]?.id
-      : undefined
+  const pageIndex = pages.findIndex((page) => page.id === activePage)
+  const activeIndex = pageIndex >= 0 ? pageIndex : 0
+  const activePageLabel = pages[activeIndex]?.label ?? 'Overview'
+  const previousPage = activeIndex > 0 ? pages[activeIndex - 1]?.id : undefined
+  const nextPage = activeIndex < pages.length - 1 ? pages[activeIndex + 1]?.id : undefined
 
   function goToPage(page: CharacterSheetMobilePageId) {
     setMenuOpen(false)
@@ -85,7 +83,6 @@ export function CharacterSheetMobilePager({
       </Text>
       <div
         className={mobileStyles.mobilePageViewport}
-        key={activePage}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -100,7 +97,7 @@ export function CharacterSheetMobilePager({
         onClose={() => setMenuOpen(false)}
       >
         <nav className={mobileStyles.mobilePageMenu} aria-label='Sheet sections'>
-          {CHARACTER_SHEET_MOBILE_PAGES.map((page) => {
+          {pages.map((page) => {
             const Icon = mobilePageIcons[page.id]
             return (
               <Button
@@ -120,10 +117,12 @@ export function CharacterSheetMobilePager({
       </Drawer>
 
       <div className={mobileStyles.mobileFloatingDock}>
+        {manualRollAction}
         <ActionIcon
           aria-expanded={menuOpen}
           aria-label={menuOpen ? 'Close sheet section menu' : 'Open sheet section menu'}
           className={mobileStyles.mobileFloatingButton}
+          data-section-navigation='true'
           size='xl'
           variant='filled'
           onClick={() => setMenuOpen((current) => !current)}

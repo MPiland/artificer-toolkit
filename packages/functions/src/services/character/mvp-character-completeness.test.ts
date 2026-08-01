@@ -232,6 +232,32 @@ describe('MVP character Builder-to-engine completeness', () => {
           armorClass: { base: 12, contributions: [], effective: 12 },
           maxHitPoints: { base: 23, contributions: [], effective: 23 }
         },
+        rollModes: {
+          initiative: 'NORMAL',
+          abilityChecks: {
+            CHARISMA: 'NORMAL',
+            CONSTITUTION: 'NORMAL',
+            DEXTERITY: 'NORMAL',
+            INTELLIGENCE: 'NORMAL',
+            STRENGTH: 'NORMAL',
+            WISDOM: 'NORMAL'
+          },
+          savingThrows: {
+            CHARISMA: 'NORMAL',
+            CONSTITUTION: 'NORMAL',
+            DEXTERITY: 'NORMAL',
+            INTELLIGENCE: 'NORMAL',
+            STRENGTH: 'NORMAL',
+            WISDOM: 'NORMAL'
+          },
+          skillChecks: {},
+          attacks: {
+            MELEE: 'NORMAL',
+            RANGED: 'NORMAL',
+            SPELL: 'NORMAL',
+            UNARMED: 'NORMAL'
+          }
+        },
         spellSlots: { maxByLevel: {}, fusionStrategy: 'NONE' },
         spellAccess: [],
         resources: [],

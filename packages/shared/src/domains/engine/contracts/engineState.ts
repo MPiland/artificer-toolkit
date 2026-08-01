@@ -19,6 +19,18 @@ import type { MeasurementUnitCode } from '../../core/measurement.js'
 import type { SizeCode } from '../../core/size.js'
 import type { CompiledChargeUse } from '../../shared/compilers/charge.js'
 import type { SpellGrantAttribute } from '../../grants/core/spell.js'
+import type { AbilityCode } from '../../core/ability.js'
+import type { AttackDomainCode } from '../../core/valueDomain.js'
+
+export type EngineRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+
+export interface EngineRollModes {
+  initiative: EngineRollMode
+  abilityChecks: Record<AbilityCode, EngineRollMode>
+  savingThrows: Record<AbilityCode, EngineRollMode>
+  skillChecks: Record<string, EngineRollMode>
+  attacks: Record<AttackDomainCode, EngineRollMode>
+}
 
 export interface EngineProficiency {
   /** PROFICIENCY_KIND value (SKILL, SAVE_ABILITY, LANGUAGE, EQUIPMENT, EQUIPMENT_PROPERTY) */
@@ -232,6 +244,7 @@ export interface EngineCharacterOutput {
   defenses: EngineDefense[]
   derivedStats: EngineDerivedStats
   calculations: EngineCalculationBreakdowns
+  rollModes: EngineRollModes
   /** Resolved class-scoped spell state derived from grants */
   spellState?: CompiledCharacterClassState[]
   /** Resolved spell-grant access paths derived during the same engine run. */

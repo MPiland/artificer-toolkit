@@ -3,6 +3,7 @@ import {
   CHARACTER_ABILITY_GENERATION_METHOD
 } from '@artificer-toolkit/shared/core'
 import { describe, expect, it } from 'vitest'
+import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   buildCharacterDraftSaveInput,
   createFallbackCharacterFormValues,
@@ -11,6 +12,7 @@ import {
   toCharacterFormValues
 } from '../shared/formNormalization'
 import {
+  applyManualAbilityRoll,
   cacheActiveAbilityIntent,
   getAssignedAbilityCodes,
   getAbilityDraftSlots,
@@ -90,6 +92,76 @@ describe('character builder utilities', () => {
     structuralEdit.intent.classes[0].classLevel += 1
 
     expect(getCharacterBuilderResolutionFingerprint(structuralEdit)).not.toBe(initialFingerprint)
+
+    const rollEvidenceEdit = structuredClone(values)
+    rollEvidenceEdit.intent.abilities = {
+      method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+      state: { configuration: '4d6dl1r1', assignments: [] }
+    }
+    const evidenceFingerprint = getCharacterBuilderResolutionFingerprint(rollEvidenceEdit)
+    rollEvidenceEdit.intent.abilities.state.configuration = '4d6kh3'
+    expect(getCharacterBuilderResolutionFingerprint(rollEvidenceEdit)).toBe(evidenceFingerprint)
+  })
+
+  it('applies authoritative ability roll evidence to one draft slot', () => {
+    const values = createFallbackCharacterFormValues()
+    const abilities: ReturnType<typeof createFallbackCharacterFormValues>['intent']['abilities'] = {
+      method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+      state: { assignments: [], rollGroups: [] }
+    }
+    const slots = [{ ability: 'STRENGTH' as const }, {}, {}, {}, {}, {}]
+    const roll = {
+      id: 'roll-1',
+      normalizedExpression: '4d6dl1r1',
+      evidence: {
+        terms: [
+          {
+            count: 4,
+            die: 6,
+            modifier: 0,
+            rolls: [4, 5, 2, 6],
+            rollSequences: [[1, 4], [5], [2], [6]],
+            subtotal: 15,
+            keptRollIndexes: [0, 1, 3]
+          }
+        ],
+        modifier: 0,
+        mode: 'NORMAL',
+        subtotal: 15,
+        transform: { kind: 'NONE' },
+        total: 15
+      }
+    } satisfies RollResultDto
+
+    const result = applyManualAbilityRoll(undefined, abilities, slots, 0, roll)
+
+    expect(result.slots[0]).toEqual({ ability: 'STRENGTH', score: 15 })
+    expect(result.abilities).toMatchObject({
+      method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+      state: {
+        configuration: '4d6dl1r1',
+        assignments: [{ ability: 'STRENGTH', score: 15 }],
+        rollGroups: [
+          {
+            id: 'assignment-0:roll-1',
+            rolls: [
+              { die: 6, value: 1 },
+              { die: 6, value: 4 },
+              { die: 6, value: 5 },
+              { die: 6, value: 2 },
+              { die: 6, value: 6 }
+            ],
+            kept: [
+              { die: 6, value: 4 },
+              { die: 6, value: 5 },
+              { die: 6, value: 6 }
+            ],
+            assignedAbility: 'STRENGTH',
+            score: 15
+          }
+        ]
+      }
+    })
   })
 
   it('converts manual ability form state without leaking roll metadata into invalid shapes', () => {

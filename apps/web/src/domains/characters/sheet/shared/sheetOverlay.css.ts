@@ -16,8 +16,8 @@ export const drawerHeader = style({
     [app]: {
       background: foundationVars.color.surface.panel,
       borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      minHeight: '64px',
-      paddingInline: '20px'
+      minHeight: '52px',
+      paddingInline: '16px'
     }
   }
 })
@@ -26,7 +26,7 @@ export const drawerTitle = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '1.05rem',
+      fontSize: '0.95rem',
       fontWeight: 760
     }
   }

@@ -23,12 +23,12 @@ export const characterSheetFixture = {
   },
   overview: {
     abilities: [
-      { ability: 'STRENGTH', score: 8, modifier: -1 },
-      { ability: 'DEXTERITY', score: 14, modifier: 2 },
-      { ability: 'CONSTITUTION', score: 13, modifier: 1 },
-      { ability: 'INTELLIGENCE', score: 16, modifier: 3 },
-      { ability: 'WISDOM', score: 12, modifier: 1 },
-      { ability: 'CHARISMA', score: 10, modifier: 0 }
+      { ability: 'STRENGTH', score: 8, modifier: -1, rollMode: 'NORMAL' },
+      { ability: 'DEXTERITY', score: 14, modifier: 2, rollMode: 'NORMAL' },
+      { ability: 'CONSTITUTION', score: 13, modifier: 1, rollMode: 'NORMAL' },
+      { ability: 'INTELLIGENCE', score: 16, modifier: 3, rollMode: 'NORMAL' },
+      { ability: 'WISDOM', score: 12, modifier: 1, rollMode: 'NORMAL' },
+      { ability: 'CHARISMA', score: 10, modifier: 0, rollMode: 'NORMAL' }
     ],
     facts: [
       { label: 'Speed', value: '30 feet' },
@@ -38,6 +38,7 @@ export const characterSheetFixture = {
     ],
     armorClass: 12,
     initiative: 2,
+    initiativeRollMode: 'NORMAL',
     proficiencyBonus: 2,
     currentHitPoints: 14,
     maxHitPoints: 17,
@@ -63,12 +64,48 @@ export const characterSheetFixture = {
     ],
     hitDice: [{ die: 6, total: 3, used: 1, remaining: 2 }],
     savingThrows: [
-      { ability: 'STRENGTH', label: 'Strength', total: -1, proficiency: 'NONE' },
-      { ability: 'DEXTERITY', label: 'Dexterity', total: 2, proficiency: 'NONE' },
-      { ability: 'CONSTITUTION', label: 'Constitution', total: 1, proficiency: 'NONE' },
-      { ability: 'INTELLIGENCE', label: 'Intelligence', total: 5, proficiency: 'FULL' },
-      { ability: 'WISDOM', label: 'Wisdom', total: 3, proficiency: 'FULL' },
-      { ability: 'CHARISMA', label: 'Charisma', total: 0, proficiency: 'NONE' }
+      {
+        ability: 'STRENGTH',
+        label: 'Strength',
+        total: -1,
+        rollMode: 'NORMAL',
+        proficiency: 'NONE'
+      },
+      {
+        ability: 'DEXTERITY',
+        label: 'Dexterity',
+        total: 2,
+        rollMode: 'NORMAL',
+        proficiency: 'NONE'
+      },
+      {
+        ability: 'CONSTITUTION',
+        label: 'Constitution',
+        total: 1,
+        rollMode: 'NORMAL',
+        proficiency: 'NONE'
+      },
+      {
+        ability: 'INTELLIGENCE',
+        label: 'Intelligence',
+        total: 5,
+        rollMode: 'NORMAL',
+        proficiency: 'FULL'
+      },
+      {
+        ability: 'WISDOM',
+        label: 'Wisdom',
+        total: 3,
+        rollMode: 'NORMAL',
+        proficiency: 'FULL'
+      },
+      {
+        ability: 'CHARISMA',
+        label: 'Charisma',
+        total: 0,
+        rollMode: 'NORMAL',
+        proficiency: 'NONE'
+      }
     ],
     skills: [
       {
@@ -77,6 +114,7 @@ export const characterSheetFixture = {
         label: 'Acrobatics',
         ability: 'DEXTERITY',
         total: 2,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -85,6 +123,7 @@ export const characterSheetFixture = {
         label: 'Animal Handling',
         ability: 'WISDOM',
         total: 1,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -93,6 +132,7 @@ export const characterSheetFixture = {
         label: 'Arcana',
         ability: 'INTELLIGENCE',
         total: 5,
+        rollMode: 'NORMAL',
         proficiency: 'FULL'
       },
       {
@@ -101,6 +141,7 @@ export const characterSheetFixture = {
         label: 'Athletics',
         ability: 'STRENGTH',
         total: -1,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -109,6 +150,7 @@ export const characterSheetFixture = {
         label: 'Deception',
         ability: 'CHARISMA',
         total: 0,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -117,6 +159,7 @@ export const characterSheetFixture = {
         label: 'History',
         ability: 'INTELLIGENCE',
         total: 5,
+        rollMode: 'NORMAL',
         proficiency: 'FULL'
       },
       {
@@ -125,6 +168,7 @@ export const characterSheetFixture = {
         label: 'Insight',
         ability: 'WISDOM',
         total: 1,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -133,6 +177,7 @@ export const characterSheetFixture = {
         label: 'Intimidation',
         ability: 'CHARISMA',
         total: 0,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -141,6 +186,7 @@ export const characterSheetFixture = {
         label: 'Investigation',
         ability: 'INTELLIGENCE',
         total: 3,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -149,6 +195,7 @@ export const characterSheetFixture = {
         label: 'Medicine',
         ability: 'WISDOM',
         total: 1,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -157,6 +204,7 @@ export const characterSheetFixture = {
         label: 'Nature',
         ability: 'INTELLIGENCE',
         total: 3,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -165,6 +213,7 @@ export const characterSheetFixture = {
         label: 'Perception',
         ability: 'WISDOM',
         total: 3,
+        rollMode: 'NORMAL',
         proficiency: 'FULL'
       },
       {
@@ -173,6 +222,7 @@ export const characterSheetFixture = {
         label: 'Performance',
         ability: 'CHARISMA',
         total: 0,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -181,6 +231,7 @@ export const characterSheetFixture = {
         label: 'Persuasion',
         ability: 'CHARISMA',
         total: 0,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -189,6 +240,7 @@ export const characterSheetFixture = {
         label: 'Religion',
         ability: 'INTELLIGENCE',
         total: 3,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -197,6 +249,7 @@ export const characterSheetFixture = {
         label: 'Sleight of Hand',
         ability: 'DEXTERITY',
         total: 2,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -205,6 +258,7 @@ export const characterSheetFixture = {
         label: 'Stealth',
         ability: 'DEXTERITY',
         total: 2,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       },
       {
@@ -213,6 +267,7 @@ export const characterSheetFixture = {
         label: 'Survival',
         ability: 'WISDOM',
         total: 1,
+        rollMode: 'NORMAL',
         proficiency: 'NONE'
       }
     ]
@@ -232,6 +287,7 @@ export const characterSheetFixture = {
           activation: { kind: 'ACTION', amount: 1 },
           rangeLabel: '5 ft',
           attackBonus: 4,
+          attackRollMode: 'NORMAL',
           outcomes: [
             {
               kind: 'DAMAGE',
@@ -302,6 +358,7 @@ export const characterSheetFixture = {
   spells: {
     saveDc: 13,
     attackBonus: 5,
+    attackRollMode: 'NORMAL',
     slots: [
       { slotKey: 'STANDARD:1', label: 'Level 1', level: 1, used: 1, max: 4, remaining: 3 },
       { slotKey: 'STANDARD:2', label: 'Level 2', level: 2, used: 1, max: 2, remaining: 1 }
@@ -617,6 +674,7 @@ export const characterSheetFixture = {
             activation: { kind: 'ACTION', amount: 1 },
             rangeLabel: '120 ft',
             attackBonus: 5,
+            attackRollMode: 'NORMAL',
             outcomes: [
               {
                 kind: 'DAMAGE',

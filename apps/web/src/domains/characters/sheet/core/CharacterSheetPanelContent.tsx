@@ -6,7 +6,7 @@ import { CharacterSheetMobileNotes } from '../mobile/CharacterSheetMobileNotes'
 import { CharacterSheetMobileStats } from '../mobile/CharacterSheetMobileStats'
 import { CharacterSheetNotes } from '../notes/CharacterSheetNotes'
 import {
-  CharacterSheetOverview,
+  CharacterSheetOverviewFacts,
   CharacterSheetProficiencySummary
 } from '../overview/CharacterSheetOverview'
 import { CharacterSheetSkillsPanel } from '../overview/CharacterSheetOverviewProficiencies'
@@ -40,7 +40,7 @@ export function CharacterSheetPanelContent({
       return mobile ? (
         <CharacterSheetMobileStats openPanel={openPanel} sheet={sheet} />
       ) : (
-        <CharacterSheetOverview openPanel={openPanel} sheet={sheet} />
+        <CharacterSheetOverviewFacts openPanel={openPanel} sheet={sheet} showDefenses={false} />
       )
     case 'actions':
       return mobile ? (
@@ -149,7 +149,7 @@ export function CharacterSheetPanelContent({
       return mobile ? (
         <CharacterSheetMobileStats openPanel={openPanel} sheet={sheet} />
       ) : (
-        <CharacterSheetOverview openPanel={openPanel} sheet={sheet} />
+        <CharacterSheetOverviewFacts openPanel={openPanel} sheet={sheet} showDefenses={false} />
       )
   }
 }

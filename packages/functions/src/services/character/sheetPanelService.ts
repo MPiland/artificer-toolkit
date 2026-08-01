@@ -542,17 +542,34 @@ function buildSensesPanel(
     }
   })
 
+  const targetEntry = target.entry
+  const visiblePassiveChecks =
+    targetEntry?.kind === 'PASSIVE'
+      ? passiveChecks.filter((passive) => passive.skillId === targetEntry.skillId)
+      : targetEntry
+        ? []
+        : passiveChecks
+  const visibleSenses =
+    targetEntry?.kind === 'SENSE'
+      ? senses.filter((sense) => sense.senseId === targetEntry.senseId)
+      : targetEntry
+        ? []
+        : senses
+  const focusedEntry = visiblePassiveChecks[0] ?? visibleSenses[0]
+
   return {
     kind: 'SENSES',
-    panelId: 'senses',
+    panelId: targetEntry
+      ? `senses:${targetEntry.kind}:${targetEntry.kind === 'PASSIVE' ? targetEntry.skillId : targetEntry.senseId}`
+      : 'senses',
     characterId: params.character.id,
     target,
-    title: 'Senses',
+    title: focusedEntry?.label ?? 'Senses',
     state: resolvePanelState(params.adjustments, target),
     editable: params.editable,
     allowedCommands: [...CORE_PANEL_COMMANDS],
-    passiveChecks,
-    senses
+    passiveChecks: visiblePassiveChecks,
+    senses: visibleSenses
   }
 }
 

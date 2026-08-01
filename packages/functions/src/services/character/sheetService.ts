@@ -4,6 +4,7 @@ import {
   createCharacterRepository,
   createCharacterSheetAdjustmentRepository,
   createCharacterSheetPlayStateRepository,
+  createRollHistoryRepository,
   createCreatureRepository,
   createEquipmentRepository,
   getCharacterSheetExtraCatalogQuery,
@@ -50,18 +51,16 @@ import {
   clampCharacterCurrentHitPoints,
   formatCharacterHitDiceRollExpression,
   resolveCharacterEffectiveMaximumHitPoints,
-  rollCharacterHitDice,
   toCharacterMechanicalAdjustment,
   toCharacterResourceOwnerKey,
   validateCharacterHitDiceRollEvidence,
-  type CharacterDiceRandomSource,
   type CharacterMovementDisplayPreference,
   type CharacterResourceOwnerRef,
   type CharacterResourceUsage,
   type CharacterSheetAdjustment,
   type CharacterSheetAdjustmentWrite
 } from '@artificer-toolkit/shared/character'
-import { createHash, randomInt } from 'node:crypto'
+import { createHash } from 'node:crypto'
 
 import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
 import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/engine/resolution'
@@ -1379,6 +1378,35 @@ function getSpellPrimaryEffect(
   return undefined
 }
 
+function projectSpellMechanicsForCast(
+  mechanics: readonly CharacterSheetProjectedMechanic[],
+  castLevel: number,
+  sourceMechanics: EngineCharacterOutput['spellMechanics'][number] | undefined
+): CharacterSheetProjectedMechanic[] {
+  return mechanics.map((mechanic) => ({
+    ...mechanic,
+    ...(mechanic.trigger === 'SPELL_ATTACK' && sourceMechanics?.attackBonus !== undefined
+      ? { attackBonus: sourceMechanics.attackBonus }
+      : {}),
+    ...(mechanic.save && sourceMechanics?.saveDC !== undefined
+      ? { save: { ...mechanic.save, dc: sourceMechanics.saveDC } }
+      : {}),
+    outcomes: mechanic.outcomes.map((outcome) => {
+      if (outcome.kind !== 'DAMAGE' && outcome.kind !== 'HEAL') return outcome
+      const expression =
+        outcome.scaling?.find((entry) => entry.level === castLevel)?.expression ??
+        outcome.expression
+      return {
+        ...outcome,
+        expression:
+          outcome.kind === 'DAMAGE'
+            ? applyFlatSpellDamageBonus(expression, sourceMechanics?.damageBonus ?? 0)
+            : expression
+      }
+    })
+  }))
+}
+
 function getExplicitSpellCastLevels(
   spell: SheetSpell,
   source: SheetSpellSource,
@@ -1499,6 +1527,11 @@ function buildActiveSpellGroups(params: {
           castLevel,
           sourceMechanics?.damageBonus ?? 0
         )
+        const projectedMechanics = projectSpellMechanicsForCast(
+          mechanics,
+          castLevel,
+          sourceMechanics
+        )
         const activation = mechanics
           .map((mechanic) => mechanic.activation)
           .find((candidate) => candidate?.kind.trim())
@@ -1551,6 +1584,7 @@ function buildActiveSpellGroups(params: {
           ...(rangeLabel ? { rangeLabel } : {}),
           ...(hitOrDcLabel ? { hitOrDcLabel } : {}),
           ...(primaryEffect ? { primaryEffect } : {}),
+          ...(projectedMechanics.length ? { mechanics: projectedMechanics } : {}),
           available: availability.available,
           ...(availability.unavailableReason
             ? { unavailableReason: availability.unavailableReason }
@@ -2199,6 +2233,7 @@ export async function buildCharacterSheetResponse(params: {
         label: metadata?.label ?? toSkillFallbackLabel(skill),
         ability: metadata?.ability ?? resolveAbilityCode(SKILL_ABILITY_MAP[skill] ?? 'DEXTERITY'),
         total,
+        rollMode: engineOutput.rollModes.skillChecks[skill],
         proficiency: engineOutput.calculations.skillProficiencyLevels[skill]?.effective ?? 'NONE'
       }
     })
@@ -2707,7 +2742,8 @@ export async function buildCharacterSheetResponse(params: {
         return {
           ability: abilityCode,
           score: getAbilityDerivedTotal(engineOutput.derivedStats.abilityScores, abilityCode),
-          modifier: getAbilityDerivedTotal(engineOutput.derivedStats.abilityModifiers, abilityCode)
+          modifier: getAbilityDerivedTotal(engineOutput.derivedStats.abilityModifiers, abilityCode),
+          rollMode: engineOutput.rollModes.abilityChecks[abilityCode]
         }
       }),
       savingThrows: Object.keys(ABILITIES)
@@ -2716,6 +2752,7 @@ export async function buildCharacterSheetResponse(params: {
           ability,
           label: ABILITIES[ability].label,
           total: getAbilityDerivedTotal(engineOutput.derivedStats.savingThrows, ability),
+          rollMode: engineOutput.rollModes.savingThrows[ability],
           proficiency:
             engineOutput.calculations.savingThrowProficiencyLevels[ability]?.effective ??
             engineOutput.calculations.savingThrowProficiencyLevels[
@@ -2738,6 +2775,7 @@ export async function buildCharacterSheetResponse(params: {
       ],
       armorClass: engineOutput.derivedStats.armorClass,
       initiative: engineOutput.derivedStats.initiative,
+      initiativeRollMode: engineOutput.rollModes.initiative,
       proficiencyBonus,
       inspiration: character.state.inspiration ?? false,
       currentHitPoints: clampCharacterCurrentHitPoints(
@@ -2790,6 +2828,7 @@ export async function buildCharacterSheetResponse(params: {
     spells: {
       saveDc: engineOutput.derivedStats.spellSaveDC ?? null,
       attackBonus: engineOutput.derivedStats.spellAttackBonus ?? null,
+      attackRollMode: engineOutput.rollModes.attacks.SPELL,
       slots: sheetSpellSlots,
       activeGroups: activeSpellGroups,
       spells: sheetSpells,
@@ -2891,10 +2930,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
-const secureCharacterDiceRandomSource: CharacterDiceRandomSource = {
-  nextInt: (maxExclusive) => randomInt(maxExclusive)
-}
-
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
   const match = dieConfig?.trim().match(/^(?:1)?d(\d+)$/i)
   if (!match) return undefined
@@ -2952,13 +2987,51 @@ function sameHitDiceRollTerms(
   })
 }
 
+async function verifyRestRollEvidence(params: {
+  characterId: string
+  db: DBLike
+  evidence: CharacterRestPreviewRequestDto['rollEvidence']
+  rollId?: string
+  userId: string
+}): Promise<void> {
+  if (!params.evidence && !params.rollId) return
+  if (!params.evidence || !params.rollId) {
+    throw new CharacterSheetCommandError('Hit-die evidence must reference its authoritative roll.')
+  }
+
+  const roll = await createRollHistoryRepository(params.db).findAvailableByIdForUser(
+    params.rollId,
+    params.userId
+  )
+  if (
+    !roll ||
+    roll.characterId !== params.characterId ||
+    roll.source.kind !== 'HIT_DIE' ||
+    roll.normalizedExpression !== params.evidence.expression ||
+    roll.evidence.total !== params.evidence.total ||
+    roll.evidence.modifier !==
+      params.evidence.terms.reduce((total, term) => total + term.count * term.modifierPerDie, 0) ||
+    roll.evidence.terms.length !== params.evidence.terms.length ||
+    params.evidence.terms.some((term) => {
+      const recorded = roll.evidence.terms.find((candidate) => candidate.die === term.die)
+      return (
+        !recorded ||
+        recorded.count !== term.count ||
+        recorded.rolls.length !== term.rolls.length ||
+        recorded.rolls.some((value, index) => value !== term.rolls[index])
+      )
+    })
+  ) {
+    throw new CharacterSheetCommandError('Hit-die evidence does not match its authoritative roll.')
+  }
+}
+
 function buildCharacterRestPreview(params: {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   adjustments: readonly CharacterSheetAdjustment[]
   sheet: CharacterSheetResponseDto
   input: CharacterRestPreviewRequestDto
-  random: CharacterDiceRandomSource
 }): CharacterRestPreviewResponseDto {
   const { character, resolution, adjustments, sheet, input } = params
   const rulesSystem = resolveRulesSystem({
@@ -3027,14 +3100,11 @@ function buildCharacterRestPreview(params: {
     ...selection,
     modifierPerDie: constitutionModifier
   }))
-  if (input.requestRoll && rollTerms.length === 0) {
-    throw new CharacterSheetCommandError('Select at least one hit die before rolling.')
-  }
-  if (input.restKind === 'LONG' && (input.requestRoll || input.rollEvidence)) {
+  if (input.restKind === 'LONG' && input.rollEvidence) {
     throw new CharacterSheetCommandError('Long rests do not accept hit-die roll evidence.')
   }
 
-  let rollEvidence = input.rollEvidence
+  const rollEvidence = input.rollEvidence
   if (rollEvidence) {
     try {
       validateCharacterHitDiceRollEvidence(rollEvidence)
@@ -3048,8 +3118,6 @@ function buildCharacterRestPreview(params: {
         'Hit-die roll evidence does not match the selected hit dice.'
       )
     }
-  } else if (input.requestRoll) {
-    rollEvidence = rollCharacterHitDice(rollTerms, params.random)
   }
 
   const triggers = getRestRecoveryTriggers(input.restKind)
@@ -5047,7 +5115,6 @@ export async function previewCharacterRest(params: {
   characterId: string
   input: CharacterRestPreviewRequestDto
   userId: string
-  random?: CharacterDiceRandomSource
 }): Promise<CharacterRestPreviewResponseDto> {
   const repository = createCharacterRepository(params.db)
   const [row, character] = await Promise.all([
@@ -5069,6 +5136,13 @@ export async function previewCharacterRest(params: {
   if (row.stream_version !== params.input.expectedVersion) {
     throw new ConcurrencyError(params.characterId, params.input.expectedVersion)
   }
+  await verifyRestRollEvidence({
+    characterId: params.characterId,
+    db: params.db,
+    evidence: params.input.rollEvidence,
+    rollId: params.input.rollId,
+    userId: params.userId
+  })
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
@@ -5096,8 +5170,7 @@ export async function previewCharacterRest(params: {
     resolution,
     adjustments,
     sheet,
-    input: params.input,
-    random: params.random ?? secureCharacterDiceRandomSource
+    input: params.input
   })
 }
 
@@ -5325,6 +5398,15 @@ export async function executeCharacterSheetCommand(params: {
       })
     }
   }
+  if (command.type === 'COMPLETE_REST') {
+    await verifyRestRollEvidence({
+      characterId: params.characterId,
+      db: params.db,
+      evidence: command.rollEvidence,
+      rollId: command.rollId,
+      userId: params.userId
+    })
+  }
   const restPreview =
     command.type === 'COMPLETE_REST'
       ? buildCharacterRestPreview({
@@ -5340,10 +5422,10 @@ export async function executeCharacterSheetCommand(params: {
             healingMode: command.healingMode,
             manualHealingAccepted: command.manualHealingAccepted,
             selectedCompanionInstanceIds: command.selectedCompanionInstanceIds,
+            ...(command.rollId ? { rollId: command.rollId } : {}),
             ...(command.rollEvidence ? { rollEvidence: command.rollEvidence } : {}),
             requestRoll: false
-          },
-          random: secureCharacterDiceRandomSource
+          }
         })
       : undefined
   if (
@@ -5635,6 +5717,14 @@ export async function executeCharacterSheetCommand(params: {
           }
         }
         if (command.type === 'COMPLETE_REST' && completedRest) {
+          if (
+            command.rollId &&
+            !(await createRollHistoryRepository(trx).consumeForUser(command.rollId, params.userId))
+          ) {
+            throw new CharacterSheetCommandError(
+              'This hit-die roll has already been used or is no longer available.'
+            )
+          }
           if (
             command.resetMaximumHitPointModifier &&
             restPreview?.hitPoints.canResetMaximumHitPointModifier

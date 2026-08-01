@@ -25,11 +25,11 @@ export function CharacterBuilderAuthoringRuntime({
   const discardDraftMutation = useDiscardCharacterDraftMutation(
     session.characterId ?? 'missing-character'
   )
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+  const { cancelHref, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
 
   const handleCancel = useCallback(async () => {
-    await navigate({ to: '/characters' })
-  }, [navigate])
+    await navigate({ to: cancelHref ?? '/characters' })
+  }, [cancelHref, navigate])
 
   const handleDiscardDraft = useCallback(async () => {
     if (!session.characterId) return

@@ -1,32 +1,35 @@
 import { Alert, Tabs } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import clsx from 'clsx'
+import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
+import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
+import { CharacterSheetRollHistory } from '../dice/CharacterSheetRollHistory'
+import { CharacterSheetRollPresentation } from '../dice/CharacterSheetRollPresentation'
+import { CharacterSheetRollContext } from '../dice/rollContext'
+import { useCharacterSheetRollController } from '../dice/useCharacterSheetRollController'
 import { CharacterSheetMobilePager } from '../mobile/CharacterSheetMobilePager'
 import { CharacterSheetMobileStatusBar } from '../mobile/CharacterSheetMobileStatusBar'
-import {
-  CharacterSheetOverview,
-  CharacterSheetOverviewFacts
-} from '../overview/CharacterSheetOverview'
+import * as mobileStyles from '../mobile/mobile.css'
+import { CharacterSheetOverview } from '../overview/CharacterSheetOverview'
 import { CharacterSheetOverviewAbilities } from '../overview/CharacterSheetOverviewAbilities'
-import { CharacterSheetSkillsPanel } from '../overview/CharacterSheetOverviewProficiencies'
 import { CharacterSheetOverviewStatusStrip } from '../status/CharacterSheetOverviewStatusStrip'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 import * as coreStyles from './sheetShell.css'
 import { CharacterSheetPanelContent } from './CharacterSheetPanelContent'
 import {
   CHARACTER_SHEET_DESKTOP_TABS,
-  CHARACTER_SHEET_TABLET_TABS,
+  CHARACTER_SHEET_MOBILE_PAGES,
   getMobilePageForTab,
   getTabForMobilePage
 } from './characterSheetTabs'
-import { isCharacterSheetMobilePageId, isCharacterSheetTabId } from './characterSheet.utils'
+import { isCharacterSheetTabId } from './characterSheet.utils'
 import type {
   CharacterSheet,
   CharacterSheetCommandDraft,
@@ -38,29 +41,59 @@ export function CharacterSheetView({
   characterPublicId,
   hasDraft,
   initialTab = 'overview',
+  rollerName = 'You',
   sheet
 }: {
   characterPublicId: string
   hasDraft: boolean
   initialTab?: CharacterSheetTabId
+  rollerName?: string
   sheet: CharacterSheet
 }) {
-  const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(initialTab)
+  const [activeTab, setActiveTab] = useState<CharacterSheetTabId>(
+    initialTab === 'overview' ? 'actions' : initialTab
+  )
   const [activeMobilePage, setActiveMobilePage] = useState<CharacterSheetMobilePageId>(
     getMobilePageForTab(initialTab)
   )
   const [inspectorTarget, setInspectorTarget] = useState<CharacterSheetPanelTargetDto>()
+  const [rollHistoryOpened, setRollHistoryOpened] = useState(false)
+  const [revealedRollId, setRevealedRollId] = useState<string>()
   const [overlayEpoch, setOverlayEpoch] = useState(0)
   const inspectorTriggerRef = useRef<HTMLElement | null>(null)
-  const isMobileSheet = useMediaQuery('(max-width: 760px)', false)
-  const isDesktopSheet = useMediaQuery('(min-width: 1200px)', false)
-  const isTabletLandscape = useMediaQuery(
-    '(min-width: 960px) and (max-width: 1199px) and (orientation: landscape)',
-    false
-  )
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
+  const rollController = useCharacterSheetRollController(sheet.meta.characterId)
   const pending = commandMutation.isPending
+
+  const revealRoll = useCallback(
+    (roll: RollRecordDto) => {
+      setRevealedRollId(roll.id)
+      queryClient.setQueryData<RollRecordDto[]>(queryKeys.rolls.history(), (current) =>
+        [roll, ...(current ?? []).filter((existing) => existing.id !== roll.id)].slice(0, 20)
+      )
+    },
+    [queryClient]
+  )
+  const hasSpellcasting =
+    sheet.spells.attackBonus != null ||
+    sheet.spells.saveDc != null ||
+    sheet.spells.slots.length > 0 ||
+    sheet.spells.activeGroups.length > 0 ||
+    sheet.spells.spells.length > 0 ||
+    Boolean(sheet.spells.preparationSources?.length)
+  const visibleTabs = CHARACTER_SHEET_DESKTOP_TABS.filter(
+    (tab) => hasSpellcasting || tab.id !== 'spells'
+  )
+  const visibleMobilePages = CHARACTER_SHEET_MOBILE_PAGES.filter(
+    (page) => hasSpellcasting || page.id !== 'spells'
+  )
+  const visibleActiveTab = !hasSpellcasting && activeTab === 'spells' ? 'actions' : activeTab
+  const visibleActiveMobilePage =
+    !hasSpellcasting && activeMobilePage === 'spells' ? 'actions' : activeMobilePage
+  const isMobileAuxiliaryPage =
+    visibleActiveMobilePage === 'skills' || visibleActiveMobilePage === 'proficiencies'
   function openInspector(target: CharacterSheetPanelTargetDto) {
     setOverlayEpoch((current) => current + 1)
     inspectorTriggerRef.current =
@@ -90,7 +123,7 @@ export function CharacterSheetView({
   }
 
   useEffect(() => {
-    setActiveTab(initialTab)
+    setActiveTab(initialTab === 'overview' ? 'actions' : initialTab)
     setActiveMobilePage(getMobilePageForTab(initialTab))
   }, [initialTab])
 
@@ -99,70 +132,32 @@ export function CharacterSheetView({
     setActiveTab(getTabForMobilePage(page))
   }
 
-  const activeTabletPage =
-    activeMobilePage === 'skills' || activeMobilePage === 'proficiencies'
-      ? 'overview'
-      : activeMobilePage
-  const tabletTabs = (
-    <Tabs
-      className={isTabletLandscape ? coreStyles.desktopWorkspaceTabs : undefined}
-      keepMounted={false}
-      value={activeTabletPage}
-      onChange={(value) => {
-        if (isCharacterSheetMobilePageId(value)) {
-          setActiveTab(getTabForMobilePage(value))
-          setActiveMobilePage(value)
-        }
-      }}
-    >
-      <Tabs.List className={coreStyles.tabList}>
-        {CHARACTER_SHEET_TABLET_TABS.map((tab) => (
-          <Tabs.Tab className={coreStyles.tab} key={tab.id} value={tab.id}>
-            {tab.label}
-          </Tabs.Tab>
-        ))}
-      </Tabs.List>
-
-      {CHARACTER_SHEET_TABLET_TABS.map((tab) => (
-        <Tabs.Panel
-          className={isTabletLandscape ? coreStyles.desktopWorkspacePanel : undefined}
-          key={tab.id}
-          value={tab.id}
-          pt='md'
-        >
-          {isTabletLandscape && tab.id === 'overview' ? (
-            <CharacterSheetOverviewFacts openPanel={openInspector} sheet={sheet} />
-          ) : (
-            <CharacterSheetPanelContent
-              openPanel={openInspector}
-              pending={pending}
-              sheet={sheet}
-              submitCommand={submitCommand}
-              tab={tab.id}
-            />
-          )}
-        </Tabs.Panel>
-      ))}
-    </Tabs>
-  )
+  function dismissPresentedRoll(event: MouseEvent<HTMLDivElement>) {
+    if (!rollController.presentedRoll) return
+    rollController.dismissRoll(rollController.presentedRoll.id !== revealedRollId)
+    if (event.target instanceof Element && event.target.closest('[data-roll-target]')) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  }
 
   return (
-    <>
-      <div
-        className={clsx(
-          coreStyles.shell,
-          isMobileSheet
-            ? coreStyles.sheetMobile
-            : isDesktopSheet
-              ? coreStyles.sheetDesktop
-              : coreStyles.sheetTablet
-        )}
-      >
+    <CharacterSheetRollContext.Provider value={rollController}>
+      <div className={coreStyles.shell} onClickCapture={dismissPresentedRoll}>
+        <CharacterSheetRollPresentation
+          onRollRevealed={(rollId) => {
+            if (rollController.presentedRoll?.id === rollId)
+              revealRoll(rollController.presentedRoll)
+          }}
+          pending={rollController.pending}
+          roll={rollController.presentedRoll}
+        />
         <div className={coreStyles.sheetTopGrid}>
           <CharacterSheetHero
             characterPublicId={characterPublicId}
             hasDraft={hasDraft}
             sheet={sheet}
+            onOpenRollHistory={() => setRollHistoryOpened(true)}
           />
           <CharacterSheetOverviewVitals
             closePanel={closeActivePanel}
@@ -170,31 +165,19 @@ export function CharacterSheetView({
             overlayEpoch={overlayEpoch}
             pending={pending}
             sheet={sheet}
-            showDefenses={isDesktopSheet}
+            showDefenses
             submitCommand={submitCommand}
           />
-          {isMobileSheet ? (
+          <div className={coreStyles.mobileOnly}>
             <CharacterSheetMobileStatusBar
               openPanel={openInspector}
               pending={pending}
               sheet={sheet}
               submitCommand={submitCommand}
             />
-          ) : null}
-        </div>
-        {!isMobileSheet ? (
-          <div className={coreStyles.sheetAbilityStatusGrid}>
-            <CharacterSheetOverviewAbilities
-              abilities={sheet.overview.abilities}
-              openPanel={openInspector}
-            />
-            <CharacterSheetOverviewStatusStrip
-              pending={pending}
-              sheet={sheet}
-              submitCommand={submitCommand}
-            />
           </div>
-        ) : null}
+        </div>
+
         {hasDraft ? (
           <Alert color='yellow'>
             This character has builder draft work. The sheet is showing the last finalized active
@@ -203,72 +186,124 @@ export function CharacterSheetView({
         ) : null}
         {commandMutation.error ? <Alert color='red'>{commandMutation.error.message}</Alert> : null}
 
-        {isMobileSheet ? (
-          <CharacterSheetMobilePager activePage={activeMobilePage} onPageChange={setMobilePage}>
-            <CharacterSheetPanelContent
-              mobile
-              openPanel={openInspector}
-              pending={pending}
-              sheet={sheet}
-              submitCommand={submitCommand}
-              tab={activeMobilePage}
-            />
-          </CharacterSheetMobilePager>
-        ) : isDesktopSheet ? (
-          <div className={coreStyles.desktopSheetCanvas}>
-            <CharacterSheetOverview openPanel={openInspector} sheet={sheet} showDefenses={false} />
-            <section className={coreStyles.desktopWorkspace} aria-label='Character workspace'>
-              <Tabs
-                className={coreStyles.desktopWorkspaceTabs}
-                keepMounted={false}
-                value={activeTab === 'overview' ? 'actions' : activeTab}
-                onChange={(value) => {
-                  if (isCharacterSheetTabId(value) && value !== 'overview') setActiveTab(value)
-                }}
+        <CharacterSheetMobilePager
+          activePage={visibleActiveMobilePage}
+          manualRollAction={
+            <CharacterSheetManualRoll className={mobileStyles.mobileFloatingButton} />
+          }
+          pages={visibleMobilePages}
+          onPageChange={setMobilePage}
+        >
+          <div className={coreStyles.responsiveContent}>
+            <div
+              className={coreStyles.sheetAbilityStatusGrid}
+              data-mobile-visible={visibleActiveMobilePage === 'overview' ? 'true' : undefined}
+            >
+              <div className={coreStyles.abilityRegion}>
+                <CharacterSheetOverviewAbilities
+                  abilities={sheet.overview.abilities}
+                  openPanel={openInspector}
+                />
+              </div>
+              <div className={coreStyles.statusRegion}>
+                <CharacterSheetOverviewStatusStrip
+                  pending={pending}
+                  sheet={sheet}
+                  submitCommand={submitCommand}
+                />
+              </div>
+            </div>
+
+            <div className={coreStyles.sheetCanvas}>
+              <div
+                className={coreStyles.overviewRegion}
+                data-mobile-visible={visibleActiveMobilePage === 'overview' ? 'true' : undefined}
               >
-                <Tabs.List className={coreStyles.tabList}>
-                  {CHARACTER_SHEET_DESKTOP_TABS.filter((tab) => tab.id !== 'overview').map(
-                    (tab) => (
-                      <Tabs.Tab className={coreStyles.tab} key={tab.id} value={tab.id}>
+                <CharacterSheetOverview
+                  openPanel={openInspector}
+                  sheet={sheet}
+                  showDefenses={false}
+                  tabletSkillsOnly
+                />
+              </div>
+
+              <section
+                className={coreStyles.desktopWorkspace}
+                data-mobile-visible={
+                  visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage
+                    ? 'true'
+                    : undefined
+                }
+                aria-label='Character workspace'
+              >
+                <Tabs
+                  className={coreStyles.desktopWorkspaceTabs}
+                  keepMounted={false}
+                  value={visibleActiveTab}
+                  onChange={(value) => {
+                    if (isCharacterSheetTabId(value)) {
+                      setActiveTab(value)
+                      setActiveMobilePage(getMobilePageForTab(value))
+                    }
+                  }}
+                >
+                  <Tabs.List className={coreStyles.tabList}>
+                    {visibleTabs.map((tab) => (
+                      <Tabs.Tab
+                        className={
+                          tab.id === 'overview' ? coreStyles.tabletOnlyTab : coreStyles.tab
+                        }
+                        key={tab.id}
+                        value={tab.id}
+                      >
                         {tab.label}
                       </Tabs.Tab>
-                    )
-                  )}
-                </Tabs.List>
-                {CHARACTER_SHEET_DESKTOP_TABS.filter((tab) => tab.id !== 'overview').map((tab) => (
-                  <Tabs.Panel
-                    className={coreStyles.desktopWorkspacePanel}
-                    key={tab.id}
-                    value={tab.id}
-                    pt='md'
-                  >
-                    <CharacterSheetPanelContent
-                      openPanel={openInspector}
-                      pending={pending}
-                      sheet={sheet}
-                      submitCommand={submitCommand}
-                      tab={tab.id}
-                    />
-                  </Tabs.Panel>
-                ))}
-              </Tabs>
-            </section>
+                    ))}
+                  </Tabs.List>
+                  {visibleTabs.map((tab) => (
+                    <Tabs.Panel
+                      className={coreStyles.desktopWorkspacePanel}
+                      key={tab.id}
+                      value={tab.id}
+                    >
+                      <CharacterSheetPanelContent
+                        openPanel={openInspector}
+                        pending={pending}
+                        sheet={sheet}
+                        submitCommand={submitCommand}
+                        tab={tab.id}
+                      />
+                    </Tabs.Panel>
+                  ))}
+                </Tabs>
+              </section>
+
+              {isMobileAuxiliaryPage ? (
+                <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
+                  <CharacterSheetPanelContent
+                    mobile
+                    openPanel={openInspector}
+                    pending={pending}
+                    sheet={sheet}
+                    submitCommand={submitCommand}
+                    tab={visibleActiveMobilePage}
+                  />
+                </div>
+              ) : null}
+            </div>
           </div>
-        ) : isTabletLandscape ? (
-          <div className={coreStyles.tabletLandscapeCanvas}>
-            <CharacterSheetSkillsPanel
-              abilities={sheet.overview.abilities}
-              openPanel={openInspector}
-              skills={sheet.overview.skills}
-            />
-            <section className={coreStyles.desktopWorkspace} aria-label='Character workspace'>
-              {tabletTabs}
-            </section>
-          </div>
-        ) : (
-          tabletTabs
-        )}
+        </CharacterSheetMobilePager>
       </div>
+      <CharacterSheetRollHistory
+        opened={rollHistoryOpened}
+        pendingRollId={
+          rollController.presentedRoll?.id === revealedRollId
+            ? undefined
+            : rollController.presentedRoll?.id
+        }
+        rollerName={rollerName}
+        onClose={() => setRollHistoryOpened(false)}
+      />
       {inspectorTarget ? (
         <CharacterSheetInspector
           characterId={sheet.meta.characterId}
@@ -288,6 +323,6 @@ export function CharacterSheetView({
           onTargetChange={setInspectorTarget}
         />
       ) : null}
-    </>
+    </CharacterSheetRollContext.Provider>
   )
 }

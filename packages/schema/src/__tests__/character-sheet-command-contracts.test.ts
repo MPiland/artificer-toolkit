@@ -25,9 +25,9 @@ describe('character sheet command contracts', () => {
     } as const
 
     expect(characterSheetActionDtoSchema.safeParse(action).success).toBe(true)
-    expect(
-      characterSheetActionDtoSchema.safeParse({ ...action, resourceCost: 0 }).success
-    ).toBe(false)
+    expect(characterSheetActionDtoSchema.safeParse({ ...action, resourceCost: 0 }).success).toBe(
+      false
+    )
   })
 
   it('requires property codes and authoritative labels in Sheet inventory rows', () => {
@@ -83,12 +83,14 @@ describe('character sheet command contracts', () => {
             {
               ability: 'DEXTERITY',
               score: 14,
-              modifier: 2
+              modifier: 2,
+              rollMode: 'NORMAL'
             }
           ],
           facts: [{ label: 'Initiative', value: '+2' }],
           armorClass: 12,
           initiative: 2,
+          initiativeRollMode: 'NORMAL',
           proficiencyBonus: 2,
           currentHitPoints: 8,
           maxHitPoints: 12,
@@ -101,6 +103,7 @@ describe('character sheet command contracts', () => {
               ability: 'DEXTERITY',
               label: 'Dexterity',
               total: 4,
+              rollMode: 'NORMAL',
               proficiency: 'FULL'
             }
           ],
@@ -111,6 +114,7 @@ describe('character sheet command contracts', () => {
               label: 'Athletics',
               ability: 'STRENGTH',
               total: 4,
+              rollMode: 'NORMAL',
               proficiency: 'DOUBLE'
             }
           ],
@@ -240,6 +244,7 @@ describe('character sheet command contracts', () => {
           facts: [],
           armorClass: 12,
           initiative: 2,
+          initiativeRollMode: 'NORMAL',
           proficiencyBonus: 2,
           currentHitPoints: 8,
           maxHitPoints: 12,
@@ -252,6 +257,7 @@ describe('character sheet command contracts', () => {
               ability: 'DEXTERITY',
               label: 'Dexterity',
               total: 2,
+              rollMode: 'NORMAL',
               proficiency: 'INVALID'
             }
           ],
@@ -466,6 +472,7 @@ describe('character sheet command contracts', () => {
       healingMode: 'MANUAL',
       manualHealingAccepted: true,
       selectedCompanionInstanceIds: ['00000000-0000-4000-8000-000000000002'],
+      rollId: '00000000-0000-4000-8000-000000000003',
       rollEvidence
     } as const
 
@@ -561,7 +568,7 @@ describe('character sheet command contracts', () => {
     expect(characterRestHitDiceRollEvidenceDtoSchema.safeParse(evidence).success).toBe(false)
   })
 
-  it('rejects ambiguous rest preview roll requests and duplicate selections', () => {
+  it('rejects server-side rest rolls and duplicate selections', () => {
     expect(
       characterRestPreviewRequestDtoSchema.safeParse({
         restKind: 'SHORT',

@@ -9,7 +9,8 @@ import { CharacterSheetOverview } from './CharacterSheetOverview'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 
 describe('Character Sheet overview', () => {
-  it('renders the overview as a dense digital sheet scan path', () => {
+  it('renders the overview as a dense digital sheet scan path', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
     sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]
     sheet.reference.features = [
@@ -26,7 +27,7 @@ describe('Character Sheet overview', () => {
       <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />
     )
 
-    expect(screen.getByRole('heading', { name: /^overview$/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: /^overview$/i }).length).toBeGreaterThan(0)
     const abilityStrip = screen.getByRole('region', { name: /ability scores/i })
     expect(within(abilityStrip).getByText('STR')).toBeInTheDocument()
     expect(within(abilityStrip).getByText('DEX')).toBeInTheDocument()
@@ -66,20 +67,10 @@ describe('Character Sheet overview', () => {
     expect(within(sensesSection as HTMLElement).getByText(/passive insight/i)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /equipment summary/i })).not.toBeInTheDocument()
 
-    const attacksSection = screen.getByRole('heading', { name: /^attacks$/i }).closest('section')
-    expect(attacksSection).not.toBeNull()
-    expect(
-      within(attacksSection as HTMLElement).getByText(/no attacks are currently available/i)
-    ).toBeInTheDocument()
-
-    const featuresSection = screen
-      .getByRole('heading', { name: /features & traits/i })
-      .closest('section')
-    expect(featuresSection).not.toBeNull()
-    expect(within(featuresSection as HTMLElement).getByText(/action surge/i)).toBeInTheDocument()
-    expect(
-      within(featuresSection as HTMLElement).getByText(/take one additional action/i)
-    ).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /^actions$/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /features & traits/i }))
+    expect(screen.getByText(/action surge/i)).toBeInTheDocument()
+    expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
 
     expect(screen.queryByRole('heading', { name: /^resources$/i })).not.toBeInTheDocument()
   })
@@ -102,6 +93,30 @@ describe('Character Sheet overview', () => {
         .getAllByRole('img')
         .map((indicator) => indicator.getAttribute('aria-label'))
     ).toEqual(['Not proficient', 'Half proficiency', 'Proficient', 'Expertise'])
+  })
+
+  it('opens only the selected passive check or special sense', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    const openPanel = vi.fn()
+    sheet.reference.senses = [{ senseId: 'darkvision', label: 'Darkvision', value: '60 feet' }]
+
+    renderWithAppProviders(<CharacterSheetOverview openPanel={openPanel} sheet={sheet} />)
+
+    await user.click(screen.getByRole('button', { name: 'Inspect Passive Insight' }))
+    expect(openPanel).toHaveBeenLastCalledWith({
+      kind: 'SENSES',
+      entry: {
+        kind: 'PASSIVE',
+        skillId: sheet.overview.skills.find((skill) => skill.label === 'Insight')?.skillId
+      }
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Inspect Darkvision' }))
+    expect(openPanel).toHaveBeenLastCalledWith({
+      kind: 'SENSES',
+      entry: { kind: 'SENSE', senseId: 'darkvision' }
+    })
   })
 
   it('groups non-duplicative proficiencies and places desktop defenses with combat facts', () => {
@@ -151,8 +166,10 @@ describe('Character Sheet overview', () => {
       .getByRole('heading', { name: /combat facts and hit points/i })
       .closest('section')
     expect(combatSection).not.toBeNull()
-    expect(within(combatSection as HTMLElement).getByText('Defenses')).toBeInTheDocument()
-    expect(within(combatSection as HTMLElement).getByText('Resistances')).toBeInTheDocument()
+    expect(within(combatSection as HTMLElement).queryByText('Defenses')).not.toBeInTheDocument()
+    expect(
+      within(combatSection as HTMLElement).getByRole('button', { name: /manage resistances/i })
+    ).toBeInTheDocument()
     expect(within(combatSection as HTMLElement).getByText('Poison')).toBeInTheDocument()
     expect(within(combatSection as HTMLElement).getByText('Immunities')).toBeInTheDocument()
     expect(within(combatSection as HTMLElement).getByText('Vulnerabilities')).toBeInTheDocument()
@@ -206,16 +223,16 @@ describe('Character Sheet overview', () => {
         />
       )
 
-      expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+      expect(screen.getByRole('tablist')).toBeInTheDocument()
       expect(screen.getAllByText(/^Overview$/).length).toBeGreaterThan(0)
       expect(screen.getByRole('region', { name: /ability scores/i })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: /saving throws/i })).toBeInTheDocument()
-      expect(screen.queryByRole('heading', { name: /^skills$/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /^skills$/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /manage defenses/i })).toBeInTheDocument()
       expect(
         screen.getByRole('button', { name: /manage conditions and exhaustion/i })
       ).toBeInTheDocument()
-      expect(screen.queryByRole('region', { name: /status summary/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('region', { name: /status summary/i })).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: /manage conditions and exhaustion/i }))
       const conditionsDialog = await screen.findByRole('dialog', {
@@ -252,17 +269,24 @@ describe('Character Sheet overview', () => {
       expect(screen.queryByRole('heading', { name: /^resources$/i })).not.toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: /open sheet section menu/i }))
-      expect(screen.queryByRole('button', { name: /history/i })).not.toBeInTheDocument()
+      const sectionMenu = await screen.findByRole('navigation', { name: /sheet sections/i })
+      expect(screen.queryByRole('button', { name: /^history$/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^resources$/i })).not.toBeInTheDocument()
 
-      await user.click(await screen.findByRole('button', { name: /^skills$/i }))
+      await user.click(within(sectionMenu).getByRole('button', { name: /^skills$/i }))
       expect(screen.getAllByRole('heading', { name: /^skills$/i }).length).toBeGreaterThan(0)
 
       await user.click(await screen.findByRole('button', { name: /open sheet section menu/i }))
-      await user.click(await screen.findByRole('button', { name: /equipment/i }))
+      await user.click(
+        within(await screen.findByRole('navigation', { name: /sheet sections/i })).getByRole(
+          'button',
+          { name: /inventory/i }
+        )
+      )
 
-      expect(screen.getAllByText(/^Equipment$/).length).toBeGreaterThan(0)
-      expect(screen.getByRole('heading', { name: /^equipment$/i, level: 1 })).toBeInTheDocument()
+      expect(
+        await screen.findByRole('heading', { name: /^inventory$/i, level: 2 })
+      ).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /containers/i })).toBeInTheDocument()
     } finally {
       restoreViewport()

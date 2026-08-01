@@ -15,11 +15,14 @@ import {
   activateAuthoredDomainInput,
   authoredDomainConfigs,
   createCharacterDraftForUser,
+  clearRollHistoryForUser,
   deleteAuthoredDomainActive,
   discardAuthoredDomainDraft,
   discardCharacterBuilderDraftForUser,
   dispatchCommandForUser,
   duplicateAuthoredDomain,
+  discardRollForUser,
+  executeDiceConfiguration,
   getAuthoredDomain,
   getAuthoredDomainDraft,
   getCharacterBuilderDraftForUser,
@@ -27,8 +30,10 @@ import {
   getCharacterHistoryForUser,
   getCharacterSheetPanelForUser,
   getCharacterSheetForUser,
+  getRollHistoryForUser,
   listAuthoredDomain,
   listCharactersForUser,
+  executeRollForUser,
   normalizeNodeRuntimeValues,
   previewCharacterRestForUser,
   previewCharacterSaveForUser,
@@ -40,6 +45,13 @@ import {
   type AuthoredContentInput,
   type DirectAuthoredDomainConfig
 } from '@artificer-toolkit/functions'
+import {
+  executeDiceConfigurationInputDtoSchema,
+  executeRollInputDtoSchema,
+  rollHistoryResponseDtoSchema,
+  rollRecordDtoSchema,
+  rollResultDtoSchema
+} from '@artificer-toolkit/schema/api/rolls'
 import {
   backgroundAuthoringInputDtoSchema,
   type BackgroundAuthoringInputDto
@@ -655,6 +667,47 @@ export const appRouter = createTRPCRouter({
           characterSheetCommandResponseDtoSchema.parse(
             await dispatchCommandForUser(db, input.id, input.input, userId)
           )
+        )
+      )
+  }),
+
+  rolls: createTRPCRouter({
+    executeConfiguration: authenticatedProcedure
+      .input(executeDiceConfigurationInputDtoSchema)
+      .output(rollResultDtoSchema)
+      .mutation(({ input }) => rollResultDtoSchema.parse(executeDiceConfiguration(input))),
+
+    clearHistory: authenticatedProcedure
+      .output(okResponseSchema)
+      .mutation(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          okResponseSchema.parse(await clearRollHistoryForUser(db, userId))
+        )
+      ),
+
+    discard: authenticatedProcedure
+      .input(idInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          okResponseSchema.parse(await discardRollForUser(db, input.id, userId))
+        )
+      ),
+
+    execute: authenticatedProcedure
+      .input(executeRollInputDtoSchema)
+      .output(rollRecordDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          rollRecordDtoSchema.parse(await executeRollForUser(db, input, userId))
+        )
+      ),
+
+    history: authenticatedProcedure
+      .output(rollHistoryResponseDtoSchema)
+      .query(({ ctx }) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          rollHistoryResponseDtoSchema.parse(await getRollHistoryForUser(db, userId))
         )
       )
   }),

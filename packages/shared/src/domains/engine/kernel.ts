@@ -1,4 +1,9 @@
-import type { EngineCharacterOutput, EngineItemContribution } from './contracts/engineState.js'
+import type {
+  EngineCharacterOutput,
+  EngineItemContribution,
+  EngineRollMode,
+  EngineRollModes
+} from './contracts/engineState.js'
 import type { RulesSystem } from './contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from './registry.js'
 import type { CharacterBuildSnapshot } from './snapshot.js'
@@ -12,6 +17,15 @@ import { resolveSpellSlots } from './resolution/spellSlotResolver.js'
 import { resolveResources } from './resolution/resourceResolver.js'
 import { buildModifierDomainKey } from './resolution/modifierDomainKey.js'
 import { evaluateCharacterFacet } from './prerequisiteEval.js'
+import { ABILITY_CODE } from '../core/ability.js'
+import { ATTACK_DOMAIN_CODE } from '../core/valueDomain.js'
+import {
+  buildSkillSubjectAliasMap,
+  resolveAbilityAlias,
+  resolveSkillAlias
+} from './resolution/derivedStatCalculator.js'
+import { parseModifierDomainKey } from './resolution/modifierDomainKey.js'
+import { SKILL_ABILITY_MAP } from './resolution/skillAbilityMap.js'
 
 /**
  * Resolves a character build snapshot into derived statistics.
@@ -72,6 +86,7 @@ export function runEngine(
     defenses: resolveDefenses(snapshot, accumulated.modifierEntries),
     derivedStats: derived.derivedStats,
     calculations: derived.calculations,
+    rollModes: resolveRollModes(modifierState.values, registry),
     spellState: resolvedSpellGrantState.spellState,
     spellAccess: resolvedSpellGrantState.spellAccess,
     spellSlots,
@@ -79,6 +94,81 @@ export function runEngine(
     ...subjectMechanics,
     activeItemContributions,
     equipmentFeatureChargeUses: accumulated.equipmentFeatureChargeUses
+  }
+}
+
+function resolveRollMode(
+  values: Record<string, number>,
+  matches: (valueDomainCode: string, params: Record<string, string>) => boolean
+): EngineRollMode {
+  let advantage = false
+  let disadvantage = false
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== 1) continue
+    const parsed = parseModifierDomainKey(key)
+    if (!matches(parsed.valueDomainCode, parsed.params)) continue
+    if (parsed.modifierKind === 'ADVANTAGE') advantage = true
+    if (parsed.modifierKind === 'DISADVANTAGE') disadvantage = true
+  }
+  if (advantage === disadvantage) return 'NORMAL'
+  return advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
+}
+
+function resolveRollModes(
+  values: Record<string, number>,
+  registry: CharacterAssemblyRegistry
+): EngineRollModes {
+  const skillAliases = buildSkillSubjectAliasMap(registry)
+  return {
+    initiative: resolveRollMode(values, (domain) => domain === 'INITIATIVE'),
+    abilityChecks: Object.fromEntries(
+      Object.values(ABILITY_CODE).map((ability) => [
+        ability,
+        resolveRollMode(
+          values,
+          (domain, params) =>
+            domain === 'ABILITY_CHECK' &&
+            (!params.ability || resolveAbilityAlias(params.ability) === ability)
+        )
+      ])
+    ) as EngineRollModes['abilityChecks'],
+    savingThrows: Object.fromEntries(
+      Object.values(ABILITY_CODE).map((ability) => [
+        ability,
+        resolveRollMode(
+          values,
+          (domain, params) =>
+            domain === 'SAVING_THROW_MODIFIER' &&
+            params.ability === ability &&
+            !params.conditionTypeId
+        )
+      ])
+    ) as EngineRollModes['savingThrows'],
+    skillChecks: Object.fromEntries(
+      Object.entries(SKILL_ABILITY_MAP).map(([skill, governingAbility]) => {
+        const ability = resolveAbilityAlias(governingAbility)
+        return [
+          skill,
+          resolveRollMode(
+            values,
+            (domain, params) =>
+              (domain === 'ABILITY_CHECK' &&
+                (!params.ability || resolveAbilityAlias(params.ability) === ability)) ||
+              (domain === 'SKILL_MODIFIER' &&
+                resolveSkillAlias(params.skillId ?? '', skillAliases) === skill)
+          )
+        ]
+      })
+    ) as EngineRollModes['skillChecks'],
+    attacks: Object.fromEntries(
+      Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => [
+        attackDomain,
+        resolveRollMode(
+          values,
+          (domain, params) => domain === 'ATTACK_ROLL' && params.attackDomain === attackDomain
+        )
+      ])
+    ) as EngineRollModes['attacks']
   }
 }
 

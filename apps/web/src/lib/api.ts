@@ -113,6 +113,17 @@ import {
   type SystemListResponseDto,
   type SystemResponseDto
 } from '@artificer-toolkit/schema/api/systems'
+import {
+  executeDiceConfigurationInputDtoSchema,
+  rollHistoryResponseDtoSchema,
+  rollRecordDtoSchema,
+  rollResultDtoSchema,
+  type ExecuteDiceConfigurationInputDto,
+  type ExecuteRollInputDto,
+  type RollHistoryResponseDto,
+  type RollRecordDto,
+  type RollResultDto
+} from '@artificer-toolkit/schema/api/rolls'
 import { applySameOriginRequestHeader } from './trpcRequestSecurity'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -179,6 +190,11 @@ export type {
   RouteIdentityBySubjectRequestDto,
   RouteIdentityDto,
   RouteIdentityResolveRequestDto,
+  ExecuteRollInputDto,
+  ExecuteDiceConfigurationInputDto,
+  RollHistoryResponseDto,
+  RollResultDto,
+  RollRecordDto,
   RaceListItemDto,
   RaceListResponseDto,
   RaceResponseDto,
@@ -206,6 +222,10 @@ interface QueryProcedure<TInput, TOutput> {
 
 interface EmptyQueryProcedure<TOutput> {
   query: () => Promise<TOutput>
+}
+
+interface EmptyMutationProcedure<TOutput> {
+  mutate: () => Promise<TOutput>
 }
 
 interface ProcedureRequestOptions {
@@ -365,6 +385,13 @@ interface TrpcClient {
       NodeRuntimeNormalizeValuesResponseDto
     >
     resolve: MutationProcedure<NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto>
+  }
+  rolls: {
+    clearHistory: EmptyMutationProcedure<{ ok: true }>
+    discard: MutationProcedure<IdProcedureInput, { ok: true }>
+    executeConfiguration: MutationProcedure<ExecuteDiceConfigurationInputDto, RollResultDto>
+    execute: MutationProcedure<ExecuteRollInputDto, RollRecordDto>
+    history: EmptyQueryProcedure<RollHistoryResponseDto>
   }
   routeIds: {
     bySubject: QueryProcedure<RouteIdentityBySubjectRequestDto, RouteIdentityDto | null>
@@ -582,6 +609,23 @@ function buildApi(client: TrpcClient) {
         request('characters.upsert', characterBuilderPayloadDtoSchema, () =>
           client.characters.upsert.mutate(input)
         )
+    },
+
+    rolls: {
+      clearHistory: () =>
+        request('rolls.clearHistory', okResponseSchema, () => client.rolls.clearHistory.mutate()),
+      discard: (id: string) =>
+        request('rolls.discard', okResponseSchema, () => client.rolls.discard.mutate({ id })),
+      executeConfiguration: (input: ExecuteDiceConfigurationInputDto) =>
+        request('rolls.executeConfiguration', rollResultDtoSchema, () =>
+          client.rolls.executeConfiguration.mutate(
+            executeDiceConfigurationInputDtoSchema.parse(input)
+          )
+        ),
+      execute: (input: ExecuteRollInputDto) =>
+        request('rolls.execute', rollRecordDtoSchema, () => client.rolls.execute.mutate(input)),
+      history: () =>
+        request('rolls.history', rollHistoryResponseDtoSchema, () => client.rolls.history.query())
     },
 
     content: {

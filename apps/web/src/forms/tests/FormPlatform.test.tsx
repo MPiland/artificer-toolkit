@@ -1335,7 +1335,7 @@ describe('authoring form platform', () => {
       </TestRouterProvider>
     )
 
-    const trigger = screen.getByRole('button', { name: /mechanics/i })
+    const trigger = screen.getByRole('button', { name: /^collapse mechanics$/i })
     const controlledId = trigger.getAttribute('aria-controls')
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
     expect(controlledId).toBeTruthy()

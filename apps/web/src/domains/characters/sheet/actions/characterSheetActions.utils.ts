@@ -75,6 +75,7 @@ export function getPlayableActions(sheet: CharacterSheet): CharacterSheetPlayabl
           label: entry.displayName,
           kind: 'ATTACK' as const,
           sourceLabel: entry.sourceLabel ?? source.label ?? entry.sourceQualifier,
+          mechanics: entry.mechanics,
           playFacts: {
             activation: entry.activationLabel,
             range: entry.rangeLabel,

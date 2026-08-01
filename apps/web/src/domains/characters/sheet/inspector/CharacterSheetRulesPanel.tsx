@@ -82,6 +82,15 @@ export function CharacterSheetRulesPanel({
       case 'SKILLS':
         return { label: 'Available skills', value: String(panel.skills.length) }
       case 'SENSES':
+        if (panel.target.entry?.kind === 'PASSIVE' && panel.passiveChecks[0]) {
+          return { label: 'Effective total', value: String(panel.passiveChecks[0].total) }
+        }
+        if (panel.target.entry?.kind === 'SENSE' && panel.senses[0]) {
+          return {
+            label: 'Effective range',
+            value: `${panel.senses[0].range} ${panel.senses[0].unitLabel}`
+          }
+        }
         return {
           label: 'Available senses',
           value: String(
@@ -156,26 +165,64 @@ export function CharacterSheetRulesPanel({
 
       {panel.kind === 'SENSES' ? (
         <>
-          <section className={inspectorShellStyles.section}>
-            <h3 className={inspectorShellStyles.sectionTitle}>Passive checks</h3>
-            {panel.passiveChecks.length ? (
-              panel.passiveChecks.map((passive) => (
-                <div key={passive.skillId}>
-                  <CharacterSheetCalculationBreakdown calculation={passive.calculation} />
+          {panel.passiveChecks.length || !panel.target.entry ? (
+            <section className={inspectorShellStyles.section}>
+              <h3 className={inspectorShellStyles.sectionTitle}>
+                {panel.target.entry ? 'Calculation' : 'Passive checks'}
+              </h3>
+              {panel.passiveChecks.length ? (
+                panel.passiveChecks.map((passive) => (
+                  <div key={passive.skillId}>
+                    <CharacterSheetCalculationBreakdown calculation={passive.calculation} />
+                    {canCustomize ? (
+                      <CharacterSheetAdjustmentEditor
+                        editor={passive.editor}
+                        pending={pending}
+                        onClear={() => removeAdjustment(passive.editor.adjustmentId, 'PASSIVE')}
+                        onCommit={(commit) =>
+                          submitCommand({
+                            type: 'UPSERT_SHEET_ADJUSTMENT',
+                            expectedVersion,
+                            adjustment: {
+                              ...getSheetAdjustmentMetadata(passive.editor.adjustmentId, commit),
+                              family: 'PASSIVE',
+                              skillId: passive.skillId,
+                              field: 'TOTAL_OVERRIDE',
+                              value: Number(commit.value)
+                            }
+                          })
+                        }
+                      />
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <Text className={inspectorShellStyles.muted}>No passive checks are defined.</Text>
+              )}
+            </section>
+          ) : null}
+          {panel.senses.length || !panel.target.entry ? (
+            <section className={inspectorShellStyles.section}>
+              <h3 className={inspectorShellStyles.sectionTitle}>
+                {panel.target.entry ? 'Calculation' : 'Special senses'}
+              </h3>
+              {panel.senses.map((sense) => (
+                <div key={sense.senseId}>
+                  <CharacterSheetCalculationBreakdown calculation={sense.calculation} />
                   {canCustomize ? (
                     <CharacterSheetAdjustmentEditor
-                      editor={passive.editor}
+                      editor={sense.editor}
                       pending={pending}
-                      onClear={() => removeAdjustment(passive.editor.adjustmentId, 'PASSIVE')}
+                      onClear={() => removeAdjustment(sense.editor.adjustmentId, 'SENSE')}
                       onCommit={(commit) =>
                         submitCommand({
                           type: 'UPSERT_SHEET_ADJUSTMENT',
                           expectedVersion,
                           adjustment: {
-                            ...getSheetAdjustmentMetadata(passive.editor.adjustmentId, commit),
-                            family: 'PASSIVE',
-                            skillId: passive.skillId,
-                            field: 'TOTAL_OVERRIDE',
+                            ...getSheetAdjustmentMetadata(sense.editor.adjustmentId, commit),
+                            family: 'SENSE',
+                            senseId: sense.senseId,
+                            field: 'RANGE_OVERRIDE',
                             value: Number(commit.value)
                           }
                         })
@@ -183,41 +230,9 @@ export function CharacterSheetRulesPanel({
                     />
                   ) : null}
                 </div>
-              ))
-            ) : (
-              <Text className={inspectorShellStyles.muted}>No passive checks are defined.</Text>
-            )}
-          </section>
-          <section className={inspectorShellStyles.section}>
-            <h3 className={inspectorShellStyles.sectionTitle}>Special senses</h3>
-            {panel.senses.map((sense) => (
-              <div key={sense.senseId}>
-                <Text fw={720}>
-                  {sense.label}: {sense.range} {sense.unitLabel}
-                </Text>
-                {canCustomize ? (
-                  <CharacterSheetAdjustmentEditor
-                    editor={sense.editor}
-                    pending={pending}
-                    onClear={() => removeAdjustment(sense.editor.adjustmentId, 'SENSE')}
-                    onCommit={(commit) =>
-                      submitCommand({
-                        type: 'UPSERT_SHEET_ADJUSTMENT',
-                        expectedVersion,
-                        adjustment: {
-                          ...getSheetAdjustmentMetadata(sense.editor.adjustmentId, commit),
-                          family: 'SENSE',
-                          senseId: sense.senseId,
-                          field: 'RANGE_OVERRIDE',
-                          value: Number(commit.value)
-                        }
-                      })
-                    }
-                  />
-                ) : null}
-              </div>
-            ))}
-          </section>
+              ))}
+            </section>
+          ) : null}
         </>
       ) : null}
 

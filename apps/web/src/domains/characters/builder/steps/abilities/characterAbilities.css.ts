@@ -23,6 +23,14 @@ export const abilityAssignmentGrid = style({
   }
 })
 
+export const abilityRollConfiguration = style({
+  '@layer': {
+    [app]: {
+      maxWidth: '320px'
+    }
+  }
+})
+
 export const abilityAssignmentSlot = style({
   '@layer': {
     [app]: {

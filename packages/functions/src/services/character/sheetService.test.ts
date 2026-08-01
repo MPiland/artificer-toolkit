@@ -154,12 +154,13 @@ function createSheet(
       totalLevel: 1
     },
     overview: {
-      abilities: [{ ability: 'DEXTERITY', score: 14, modifier: 2 }],
+      abilities: [{ ability: 'DEXTERITY', score: 14, modifier: 2, rollMode: 'NORMAL' }],
       savingThrows: [],
       skills: [],
       facts: [],
       armorClass: 12,
       initiative: 2,
+      initiativeRollMode: 'NORMAL',
       proficiencyBonus: 2,
       currentHitPoints: 10,
       maxHitPoints: 12,
@@ -884,10 +885,17 @@ describe('character sheet command application', () => {
           ability: 'DEXTERITY',
           label: 'Dexterity',
           total: 4,
-          proficiency: 'FULL'
+          proficiency: 'FULL',
+          rollMode: 'NORMAL'
         }
       ])
     )
+    expect(sheet.overview.abilities).toContainEqual({
+      ability: 'DEXTERITY',
+      score: 14,
+      modifier: 2,
+      rollMode: 'NORMAL'
+    })
   })
 
   it('hydrates engine-derived skill overview rows with vocabulary-id skill matching', async () => {
@@ -912,6 +920,39 @@ describe('character sheet command application', () => {
         level: 'FULL'
       }
     ]
+    fighter.features = [
+      {
+        id: 'athletics-roll-mode',
+        label: 'Athletics Roll Mode',
+        description: 'Tests projected check modes.',
+        order: 1,
+        availableAtLevel: 1,
+        grants: {
+          modifiers: [
+            {
+              id: 'global-ability-advantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'ABILITY_CHECK',
+              modifierKind: 'ADVANTAGE',
+              domain: {},
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 0
+            },
+            {
+              id: 'athletics-disadvantage',
+              grantKind: 'MODIFIER_GRANT',
+              valueDomainCode: 'SKILL_MODIFIER',
+              modifierKind: 'DISADVANTAGE',
+              domain: { skillId: athleticsSkillId },
+              scope: 'GLOBAL',
+              selectionKind: 'GRANTED',
+              order: 1
+            }
+          ]
+        }
+      }
+    ]
     resolution.registry.classes = [fighter]
     resolution.registry.system = createSystem({
       skills: [
@@ -929,7 +970,7 @@ describe('character sheet command application', () => {
     character.intent.featureAcquisitions = [
       {
         id: 'feature-acquisition-1',
-        featureId: 'fighter-training',
+        featureId: 'athletics-roll-mode',
         source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 },
         timing: { kind: 'IMMEDIATE' }
       }
@@ -951,10 +992,17 @@ describe('character sheet command application', () => {
           label: 'Athletics',
           ability: 'STRENGTH',
           total: 4,
+          rollMode: 'NORMAL',
           proficiency: 'FULL'
         }
       ])
     )
+    expect(sheet.overview.abilities).toContainEqual({
+      ability: 'STRENGTH',
+      score: 14,
+      modifier: 2,
+      rollMode: 'ADVANTAGE'
+    })
   })
 
   it('projects passive sense facts from resolved skill totals', async () => {
