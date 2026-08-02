@@ -640,6 +640,20 @@ const modifierGrantVariants = [
  * `modifierKind`. We keep the schema explicit here so later API and seed data
  * validation catches drift early instead of accepting opaque objects.
  */
-export const modifierGrantDtoSchema = z.union(modifierGrantVariants)
+export const modifierGrantDtoSchema = z.union(modifierGrantVariants).superRefine((value, ctx) => {
+  if (!value.modifierKind.includes('BONUS')) return
+  const payload: unknown = value.payload
+  if (typeof payload !== 'object' || payload === null) return
+
+  for (const field of ['amount', 'multiplier', 'min', 'max'] as const) {
+    const candidate = (payload as Record<string, unknown>)[field]
+    if (typeof candidate !== 'number' || candidate >= 0) continue
+    ctx.addIssue({
+      code: 'custom',
+      message: `${field} must be greater than or equal to 0 for bonus modifiers`,
+      path: ['payload', field]
+    })
+  }
+})
 
 export type ModifierGrantDto = z.infer<typeof modifierGrantDtoSchema>

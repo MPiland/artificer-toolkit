@@ -85,19 +85,22 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define(
       .set(
         'min',
         number(['min'], 'Min Amount', {
-          order: 3
+          order: 3,
+          constraints: { minimum: 0 }
         })
       )
       .set(
         'max',
         number(['max'], 'Max Amount', {
-          order: 3
+          order: 3,
+          constraints: { minimum: 0 }
         })
       )
       .set(
         'multiplier',
         number(['multiplier'], 'Multiplier', {
-          order: 4
+          order: 4,
+          constraints: { minimum: 0 }
         })
       )
       .set(
@@ -157,6 +160,7 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
       'fixedAmount',
       number(['amount'], 'Amount', {
         order: 3,
+        constraints: { minimum: 0 },
         requiredIf: true,
         showIf: local.field(['valueKind']).eq('FIXED')
       })
@@ -173,6 +177,7 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
       'poolAmount',
       number(['amount'], 'Pool Amount', {
         order: 3,
+        constraints: { minimum: 0 },
         requiredIf: true,
         showIf: local.field(['valueKind']).eq('POOL')
       })
@@ -198,7 +203,8 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
     .set(
       'multiplier',
       number(['multiplier'], 'Damage Multiplier', {
-        order: 5
+        order: 5,
+        constraints: { minimum: 0 }
       })
     )
     .set(
@@ -238,6 +244,7 @@ export const DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP = damageLevelScalingEntry.defin
         'amount',
         number(['amount'], 'Damage Amount', {
           order: 2,
+          constraints: { minimum: 0 },
           requiredIf: true,
           showIf: parent.field(['valueKind']).eq('FIXED')
         })

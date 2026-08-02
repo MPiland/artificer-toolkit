@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredNonnegativeNumberSchema
+} from './authoredLimits.js'
 
 const savingThrowDcBonusDtoSchema = z.union([
   z
@@ -19,7 +23,7 @@ const savingThrowDcBonusDtoSchema = z.union([
     .object({
       id: authoredIdentifierSchema,
       bonusKind: z.literal('STATIC_BONUS'),
-      amount: z.number().int()
+      amount: authoredNonnegativeNumberSchema.int()
     })
     .strict()
 ])

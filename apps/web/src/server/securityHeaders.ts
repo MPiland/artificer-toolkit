@@ -14,6 +14,7 @@ function getScriptSrc(nonce?: string) {
   return [
     "script-src 'self'",
     nonce ? `'nonce-${nonce}'` : null,
+    "'wasm-unsafe-eval'",
     isDevelopment() ? "'unsafe-eval'" : null
   ]
     .filter(Boolean)

@@ -8,6 +8,7 @@ directory = "/netlify/functions"
 [[redirects]]
 from = "/api/trpc/*"
 to = "/api/trpc/:splat"
+status = 200
 
 [redirects.rate_limit]
 window_limit = 60

@@ -83,9 +83,9 @@ export const OUTCOME_BONUS_NODE_MAP = outcomeBonus.define(
           }
         )
       )
-      .set('min', number(['min'], 'Min Amount'))
-      .set('max', number(['max'], 'Max Amount'))
-      .set('multiplier', number(['multiplier'], 'Multiplier'))
+      .set('min', number(['min'], 'Min Amount', { constraints: { minimum: 0 } }))
+      .set('max', number(['max'], 'Max Amount', { constraints: { minimum: 0 } }))
+      .set('multiplier', number(['multiplier'], 'Multiplier', { constraints: { minimum: 0 } }))
       .set(
         'order',
         number(['order'], 'Order', {

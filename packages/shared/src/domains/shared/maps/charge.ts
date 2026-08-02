@@ -71,18 +71,21 @@ const CHARGE_BONUS_NODE_MAP = chargeBonus.define('chargeBonus', ({ map, nodes, c
     .set(
       'min',
       number(['min'], 'Min. Amount', {
+        constraints: { minimum: 0 },
         order: 3
       })
     )
     .set(
       'max',
       number(['max'], 'Max. Amount', {
+        constraints: { minimum: 0 },
         order: 3
       })
     )
     .set(
       'multiplier',
       number(['multiplier'], 'Multiplier', {
+        constraints: { minimum: 0 },
         order: 3
       })
     )
@@ -121,9 +124,7 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
   const { selectSingle, groupArray, number } = nodes
   const { or, and, not } = logic
   const local = cond.local()
-  const isSourceCharges = local
-    .field(['limitKind'])
-    .eq(CHARGE_LIMIT_KIND.SOURCE_CHARGES)
+  const isSourceCharges = local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.SOURCE_CHARGES)
   const always = not(and([isSourceCharges, not(isSourceCharges)]))
   const hasChargeSource = or(
     [2, 3, 4, 5, 6].map((up) => {

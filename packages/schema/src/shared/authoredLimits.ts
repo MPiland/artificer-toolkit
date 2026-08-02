@@ -6,6 +6,7 @@ export { AUTHORED_LIMITS }
 export const authoredIdentifierSchema = z.string().max(AUTHORED_LIMITS.shortTextCharacters)
 export const authoredShortTextSchema = z.string().max(AUTHORED_LIMITS.shortTextCharacters)
 export const authoredPlainTextSchema = z.string().max(AUTHORED_LIMITS.plainTextCharacters)
+export const authoredNonnegativeNumberSchema = z.number().nonnegative()
 export const authoredRichTextSchema = z
   .string()
   .max(AUTHORED_LIMITS.richTextSerializedCharacters)

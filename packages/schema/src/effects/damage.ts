@@ -8,7 +8,8 @@ import {
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 import {
   authoredIdentifierSchema,
-  authoredNestedCollectionSchema
+  authoredNestedCollectionSchema,
+  authoredNonnegativeNumberSchema
 } from '../shared/authoredLimits.js'
 
 export const damageBonusDtoSchema = z.union([
@@ -16,33 +17,33 @@ export const damageBonusDtoSchema = z.union([
     id: authoredIdentifierSchema,
     bonusKind: z.literal('ABILITY_BONUS'),
     ability: abilityModifierReferenceSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('SKILL_BONUS'),
     skillId: authoredIdentifierSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   })
 ])
 
 const damageFixedDtoSchema = z.union([
   z.object({
-    amount: z.number(),
+    amount: authoredNonnegativeNumberSchema,
     valueKind: z.literal('FIXED'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
@@ -52,7 +53,7 @@ const damageFixedDtoSchema = z.union([
       scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
       levels: authoredNestedCollectionSchema(
         levelScaledValueLevelDtoSchema.extend({
-          amount: z.number()
+          amount: authoredNonnegativeNumberSchema
         })
       ),
       scalingSource: scalingSourceSchema,
@@ -73,7 +74,7 @@ const damageFixedDtoSchema = z.union([
       breakpoints: authoredNestedCollectionSchema(
         levelScaledValueLevelDtoSchema.extend({
           value: z.object({
-            amount: z.number()
+            amount: authoredNonnegativeNumberSchema
           })
         })
       ),
@@ -142,7 +143,7 @@ const damageDiceDtoSchema = z.union([
 
 const damagePoolDtoSchema = z.union([
   z.object({
-    amount: z.number(),
+    amount: authoredNonnegativeNumberSchema,
     valueKind: z.literal('POOL'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
@@ -152,10 +153,10 @@ const damagePoolDtoSchema = z.union([
       scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
       scalingSource: scalingSourceSchema,
       classId: authoredIdentifierSchema.optional(),
-      amount: z.number().optional(),
-      multiplier: z.number().optional(),
-      min: z.number().optional(),
-      max: z.number().optional()
+      amount: authoredNonnegativeNumberSchema.optional(),
+      multiplier: authoredNonnegativeNumberSchema.optional(),
+      min: authoredNonnegativeNumberSchema.optional(),
+      max: authoredNonnegativeNumberSchema.optional()
     })
     .superRefine((value, ctx) => {
       if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
@@ -174,7 +175,7 @@ export const damageDtoSchema = z
     damageTypeId: authoredIdentifierSchema,
     bonuses: authoredNestedCollectionSchema(damageBonusDtoSchema).optional(),
     amountKind: scalingAmountKindSchema.optional(),
-    multiplier: z.number().optional()
+    multiplier: authoredNonnegativeNumberSchema.optional()
   })
   .and(z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema]))
 

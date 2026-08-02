@@ -19,6 +19,11 @@ import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 import { vehicleAuthoredDtoSchema } from '../subjects/vehicle.js'
 import { facetDtoSchema } from '../shared/facet.js'
+import { chargeBonusDtoSchema } from '../shared/charge.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
+import { damageBonusDtoSchema, damageDtoSchema } from '../effects/damage.js'
+import { healDtoSchema } from '../effects/heal.js'
+import { modifierGrantDtoSchema } from '../grants/modifier.js'
 
 const serializedRichText =
   '<b></b>'.repeat(Math.floor(AUTHORED_LIMITS.richTextSerializedCharacters / 7)) +
@@ -259,6 +264,166 @@ describe('authored input limits', () => {
         `< ${'x'.repeat(AUTHORED_LIMITS.richTextVisibleCharacters)} >`
       ).success
     ).toBe(false)
+  })
+})
+
+describe('authored nonnegative magnitudes', () => {
+  it.each([
+    ['fixed damage', (amount: number) => ({ amount, valueKind: 'FIXED', scalingKind: 'NONE' })],
+    ['pool damage', (amount: number) => ({ amount, valueKind: 'POOL', scalingKind: 'NONE' })],
+    [
+      'per-level damage',
+      (amount: number) => ({
+        valueKind: 'FIXED',
+        scalingKind: 'PER_LEVEL',
+        scalingSource: 'CHARACTER_LEVEL',
+        levels: [{ id: 'level-1', level: 1, order: 1, amount }]
+      })
+    ],
+    [
+      'breakpoint damage',
+      (amount: number) => ({
+        valueKind: 'FIXED',
+        scalingKind: 'BREAKPOINTS',
+        scalingSource: 'CHARACTER_LEVEL',
+        breakpoints: [{ id: 'level-1', level: 1, order: 1, value: { amount } }]
+      })
+    ]
+  ])('%s rejects negative amounts and accepts zero', (_name, payload) => {
+    const base = { id: 'damage-1', effectKind: 'DAMAGE', damageTypeId: 'fire' }
+    expect(damageDtoSchema.safeParse({ ...base, ...payload(-1) }).success).toBe(false)
+    expect(damageDtoSchema.safeParse({ ...base, ...payload(0) }).success).toBe(true)
+  })
+
+  it.each(['min', 'max', 'multiplier'] as const)(
+    'rejects negative damage bonus %s values and accepts zero',
+    (field) => {
+      const base = {
+        id: 'damage-bonus-1',
+        bonusKind: 'PROFICIENCY_BONUS',
+        order: 1
+      }
+      expect(damageBonusDtoSchema.safeParse({ ...base, [field]: -1 }).success).toBe(false)
+      expect(damageBonusDtoSchema.safeParse({ ...base, [field]: 0 }).success).toBe(true)
+    }
+  )
+
+  it.each(['amount', 'multiplier', 'min', 'max'] as const)(
+    'rejects negative pool-damage %s values and accepts zero',
+    (field) => {
+      const payload = (value: number) => ({
+        id: 'damage-1',
+        effectKind: 'DAMAGE',
+        damageTypeId: 'fire',
+        valueKind: 'POOL',
+        scalingKind: 'PER_LEVEL',
+        scalingSource: 'CHARACTER_LEVEL',
+        [field]: value
+      })
+      expect(damageDtoSchema.safeParse(payload(-1)).success).toBe(false)
+      expect(damageDtoSchema.safeParse(payload(0)).success).toBe(true)
+    }
+  )
+
+  it('rejects negative fixed-damage multipliers', () => {
+    const payload = (multiplier: number) => ({
+      id: 'damage-1',
+      effectKind: 'DAMAGE',
+      damageTypeId: 'fire',
+      amount: 1,
+      valueKind: 'FIXED',
+      scalingKind: 'NONE',
+      multiplier
+    })
+    expect(damageDtoSchema.safeParse(payload(-1)).success).toBe(false)
+    expect(damageDtoSchema.safeParse(payload(0)).success).toBe(true)
+  })
+
+  it.each(['min', 'max', 'multiplier'] as const)(
+    'rejects negative healing and charge bonus %s values and accepts zero',
+    (field) => {
+      const healPayload = (value: number) => ({
+        id: 'heal-1',
+        effectKind: 'HEAL',
+        amount: 1,
+        valueKind: 'FIXED',
+        scalingKind: 'NONE',
+        bonuses: [{ id: 'heal-bonus-1', bonusKind: 'PROFICIENCY_BONUS', order: 1, [field]: value }]
+      })
+      const chargePayload = (value: number) => ({
+        id: 'charge-bonus-1',
+        bonusKind: 'PROFICIENCY_BONUS',
+        order: 1,
+        [field]: value
+      })
+
+      expect(healDtoSchema.safeParse(healPayload(-1)).success).toBe(false)
+      expect(healDtoSchema.safeParse(healPayload(0)).success).toBe(true)
+      expect(chargeBonusDtoSchema.safeParse(chargePayload(-1)).success).toBe(false)
+      expect(chargeBonusDtoSchema.safeParse(chargePayload(0)).success).toBe(true)
+    }
+  )
+
+  it('rejects negative static saving-throw bonuses', () => {
+    const payload = (amount: number) => ({
+      id: 'save-1',
+      dcMethod: 'FIXED_DC',
+      ability: 'DEXTERITY',
+      baseDc: 10,
+      bonuses: [{ id: 'save-bonus-1', bonusKind: 'STATIC_BONUS', amount }]
+    })
+    expect(savingThrowDtoSchema.safeParse(payload(-1)).success).toBe(false)
+    expect(savingThrowDtoSchema.safeParse(payload(0)).success).toBe(true)
+  })
+
+  it('rejects negative bonus magnitudes while preserving signed penalties', () => {
+    const payload = (
+      modifierKind: 'BONUS' | 'PENALTY',
+      value: { amount?: number; multiplier?: number; valueKind: 'FIXED' | 'PROFICIENCY_BONUS' }
+    ) => ({
+      grantKind: 'MODIFIER_GRANT',
+      id: `${modifierKind.toLowerCase()}-1`,
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'ARMOR_CLASS',
+      domain: {},
+      modifierKind,
+      scope: 'GLOBAL',
+      payload: value
+    })
+    expect(
+      modifierGrantDtoSchema.safeParse(payload('BONUS', { valueKind: 'FIXED', amount: -1 })).success
+    ).toBe(false)
+    expect(
+      modifierGrantDtoSchema.safeParse(
+        payload('BONUS', { valueKind: 'PROFICIENCY_BONUS', multiplier: -1 })
+      ).success
+    ).toBe(false)
+    expect(
+      modifierGrantDtoSchema.safeParse(payload('BONUS', { valueKind: 'FIXED', amount: 0 })).success
+    ).toBe(true)
+    expect(
+      modifierGrantDtoSchema.safeParse(payload('PENALTY', { valueKind: 'FIXED', amount: -1 }))
+        .success
+    ).toBe(true)
+  })
+
+  it('rejects negative equipment maximum bonuses', () => {
+    const payload = (maxBonus: number) => ({
+      kind: 'EQUIPMENT',
+      id: 'equipment-1',
+      label: 'Equipment',
+      description: null,
+      rarityId: 'common',
+      userId: 'user-1',
+      systemId: 'system-1',
+      weight: { amount: 1, unit: 'POUNDS' },
+      properties: [],
+      category: 'ADVENTURING_GEAR',
+      maxBonus
+    })
+    expect(equipmentAuthoredDtoSchema.safeParse(payload(-1)).success).toBe(false)
+    expect(equipmentAuthoredDtoSchema.safeParse(payload(0)).success).toBe(true)
   })
 })
 

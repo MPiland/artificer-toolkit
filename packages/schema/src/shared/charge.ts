@@ -6,33 +6,37 @@ import {
   chargeResetKindSchema,
   scalingKindSchema
 } from './enums.js'
-import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredNonnegativeNumberSchema
+} from './authoredLimits.js'
 
 export const chargeBonusDtoSchema = z.union([
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal(chargeBonusKindSchema.enum.ABILITY_MODIFIER),
     ability: abilityCodeSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('SKILL_BONUS'),
     skillId: authoredIdentifierSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   })
 ])

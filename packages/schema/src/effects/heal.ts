@@ -7,7 +7,8 @@ import {
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 import {
   authoredIdentifierSchema,
-  authoredNestedCollectionSchema
+  authoredNestedCollectionSchema,
+  authoredNonnegativeNumberSchema
 } from '../shared/authoredLimits.js'
 
 const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
@@ -15,26 +16,26 @@ const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
     id: authoredIdentifierSchema,
     bonusKind: z.literal('ABILITY_BONUS'),
     ability: abilityModifierReferenceSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('PROFICIENCY_BONUS'),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   }),
   z.object({
     id: authoredIdentifierSchema,
     bonusKind: z.literal('CLASS_LEVEL'),
     classId: authoredIdentifierSchema,
-    min: z.number().optional(),
-    max: z.number().optional(),
-    multiplier: z.number().optional(),
+    min: authoredNonnegativeNumberSchema.optional(),
+    max: authoredNonnegativeNumberSchema.optional(),
+    multiplier: authoredNonnegativeNumberSchema.optional(),
     order: z.number().int()
   })
 ])

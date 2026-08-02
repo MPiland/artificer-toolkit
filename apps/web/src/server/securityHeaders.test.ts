@@ -94,14 +94,16 @@ describe('security headers', () => {
         'Content-Security-Policy'
       ]
 
-      expect(developmentCsp).toContain("script-src 'self' 'nonce-test-nonce' 'unsafe-eval'")
+      expect(developmentCsp).toContain(
+        "script-src 'self' 'nonce-test-nonce' 'wasm-unsafe-eval' 'unsafe-eval'"
+      )
 
       process.env.NODE_ENV = 'production'
       const productionCsp = createSecurityHeaders({ nonce: 'test-nonce' })[
         'Content-Security-Policy'
       ]
 
-      expect(productionCsp).toContain("script-src 'self' 'nonce-test-nonce'")
+      expect(productionCsp).toContain("script-src 'self' 'nonce-test-nonce' 'wasm-unsafe-eval'")
       expect(productionCsp).not.toContain("'unsafe-eval'")
       expect(productionCsp).toContain("style-src 'self' 'unsafe-inline'")
     } finally {

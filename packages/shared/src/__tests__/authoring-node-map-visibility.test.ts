@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { CHARGE_LIMIT_KIND, EFFECT_KIND } from '#core'
-import { CHARGE_NODE_MAP, PATH_NODE_MAP, PROFICIENCY_NODE_MAP } from '#maps'
+import {
+  CHARGE_NODE_MAP,
+  MODIFIER_GRANT_NODE_MAP,
+  PATH_NODE_MAP,
+  PROFICIENCY_NODE_MAP
+} from '#maps'
 import { evaluateConditionIf, type ConditionIfExpr } from '#utils'
 
 describe('authoring node map visibility', () => {
@@ -112,10 +117,7 @@ describe('authoring node map visibility', () => {
       .filter((group) =>
         evaluateConditionIf(group.showIf, {
           values: {},
-          ancestors: [
-            { id: 'feature' },
-            { attributes: ['LIMITED_USE'] }
-          ]
+          ancestors: [{ id: 'feature' }, { attributes: ['LIMITED_USE'] }]
         })
       )
       .flatMap((group) => group.options)
@@ -126,7 +128,7 @@ describe('authoring node map visibility', () => {
     expect(isVisible(resetKindNode, { limitKind: 'SOURCE_CHARGES' })).toBe(false)
   })
 
-  it('exposes damage multipliers for every value kind and heal multipliers only for pools', () => {
+  it('exposes nonnegative damage multipliers and heal multipliers only for pools', () => {
     const resultBlockNode = PATH_NODE_MAP.nodes.resultBlock
 
     if (!resultBlockNode || resultBlockNode.kind !== 'GROUP') {
@@ -143,31 +145,68 @@ describe('authoring node map visibility', () => {
 
     const outcomeMap =
       typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
-    const multiplierNode = outcomeMap.nodes.multiplier
+    const damageMultiplierNode = outcomeMap.nodes.damageMultiplier
+    const healMultiplierNode = outcomeMap.nodes.multiplier
 
     for (const valueKind of ['FIXED', 'DICE', 'POOL']) {
       expect(
-        isVisible(multiplierNode, {
+        isVisible(damageMultiplierNode, {
           effectKind: EFFECT_KIND.DAMAGE,
           valueKind
         })
       ).toBe(true)
     }
+    expectNumberMinimum(damageMultiplierNode, 0)
     expect(
-      isVisible(multiplierNode, {
+      isVisible(healMultiplierNode, {
         effectKind: EFFECT_KIND.HEAL,
         valueKind: 'POOL'
       })
     ).toBe(true)
     expect(
-      isVisible(multiplierNode, {
+      isVisible(healMultiplierNode, {
         effectKind: EFFECT_KIND.HEAL,
         valueKind: 'FIXED'
       })
     ).toBe(false)
   })
+
+  it('mirrors nonnegative bonus controls without constraining penalties', () => {
+    const payloadNode = MODIFIER_GRANT_NODE_MAP.nodes.payload
+
+    if (!payloadNode || payloadNode.kind !== 'GROUP') {
+      throw new Error('Expected modifier payload to be a group node')
+    }
+
+    const payloadMap =
+      typeof payloadNode.nodes === 'function' ? payloadNode.nodes() : payloadNode.nodes
+
+    expectNumberMinimum(payloadMap.nodes.bonusAmount, 0)
+    expectNumberMinimum(payloadMap.nodes.bonusMultiplier, 0)
+    expectNumberMinimum(payloadMap.nodes.bonusMin, 0)
+    expectNumberMinimum(payloadMap.nodes.bonusMax, 0)
+    expectNumberMinimum(payloadMap.nodes.amount, undefined)
+    expectNumberMinimum(payloadMap.nodes.multiplier, undefined)
+  })
 })
 
 function isVisible(node: { showIf?: ConditionIfExpr }, values: Record<string, unknown>) {
   return node.showIf ? evaluateConditionIf(node.showIf, { values }) : true
+}
+
+function expectNumberMinimum(
+  node:
+    | {
+        kind: string
+        type?: string
+        constraints?: { minimum?: number }
+      }
+    | undefined,
+  minimum: number | undefined
+) {
+  if (!node || node.kind !== 'INPUT' || node.type !== 'NUMBER') {
+    throw new Error('Expected a number input node')
+  }
+
+  expect(node.constraints?.minimum).toBe(minimum)
 }
