@@ -28,6 +28,7 @@ import {
 import { Shell, platformNavigation } from '#app/shell'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { wideField } from '../rendering/FormRenderer.css'
+import { getRequiredValidators } from '../rendering/FormRenderer.utils'
 import { Item as AuthoringRailItem } from '../layout/Steps/Item/Item'
 import { withStaticResolvedScopes } from './withStaticResolvedScopes'
 
@@ -836,6 +837,10 @@ const TestFormContent = withForm({
 })
 
 describe('authoring form platform', () => {
+  it('accepts cantrip zero in required numeric selects', () => {
+    expect(getRequiredValidators('SELECT_NUMBER', 'Level').onSubmit({ value: 0 })).toBeUndefined()
+  })
+
   it('renders visible resolved fields and skips hidden fields', () => {
     render(
       <TestRouterProvider>
@@ -1112,6 +1117,25 @@ describe('authoring form platform', () => {
     expect(screen.getByRole('button', { name: /^on save failure$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /add range override/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove range override/i })).not.toBeInTheDocument()
+  })
+
+  it('returns to the empty effects overview after removing the active effect', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TestRouterProvider>
+        <TestForm model={effectResolvedModel} />
+      </TestRouterProvider>
+    )
+
+    await user.click(getFormContent().getByRole('button', { name: /^open activated$/i }))
+    await user.click(screen.getByRole('button', { name: /^remove activated$/i }))
+
+    expect(await screen.findByText('No effects added yet.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^add effect$/i })).toBeInTheDocument()
+    const actionBar = within(screen.getByTestId('authoring-action-bar'))
+    expect(actionBar.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+    expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
   })
 
   it('shows absent charges and empty restrictions as add actions only', () => {

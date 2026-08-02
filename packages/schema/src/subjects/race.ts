@@ -2,18 +2,26 @@ import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared/core'
 import { z } from 'zod'
 
 import { raceAncestryDtoSchema } from './shared.js'
-import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema,
+  detailDtoSchema,
+  speedDtoSchema
+} from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { authoredRecordStatusSchema, sizeCodeSchema } from '../shared/enums.js'
 
 const raceBaseDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  quote: z.string().optional(),
-  description: z.string().optional(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  quote: authoredRichTextSchema.optional(),
+  description: authoredRichTextSchema.optional(),
   status: authoredRecordStatusSchema.optional(),
-  userId: z.string(),
-  systemId: z.string()
+  userId: authoredIdentifierSchema,
+  systemId: authoredIdentifierSchema
 })
 
 const baseRaceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
@@ -23,18 +31,18 @@ const baseRaceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
     z.literal(RACE_SELECTION_MODE.REQUIRES_SUBRACE)
   ]),
   ancestry: raceAncestryDtoSchema.optional(),
-  heritageIds: z.array(z.string()).optional(),
-  details: z.array(detailDtoSchema).optional(),
-  features: z.array(featureDtoSchema).optional(),
+  heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
   size: sizeCodeSchema,
-  speeds: z.array(speedDtoSchema)
+  speeds: authoredNestedCollectionSchema(speedDtoSchema)
 })
 
 const subraceAuthoredDtoSchemaInternal = raceBaseDtoSchema.extend({
   category: z.literal('SUBRACE'),
-  parentRaceId: z.string(),
-  details: z.array(detailDtoSchema).optional(),
-  features: z.array(featureDtoSchema).optional()
+  parentRaceId: authoredIdentifierSchema,
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  features: authoredNestedCollectionSchema(featureDtoSchema).optional()
 })
 
 export const baseRaceAuthoredDtoSchema: typeof baseRaceAuthoredDtoSchemaInternal =
@@ -52,10 +60,10 @@ export const raceAuthoredDtoSchema: z.ZodType<RaceAuthoredDto> = z.discriminated
 ])
 
 const baseRaceAuthoringInputDtoSchemaInternal = baseRaceAuthoredDtoSchema.extend({
-  userId: z.string().optional()
+  userId: authoredIdentifierSchema.optional()
 })
 const subraceAuthoringInputDtoSchemaInternal = subraceAuthoredDtoSchema.extend({
-  userId: z.string().optional()
+  userId: authoredIdentifierSchema.optional()
 })
 
 export const baseRaceAuthoringInputDtoSchema: typeof baseRaceAuthoringInputDtoSchemaInternal =

@@ -1,28 +1,35 @@
 import { z } from 'zod'
 
-import { detailDtoSchema, startingEquipmentDtoSchema } from '../shared/index.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema,
+  detailDtoSchema,
+  startingEquipmentDtoSchema
+} from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'
 
 export const backgroundAuthoredDtoSchema = z.object({
   kind: z.literal('BACKGROUND'),
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema.optional(),
   status: authoredRecordStatusSchema.optional(),
-  details: z.array(detailDtoSchema).optional(),
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
   startingEquipment: startingEquipmentDtoSchema.optional(),
-  proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
-  features: z.array(featureDtoSchema).optional(),
-  userId: z.string(),
-  systemId: z.string()
+  proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema).optional(),
+  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
+  userId: authoredIdentifierSchema,
+  systemId: authoredIdentifierSchema
 })
 
 export type BackgroundAuthoredDto = z.infer<typeof backgroundAuthoredDtoSchema>
 
 export const backgroundAuthoringInputDtoSchema = backgroundAuthoredDtoSchema.extend({
-  userId: z.string().optional()
+  userId: authoredIdentifierSchema.optional()
 })
 
 export type BackgroundAuthoringInputDto = z.infer<typeof backgroundAuthoringInputDtoSchema>

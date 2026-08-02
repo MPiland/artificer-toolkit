@@ -3,9 +3,16 @@ import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
 import { measurementUnitCodeSchema } from '../shared/enums.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredPlainTextSchema,
+  authoredReferenceCollectionSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
 
 const speedDtoSchema = z.object({
-  speedId: z.string(),
+  speedId: authoredIdentifierSchema,
   amount: z.number(),
   unit: measurementUnitCodeSchema
 })
@@ -20,18 +27,18 @@ const summonAbilityScoresDtoSchema = z.object({
 })
 
 const summonStatBlockDtoSchema = z.object({
-  size: z.string().optional(),
+  size: authoredIdentifierSchema.optional(),
   armorClass: numericExprSchema.optional(),
-  armorClassNote: z.string().optional(),
+  armorClassNote: authoredPlainTextSchema.optional(),
   hitPoints: numericExprSchema.optional(),
-  speeds: z.array(speedDtoSchema).optional(),
+  speeds: authoredNestedCollectionSchema(speedDtoSchema).optional(),
   abilityScores: summonAbilityScoresDtoSchema.optional(),
-  senses: z.array(z.string()).optional(),
+  senses: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
   passivePerception: numericExprSchema.optional(),
-  damageVulnerabilities: z.array(z.string()).optional(),
-  damageResistances: z.array(z.string()).optional(),
-  damageImmunities: z.array(z.string()).optional(),
-  conditionImmunities: z.array(z.string()).optional(),
+  damageVulnerabilities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
+  damageResistances: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
+  damageImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
+  conditionImmunities: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
   damageabilityKind: z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL']).optional(),
   visibilityKind: z.enum(['VISIBLE', 'INVISIBLE', 'SPECIAL']).optional(),
   occupiesSpace: z.boolean().optional()
@@ -39,25 +46,25 @@ const summonStatBlockDtoSchema = z.object({
 
 export const manifestDtoSchema: z.ZodTypeAny = z.lazy(() => {
   const baseSchema = z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     effectKind: z.literal('MANIFEST'),
-    label: z.string().optional(),
+    label: authoredShortTextSchema.optional(),
     shape: shapeDtoSchema.optional()
   })
 
   return z.discriminatedUnion('manifestKind', [
     baseSchema.extend({
       manifestKind: z.literal('CREATURE'),
-      creatureId: z.string().optional()
+      creatureId: authoredIdentifierSchema.optional()
     }),
     baseSchema.extend({
       manifestKind: z.literal('SUMMON'),
       statBlock: summonStatBlockDtoSchema.optional(),
-      behaviors: z.array(manifestNestedBehaviorDtoSchema).optional()
+      behaviors: authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema).optional()
     }),
     baseSchema.extend({
       manifestKind: z.enum(['ZONE', 'SENSOR', 'WEAPON', 'OBJECT', 'ILLUSION']),
-      behaviors: z.array(manifestNestedBehaviorDtoSchema).optional()
+      behaviors: authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema).optional()
     })
   ])
 })

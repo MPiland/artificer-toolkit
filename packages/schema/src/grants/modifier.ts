@@ -2,6 +2,11 @@ import { z } from 'zod'
 
 import { staticGrantBaseDtoSchema } from './grant.js'
 import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema
+} from '../shared/authoredLimits.js'
+import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
   durationKindSchema,
@@ -31,19 +36,19 @@ const abilityCheckParamDtoSchema = z.object({
 
 const savingThrowParamDtoSchema = z.object({
   ability: abilityCodeSchema,
-  conditionTypeId: z.string().optional()
+  conditionTypeId: authoredIdentifierSchema.optional()
 })
 
 const skillParamDtoSchema = z.object({
-  skillId: z.string()
+  skillId: authoredIdentifierSchema
 })
 
 const speedParamDtoSchema = z.object({
-  speedId: z.string()
+  speedId: authoredIdentifierSchema
 })
 
 const senseParamDtoSchema = z.object({
-  senseCode: z.string()
+  senseCode: authoredIdentifierSchema
 })
 
 const spellLevelParamDtoSchema = z.object({
@@ -61,7 +66,7 @@ const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
   }),
   z.object({
     valueKind: z.literal(modifierValueKindSchema.enum.SKILL_BONUS),
-    skillId: z.string(),
+    skillId: authoredIdentifierSchema,
     multiplier: z.number().optional()
   }),
   z.object({
@@ -70,7 +75,7 @@ const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
   }),
   z.object({
     valueKind: z.literal(modifierValueKindSchema.enum.CLASS_LEVEL),
-    classId: z.string(),
+    classId: authoredIdentifierSchema,
     multiplier: z.number().optional()
   }),
   z.object({
@@ -87,7 +92,7 @@ const abilityModifierBonusPayloadDtoSchema = z.object({
 })
 
 const chargeLimitLevelDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   level: z.number().int(),
   amount: z.number()
 })
@@ -102,7 +107,7 @@ const modifyChargeLimitPayloadDtoSchema = z.union([
         chargeLimitKindSchema.enum.SPELL_CAST_LEVEL
       ]),
       scalingKind: z.literal(scalingKindSchema.enum.NONE),
-      classId: z.string().optional(),
+      classId: authoredIdentifierSchema.optional(),
       multiplier: z.number().optional(),
       min: z.number().optional(),
       max: z.number().optional()
@@ -123,18 +128,18 @@ const modifyChargeLimitPayloadDtoSchema = z.union([
   z.object({
     limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),
     scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-    levels: z.array(chargeLimitLevelDtoSchema)
+    levels: authoredNestedCollectionSchema(chargeLimitLevelDtoSchema)
   })
 ])
 
 const optionPayloadByDomainDtoSchema = {
-  DAMAGE_RESISTANCE: z.object({ damageTypeId: z.string() }),
-  DAMAGE_IMMUNITY: z.object({ damageTypeId: z.string() }),
-  DAMAGE_VULNERABILITY: z.object({ damageTypeId: z.string() }),
-  CONDITION: z.object({ conditionTypeId: z.string() }),
-  CONDITION_IMMUNITY: z.object({ conditionTypeId: z.string() }),
-  ATTRIBUTE: z.object({ attributeId: z.string() }),
-  MOVEMENT_MODE: z.object({ movementModeId: z.string() })
+  DAMAGE_RESISTANCE: z.object({ damageTypeId: authoredIdentifierSchema }),
+  DAMAGE_IMMUNITY: z.object({ damageTypeId: authoredIdentifierSchema }),
+  DAMAGE_VULNERABILITY: z.object({ damageTypeId: authoredIdentifierSchema }),
+  CONDITION: z.object({ conditionTypeId: authoredIdentifierSchema }),
+  CONDITION_IMMUNITY: z.object({ conditionTypeId: authoredIdentifierSchema }),
+  ATTRIBUTE: z.object({ attributeId: authoredIdentifierSchema }),
+  MOVEMENT_MODE: z.object({ movementModeId: authoredIdentifierSchema })
 } as const
 
 const modifierGrantBaseDtoSchema = staticGrantBaseDtoSchema.extend({
@@ -204,7 +209,7 @@ const modifierGrantVariants = [
     'OPTIONAL_ABILITY_MODIFIER_BONUS',
     emptyDomainDtoSchema.optional(),
     z.object({
-      abilities: z.array(abilityCodeSchema)
+      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
     })
   ),
   buildModifierGrantVariant(
@@ -278,7 +283,7 @@ const modifierGrantVariants = [
     'OPTIONAL_ABILITY_MODIFIER_BONUS',
     attackDomainParamDtoSchema,
     z.object({
-      abilities: z.array(abilityCodeSchema)
+      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
     })
   ),
   buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
@@ -350,20 +355,20 @@ const modifierGrantVariants = [
     'OPTIONAL_ABILITY_MODIFIER_BONUS',
     attackDomainParamDtoSchema,
     z.object({
-      abilities: z.array(abilityCodeSchema)
+      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
     })
   ),
   buildModifierGrantVariant(
     'DAMAGE',
     'ADD_BONUS_DIE',
     attackDomainParamDtoSchema,
-    z.object({ dice: z.string() })
+    z.object({ dice: authoredIdentifierSchema })
   ),
   buildModifierGrantVariant(
     'DAMAGE',
     'REPLACE_DAMAGE_TYPE',
     attackDomainParamDtoSchema,
-    z.object({ damageTypeId: z.string() })
+    z.object({ damageTypeId: authoredIdentifierSchema })
   ),
   buildModifierGrantVariant(
     'DAMAGE_RESISTANCE',
@@ -440,7 +445,7 @@ const modifierGrantVariants = [
     z
       .object({
         amount: z.number(),
-        unit: z.string(),
+        unit: authoredIdentifierSchema,
         rangeKind: z.literal(rangeKindSchema.enum.DISTANCE)
       })
       .or(
@@ -635,6 +640,20 @@ const modifierGrantVariants = [
  * `modifierKind`. We keep the schema explicit here so later API and seed data
  * validation catches drift early instead of accepting opaque objects.
  */
-export const modifierGrantDtoSchema = z.union(modifierGrantVariants)
+export const modifierGrantDtoSchema = z.union(modifierGrantVariants).superRefine((value, ctx) => {
+  if (!value.modifierKind.includes('BONUS')) return
+  const payload: unknown = value.payload
+  if (typeof payload !== 'object' || payload === null) return
+
+  for (const field of ['amount', 'multiplier', 'min', 'max'] as const) {
+    const candidate = (payload as Record<string, unknown>)[field]
+    if (typeof candidate !== 'number' || candidate >= 0) continue
+    ctx.addIssue({
+      code: 'custom',
+      message: `${field} must be greater than or equal to 0 for bonus modifiers`,
+      path: ['payload', field]
+    })
+  }
+})
 
 export type ModifierGrantDto = z.infer<typeof modifierGrantDtoSchema>

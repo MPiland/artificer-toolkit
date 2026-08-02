@@ -44,6 +44,10 @@
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
     },
+    "./utils/authoringLimits": {
+      "types": "./dist/utils/authoringLimits.d.ts",
+      "default": "./dist/utils/authoringLimits.js"
+    },
     "./authored": {
       "types": "./dist/barrels/authored/index.d.ts",
       "default": "./dist/barrels/authored/index.js"

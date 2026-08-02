@@ -112,6 +112,17 @@ export class AuthoredDefinitionRevisionConflictError extends Error {
   }
 }
 
+export class AuthoredDefinitionCreationRateLimitError extends Error {
+  constructor(window: 'minute' | 'hour') {
+    super(
+      window === 'minute'
+        ? 'You can create at most 10 authored records per minute. Try again when the minute resets.'
+        : 'You can create at most 100 authored records per hour. Try again when the hour resets.'
+    )
+    this.name = 'AuthoredDefinitionCreationRateLimitError'
+  }
+}
+
 function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value
 }
@@ -338,6 +349,8 @@ async function saveDraft(
     }
 
     if (!existing) {
+      await consumeCreationAllowance(trx, input.userId)
+
       await sql`
         insert into authored_definitions (
           subject_id,
@@ -418,6 +431,63 @@ async function saveDraft(
 
     return draft
   })
+}
+
+async function consumeCreationAllowance(db: DBLike, userId: string): Promise<void> {
+  const currentMinute = sql`date_trunc('minute', now() at time zone 'UTC') at time zone 'UTC'`
+  const currentHour = sql`date_trunc('hour', now() at time zone 'UTC') at time zone 'UTC'`
+
+  await sql`
+    insert into authored_definition_creation_rate_limits (
+      user_id,
+      minute_window_start,
+      minute_count,
+      hour_window_start,
+      hour_count
+    ) values (
+      ${userId},
+      ${currentMinute},
+      0,
+      ${currentHour},
+      0
+    )
+    on conflict (user_id) do nothing
+  `.execute(db)
+
+  const result = await sql<{ hour_count: number; minute_count: number }>`
+    select
+      case
+        when minute_window_start = ${currentMinute} then minute_count
+        else 0
+      end as minute_count,
+      case
+        when hour_window_start = ${currentHour} then hour_count
+        else 0
+      end as hour_count
+    from authored_definition_creation_rate_limits
+    where user_id = ${userId}
+    for update
+  `.execute(db)
+  const counter = result.rows[0]
+  if (!counter) {
+    throw new Error(`Failed to lock the authored creation rate limit for user "${userId}".`)
+  }
+  if (counter.minute_count >= 10) {
+    throw new AuthoredDefinitionCreationRateLimitError('minute')
+  }
+  if (counter.hour_count >= 100) {
+    throw new AuthoredDefinitionCreationRateLimitError('hour')
+  }
+
+  await sql`
+    update authored_definition_creation_rate_limits
+    set
+      minute_window_start = ${currentMinute},
+      minute_count = ${counter.minute_count + 1},
+      hour_window_start = ${currentHour},
+      hour_count = ${counter.hour_count + 1}
+    where user_id = ${userId}
+  `.execute(db)
 }
 
 async function activateDraft(

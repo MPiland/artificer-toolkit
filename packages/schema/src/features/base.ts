@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
 import { chargeUseDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
@@ -14,24 +21,24 @@ import {
 } from '../grants/index.js'
 
 const featureGrantsDtoSchemaBase = z.object({
-  feats: z.array(featGrantDtoSchema).optional(),
-  modifiers: z.array(modifierGrantDtoSchema).optional(),
-  proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
-  senses: z.array(senseGrantDtoSchema).optional(),
-  spells: z.array(spellGrantDtoSchema).optional()
+  feats: authoredNestedCollectionSchema(featGrantDtoSchema).optional(),
+  modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema).optional(),
+  proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema).optional(),
+  senses: authoredNestedCollectionSchema(senseGrantDtoSchema).optional(),
+  spells: authoredNestedCollectionSchema(spellGrantDtoSchema).optional()
 })
 
 export type FeatureGrantsDto = z.infer<typeof featureGrantsDtoSchemaBase>
 export const featureGrantsDtoSchema: z.ZodType<FeatureGrantsDto> = featureGrantsDtoSchemaBase
 
 const featureBaseDtoSchemaBase = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string(),
-  attributes: z.array(featureAttributeSchema).optional(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema,
+  attributes: authoredReferenceCollectionSchema(featureAttributeSchema).optional(),
   detail: z.never().optional(),
-  details: z.array(detailDtoSchema).optional(),
-  effects: z.array(effectDtoSchema).optional(),
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
   charges: chargeUseDtoSchema.optional(),
   grants: featureGrantsDtoSchema.optional(),
   restrictions: facetDtoSchema.optional(),

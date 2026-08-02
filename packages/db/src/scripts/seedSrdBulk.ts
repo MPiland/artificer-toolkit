@@ -159,8 +159,14 @@ function withSeedOwner(bundle: BaselineContentBundle, userId: string): BaselineC
   }
 }
 
-async function seedLocalSrdCorpus(connectionString: string): Promise<void> {
-  const environment = readSeedOwnerEnvironment(false, connectionString)
+async function seedLocalSrdCorpus(
+  connectionString: string,
+  requireProductionSeedOwnerEmail = false
+): Promise<void> {
+  const localEnvironment = readSeedOwnerEnvironment(false, connectionString)
+  const environment = requireProductionSeedOwnerEmail
+    ? { ...localEnvironment, email: requireEnvironmentVariable('PROD_SEED_OWNER_EMAIL') }
+    : localEnvironment
   const db = createDb({ connectionString })
 
   try {
@@ -184,13 +190,29 @@ async function seedLocalSrdCorpus(connectionString: string): Promise<void> {
   }
 }
 
-function remapOwner<T extends Record<string, unknown>>(
+function remapOwnerValue(value: unknown, sourceOwnerId: string, targetOwnerId: string): unknown {
+  if (typeof value === 'string') return value === sourceOwnerId ? targetOwnerId : value
+  if (Array.isArray(value)) {
+    return value.map((item) => remapOwnerValue(item, sourceOwnerId, targetOwnerId))
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        remapOwnerValue(item, sourceOwnerId, targetOwnerId)
+      ])
+    )
+  }
+  return value
+}
+
+export function remapOwner<T extends Record<string, unknown>>(
   value: T,
   sourceOwnerId: string,
   targetOwnerId: string
 ): T {
   if (sourceOwnerId === targetOwnerId) return value
-  return JSON.parse(JSON.stringify(value).replaceAll(sourceOwnerId, targetOwnerId)) as T
+  return remapOwnerValue(value, sourceOwnerId, targetOwnerId) as T
 }
 
 function orderTables(tableNames: readonly string[], edges: readonly ForeignKeyEdge[]): string[] {
@@ -953,7 +975,7 @@ async function main() {
   const sourceDatabaseUrl = readProductionSourceDatabaseUrl()
 
   if (!dryRun) {
-    await seedLocalSrdCorpus(sourceDatabaseUrl)
+    await seedLocalSrdCorpus(sourceDatabaseUrl, true)
   }
 
   console.info('Auditing the local SRD materialization...')

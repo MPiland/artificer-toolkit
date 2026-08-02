@@ -553,6 +553,7 @@ const TestAuthoringContent = withForm({
     )
     const statePatch = useMemo(
       () => ({
+        authoringKind: 'authored-form' as const,
         canSaveDraft,
         cancelLabel: 'Cancel',
         mapId: 'test-authoring-form',
@@ -658,8 +659,9 @@ describe('authoring form platform', () => {
     await user.click(nextLink)
 
     expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^next$/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /^activate$/i })).toBeEnabled()
+    const actionBar = within(screen.getByTestId('authoring-action-bar'))
+    expect(actionBar.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+    expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
   })
 
   it('updates TanStack form state when fields change', async () => {

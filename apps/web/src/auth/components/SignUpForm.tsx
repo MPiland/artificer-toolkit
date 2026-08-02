@@ -1,6 +1,11 @@
 import { type SubmitEvent, useState } from 'react'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
-import { usernameInputSchema } from '@artificer-toolkit/schema/api/auth'
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordInputSchema,
+  usernameInputSchema
+} from '@artificer-toolkit/schema/api/auth'
 import type { AccountUsernameStatusDto } from '@artificer-toolkit/schema/api/account'
 import IArrowRight from '#assets/icons/IArrowRight'
 import { api } from '#app/lib/api'
@@ -44,9 +49,12 @@ export function SignUpForm({
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
 
-    if (password.length < 8) {
-      const message = 'Use at least 8 characters for your password.'
-      setFeedback({ tone: 'error', message })
+    const parsedPassword = passwordInputSchema.safeParse(password)
+    if (!parsedPassword.success) {
+      setFeedback({
+        tone: 'error',
+        message: parsedPassword.error.issues[0]?.message ?? 'Enter a valid password.'
+      })
       return
     }
 
@@ -73,7 +81,7 @@ export function SignUpForm({
 
       const result = await authClient.signUp({
         email,
-        password,
+        password: parsedPassword.data,
         username: parsedUsername.data
       })
 
@@ -157,12 +165,13 @@ export function SignUpForm({
       </Button>
       <PasswordInput
         label='Password'
-        description='Use at least 8 characters. A mix of letters and numbers is easier to keep secure.'
+        description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters.`}
         classNames={{
           input: textInput
         }}
         autoComplete='new-password'
-        minLength={8}
+        minLength={PASSWORD_MIN_LENGTH}
+        maxLength={PASSWORD_MAX_LENGTH}
         name='password'
         type='password'
         placeholder='********'

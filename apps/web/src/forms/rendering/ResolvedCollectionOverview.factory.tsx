@@ -472,7 +472,16 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                                       icon={<Trash2 size={16} aria-hidden='true' />}
                                       onClick={(event) =>
                                         dispatchCollectionAction(collection.removeAction!, event, {
-                                          'collection.remove': () => field.removeValue(index)
+                                          'collection.remove': () => {
+                                            if (
+                                              drawerTarget?.drawerRowIndex === index &&
+                                              overviewTargetId
+                                            ) {
+                                              setGroupEditor(undefined)
+                                              authoring.goToNavigationTarget(overviewTargetId)
+                                            }
+                                            field.removeValue(index)
+                                          }
                                         })
                                       }
                                     />

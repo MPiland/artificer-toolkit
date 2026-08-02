@@ -11,6 +11,11 @@ import {
 } from './shared.js'
 import {
   abilityCodeSchema,
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema,
   authoredRecordStatusSchema,
   chargeDtoSchema,
   classAttributeSchema,
@@ -23,35 +28,35 @@ import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 
 const classBaseDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema.optional(),
   status: authoredRecordStatusSchema.optional(),
-  details: z.array(detailDtoSchema).optional(),
-  proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  proficiencies: authoredNestedCollectionSchema(proficiencyGrantDtoSchema).optional(),
   spellcasting: z
     .object({
-      spellLimits: z.array(classSpellLimitDtoSchema),
+      spellLimits: authoredNestedCollectionSchema(classSpellLimitDtoSchema),
       availableAtLevel: z.number().int().optional(),
       order: z.number().int().optional(),
-      details: z.array(detailDtoSchema).optional(),
-      magicName: z.string().optional(),
+      details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+      magicName: authoredShortTextSchema.optional(),
       ability: abilityCodeSchema.optional(),
       maxSpellLevel: z.number().int(),
-      attributes: z.array(spellcastingAttributeSchema).optional(),
+      attributes: authoredReferenceCollectionSchema(spellcastingAttributeSchema).optional(),
       charges: chargeDtoSchema,
       prepareLimit: classPrepareLimitDtoSchema.optional()
     })
     .optional(),
   resources: classResourceDtoSchema.optional(),
-  features: z.array(featureDtoSchema).optional(),
-  userId: z.string(),
-  systemId: z.string()
+  features: authoredNestedCollectionSchema(featureDtoSchema).optional(),
+  userId: authoredIdentifierSchema,
+  systemId: authoredIdentifierSchema
 })
 
 const parentClassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   category: z.literal('BASE'),
-  attributes: z.array(classAttributeSchema).optional(),
+  attributes: authoredReferenceCollectionSchema(classAttributeSchema).optional(),
   subclassSelectionLevel: z.number().int().min(1).max(20).optional(),
   startingGold: classStartingGoldDtoSchema,
   startingEquipment: startingEquipmentDtoSchema,
@@ -61,10 +66,10 @@ const parentClassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
 
 const subclassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   category: z.literal('SUBCLASS'),
-  attributes: z.array(subclassAttributeSchema).optional(),
+  attributes: authoredReferenceCollectionSchema(subclassAttributeSchema).optional(),
   subclassSelectionLevel: z.never().optional(),
-  parentClassId: z.string(),
-  specializations: z.array(classSpecializationDtoSchema).optional()
+  parentClassId: authoredIdentifierSchema,
+  specializations: authoredNestedCollectionSchema(classSpecializationDtoSchema).optional()
 })
 
 const classAuthoredDtoSchemaRaw = z.union([
@@ -73,13 +78,13 @@ const classAuthoredDtoSchemaRaw = z.union([
 ])
 
 const classAuthoringInputDtoSchemaCommon = classBaseDtoSchema.extend({
-  userId: z.string().optional(),
+  userId: authoredIdentifierSchema.optional(),
   startingGold: classStartingGoldDtoSchema.optional(),
   startingEquipment: startingEquipmentDtoSchema.optional(),
   hitpoint: classHitpointDtoSchema.optional(),
   multiclass: classMulticlassDtoSchema.optional(),
-  parentClassId: z.string().optional(),
-  specializations: z.array(classSpecializationDtoSchema).optional()
+  parentClassId: authoredIdentifierSchema.optional(),
+  specializations: authoredNestedCollectionSchema(classSpecializationDtoSchema).optional()
 })
 
 export type ClassAuthoringInputDto = Omit<
@@ -121,17 +126,17 @@ export type ClassAuthoringInputDto = Omit<
 const classAuthoringInputDtoSchemaRaw: z.ZodType<ClassAuthoringInputDto> = z.union([
   classAuthoringInputDtoSchemaCommon.extend({
     category: z.literal('BASE'),
-    attributes: z.array(classAttributeSchema).optional(),
+    attributes: authoredReferenceCollectionSchema(classAttributeSchema).optional(),
     subclassSelectionLevel: z.number().int().min(1).max(20).optional()
   }),
   classAuthoringInputDtoSchemaCommon.extend({
     category: z.literal('SUBCLASS'),
-    attributes: z.array(subclassAttributeSchema).optional(),
+    attributes: authoredReferenceCollectionSchema(subclassAttributeSchema).optional(),
     subclassSelectionLevel: z.never().optional()
   }),
   classAuthoringInputDtoSchemaCommon.extend({
     category: z.undefined().optional(),
-    attributes: z.array(classAttributeSchema).optional(),
+    attributes: authoredReferenceCollectionSchema(classAttributeSchema).optional(),
     subclassSelectionLevel: z.number().int().min(1).max(20).optional()
   })
 ])

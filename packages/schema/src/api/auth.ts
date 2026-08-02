@@ -1,5 +1,13 @@
 import { z } from 'zod'
 
+export const PASSWORD_MIN_LENGTH = 12
+export const PASSWORD_MAX_LENGTH = 128
+
+export const passwordInputSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters for your password.`)
+  .max(PASSWORD_MAX_LENGTH, `Use no more than ${PASSWORD_MAX_LENGTH} characters for your password.`)
+
 export const usernameInputSchema = z
   .string()
   .trim()
@@ -9,11 +17,23 @@ export const usernameInputSchema = z
 
 export const authSignUpInputSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: passwordInputSchema,
   username: usernameInputSchema
 })
 
 export type AuthSignUpInput = z.infer<typeof authSignUpInputSchema>
+
+export const authPasswordUpdateInputSchema = z.strictObject({
+  password: passwordInputSchema
+})
+
+export type AuthPasswordUpdateInput = z.infer<typeof authPasswordUpdateInputSchema>
+
+export const authInvitationCompletionInputSchema = authPasswordUpdateInputSchema.extend({
+  username: usernameInputSchema
+})
+
+export type AuthInvitationCompletionInput = z.infer<typeof authInvitationCompletionInputSchema>
 
 export const authInviteConfirmationInputSchema = z.object({
   tokenHash: z.string().min(1)

@@ -52,6 +52,7 @@ const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define(
       .set(
         'amount',
         number(['amount'], 'Amount', {
+          constraints: { minimum: 0 },
           order: 2,
           requiredIf: true,
           showIf: local.field(['bonusKind']).eq(SAVING_THROW_DC_BONUS_KIND.STATIC_BONUS)

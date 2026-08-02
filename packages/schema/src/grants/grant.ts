@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema
+} from '../shared/authoredLimits.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import {
   authoringModeKindSchema,
@@ -61,7 +65,7 @@ export function validateChosenGrantSelectionFields(
 }
 
 export const staticGrantBaseDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
   restrictions: facetDtoSchema.optional()
 })
@@ -76,7 +80,7 @@ export const grantPayloadDtoSchema = z.discriminatedUnion('authoringModeKind', [
 ])
 
 export const scalingLevelDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   level: z.number().int(),
   order: z.number().int(),
   count: z.number().int().optional(),
@@ -125,20 +129,20 @@ export function createGrantProgressionFieldsDtoSchema<TPayload extends z.ZodType
     progression: z.discriminatedUnion('scalingSource', [
       z.object({
         scalingSource: z.literal('CHARACTER_LEVEL'),
-        levels: z.array(levelSchema)
+        levels: authoredNestedCollectionSchema(levelSchema)
       }),
       z.object({
         scalingSource: z.literal('CLASS_LEVEL'),
-        classId: z.string(),
-        levels: z.array(levelSchema)
+        classId: authoredIdentifierSchema,
+        levels: authoredNestedCollectionSchema(levelSchema)
       }),
       z.object({
         scalingSource: z.literal('PARENT_CLASS_LEVEL'),
-        levels: z.array(levelSchema)
+        levels: authoredNestedCollectionSchema(levelSchema)
       }),
       z.object({
         scalingSource: z.literal('SPELL_CAST_LEVEL'),
-        levels: z.array(levelSchema)
+        levels: authoredNestedCollectionSchema(levelSchema)
       })
     ])
   })

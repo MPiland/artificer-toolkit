@@ -51,6 +51,19 @@ export const editorError = style({
   }
 })
 
+export const editorCount = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      display: 'block',
+      fontSize: foundationVars.typography.label.fontSize,
+      lineHeight: foundationVars.typography.label.lineHeight,
+      marginTop: foundationVars.space[1],
+      textAlign: 'right'
+    }
+  }
+})
+
 export const editorToolbar = style({
   '@layer': {
     [app]: {

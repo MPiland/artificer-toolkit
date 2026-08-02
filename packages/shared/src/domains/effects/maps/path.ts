@@ -33,7 +33,7 @@ import {
   SIZE_OPTIONS,
   type Trigger
 } from '#core'
-import { buildNodeMap, type BuildNodeMap, type NodeMap, valuesOf } from '#utils'
+import { AUTHORED_LIMITS, buildNodeMap, type BuildNodeMap, type NodeMap, valuesOf } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
@@ -272,7 +272,12 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
           presentation: 'inline'
         })
       )
-      .set('armorClassNote', text(['armorClassNote'], 'Armor Class Note'))
+      .set(
+        'armorClassNote',
+        text(['armorClassNote'], 'Armor Class Note', {
+          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+        })
+      )
       .set(
         'hitPoints',
         groupObject(['hitPoints'], 'Hit Points', () => NUMERIC_EXPR_NODE_MAP, {
@@ -474,6 +479,28 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'damageAmount',
+      number(['amount'], 'Amount', {
+        constraints: { minimum: 0 },
+        requiredIf: not(
+          and([local.field(['valueKind']).eq('POOL'), local.field(['scalingKind']).eq('PER_LEVEL')])
+        ),
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
+          or([
+            and([
+              local.field(['scalingKind']).eq('NONE'),
+              or([local.field(['valueKind']).eq('FIXED'), local.field(['valueKind']).eq('POOL')])
+            ]),
+            and([
+              local.field(['scalingKind']).eq('PER_LEVEL'),
+              local.field(['valueKind']).eq('POOL')
+            ])
+          ])
+        ])
+      })
+    )
+    .set(
       'amount',
       number(['amount'], 'Amount', {
         requiredIf: not(
@@ -482,10 +509,7 @@ function registerOutcomeFields(
         showIf: or([
           local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST),
           and([
-            or([
-              local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
-              local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
-            ]),
+            local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
             or([
               and([
                 local.field(['scalingKind']).eq('NONE'),
@@ -501,14 +525,29 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'damageMultiplier',
+      number(['multiplier'], 'Multiplier', {
+        constraints: { minimum: 0 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+      })
+    )
+    .set(
       'multiplier',
       number(['multiplier'], 'Multiplier', {
-        showIf: or([
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
+          local.field(['valueKind']).eq('POOL')
+        ])
+      })
+    )
+    .set(
+      'damageMin',
+      number(['min'], 'Min', {
+        constraints: { minimum: 0 },
+        showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
-          and([
-            local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
-            local.field(['valueKind']).eq('POOL')
-          ])
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          local.field(['valueKind']).eq('POOL')
         ])
       })
     )
@@ -516,10 +555,18 @@ function registerOutcomeFields(
       'min',
       number(['min'], 'Min', {
         showIf: and([
-          or([
-            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
-            local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
-          ]),
+          local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          local.field(['valueKind']).eq('POOL')
+        ])
+      })
+    )
+    .set(
+      'damageMax',
+      number(['max'], 'Max', {
+        constraints: { minimum: 0 },
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
           local.field(['scalingKind']).eq('PER_LEVEL'),
           local.field(['valueKind']).eq('POOL')
         ])
@@ -529,10 +576,7 @@ function registerOutcomeFields(
       'max',
       number(['max'], 'Max', {
         showIf: and([
-          or([
-            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
-            local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
-          ]),
+          local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
           local.field(['scalingKind']).eq('PER_LEVEL'),
           local.field(['valueKind']).eq('POOL')
         ])

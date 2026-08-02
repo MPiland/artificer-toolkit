@@ -1,10 +1,3 @@
-const ENFORCED_CSP = [
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'"
-].join('; ')
-
 interface SecurityHeaderOptions {
   nonce?: string
 }
@@ -21,6 +14,7 @@ function getScriptSrc(nonce?: string) {
   return [
     "script-src 'self'",
     nonce ? `'nonce-${nonce}'` : null,
+    "'wasm-unsafe-eval'",
     isDevelopment() ? "'unsafe-eval'" : null
   ]
     .filter(Boolean)
@@ -85,7 +79,7 @@ function getConnectSrc() {
   ].join(' ')
 }
 
-function getReportOnlyCsp({ nonce }: SecurityHeaderOptions = {}) {
+function getCsp({ nonce }: SecurityHeaderOptions = {}) {
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -122,8 +116,7 @@ const PERMISSIONS_POLICY = [
 
 export function createSecurityHeaders(options: SecurityHeaderOptions = {}) {
   return {
-    'Content-Security-Policy': ENFORCED_CSP,
-    'Content-Security-Policy-Report-Only': getReportOnlyCsp(options),
+    'Content-Security-Policy': getCsp(options),
     'Permissions-Policy': PERMISSIONS_POLICY,
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-Content-Type-Options': 'nosniff',

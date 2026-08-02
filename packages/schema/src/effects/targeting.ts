@@ -1,5 +1,9 @@
 import { z } from 'zod'
 import { createBreakpointScalingDtoSchema } from '../shared/scaling.js'
+import {
+  authoredIdentifierSchema,
+  authoredReferenceCollectionSchema
+} from '../shared/authoredLimits.js'
 
 export const targetingDtoSchema = z.discriminatedUnion('selectionKind', [
   z.object({
@@ -8,7 +12,7 @@ export const targetingDtoSchema = z.discriminatedUnion('selectionKind', [
   z.object({
     selectionKind: z.literal('SINGLE_TARGET'),
     dispositionKind: z.enum(['ANY', 'WILLING', 'HOSTILE']).optional(),
-    excludedCreatureTypeIds: z.array(z.string()).optional()
+    excludedCreatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
   }),
   z.object({
     selectionKind: z.literal('CHOSEN_CREATURES'),
@@ -19,12 +23,12 @@ export const targetingDtoSchema = z.discriminatedUnion('selectionKind', [
         amount: z.number().int().positive()
       })
     ).optional(),
-    excludedCreatureTypeIds: z.array(z.string()).optional()
+    excludedCreatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
   }),
   z.object({
     selectionKind: z.literal('AREA_CONTENTS'),
     dispositionKind: z.enum(['ANY', 'WILLING', 'HOSTILE']).optional(),
-    excludedCreatureTypeIds: z.array(z.string()).optional()
+    excludedCreatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
   })
 ])
 

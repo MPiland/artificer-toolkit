@@ -5,7 +5,12 @@ import {
   accountDeleteInputSchema,
   accountProfileUpdateInputSchema
 } from '../api/account.js'
-import { authSignUpInputSchema } from '../api/auth.js'
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  authSignUpInputSchema,
+  passwordInputSchema
+} from '../api/auth.js'
 
 describe('account contracts', () => {
   it('normalizes blank profile values to null', () => {
@@ -22,11 +27,18 @@ describe('account contracts', () => {
     expect(
       authSignUpInputSchema.parse({
         email: 'player@example.com',
-        password: 'password123',
+        password: 'password1234',
         username: ' Player_One '
       }).username
     ).toBe('Player_One')
     expect(accountProfileUpdateInputSchema.safeParse({ name: null, bio: null }).success).toBe(false)
+  })
+
+  it('accepts only passwords between the shared 12 and 128 character bounds', () => {
+    expect(passwordInputSchema.safeParse('p'.repeat(PASSWORD_MIN_LENGTH - 1)).success).toBe(false)
+    expect(passwordInputSchema.safeParse('p'.repeat(PASSWORD_MIN_LENGTH)).success).toBe(true)
+    expect(passwordInputSchema.safeParse('p'.repeat(PASSWORD_MAX_LENGTH)).success).toBe(true)
+    expect(passwordInputSchema.safeParse('p'.repeat(PASSWORD_MAX_LENGTH + 1)).success).toBe(false)
   })
 
   it('parses username availability contracts', () => {

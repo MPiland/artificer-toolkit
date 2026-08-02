@@ -14,7 +14,9 @@ Authoring Schemas are not a general character-rules language and do not contain 
 
 ## DSL and registry
 
-`buildNodeMap()` provides typed builders for strict `INPUT` and `GROUP` variants. Scalar inputs are `TEXT`, `NUMBER`, `RICH_TEXT`, or `TOGGLE`; select inputs are `SELECT_SINGLE` or `SELECT_MULTI` and require exactly one source. Sources are explicitly discriminated as `INLINE_OPTIONS`, `INLINE_GROUPS`, or `DATA`. Non-select inputs cannot declare a source. Object and array groups require a child map and accept only their own metadata.
+`buildNodeMap()` provides typed builders for strict `INPUT` and `GROUP` variants. Scalar inputs are `TEXT`, `NUMBER`, `RICH_TEXT`, or `TOGGLE`; select inputs are `SELECT_SINGLE`, `SELECT_NUMBER`, or `SELECT_MULTI` and require exactly one source. `SELECT_NUMBER` keeps numeric domain values while option codes remain serialized strings. Sources are explicitly discriminated as `INLINE_OPTIONS`, `INLINE_GROUPS`, or `DATA`. Non-select inputs cannot declare a source. Object and array groups require a child map and accept only their own metadata.
+
+The schema package exports the canonical authored limits used by all eight root contracts and their nested authored graphs. Node-runtime inputs carry only the corresponding text-length and numeric-bound metadata so web controls can mirror server validation with native bounds and the shared rich-text character counter. The server contracts remain authoritative for direct API clients.
 
 Conditions are closed serializable trees: `PREDICATE`, `AND`, `OR`, and `NOT`. Database query evaluation additionally owns the internal `CONSTANT` result. IDs and paths are explicit so nested groups can refer to local, parent, or ancestor values. Hidden nodes declare `KEEP` or `CLEAR`; system-owned fields use explicit `authoring.exposure: 'system'` instead of path-name inference.
 

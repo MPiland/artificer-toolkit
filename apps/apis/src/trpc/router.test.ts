@@ -1,4 +1,5 @@
 import type { DBLike } from '@artificer-toolkit/db'
+import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedTrpcContext, TrpcContext } from './dbContext.js'
 
@@ -258,6 +259,25 @@ describe('tRPC router auth', () => {
 
     expect(listAuthoredDomain).toHaveBeenCalledTimes(domains.length)
     expect(Object.keys(appRouter._def.procedures)).not.toContain('content.spells.upsert')
+  })
+
+  it('rejects authored mutations over 1 MiB after domain validation', async () => {
+    const caller = appRouter.createCaller({ userId: 'user-1' })
+
+    await expect(
+      caller.content.backgrounds.saveDraft({
+        kind: 'BACKGROUND',
+        id: 'background-1',
+        label: 'Oversized background',
+        systemId: 'system-1',
+        features: Array.from({ length: AUTHORED_LIMITS.nestedCollectionItems }, (_, index) => ({
+          id: `feature-${index}`,
+          label: `Feature ${index}`,
+          description: 'x'.repeat(AUTHORED_LIMITS.richTextVisibleCharacters),
+          order: index
+        }))
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
   })
 
   it('exposes structured input issues only for authored validation mutations', async () => {

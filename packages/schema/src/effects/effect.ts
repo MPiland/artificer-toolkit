@@ -6,6 +6,10 @@ import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { targetingDtoSchema } from './targeting.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema
+} from '../shared/authoredLimits.js'
 
 export const activationDtoSchema = z.discriminatedUnion('code', [
   z.object({
@@ -76,10 +80,10 @@ export const invocationDtoSchema = z.union([
 
 const createEffectDtoSchema = <TPathSchema extends z.ZodTypeAny>(pathSchema: TPathSchema) =>
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number().int(),
     invocation: invocationDtoSchema,
-    paths: z.array(pathSchema).min(1)
+    paths: authoredNestedCollectionSchema(pathSchema).min(1)
   })
 
 export const effectDtoSchema = createEffectDtoSchema(pathDtoSchema)

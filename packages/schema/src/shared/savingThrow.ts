@@ -1,24 +1,29 @@
 import { z } from 'zod'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredNonnegativeNumberSchema
+} from './authoredLimits.js'
 
 const savingThrowDcBonusDtoSchema = z.union([
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       bonusKind: z.literal('ABILITY_MODIFIER'),
-      ability: z.string()
+      ability: authoredIdentifierSchema
     })
     .strict(),
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       bonusKind: z.literal('PROFICIENCY_BONUS')
     })
     .strict(),
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       bonusKind: z.literal('STATIC_BONUS'),
-      amount: z.number().int()
+      amount: authoredNonnegativeNumberSchema.int()
     })
     .strict()
 ])
@@ -26,27 +31,27 @@ const savingThrowDcBonusDtoSchema = z.union([
 export const savingThrowDtoSchema = z.union([
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       dcMethod: z.literal('SOURCE_SAVE_DC'),
-      ability: z.string()
+      ability: authoredIdentifierSchema
     })
     .strict(),
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       dcMethod: z.literal('FIXED_DC'),
-      ability: z.string(),
+      ability: authoredIdentifierSchema,
       baseDc: z.number().int(),
-      bonuses: z.array(savingThrowDcBonusDtoSchema).optional()
+      bonuses: authoredNestedCollectionSchema(savingThrowDcBonusDtoSchema).optional()
     })
     .strict(),
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       dcMethod: z.literal('DERIVED_DC'),
-      ability: z.string(),
+      ability: authoredIdentifierSchema,
       baseDc: z.number().int(),
-      bonuses: z.array(savingThrowDcBonusDtoSchema)
+      bonuses: authoredNestedCollectionSchema(savingThrowDcBonusDtoSchema)
     })
     .strict()
 ])

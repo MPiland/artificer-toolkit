@@ -3,6 +3,13 @@ import { z } from 'zod'
 import { castingTimeDtoSchema } from './shared.js'
 import { effectDtoSchema } from '../effects/index.js'
 import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import {
   authoredRecordStatusSchema,
   spellAttributeSchema,
   spellComponentSchema
@@ -10,26 +17,26 @@ import {
 
 export const spellAuthoredDtoSchema = z.object({
   kind: z.literal('SPELL'),
-  id: z.string(),
-  label: z.string(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
   status: authoredRecordStatusSchema.optional(),
-  attributes: z.array(spellAttributeSchema).optional(),
-  components: z.array(spellComponentSchema).optional(),
-  description: z.string(),
+  attributes: authoredReferenceCollectionSchema(spellAttributeSchema).optional(),
+  components: authoredReferenceCollectionSchema(spellComponentSchema).optional(),
+  description: authoredRichTextSchema,
   castingTime: castingTimeDtoSchema,
-  effects: z.array(effectDtoSchema).optional(),
-  level: z.number().int(),
-  classIds: z.array(z.string()),
-  magicSchoolId: z.string(),
-  materialDescription: z.string().optional(),
-  userId: z.string(),
-  systemId: z.string()
+  effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
+  level: z.number().int().min(0).max(9),
+  classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema),
+  magicSchoolId: authoredIdentifierSchema,
+  materialDescription: authoredRichTextSchema.optional(),
+  userId: authoredIdentifierSchema,
+  systemId: authoredIdentifierSchema
 })
 
 export type SpellAuthoredDto = z.infer<typeof spellAuthoredDtoSchema>
 
 export const spellAuthoringInputDtoSchema = spellAuthoredDtoSchema.extend({
-  userId: z.string().optional()
+  userId: authoredIdentifierSchema.optional()
 })
 
 export type SpellAuthoringInputDto = z.infer<typeof spellAuthoringInputDtoSchema>

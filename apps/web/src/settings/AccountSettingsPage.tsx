@@ -2,6 +2,7 @@ import { Alert, Button, PasswordInput, TextInput } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useState } from 'react'
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@artificer-toolkit/schema/api/auth'
 import { browserAuthClient } from '#app/auth/authClient'
 import { accountClient } from './accountClient'
 import { DeleteAccountModal } from './DeleteAccountModal'
@@ -210,7 +211,8 @@ export function AccountSettingsPage({
             <PasswordInput
               autoComplete='new-password'
               label='New password'
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
+              maxLength={PASSWORD_MAX_LENGTH}
               name='password'
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
@@ -219,7 +221,8 @@ export function AccountSettingsPage({
             <PasswordInput
               autoComplete='new-password'
               label='Confirm new password'
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
+              maxLength={PASSWORD_MAX_LENGTH}
               name='confirmPassword'
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.currentTarget.value)}

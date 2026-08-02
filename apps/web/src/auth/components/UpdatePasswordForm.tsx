@@ -1,6 +1,11 @@
 import { type SubmitEvent, useState } from 'react'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
-import { usernameInputSchema } from '@artificer-toolkit/schema/api/auth'
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  passwordInputSchema,
+  usernameInputSchema
+} from '@artificer-toolkit/schema/api/auth'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
@@ -45,9 +50,12 @@ export function UpdatePasswordForm({
       return
     }
 
-    if (password.length < 8) {
-      const message = 'Use at least 8 characters for your new password.'
-      setFeedback({ tone: 'error', message })
+    const parsedPassword = passwordInputSchema.safeParse(password)
+    if (!parsedPassword.success) {
+      setFeedback({
+        tone: 'error',
+        message: parsedPassword.error.issues[0]?.message ?? 'Enter a valid password.'
+      })
       return
     }
 
@@ -63,10 +71,10 @@ export function UpdatePasswordForm({
       const result =
         invitation && parsedUsername?.success
           ? await authClient.completeInvitation({
-              password,
+              password: parsedPassword.data,
               username: parsedUsername.data
             })
-          : await authClient.updatePassword({ password })
+          : await authClient.updatePassword({ password: parsedPassword.data })
 
       if (!result.ok) {
         const message = result.message ?? 'Could not complete this account update.'
@@ -112,12 +120,13 @@ export function UpdatePasswordForm({
       )}
       <PasswordInput
         label='New password'
-        description='Use at least 8 characters. Avoid a password you use at another table or tool.'
+        description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters. Avoid a password you use at another table or tool.`}
         classNames={{
           input: textInput
         }}
         autoComplete='new-password'
-        minLength={8}
+        minLength={PASSWORD_MIN_LENGTH}
+        maxLength={PASSWORD_MAX_LENGTH}
         name='password'
         type='password'
         placeholder='********'
@@ -131,7 +140,8 @@ export function UpdatePasswordForm({
           input: textInput
         }}
         autoComplete='new-password'
-        minLength={8}
+        minLength={PASSWORD_MIN_LENGTH}
+        maxLength={PASSWORD_MAX_LENGTH}
         name='confirmPassword'
         type='password'
         placeholder='********'

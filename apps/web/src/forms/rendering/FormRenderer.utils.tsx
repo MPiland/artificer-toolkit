@@ -47,7 +47,7 @@ export function getRequiredValidators(type: NodeRuntimeInputNodeDto['type'], lab
         ? validatorsFor(requiredSelect(label))
         : type === 'TOGGLE'
           ? validatorsFor(requiredBoolean(label))
-          : type === 'NUMBER'
+          : type === 'NUMBER' || type === 'SELECT_NUMBER'
             ? validatorsFor(requiredNumber(label))
             : validatorsFor(requiredString(label))
 

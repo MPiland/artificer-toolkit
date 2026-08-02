@@ -2,6 +2,11 @@ import { z } from 'zod'
 
 import { staticGrantBaseDtoSchema, validateChosenGrantSelectionFields } from './grant.js'
 import {
+  authoredIdentifierSchema,
+  authoredReferenceCollectionSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
+import {
   authoringModeKindSchema,
   authoringSelectionDuplicatePolicySchema,
   authoringSelectionKindSchema,
@@ -29,7 +34,7 @@ const skillTargetDtoSchema = z.union([
   allTargetDtoSchema,
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    skillIds: z.array(z.string())
+    skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 
@@ -37,7 +42,7 @@ const saveAbilityTargetDtoSchema = z.union([
   allTargetDtoSchema,
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    abilities: z.array(z.string())
+    abilities: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 
@@ -45,31 +50,31 @@ const languageTargetDtoSchema = z.union([
   allTargetDtoSchema,
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    languageIds: z.array(z.string())
+    languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 
 const equipmentTargetDtoSchema = z.union([
   allTargetDtoSchema.extend({
-    category: z.string().optional(),
-    properties: z.array(z.string()).optional()
+    category: authoredIdentifierSchema.optional(),
+    properties: authoredReferenceCollectionSchema(authoredShortTextSchema).optional()
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    equipmentIds: z.array(z.string()),
-    category: z.string().optional(),
-    properties: z.array(z.string()).optional()
+    equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema),
+    category: authoredIdentifierSchema.optional(),
+    properties: authoredReferenceCollectionSchema(authoredShortTextSchema).optional()
   })
 ])
 
 const equipmentPropertyTargetDtoSchema = z.union([
   allTargetDtoSchema.extend({
-    category: z.string().optional()
+    category: authoredIdentifierSchema.optional()
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    properties: z.array(z.string()),
-    category: z.string().optional()
+    properties: authoredReferenceCollectionSchema(authoredShortTextSchema),
+    category: authoredIdentifierSchema.optional()
   })
 ])
 

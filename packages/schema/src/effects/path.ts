@@ -22,6 +22,13 @@ import {
   pathRollTableKindSchema
 } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
 
 const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: boolean }) =>
   z.union(
@@ -54,21 +61,21 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
 export const pathLifecycleDtoSchema = z.object({
   recurringKind: pathLifecycleRecurringKindSchema.optional(),
   consumeOnFirstEvent: pathLifecycleConsumeEventSchema.optional(),
-  endOnEvents: z.array(pathLifecycleEndEventSchema).optional()
+  endOnEvents: authoredReferenceCollectionSchema(pathLifecycleEndEventSchema).optional()
 })
 
 const choiceOptionMetadataDtoSchema = z.object({
-  label: z.string(),
-  description: z.string()
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema
 })
 
 const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) =>
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     resultKind: z.enum(['SINGLE', 'SEQUENCE']),
     duration: durationDtoSchema.optional(),
     lifecycle: pathLifecycleDtoSchema.optional(),
-    outcomes: z.array(outcomePayloadDtoSchema)
+    outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })
 
 const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
@@ -77,7 +84,7 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
   )
 
   const choiceOptionDtoSchema = z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number().int(),
     groupType: z.literal(pathGroupTypeSchema.enum.CHOICE).optional(),
     ...choiceOptionMetadataDtoSchema.shape,
@@ -85,14 +92,14 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
   })
 
   const exactRollTableRowDtoSchema = z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number().int(),
     rollValue: z.number(),
     resultBlock: resultBlockDtoSchema
   })
 
   const rangeRollTableRowDtoSchema = z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number().int(),
     rollRange: z.tuple([z.number(), z.number()]),
     resultBlock: resultBlockDtoSchema
@@ -100,7 +107,7 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
 
   return z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       order: z.number().int(),
       pathCode: pathCodeSchema,
       groupType: pathGroupTypeSchema,
@@ -116,19 +123,19 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
         }),
         z.object({
           selectionKind: z.literal('CHOICE'),
-          options: z.array(choiceOptionDtoSchema)
+          options: authoredNestedCollectionSchema(choiceOptionDtoSchema)
         }),
         z.object({
           selectionKind: z.literal('ROLL_TABLE'),
           rollTableKind: z.literal(pathRollTableKindSchema.enum.EXACT),
-          dieConfig: z.string(),
-          rows: z.array(exactRollTableRowDtoSchema)
+          dieConfig: authoredIdentifierSchema,
+          rows: authoredNestedCollectionSchema(exactRollTableRowDtoSchema)
         }),
         z.object({
           selectionKind: z.literal('ROLL_TABLE'),
           rollTableKind: z.literal(pathRollTableKindSchema.enum.RANGE),
-          dieConfig: z.string(),
-          rows: z.array(rangeRollTableRowDtoSchema)
+          dieConfig: authoredIdentifierSchema,
+          rows: authoredNestedCollectionSchema(rangeRollTableRowDtoSchema)
         })
       ])
     )

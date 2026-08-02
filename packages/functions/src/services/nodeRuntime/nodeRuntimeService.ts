@@ -242,14 +242,26 @@ function normalizeVisibleSelectOptions(
     for (const section of step.sections) {
       for (const node of section.nodes) {
         if (!node.visible || node.kind !== 'INPUT') continue
-        if (node.type !== 'SELECT_SINGLE' && node.type !== 'SELECT_MULTI') continue
+        if (
+          node.type !== 'SELECT_SINGLE' &&
+          node.type !== 'SELECT_NUMBER' &&
+          node.type !== 'SELECT_MULTI'
+        ) {
+          continue
+        }
 
         const allowedValues = new Set((node.options ?? []).map((option) => option.value))
         const currentValue = getValueAtPath(nextValues, node.path)
 
-        if (node.type === 'SELECT_SINGLE') {
+        if (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_NUMBER') {
           if (currentValue == null || currentValue === '') continue
-          if (typeof currentValue === 'string' && allowedValues.has(currentValue)) continue
+          if (
+            ((node.type === 'SELECT_SINGLE' && typeof currentValue === 'string') ||
+              (node.type === 'SELECT_NUMBER' && typeof currentValue === 'number')) &&
+            allowedValues.has(String(currentValue))
+          ) {
+            continue
+          }
 
           const normalized = clearValuesAtPaths(nextValues, [node.path])
           nextValues = normalized.values
@@ -427,12 +439,17 @@ async function resolveNode(
     }
   }
 
-  if (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI') {
+  if (
+    node.type === 'SELECT_SINGLE' ||
+    node.type === 'SELECT_NUMBER' ||
+    node.type === 'SELECT_MULTI'
+  ) {
     return {
       ...baseNode,
       kind: 'INPUT',
       type: node.type,
       options: visible ? await resolveOptions(db, node.source, scope) : [],
+      constraints: node.constraints,
       authoring: resolveInputAuthoringMeta(node.authoring)
     }
   }
@@ -441,6 +458,7 @@ async function resolveNode(
     ...baseNode,
     kind: 'INPUT',
     type: node.type,
+    constraints: node.constraints,
     authoring: resolveInputAuthoringMeta(node.authoring)
   }
 }

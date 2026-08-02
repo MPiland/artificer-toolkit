@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
+import {
+  authoredIdentifierSchema,
+  authoredReferenceCollectionSchema
+} from '../shared/authoredLimits.js'
 import { authoringModeKindSchema } from '../shared/enums.js'
 import {
   createGrantProgressionFieldsDtoSchema,
@@ -14,7 +18,7 @@ const featGrantTargetDtoSchema = z.union([
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    featIds: z.array(z.string())
+    featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 const featGrantProgressionFieldsDtoSchema =

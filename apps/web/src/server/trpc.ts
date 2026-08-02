@@ -5,6 +5,7 @@ import {
   type CookieOptions
 } from '@supabase/ssr'
 import { handleTrpcFetchRequest } from '@artificer-toolkit/apis/trpc-handler'
+import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { crossSiteRequestResponse, isTrustedSameOriginRequest } from '#app/lib/trpcRequestSecurity'
 
 interface ResponseCookie {
@@ -66,6 +67,10 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
     return crossSiteRequestResponse()
   }
 
+  const boundedRequest = await boundTrpcRequestBody(request)
+  if (boundedRequest instanceof Response) return boundedRequest
+  request = boundedRequest
+
   const responseCookies: ResponseCookie[] = []
   const supabase = createServerClient(
     import.meta.env.VITE_SUPABASE_URL!,
@@ -94,4 +99,39 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
   })
 
   return appendResponseCookies(response, responseCookies)
+}
+
+async function boundTrpcRequestBody(request: Request): Promise<Request | Response> {
+  const isTrpcMutation =
+    request.method === 'POST' && new URL(request.url).pathname.startsWith('/api/trpc/')
+  if (!isTrpcMutation || !request.body) return request
+
+  const declaredLength = request.headers.get('content-length')
+  if (declaredLength !== null && Number(declaredLength) > AUTHORED_LIMITS.mutationPayloadBytes) {
+    return new Response('Authored payload exceeds 1 MiB', { status: 413 })
+  }
+
+  const chunks: Uint8Array[] = []
+  const reader = request.body.getReader()
+  let byteLength = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    byteLength += value.byteLength
+    if (byteLength > AUTHORED_LIMITS.mutationPayloadBytes) {
+      await reader.cancel().catch(() => undefined)
+      return new Response('Authored payload exceeds 1 MiB', { status: 413 })
+    }
+    chunks.push(value)
+  }
+
+  const body = new Uint8Array(byteLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return new Request(request, { body })
 }

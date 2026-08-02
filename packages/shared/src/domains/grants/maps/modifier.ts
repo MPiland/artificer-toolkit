@@ -178,6 +178,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const local = cond.local()
     const { and, or } = logic
     const { table } = data
+    const isBonus = parent.field(['modifierKind']).eq('BONUS')
+    const isPenalty = parent.field(['modifierKind']).eq('PENALTY')
+    const usesScalarMultiplier = or([
+      local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
+      local.field(['valueKind']).eq('SKILL_BONUS'),
+      local.field(['valueKind']).eq('CHARACTER_LEVEL'),
+      local.field(['valueKind']).eq('CLASS_LEVEL'),
+      local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+    ])
 
     map
       .set(
@@ -244,15 +253,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'bonusMultiplier',
+        number(['multiplier'], 'Multiplier', {
+          constraints: { minimum: 0 },
+          showIf: or([
+            and([isBonus, usesScalarMultiplier]),
+            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+          ])
+        })
+      )
+      .set(
         'multiplier',
         number(['multiplier'], 'Multiplier', {
           showIf: or([
-            local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
-            local.field(['valueKind']).eq('SKILL_BONUS'),
-            local.field(['valueKind']).eq('CHARACTER_LEVEL'),
-            local.field(['valueKind']).eq('CLASS_LEVEL'),
-            local.field(['valueKind']).eq('SPELL_SLOT_LEVEL'),
-            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
+            and([isPenalty, usesScalarMultiplier]),
             parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
           ])
         })
@@ -414,21 +428,36 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'bonusMin',
+        number(['min'], 'Min', {
+          constraints: { minimum: 0 },
+          showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+        })
+      )
+      .set(
         'min',
         number(['min'], 'Min', {
-          showIf: or([
-            parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
-            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
-          ])
+          showIf: parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
+        })
+      )
+      .set(
+        'bonusMax',
+        number(['max'], 'Max', {
+          constraints: { minimum: 0 },
+          showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
         })
       )
       .set(
         'max',
         number(['max'], 'Max', {
-          showIf: or([
-            parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
-            parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
-          ])
+          showIf: parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
+        })
+      )
+      .set(
+        'bonusAmount',
+        number(['amount'], 'Amount', {
+          constraints: { minimum: 0 },
+          showIf: and([isBonus, local.field(['valueKind']).eq('FIXED')])
         })
       )
       .set(
@@ -437,7 +466,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           showIf: or([
             parent.field(['modifierKind']).eq('SET_VALUE'),
             parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
-            local.field(['valueKind']).eq('FIXED')
+            and([isPenalty, local.field(['valueKind']).eq('FIXED')])
           ])
         })
       )

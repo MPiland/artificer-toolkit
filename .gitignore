@@ -28,6 +28,7 @@ playwright-report/
 output/playwright/
 tmp/
 apps/web/.tanstack/tmp/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

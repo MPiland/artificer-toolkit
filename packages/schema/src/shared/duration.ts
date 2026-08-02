@@ -1,18 +1,19 @@
 import { z } from 'zod'
 import { durationKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
+import { authoredIdentifierSchema } from './authoredLimits.js'
 
 export const durationDtoSchema = z.union([
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     durationKind: z.literal(durationKindSchema.enum.INSTANTANEOUS)
   }),
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     durationKind: z.literal(durationKindSchema.enum.UNTIL_DISPELLED)
   }),
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     durationKind: z.enum([
       durationKindSchema.enum.TURN,
       durationKindSchema.enum.ROUND,

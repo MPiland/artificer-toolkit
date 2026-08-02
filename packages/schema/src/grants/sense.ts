@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
+import {
+  authoredIdentifierSchema,
+  authoredReferenceCollectionSchema
+} from '../shared/authoredLimits.js'
 import { authoringModeKindSchema } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import {
@@ -15,7 +19,7 @@ const senseGrantTargetDtoSchema = z.union([
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    senseIds: z.array(z.string())
+    senseIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 const senseGrantProgressionFieldsDtoSchema =

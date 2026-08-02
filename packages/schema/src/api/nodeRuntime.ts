@@ -199,6 +199,12 @@ const nodeRuntimeNodeBaseShape = {
   clearPaths: z.array(nodeRuntimePathDtoSchema)
 }
 
+const nodeRuntimeInputConstraintsDtoSchema = z.strictObject({
+  maximum: z.number().optional(),
+  maximumLength: z.number().int().positive().optional(),
+  minimum: z.number().optional()
+})
+
 const nodeRuntimeScalarInputDtoSchemas = ['TEXT', 'NUMBER', 'RICH_TEXT', 'TOGGLE'] as const
 
 const scalarInputSchemas = nodeRuntimeScalarInputDtoSchemas.map((type) =>
@@ -206,18 +212,21 @@ const scalarInputSchemas = nodeRuntimeScalarInputDtoSchemas.map((type) =>
     ...nodeRuntimeNodeBaseShape,
     kind: z.literal('INPUT'),
     type: z.literal(type),
+    constraints: nodeRuntimeInputConstraintsDtoSchema.optional(),
     authoring: nodeRuntimeInputAuthoringDtoSchema
   })
 )
 
-const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_MULTI'] as const).map((type) =>
-  z.strictObject({
-    ...nodeRuntimeNodeBaseShape,
-    kind: z.literal('INPUT'),
-    type: z.literal(type),
-    options: z.array(nodeRuntimeOptionDtoSchema),
-    authoring: nodeRuntimeInputAuthoringDtoSchema
-  })
+const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] as const).map(
+  (type) =>
+    z.strictObject({
+      ...nodeRuntimeNodeBaseShape,
+      kind: z.literal('INPUT'),
+      type: z.literal(type),
+      options: z.array(nodeRuntimeOptionDtoSchema),
+      constraints: nodeRuntimeInputConstraintsDtoSchema.optional(),
+      authoring: nodeRuntimeInputAuthoringDtoSchema
+    })
 )
 
 const nodeRuntimeObjectGroupDtoSchema = z.strictObject({
@@ -300,7 +309,7 @@ export type NodeRuntimeNodeDto = z.infer<typeof nodeRuntimeNodeDtoSchema>
 export type NodeRuntimeInputNodeDto = Extract<NodeRuntimeNodeDto, { kind: 'INPUT' }>
 export type NodeRuntimeSelectInputNodeDto = Extract<
   NodeRuntimeInputNodeDto,
-  { type: 'SELECT_SINGLE' | 'SELECT_MULTI' }
+  { type: 'SELECT_SINGLE' | 'SELECT_NUMBER' | 'SELECT_MULTI' }
 >
 export type NodeRuntimeGroupNodeDto = Extract<NodeRuntimeNodeDto, { kind: 'GROUP' }>
 export type NodeRuntimeObjectGroupNodeDto = Extract<
