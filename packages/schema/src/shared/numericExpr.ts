@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { abilityCodeSchema } from './enums.js'
+import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
 
 const numericExprCodeSchema = z.enum([
   'FIXED',
@@ -29,14 +30,14 @@ const numericAtomSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('SKILL_BONUS'),
-    skillId: z.string()
+    skillId: authoredIdentifierSchema
   }),
   z.object({
     kind: z.literal('CHARACTER_LEVEL')
   }),
   z.object({
     kind: z.literal('CLASS_LEVEL'),
-    classId: z.string().optional()
+    classId: authoredIdentifierSchema.optional()
   }),
   z.object({
     kind: z.literal('SPELL_LEVEL')
@@ -56,7 +57,7 @@ const numericTermSchema = z.union([numericAtomSchema, numericMulSchema])
 
 const numericAddSchema = z.object({
   kind: z.literal('ADD'),
-  args: z.array(numericTermSchema).min(1)
+  args: authoredNestedCollectionSchema(numericTermSchema).min(1)
 })
 
 export const numericExprSchema: z.ZodTypeAny = z.lazy(() =>

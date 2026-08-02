@@ -18,6 +18,9 @@ export type AppFieldProps = {
   placeholder?: string
   required?: boolean
   readOnly?: boolean
+  maximum?: number
+  maximumLength?: number
+  minimum?: number
 }
 
 export type AppSelectFieldProps = AppFieldProps & {
@@ -55,7 +58,8 @@ export function TextField({
   error,
   placeholder,
   required,
-  readOnly
+  readOnly,
+  maximumLength
 }: AppFieldProps) {
   const field = useFieldContext<string>()
 
@@ -69,6 +73,7 @@ export function TextField({
       value={toInputValue(field.state.value)}
       error={error ?? getFieldError(field)}
       readOnly={readOnly}
+      maxLength={maximumLength}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(event) => {
@@ -84,7 +89,8 @@ export function TextareaField({
   error,
   placeholder,
   required,
-  readOnly
+  readOnly,
+  maximumLength
 }: AppFieldProps) {
   const field = useFieldContext<string>()
 
@@ -100,6 +106,7 @@ export function TextareaField({
       value={toInputValue(field.state.value)}
       error={error ?? getFieldError(field)}
       readOnly={readOnly}
+      maxLength={maximumLength}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(event) => {
@@ -115,7 +122,9 @@ export function NumberField({
   error,
   placeholder,
   required,
-  readOnly
+  readOnly,
+  maximum,
+  minimum
 }: AppFieldProps) {
   const field = useFieldContext<number | undefined>()
 
@@ -130,6 +139,8 @@ export function NumberField({
       value={field.state.value}
       error={error ?? getFieldError(field)}
       readOnly={readOnly}
+      max={maximum}
+      min={minimum}
       classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(value) => {
@@ -203,6 +214,46 @@ export function SelectField({
       onChange={(value) => {
         if (readOnly || changePending) return
         const nextValue = value ?? undefined
+        const commit = () => field.handleChange(nextValue)
+        if (onChangeRequest) {
+          onChangeRequest(nextValue, commit)
+        } else {
+          commit()
+        }
+      }}
+    />
+  )
+}
+
+export function NumberSelectField({
+  label,
+  description,
+  error,
+  placeholder,
+  required,
+  readOnly,
+  data,
+  changePending,
+  onChangeRequest
+}: AppSelectFieldProps & AppStructuralFieldProps<number | undefined>) {
+  const field = useFieldContext<number | undefined>()
+
+  return (
+    <AppSelect
+      label={label}
+      description={description}
+      placeholder={placeholder}
+      required={required}
+      data={uniqueSelectOptions(data)}
+      name={field.name}
+      value={field.state.value === undefined ? null : String(field.state.value)}
+      error={error ?? getFieldError(field)}
+      readOnly={readOnly}
+      disabled={readOnly || changePending}
+      onBlur={field.handleBlur}
+      onChange={(value) => {
+        if (readOnly || changePending) return
+        const nextValue = value === null ? undefined : Number(value)
         const commit = () => field.handleChange(nextValue)
         if (onChangeRequest) {
           onChangeRequest(nextValue, commit)
@@ -289,7 +340,8 @@ export function RichTextField({
   required,
   readOnly,
   className,
-  deferActivation
+  deferActivation,
+  maximumLength
 }: AppFieldRichTextProps) {
   const field = useFieldContext<string>()
   const Editor = deferActivation ? DeferredRichTextEditor : RichTextEditor
@@ -304,6 +356,7 @@ export function RichTextField({
       required={required}
       value={toInputValue(field.state.value)}
       readOnly={readOnly}
+      maximumLength={maximumLength}
       onBlur={() => field.handleBlur()}
       onChange={(value) => {
         if (!readOnly) field.handleChange(value)

@@ -25,9 +25,7 @@ function hasTrustedSameOriginMetadata(request: Request): boolean {
   }
 
   const fetchSite = request.headers.get('Sec-Fetch-Site')
-  return (
-    !fetchSite || fetchSite === 'same-origin' || fetchSite === 'same-site' || fetchSite === 'none'
-  )
+  return !fetchSite || fetchSite === 'same-origin' || fetchSite === 'same-site'
 }
 
 export function applySameOriginRequestHeader(headers: Headers): Headers {

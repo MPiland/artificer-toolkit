@@ -1,5 +1,4 @@
 export * from './confirmInviteFn'
 export * from './resendCodeFn'
-export * from './resetPasswordFn'
 export * from './logoutFn'
 export * from './signUpFn'

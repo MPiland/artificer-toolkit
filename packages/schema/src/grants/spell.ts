@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 import { chargeUseDtoSchema } from '../shared/charge.js'
+import {
+  authoredIdentifierSchema,
+  authoredReferenceCollectionSchema
+} from '../shared/authoredLimits.js'
 import { authoringModeKindSchema, spellGrantAttributeSchema } from '../shared/enums.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import {
@@ -15,7 +19,7 @@ const spellGrantTargetDtoSchema = z.union([
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-    spellIds: z.array(z.string())
+    spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   })
 ])
 const spellGrantProgressionFieldsDtoSchema =
@@ -25,7 +29,7 @@ export const spellGrantDtoSchema = scalingGrantBaseDtoSchema
   .extend({
     grantKind: z.literal('SPELL_GRANT'),
     castAtLevel: z.number().int().optional(),
-    attributes: z.array(spellGrantAttributeSchema).optional(),
+    attributes: authoredReferenceCollectionSchema(spellGrantAttributeSchema).optional(),
     filters: facetDtoSchema.optional(),
     charges: chargeUseDtoSchema.optional()
   })

@@ -312,6 +312,29 @@ describe('node runtime service', () => {
       visible: true,
       required: false
     })
+    const levelNode = nodes.find((node) => node.id === 'level')
+    expect(levelNode).toMatchObject({
+      constraints: { maximum: 9, minimum: 0 },
+      type: 'SELECT_NUMBER'
+    })
+    expect(getNodeOptions(levelNode)).toContainEqual({ label: 'Cantrip', value: '0' })
+  })
+
+  it('preserves valid numeric select values and clears values outside their options', async () => {
+    const valid = await normalizeNodeRuntimeValues(unusedDb, {
+      mapId: 'spell',
+      systemId: 'system-1',
+      values: { components: [], level: 0 }
+    })
+    const invalid = await normalizeNodeRuntimeValues(unusedDb, {
+      mapId: 'spell',
+      systemId: 'system-1',
+      values: { components: [], level: 10 }
+    })
+
+    expect(valid.values).toMatchObject({ level: 0 })
+    expect(invalid.values).not.toHaveProperty('level')
+    expect(invalid.clearedPaths).toContainEqual(['level'])
   })
 
   it('returns flat object and array scopes with absolute root paths', async () => {
@@ -774,7 +797,10 @@ describe('node runtime service', () => {
 })
 
 function getNodeOptions(node: NodeRuntimeNodeDto | undefined): readonly NodeRuntimeOptionDto[] {
-  if (node?.kind !== 'INPUT' || (node.type !== 'SELECT_SINGLE' && node.type !== 'SELECT_MULTI')) {
+  if (
+    node?.kind !== 'INPUT' ||
+    (node.type !== 'SELECT_SINGLE' && node.type !== 'SELECT_NUMBER' && node.type !== 'SELECT_MULTI')
+  ) {
     return []
   }
 

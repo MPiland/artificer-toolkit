@@ -1,5 +1,13 @@
 import { z } from 'zod'
-import { detailDtoSchema } from '../shared/index.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredPlainTextSchema,
+  authoredReferenceCollectionSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema,
+  detailDtoSchema
+} from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { costDtoSchema } from './shared.js'
 import {
@@ -9,30 +17,30 @@ import {
 } from '../shared/enums.js'
 
 export const vehicleAuthoredDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema.optional(),
   status: authoredRecordStatusSchema.optional(),
-  details: z.array(detailDtoSchema).optional(),
-  userId: z.string(),
-  systemId: z.string(),
+  details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
+  userId: authoredIdentifierSchema,
+  systemId: authoredIdentifierSchema,
   category: vehicleCategoryCodeSchema,
   size: sizeCodeSchema.optional(),
   armorClass: z.number().int().nonnegative().optional(),
   hitPoints: z.number().int().nonnegative().optional(),
   speed: z.number().int().nonnegative().optional(),
-  speedNote: z.string().optional(),
+  speedNote: authoredPlainTextSchema.optional(),
   crewMin: z.number().int().nonnegative().optional(),
   crewMax: z.number().int().nonnegative().optional(),
   passengerCapacity: z.number().int().nonnegative().optional(),
-  cargoCapacity: z.string().optional(),
+  cargoCapacity: authoredPlainTextSchema.optional(),
   cost: costDtoSchema.optional(),
-  properties: z.array(z.string()).optional(),
-  features: z.array(featureDtoSchema).optional()
+  properties: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
+  features: authoredNestedCollectionSchema(featureDtoSchema).optional()
 })
 
 export const vehicleAuthoringInputDtoSchema = vehicleAuthoredDtoSchema.extend({
-  userId: z.string().optional()
+  userId: authoredIdentifierSchema.optional()
 })
 
 export type VehicleAuthoredDto = z.infer<typeof vehicleAuthoredDtoSchema>

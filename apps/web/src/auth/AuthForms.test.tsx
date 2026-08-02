@@ -88,12 +88,9 @@ describe('AuthForms', () => {
     expect(emailInput).toHaveAttribute('autocomplete', 'email')
     expect(usernameInput).toHaveAttribute('autocomplete', 'nickname')
     expect(passwordInput).toHaveAttribute('autocomplete', 'new-password')
-    expect(passwordInput).toHaveAttribute('minlength', '8')
-    expect(
-      screen.getByText(
-        'Use at least 8 characters. A mix of letters and numbers is easier to keep secure.'
-      )
-    ).toBeInTheDocument()
+    expect(passwordInput).toHaveAttribute('minlength', '12')
+    expect(passwordInput).toHaveAttribute('maxlength', '128')
+    expect(screen.getByText('Use 12-128 characters.')).toBeInTheDocument()
   })
 
   it('submits the required signup fields and shows neutral confirmation copy', async () => {
@@ -113,14 +110,14 @@ describe('AuthForms', () => {
       target: { value: 'Morgan' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
-      target: { value: 'password123' }
+      target: { value: 'password1234' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     await waitFor(() =>
       expect(signUp).toHaveBeenCalledWith({
         email: 'morgan@example.com',
-        password: 'password123',
+        password: 'password1234',
         username: 'Morgan'
       })
     )
@@ -161,7 +158,7 @@ describe('AuthForms', () => {
       target: { value: 'morgan' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
-      target: { value: 'password123' }
+      target: { value: 'password1234' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
@@ -225,7 +222,11 @@ describe('AuthForms', () => {
 
     expect(newPasswordInput.closest('form')).toHaveAttribute('method', 'post')
     expect(newPasswordInput).toHaveAttribute('autocomplete', 'new-password')
+    expect(newPasswordInput).toHaveAttribute('minlength', '12')
+    expect(newPasswordInput).toHaveAttribute('maxlength', '128')
     expect(confirmPasswordInput).toHaveAttribute('autocomplete', 'new-password')
+    expect(confirmPasswordInput).toHaveAttribute('minlength', '12')
+    expect(confirmPasswordInput).toHaveAttribute('maxlength', '128')
   })
 
   it('updates the password after a recovery link is accepted', async () => {

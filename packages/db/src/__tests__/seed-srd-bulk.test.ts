@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { synchronizeSnapshot, type TableSnapshot } from '../scripts/seedSrdBulk.js'
+import { remapOwner, synchronizeSnapshot, type TableSnapshot } from '../scripts/seedSrdBulk.js'
 
 function createSnapshot(rowCount: number): TableSnapshot {
   return {
@@ -18,6 +18,22 @@ function createSnapshot(rowCount: number): TableSnapshot {
 }
 
 describe('bulk SRD snapshot synchronization', () => {
+  it('remaps exact owner values without rewriting UUID text embedded in prose', () => {
+    const sourceOwnerId = '11111111-1111-4111-8111-111111111111'
+    const targetOwnerId = '22222222-2222-4222-8222-222222222222'
+    const source = {
+      owner_user_id: sourceOwnerId,
+      nested: [{ user_id: sourceOwnerId }],
+      description: `Owner reference: ${sourceOwnerId}`
+    }
+
+    expect(remapOwner(source, sourceOwnerId, targetOwnerId)).toEqual({
+      owner_user_id: targetOwnerId,
+      nested: [{ user_id: targetOwnerId }],
+      description: `Owner reference: ${sourceOwnerId}`
+    })
+  })
+
   it('deletes every batch before inserting replacement rows', async () => {
     const queries: string[] = []
     const client = {

@@ -473,7 +473,12 @@ function validateNodeMap(args: {
     }
 
     if (node.kind === 'INPUT') {
-      if ((node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI') && !isEmptyValue(value)) {
+      if (
+        (node.type === 'SELECT_SINGLE' ||
+          node.type === 'SELECT_NUMBER' ||
+          node.type === 'SELECT_MULTI') &&
+        !isEmptyValue(value)
+      ) {
         validateSelectValue({
           domain: args.domain,
           record: args.record,
@@ -574,7 +579,7 @@ function validateSelectValue(args: {
   nodeId: string
   node: NodeEntry<Record<string, unknown>> & {
     kind: 'INPUT'
-    type: 'SELECT_SINGLE' | 'SELECT_MULTI'
+    type: 'SELECT_SINGLE' | 'SELECT_NUMBER' | 'SELECT_MULTI'
   }
   value: unknown
   path: RuntimePath

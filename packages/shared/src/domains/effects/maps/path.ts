@@ -33,7 +33,7 @@ import {
   SIZE_OPTIONS,
   type Trigger
 } from '#core'
-import { buildNodeMap, type BuildNodeMap, type NodeMap, valuesOf } from '#utils'
+import { AUTHORED_LIMITS, buildNodeMap, type BuildNodeMap, type NodeMap, valuesOf } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
@@ -272,7 +272,12 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
           presentation: 'inline'
         })
       )
-      .set('armorClassNote', text(['armorClassNote'], 'Armor Class Note'))
+      .set(
+        'armorClassNote',
+        text(['armorClassNote'], 'Armor Class Note', {
+          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+        })
+      )
       .set(
         'hitPoints',
         groupObject(['hitPoints'], 'Hit Points', () => NUMERIC_EXPR_NODE_MAP, {

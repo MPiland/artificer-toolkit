@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 export const manualAdjudicationDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   effectKind: z.literal('MANUAL_ADJUDICATION')
 })
 

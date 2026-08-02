@@ -5,10 +5,14 @@ import {
   scalingSourceSchema
 } from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema
+} from '../shared/authoredLimits.js'
 
 const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     bonusKind: z.literal('ABILITY_BONUS'),
     ability: abilityModifierReferenceSchema,
     min: z.number().optional(),
@@ -17,7 +21,7 @@ const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
     order: z.number().int()
   }),
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     bonusKind: z.literal('PROFICIENCY_BONUS'),
     min: z.number().optional(),
     max: z.number().optional(),
@@ -25,9 +29,9 @@ const healBonusDtoSchema = z.discriminatedUnion('bonusKind', [
     order: z.number().int()
   }),
   z.object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     bonusKind: z.literal('CLASS_LEVEL'),
-    classId: z.string(),
+    classId: authoredIdentifierSchema,
     min: z.number().optional(),
     max: z.number().optional(),
     multiplier: z.number().optional(),
@@ -45,9 +49,11 @@ const healFixedDtoSchema = z.union([
     .object({
       valueKind: z.literal('FIXED'),
       scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-      levels: z.array(levelScaledValueLevelDtoSchema.extend({ amount: z.number() })),
+      levels: authoredNestedCollectionSchema(
+        levelScaledValueLevelDtoSchema.extend({ amount: z.number() })
+      ),
       scalingSource: scalingSourceSchema,
-      classId: z.string().optional()
+      classId: authoredIdentifierSchema.optional()
     })
     .superRefine((value, ctx) => {
       if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
@@ -61,11 +67,11 @@ const healFixedDtoSchema = z.union([
     .object({
       valueKind: z.literal('FIXED'),
       scalingKind: z.literal('BREAKPOINTS'),
-      breakpoints: z.array(
+      breakpoints: authoredNestedCollectionSchema(
         levelScaledValueLevelDtoSchema.extend({ value: z.object({ amount: z.number() }) })
       ),
       scalingSource: scalingSourceSchema,
-      classId: z.string().optional()
+      classId: authoredIdentifierSchema.optional()
     })
     .superRefine((value, ctx) => {
       if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
@@ -79,7 +85,7 @@ const healFixedDtoSchema = z.union([
 
 const healDiceDtoSchema = z.union([
   z.object({
-    diceConfig: z.string(),
+    diceConfig: authoredIdentifierSchema,
     valueKind: z.literal('DICE'),
     scalingKind: z.literal(scalingKindSchema.enum.NONE)
   }),
@@ -87,9 +93,11 @@ const healDiceDtoSchema = z.union([
     .object({
       valueKind: z.literal('DICE'),
       scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
-      levels: z.array(levelScaledValueLevelDtoSchema.extend({ diceConfig: z.string() })),
+      levels: authoredNestedCollectionSchema(
+        levelScaledValueLevelDtoSchema.extend({ diceConfig: authoredIdentifierSchema })
+      ),
       scalingSource: scalingSourceSchema,
-      classId: z.string().optional()
+      classId: authoredIdentifierSchema.optional()
     })
     .superRefine((value, ctx) => {
       if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
@@ -103,11 +111,13 @@ const healDiceDtoSchema = z.union([
     .object({
       valueKind: z.literal('DICE'),
       scalingKind: z.literal('BREAKPOINTS'),
-      breakpoints: z.array(
-        levelScaledValueLevelDtoSchema.extend({ value: z.object({ diceConfig: z.string() }) })
+      breakpoints: authoredNestedCollectionSchema(
+        levelScaledValueLevelDtoSchema.extend({
+          value: z.object({ diceConfig: authoredIdentifierSchema })
+        })
       ),
       scalingSource: scalingSourceSchema,
-      classId: z.string().optional()
+      classId: authoredIdentifierSchema.optional()
     })
     .superRefine((value, ctx) => {
       if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
@@ -130,7 +140,7 @@ const healPoolDtoSchema = z.union([
       valueKind: z.literal('POOL'),
       scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
       scalingSource: scalingSourceSchema,
-      classId: z.string().optional(),
+      classId: authoredIdentifierSchema.optional(),
       amount: z.number().optional(),
       multiplier: z.number().optional(),
       min: z.number().optional(),
@@ -149,10 +159,10 @@ const healPoolDtoSchema = z.union([
 
 export const healDtoSchema = z
   .object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     effectKind: z.literal('HEAL'),
     temporary: z.boolean().optional(),
-    bonuses: z.array(healBonusDtoSchema).optional()
+    bonuses: authoredNestedCollectionSchema(healBonusDtoSchema).optional()
   })
   .and(z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema]))
 

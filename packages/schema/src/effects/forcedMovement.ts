@@ -6,10 +6,11 @@ import {
   forcedMovementDistanceModeSchema,
   measurementUnitCodeSchema
 } from '../shared/enums.js'
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 
 export const forcedMovementDtoSchema = z
   .object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     effectKind: z.literal(effectKindSchema.enum.FORCED_MOVEMENT),
     direction: forcedMovementDirectionSchema,
     actionEconomy: forcedMovementActionEconomySchema

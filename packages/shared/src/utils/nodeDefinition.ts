@@ -14,6 +14,7 @@ import {
   type ObjectGroupPresentation
 } from './authoringSchema.js'
 import { valuesOf } from './valuesOf.js'
+import { AUTHORED_LIMITS, type AuthoringInputConstraints } from './authoringLimits.js'
 
 type TableName = string
 type ColumnOf<_K extends TableName> = string
@@ -1263,13 +1264,15 @@ export type NodeInput<NLocal extends object> =
       kind: typeof NODE_KIND.INPUT
       type: 'RICH_TEXT' | 'TEXT' | 'NUMBER' | 'TOGGLE'
       path: InputPathFor<NLocal>
+      constraints?: AuthoringInputConstraints
       authoring?: NodeAuthoringMeta
     })
   | (NodeMetaBase & {
       kind: typeof NODE_KIND.INPUT
-      type: 'SELECT_MULTI' | 'SELECT_SINGLE'
+      type: 'SELECT_MULTI' | 'SELECT_NUMBER' | 'SELECT_SINGLE'
       path: InputPathFor<NLocal>
       source: NodeSelectSource
+      constraints?: AuthoringInputConstraints
       authoring?: NodeAuthoringMeta
     })
 
@@ -1321,6 +1324,7 @@ type NodeMetaSpec = Pick<
   NodeMetaBase,
   'order' | 'section' | 'hiddenBehavior' | 'showIf' | 'requiredIf'
 > & {
+  constraints?: AuthoringInputConstraints
   authoring?: NodeAuthoringMeta
 }
 type GroupMetaSpec<TPresentation extends GroupPresentation> = Pick<
@@ -1366,6 +1370,12 @@ export type NodeBuilder<NLocal extends object> = {
     source: NodeSelectSource,
     meta?: NodeMetaSpec
   ): NodeInput<NLocal>
+  selectNumber(
+    path: ScalarInputPathFor<NLocal, number>,
+    label: string,
+    source: NodeSelectSource,
+    meta?: NodeMetaSpec
+  ): NodeInput<NLocal>
   selectMulti(
     path: MultiSelectInputPathFor<NLocal>,
     label: string,
@@ -1400,6 +1410,10 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: {
+        maximumLength: AUTHORED_LIMITS.shortTextCharacters,
+        ...meta?.constraints
+      },
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 
@@ -1413,6 +1427,10 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: {
+        maximumLength: AUTHORED_LIMITS.richTextVisibleCharacters,
+        ...meta?.constraints
+      },
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 
@@ -1426,6 +1444,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: meta?.constraints,
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 
@@ -1439,6 +1458,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: meta?.constraints,
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 
@@ -1453,6 +1473,22 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: meta?.constraints,
+      authoring: resolveInputAuthoringMeta(meta?.authoring)
+    }),
+
+    selectNumber: (path, label, source, meta) => ({
+      kind: 'INPUT',
+      type: 'SELECT_NUMBER',
+      path,
+      label,
+      source,
+      order: meta?.order,
+      section: meta?.section,
+      hiddenBehavior: meta?.hiddenBehavior,
+      showIf: meta?.showIf,
+      requiredIf: meta?.requiredIf,
+      constraints: meta?.constraints,
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 
@@ -1467,6 +1503,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf,
+      constraints: meta?.constraints,
       authoring: resolveInputAuthoringMeta(meta?.authoring)
     }),
 

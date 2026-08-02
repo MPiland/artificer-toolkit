@@ -34,6 +34,8 @@ TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which pac
 
 When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
 
+The committed edge rule limits `/api/trpc/*` to 60 requests per 60 seconds per IP and domain so mixed tRPC batches cannot bypass it. The application rejects actual tRPC POST bodies over 1 MiB before authentication or JSON parsing, and Postgres enforces the durable per-account root-creation windows. Confirm the rate-limit rule appears in each production deploy log; Netlify may accept a deploy even when a rule is invalid.
+
 Set these values in the Netlify UI rather than in `netlify.toml`:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the browser and SSR Supabase client. They are publishable values, not secrets.
@@ -41,7 +43,7 @@ Set these values in the Netlify UI rather than in `netlify.toml`:
 - `SENTRY_ORG=artificer-toolkit-rc` and `SENTRY_PROJECT=javascript-tanstackstart-react` for production source-map uploads during the build.
 - `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
 - `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.
-- `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, and `AUTH_EMAIL_FROM` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
+- `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, and the canonical public app origin as `SITE_URL` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
 - `DATABASE_CONNECTION_STRING` for database-backed server routes. Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
 - `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
 

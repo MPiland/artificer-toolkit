@@ -48,7 +48,7 @@ Authored `saveDraft`, `activateDraft`, and `activate` input failures also expose
 
 ## Error and security boundary
 
-Zod errors become `UNPROCESSABLE_CONTENT`; ownership, not-found, dependency, concurrency, node-runtime input, and Sheet command failures map to `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, or `BAD_REQUEST` as appropriate. Unknown errors remain internal.
+Zod errors become `UNPROCESSABLE_CONTENT`; ownership, not-found, dependency, concurrency, node-runtime input, and Sheet command failures map to `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, or `BAD_REQUEST` as appropriate. An exhausted authored-root creation window maps to `TOO_MANY_REQUESTS`/HTTP 429. tRPC POST bodies over 1 MiB are rejected from their actual streamed bytes with HTTP 413 before authentication and JSON parsing; authored mutation schemas independently enforce the same total limit after domain parsing. Unknown errors remain internal.
 
 The browser may know route names and DTOs, but it must not bypass the router to read/write product rows. Supabase client/server helpers in web are authentication infrastructure; product mutations belong in API procedures. Public sign-up, credential changes, appearance metadata, and account deletion are auth-lifecycle exceptions. Account deletion runs through a same-origin server function, requires the exact account email and current password, globally revokes refresh sessions, and uses a server-only admin client for the hard delete. A client-visible flag or user-metadata value is never an authorization decision.
 

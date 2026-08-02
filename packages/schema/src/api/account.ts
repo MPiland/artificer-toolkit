@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { usernameInputSchema } from './auth.js'
+import { passwordInputSchema, usernameInputSchema } from './auth.js'
 
 const nullableTrimmedText = (maxLength: number) =>
   z
@@ -46,7 +46,7 @@ export type AccountEmailUpdateInput = z.infer<typeof accountEmailUpdateInputSche
 export const accountPasswordUpdateInputSchema = z.strictObject({
   email: z.string().trim().email(),
   currentPassword: z.string().min(1),
-  password: z.string().min(8).max(128)
+  password: passwordInputSchema
 })
 
 export type AccountPasswordUpdateInput = z.infer<typeof accountPasswordUpdateInputSchema>

@@ -156,6 +156,30 @@ export type Database = {
           }
         ]
       }
+      authored_definition_creation_rate_limits: {
+        Row: {
+          hour_count: number
+          hour_window_start: string
+          minute_count: number
+          minute_window_start: string
+          user_id: string
+        }
+        Insert: {
+          hour_count?: number
+          hour_window_start: string
+          minute_count?: number
+          minute_window_start: string
+          user_id: string
+        }
+        Update: {
+          hour_count?: number
+          hour_window_start?: string
+          minute_count?: number
+          minute_window_start?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       authored_route_ids: {
         Row: {
           created_at: string

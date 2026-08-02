@@ -8,6 +8,7 @@ import Superscript from '@tiptap/extension-superscript'
 import SubScript from '@tiptap/extension-subscript'
 import { TableKit } from '@tiptap/extension-table'
 import Placeholder from '@tiptap/extension-placeholder'
+import { CharacterCount } from '@tiptap/extensions'
 import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
 import Toolbar from './Toolbar'
@@ -27,6 +28,7 @@ export interface RichTextEditorProps {
   readOnly?: boolean
   className?: string
   autoFocus?: boolean
+  maximumLength?: number
 }
 
 const RichTextEditor = ({
@@ -40,7 +42,8 @@ const RichTextEditor = ({
   name,
   readOnly,
   className,
-  autoFocus
+  autoFocus,
+  maximumLength
 }: RichTextEditorProps) => {
   const labelId = useId()
   const errorId = useId()
@@ -86,7 +89,8 @@ const RichTextEditor = ({
           class: editorStyles.editor_table_td
         }
       }),
-      Placeholder.configure({ placeholder: placeholder ?? '' })
+      Placeholder.configure({ placeholder: placeholder ?? '' }),
+      CharacterCount.configure({ limit: maximumLength ?? null })
     ],
     content: value,
     editable: !readOnly,
@@ -148,6 +152,11 @@ const RichTextEditor = ({
       {error ? (
         <span id={errorId} role='alert' className={editorStyles.editorError}>
           {error}
+        </span>
+      ) : null}
+      {maximumLength ? (
+        <span aria-live='polite' className={editorStyles.editorCount}>
+          {editor?.storage.characterCount.characters() ?? 0} / {maximumLength}
         </span>
       ) : null}
     </>

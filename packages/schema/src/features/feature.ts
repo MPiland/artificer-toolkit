@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { featureBaseDtoObject } from './base.js'
 import { featureOptionDtoSchema } from './option.js'
+import { authoredNestedCollectionSchema } from '../shared/authoredLimits.js'
 
 export const featureOptionChoiceDtoSchema = z.object({
   level: z.number().int(),
@@ -22,8 +23,8 @@ export const featureDtoSchema = featureBaseDtoObject.extend({
       'OTHER'
     ])
     .optional(),
-  optionChoices: z.array(featureOptionChoiceDtoSchema).optional(),
-  options: z.array(featureOptionDtoSchema).optional(),
+  optionChoices: authoredNestedCollectionSchema(featureOptionChoiceDtoSchema).optional(),
+  options: authoredNestedCollectionSchema(featureOptionDtoSchema).optional(),
   availableAtLevel: z.number().int().optional()
 })
 

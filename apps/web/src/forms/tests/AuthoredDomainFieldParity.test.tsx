@@ -53,6 +53,28 @@ const RegistrationRenderer = FormRenderer<Record<string, unknown>>({ defaultValu
 afterEach(cleanup)
 
 describe('authored domain schema, adapter, node, and field parity', () => {
+  it('renders spell level zero as the Cantrip numeric select option', async () => {
+    const scenario = scenarios.find(({ domain }) => domain === 'spell')
+    if (!scenario) throw new Error('Expected the spell authoring scenario.')
+
+    const parsedRecord = parseScenarioRecord(scenario)
+    const formValues = { ...toActualFormValues('spell', parsedRecord), level: 0 }
+    const rootContext = collectResolvedParity('spell', formValues).contexts.find(
+      ({ model }) => model.mapId === 'spell'
+    )
+    if (!rootContext) throw new Error('Expected the resolved spell root context.')
+
+    render(
+      <TestRouterProvider>
+        <RegistrationHarness index={0} model={rootContext.model} values={formValues} />
+      </TestRouterProvider>
+    )
+
+    expect(await screen.findByRole('combobox', { name: /^level$/i })).toHaveValue('Cantrip')
+    expect(screen.getByRole('textbox', { name: /^name$/i })).toHaveAttribute('maxlength', '120')
+    expect(screen.getAllByText(/\/ 20000$/).length).toBeGreaterThan(0)
+  })
+
   it.each(scenarios)(
     '$label exposes every populated authored field through its node tree',
     (scenario) => {

@@ -10,3 +10,15 @@ it('maps username uniqueness races to a conflict response', () => {
     message: 'That username is already taken.'
   })
 })
+
+it('maps authored creation limits to a rate-limit response', () => {
+  const error = new Error(
+    'You can create at most 10 authored records per minute. Try again when the minute resets.'
+  )
+  error.name = 'AuthoredDefinitionCreationRateLimitError'
+
+  expect(toTrpcError(error)).toMatchObject({
+    code: 'TOO_MANY_REQUESTS',
+    message: error.message
+  })
+})

@@ -10,6 +10,14 @@ const SPELL_SECTIONS = {
   effects: { id: 'effects', label: 'Effects', order: 40 }
 } as const
 
+const SPELL_LEVEL_OPTIONS = [
+  { code: '0', label: 'Cantrip' },
+  ...Array.from({ length: 9 }, (_, index) => ({
+    code: String(index + 1),
+    label: `Level ${index + 1}`
+  }))
+]
+
 // Casting Time Node Map - Fixed with proper DSL
 const castingTimeNode = buildNodeMap<CastingTimeAuthored>()
 export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ map, nodes }) => {
@@ -28,7 +36,7 @@ export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ ma
 // Spell Node Map - Complete map with ALL SpellAuthored properties
 const spellNode = buildNodeMap<SpellAuthored>()
 export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, cond }) => {
-  const { text, richText, number, selectMulti, selectSingle, groupObject, groupArray } = nodes
+  const { text, richText, selectMulti, selectNumber, selectSingle, groupObject, groupArray } = nodes
   const { table } = data
   const local = cond.local()
   map
@@ -46,7 +54,19 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data, con
       'description',
       richText(['description'], 'Description', { section: SPELL_SECTIONS.basics, order: 20 })
     )
-    .set('level', number(['level'], 'Level', { section: SPELL_SECTIONS.basics, order: 30 }))
+    .set(
+      'level',
+      selectNumber(
+        ['level'],
+        'Level',
+        { kind: 'INLINE_OPTIONS', options: SPELL_LEVEL_OPTIONS },
+        {
+          constraints: { minimum: 0, maximum: 9 },
+          section: SPELL_SECTIONS.basics,
+          order: 30
+        }
+      )
+    )
     .set(
       'materialDescription',
       richText(['materialDescription'], 'Material Description', {

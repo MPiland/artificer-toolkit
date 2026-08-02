@@ -3,6 +3,7 @@ import { useFieldContext } from '../app-form/AppForm'
 import {
   MultiSelectField,
   NumberField,
+  NumberSelectField,
   RichTextField,
   SelectField,
   TextField,
@@ -31,6 +32,9 @@ export function ResolvedInputControl({
   const commonProps = {
     error: validationError || undefined,
     label: node.label,
+    maximum: node.constraints?.maximum,
+    maximumLength: node.constraints?.maximumLength,
+    minimum: node.constraints?.minimum,
     required: node.required,
     readOnly
   }
@@ -64,6 +68,22 @@ export function ResolvedInputControl({
     case 'SELECT_SINGLE':
       return (
         <SelectField
+          {...commonProps}
+          changePending={structuralChangeGuard.blocked}
+          data={node.options}
+          onChangeRequest={(nextValue, commit) =>
+            structuralChangeGuard.request({
+              commit,
+              fieldName,
+              label: node.label,
+              nextValue
+            })
+          }
+        />
+      )
+    case 'SELECT_NUMBER':
+      return (
+        <NumberSelectField
           {...commonProps}
           changePending={structuralChangeGuard.blocked}
           data={node.options}

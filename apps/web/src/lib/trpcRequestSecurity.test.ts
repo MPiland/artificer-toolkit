@@ -76,4 +76,20 @@ describe('same-origin request security', () => {
 
     expect(isTrustedSameOriginMutationRequest(request)).toBe(false)
   })
+
+  it('blocks browser-initiated writes with a navigation fetch-site value', () => {
+    const headers = applySameOriginRequestHeader(
+      new Headers({
+        Origin: 'https://app.test',
+        'Sec-Fetch-Site': 'none'
+      })
+    )
+    const request = new Request('https://app.test/api/trpc/content.spells.saveDraft', {
+      headers,
+      method: 'POST'
+    })
+
+    expect(isTrustedSameOriginRequest(request)).toBe(false)
+    expect(isTrustedSameOriginMutationRequest(request)).toBe(false)
+  })
 })

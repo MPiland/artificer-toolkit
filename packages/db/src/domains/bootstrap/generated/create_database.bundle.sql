@@ -1311,6 +1311,28 @@ CREATE TABLE IF NOT EXISTS public.authored_definition_revisions (
     DEFERRABLE INITIALLY DEFERRED
 );
 
+CREATE TABLE IF NOT EXISTS public.authored_definition_creation_rate_limits (
+  user_id uuid PRIMARY KEY
+    REFERENCES auth.users(id)
+    ON DELETE CASCADE,
+  minute_window_start timestamptz NOT NULL,
+  minute_count smallint NOT NULL DEFAULT 0,
+  hour_window_start timestamptz NOT NULL,
+  hour_count smallint NOT NULL DEFAULT 0,
+
+  CONSTRAINT authored_definition_creation_rate_limits_minute_count_chk CHECK (
+    minute_count BETWEEN 0 AND 10
+  ),
+  CONSTRAINT authored_definition_creation_rate_limits_hour_count_chk CHECK (
+    hour_count BETWEEN 0 AND 100
+  )
+);
+
+ALTER TABLE public.authored_definition_creation_rate_limits ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON TABLE public.authored_definition_creation_rate_limits
+  FROM anon, authenticated;
+
 ALTER TABLE public.authored_definitions
   ADD CONSTRAINT authored_definitions_active_revision_fk FOREIGN KEY (
     subject_id,
@@ -11164,6 +11186,7 @@ BEGIN
     WHERE n.nspname = 'public'
       AND c.relkind = 'r'
       AND c.relrowsecurity = true
+      AND c.relname <> 'authored_definition_creation_rate_limits'
   LOOP
     EXECUTE format(
       'DROP POLICY IF EXISTS %I ON %I.%I',

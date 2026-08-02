@@ -16,6 +16,7 @@ function getHandler() {
   handler ??= createAuthEmailHookHandler({
     from: getRequiredEnvironmentVariable('AUTH_EMAIL_FROM'),
     resendApiKey: getRequiredEnvironmentVariable('RESEND_API_KEY'),
+    siteUrl: getRequiredEnvironmentVariable('SITE_URL'),
     supabaseUrl: getRequiredEnvironmentVariable('SUPABASE_URL'),
     webhookSecret: getRequiredEnvironmentVariable('SEND_EMAIL_HOOK_SECRET')
   })

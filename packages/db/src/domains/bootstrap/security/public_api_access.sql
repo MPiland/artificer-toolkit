@@ -34,6 +34,7 @@ BEGIN
     WHERE n.nspname = 'public'
       AND c.relkind = 'r'
       AND c.relrowsecurity = true
+      AND c.relname <> 'authored_definition_creation_rate_limits'
   LOOP
     EXECUTE format(
       'DROP POLICY IF EXISTS %I ON %I.%I',

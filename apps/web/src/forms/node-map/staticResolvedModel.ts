@@ -359,7 +359,11 @@ function toRuntimeNode<TValues extends object>(
   }
 
   const authoring = resolveInputAuthoringMeta(node.authoring)
-  if (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI') {
+  if (
+    node.type === 'SELECT_SINGLE' ||
+    node.type === 'SELECT_NUMBER' ||
+    node.type === 'SELECT_MULTI'
+  ) {
     return {
       ...base,
       kind: 'INPUT',
@@ -369,6 +373,7 @@ function toRuntimeNode<TValues extends object>(
           getStaticRelationshipOptions(node, options) ??
           [])
         : [],
+      constraints: node.constraints,
       authoring
     }
   }
@@ -377,6 +382,7 @@ function toRuntimeNode<TValues extends object>(
     ...base,
     kind: 'INPUT',
     type: node.type,
+    constraints: node.constraints,
     authoring
   }
 }

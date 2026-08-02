@@ -55,7 +55,10 @@ export function isResolvedInputNode(node: NodeRuntimeNodeDto): node is NodeRunti
 export function isResolvedSelectInputNode(
   node: NodeRuntimeNodeDto
 ): node is NodeRuntimeSelectInputNodeDto {
-  return node.kind === 'INPUT' && (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_MULTI')
+  return (
+    node.kind === 'INPUT' &&
+    (node.type === 'SELECT_SINGLE' || node.type === 'SELECT_NUMBER' || node.type === 'SELECT_MULTI')
+  )
 }
 
 export function isResolvedGroupNode(node: NodeRuntimeNodeDto): node is NodeRuntimeGroupNodeDto {

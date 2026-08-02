@@ -21,29 +21,35 @@ import {
   sizeCodeSchema,
   vehicleCategoryCodeSchema
 } from './enums.js'
+import {
+  AUTHORED_LIMITS,
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema
+} from './authoredLimits.js'
 
-export const unknownObjectSchema = z.record(z.string(), z.unknown())
-export const unknownObjectArraySchema = z.array(unknownObjectSchema)
+export const unknownObjectSchema = z.record(authoredIdentifierSchema, z.unknown())
+export const unknownObjectArraySchema = authoredNestedCollectionSchema(unknownObjectSchema)
 
 const selectableRootSchema = z.object({
   authoringModeKind: authoringModeKindSchema.optional()
 })
 
 const subjectSelectionSchema = selectableRootSchema.extend({
-  classIds: z.array(z.string()).optional(),
-  featureIds: z.array(z.string()).optional(),
-  spellIds: z.array(z.string()).optional(),
-  equipmentIds: z.array(z.string()).optional(),
-  featIds: z.array(z.string()).optional(),
-  raceIds: z.array(z.string()).optional(),
-  backgroundIds: z.array(z.string()).optional(),
-  creatureIds: z.array(z.string()).optional(),
-  vehicleIds: z.array(z.string()).optional(),
-  optionIds: z.array(z.string()).optional(),
-  subraceIds: z.array(z.string()).optional(),
-  subclassIds: z.array(z.string()).optional(),
-  resourceIds: z.array(z.string()).optional(),
-  ancestryOptionIds: z.array(z.string()).optional(),
+  classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  raceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  backgroundIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  creatureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  vehicleIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  subraceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  subclassIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  resourceIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+  ancestryOptionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
   proficiencyKind: proficiencyKindSchema.optional()
 })
 
@@ -68,7 +74,7 @@ const selectableSchema = (
 const rangePredicatePayloadSchema = z.union([
   selectableSchema(
     z.object({
-      rangeKind: z.array(
+      rangeKind: authoredReferenceCollectionSchema(
         z.enum([
           rangeKindSchema.enum.SELF,
           rangeKindSchema.enum.TOUCH,
@@ -80,7 +86,7 @@ const rangePredicatePayloadSchema = z.union([
   ),
   selectableSchema(
     z.object({
-      rangeKind: z.array(z.literal(rangeKindSchema.enum.DISTANCE))
+      rangeKind: authoredReferenceCollectionSchema(z.literal(rangeKindSchema.enum.DISTANCE))
     }),
     z.object({
       min: z.number(),
@@ -93,12 +99,14 @@ const rangePredicatePayloadSchema = z.union([
 const durationPredicatePayloadSchema = z.union([
   selectableSchema(
     z.object({
-      durationKind: z.array(z.literal(durationKindSchema.enum.INSTANTANEOUS))
+      durationKind: authoredReferenceCollectionSchema(
+        z.literal(durationKindSchema.enum.INSTANTANEOUS)
+      )
     })
   ),
   selectableSchema(
     z.object({
-      durationKind: z.array(
+      durationKind: authoredReferenceCollectionSchema(
         z.enum([
           durationKindSchema.enum.TURN,
           durationKindSchema.enum.ROUND,
@@ -126,7 +134,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          specializationIds: z.array(z.string())
+          specializationIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -156,18 +164,18 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          sizes: z.array(z.string())
+          sizes: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.FEATURE_OBTAINED),
-    featureIds: z.array(z.string())
+    featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.OPTION_OBTAINED),
-    featureIds: z.array(z.string()).optional(),
-    optionIds: z.array(z.string())
+    featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
+    optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z
     .object({
@@ -176,7 +184,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          magicSchoolIds: z.array(z.string())
+          magicSchoolIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -187,7 +195,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          abilities: z.array(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
         })
       )
     ),
@@ -203,7 +211,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          abilities: z.array(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
         })
       )
     ),
@@ -223,7 +231,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          properties: z.array(equipmentPropertyCodeSchema)
+          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
         }),
         z.object({
           category: equipmentCategoryCodeSchema.optional()
@@ -237,11 +245,11 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          equipmentIds: z.array(z.string())
+          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         }),
         z.object({
           category: equipmentCategoryCodeSchema.optional(),
-          properties: z.array(equipmentPropertyCodeSchema).optional(),
+          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional(),
           level: scalingAmountKindSchema
         })
       )
@@ -253,7 +261,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          properties: z.array(equipmentPropertyCodeSchema)
+          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
         }),
         z.object({
           category: equipmentCategoryCodeSchema.optional()
@@ -281,7 +289,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          languageIds: z.array(z.string())
+          languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         }),
         z.object({
           level: scalingAmountKindSchema
@@ -295,11 +303,11 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          equipmentIds: z.array(z.string())
+          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         }),
         z.object({
           category: equipmentCategoryCodeSchema.optional(),
-          properties: z.array(equipmentPropertyCodeSchema).optional()
+          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional()
         })
       )
     ),
@@ -315,7 +323,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          damageTypeIds: z.array(z.string())
+          damageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -326,7 +334,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          conditionTypeIds: z.array(z.string())
+          conditionTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -337,7 +345,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          chargeLimitKind: z.array(chargeLimitKindSchema)
+          chargeLimitKind: authoredReferenceCollectionSchema(chargeLimitKindSchema)
         })
       )
     ),
@@ -348,7 +356,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          chargeResetKind: z.array(chargeResetKindSchema)
+          chargeResetKind: authoredReferenceCollectionSchema(chargeResetKindSchema)
         })
       )
     ),
@@ -362,17 +370,17 @@ const predicatePayloadSchema = z.union([
   }),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.CLASS_LEVEL),
-    classIds: z.array(z.string()).min(1),
+    classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).min(1),
     min: z.number(),
     max: z.number().optional()
   }),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.SPELL_OBTAINED),
-    spellIds: z.array(z.string())
+    spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.FEAT_OBTAINED),
-    featIds: z.array(z.string())
+    featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
   }),
   z
     .object({
@@ -381,7 +389,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          heritageIds: z.array(z.string())
+          heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -392,7 +400,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          skillIds: z.array(z.string())
+          skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         }),
         z.object({
           level: scalingAmountKindSchema
@@ -406,7 +414,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          skillIds: z.array(z.string())
+          skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -456,7 +464,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          categories: z.array(creatureCategoryCodeSchema)
+          categories: authoredReferenceCollectionSchema(creatureCategoryCodeSchema)
         })
       )
     ),
@@ -467,7 +475,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          creatureTypeIds: z.array(z.string())
+          creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       )
     ),
@@ -478,7 +486,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          sizes: z.array(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
         })
       )
     ),
@@ -495,7 +503,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          categories: z.array(vehicleCategoryCodeSchema)
+          categories: authoredReferenceCollectionSchema(vehicleCategoryCodeSchema)
         })
       )
     ),
@@ -506,7 +514,7 @@ const predicatePayloadSchema = z.union([
     .and(
       selectableSchema(
         z.object({
-          sizes: z.array(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
         })
       )
     )
@@ -576,13 +584,13 @@ export type ScopedFacetDto = FacetBodyDto & {
 
 const facetBodySchema: z.ZodType<FacetBodyDto> = z.lazy(() =>
   subjectSelectionSchema.extend({
-    groups: z.array(facetBodyGroupSchema)
+    groups: authoredNestedCollectionSchema(facetBodyGroupSchema)
   })
 )
 
 const facetPredicateConditionSchema = z
   .object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number(),
     kind: z.literal('PREDICATE'),
     constraint: authoringConstraintCodeSchema
@@ -592,7 +600,7 @@ const facetPredicateConditionSchema = z
 const facetExistsConditionSchema: z.ZodType<FacetExistsConditionDto> = z.lazy(() =>
   z
     .object({
-      id: z.string(),
+      id: authoredIdentifierSchema,
       order: z.number(),
       kind: z.literal('EXISTS'),
       constraint: authoringConstraintCodeSchema,
@@ -608,17 +616,17 @@ const facetConditionSchema: z.ZodType<FacetConditionDto> = z.union([
 ])
 
 const facetBodyGroupSchema: z.ZodType<FacetBodyGroupDto> = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number(),
-  conditions: z.array(facetConditionSchema).optional()
+  conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
 })
 
 const facetContextSchema: z.ZodType<FacetContextDto> = z
   .object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number(),
     subject: nodeSubjectCodeSchema,
-    conditions: z.array(facetConditionSchema).optional()
+    conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
   })
   .and(
     subjectSelectionSchema.partial({
@@ -627,9 +635,9 @@ const facetContextSchema: z.ZodType<FacetContextDto> = z
   )
 
 const facetGroupSchema: z.ZodType<FacetGroupDto> = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number(),
-  contexts: z.array(facetContextSchema)
+  contexts: authoredNestedCollectionSchema(facetContextSchema)
 })
 
 /**
@@ -638,19 +646,24 @@ const facetGroupSchema: z.ZodType<FacetGroupDto> = z.object({
  * payloads that drive SRD rules today, while still keeping the recursive
  * structure generic enough for later homebrew extensions.
  */
-export const facetDtoSchema: z.ZodType<FacetDto> = z.object({
-  id: z.string(),
-  groups: z.array(facetGroupSchema)
+const facetDtoSchemaBase = z.object({
+  id: authoredIdentifierSchema,
+  groups: authoredNestedCollectionSchema(facetGroupSchema)
 })
+
+export const facetDtoSchema: z.ZodType<FacetDto> = z.preprocess(
+  rejectExcessiveFacetNesting,
+  facetDtoSchemaBase
+)
 
 const characterFacetContextSchema: z.ZodType<
   CharacterFacetDto['groups'][number]['contexts'][number]
 > = z
   .object({
-    id: z.string(),
+    id: authoredIdentifierSchema,
     order: z.number(),
     subject: z.literal('CHARACTER'),
-    conditions: z.array(facetConditionSchema).optional()
+    conditions: authoredNestedCollectionSchema(facetConditionSchema).optional()
   })
   .and(
     subjectSelectionSchema.partial({
@@ -658,14 +671,14 @@ const characterFacetContextSchema: z.ZodType<
     })
   )
 
-export const characterFacetDtoSchema: z.ZodType<CharacterFacetDto> = z
+const characterFacetDtoSchemaBase: z.ZodType<CharacterFacetDto> = z
   .object({
-    id: z.string(),
-    groups: z.array(
+    id: authoredIdentifierSchema,
+    groups: authoredNestedCollectionSchema(
       z.object({
-        id: z.string(),
+        id: authoredIdentifierSchema,
         order: z.number(),
-        contexts: z.array(characterFacetContextSchema)
+        contexts: authoredNestedCollectionSchema(characterFacetContextSchema)
       })
     )
   })
@@ -714,9 +727,52 @@ export const characterFacetDtoSchema: z.ZodType<CharacterFacetDto> = z
     })
   })
 
-export const scopedFacetDtoSchema: z.ZodType<ScopedFacetDto> = z
-  .object({
-    id: z.string(),
-    subject: nodeSubjectCodeSchema
-  })
+export const characterFacetDtoSchema: z.ZodType<CharacterFacetDto> = z.preprocess(
+  rejectExcessiveFacetNesting,
+  characterFacetDtoSchemaBase
+)
+
+const scopedFacetDtoSchemaBase = z
+  .object({ id: authoredIdentifierSchema, subject: nodeSubjectCodeSchema })
   .and(facetBodySchema)
+
+export const scopedFacetDtoSchema: z.ZodType<ScopedFacetDto> = z.preprocess(
+  rejectExcessiveFacetNesting,
+  scopedFacetDtoSchemaBase
+)
+
+function rejectExcessiveFacetNesting(value: unknown, context: z.RefinementCtx): unknown {
+  if (!exceedsFacetNestingDepth(value)) return value
+
+  context.addIssue({
+    code: 'custom',
+    message: `Facet nesting must be at most ${AUTHORED_LIMITS.facetNestingDepth} levels`
+  })
+  return z.NEVER
+}
+
+function exceedsFacetNestingDepth(value: unknown): boolean {
+  const pending: Array<{ depth: number; value: unknown }> = [{ depth: 0, value }]
+  const seen = new Set<object>()
+
+  while (pending.length > 0) {
+    const current = pending.pop()
+    if (!current || typeof current.value !== 'object' || current.value === null) continue
+    if (seen.has(current.value)) return true
+    seen.add(current.value)
+
+    if (Array.isArray(current.value)) {
+      for (const item of current.value) pending.push({ depth: current.depth, value: item })
+      continue
+    }
+
+    for (const [key, child] of Object.entries(current.value)) {
+      if (child === undefined) continue
+      const depth = key === 'where' ? current.depth + 1 : current.depth
+      if (depth > AUTHORED_LIMITS.facetNestingDepth) return true
+      pending.push({ depth, value: child })
+    }
+  }
+
+  return false
+}

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { createSendAuthEmailHandler } from '../authEmailHook.js'
 
@@ -27,6 +27,7 @@ describe('send auth email hook', () => {
       send: async (message) => {
         sent.push(message)
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => basePayload
     })
@@ -38,6 +39,9 @@ describe('send auth email hook', () => {
     expect(sent[0]?.to).toBe('new-user@example.com')
     expect(sent[0]?.subject).toBe('Confirm your Artificer Toolkit email')
     expect(sent[0]?.html).toContain('signup-token-hash')
+    expect(sent[0]?.html).toContain(
+      'redirect_to=https%3A%2F%2Fapp.artificer-toolkit.test%2Fauth%2Fconfirmed'
+    )
     expect(sent[0]?.text).toContain('Confirm your email')
   })
 
@@ -47,6 +51,7 @@ describe('send auth email hook', () => {
       send: async () => {
         throw new Error('should not send')
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => {
         throw new Error('invalid signature')
@@ -65,6 +70,7 @@ describe('send auth email hook', () => {
       send: async (message) => {
         sent.push(message)
       },
+      siteUrl: 'https://artificertoolkit.app',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => ({
         email_data: {
@@ -99,6 +105,7 @@ describe('send auth email hook', () => {
       send: async (message) => {
         sent.push(message)
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => ({
         email_data: {
@@ -133,6 +140,7 @@ describe('send auth email hook', () => {
       send: async (message) => {
         sent.push(message)
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => ({
         email_data: {
@@ -161,6 +169,7 @@ describe('send auth email hook', () => {
       send: async () => {
         throw new Error('should not send')
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => ({
         email_data: {
@@ -184,6 +193,7 @@ describe('send auth email hook', () => {
       send: async () => {
         throw new Error('Resend response detail')
       },
+      siteUrl: 'https://app.artificer-toolkit.test',
       supabaseUrl: 'https://project.supabase.co',
       verifyWebhook: () => basePayload
     })
@@ -194,5 +204,60 @@ describe('send auth email hook', () => {
     expect(await response.json()).toEqual({
       error: 'Unable to send authentication email'
     })
+  })
+
+  it('rejects an off-origin redirect before rendering or sending email', async () => {
+    const render = vi.fn(async () => ({ html: '', text: '' }))
+    const send = vi.fn(async () => undefined)
+    const handler = createSendAuthEmailHandler({
+      render,
+      send,
+      siteUrl: 'https://app.artificer-toolkit.test',
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook: () => ({
+        ...basePayload,
+        email_data: {
+          ...basePayload.email_data,
+          redirect_to: 'https://evil.test/steal-session'
+        }
+      })
+    })
+
+    const response = await handler(createRequest())
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({
+      error: 'Invalid authentication email redirect'
+    })
+    expect(render).not.toHaveBeenCalled()
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('roots invite confirmations at the configured site even with a same-origin return path', async () => {
+    const sent: Array<{ html: string }> = []
+    const handler = createSendAuthEmailHandler({
+      render: async (input) => ({ html: JSON.stringify(input), text: '' }),
+      send: async (message) => {
+        sent.push(message)
+      },
+      siteUrl: 'https://app.artificer-toolkit.test',
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook: () => ({
+        email_data: {
+          email_action_type: 'invite',
+          redirect_to: 'https://app.artificer-toolkit.test/settings/account',
+          token_hash: 'invite-token-hash'
+        },
+        user: { email: 'invitee@example.com' }
+      })
+    })
+
+    const response = await handler(createRequest())
+
+    expect(response.status).toBe(200)
+    expect(sent[0]?.html).toContain(
+      'https://app.artificer-toolkit.test/auth/confirmed?token_hash=invite-token-hash&type=invite'
+    )
+    expect(sent[0]?.html).not.toContain('/settings/account')
   })
 })

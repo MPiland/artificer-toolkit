@@ -25,7 +25,7 @@ vi.mock('../server/auth/signUpFn', () => ({
 
 import { browserAuthClient } from './authClient'
 
-describe('browserAuthClient invitation completion', () => {
+describe('browserAuthClient password updates', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.profile.mockResolvedValue(null)
@@ -55,6 +55,19 @@ describe('browserAuthClient invitation completion', () => {
     expect(mocks.updateUser.mock.invocationCallOrder[0]!).toBeLessThan(
       mocks.updateProfile.mock.invocationCallOrder[0]!
     )
+  })
+
+  it('rejects invalid new passwords before calling Supabase', async () => {
+    await expect(browserAuthClient.updatePassword({ password: 'too-short' })).resolves.toEqual({
+      ok: false,
+      message: 'Use at least 12 characters for your password.'
+    })
+    await expect(browserAuthClient.updatePassword({ password: 'p'.repeat(129) })).resolves.toEqual({
+      ok: false,
+      message: 'Use no more than 128 characters for your password.'
+    })
+
+    expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
   it('does not change the password when the username is unavailable', async () => {

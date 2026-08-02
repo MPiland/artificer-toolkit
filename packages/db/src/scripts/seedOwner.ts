@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import pg from 'pg'
 
-export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
+export const DEFAULT_SEED_OWNER_EMAIL = 'artificer-toolkit-seed@local.invalid'
 const USERS_PER_PAGE = 1000
 const { Client } = pg
 
@@ -35,7 +35,9 @@ export function readSeedOwnerEnvironment(
 
   return {
     connectionString: connectionStringOverride ?? read('DATABASE_CONNECTION_STRING'),
-    email: process.env[`${prefix}SEED_OWNER_EMAIL`] ?? DEFAULT_SEED_OWNER_EMAIL,
+    email: production
+      ? read('SEED_OWNER_EMAIL')
+      : (process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL),
     password: process.env[`${prefix}SEED_OWNER_PASSWORD`],
     supabaseSecretKey: read('SUPABASE_SECRET_KEY'),
     supabaseUrl: read('SUPABASE_URL')
@@ -101,7 +103,15 @@ async function findUser(
 }
 
 export async function findSeedOwnerUserById(environment: SeedOwnerEnvironment, userId: string) {
-  return findUser(environment, (user) => user.id === userId)
+  const supabase = createSupabaseAdminClient(environment)
+  const { data, error } = await supabase.auth.admin.getUserById(userId)
+
+  if (error) {
+    if (error.status === 404) return null
+    throw error
+  }
+
+  return data.user
 }
 
 async function promoteSeedOwnerToSuperAdmin(

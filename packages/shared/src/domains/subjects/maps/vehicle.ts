@@ -1,6 +1,6 @@
 import { SIZE_OPTIONS, VEHICLE_CATEGORY_OPTIONS } from '#core'
 import { COST_NODE_MAP, FEATURE_NODE_MAP } from '#maps'
-import { buildNodeMap } from '#utils'
+import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type { DetailAuthored, VehicleAuthored } from '#authored'
 
 const VEHICLE_STEPS = {
@@ -100,7 +100,11 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
     .set('speed', number(['speed'], 'Speed', { section: VEHICLE_SECTIONS.stats, order: 40 }))
     .set(
       'speedNote',
-      text(['speedNote'], 'Speed Note', { section: VEHICLE_SECTIONS.stats, order: 50 })
+      text(['speedNote'], 'Speed Note', {
+        constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters },
+        section: VEHICLE_SECTIONS.stats,
+        order: 50
+      })
     )
     .set(
       'crewMin',
@@ -119,7 +123,11 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
     )
     .set(
       'cargoCapacity',
-      text(['cargoCapacity'], 'Cargo Capacity', { section: VEHICLE_SECTIONS.capacity, order: 40 })
+      text(['cargoCapacity'], 'Cargo Capacity', {
+        constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters },
+        section: VEHICLE_SECTIONS.capacity,
+        order: 40
+      })
     )
     .set(
       'cost',

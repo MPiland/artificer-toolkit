@@ -73,7 +73,7 @@ COMMIT;
   await client.connect()
 
   try {
-    await client.query('SET statement_timeout = 0')
+    await client.query("SET statement_timeout = '10min'")
     await client.query(resetSql)
   } finally {
     await client.end()

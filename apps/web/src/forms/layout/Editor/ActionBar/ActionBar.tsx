@@ -17,12 +17,17 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
   const {
     activeNavigationTarget,
     activeStep,
+    activate,
+    activateLabel,
     authoringKind,
+    canFinalize,
     goToNextStep,
     goToPreviousStep,
     isFirstStep,
     isLastStep,
+    isSubmitting,
     navigationTargets,
+    readOnly,
     visibleSteps,
     stagedEditorOpen
   } = useAuthoringForm()
@@ -90,8 +95,20 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
           </Tooltip>
         </div>
         <div className={styles.end}>
-          <Tooltip label='Next'>
-            {nextHref && !isLastStep && !stagedEditorOpen ? (
+          <Tooltip label={authoringKind === 'authored-form' && isLastStep ? activateLabel : 'Next'}>
+            {authoringKind === 'authored-form' && isLastStep ? (
+              <ActionIcon
+                aria-label={activateLabel}
+                className={styles.primaryButton}
+                disabled={readOnly || !canFinalize || stagedEditorOpen}
+                loading={isSubmitting}
+                onClick={() => void activate()}
+                type='button'
+                variant='transparent'
+              >
+                <span className={styles.buttonLabel}>{activateLabel}</span>
+              </ActionIcon>
+            ) : nextHref && !isLastStep && !stagedEditorOpen ? (
               <ActionIcon
                 component='a'
                 href={nextHref}

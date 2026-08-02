@@ -8,7 +8,7 @@ import {
   type DiceExpression
 } from '#core'
 import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
-import { buildNodeMap } from '#utils'
+import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type {
   CapacityAuthored,
   CostAuthored,
@@ -61,7 +61,12 @@ export const CREATURE_MOUNT_PROFILE_NODE_MAP = mountNode.define(
       )
       .set('capacity', number(['capacity'], 'Carrying Capacity'))
       .set('riderCount', number(['riderCount'], 'Rider Count'))
-      .set('notes', text(['notes'], 'Notes'))
+      .set(
+        'notes',
+        text(['notes'], 'Notes', {
+          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+        })
+      )
   }
 )
 
@@ -97,7 +102,12 @@ export const CREATURE_COMPANION_PROFILE_NODE_MAP = companionNode.define(
           ]
         })
       )
-      .set('notes', text(['notes'], 'Notes'))
+      .set(
+        'notes',
+        text(['notes'], 'Notes', {
+          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+        })
+      )
   }
 )
 
@@ -111,7 +121,12 @@ export const CREATURE_NPC_PROFILE_NODE_MAP = npcNode.define(
     const stringNode = buildNodeMap<{ value: string }>().define(
       'string',
       ({ map: m, nodes: n }) => {
-        m.set('value', n.text(['value'], 'Value'))
+        m.set(
+          'value',
+          n.text(['value'], 'Value', {
+            constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+          })
+        )
       }
     )
 
@@ -342,7 +357,11 @@ export const CREATURE_NODE_MAP = creatureNode.define(
       )
       .set(
         'armorClassNote',
-        text(['armorClassNote'], 'AC Note', { section: CREATURE_SECTIONS.stats, order: 30 })
+        text(['armorClassNote'], 'AC Note', {
+          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters },
+          section: CREATURE_SECTIONS.stats,
+          order: 30
+        })
       )
       .set(
         'hitPoints',
@@ -483,7 +502,12 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           'Usage Notes',
           () =>
             buildNodeMap<{ value: string }>().define('logisticsNote', ({ map: m, nodes: n }) => {
-              m.set('value', n.text(['value'], 'Note'))
+              m.set(
+                'value',
+                n.text(['value'], 'Note', {
+                  constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters }
+                })
+              )
             }),
           { presentation: 'inline', section: CREATURE_SECTIONS.profiles, order: 7, showIf: isBeast }
         )

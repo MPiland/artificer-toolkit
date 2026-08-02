@@ -137,6 +137,7 @@ import {
   routeIdentityDtoSchema,
   routeIdentityResolveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/routeIds'
+import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import {
   accountProfileDtoSchema,
@@ -253,6 +254,13 @@ const characterSheetPanelProcedureInputSchema = z.object({
 function authoredDomainRouter<TInput extends AuthoredContentInput>(
   config: AuthoredDomainConfig<TInput>
 ) {
+  const mutationInputSchema = config.inputSchema.refine(
+    (input) =>
+      new TextEncoder().encode(JSON.stringify(input)).byteLength <=
+      AUTHORED_LIMITS.mutationPayloadBytes,
+    `Authored mutations must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes`
+  )
+
   return createTRPCRouter({
     list: authenticatedProcedure
       .output(config.listSchema)
@@ -283,7 +291,7 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(
       ),
 
     saveDraft: authenticatedProcedure
-      .input(config.inputSchema)
+      .input(mutationInputSchema)
       .output(authoredDraftDtoSchema)
       .mutation(({ ctx, input }) =>
         withAuthenticatedDb(ctx, async (db, userId) =>
@@ -327,7 +335,7 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(
       ),
 
     activate: authenticatedProcedure
-      .input(config.inputSchema)
+      .input(mutationInputSchema)
       .output(config.responseSchema)
       .mutation(({ ctx, input }) =>
         withAuthenticatedDb(ctx, async (db, userId) =>

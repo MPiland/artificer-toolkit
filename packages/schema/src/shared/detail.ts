@@ -1,9 +1,14 @@
 import { z } from 'zod'
+import {
+  authoredIdentifierSchema,
+  authoredRichTextSchema,
+  authoredShortTextSchema
+} from './authoredLimits.js'
 
 export const detailDtoSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string(),
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  description: authoredRichTextSchema,
   order: z.number().int()
 })
 

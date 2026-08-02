@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { scalingSourceSchema } from './enums.js'
+import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
 
 export const levelScaledValueLevelDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   level: z.number().int(),
   order: z.number().int()
 })
@@ -10,27 +11,27 @@ export const levelScaledValueLevelDtoSchema = z.object({
 export const levelScaledValueDtoSchema = z.discriminatedUnion('scalingSource', [
   z.object({
     scalingSource: z.literal('CHARACTER_LEVEL'),
-    levels: z.array(levelScaledValueLevelDtoSchema)
+    levels: authoredNestedCollectionSchema(levelScaledValueLevelDtoSchema)
   }),
   z.object({
     scalingSource: z.literal('CLASS_LEVEL'),
-    classId: z.string(),
-    levels: z.array(levelScaledValueLevelDtoSchema)
+    classId: authoredIdentifierSchema,
+    levels: authoredNestedCollectionSchema(levelScaledValueLevelDtoSchema)
   }),
   z.object({
     scalingSource: z.literal('PARENT_CLASS_LEVEL'),
-    levels: z.array(levelScaledValueLevelDtoSchema)
+    levels: authoredNestedCollectionSchema(levelScaledValueLevelDtoSchema)
   }),
   z.object({
     scalingSource: z.literal('SPELL_CAST_LEVEL'),
-    levels: z.array(levelScaledValueLevelDtoSchema)
+    levels: authoredNestedCollectionSchema(levelScaledValueLevelDtoSchema)
   })
 ])
 
 export type LevelScaledValueDto = z.infer<typeof levelScaledValueDtoSchema>
 
 export const scalingBreakpointDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   level: z.number().int(),
   order: z.number().int()
 })
@@ -42,7 +43,7 @@ export const createBreakpointScalingDtoSchema = <TValue extends z.ZodTypeAny>(
     z.object({
       scalingKind: z.literal('BREAKPOINTS'),
       scalingSource: z.literal(scalingSourceSchema.enum.CHARACTER_LEVEL),
-      breakpoints: z.array(
+      breakpoints: authoredNestedCollectionSchema(
         scalingBreakpointDtoSchema.extend({
           value: valueSchema
         })
@@ -51,8 +52,8 @@ export const createBreakpointScalingDtoSchema = <TValue extends z.ZodTypeAny>(
     z.object({
       scalingKind: z.literal('BREAKPOINTS'),
       scalingSource: z.literal(scalingSourceSchema.enum.CLASS_LEVEL),
-      classId: z.string(),
-      breakpoints: z.array(
+      classId: authoredIdentifierSchema,
+      breakpoints: authoredNestedCollectionSchema(
         scalingBreakpointDtoSchema.extend({
           value: valueSchema
         })
@@ -61,7 +62,7 @@ export const createBreakpointScalingDtoSchema = <TValue extends z.ZodTypeAny>(
     z.object({
       scalingKind: z.literal('BREAKPOINTS'),
       scalingSource: z.literal(scalingSourceSchema.enum.PARENT_CLASS_LEVEL),
-      breakpoints: z.array(
+      breakpoints: authoredNestedCollectionSchema(
         scalingBreakpointDtoSchema.extend({
           value: valueSchema
         })
@@ -70,7 +71,7 @@ export const createBreakpointScalingDtoSchema = <TValue extends z.ZodTypeAny>(
     z.object({
       scalingKind: z.literal('BREAKPOINTS'),
       scalingSource: z.literal(scalingSourceSchema.enum.SPELL_CAST_LEVEL),
-      breakpoints: z.array(
+      breakpoints: authoredNestedCollectionSchema(
         scalingBreakpointDtoSchema.extend({
           value: valueSchema
         })

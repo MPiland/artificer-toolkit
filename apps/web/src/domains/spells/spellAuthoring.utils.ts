@@ -4,19 +4,6 @@ import type {
 } from '@artificer-toolkit/schema/subjects/spell'
 import type { SpellReferenceOption } from '#app/data/spells/referenceData'
 
-export const spellLevelOptions = [
-  { value: '0', label: 'Cantrip' },
-  { value: '1', label: '1st level' },
-  { value: '2', label: '2nd level' },
-  { value: '3', label: '3rd level' },
-  { value: '4', label: '4th level' },
-  { value: '5', label: '5th level' },
-  { value: '6', label: '6th level' },
-  { value: '7', label: '7th level' },
-  { value: '8', label: '8th level' },
-  { value: '9', label: '9th level' }
-]
-
 export const castingTimeUnitOptions = [
   { value: 'ROUND', label: 'Round' },
   { value: 'MINUTE', label: 'Minute' },

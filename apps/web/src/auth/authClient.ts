@@ -1,7 +1,13 @@
 import { getSupabaseBrowserClient } from '../supabase/client'
 import { signUpFn } from '../server/auth/signUpFn'
 import { api } from '../lib/api'
-import type { AuthSignUpInput } from '@artificer-toolkit/schema/api/auth'
+import {
+  authInvitationCompletionInputSchema,
+  authPasswordUpdateInputSchema,
+  type AuthInvitationCompletionInput,
+  type AuthPasswordUpdateInput,
+  type AuthSignUpInput
+} from '@artificer-toolkit/schema/api/auth'
 import type { Session } from '@supabase/supabase-js'
 
 export interface AuthResult {
@@ -21,13 +27,9 @@ export interface RequestPasswordResetInput {
   email: string
 }
 
-export interface UpdatePasswordInput {
-  password: string
-}
+export type UpdatePasswordInput = AuthPasswordUpdateInput
 
-export interface CompleteInvitationInput extends UpdatePasswordInput {
-  username: string
-}
+export type CompleteInvitationInput = AuthInvitationCompletionInput
 
 export interface AuthClient {
   completeInvitation(input: CompleteInvitationInput): Promise<AuthResult>
@@ -45,9 +47,14 @@ function getAuthRedirectUrl(path: string) {
 
 export const browserAuthClient: AuthClient = {
   async completeInvitation(input) {
+    const parsed = authInvitationCompletionInputSchema.safeParse(input)
+    if (!parsed.success) {
+      return { ok: false, message: parsed.error.issues[0]?.message }
+    }
+
     try {
       const existingProfile = await api.account.profile()
-      const usernameStatus = await api.account.usernameStatus({ username: input.username })
+      const usernameStatus = await api.account.usernameStatus({ username: parsed.data.username })
       if (usernameStatus.status !== 'available') {
         return {
           ok: false,
@@ -59,12 +66,12 @@ export const browserAuthClient: AuthClient = {
       }
 
       const { error } = await getSupabaseBrowserClient().auth.updateUser({
-        password: input.password
+        password: parsed.data.password
       })
       if (error) return { ok: false, message: error.message }
 
       await api.account.updateProfile({
-        username: input.username,
+        username: parsed.data.username,
         name: existingProfile?.name ?? null,
         bio: existingProfile?.bio ?? null
       })
@@ -92,8 +99,13 @@ export const browserAuthClient: AuthClient = {
     return error ? { ok: false, message: error.message } : { ok: true }
   },
   async updatePassword(input) {
+    const parsed = authPasswordUpdateInputSchema.safeParse(input)
+    if (!parsed.success) {
+      return { ok: false, message: parsed.error.issues[0]?.message }
+    }
+
     const { error } = await getSupabaseBrowserClient().auth.updateUser({
-      password: input.password
+      password: parsed.data.password
     })
     return error ? { ok: false, message: error.message } : { ok: true }
   },

@@ -44,6 +44,7 @@ type RenderInput = {
 export type SendAuthEmailDependencies = {
   render: (input: RenderInput) => Promise<{ html: string; text: string }>
   send: (message: EmailMessage) => Promise<void>
+  siteUrl: string
   supabaseUrl: string
   verifyWebhook: (body: string, headers: Record<string, string>) => unknown
 }
@@ -51,6 +52,7 @@ export type SendAuthEmailDependencies = {
 export type AuthEmailHookConfig = {
   from: string
   resendApiKey: string
+  siteUrl: string
   supabaseUrl: string
   webhookSecret: string
 }
@@ -116,8 +118,19 @@ function getInviteConfirmationUrl(siteUrl: string, tokenHash: string): string {
   return url.toString()
 }
 
+function isTrustedRedirect(redirectTo: string | undefined, siteUrl: string): boolean {
+  if (!redirectTo) return true
+
+  try {
+    return new URL(redirectTo).origin === new URL(siteUrl).origin
+  } catch {
+    return false
+  }
+}
+
 function buildMessages(
   payload: AuthEmailHookPayload,
+  siteUrl: string,
   supabaseUrl: string
 ): Array<{ actionUrl?: string; token?: string; to: string }> | null {
   const action = payload.email_data.email_action_type
@@ -133,13 +146,12 @@ function buildMessages(
   }
 
   if (action === 'invite') {
-    const redirectTo = readString(payload.email_data.redirect_to)
     const tokenHash = readString(payload.email_data.token_hash)
 
-    return redirectTo && tokenHash
+    return tokenHash
       ? [
           {
-            actionUrl: getInviteConfirmationUrl(redirectTo, tokenHash),
+            actionUrl: getInviteConfirmationUrl(siteUrl, tokenHash),
             to: payload.user.email
           }
         ]
@@ -244,7 +256,13 @@ export function createSendAuthEmailHandler(
       return Response.json({ error: 'Unsupported authentication email action' }, { status: 422 })
     }
 
-    const messages = buildMessages(verifiedPayload, dependencies.supabaseUrl)
+    if (
+      !isTrustedRedirect(readString(verifiedPayload.email_data.redirect_to), dependencies.siteUrl)
+    ) {
+      return Response.json({ error: 'Invalid authentication email redirect' }, { status: 400 })
+    }
+
+    const messages = buildMessages(verifiedPayload, dependencies.siteUrl, dependencies.supabaseUrl)
 
     if (!messages) {
       return Response.json({ error: 'Invalid authentication email request' }, { status: 400 })
@@ -306,6 +324,7 @@ export function createAuthEmailHookHandler(config: AuthEmailHookConfig) {
         throw new Error('Resend delivery failed')
       }
     },
+    siteUrl: config.siteUrl,
     supabaseUrl: config.supabaseUrl,
     verifyWebhook: (body, headers) => webhook.verify(body, headers)
   })

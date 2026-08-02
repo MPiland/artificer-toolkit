@@ -6,18 +6,23 @@ import {
   equipmentPropertyCodeSchema
 } from './enums.js'
 import { characterFacetDtoSchema } from './facet.js'
+import {
+  authoredIdentifierSchema,
+  authoredNestedCollectionSchema,
+  authoredReferenceCollectionSchema
+} from './authoredLimits.js'
 
 export const startingEquipmentCurrencyDtoSchema = z.object({
-  currencyId: z.string(),
+  currencyId: authoredIdentifierSchema,
   amount: z.number().int()
 })
 
 const startingEquipmentEquipmentItemBaseDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
   startingEquipmentKind: z.literal('EQUIPMENT'),
   category: equipmentCategoryCodeSchema.optional(),
-  properties: z.array(equipmentPropertyCodeSchema).optional(),
+  properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema).optional(),
   selectionKind: authoringSelectionKindSchema
 })
 
@@ -34,7 +39,7 @@ const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchem
       }),
       z.object({
         authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-        equipmentIds: z.array(z.string())
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
       })
     ])
   )
@@ -52,16 +57,16 @@ const chosenEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema
       }),
       z.object({
         authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
-        equipmentIds: z.array(z.string())
+        equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
       })
     ])
   )
 
 const startingEquipmentCurrencyItemDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
   startingEquipmentKind: z.literal('CURRENCY'),
-  currencies: z.array(startingEquipmentCurrencyDtoSchema)
+  currencies: authoredNestedCollectionSchema(startingEquipmentCurrencyDtoSchema)
 })
 
 export const startingEquipmentItemDtoSchema = z.union([
@@ -71,27 +76,27 @@ export const startingEquipmentItemDtoSchema = z.union([
 ])
 
 export const startingEquipmentOptionDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
   eligibility: characterFacetDtoSchema.optional(),
-  items: z.array(startingEquipmentItemDtoSchema)
+  items: authoredNestedCollectionSchema(startingEquipmentItemDtoSchema)
 })
 
 export const startingEquipmentGroupDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
-  options: z.array(startingEquipmentOptionDtoSchema)
+  options: authoredNestedCollectionSchema(startingEquipmentOptionDtoSchema)
 })
 
 export const startingEquipmentSetDtoSchema = z.object({
-  id: z.string(),
+  id: authoredIdentifierSchema,
   order: z.number().int(),
-  groups: z.array(startingEquipmentGroupDtoSchema)
+  groups: authoredNestedCollectionSchema(startingEquipmentGroupDtoSchema)
 })
 
 export const startingEquipmentDtoSchema = z.object({
-  id: z.string(),
-  sets: z.array(startingEquipmentSetDtoSchema)
+  id: authoredIdentifierSchema,
+  sets: authoredNestedCollectionSchema(startingEquipmentSetDtoSchema)
 })
 
 export type StartingEquipmentDto = z.infer<typeof startingEquipmentDtoSchema>

@@ -30,6 +30,43 @@ describe('handleTrpcRequest', () => {
     mocks.handleTrpcFetchRequest.mockResolvedValue(new Response('ok'))
   })
 
+  it('rejects known oversized authored payloads before authentication', async () => {
+    const { handleTrpcRequest } = await import('./trpc')
+    const response = await handleTrpcRequest(
+      new Request('https://app.test/api/trpc/content.spells.saveDraft', {
+        body: '{}',
+        headers: { 'content-length': String(1_048_577) },
+        method: 'POST'
+      })
+    )
+
+    expect(response.status).toBe(413)
+    expect(mocks.createServerClient).not.toHaveBeenCalled()
+    expect(mocks.handleTrpcFetchRequest).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['understated', '1']
+  ])('rejects an oversized mixed tRPC batch with a %s content-length', async (_name, length) => {
+    const { handleTrpcRequest } = await import('./trpc')
+    const headers = length === undefined ? undefined : { 'content-length': length }
+    const response = await handleTrpcRequest(
+      new Request(
+        'https://app.test/api/trpc/application.featureFlags,content.spells.saveDraft?batch=1',
+        {
+          body: 'x'.repeat(1_048_577),
+          headers,
+          method: 'POST'
+        }
+      )
+    )
+
+    expect(response.status).toBe(413)
+    expect(mocks.createServerClient).not.toHaveBeenCalled()
+    expect(mocks.handleTrpcFetchRequest).not.toHaveBeenCalled()
+  })
+
   it('derives the user and super-admin flag from verified JWT claims', async () => {
     mocks.createServerClient.mockReturnValue({
       auth: {

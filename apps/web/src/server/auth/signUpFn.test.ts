@@ -37,7 +37,7 @@ import { signUpFn } from './signUpFn'
 describe('signUpFn', () => {
   const input = {
     email: 'player@example.com',
-    password: 'password123',
+    password: 'password1234',
     username: 'Morgan_Emberfall'
   }
 
