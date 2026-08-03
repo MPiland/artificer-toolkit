@@ -5,7 +5,7 @@ export const blanket: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(125),
   label: 'Blanket',
-  description: 'A thick wool blanket for warmth during cold nights.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.sp(5),

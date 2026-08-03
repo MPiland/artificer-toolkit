@@ -124,18 +124,28 @@ export interface EngineSpellAccess {
   /** Stable identity for this specific source/grant/spell access. */
   id: string
   spellId: string
-  source: { kind: 'CLASS'; classId: string } | { kind: 'SUBCLASS'; subclassId: string }
-  timing: {
-    kind: 'CLASS_LEVEL'
-    classId: string
-    classLevel: number
-  }
+  source:
+    | { kind: 'CLASS'; classId: string }
+    | { kind: 'SUBCLASS'; subclassId: string }
+    | { kind: 'RACE'; raceId: string }
+    | { kind: 'SUBRACE'; subraceId: string }
+  timing:
+    | {
+        kind: 'CLASS_LEVEL'
+        classId: string
+        classLevel: number
+      }
+    | {
+        kind: 'CHARACTER_LEVEL'
+        level: number
+      }
   sourceFeatureId: string
   grantId: string
   /** Deterministic identity for the granting source before its target spell is applied. */
   sourceInstanceId: string
   attributes?: SpellGrantAttribute[]
   castAtLevel?: number
+  castingAbility?: AbilityCode
   charges?: CompiledChargeUse
 }
 

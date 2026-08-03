@@ -22,7 +22,7 @@ export const animalFriendship: SpellAuthored = {
   id: SPELL_IDS.ANIMAL_FRIENDSHIP,
   label: 'Animal Friendship',
   description:
-    "This spell lets you convince a beast that you mean it no harm. Choose a beast that you can see within range. It must see and hear you. If the beast's Intelligence is 4 or higher, the spell fails.",
+    "<p>This spell lets you convince a beast that you mean it no harm. Choose a beast that you can see within range. It must see and hear you. If the beast's Intelligence is 4 or higher, the spell fails. Otherwise, the beast must succeed on a Wisdom saving throw or be charmed by you for the spell's duration. If you or one of your companions harms the target, the spells ends. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can affect one additional beast t level above 1st.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -71,7 +71,8 @@ export const animalFriendship: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ANIMAL_FRIENDSHIP, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'ANIMAL_FRIENDSHIP' as const
               }
             ]
           }

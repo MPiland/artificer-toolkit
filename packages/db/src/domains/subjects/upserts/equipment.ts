@@ -87,12 +87,12 @@ function isBaseEquipment(equipment: EquipmentAuthored): equipment is BaseEquipme
 function requireMeasurementUnit(
   equipmentId: string,
   value: string
-): BaseEquipmentAuthored['weight']['unit'] {
+): NonNullable<BaseEquipmentAuthored['weight']>['unit'] {
   if (!(value in MEASUREMENT_UNIT_CODE)) {
     throw new Error(`Equipment "${equipmentId}" has invalid measurement unit "${value}".`)
   }
 
-  return value as BaseEquipmentAuthored['weight']['unit']
+  return value as NonNullable<BaseEquipmentAuthored['weight']>['unit']
 }
 
 function requireAttribute(
@@ -118,8 +118,8 @@ function requireProperty(
 }
 
 function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
-  const weightAmount = isBaseEquipment(json_data) ? json_data.weight.amount : null
-  const weightUnit = isBaseEquipment(json_data)
+  const weightAmount = isBaseEquipment(json_data) ? (json_data.weight?.amount ?? null) : null
+  const weightUnit = isBaseEquipment(json_data) && json_data.weight
     ? requireMeasurementUnit(json_data.id, json_data.weight.unit)
     : null
   const costAmount = isBaseEquipment(json_data) ? (json_data.cost?.amount ?? null) : null

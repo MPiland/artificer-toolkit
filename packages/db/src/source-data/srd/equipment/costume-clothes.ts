@@ -5,7 +5,7 @@ export const costumeClothes: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(132),
   label: 'Costume Clothes',
-  description: 'Theatrical or masquerade garments useful for disguise or performance.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
   cost: S.gp(5),

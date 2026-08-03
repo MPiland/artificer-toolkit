@@ -48,28 +48,132 @@ export const succubusIncubus: CreatureAuthored = {
       id: S.featureId(267, 1),
       label: 'Shapechanger',
       description:
-        'Shapechanger. The fiend can magically polymorph into a humanoid it has seen, or back into its true form.',
+        "Shapechanger. The fiend can use its action to polymorph into a Small or Medium humanoid, or back into its true form. Without wings, the fiend loses its flying speed. Other than its size and speed, its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(267, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(267, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(267, 2),
       label: 'Telepathic Bond',
       description:
-        'Telepathic Bond. The fiend can communicate telepathically with a creature it can see within 60 feet of it.',
+        "Telepathic Bond. The fiend ignores the range restriction on its telepathy when communicating with a creature it has charmed. The two don't even need to be on the same plane of existence.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(267, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(267, 203), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_TELEPATHIC_BOND
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(267, 3),
       label: 'Draining Kiss',
       description:
-        'Draining Kiss. A charmed or willing creature kissed by the fiend takes psychic damage and its hit point maximum is reduced by the same amount until it finishes a long rest.',
+        "Draining Kiss. The fiend kisses a creature charmed by it or a willing creature. The target must make a DC 15 Constitution saving throw against this magic, taking 32 (5d10 + 5) psychic damage on a failed save, or half as much damage on a successful one. The target's hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0.",
+      effects: [
+        {
+          id: S.actionId(267, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(267, 205),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 15
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(267, 206), rangeKind: S.RANGE_KIND.TOUCH },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(267, 207),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(267, 208),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(267, 209),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PSYCHIC'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '5d10+5',
+                    multiplier: 1
+                  },
+                  {
+                    id: S.actionId(267, 210),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_DRAINING_KISS
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(267, 211),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(267, 212),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(267, 213),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PSYCHIC'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '5d10+5',
+                    multiplier: 0.5
+                  },
+                  {
+                    id: S.actionId(267, 214),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_DRAINING_KISS
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
       id: S.featureId(267, 4),
       label: 'Claws',
       description:
-        'Claws. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
+        'Claw (Fiend Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
       effects: [
         {
           id: S.actionId(7009, 1),

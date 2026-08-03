@@ -5,7 +5,7 @@ export const grapplingHook: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(138),
   label: 'Grappling Hook',
-  description: 'A metal hook with multiple prongs for anchoring a rope to ledges or railings.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),

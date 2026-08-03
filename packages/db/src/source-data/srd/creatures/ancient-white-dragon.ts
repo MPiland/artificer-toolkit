@@ -42,7 +42,18 @@ export const ancientWhiteDragon: CreatureAuthored = {
       id: S.featureId(23, 1),
       label: 'Ice Walk',
       description:
-        "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra movement.",
+        "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra moment.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(23, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(23, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ICE_WALK
+        })
+      ],
       order: 1
     },
     {
@@ -55,9 +66,20 @@ export const ancientWhiteDragon: CreatureAuthored = {
         id: S.legendaryActionId(23, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(23, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(23, 104), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
@@ -65,6 +87,18 @@ export const ancientWhiteDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(23, 105),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(23, 106), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {

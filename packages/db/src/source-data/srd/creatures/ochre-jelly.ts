@@ -38,6 +38,18 @@ export const ochreJelly: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The jelly can move through a space as narrow as 1 inch wide without squeezing.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(207, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(207, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_OCHRE_JELLY_AMORPHOUS
+        })
+      ],
       order: 1
     },
     {
@@ -45,6 +57,18 @@ export const ochreJelly: CreatureAuthored = {
       label: 'Spider Climb',
       description:
         'Spider Climb. The jelly can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(207, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(207, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+        })
+      ],
       order: 2
     },
     {
@@ -167,7 +191,8 @@ export const ochreJelly: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.reactionId(1864, 3),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'OOZE_SPLIT' as const
                   }
                 ]
               }

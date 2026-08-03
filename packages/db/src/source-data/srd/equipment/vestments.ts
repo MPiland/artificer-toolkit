@@ -5,7 +5,7 @@ export const vestments: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(362),
   label: 'Vestments',
-  description: 'Ceremonial religious garments worn during worship and religious duties.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
   cost: S.gp(1),

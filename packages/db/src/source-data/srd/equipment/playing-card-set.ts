@@ -5,7 +5,7 @@ export const playingCardSet: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(79),
   label: 'Playing Card Set',
-  description: 'A deck of illustrated cards used for games and fortune-telling.',
+  description: S.GAMING_SET_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.sp(5),

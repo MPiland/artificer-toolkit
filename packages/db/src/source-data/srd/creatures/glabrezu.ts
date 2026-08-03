@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const glabrezu: CreatureAuthored = {
@@ -47,7 +48,54 @@ export const glabrezu: CreatureAuthored = {
       id: S.featureId(142, 1),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The glabrezu's spellcasting ability is Intelligence (spell save DC 16). The glabrezu can innately cast the following spells, requiring no material components: At will: darkness, detect magic, dispel magic. 1/day each: confusion, fly, power word stun.",
+        "Innate Spellcasting. The glabrezu's spellcasting ability is Intelligence (spell save DC 16). The glabrezu can innately cast the following spells, requiring no material components: At will: darkness, detect magic, dispel magic 1/day each: confusion, fly, power word stun",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(142, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DARKNESS, S.SPELL_IDS.DETECT_MAGIC, S.SPELL_IDS.DISPEL_MAGIC],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            order: 0
+          },
+          ...([S.SPELL_IDS.CONFUSION, S.SPELL_IDS.FLY, S.SPELL_IDS.POWER_WORD_STUN] as const).map(
+            (spellId, index) => ({
+              id: S.actionId(142, 302 + index),
+              grantKind: S.GRANT_KIND.SPELL_GRANT,
+              selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+              scalingKind: S.SCALING.NONE,
+              authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+              spellIds: [spellId],
+              attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+              castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+              charges: {
+                id: S.actionId(142, 402 + index),
+                limitKind: 'FIXED_AMOUNT' as const,
+                scalingKind: S.SCALING.NONE,
+                resetKind: S.CHARGE_RESET_KIND.DAILY,
+                amount: 1
+              },
+              order: index + 1
+            })
+          )
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(142, 305),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(142, 1301), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_INNATE_SPELLCASTING
+        })
+      ],
       order: 1
     },
     {
@@ -55,12 +103,24 @@ export const glabrezu: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The glabrezu has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(142, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(142, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(142, 3),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 3
     },
     {
@@ -68,6 +128,18 @@ export const glabrezu: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The glabrezu makes four attacks: two with its pincers and two with its fists. Alternatively, it makes two attacks with its pincers and casts one spell.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(142, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(142, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -75,6 +147,61 @@ export const glabrezu: CreatureAuthored = {
       label: 'Pincer',
       description:
         'Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 16 (2d10 + 5) bludgeoning damage. If the target is a Medium or smaller creature, it is grappled (escape DC 15). The glabrezu has two pincers, each of which can grapple only one target.',
+      effects: [
+        {
+          id: S.actionId(142, 205),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(142, 1205),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(142, 206),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(142, 207),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(142, 208),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d10+5'
+                  },
+                  {
+                    id: S.actionId(142, 209),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('GRAPPLED')
+                  },
+                  {
+                    id: S.actionId(142, 210),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GLABREZU_PINCER_GRAPPLE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 5
     },
     {
@@ -82,6 +209,51 @@ export const glabrezu: CreatureAuthored = {
       label: 'Fist',
       description:
         'Melee Weapon Attack: +9 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) bludgeoning damage.',
+      effects: [
+        {
+          id: S.actionId(142, 211),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(142, 1206),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(142, 212),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(142, 213),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(142, 214),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d4+2'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     }
   ]

@@ -48,9 +48,20 @@ export const ancientCopperDragon: CreatureAuthored = {
         id: S.legendaryActionId(5710, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(18, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(18, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -88,7 +99,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5710, 12),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
                   }
                 ]
               }
@@ -350,13 +362,25 @@ export const ancientCopperDragon: CreatureAuthored = {
       id: S.featureId(18, 7),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(18, 103),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(18, 104), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
+        })
+      ],
       order: 7
     },
     {
       id: S.featureId(18, 8),
       label: 'Acid Breath (Recharge 5-6)',
       description:
-        'The dragon exhales acid in a 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 63 (14d8) acid damage on a failed save, or half as much damage on a successful one.',
+        'Acid Breath. The dragon exhales acid in an 90-foot line that is 10 feet wide. Each creature in that line must make a DC 22 Dexterity saving throw, taking 63 (14d8) acid damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(5710, 30),
@@ -462,16 +486,36 @@ export const ancientCopperDragon: CreatureAuthored = {
               id: S.actionId(5710, 38),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(5710, 38) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(5710, 615),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
+                    id: S.actionId(5710, 616),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(5710, 617),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 22
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(5710, 38),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_SLOWING_BREATH
                   }
                 ]
               }
@@ -516,7 +560,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5710, 41),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_CHANGE_SHAPE
                   }
                 ]
               }
@@ -569,7 +614,8 @@ export const ancientCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(5710, 24),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
                   }
                 ]
               }

@@ -5,7 +5,7 @@ export const arrows20: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(99),
   label: 'Arrows (20)',
-  description: 'A quiver of 20 fletched arrows for use with a shortbow or longbow.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

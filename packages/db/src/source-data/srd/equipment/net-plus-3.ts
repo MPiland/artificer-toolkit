@@ -6,7 +6,7 @@ export const netPlus3: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(245),
   label: 'Net +3',
-  description: 'You have a +3 bonus to attack rolls made with this magic weapon.',
+  description: S.MAGIC_WEAPON_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: net.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

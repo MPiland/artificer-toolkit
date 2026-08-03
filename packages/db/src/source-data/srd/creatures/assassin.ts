@@ -40,6 +40,17 @@ export const assassin: CreatureAuthored = {
       label: 'Assassinate',
       description:
         "Assassinate. During its first turn, the assassin has advantage on attack rolls against any creature that hasn't taken a turn. Any hit the assassin scores against a surprised creature is a critical hit.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(29, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(29, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ASSASSINATE
+        })
+      ],
       order: 1
     },
     {
@@ -47,6 +58,17 @@ export const assassin: CreatureAuthored = {
       label: 'Evasion',
       description:
         'Evasion. If the assassin is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, the assassin instead takes no damage if it succeeds on the saving throw, and only half damage if it fails.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(29, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(29, 104), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_EVASION
+        })
+      ],
       order: 2
     },
     {
@@ -54,12 +76,56 @@ export const assassin: CreatureAuthored = {
       label: 'Sneak Attack',
       description:
         "Sneak Attack. Once per turn, the assassin deals an extra 14 (4d6) damage when it hits a target with a weapon attack and has advantage on the attack roll, or when the target is within 5 feet of an ally of the assassin that isn't incapacitated and the assassin doesn't have disadvantage on the attack roll.",
+      effects: [
+        {
+          id: S.actionId(29, 105),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(29, 106), rangeKind: S.RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(29, 107),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(29, 107)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(29, 108),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d6'
+                  },
+                  {
+                    id: S.actionId(29, 109),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SNEAK_ATTACK
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
       id: S.featureId(29, 4),
       label: 'Language Knowledge',
-      description: "Thieves' cant plus any two languages.",
+      description: "Thieves' cant plus any two languages",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(29, 3, 'THIEVES_CANT')]
       },
@@ -69,6 +135,18 @@ export const assassin: CreatureAuthored = {
       id: S.featureId(29, 5),
       label: 'Multiattack',
       description: 'The assassin makes two shortsword attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(29, 110),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(29, 111), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -125,20 +203,69 @@ export const assassin: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          id: S.actionId(29, 112),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(29, 113),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 15
             },
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: { id: S.actionId(29, 114), rangeKind: S.RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
             {
-              id: S.actionId(29, 10),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
+              id: S.actionId(29, 115),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(29, 10) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                id: `${S.actionId(29, 115)}__result`,
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(29, 10),
+                    id: S.actionId(29, 116),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '7d6'
+                  },
+                  {
+                    id: S.actionId(29, 117),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(29, 118),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(29, 118)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(29, 119),
                     effectKind: S.EFFECT_KIND.DAMAGE,
                     damageTypeId: S.damageTypeId('POISON'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
@@ -203,20 +330,69 @@ export const assassin: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          id: S.actionId(29, 120),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(29, 121),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 15
             },
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: { id: S.actionId(29, 122), rangeKind: S.RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
             {
-              id: S.actionId(29, 15),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
+              id: S.actionId(29, 123),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(29, 15) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                id: `${S.actionId(29, 123)}__result`,
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(29, 15),
+                    id: S.actionId(29, 124),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '7d6'
+                  },
+                  {
+                    id: S.actionId(29, 125),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(29, 126),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(29, 126)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(29, 127),
                     effectKind: S.EFFECT_KIND.DAMAGE,
                     damageTypeId: S.damageTypeId('POISON'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,

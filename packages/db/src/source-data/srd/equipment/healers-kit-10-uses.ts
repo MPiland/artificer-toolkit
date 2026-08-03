@@ -5,10 +5,17 @@ export const healersKit10Uses: EquipmentAuthored = {
   id: S.equipId(140),
   label: "Healer's Kit (10 uses)",
   description:
-    'Bandages, salves, and splints used to stabilize a dying creature without a medicine check.',
+    'This kit is a leather pouch containing bandages, salves, and splints. The kit has ten uses. As an action, you can expend one use of the kit to stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.LIMITED_USE],
+  charges: {
+    id: S.equipmentChildId(S.equipId(140), 0x205, 1),
+    limitKind: 'FIXED_AMOUNT' as const,
+    scalingKind: S.SCALING.NONE,
+    amount: 10,
+    resetKind: 'MANUAL' as const
+  },
   effects: [
     {
       id: S.equipmentChildId(S.equipId(140), 0x210, 1),
@@ -43,7 +50,8 @@ export const healersKit10Uses: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(140), 0x212, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.STABILIZE,
+                requiresZeroHitPoints: true
               }
             ]
           }

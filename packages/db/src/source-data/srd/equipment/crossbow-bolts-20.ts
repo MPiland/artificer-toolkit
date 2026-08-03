@@ -5,7 +5,7 @@ export const crossbowBolts20: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(101),
   label: 'Crossbow Bolts (20)',
-  description: 'A case of 20 short bolts for use with any crossbow.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

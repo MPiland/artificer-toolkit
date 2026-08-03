@@ -40,19 +40,93 @@ export const stormGiant: CreatureAuthored = {
       id: S.featureId(266, 1),
       label: 'Amphibious',
       description: 'Amphibious. The giant can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(266, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(266, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(266, 2),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The giant's innate spellcasting ability is Charisma (spell save DC 17). It can innately cast the following spells, requiring no material components: At will: detect magic, feather fall, levitate, light. 3/day each: control weather, water breathing.",
+        "Innate Spellcasting. The giant's innate spellcasting ability is Charisma (spell save DC 17). It can innately cast the following spells, requiring no material components: At will: detect magic, feather fall, levitate, light 3/day each: control weather, water breathing",
+      grants: {
+        spells: [
+          {
+            id: S.featureId(266, 220),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.DETECT_MAGIC,
+              S.SPELL_IDS.FEATHER_FALL,
+              S.SPELL_IDS.LEVITATE,
+              S.SPELL_IDS.LIGHT
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            order: 0
+          },
+          ...[S.SPELL_IDS.CONTROL_WEATHER, S.SPELL_IDS.WATER_BREATHING].map((spellId, index) => ({
+            id: S.featureId(266, 221 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.featureId(266, 230 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: 3
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(266, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(266, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_STORM_GIANT_INNATE_SPELLCASTING
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(266, 3),
       label: 'Multiattack',
       description: 'The giant makes two greatsword attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(266, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(266, 205), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {

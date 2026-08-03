@@ -20,7 +20,7 @@ export const featherFall: SpellAuthored = {
   id: SPELL_IDS.FEATHER_FALL,
   label: 'Feather Fall',
   description:
-    "Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet.",
+    "<p>Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet, and the spell ends for that creature.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -69,7 +69,8 @@ export const featherFall: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FEATHER_FALL, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'FEATHER_FALL' as const
               }
             ]
           }

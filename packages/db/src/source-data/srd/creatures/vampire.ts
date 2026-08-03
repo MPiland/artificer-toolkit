@@ -43,6 +43,19 @@ export const vampire: CreatureAuthored = {
       label: 'Shapechanger',
       description:
         "Shapechanger. If the vampire isn't in sunlight or running water, it can use its action to polymorph into a Tiny bat or a Medium cloud of mist, or back into its true form. While in bat form, the vampire can't speak, its walking speed is 5 feet, and it has a flying speed of 30 feet. Its statistics, other than its size and speed, are unchanged. Anything it is wearing transforms with it, but nothing it is carrying does. It reverts to its true form if it dies. While in mist form, the vampire can't take any actions, speak, or manipulate objects. It is weightless, has a flying speed of 20 feet, can hover, and can enter a hostile creature's space and stop there. In addition, if air can pass through a space, the mist can do so without squeezing, and it can't pass through water. It has advantage on Strength, Dexterity, and Constitution saving throws, and it is immune to all nonmagical damage, except the damage it takes from sunlight.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(277, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
@@ -58,6 +71,18 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
@@ -65,6 +90,18 @@ export const vampire: CreatureAuthored = {
       label: 'Misty Escape',
       description:
         "Misty Escape. When it drops to 0 hit points outside its resting place, the vampire transforms into a cloud of mist (as in the Shapechanger trait) instead of falling unconscious, provided that it isn't in sunlight or running water. If it can't transform, it is destroyed. While it has 0 hit points in mist form, it can't revert to its vampire form, and it must reach its resting place within 2 hours or be destroyed. Once in its resting place, it reverts to its vampire form. It is then paralyzed until it regains at least 1 hit point. After spending 1 hour in its resting place with 0 hit points, it regains 1 hit point.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_MISTY_ESCAPE
+        })
+      ],
       order: 3
     },
     {
@@ -72,6 +109,46 @@ export const vampire: CreatureAuthored = {
       label: 'Regeneration',
       description:
         "Regeneration. The vampire regains 20 hit points at the start of its turn if it has at least 1 hit point and isn't in sunlight or running water. If the vampire takes radiant damage or damage from holy water, this trait doesn't function at the start of the vampire's next turn.",
+      effects: [
+        {
+          id: S.actionId(277, 206),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 207), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(277, 208),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(277, 209),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(277, 210),
+                    effectKind: S.EFFECT_KIND.HEAL,
+                    valueKind: 'FIXED',
+                    scalingKind: S.SCALING.NONE,
+                    amount: 20
+                  },
+                  {
+                    id: S.actionId(277, 211),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_REGENERATION
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -79,6 +156,18 @@ export const vampire: CreatureAuthored = {
       label: 'Spider Climb',
       description:
         'Spider Climb. The vampire can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 212),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 213), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+        })
+      ],
       order: 5
     },
     {
@@ -92,6 +181,18 @@ export const vampire: CreatureAuthored = {
       label: 'Forbiddance',
       description:
         "Forbiddance. The vampire can't enter a residence without an invitation from one of the occupants.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 214),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 215), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_FORBIDDANCE
+        })
+      ],
       order: 7
     },
     {
@@ -99,6 +200,47 @@ export const vampire: CreatureAuthored = {
       label: 'Harmed by Running Water',
       description:
         'Harmed by Running Water. The vampire takes 20 acid damage if it ends its turn in running water.',
+      effects: [
+        {
+          id: S.actionId(277, 216),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 217), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(277, 250),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(277, 251),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(277, 252),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('ACID'),
+                    valueKind: S.DAMAGE_VALUE_KIND.FIXED,
+                    scalingKind: S.SCALING.NONE,
+                    amount: 20
+                  },
+                  {
+                    id: S.actionId(277, 253),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_HARMED_BY_RUNNING_WATER
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 8
     },
     {
@@ -106,6 +248,18 @@ export const vampire: CreatureAuthored = {
       label: 'Stake to the Heart',
       description:
         "Stake to the Heart. If a piercing weapon made of wood is driven into the vampire's heart while the vampire is incapacitated in its resting place, the vampire is paralyzed until the stake is removed.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 218),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 219), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_STAKE_TO_THE_HEART
+        })
+      ],
       order: 9
     },
     {
@@ -113,12 +267,53 @@ export const vampire: CreatureAuthored = {
       label: 'Sunlight Hypersensitivity',
       description:
         'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
+      effects: [
+        {
+          id: S.actionId(277, 220),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 221), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(277, 254),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(277, 255),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(277, 256),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('RADIANT'),
+                    valueKind: S.DAMAGE_VALUE_KIND.FIXED,
+                    scalingKind: S.SCALING.NONE,
+                    amount: 20
+                  },
+                  {
+                    id: S.actionId(277, 257),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 10
     },
     {
       id: S.featureId(277, 11),
       label: 'Language Knowledge',
-      description: 'The languages it knew in life.',
+      description: 'the languages it knew in life',
       order: 11
     },
     {
@@ -126,6 +321,18 @@ export const vampire: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack (Vampire Form Only). The vampire makes two attacks, only one of which can be a bite attack.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 222),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(277, 223), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 12
     },
     {
@@ -133,6 +340,56 @@ export const vampire: CreatureAuthored = {
       label: 'Unarmed Strike',
       description:
         'Melee Weapon Attack: +9 to hit, reach 5 ft., one creature. Hit: 8 (1d8 + 4) bludgeoning damage. Instead of dealing damage, the vampire can grapple the target (escape DC 18).',
+      effects: [
+        {
+          id: S.actionId(277, 224),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.UNARMED_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(277, 225),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(277, 226),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(277, 227),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(277, 228),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+4'
+                  },
+                  {
+                    id: S.actionId(277, 229),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_UNARMED_STRIKE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 13
     },
     {
@@ -140,13 +397,99 @@ export const vampire: CreatureAuthored = {
       label: 'Bite',
       description:
         "Melee Weapon Attack: +9 to hit, reach 5 ft., one willing creature, or a creature that is grappled by the vampire, incapacitated, or restrained. Hit: 7 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage. The target's hit point maximum is reduced by an amount equal to the necrotic damage taken, and the vampire regains hit points equal to that amount. The reduction lasts until the target finishes a long rest. The target dies if this effect reduces its hit point maximum to 0. A humanoid slain in this way and then buried in the ground rises the following night as a vampire spawn under the vampire's control.",
+      effects: [
+        {
+          id: S.actionId(277, 230),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(277, 231),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(277, 232),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(277, 233),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(277, 234),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d6+4'
+                  },
+                  {
+                    id: S.actionId(277, 235),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('NECROTIC'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d6'
+                  },
+                  {
+                    id: S.actionId(277, 236),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_BITE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 14
     },
     {
       id: S.featureId(277, 15),
       label: 'Charm',
       description:
-        "Charm. The vampire targets one humanoid it can see within 30 feet of it. If the target can see the vampire, the target must succeed on a DC 17 Wisdom saving throw against this magic or be charmed by the vampire. The charmed target regards the vampire as a trusted friend to be heeded and protected. Although the target isn't under the vampire's control, it takes the vampire's requests or actions in the most favorable way it can, and it is a willing target for the vampire's bite attack. Each time the vampire or the vampire's companions do anything harmful to the target, it can repeat the saving throw, ending the effect on itself on a success. Otherwise, the effect lasts 24 hours or until the vampire is destroyed, the vampire and the target are on different planes of existence, or the vampire takes a bonus action to end the effect.",
+        "Charm. The vampire targets one humanoid it can see within 30 feet of it. If the target can see the vampire, the target must succeed on a DC 17 Wisdom saving throw against this magic or be charmed by the vampire. The charmed target regards the vampire as a trusted friend to be heeded and protected. Although the target isn't under the vampire's control, it takes the vampire's requests or actions in the most favorable way it can, and it is a willing target for the vampire's bite attack. Each time the vampire or the vampire's companions do anything harmful to the target, it can repeat the saving throw, ending the effect on itself on a success. Otherwise, the effect lasts 24 hours or until the vampire is destroyed, is on a different plane of existence than the target, or takes a bonus action to end the effect.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 237),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(277, 238),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 17
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(277, 239),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_CHARM
+        })
+      ],
       order: 15
     },
     {
@@ -162,6 +505,18 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 1
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 240),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(277, 241), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_CHILDREN_OF_THE_NIGHT
+        })
+      ],
       order: 16
     },
     {
@@ -178,6 +533,18 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(277, 242),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(277, 243), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_LEGENDARY_ACTIONS
+        })
+      ],
       order: 17
     }
   ]

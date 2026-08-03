@@ -5,7 +5,7 @@ export const incense: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(361),
   label: 'Incense',
-  description: 'A stick of incense burned during religious ceremonies and meditation.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(1),

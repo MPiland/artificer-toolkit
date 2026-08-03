@@ -24,7 +24,7 @@ export const polymorph: SpellAuthored = {
   label: 'Polymorph',
   attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   description:
-    "A creature you can see is transformed into a beast form on a failed Wisdom save, taking on the new form's game statistics while keeping its alignment and personality until the spell ends.",
+    "<p>This spell transforms a creature that you can see within range into a new form. An unwilling creature must make a Wisdom saving throw to avoid the effect. The spell has no effect on a shapechanger or a creature with 0 hit points. The transformation lasts for the duration, or until the target drops to 0 hit points or dies. The new form can be any beast whose challenge rating is equal to or less than the target's (or the target's level, if it doesn't have a challenge rating). The target's game statistics, including mental ability scores, are replaced by the statistics of the chosen beast. It retains its alignment and personality. The target assumes the hit points of its new form. When it reverts to its normal form, the creature returns to the number of hit points it had before it transformed. If it reverts as a result of dropping to 0 hit points, any excess damage carries over to its normal form. As long as the excess damage doesn't reduce the creature's normal form to 0 hit points, it isn't knocked unconscious. The creature is limited in the actions it can perform by the nature of its new form, and it can't speak, cast spells, or take any other action that requires hands or speech. The target's gear melds into the new form. The creature can't activate, use, wield, or otherwise benefit from any of its equipment.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -77,25 +77,8 @@ export const polymorph: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.POLYMORPH, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'POLYMORPH' as const
               }
             ]
           }

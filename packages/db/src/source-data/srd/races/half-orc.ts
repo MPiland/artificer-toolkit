@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -28,6 +29,7 @@ import {
   SRD_DARKVISION_SENSE_ID,
   SRD_SKILLS
 } from '../vocabulary.js'
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -84,7 +86,7 @@ export const halfOrc: RaceAuthored = {
       id: raceFeatureId(8, 0, 3),
       label: 'Size',
       description:
-        'Half-orcs are somewhat larger and bulkier than humans, ranging from 5 to well over 6 feet tall. Your size is Medium.',
+        'Half-orcs are somewhat larger and bulkier than humans, and they range from 5 to well over 6 feet tall. Your size is Medium.',
       order: 2
     },
     {
@@ -136,7 +138,7 @@ export const halfOrc: RaceAuthored = {
       id: raceFeatureId(8, 2, 1),
       label: 'Darkvision',
       description:
-        'Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -186,8 +188,22 @@ export const halfOrc: RaceAuthored = {
       label: 'Relentless Endurance',
       description:
         "When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. You can't use this feature again until you finish a long rest.",
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: raceFeatureId(8, 4, 2),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1
+      },
       availableAtLevel: 1,
-      order: 3
+      order: 3,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(8, 4, entry),
+          CLOSED_RULE_KIND.RACE_RELENTLESS_ENDURANCE
+        )
+      ]
     },
     {
       id: raceFeatureId(8, 5, 1),
@@ -195,7 +211,13 @@ export const halfOrc: RaceAuthored = {
       description:
         "When you score a critical hit with a melee weapon attack, you can roll one of the weapon's damage dice one additional time and add it to the extra damage of the critical hit.",
       availableAtLevel: 1,
-      order: 4
+      order: 4,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(8, 5, entry),
+          CLOSED_RULE_KIND.RACE_SAVAGE_ATTACKS
+        )
+      ]
     },
     {
       id: raceFeatureId(8, 6, 1),

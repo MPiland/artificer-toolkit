@@ -5,7 +5,7 @@ export const glaive: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(17),
   label: 'Glaive',
-  description: 'A polearm with a single-edged blade mounted on a long shaft.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

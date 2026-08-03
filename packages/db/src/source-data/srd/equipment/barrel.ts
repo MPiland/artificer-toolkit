@@ -5,7 +5,7 @@ export const barrel: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(106),
   label: 'Barrel',
-  description: 'A large wooden cask used to transport or store liquids and loose goods.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.gp(2),

@@ -54,27 +54,51 @@ export const specter: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         'Incorporeal Movement. The specter can move through other creatures and objects as if they were difficult terrain.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(257, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(257, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPECTER_INCORPOREAL_MOVEMENT
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(257, 2),
       label: 'Sunlight Sensitivity',
       description:
-        'Sunlight Sensitivity. While in sunlight, the specter has disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight.',
+        'Sunlight Sensitivity. While in sunlight, the specter has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(257, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(257, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUNLIGHT_SENSITIVITY
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(257, 3),
       label: 'Life Drain',
       description:
-        'Life Drain. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 10 (3d6) necrotic damage, and the target’s hit point maximum is reduced by an amount equal to the damage taken.',
+        'Life Drain. Melee Spell Attack: +4 to hit, reach 5 ft., one creature. Hit: 10 (3d6) necrotic damage. The target must succeed on a DC 10 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the creature finishes a long rest. The target dies if this effect reduces its hit point maximum to 0.',
       effects: [
         {
           id: S.actionId(6522, 1),
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
@@ -95,12 +119,12 @@ export const specter: CreatureAuthored = {
               id: S.actionId(6522, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(6522, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(6522, 3),
@@ -109,6 +133,11 @@ export const specter: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
+                  },
+                  {
+                    id: S.actionId(6522, 4),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPECTER_LIFE_DRAIN
                   }
                 ]
               }

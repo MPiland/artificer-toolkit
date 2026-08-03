@@ -5,7 +5,7 @@ export const ink1OunceBottle: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(144),
   label: 'Ink (1 ounce bottle)',
-  description: 'A small bottle of writing ink sufficient for numerous pages of script.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(10),

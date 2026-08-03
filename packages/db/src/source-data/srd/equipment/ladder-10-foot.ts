@@ -5,7 +5,7 @@ export const ladder10Foot: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(147),
   label: 'Ladder (10-foot)',
-  description: 'A wooden ladder 10 feet long for climbing walls or descending into pits.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.sp(1),

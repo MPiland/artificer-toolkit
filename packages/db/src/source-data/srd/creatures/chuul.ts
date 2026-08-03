@@ -39,6 +39,17 @@ export const chuul: CreatureAuthored = {
       id: S.featureId(63, 1),
       label: 'Amphibious',
       description: 'Amphibious. The chuul can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(63, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(63, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -46,12 +57,28 @@ export const chuul: CreatureAuthored = {
       label: 'Sense Magic',
       description:
         "Sense Magic. The chuul senses magic within 120 feet of it at will. This trait otherwise works like the detect magic spell but isn't itself magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(63, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: {
+              id: S.actionId(63, 104),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHUUL_SENSE_MAGIC
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(63, 3),
       label: 'Language Limitation',
-      description: "Understands Deep Speech but can't speak.",
+      description: "understands Deep Speech but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(63, 2, 'DEEP_SPEECH')]
       },
@@ -62,6 +89,18 @@ export const chuul: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The chuul makes two pincer attacks. If the chuul is grappling a creature, the chuul can also use its tentacles once.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(63, 105),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(63, 106), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHUUL_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -163,6 +202,10 @@ export const chuul: CreatureAuthored = {
             range: {
               id: S.actionId(63, 9),
               rangeKind: S.RANGE_KIND.SPECIAL
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
@@ -170,12 +213,12 @@ export const chuul: CreatureAuthored = {
               id: S.actionId(63, 10),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(63, 10) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(63, 12),
                   durationKind: DURATION_KIND.MINUTE,
@@ -186,6 +229,30 @@ export const chuul: CreatureAuthored = {
                     id: S.actionId(63, 10),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('POISONED')
+                  },
+                  {
+                    id: S.actionId(63, 13),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('PARALYZED')
+                  },
+                  {
+                    id: S.actionId(63, 14),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(63, 15),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
+                    id: S.actionId(63, 16),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHUUL_TENTACLES
                   }
                 ]
               }

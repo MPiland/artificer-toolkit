@@ -48,18 +48,42 @@ export const vrock: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The vrock has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(281, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(281, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(281, 2),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 2
     },
     {
       id: S.featureId(281, 3),
       label: 'Multiattack',
       description: 'The vrock makes two attacks: one with its beak and one with its talons.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(281, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(281, 203), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {
@@ -67,6 +91,51 @@ export const vrock: CreatureAuthored = {
       label: 'Beak',
       description:
         'Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage.',
+      effects: [
+        {
+          id: S.actionId(281, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(281, 205),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(281, 206),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(281, 207),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(281, 208),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d6+3'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -74,6 +143,51 @@ export const vrock: CreatureAuthored = {
       label: 'Talons',
       description:
         'Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 14 (2d10 + 3) slashing damage.',
+      effects: [
+        {
+          id: S.actionId(281, 209),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(281, 210),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(281, 211),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(281, 212),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(281, 213),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d10+3'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 5
     },
     {
@@ -81,6 +195,34 @@ export const vrock: CreatureAuthored = {
       label: 'Spores (Recharge 6)',
       description:
         'Spores (Recharge 6). A 15-foot-radius cloud of toxic spores extends out from the vrock. The spores spread around corners. Each creature in that area must succeed on a DC 14 Constitution saving throw or become poisoned. While poisoned in this way, a target takes 5 (1d10) poison damage at the start of each of its turns. A target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. Emptying a vial of holy water on the target also ends the effect on it.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(281, 214),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(281, 215),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 14
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(281, 216), rangeKind: S.RANGE_KIND.SELF },
+            shape: {
+              id: S.actionId(281, 217),
+              shapeKind: 'SPHERE',
+              radius: { amount: 15, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VROCK_SPORES
+        })
+      ],
       order: 6
     },
     {
@@ -96,6 +238,34 @@ export const vrock: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 1
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(281, 218),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(281, 219),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 14
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(281, 220),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 20,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VROCK_STUNNING_SCREECH
+        })
+      ],
       order: 7
     }
   ]

@@ -29,7 +29,7 @@ export const hideousLaughter: SpellAuthored = {
   id: SPELL_IDS.HIDEOUS_LAUGHTER,
   label: 'Hideous Laughter',
   description:
-    'A creature of your choice that you can see within range perceives everything as hilariously funny and falls into fits of laughter if this spell affects it. The target must succeed on a Wisdom saving throw or fall prone, becoming incapacitated and unable to stand up for the duration.',
+    "<p>A creature of your choice that you can see within range perceives everything as hilariously funny and falls into fits of laughter if this spell affects it. The target must succeed on a Wisdom saving throw or fall prone, becoming incapacitated and unable to stand up for the duration. A creature with an Intelligence score of 4 or less isn't affected. At the end of each of its turns, and each time it takes damage, the target can make another Wisdom saving throw. The target has advantage on the saving throw if it's triggered by damage. On a success, the spell ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
@@ -83,25 +83,8 @@ export const hideousLaughter: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x215, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x215, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x215, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'HIDEOUS_LAUGHTER' as const
               }
             ]
           }

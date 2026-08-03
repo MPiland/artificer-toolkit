@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const seaHag: CreatureAuthored = {
   id: S.CREATURE_IDS.SEA_HAG,
@@ -32,14 +33,78 @@ export const seaHag: CreatureAuthored = {
     {
       id: S.featureId(248, 1),
       label: 'Amphibious',
-      description: 'Amphibious. The sea hag can breathe air and water.',
+      description: 'Amphibious. The hag can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(248, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(248, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(248, 2),
       label: 'Horrific Appearance',
       description:
-        'Horrific Appearance. Any humanoid that starts its turn within 30 feet of the sea hag and can see the hag must succeed on a Wisdom saving throw or be frightened until the start of its next turn.',
+        "Horrific Appearance. Any humanoid that starts its turn within 30 feet of the hag and can see the hag's true form must make a DC 11 Wisdom saving throw. On a failed save, the creature is frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, with disadvantage if the hag is within line of sight, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the hag's Horrific Appearance for the next 24 hours. Unless the target is surprised or the revelation of the hag's true form is sudden, the target can avert its eyes and avoid making the initial saving throw. Until the start of its next turn, a creature that averts its eyes has disadvantage on attack rolls against the hag.",
+      effects: [
+        {
+          id: S.actionId(248, 502),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(248, 602),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 11
+            },
+            range: {
+              id: S.actionId(248, 603),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(248, 802),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(248, 802) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(248, 920),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('FRIGHTENED')
+                  },
+                  {
+                    id: S.actionId(248, 928),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_HORRIFIC_APPEARANCE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 2
     },
     {
@@ -47,6 +112,19 @@ export const seaHag: CreatureAuthored = {
       label: 'Illusory Appearance',
       description:
         'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like an ugly creature of her general size and humanoid shape. The effect ends if the hag takes a bonus action to end it or if she dies.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(248, 503),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(248, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_ILLUSORY_APPEARANCE
+        })
+      ],
       order: 3
     },
     {
@@ -108,7 +186,35 @@ export const seaHag: CreatureAuthored = {
       id: S.featureId(248, 5),
       label: 'Death Glare',
       description:
-        'Death Glare. The sea hag targets one creature it can see within 30 feet of it. The target must succeed on a Wisdom saving throw or be frightened until the end of its next turn; if the target has 25 hit points or fewer, it instead drops to 0 hit points.',
+        'Death Glare. The hag targets one frightened creature she can see within 30 feet of her. If the target can see the hag, it must succeed on a DC 11 Wisdom saving throw against this magic or drop to 0 hit points.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(248, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(248, 605),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 11
+            },
+            range: {
+              id: S.actionId(248, 606),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_DEATH_GLARE
+        })
+      ],
       order: 5
     }
   ]

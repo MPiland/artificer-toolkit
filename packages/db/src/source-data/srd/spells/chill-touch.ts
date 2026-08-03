@@ -22,7 +22,7 @@ export const chillTouch: SpellAuthored = {
   id: SPELL_IDS.CHILL_TOUCH,
   label: 'Chill Touch',
   description:
-    'You create a ghostly skeletal hand in the space of a creature within range. Make a ranged spell attack; on a hit, the target takes 1d8 necrotic damage and cannot regain hit points until the start of your next turn.',
+    "<p>You create a ghostly, skeletal hand in the space of a creature within range. Make a ranged spell attack against the creature to assail it with the chill of the grave. On a hit, the target takes 1d8 necrotic damage, and it can't regain hit points until the start of your next turn. Until then, the hand clings to the target. If you hit an undead target, it also has disadvantage on attack rolls against you until the end of your next turn. This spell's damage increases by 1d8 when you reach 5th level (2d8), 11th level (3d8), and 17th level (4d8).</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],

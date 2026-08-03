@@ -5,7 +5,7 @@ export const shovel: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(170),
   label: 'Shovel',
-  description: 'An iron-bladed digging tool for excavating earth, sand, or loose stone.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),

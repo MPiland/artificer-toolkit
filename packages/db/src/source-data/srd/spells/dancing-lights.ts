@@ -23,7 +23,7 @@ export const dancingLights: SpellAuthored = {
   id: SPELL_IDS.DANCING_LIGHTS,
   label: 'Dancing Lights',
   description:
-    "You create up to four torch-sized lights within range. The lights can be shaped into a humanoid form and moved to different points within the spell's limits while the spell lasts.",
+    "<p>You create up to four torch-sized lights within range, making them appear as torches, lanterns, or glowing orbs that hover in the air for the duration. You can also combine the four lights into one glowing vaguely humanoid form of Medium size. Whichever form you choose, each light sheds dim light in a 10-foot radius. As a bonus action on your turn, you can move the lights up to 60 feet to a new spot within range. A light must be within 20 feet of another light created by this spell, and a light winks out if it exceeds the spell's range.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],

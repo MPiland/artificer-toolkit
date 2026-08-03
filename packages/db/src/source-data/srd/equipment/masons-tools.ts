@@ -5,7 +5,7 @@ export const masonsTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(61),
   label: "Mason's Tools",
-  description: 'Chisels, a mallet, and measuring tools for shaping and laying stone.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(10),

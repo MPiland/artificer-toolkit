@@ -22,7 +22,7 @@ export const shield: SpellAuthored = {
   id: SPELL_IDS.SHIELD,
   label: 'Shield',
   description:
-    'An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a bonus to AC and take no damage from magic missile.',
+    "<p>An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],

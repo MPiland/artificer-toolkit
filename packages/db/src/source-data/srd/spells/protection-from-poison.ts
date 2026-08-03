@@ -20,7 +20,7 @@ export const protectionFromPoison: SpellAuthored = {
   id: SPELL_IDS.PROTECTION_FROM_POISON,
   label: 'Protection from Poison',
   description:
-    'You touch a creature. If it is poisoned, you neutralize one poison affecting it. For the duration, the target has advantage on saving throws against being poisoned and resistance to poison damage.',
+    "<p>You touch a creature. If it is poisoned, you neutralize the poison. If more than one poison afflicts the target, you neutralize one poison that you know is present, or you neutralize one at random. For the duration, the target has advantage on saving throws against being poisoned, and it has resistance to poison damage.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID, CLASS_IDS.PALADIN, CLASS_IDS.RANGER],
@@ -65,7 +65,8 @@ export const protectionFromPoison: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'PROTECTION_FROM_POISON' as const
               }
             ]
           }

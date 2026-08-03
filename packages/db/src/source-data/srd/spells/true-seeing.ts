@@ -18,7 +18,7 @@ export const trueSeeing: SpellAuthored = {
   id: SPELL_IDS.TRUE_SEEING,
   label: 'True Seeing',
   description:
-    'This spell gives the willing creature you touch the ability to see things as they actually are. For the duration, the creature has truesight, notices secret doors hidden by magic, and can see into the Ethereal Plane.',
+    "<p>This spell gives the willing creature you touch the ability to see things as they actually are. For the duration, the creature has truesight, notices secret doors hidden by magic, and can see into the Ethereal Plane, all out to a range of 120 feet.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 6,
   classIds: [
@@ -71,7 +71,8 @@ export const trueSeeing: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TRUE_SEEING, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'TRUE_SEEING' as const
               }
             ]
           }

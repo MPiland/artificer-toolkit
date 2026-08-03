@@ -49,7 +49,18 @@ export const clayGolem: CreatureAuthored = {
       id: S.featureId(64, 1),
       label: 'Berserk',
       description:
-        "Berserk. Whenever the golem starts its turn with 60 hit points or fewer, roll a d6. On a 6, the golem goes berserk. On each of its turns while berserk, the golem attacks the nearest creature it can see. If no creature is near enough to move to and attack, the golem attacks an object, with preference for an object smaller than itself. Once the golem goes berserk, it continues to do so until it is destroyed or regains all its hit points. The golem's creator, if within 60 feet of the berserk golem, can try to calm it by speaking firmly and persuasively. The golem must be able to hear its creator, who must take an action to make a DC 15 Charisma (Persuasion) check. If the check succeeds, the golem ceases being berserk. If it takes damage while still at 60 hit points or fewer, the golem might go berserk again.",
+        'Berserk. Whenever the golem starts its turn with 60 hit points or fewer, roll a d6. On a 6, the golem goes berserk. On each of its turns while berserk, the golem attacks the nearest creature it can see. If no creature is near enough to move to and attack, the golem attacks an object, with preference for an object smaller than itself. Once the golem goes berserk, it continues to do so until it is destroyed or regains all its hit points.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(64, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(64, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLAY_GOLEM_BERSERK
+        })
+      ],
       order: 1
     },
     {
@@ -57,6 +68,17 @@ export const clayGolem: CreatureAuthored = {
       label: 'Immutable Form',
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(64, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(64, 104), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMMUTABLE_FORM
+        })
+      ],
       order: 2
     },
     {
@@ -64,31 +86,67 @@ export const clayGolem: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(64, 105),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(64, 106), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(64, 4),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(64, 107),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(64, 108), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(64, 5),
       label: 'Language Limitation',
-      description: "Understands the languages of its creator but can't speak.",
+      description: "understands the languages of its creator but can't speak",
       order: 5
     },
     {
       id: S.featureId(64, 6),
       label: 'Multiattack',
       description: 'The golem makes two slam attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(64, 109),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(64, 110), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLAY_GOLEM_MULTIATTACK
+        })
+      ],
       order: 6
     },
     {
       id: S.featureId(64, 7),
       label: 'Slam',
       description:
-        'Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) bludgeoning damage.',
+        'Slam. Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 16 (2d10 + 5) bludgeoning damage. If the target is a creature, it must succeed on a DC 15 Constitution saving throw or have its hit point maximum reduced by an amount equal to the damage taken. The target dies if this attack reduces its hit point maximum to 0. The reduction lasts until removed by the greater restoration spell or other magic.',
       effects: [
         {
           id: S.actionId(3256, 1),
@@ -143,6 +201,52 @@ export const clayGolem: CreatureAuthored = {
               }
             }
           ]
+        },
+        {
+          id: S.actionId(3256, 101),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(3256, 102),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 15
+            },
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: {
+              id: S.actionId(3256, 103),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(3256, 104),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(3256, 104)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(3256, 105),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLAY_GOLEM_SLAM
+                  }
+                ]
+              }
+            }
+          ]
         }
       ],
       order: 7
@@ -151,7 +255,7 @@ export const clayGolem: CreatureAuthored = {
       id: S.featureId(64, 8),
       label: 'Haste (Recharge 5-6)',
       description:
-        'Haste (Recharge 5-6). The golem magically gains the benefits of the haste spell for 1d4 rounds, without requiring concentration, as if the spell had been cast by a 10th-level spellcaster.',
+        'Haste (Recharge 5-6). Until the end of its next turn, the golem magically gains a +2 bonus to its AC, has advantage on Dexterity saving throws, and can use its slam attack as a bonus action.',
       effects: [
         {
           id: S.actionId(3256, 5),
@@ -182,7 +286,8 @@ export const clayGolem: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(3256, 7),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CLAY_GOLEM_HASTE
                   }
                 ]
               }

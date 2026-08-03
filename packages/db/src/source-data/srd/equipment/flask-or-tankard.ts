@@ -5,7 +5,7 @@ export const flaskOrTankard: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(111),
   label: 'Flask or Tankard',
-  description: 'A metal flask or ceramic tankard for drinking water, ale, or other beverages.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.CONTAINER,

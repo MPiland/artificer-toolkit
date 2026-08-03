@@ -42,19 +42,123 @@ export const planetar: CreatureAuthored = {
       label: 'Angelic Weapons',
       description:
         "Angelic Weapons. The planetar's weapon attacks are magical. When the planetar hits with any weapon, the weapon deals an extra 5d8 radiant damage (included in the attack).",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(220, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(220, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_ANGELIC_WEAPONS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(220, 2),
       label: 'Divine Awareness',
       description: 'Divine Awareness. The planetar knows if it hears a lie.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(220, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(220, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_DIVINE_AWARENESS
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(220, 3),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The planetar's spellcasting ability is Charisma (spell save DC 20). The planetar can innately cast the following spells, requiring no material components: At will: detect evil and good, invisibility (self only). 3/day each: blade barrier, dispel evil and good, flame strike, raise dead. 1/day each: commune, control weather, insect plague.",
+        "Innate Spellcasting. The planetar's spellcasting ability is Charisma (spell save DC 20). The planetar can innately cast the following spells, requiring no material components: At will: detect evil and good, invisibility (self only) 3/day each: blade barrier, dispel evil and good, flame strike, raise dead 1/day each: commune, control weather, insect plague",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(220, 701),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DETECT_EVIL_AND_GOOD],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            order: 0
+          },
+          {
+            id: S.actionId(220, 702),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.INVISIBILITY],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
+            order: 1
+          },
+          {
+            id: S.actionId(220, 703),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.BLADE_BARRIER,
+              S.SPELL_IDS.DISPEL_EVIL_AND_GOOD,
+              S.SPELL_IDS.FLAME_STRIKE,
+              S.SPELL_IDS.RAISE_DEAD
+            ],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            charges: {
+              id: S.actionId(220, 704),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 3
+            },
+            order: 2
+          },
+          {
+            id: S.actionId(220, 705),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.COMMUNE, S.SPELL_IDS.CONTROL_WEATHER, S.SPELL_IDS.INSECT_PLAGUE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            charges: {
+              id: S.actionId(220, 706),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 1
+            },
+            order: 3
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(220, 707),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(220, 708), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_INNATE_SPELLCASTING
+        })
+      ],
       order: 3
     },
     {
@@ -62,24 +166,49 @@ export const planetar: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The planetar has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(220, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(220, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(220, 5),
       label: 'Language Knowledge',
-      description: 'All.',
+      description: 'all',
       order: 5
     },
     {
       id: S.featureId(220, 6),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 6
     },
     {
       id: S.featureId(220, 7),
       label: 'Multiattack',
       description: 'Multiattack. The planetar makes two melee attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(220, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(220, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_MULTIATTACK
+        })
+      ],
       order: 7
     },
     {

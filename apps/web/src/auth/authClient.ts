@@ -53,28 +53,7 @@ export const browserAuthClient: AuthClient = {
     }
 
     try {
-      const existingProfile = await api.account.profile()
-      const usernameStatus = await api.account.usernameStatus({ username: parsed.data.username })
-      if (usernameStatus.status !== 'available') {
-        return {
-          ok: false,
-          message:
-            usernameStatus.status === 'taken'
-              ? 'That username is already taken.'
-              : "That username isn't allowed."
-        }
-      }
-
-      const { error } = await getSupabaseBrowserClient().auth.updateUser({
-        password: parsed.data.password
-      })
-      if (error) return { ok: false, message: error.message }
-
-      await api.account.updateProfile({
-        username: parsed.data.username,
-        name: existingProfile?.name ?? null,
-        bio: existingProfile?.bio ?? null
-      })
+      await api.account.completeInvitation(parsed.data)
       return { ok: true }
     } catch (error) {
       return {

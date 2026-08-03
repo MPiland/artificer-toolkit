@@ -5,7 +5,7 @@ export const smithsTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(64),
   label: "Smith's Tools",
-  description: 'Hammers, tongs, and files for working metal at the forge.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(20),

@@ -21,7 +21,7 @@ export const seeming: SpellAuthored = {
   id: SPELL_IDS.SEEMING,
   label: 'Seeming',
   description:
-    'This spell allows you to change the appearance of any number of creatures that you can see within range. You give each target you choose a new, illusory appearance.',
+    "<p>This spell allows you to change the appearance of any number of creatures that you can see within range. You give each target you choose a new, illusory appearance. An unwilling target can make a Charisma saving throw, and if it succeeds, it is unaffected by this spell. The spell disguises physical appearance as well as clothing, armor, weapons, and equipment. You can make each creature seem 1 foot shorter or taller and appear thin, fat, or in between. You can't change a target's body type, so you must choose a form that has the same basic arrangement of limbs. Otherwise, the extent of the illusion is up to you. The spell lasts for the duration, unless you use your action to dismiss it sooner. The changes wrought by this spell fail to hold up to physical inspection. For example, if you use this spell to add a hat to a creature's outfit, objects pass through the hat, and anyone who touches it would feel nothing or would feel the creature's head and hair. If you use this spell to appear thinner than you are, the hand of someone who reaches out to touch you would bump into you while it was seemingly still in midair. A creature can use its action to inspect a target and make an Intelligence (Investigation) check against your spell save DC. If it succeeds, it becomes aware that the target is disguised.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -62,7 +62,7 @@ export const seeming: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SEEMING, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SEEMING, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -70,8 +70,16 @@ export const seeming: SpellAuthored = {
             },
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.SEEMING, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SEEMING' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.SEEMING, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Choose Appearances",
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions: "You give each target you choose a new, illusory appearance."
               }
             ]
           }

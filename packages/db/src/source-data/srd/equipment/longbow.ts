@@ -5,7 +5,7 @@ export const longbow: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(36),
   label: 'Longbow',
-  description: 'A tall bow requiring significant draw strength.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

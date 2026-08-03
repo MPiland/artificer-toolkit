@@ -40,13 +40,25 @@ export const dretch: CreatureAuthored = {
     {
       id: S.featureId(86, 1),
       label: 'Telepathy',
-      description: 'Telepathy 60 ft. (works only with creatures that understand Abyssal).',
+      description: 'telepathy 60 ft. (works only with creatures that understand Abyssal)',
       order: 1
     },
     {
       id: S.featureId(86, 2),
       label: 'Multiattack',
       description: 'The dretch makes two attacks: one with its bite and one with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(86, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(86, 1202), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRETCH_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {

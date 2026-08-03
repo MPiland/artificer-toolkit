@@ -35,6 +35,18 @@ export const giantToad: CreatureAuthored = {
       id: S.featureId(136, 1),
       label: 'Amphibious',
       description: 'Amphibious. The toad can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(136, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(136, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -42,13 +54,25 @@ export const giantToad: CreatureAuthored = {
       label: 'Standing Leap',
       description:
         "Standing Leap. The toad's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(136, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(136, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_TOAD_STANDING_LEAP
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(136, 3),
       label: 'Bite',
       description:
-        'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage plus 5 (1d10) poison damage, and the target is grappled (escape DC 13). Until this grapple ends, the target is restrained, and the toad cannot bite another target.',
+        "Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage plus 5 (1d10) poison damage, and the target is grappled (escape DC 13). Until this grapple ends, the target is restrained, and the toad can't bite another target.",
       effects: [
         {
           id: S.actionId(4874, 1),
@@ -139,6 +163,11 @@ export const giantToad: CreatureAuthored = {
                     id: S.actionId(4874, 6),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('GRAPPLED')
+                  },
+                  {
+                    id: S.actionId(136, 203),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('RESTRAINED')
                   }
                 ]
               }
@@ -183,7 +212,8 @@ export const giantToad: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(4874, 9),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'GIANT_TOAD_SWALLOW' as const
                   }
                 ]
               }

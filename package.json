@@ -8,7 +8,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev:prepare": "yarn workspace @artificer-toolkit/apis build",
+    "dev:prepare": "yarn build:apis",
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
     "turbo": "turbo",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
@@ -23,7 +23,7 @@
     "build:schema": "turbo run build --filter=@artificer-toolkit/schema",
     "build:design-system": "turbo run build --filter=@artificer-toolkit/design-system",
     "build:emails": "turbo run build --filter=@artificer-toolkit/emails",
-    "typecheck:netlify": "tsc -p netlify/tsconfig.json",
+    "typecheck:netlify": "yarn workspace @artificer-toolkit/web tsc -p ../../netlify/tsconfig.json",
     "generate:schema": "yarn workspace @artificer-toolkit/schema generate:zod",
     "build:web": "turbo run build --filter=@artificer-toolkit/emails --filter=@artificer-toolkit/web",
     "typecheck:web:diagnostics": "yarn workspace @artificer-toolkit/web typecheck:diagnostics",

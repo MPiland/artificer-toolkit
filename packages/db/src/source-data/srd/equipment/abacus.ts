@@ -5,7 +5,7 @@ export const abacus: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(118),
   label: 'Abacus',
-  description: 'A counting frame with sliding beads used for arithmetic calculations.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),

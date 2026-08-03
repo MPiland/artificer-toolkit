@@ -19,7 +19,7 @@ export const seeInvisibility: SpellAuthored = {
   id: SPELL_IDS.SEE_INVISIBILITY,
   label: 'See Invisibility',
   description:
-    'For the duration, you see invisible creatures and objects as if they were visible, and you can see into the Ethereal Plane. Ethereal creatures and objects appear ghostly and translucent.',
+    "<p>For the duration, you see invisible creatures and objects as if they were visible, and you can see into the Ethereal Plane. Ethereal creatures and objects appear ghostly and translucent.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -64,7 +64,8 @@ export const seeInvisibility: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SEE_INVISIBILITY, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SEE_INVISIBILITY' as const
               }
             ]
           }

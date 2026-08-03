@@ -2611,7 +2611,8 @@ export async function buildCharacterSheetResponse(params: {
           character.intent.classes.map((entry) => [entry.classId, entry.classLevel])
         ),
         proficiencyBonus,
-        sourceClassLevel: access.timing.classLevel,
+        sourceClassLevel:
+          access.timing.kind === 'CLASS_LEVEL' ? access.timing.classLevel : access.timing.level,
         totalLevel
       })
       const used = Math.min(

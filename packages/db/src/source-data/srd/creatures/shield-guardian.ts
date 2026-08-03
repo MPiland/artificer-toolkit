@@ -39,6 +39,17 @@ export const shieldGuardian: CreatureAuthored = {
       label: 'Bound',
       description:
         "Bound. The shield guardian is magically bound to an amulet. As long as the guardian and its amulet are on the same plane of existence, the amulet's wearer can telepathically call the guardian to travel to it, and the guardian knows the distance and direction to the amulet. If the guardian is within 60 feet of the amulet's wearer, half of any damage the wearer takes (rounded up) is transferred to the guardian.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(252, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(252, 201), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_BOUND
+        })
+      ],
       order: 1
     },
     {
@@ -46,25 +57,88 @@ export const shieldGuardian: CreatureAuthored = {
       label: 'Regeneration',
       description:
         'Regeneration. The shield guardian regains 10 hit points at the start of its turn if it has at least 1 hit point.',
+      effects: [
+        {
+          id: S.actionId(252, 202),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(252, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(252, 204),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(252, 205),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(252, 206),
+                    effectKind: S.EFFECT_KIND.HEAL,
+                    valueKind: 'FIXED',
+                    scalingKind: S.SCALING.NONE,
+                    amount: 10
+                  },
+                  {
+                    id: S.actionId(252, 207),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_REGENERATION
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 2
     },
     {
       id: S.featureId(252, 3),
       label: 'Spell Storing',
       description:
-        "Spell Storing. A spellcaster who wears the shield guardian's amulet can cause the guardian to store one spell of 4th level or lower. To do so, the wearer must cast the spell on the guardian. The spell has no effect but is stored within the guardian. When commanded by the wearer, the guardian casts the spell using the spellcaster's spell save DC and spell attack bonus, with the original spell's targets, range, and other parameters, requiring no components.",
+        "Spell Storing. A spellcaster who wears the shield guardian's amulet can cause the guardian to store one spell of 4th level or lower. To do so, the wearer must cast the spell on the guardian. The spell has no effect but is stored within the guardian. When commanded to do so by the wearer or when a situation arises that was predefined by the spellcaster, the guardian casts the stored spell with any parameters set by the original caster, requiring no components. When the spell is cast or a new spell is stored, any previously stored spell is lost.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(252, 208),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(252, 209), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_SPELL_STORING
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(252, 4),
       label: 'Language Limitation',
-      description: "Understands the languages of its creator but can't speak.",
+      description: "understands the languages of its creator but can't speak",
       order: 4
     },
     {
       id: S.featureId(252, 5),
       label: 'Multiattack',
       description: 'The guardian makes two fist attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(252, 210),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(252, 211), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -72,13 +146,74 @@ export const shieldGuardian: CreatureAuthored = {
       label: 'Fist',
       description:
         'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage.',
+      effects: [
+        {
+          id: S.actionId(252, 212),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(252, 213),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(252, 214),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(252, 215),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(252, 216),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d6+4'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     },
     {
       id: S.featureId(252, 7),
       label: 'Shield',
       description:
-        "When a creature makes an attack against the wearer of the guardian's amulet, the guardian grants a +2 bonus to the wearer's AC against that attack, provided the guardian is within 5 feet of the wearer.",
+        "Shield. When a creature makes an attack against the wearer of the guardian's amulet, the guardian grants a +2 bonus to the wearer's AC if the guardian is within 5 feet of the wearer.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(252, 217),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: {
+              id: S.actionId(252, 218),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_SHIELD
+        })
+      ],
       order: 7
     }
   ]

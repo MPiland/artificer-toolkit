@@ -60,6 +60,7 @@ function vehicleFixture(): VehicleAuthored {
     armorClass: 12,
     hitPoints: 30,
     speed: 40,
+    weight: { amount: 400, unit: 'POUNDS' },
     properties: ['CARGO', 'WHEELED']
   }
 }
@@ -114,7 +115,7 @@ describe('MVP authored-domain persistence audit', () => {
     expect(db.snapshot('features')).toEqual([])
   })
 
-  it('proves Vehicle replacement and hydration preserve properties', async () => {
+  it('proves Vehicle replacement and hydration preserve weight and properties', async () => {
     const db = new InMemoryDb()
     const repository = createVehicleRepository(db as never)
     const initial = vehicleFixture()
@@ -122,21 +123,29 @@ describe('MVP authored-domain persistence audit', () => {
     await repository.upsert(initial)
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       id: initial.id,
+      weight: { amount: 400, unit: 'POUNDS' },
       properties: ['CARGO', 'WHEELED']
     })
 
     await repository.upsert({
       ...initial,
       label: 'Updated Audit Wagon',
+      weight: { amount: 600, unit: 'POUNDS' },
       properties: ['ARMORED']
     })
 
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       label: 'Updated Audit Wagon',
+      weight: { amount: 600, unit: 'POUNDS' },
       properties: ['ARMORED']
     })
     expect(db.snapshot('vehicles')).toEqual([
-      expect.objectContaining({ id: initial.id, properties: ['ARMORED'] })
+      expect.objectContaining({
+        id: initial.id,
+        weight_amount: 600,
+        weight_unit: 'POUNDS',
+        properties: ['ARMORED']
+      })
     ])
   })
 

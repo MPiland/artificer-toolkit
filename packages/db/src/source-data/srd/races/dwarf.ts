@@ -3,6 +3,7 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -20,7 +21,6 @@ import {
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
 import {
-  SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
   SRD_DWARVEN_HERITAGE_ID,
   SRD_LANGUAGES,
@@ -29,6 +29,7 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID
 } from '../vocabulary.js'
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -42,12 +43,6 @@ if (!walkSpeedId)
   throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const dwarfWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_CODE.FEET }]
-
-function conditionTypeId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
-  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
-  return entry.id
-}
 
 function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
@@ -83,7 +78,7 @@ export const dwarf: RaceAuthored = {
       id: raceFeatureId(1, 0, 1),
       label: 'Age',
       description:
-        'Dwarves mature at the same rate as humans, but they are considered young until they reach the age of 50. On average, they live about 350 years.',
+        "Dwarves mature at the same rate as humans, but they're considered young until they reach the age of 50. On average, they live about 350 years.",
       order: 0
     },
     {
@@ -99,13 +94,6 @@ export const dwarf: RaceAuthored = {
       description:
         'Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium.',
       order: 2
-    },
-    {
-      id: raceFeatureId(1, 0, 4),
-      label: 'Speed',
-      description:
-        'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
-      order: 3
     }
   ],
   userId: SRD_USER_ID,
@@ -135,12 +123,26 @@ export const dwarf: RaceAuthored = {
       }
     },
     {
+      id: raceFeatureId(1, 8, 1),
+      label: 'Speed',
+      description:
+        'Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.',
+      availableAtLevel: 1,
+      order: 1,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(1, 8, entry),
+          CLOSED_RULE_KIND.RACE_DWARF_HEAVY_ARMOR_SPEED
+        )
+      ]
+    },
+    {
       id: raceFeatureId(1, 1, 1),
       label: 'Darkvision',
       description:
-        'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
-      order: 1,
+      order: 2,
       grants: {
         senses: [
           {
@@ -167,23 +169,15 @@ export const dwarf: RaceAuthored = {
       description:
         'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
-      order: 2,
+      order: 3,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(1, 2, entry),
+          CLOSED_RULE_KIND.RACE_DWARVEN_RESILIENCE
+        )
+      ],
       grants: {
         modifiers: [
-          {
-            id: raceFeatureId(1, 2, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: {
-              ability: ABILITY_CODE.CONSTITUTION,
-              conditionTypeId: conditionTypeId('POISONED')
-            },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 0
-          },
           {
             id: raceFeatureId(1, 2, 3),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -193,7 +187,7 @@ export const dwarf: RaceAuthored = {
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { damageTypeId: damageTypeId('POISON') },
-            order: 1
+            order: 0
           }
         ]
       }
@@ -203,7 +197,7 @@ export const dwarf: RaceAuthored = {
       label: 'Dwarven Combat Training',
       description: 'You have proficiency with the battleaxe, handaxe, light hammer, and warhammer.',
       availableAtLevel: 1,
-      order: 3,
+      order: 4,
       grants: {
         proficiencies: [
           {
@@ -231,7 +225,7 @@ export const dwarf: RaceAuthored = {
       description:
         "You gain proficiency with the artisan's tools of your choice: smith's tools, brewer's supplies, or mason's tools.",
       availableAtLevel: 1,
-      order: 4,
+      order: 5,
       grants: {
         proficiencies: [
           {
@@ -260,7 +254,13 @@ export const dwarf: RaceAuthored = {
       description:
         'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
       availableAtLevel: 1,
-      order: 5
+      order: 6,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(1, 5, entry),
+          CLOSED_RULE_KIND.RACE_STONECUNNING
+        )
+      ]
     },
     {
       id: raceFeatureId(1, 6, 1),
@@ -269,7 +269,7 @@ export const dwarf: RaceAuthored = {
       description:
         'You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.',
       availableAtLevel: 1,
-      order: 6,
+      order: 7,
       grants: {
         proficiencies: [
           {

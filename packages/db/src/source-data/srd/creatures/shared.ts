@@ -4,6 +4,7 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
+  CLOSED_RULE_KIND,
   type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -14,13 +15,16 @@ import {
   CREATURE_MOUNT_TYPE_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
+  FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
   SIZE_CODE,
+  SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
@@ -30,6 +34,7 @@ import {
   type FeatureAuthored
 } from '@artificer-toolkit/shared'
 import { CREATURE_IDS } from '../ids.js'
+export { SPELL_IDS } from '../ids.js'
 import {
   SRD_CHALLENGE_RATINGS,
   SRD_CREATURE_TYPES,
@@ -40,6 +45,8 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+
+export { closedRuleEffect } from '../closed-rule-effect.js'
 
 function vocabularyId<TCode extends string>(
   entries: readonly { code: TCode; id: string }[],
@@ -260,12 +267,51 @@ const dragonLegendaryActionOptions: LegendaryActionOptionTemplate[] = [
   }
 ]
 
+const dragonWingAttackDescriptionsByCreatureLabel: Record<string, string> = {
+  'Adult Black Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Blue Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 20 Dexterity saving throw or take 14 (2d6 + 7) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Brass Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Bronze Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 20 Dexterity saving throw or take 14 (2d6 + 7) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Copper Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Gold Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 22 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Green Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Red Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 22 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult Silver Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 21 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Adult White Dragon':
+    'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Black Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 23 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Blue Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 24 Dexterity saving throw or take 16 (2d6 + 9) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Brass Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 22 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Bronze Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 24 Dexterity saving throw or take 16 (2d6 + 9) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Copper Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 23 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Gold Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 25 Dexterity saving throw or take 17 (2d6 + 10) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Green Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 23 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Red Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 25 Dexterity saving throw or take 17 (2d6 + 10) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient Silver Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 25 Dexterity saving throw or take 17 (2d6 + 10) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+  'Ancient White Dragon':
+    'The dragon beats its wings. Each creature within 15 feet of the dragon must succeed on a DC 22 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.'
+}
+
 const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptionTemplate[]> = {
   Androsphinx: [
-    {
-      label: 'Detect',
-      description: 'The sphinx makes a Wisdom (Perception) check.'
-    },
     {
       label: 'Claw Attack',
       description: 'The sphinx makes one claw attack.'
@@ -274,6 +320,11 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
       label: 'Teleport (Costs 2 Actions)',
       description:
         'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.'
+    },
+    {
+      label: 'Cast a Spell (Costs 3 Actions)',
+      description:
+        'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.'
     }
   ],
   Gynosphinx: [
@@ -304,12 +355,12 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     {
       label: 'Frightening Gaze (Costs 2 Actions)',
       description:
-        'The lich fixes its gaze on one creature it can see within 10 feet. The target must succeed on a Wisdom saving throw against this magic or become frightened for 1 minute.'
+        "The lich fixes its gaze on one creature it can see within 10 feet of it. The target must succeed on a DC 18 Wisdom saving throw against this magic or become frightened for 1 minute. The frightened target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a target's saving throw is successful or the effect ends for it, the target is immune to the lich's gaze for the next 24 hours."
     },
     {
       label: 'Disrupt Life (Costs 3 Actions)',
       description:
-        'Each non-undead creature within 20 feet of the lich must make a Constitution saving throw against this magic, taking necrotic damage on a failed save or half as much on a successful one.'
+        'Each non-undead creature within 20 feet of the lich must make a DC 18 Constitution saving throw against this magic, taking 21 (6d6) necrotic damage on a failed save, or half as much damage on a successful one.'
     }
   ],
   'Mummy Lord': [
@@ -321,12 +372,12 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     {
       label: 'Blinding Dust',
       description:
-        "Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a Constitution saving throw or be blinded until the end of the creature's next turn."
+        "Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a DC 16 Constitution saving throw or be blinded until the end of the creature's next turn."
     },
     {
       label: 'Blasphemous Word (Costs 2 Actions)',
       description:
-        "The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a Constitution saving throw or be stunned until the end of the mummy lord's next turn."
+        "The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a DC 16 Constitution saving throw or be stunned until the end of the mummy lord's next turn."
     },
     {
       label: 'Channel Negative Energy (Costs 2 Actions)',
@@ -347,11 +398,11 @@ const legendaryActionOptionsByCreatureLabel: Record<string, LegendaryActionOptio
     {
       label: 'Shimmering Shield (Costs 2 Actions)',
       description:
-        "The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet. The target gains a +2 bonus to AC until the end of the unicorn's next turn."
+        "The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet of it. The target gains a +2 bonus to AC until the end of the unicorn's next turn."
     },
     {
       label: 'Heal Self (Costs 3 Actions)',
-      description: 'The unicorn magically regains hit points.'
+      description: 'The unicorn magically regains 11 (2d8 + 2) hit points.'
     }
   ],
   Vampire: [
@@ -402,7 +453,15 @@ function isLegendaryActionFeature(feature: FeatureAuthored): boolean {
 
 function getLegendaryActionOptionTemplates(creatureLabel: string): LegendaryActionOptionTemplate[] {
   if (creatureLabel.endsWith('Dragon')) {
-    return dragonLegendaryActionOptions
+    const wingAttackDescription = dragonWingAttackDescriptionsByCreatureLabel[creatureLabel]
+
+    return wingAttackDescription
+      ? dragonLegendaryActionOptions.map((template) =>
+          template.label === 'Wing Attack (Costs 2 Actions)'
+            ? { ...template, description: wingAttackDescription }
+            : template
+        )
+      : dragonLegendaryActionOptions
   }
 
   return legendaryActionOptionsByCreatureLabel[creatureLabel] ?? []
@@ -470,10 +529,13 @@ function legendaryActionOptionId(featureId: string, order: number): string {
 export {
   ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PATH_RESOLUTION_KIND,
   CHARGE_RESET_KIND,
+  CLOSED_RULE_KIND,
   CREATURE_CATEGORY_CODE,
   CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_IDS,
@@ -483,12 +545,16 @@ export {
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
+  FOLLOW_UP_SAVE_TIMING,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
   RANGE_KIND,
   SCALING,
+  SCALING_SOURCE,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
+  SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER

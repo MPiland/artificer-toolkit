@@ -5,7 +5,7 @@ export const chalk1Piece: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(130),
   label: 'Chalk (1 piece)',
-  description: 'A piece of chalk for marking surfaces with writing or symbols.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

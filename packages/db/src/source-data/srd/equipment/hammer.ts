@@ -5,7 +5,7 @@ export const hammer: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(139),
   label: 'Hammer',
-  description: 'A steel-headed hammer suitable for driving pitons or nails.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(1),

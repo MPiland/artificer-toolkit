@@ -37,14 +37,38 @@ export const roper: CreatureAuthored = {
       id: S.featureId(239, 1),
       label: 'False Appearance',
       description:
-        'False Appearance. While the roper remains motionless, it is indistinguishable from a normal stalagmite.',
+        'False Appearance. While the roper remains motionless, it is indistinguishable from a normal cave formation, such as a stalagmite.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(239, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(239, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_FALSE_APPEARANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(239, 2),
       label: 'Grasping Tendrils',
       description:
-        "Grasping Tendrils. The roper has six tendrils, each of which can be attacked (AC 20; 10 hit points; immunity to poison and psychic damage). Regaining hit points for a destroyed tendril does not restore it. A tendril can be severed by any source that deals 10 or more slashing damage to it in a single hit. A destroyed tendril regrows at the start of the roper's next turn.",
+        'Grasping Tendrils. The roper can have up to six tendrils at a time. Each tendril can be attacked (AC 20; 10 hit points; immunity to poison and psychic damage). Destroying a tendril deals no damage to the roper, which can extrude a replacement tendril on its next turn. A tendril can also be broken if a creature takes an action and succeeds on a DC 15 Strength check against it.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(239, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(239, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_GRASPING_TENDRILS
+        })
+      ],
       order: 2
     },
     {
@@ -52,13 +76,38 @@ export const roper: CreatureAuthored = {
       label: 'Spider Climb',
       description:
         'Spider Climb. The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(239, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(239, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(239, 4),
       label: 'Multiattack',
       description:
-        'The roper makes four attacks with its tendrils, uses Reel, and makes one bite attack.',
+        'Multiattack. The roper makes four attacks with its tendrils, uses Reel, and makes one attack with its bite.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(239, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(239, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -128,7 +177,7 @@ export const roper: CreatureAuthored = {
       id: S.featureId(239, 6),
       label: 'Tendril',
       description:
-        'Tendril. Melee Weapon Attack: +7 to hit, reach 50 ft., one target. Hit: The target is grappled (escape DC 15) if it is a Large or smaller creature. Until the grapple ends, the target is restrained and has disadvantage on Strength checks and Strength saving throws, and the roper cannot use the same tendril on another target.',
+        "Tendril. Melee Weapon Attack: +7 to hit, reach 50 ft., one creature. Hit: The target is grappled (escape DC 15). Until the grapple ends, the target is restrained and has disadvantage on Strength checks and Strength saving throws, and the roper can't use the same tendril on another target.",
       effects: [
         {
           id: S.actionId(7072, 5),
@@ -191,7 +240,28 @@ export const roper: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(239, 505),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(239, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 50,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_TENDRIL
+        })
       ],
       order: 6
     },
@@ -230,7 +300,8 @@ export const roper: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7072, 11),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'ROPER_REEL' as const
                   }
                 ]
               }

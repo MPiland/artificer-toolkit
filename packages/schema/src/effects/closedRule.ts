@@ -1,0 +1,14 @@
+import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
+import { z } from 'zod'
+
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+
+const closedRuleKinds = Object.values(CLOSED_RULE_KIND) as [string, ...string[]]
+
+export const closedRuleDtoSchema = z.object({
+  id: authoredIdentifierSchema,
+  effectKind: z.literal('CLOSED_RULE'),
+  ruleKind: z.enum(closedRuleKinds)
+})
+
+export type ClosedRuleDto = z.infer<typeof closedRuleDtoSchema>

@@ -353,7 +353,8 @@ describe('grant repositories', () => {
             charge_id: null,
             restriction_id: null,
             filter_id: null,
-            cast_at_level: null
+            cast_at_level: null,
+            casting_ability_code: 'INTELLIGENCE'
           }
         ],
         spell_grant_attributes: [
@@ -383,6 +384,7 @@ describe('grant repositories', () => {
       grantKind: 'SPELL_GRANT',
       order: 1,
       castAtLevel: undefined,
+      castingAbility: 'INTELLIGENCE',
       attributes: ['CAST_AT_WILL', 'SELF_ONLY'],
       selectionKind: 'GRANTED',
       scalingKind: 'NONE',

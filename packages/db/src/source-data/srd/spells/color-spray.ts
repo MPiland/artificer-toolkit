@@ -21,7 +21,7 @@ export const colorSpray: SpellAuthored = {
   id: SPELL_IDS.COLOR_SPRAY,
   label: 'Color Spray',
   description:
-    'A dazzling array of flashing, colored light springs from your hand. Roll 6d10; the total is how many hit points of creatures this spell can affect.',
+    "<p>A dazzling array of flashing, colored light springs from your hand. Roll 6d10; the total is how many hit points of creatures this spell can effect. Creatures in a 15-foot cone originating from you are affected in ascending order of their current hit points (ignoring unconscious creatures and creatures that can't see). Starting with the creature that has the lowest current hit points, each creature affected by this spell is blinded until the spell ends. Subtract each creature's hit points from the total before moving on to the creature with the next lowest hit points. A creature's hit points must be equal to or less than the remaining total for that creature to be affected. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, roll an additional 2d10 for each slot level above 1st.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -70,7 +70,8 @@ export const colorSpray: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COLOR_SPRAY, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'COLOR_SPRAY' as const
               }
             ]
           }

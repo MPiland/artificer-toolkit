@@ -28,7 +28,7 @@ export const gentleRepose: SpellAuthored = {
   id: SPELL_IDS.GENTLE_REPOSE,
   label: 'Gentle Repose',
   description:
-    "You touch a corpse or other remains. For the duration, the target is protected from decay and can't become undead. The spell also effectively extends the time limit on raising the target from the dead.",
+    "<p>You touch a corpse or other remains. For the duration, the target is protected from decay and can't become undead. The spell also effectively extends the time limit on raising the target from the dead, since days spent under the influence of this spell don't count against the time limit of spells such as raise dead.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.WIZARD],
@@ -75,7 +75,8 @@ export const gentleRepose: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GENTLE_REPOSE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'GENTLE_REPOSE' as const
               }
             ]
           }

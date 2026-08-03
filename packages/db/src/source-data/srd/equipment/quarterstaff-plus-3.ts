@@ -6,7 +6,7 @@ export const quarterstaffPlus3: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(302),
   label: 'Quarterstaff +3',
-  description: 'You have a +3 bonus to attack and damage rolls made with this magic weapon.',
+  description: S.MAGIC_WEAPON_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: quarterstaff.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

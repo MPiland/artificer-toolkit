@@ -422,9 +422,13 @@ describe('schema package parsing', () => {
             id: 'choice-copy-roll-entry',
             order: 1,
             rollValue: 1,
+            resolutionKind: 'RESULT',
             resultBlock: singleResultBlock('choice-copy-roll-result', {
               id: 'choice-copy-roll-outcome',
-              effectKind: 'MANUAL_ADJUDICATION'
+              effectKind: 'MANUAL_ADJUDICATION',
+              label: 'Primary Result',
+              instructions: 'Resolve the selected table result.',
+              reasonCode: 'NARRATIVE_JUDGMENT'
             })
           }
         ])
@@ -488,7 +492,10 @@ describe('schema package parsing', () => {
           'ON_CAST',
           singleResultBlock('shield-rule-result', {
             id: 'shield-rule-entry',
-            effectKind: 'MANUAL_ADJUDICATION'
+            effectKind: 'MANUAL_ADJUDICATION',
+            label: 'Shield rule fallback',
+            instructions: 'Resolve the shield rule that is not represented by the typed grant.',
+            reasonCode: 'NARRATIVE_JUDGMENT'
           })
         )
       ]
@@ -922,9 +929,13 @@ describe('schema package parsing', () => {
             label: 'Should fail',
             description: 'Roll tables should not use entry metadata.',
             rollValue: 1,
+            resolutionKind: 'RESULT',
             resultBlock: singleResultBlock('bad-roll-result', {
               id: 'bad-roll-outcome',
-              effectKind: 'MANUAL_ADJUDICATION'
+              effectKind: 'MANUAL_ADJUDICATION',
+              label: 'Rolled result',
+              instructions: 'Resolve the rolled result.',
+              reasonCode: 'NARRATIVE_JUDGMENT'
             })
           }
         ])

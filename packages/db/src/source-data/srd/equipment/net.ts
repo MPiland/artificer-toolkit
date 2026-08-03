@@ -4,7 +4,8 @@ export const net: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(37),
   label: 'Net',
-  description: 'A weighted net thrown to restrain foes.',
+  description:
+    "A Large or smaller creature hit by a net is restrained until it is freed. A net has no effect on creatures that are formless, or creatures that are Huge or larger. A creature can use its action to make a DC 10 Strength check, freeing itself or another creature within its reach on a success. Dealing 5 slashing damage to the net (AC 10) also frees the creature without harming it, ending the effect and destroying the net. When you use an action, bonus action, or reaction to attack with a net, you can make only one attack regardless of the number of attacks you can normally make.",
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
@@ -46,6 +47,32 @@ export const net: EquipmentAuthored = {
             resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
+                id: S.equipmentChildId(S.equipId(37), 0x220, 1),
+                effectKind: S.EFFECT_KIND.MANIFEST,
+                manifestKind: 'OBJECT' as const,
+                attachmentKind: 'PRIMARY_TARGET' as const,
+                label: 'Restraining net',
+                maximumTargetSize: 'LARGE' as const,
+                excludesFormlessTargets: true,
+                components: [
+                  {
+                    id: S.equipmentChildId(S.equipId(37), 0x221, 1),
+                    order: 1,
+                    label: 'Net',
+                    armorClass: 10,
+                    destructionCriteria: [
+                      {
+                        id: S.equipmentChildId(S.equipId(37), 0x222, 1),
+                        order: 1,
+                        kind: 'DAMAGE_THRESHOLD' as const,
+                        damageTypeId: S.damageTypeId('SLASHING'),
+                        amount: 5
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 id: S.equipmentChildId(S.equipId(37), 0x212, 1),
                 effectKind: S.EFFECT_KIND.CONDITION,
                 conditionId: S.conditionTypeId('RESTRAINED')
@@ -66,25 +93,49 @@ export const net: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(37), 0x213, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.FOLLOW_UP_CHECK,
+                label: 'Free a creature from the net',
+                activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                ability: S.ABILITY_CODE.STRENGTH,
+                fixedDc: 10,
+                actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH'],
+                repeatable: true,
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }
         },
+      ]
+    },
+    {
+      id: S.equipmentChildId(S.equipId(37), 0x230, 1),
+      order: 2,
+      invocation: {
+        kind: 'PASSIVE' as const,
+        triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+        range: {
+          id: S.equipmentChildId(S.equipId(37), 0x231, 1),
+          rangeKind: S.RANGE_KIND.SELF
+        }
+      },
+      paths: [
         {
-          id: S.equipmentChildId(S.equipId(37), 0x214, 1),
-          order: 3,
-          pathCode: S.PATH_CODE.ON_MISS,
+          id: S.equipmentChildId(S.equipId(37), 0x232, 1),
+          order: 1,
+          pathCode: S.PATH_CODE.ON_ATTACK,
           groupType: S.PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
-            id: S.equipmentChildId(S.equipId(37), 0x214, 1) + '__result',
+            id: `${S.equipmentChildId(S.equipId(37), 0x232, 1)}__result`,
             resultKind: 'SINGLE' as const,
             outcomes: [
               {
-                id: S.equipmentChildId(S.equipId(37), 0x214, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                id: S.equipmentChildId(S.equipId(37), 0x233, 1),
+                effectKind: S.EFFECT_KIND.ACTION_ECONOMY_RULE,
+                ruleKind: 'MAX_ATTACKS_PER_ACTIVATION' as const,
+                maximum: 1
               }
             ]
           }

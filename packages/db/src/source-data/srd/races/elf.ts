@@ -3,6 +3,7 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -27,10 +28,10 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID,
   SRD_ELVEN_HERITAGE_ID,
-  SRD_SKILLS,
-  SRD_CONDITION_TYPES
+  SRD_SKILLS
 } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -42,12 +43,6 @@ function raceFeatureId(raceIndex: number, group: number, entry: number): string 
 function equipId(index: number): string {
   const hex = index.toString(16).padStart(4, '0')
   return `00000000-0000-0000-0060-${hex}00000000`
-}
-
-function conditionTypeId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
-  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
-  return entry.id
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
@@ -150,7 +145,7 @@ export const elf: RaceAuthored = {
       id: raceFeatureId(2, 1, 1),
       label: 'Darkvision',
       description:
-        'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -202,32 +197,23 @@ export const elf: RaceAuthored = {
         "You have advantage on saving throws against being charmed, and magic can't put you to sleep.",
       availableAtLevel: 1,
       order: 3,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(2, 3, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: {
-              ability: ABILITY_CODE.CHARISMA,
-              conditionTypeId: conditionTypeId('CHARMED')
-            },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 0
-          }
-        ]
-      }
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(2, 3, entry),
+          CLOSED_RULE_KIND.RACE_FEY_ANCESTRY
+        )
+      ]
     },
     {
       id: raceFeatureId(2, 4, 1),
       label: 'Trance',
       description:
-        "Elves don't need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.",
+        'Elves don\'t need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. (The Common word for such meditation is "trance.") While meditating, you can dream after a fashion; such dreams are actually mental exercises that have become reflexive through years of practice. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.',
       availableAtLevel: 1,
-      order: 4
+      order: 4,
+      effects: [
+        raceClosedRuleEffect((entry) => raceFeatureId(2, 4, entry), CLOSED_RULE_KIND.RACE_TRANCE)
+      ]
     },
     {
       id: raceFeatureId(2, 5, 1),
@@ -336,7 +322,8 @@ export const highElf: RaceAuthored = {
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: wizardCantripIds,
-            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: ABILITY_CODE.INTELLIGENCE,
             order: 0
           }
         ]

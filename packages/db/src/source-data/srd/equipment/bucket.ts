@@ -5,7 +5,7 @@ export const bucket: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(109),
   label: 'Bucket',
-  description: 'A simple wooden or metal pail for hauling water or other materials.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.cp(5),

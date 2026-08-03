@@ -13,12 +13,18 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  creatureTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const spareTheDying: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPARE_THE_DYING,
   label: 'Spare the Dying',
-  description: 'You touch a living creature that has 0 hit points. The creature becomes stable.',
+  description: "<p>You touch a living creature that has 0 hit points. The creature becomes stable. This spell has no effect on undead or constructs.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.CLERIC],
@@ -41,7 +47,8 @@ export const spareTheDying: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+          excludedCreatureTypeIds: [creatureTypeId('CONSTRUCT'), creatureTypeId('UNDEAD')]
         }
       },
       paths: [
@@ -58,7 +65,8 @@ export const spareTheDying: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SPARE_THE_DYING, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.STABILIZE,
+                requiresZeroHitPoints: true
               }
             ]
           }

@@ -18,7 +18,7 @@ export const detectEvilAndGood: SpellAuthored = {
   id: SPELL_IDS.DETECT_EVIL_AND_GOOD,
   label: 'Detect Evil and Good',
   description:
-    'For the duration, you know if there is an aberration, celestial, elemental, fey, fiend, or undead within 30 feet of you, as well as where the creature is located. You also know if there is a place or object within 30 feet of you that has been consecrated or desecrated.',
+    "<p>For the duration, you know if there is an aberration, celestial, elemental, fey, fiend, or undead within 30 feet of you, as well as where the creature is located. Similarly, you know if there is a place or object within 30 feet of you that has been magically consecrated or desecrated. The spell can penetrate most barriers, but it is blocked by 1 foot of stone, 1 inch of common metal, a thin sheet of lead, or 3 feet of wood or dirt.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
@@ -63,7 +63,10 @@ export const detectEvilAndGood: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DETECT_EVIL_AND_GOOD, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Reveal Nearby Presences",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "For the duration, you know if there is an aberration, celestial, elemental, fey, fiend, or undead within 30 feet of you, as well as where the creature is located."
               }
             ]
           }

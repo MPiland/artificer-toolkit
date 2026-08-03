@@ -5,7 +5,7 @@ export const slingBullets20: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(102),
   label: 'Sling Bullets (20)',
-  description: 'A pouch of 20 lead or stone bullets for use with a sling.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

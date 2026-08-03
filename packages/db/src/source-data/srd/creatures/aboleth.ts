@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 
 import * as S from './shared.js'
 export const aboleth: CreatureAuthored = {
@@ -41,6 +42,17 @@ export const aboleth: CreatureAuthored = {
       id: S.featureId(1, 1),
       label: 'Amphibious',
       description: 'Amphibious. The aboleth can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(1, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(1, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -48,6 +60,33 @@ export const aboleth: CreatureAuthored = {
       label: 'Mucous Cloud',
       description:
         'Mucous Cloud. While underwater, the aboleth is surrounded by transformative mucus. A creature that touches the aboleth or that hits it with a melee attack while within 5 feet of it must make a DC 14 Constitution saving throw. On a failure, the creature is diseased for 1d4 hours. The diseased creature can breathe only underwater.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(1, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(1, 104),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 14
+            },
+            range: {
+              id: S.actionId(1, 105),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ABOLETH_MUCOUS_CLOUD
+        })
+      ],
       order: 2
     },
     {
@@ -55,12 +94,47 @@ export const aboleth: CreatureAuthored = {
       label: 'Probing Telepathy',
       description:
         "Probing Telepathy. If a creature communicates telepathically with the aboleth, the aboleth learns the creature's greatest desires if the aboleth can see the creature.",
+      effects: [
+        {
+          id: S.actionId(1, 106),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(1, 107), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          paths: [
+            {
+              id: S.actionId(1, 108),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(1, 108)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(1, 109),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Probing Telepathy',
+                    instructions:
+                      "If a creature communicates telepathically with the aboleth, the aboleth learns the creature's greatest desires if the aboleth can see the creature.",
+                    reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
       id: S.featureId(1, 4),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 4
     },
     {

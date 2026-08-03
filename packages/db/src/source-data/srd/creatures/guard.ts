@@ -34,7 +34,7 @@ export const guard: CreatureAuthored = {
     {
       id: S.featureId(155, 1),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(155, 2, 'COMMON')]
       },

@@ -6,5 +6,6 @@ import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 export const commandManifestDtoSchema = z.object({
   id: authoredIdentifierSchema,
   effectKind: z.literal(effectKindSchema.enum.COMMAND_MANIFEST),
-  manifestId: authoredIdentifierSchema
+  manifestId: authoredIdentifierSchema,
+  behaviorId: authoredIdentifierSchema.optional()
 })

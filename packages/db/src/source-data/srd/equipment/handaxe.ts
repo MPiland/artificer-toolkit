@@ -5,7 +5,7 @@ export const handaxe: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(4),
   label: 'Handaxe',
-  description: 'A small axe suitable for one-handed use or throwing.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,

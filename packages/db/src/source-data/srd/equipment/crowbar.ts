@@ -5,11 +5,12 @@ export const crowbar: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(136),
   label: 'Crowbar',
-  description: 'A metal bar for prying open doors, crates, or other objects.',
+  description: "Using a crowbar grants advantage to Strength checks where the crowbar's leverage can be applied.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),
   weight: S.lbs(5),
+  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(136), 'EQUIPMENT_CROWBAR')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

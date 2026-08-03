@@ -32,19 +32,18 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   filter_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   cast_at_level integer, -- optional override
+  casting_ability_code text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT spell_grants_root_sort_order_chk CHECK (
-    sort_order >= 0
-  ),
-  CONSTRAINT spell_grants_root_selection_kind_chk CHECK (
-    selection_kind IN ('GRANTED', 'CHOSEN')
-  ),
-  CONSTRAINT spell_grants_root_scaling_kind_chk CHECK (
-    scaling_kind IN ('NONE', 'PER_LEVEL')
-  ),
+  CONSTRAINT spell_grants_root_sort_order_chk CHECK (sort_order >= 0),
+  CONSTRAINT spell_grants_root_selection_kind_chk CHECK (selection_kind IN ('GRANTED', 'CHOSEN')),
+  CONSTRAINT spell_grants_root_scaling_kind_chk CHECK (scaling_kind IN ('NONE', 'PER_LEVEL')),
   CONSTRAINT spell_grants_root_selection_count_chk CHECK (
-    (scaling_kind <> 'NONE' AND selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    (
+      scaling_kind <> 'NONE'
+      AND selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
     OR (
       scaling_kind = 'NONE'
       AND selection_kind <> 'CHOSEN'
@@ -59,23 +58,59 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
       AND selection_duplicate_policy IN ('UNIQUE', 'REPEATABLE')
     )
   ),
-  CONSTRAINT spell_grants_root_authoring_mode_chk CHECK (
-    authoring_mode_kind IN ('ALL', 'SELECTED')
-  ),
+  CONSTRAINT spell_grants_root_authoring_mode_chk CHECK (authoring_mode_kind IN ('ALL', 'SELECTED')),
   CONSTRAINT spell_grants_root_scaling_source_chk CHECK (
-    (scaling_kind = 'PER_LEVEL' AND scaling_source IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'))
-    OR (scaling_kind = 'NONE' AND scaling_source IS NULL)
+    (
+      scaling_kind = 'PER_LEVEL'
+      AND scaling_source IN (
+        'CHARACTER_LEVEL',
+        'CLASS_LEVEL',
+        'PARENT_CLASS_LEVEL',
+        'SPELL_CAST_LEVEL'
+      )
+    )
+    OR (
+      scaling_kind = 'NONE'
+      AND scaling_source IS NULL
+    )
   ),
   CONSTRAINT spell_grants_root_scaling_class_chk CHECK (
-    (scaling_source = 'CLASS_LEVEL' AND class_id IS NOT NULL)
-    OR ((scaling_source IS NULL OR scaling_source <> 'CLASS_LEVEL') AND class_id IS NULL)
+    (
+      scaling_source = 'CLASS_LEVEL'
+      AND class_id IS NOT NULL
+    )
+    OR (
+      (
+        scaling_source IS NULL
+        OR scaling_source <> 'CLASS_LEVEL'
+      )
+      AND class_id IS NULL
+    )
   ),
   CONSTRAINT spell_grants_root_mode_usage_chk CHECK (
-    (scaling_kind = 'NONE' AND authoring_mode_kind IN ('ALL', 'SELECTED'))
-    OR (scaling_kind = 'PER_LEVEL' AND authoring_mode_kind = 'ALL')
+    (
+      scaling_kind = 'NONE'
+      AND authoring_mode_kind IN ('ALL', 'SELECTED')
+    )
+    OR (
+      scaling_kind = 'PER_LEVEL'
+      AND authoring_mode_kind = 'ALL'
+    )
   ),
   CONSTRAINT spell_grants_root_cast_at_level_chk CHECK (
-    cast_at_level IS NULL OR cast_at_level > 0
+    cast_at_level IS NULL
+    OR cast_at_level > 0
+  ),
+  CONSTRAINT spell_grants_root_casting_ability_chk CHECK (
+    casting_ability_code IS NULL
+    OR casting_ability_code IN (
+      'STRENGTH',
+      'DEXTERITY',
+      'CONSTITUTION',
+      'INTELLIGENCE',
+      'WISDOM',
+      'CHARISMA'
+    )
   )
 );
 
@@ -137,9 +172,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_attributes (
       'SELF_ONLY'
     )
   ),
-  CONSTRAINT spell_grant_attributes_sort_order_chk CHECK (
-    sort_order >= 0
-  )
+  CONSTRAINT spell_grant_attributes_sort_order_chk CHECK (sort_order >= 0)
 );
 
 ALTER TABLE public.spell_grant_attributes ENABLE ROW LEVEL SECURITY;
@@ -172,17 +205,14 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
   selection_duplicate_policy text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT spell_grant_scaling_levels_level_chk CHECK (
-    level > 0
-  ),
-  CONSTRAINT spell_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order >= 0
-  ),
-  CONSTRAINT spell_grant_scaling_levels_mode_chk CHECK (
-    authoring_mode_kind IN ('ALL', 'SELECTED')
-  ),
+  CONSTRAINT spell_grant_scaling_levels_level_chk CHECK (level > 0),
+  CONSTRAINT spell_grant_scaling_levels_sort_order_chk CHECK (sort_order >= 0),
+  CONSTRAINT spell_grant_scaling_levels_mode_chk CHECK (authoring_mode_kind IN ('ALL', 'SELECTED')),
   CONSTRAINT spell_grant_scaling_levels_selection_count_chk CHECK (
-    (selection_count IS NULL AND selection_duplicate_policy IS NULL)
+    (
+      selection_count IS NULL
+      AND selection_duplicate_policy IS NULL
+    )
     OR (
       selection_count IS NOT NULL
       AND selection_count > 0
@@ -195,8 +225,7 @@ ALTER TABLE public.spell_grant_scaling_levels ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_spell_grant_scaling_levels_grant ON public.spell_grant_scaling_levels (spell_grant_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_spell_grant_scaling_levels_grant_level
-  ON public.spell_grant_scaling_levels (spell_grant_id, level);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_spell_grant_scaling_levels_grant_level ON public.spell_grant_scaling_levels (spell_grant_id, level);
 
 /* ──────────────────────────────────────────────
 * SPELL GRANT — SCALING LEVEL PAYLOAD

@@ -19,7 +19,7 @@ export const sequester: SpellAuthored = {
   id: SPELL_IDS.SEQUESTER,
   label: 'Sequester',
   description:
-    "By means of this spell, a willing creature or an object can be hidden away, safe from detection for the duration. When you cast the spell and touch the target, it becomes invisible and can't be targeted by divination magic.",
+    "<p>By means of this spell, a willing creature or an object can be hidden away, safe from detection for the duration. When you cast the spell and touch the target, it becomes invisible and can't be targeted by divination spells or perceived through scrying sensors created by divination spells. If the target is a creature, it falls into a state of suspended animation. Time ceases to flow for it, and it doesn't grow older. You can set a condition for the spell to end early. The condition can be anything you choose, but it must occur or be visible within 1 mile of the target. Examples include &quot;after 1,000 years&quot; or &quot;when the tarrasque awakens.&quot; This spell also ends if the target takes any damage.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 7,
   classIds: [CLASS_IDS.WIZARD],
@@ -57,11 +57,19 @@ export const sequester: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SEQUESTER, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.SEQUESTER, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SEQUESTER' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.SEQUESTER, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Define the Ending Condition",
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions: "You can set a condition for the spell to end early."
               }
             ]
           }

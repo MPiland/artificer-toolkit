@@ -5,7 +5,7 @@ export const signetRing: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(171),
   label: 'Signet Ring',
-  description: 'A ring bearing an engraved seal used to authenticate wax-sealed documents.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(5),

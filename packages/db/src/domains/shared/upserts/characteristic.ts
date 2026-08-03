@@ -157,6 +157,27 @@ export function mapShapeDimensionsToRow(
 >[] {
   switch (json_data.shapeKind) {
     case 'LINE':
+      return [
+        {
+          characteristic_id,
+          dimension: 'LENGTH',
+          amount: json_data.length.amount,
+          unit_code: json_data.length.unit,
+          scaling: json_data.length.scaling ?? null
+        },
+        ...(json_data.width
+          ? [
+              {
+                characteristic_id,
+                dimension: 'WIDTH',
+                amount: json_data.width.amount,
+                unit_code: json_data.width.unit,
+                scaling: json_data.width.scaling ?? null
+              }
+            ]
+          : [])
+      ]
+
     case 'CONE':
       return [
         {

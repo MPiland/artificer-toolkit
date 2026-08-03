@@ -21,7 +21,7 @@ export const trueStrike: SpellAuthored = {
   id: SPELL_IDS.TRUE_STRIKE,
   label: 'True Strike',
   description:
-    "You extend your hand and point a finger at a target in range. Your magic grants you a brief insight into the target's defenses, giving you advantage on your next attack roll against it before the end of your next turn.",
+    "<p>You extend your hand and point a finger at a target in range. Your magic grants you a brief insight into the target's defenses. On your next turn, you gain advantage on your first attack roll against the target, provided that this spell hasn't ended.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -68,7 +68,8 @@ export const trueStrike: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TRUE_STRIKE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'TRUE_STRIKE' as const
               }
             ]
           }

@@ -94,7 +94,8 @@ export const giantCentipede: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(117, 4),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'GIANT_CENTIPEDE_VENOM' as const
                   }
                 ]
               }

@@ -29,7 +29,7 @@ export const longstrider: SpellAuthored = {
   id: SPELL_IDS.LONGSTRIDER,
   label: 'Longstrider',
   description:
-    "You touch a creature. The target's speed increases by 10 feet until the spell ends.",
+    "<p>You touch a creature. The target's speed increases by 10 feet until the spell ends. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER, CLASS_IDS.WIZARD],

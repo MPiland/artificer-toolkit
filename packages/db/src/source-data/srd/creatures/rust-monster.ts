@@ -41,7 +41,35 @@ export const rustMonster: CreatureAuthored = {
       id: S.featureId(241, 2),
       label: 'Antennae',
       description:
-        'Antennae. A hit from the rust monster’s antennae corrodes a nonmagical ferrous metal weapon or armor. A metal weapon takes a cumulative and permanent penalty to damage rolls, and a metal armor takes a cumulative and permanent penalty to AC, until the item is destroyed or repaired by magic.',
+        "Antennae. The rust monster corrodes a nonmagical ferrous metal object it can see within 5 feet of it. If the object isn't being worn or carried, the touch destroys a 1-foot cube of it. If the object is being worn or carried by a creature, the creature can make a DC 11 Dexterity saving throw to avoid the rust monster's touch. If the object touched is either metal armor or a metal shield being worn or carried, its takes a permanent and cumulative -1 penalty to the AC it offers. Armor reduced to an AC of 10 or a shield that drops to a +0 bonus is destroyed. If the object touched is a held metal weapon, it rusts as described in the Rust Metal trait.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(241, 501),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(241, 601),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.DEXTERITY,
+              baseDc: 11
+            },
+            range: {
+              id: S.actionId(241, 602),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUST_MONSTER_ANTENNAE
+        })
+      ],
       order: 2
     },
     {

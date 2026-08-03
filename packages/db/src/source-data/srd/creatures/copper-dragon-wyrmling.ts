@@ -101,13 +101,6 @@ export const copperDragonWyrmling: CreatureAuthored = {
       order: 1
     },
     {
-      id: S.featureId(70, 2),
-      label: 'Spider Climb',
-      description:
-        'Spider Climb. The dragon can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
-      order: 2
-    },
-    {
       id: S.featureId(70, 3),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
@@ -216,7 +209,8 @@ export const copperDragonWyrmling: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7951, 13),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
                   }
                 ]
               }

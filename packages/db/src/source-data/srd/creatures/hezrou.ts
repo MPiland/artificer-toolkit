@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const hezrou: CreatureAuthored = {
   id: S.CREATURE_IDS.HEZROU,
@@ -46,6 +47,18 @@ export const hezrou: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The hezrou has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(162, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(162, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -53,18 +66,79 @@ export const hezrou: CreatureAuthored = {
       label: 'Stench',
       description:
         "Stench. Any creature that starts its turn within 10 feet of the hezrou must succeed on a DC 14 Constitution saving throw or be poisoned until the start of its next turn. On a successful saving throw, the creature is immune to the hezrou's stench for 24 hours.",
+      effects: [
+        {
+          id: S.actionId(162, 202),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(162, 1202),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 14
+            },
+            range: {
+              id: S.actionId(162, 1203),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(162, 203),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(162, 204),
+                resultKind: 'SEQUENCE',
+                duration: { id: S.actionId(162, 205), durationKind: 'ROUND', amount: 1 },
+                outcomes: [
+                  {
+                    id: S.actionId(162, 206),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('POISONED')
+                  },
+                  {
+                    id: S.actionId(162, 207),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_HEZROU_STENCH
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 2
     },
     {
       id: S.featureId(162, 3),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 3
     },
     {
       id: S.featureId(162, 4),
       label: 'Multiattack',
       description: 'The hezrou makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(162, 208),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(162, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HEZROU_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {

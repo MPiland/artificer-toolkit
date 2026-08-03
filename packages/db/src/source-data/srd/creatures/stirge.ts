@@ -31,17 +31,10 @@ export const stirge: CreatureAuthored = {
   xp: 25,
   features: [
     {
-      id: S.featureId(263, 1),
-      label: 'Keen Smell',
-      description:
-        'Keen Smell. The stirge has advantage on Wisdom (Perception) checks that rely on smell.',
-      order: 1
-    },
-    {
       id: S.featureId(263, 2),
       label: 'Blood Drain',
       description:
-        'Blood Drain. The stirge attaches to a creature it hits. While attached, the stirge can’t attack and instead drains blood from the target. The target or a creature adjacent to it can use an action to detach the stirge.',
+        "Blood Drain. Melee Weapon Attack: +5 to hit, reach 5 ft., one creature. Hit: 5 (1d4 + 3) piercing damage, and the stirge attaches to the target. While attached, the stirge doesn't attack. Instead, at the start of each of the stirge's turns, the target loses 5 (1d4 + 3) hit points due to blood loss. The stirge can detach itself by spending 5 feet of its movement. It does so after it drains 10 hit points of blood from the target or the target dies. A creature, including the target, can use its action to detach the stirge.",
       effects: [
         {
           id: S.actionId(4592, 1),
@@ -69,12 +62,12 @@ export const stirge: CreatureAuthored = {
               id: S.actionId(4592, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(4592, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(4592, 3),
@@ -82,7 +75,12 @@ export const stirge: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('PIERCING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '1'
+                    diceConfig: '1d4+3'
+                  },
+                  {
+                    id: S.actionId(4592, 4),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_STIRGE_BLOOD_DRAIN
                   }
                 ]
               }

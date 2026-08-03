@@ -325,7 +325,7 @@ function getResultBlockReferences(
   if (path.selectionKind === 'ROLL_TABLE') {
     return [...(context.rollTableRowsByPathId.get(path.pathId) ?? [])]
       .sort((left, right) => left.order - right.order)
-      .map((row) => ({ resultBlockId: row.resultBlockId }))
+      .flatMap((row) => (row.resultBlockId ? [{ resultBlockId: row.resultBlockId }] : []))
   }
 
   return []

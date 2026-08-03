@@ -27,7 +27,7 @@ export const greaterRestoration: SpellAuthored = {
   id: SPELL_IDS.GREATER_RESTORATION,
   label: 'Greater Restoration',
   description:
-    "You imbue a creature you touch with positive energy to undo a debilitating effect. You can reduce the target's exhaustion level by one, or end one of the following effects on the target: one effect that charmed or petrified the target, one curse, one reduction to an ability score, or one effect reducing the target's hit point maximum.",
+    "<p>You imbue a creature you touch with positive energy to undo a debilitating effect. You can reduce the target's exhaustion level by one, or end one of the following effects on the target: * One effect that charmed or petrified the target * One curse, including the target's attunement to a cursed magic item * Any reduction to one of the target's ability scores * One effect reducing the target's hit point maximum</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
@@ -72,7 +72,8 @@ export const greaterRestoration: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'GREATER_RESTORATION' as const
               }
             ]
           }

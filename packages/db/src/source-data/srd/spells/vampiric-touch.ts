@@ -20,7 +20,7 @@ export const vampiricTouch: SpellAuthored = {
   id: SPELL_IDS.VAMPIRIC_TOUCH,
   label: 'Vampiric Touch',
   description:
-    'The touch of your shadow-wreathed hand can siphon life force from others to heal your wounds. Make a melee spell attack against a creature within your reach.',
+    "<p>The touch of your shadow-wreathed hand can siphon life force from others to heal your wounds. Make a melee spell attack against a creature within your reach. On a hit, the target takes 3d6 necrotic damage, and you regain hit points equal to half the amount of necrotic damage dealt. Until the spell ends, you can make the attack again on each of your turns as an action. At Higher Levels. When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -61,7 +61,8 @@ export const vampiricTouch: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.VAMPIRIC_TOUCH, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'VAMPIRIC_TOUCH' as const
               }
             ]
           }

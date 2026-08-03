@@ -5,7 +5,7 @@ export const commonClothes: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(131),
   label: 'Common Clothes',
-  description: 'Simple, everyday garments suitable for a commoner or traveler.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
   cost: S.sp(5),

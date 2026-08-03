@@ -42,7 +42,65 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(122), 0x212, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.MANIFEST,
+                manifestKind: 'ZONE' as const,
+                attachmentKind: 'PLACED_SPACE' as const,
+                label: 'Ball-bearing field',
+                shape: {
+                  id: S.equipmentChildId(S.equipId(122), 0x220, 1),
+                  shapeKind: S.SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 10, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: S.equipmentChildId(S.equipId(122), 0x221, 1),
+                    order: 1,
+                    label: 'Move across the ball bearings',
+                    interactionKind: 'MOVE_ACROSS' as const,
+                    bypassAtHalfSpeed: true,
+                    behaviors: [
+                      {
+                        id: S.equipmentChildId(S.equipId(122), 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: S.TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: S.equipmentChildId(S.equipId(122), 0x223, 1),
+                            dcMethod: 'FIXED_DC' as const,
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 10
+                          },
+                          range: {
+                            id: S.equipmentChildId(S.equipId(122), 0x224, 1),
+                            rangeKind: S.RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: S.equipmentChildId(S.equipId(122), 0x225, 1),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${S.equipmentChildId(S.equipId(122), 0x225, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: S.equipmentChildId(S.equipId(122), 0x226, 1),
+                                  effectKind: S.EFFECT_KIND.CONDITION,
+                                  conditionId: S.conditionTypeId('PRONE')
+                                }
+                              ]
+                            }
+                          },
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

@@ -1,7 +1,7 @@
 import type { VehicleAuthored } from '#authored'
 import { compileFeature, type CompiledFeature } from '#compilers'
 import type { SizeCode } from '#core'
-import type { CompiledCost } from './equipment.js'
+import type { CompiledCost, CompiledWeight } from './equipment.js'
 
 export interface CompiledVehicle {
   id: string
@@ -15,6 +15,7 @@ export interface CompiledVehicle {
   crewMax?: number
   passengerCapacity?: number
   cargoCapacity?: string
+  weight?: CompiledWeight
   cost?: CompiledCost
   properties?: string[]
   features?: CompiledFeature[]
@@ -33,6 +34,7 @@ export function compileVehicle(authored: VehicleAuthored): CompiledVehicle {
     crewMax: authored.crewMax,
     passengerCapacity: authored.passengerCapacity,
     cargoCapacity: authored.cargoCapacity,
+    weight: authored.weight,
     cost: authored.cost,
     properties: authored.properties,
     features: authored.features?.map(compileFeature)

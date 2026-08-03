@@ -42,13 +42,70 @@ export const deva: CreatureAuthored = {
       label: 'Angelic Weapons',
       description:
         "Angelic Weapons. The deva's weapon attacks are magical. When the deva hits with any weapon, the weapon deals an extra 4d8 radiant damage (included in the attack).",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(80, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(80, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_ANGELIC_WEAPONS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(80, 2),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The deva's spellcasting ability is Charisma (spell save DC 17). The deva can innately cast the following spells, requiring only verbal components: At will: detect evil and good. 1/day each: commune, raise dead.",
+        "Innate Spellcasting. The deva's spellcasting ability is Charisma (spell save DC 17). The deva can innately cast the following spells, requiring only verbal components: At will: detect evil and good 1/day each: commune, raise dead",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(80, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DETECT_EVIL_AND_GOOD],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            order: 0
+          },
+          ...([S.SPELL_IDS.COMMUNE, S.SPELL_IDS.RAISE_DEAD] as const).map((spellId, index) => ({
+            id: S.actionId(80, 302 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.actionId(80, 402 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 1
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(80, 304),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(80, 1302), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_INNATE_SPELLCASTING
+        })
+      ],
       order: 2
     },
     {
@@ -56,12 +113,36 @@ export const deva: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The deva has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(80, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(80, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(80, 4),
       label: 'Multiattack',
       description: 'Multiattack. The deva makes two melee attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(80, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(80, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -214,6 +295,19 @@ export const deva: CreatureAuthored = {
       label: 'Change Shape',
       description:
         "Change Shape. The deva magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the deva's choice). In a new form, the deva retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and special senses are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(80, 207),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(80, 1207), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_CHANGE_SHAPE
+        })
+      ],
       order: 7
     }
   ]

@@ -37,7 +37,7 @@ export const skeleton: CreatureAuthored = {
     {
       id: S.featureId(255, 1),
       label: 'Language Limitation',
-      description: "Understands all languages it knew in life but can't speak.",
+      description: "understands all languages it knew in life but can't speak",
       order: 1
     },
     {

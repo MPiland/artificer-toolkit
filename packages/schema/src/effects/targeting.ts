@@ -23,6 +23,13 @@ export const targetingDtoSchema = z.discriminatedUnion('selectionKind', [
         amount: z.number().int().positive()
       })
     ).optional(),
+    resolutionCount: z.number().int().positive().optional(),
+    resolutionCountScaling: createBreakpointScalingDtoSchema(
+      z.object({
+        amount: z.number().int().positive()
+      })
+    ).optional(),
+    allowRepeatedTargets: z.boolean().optional(),
     excludedCreatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional()
   }),
   z.object({

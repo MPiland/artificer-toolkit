@@ -382,6 +382,63 @@ describe('createFeatureRepository', () => {
       ]
     })
   })
+  it('hydrates feature and option effects in authored order', async () => {
+    const db = new InMemoryDb()
+    const repository = createFeatureRepository(db as never, 'system-1')
+    const effect = (id: string, order: number) => ({
+      id,
+      order,
+      invocation: {
+        kind: 'PASSIVE' as const,
+        triggerCode: 'ACTIVATED' as const,
+        range: { id: `${id}-range`, rangeKind: 'SELF' as const }
+      },
+      paths: [
+        {
+          id: `${id}-path`,
+          order: 1,
+          pathCode: 'ON_USE' as const,
+          groupType: 'SINGLE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${id}-result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: `${id}-outcome`,
+                effectKind: 'CLOSED_RULE' as const,
+                ruleKind: 'CLASS_RANGER_FERAL_SENSES' as const
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    await repository.upsert({
+      id: 'feature-effect-order',
+      label: 'Ordered effects',
+      description: 'Preserves authored ordering.',
+      order: 1,
+      effects: [effect('feature-effect-z', 1), effect('feature-effect-a', 2)],
+      options: [
+        {
+          id: 'option-effect-order',
+          label: 'Ordered option effects',
+          description: 'Preserves authored ordering.',
+          order: 1,
+          effects: [effect('option-effect-z', 1), effect('option-effect-a', 2)]
+        }
+      ]
+    })
+
+    const hydrated = await repository.findById('feature-effect-order')
+    expect(hydrated?.effects?.map(({ id }) => id)).toEqual(['feature-effect-z', 'feature-effect-a'])
+    expect(hydrated?.options?.[0]?.effects?.map(({ id }) => id)).toEqual([
+      'option-effect-z',
+      'option-effect-a'
+    ])
+  })
   it('round-trips supported feature and option restrictions through typed facet persistence', async () => {
     const db = new InMemoryDb()
     const repository = createFeatureRepository(db as never, 'system-1')

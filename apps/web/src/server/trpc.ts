@@ -118,6 +118,7 @@ async function boundTrpcRequestBody(request: Request): Promise<Request | Respons
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
+
     byteLength += value.byteLength
     if (byteLength > AUTHORED_LIMITS.mutationPayloadBytes) {
       await reader.cancel().catch(() => undefined)
@@ -133,5 +134,12 @@ async function boundTrpcRequestBody(request: Request): Promise<Request | Respons
     offset += chunk.byteLength
   }
 
-  return new Request(request, { body })
+  const headers = new Headers(request.headers)
+  headers.set('content-length', String(byteLength))
+  return new Request(request.url, {
+    body,
+    headers,
+    method: request.method,
+    signal: request.signal
+  })
 }

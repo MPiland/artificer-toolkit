@@ -42,6 +42,17 @@ export const ancientBronzeDragon: CreatureAuthored = {
       id: S.featureId(17, 1),
       label: 'Amphibious',
       description: 'Amphibious. The dragon can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(17, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(17, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -54,9 +65,20 @@ export const ancientBronzeDragon: CreatureAuthored = {
         id: S.legendaryActionId(5407, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(17, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(17, 104), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
@@ -94,7 +116,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5407, 12),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
                   }
                 ]
               }
@@ -108,7 +131,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
       id: S.featureId(17, 4),
       label: 'Bite',
       description:
-        'Melee Weapon Attack: +16 to hit, reach 15 ft., one target. Hit: 19 (2d10 + 9) piercing damage.',
+        'Bite. Melee Weapon Attack: +16 to hit, reach 15 ft., one target. Hit: 20 (2d10 + 9) piercing damage.',
       effects: [
         {
           id: S.actionId(5407, 13),
@@ -171,7 +194,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
       id: S.featureId(17, 5),
       label: 'Claw',
       description:
-        'Melee Weapon Attack: +16 to hit, reach 10 ft., one target. Hit: 15 (2d6 + 9) slashing damage.',
+        'Claw. Melee Weapon Attack: +16 to hit, reach 10 ft., one target. Hit: 16 (2d6 + 9) slashing damage.',
       effects: [
         {
           id: S.actionId(5407, 17),
@@ -234,7 +257,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
       id: S.featureId(17, 6),
       label: 'Tail',
       description:
-        'Melee Weapon Attack: +16 to hit, reach 20 ft., one target. Hit: 17 (2d8 + 9) bludgeoning damage.',
+        'Tail. Melee Weapon Attack: +16 to hit, reach 20 ft., one target. Hit: 18 (2d8 + 9) bludgeoning damage.',
       effects: [
         {
           id: S.actionId(5407, 21),
@@ -462,16 +485,26 @@ export const ancientBronzeDragon: CreatureAuthored = {
               id: S.actionId(5407, 38),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(5407, 38) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
+                    id: S.actionId(5407, 608),
+                    effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
+                    direction: 'AWAY_FROM_SOURCE',
+                    actionEconomy: 'NONE',
+                    distanceMode: 'FIXED_DISTANCE',
+                    amount: 60,
+                    unit: S.MEASUREMENT_UNIT_CODE.FEET
+                  },
+                  {
                     id: S.actionId(5407, 38),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_REPULSION_BREATH
                   }
                 ]
               }
@@ -485,7 +518,7 @@ export const ancientBronzeDragon: CreatureAuthored = {
       id: S.featureId(17, 10),
       label: 'Change Shape',
       description:
-        "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features, legendary actions, and lair actions of that form.",
+        "Change Shape. The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features or legendary actions of that form.",
       effects: [
         {
           id: S.actionId(5407, 39),
@@ -516,7 +549,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5407, 41),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_CHANGE_SHAPE
                   }
                 ]
               }
@@ -569,7 +603,8 @@ export const ancientBronzeDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(5407, 24),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
                   }
                 ]
               }

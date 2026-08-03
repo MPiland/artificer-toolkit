@@ -1,6 +1,6 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedTrpcContext, TrpcContext } from './dbContext.js'
 
 const listAuthoredDomain = vi.hoisted(() =>
@@ -58,11 +58,13 @@ const clearRollHistoryForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true a
 const discardRollForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true as const })))
 
 const accountProfileRepository = vi.hoisted(() => ({
-  findForUser: vi.fn(async () => ({
-    username: 'morgan',
-    name: 'Morgan',
-    bio: 'Forge keeper.'
-  })),
+  findForUser: vi.fn(
+    async (): Promise<{ username: string; name: string | null; bio: string | null } | null> => ({
+      username: 'morgan',
+      name: 'Morgan',
+      bio: 'Forge keeper.'
+    })
+  ),
   isUsernameTaken: vi.fn(async (username: string) => username === 'taken_name'),
   upsertForUser: vi.fn(
     async (
@@ -71,6 +73,19 @@ const accountProfileRepository = vi.hoisted(() => ({
     ) => profile
   )
 }))
+const getAuthUserById = vi.hoisted(() =>
+  vi.fn(async () => ({
+    data: {
+      user: {
+        app_metadata: { provider: 'email', providers: ['email'] }
+      }
+    },
+    error: null
+  }))
+)
+const updateAuthUserById = vi.hoisted(() =>
+  vi.fn(async () => ({ data: { user: {} }, error: null }))
+)
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
@@ -85,6 +100,17 @@ vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
   executeRollForUser,
   getRollHistoryForUser,
   listAuthoredDomain
+}))
+
+vi.mock('@artificer-toolkit/functions/clients', () => ({
+  createSupabaseClient: () => ({
+    auth: {
+      admin: {
+        getUserById: getAuthUserById,
+        updateUserById: updateAuthUserById
+      }
+    }
+  })
 }))
 
 vi.mock('./dbContext.js', async (importOriginal) => {
@@ -113,6 +139,10 @@ import { appRouter } from './router.js'
 import { handleTrpcFetchRequest } from './handler.js'
 
 describe('tRPC router auth', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('exposes only safe application feature flags without authentication', async () => {
     const caller = appRouter.createCaller({ userId: null })
 
@@ -136,11 +166,51 @@ describe('tRPC router auth', () => {
     expect(accountProfileRepository.isUsernameTaken).toHaveBeenCalledTimes(2)
   })
 
+  it('completes an invitation through trusted app metadata after enforcing username policy', async () => {
+    const caller = appRouter.createCaller({ userId: 'user-1' })
+    accountProfileRepository.findForUser.mockResolvedValueOnce(null)
+
+    await expect(
+      caller.account.completeInvitation({
+        username: 'Morgan_Emberfall',
+        password: 'new-password-123'
+      })
+    ).resolves.toEqual({ ok: true })
+
+    expect(updateAuthUserById).toHaveBeenCalledWith('user-1', {
+      password: 'new-password-123',
+      app_metadata: {
+        provider: 'email',
+        providers: ['email'],
+        pending_profile_username: 'Morgan_Emberfall'
+      }
+    })
+  })
+
+  it('rejects moderated invitation usernames before updating the auth user', async () => {
+    const caller = appRouter.createCaller({ userId: 'user-1' })
+
+    await expect(
+      caller.account.completeInvitation({
+        username: 'admin',
+        password: 'new-password-123'
+      })
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST', message: "That username isn't allowed." })
+
+    expect(updateAuthUserById).not.toHaveBeenCalled()
+  })
+
   it('requires server-side auth context for product data procedures', async () => {
     const caller = appRouter.createCaller({ userId: null })
 
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.account.profile()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
+      caller.account.completeInvitation({
+        username: 'player_one',
+        password: 'new-password-123'
+      })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
       caller.account.updateProfile({ username: 'player_one', name: null, bio: null })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })

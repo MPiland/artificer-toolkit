@@ -5,7 +5,7 @@ export const chest: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(110),
   label: 'Chest',
-  description: 'A sturdy locked box for securing valuables or transporting goods.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.gp(5),

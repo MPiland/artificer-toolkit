@@ -20,7 +20,7 @@ export const expeditiousRetreat: SpellAuthored = {
   id: SPELL_IDS.EXPEDITIOUS_RETREAT,
   label: 'Expeditious Retreat',
   description:
-    'This spell allows you to move at an incredible pace. When you cast this spell and as a bonus action on each of your turns until the spell ends, you can take the Dash action.',
+    "<p>This spell allows you to move at an incredible pace. When you cast this spell, and then as a bonus action on each of your turns until the spell ends, you can take the Dash action.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -65,7 +65,8 @@ export const expeditiousRetreat: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.EXPEDITIOUS_RETREAT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'EXPEDITIOUS_RETREAT' as const
               }
             ]
           }

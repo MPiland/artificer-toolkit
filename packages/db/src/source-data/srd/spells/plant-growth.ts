@@ -20,7 +20,7 @@ export const plantGrowth: SpellAuthored = {
   id: SPELL_IDS.PLANT_GROWTH,
   label: 'Plant Growth',
   description:
-    'This spell channels vitality into plants within a specific area. If you cast it using 1 action, normal plants in a 100-foot radius become thick and overgrown; if you cast it over 8 hours, you enrich the land for 1 year.',
+    "<p>This spell channels vitality into plants within a specific area. There are two possible uses for the spell, granting either immediate or long-term benefits. If you cast this spell using 1 action, choose a point within range. All normal plants in a 100-foot radius centered on that point become thick and overgrown. A creature moving through the area must spend 4 feet of movement for every 1 foot it moves. You can exclude one or more areas of any size within the spell's area from being affected. If you cast this spell over 8 hours, you enrich the land. All plants in a half-mile radius centered on a point within range become enriched for 1 year. The plants yield twice the normal amount of food when harvested.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -66,7 +66,8 @@ export const plantGrowth: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PLANT_GROWTH, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'PLANT_GROWTH' as const
               }
             ]
           }

@@ -86,6 +86,14 @@ export const SHAPE_NODE_MAP = shape.define('shape', ({ map, cond, nodes, logic }
       })
     )
     .set(
+      'width',
+      groupObject(['width'], 'Width', () => SHAPE_MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        order: 2,
+        showIf: local.field(['shapeKind']).eq('LINE')
+      })
+    )
+    .set(
       'height',
       groupObject(['height'], 'Height', () => SHAPE_MEASUREMENT_NODE_MAP, {
         presentation: 'inline',

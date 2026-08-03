@@ -7,6 +7,7 @@ export const TRIGGER = {
   RANGED_WEAPON_ATTACK: 'RANGED_WEAPON_ATTACK',
   UNARMED_ATTACK: 'UNARMED_ATTACK',
   SPELL_ATTACK: 'SPELL_ATTACK',
+  INCOMING_SAVING_THROW: 'INCOMING_SAVING_THROW',
   SAVING_THROW: 'SAVING_THROW',
   ENTER_AREA: 'ENTER_AREA'
 } as const
@@ -50,6 +51,13 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
     label: 'Spell Attack',
     description: 'Indicates a spell attack roll made against a target.',
     tooltip: 'Spell attack roll.'
+  },
+
+  INCOMING_SAVING_THROW: {
+    code: TRIGGER.INCOMING_SAVING_THROW,
+    label: 'Incoming Saving Throw',
+    description: 'Indicates a passive rule that modifies a saving throw made by the source.',
+    tooltip: 'Source makes a saving throw.'
   },
 
   SAVING_THROW: {

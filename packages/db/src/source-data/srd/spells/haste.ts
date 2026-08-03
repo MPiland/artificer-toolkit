@@ -22,7 +22,7 @@ export const haste: SpellAuthored = {
   id: SPELL_IDS.HASTE,
   label: 'Haste',
   description:
-    "Choose a willing creature that you can see within range. Until the spell ends, the target's speed is doubled, it gains a +2 bonus to AC, it has advantage on Dexterity saving throws, and it gains an additional action on each of its turns.",
+    "<p>Choose a willing creature that you can see within range. Until the spell ends, the target's speed is doubled, it gains a +2 bonus to AC, it has advantage on Dexterity saving throws, and it gains an additional action on each of its turns. That action can be used only to take the Attack (one weapon attack only), Dash, Disengage, Hide, or Use an Object action. When the spell ends, the target can't move or take actions until after its next turn, as a wave of lethargy sweeps over it.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -71,7 +71,8 @@ export const haste: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HASTE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'HASTE' as const
               }
             ]
           }

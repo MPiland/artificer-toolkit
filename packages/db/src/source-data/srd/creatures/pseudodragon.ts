@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const pseudodragon: CreatureAuthored = {
@@ -45,6 +45,18 @@ export const pseudodragon: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The pseudodragon has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(226, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(226, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
@@ -57,7 +69,7 @@ export const pseudodragon: CreatureAuthored = {
     {
       id: S.featureId(226, 4),
       label: 'Language Limitation',
-      description: "Understands Common and Draconic but can't speak.",
+      description: "understands Common and Draconic but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(226, 2, 'DRACONIC', 'COMMON')]
       },
@@ -183,27 +195,73 @@ export const pseudodragon: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          id: S.actionId(226, 502),
+          order: 2,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(226, 602),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 11
             },
+            range: {
+              id: S.actionId(226, 652),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
             {
-              id: S.actionId(226, 9),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
+              id: S.actionId(226, 802),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(226, 9) + '__result',
+                id: S.actionId(226, 802) + '__result',
                 resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(226, 10),
-                  durationKind: DURATION_KIND.HOUR,
-                  amount: 1
-                },
                 outcomes: [
                   {
-                    id: S.actionId(226, 9),
+                    id: S.actionId(226, 920),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('POISONED')
+                  },
+                  {
+                    id: S.actionId(226, 928),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PSEUDODRAGON_STING
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(226, 822),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(226, 822) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(226, 948),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PSEUDODRAGON_STING
                   }
                 ]
               }

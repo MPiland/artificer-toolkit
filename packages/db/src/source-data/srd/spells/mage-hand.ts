@@ -20,7 +20,7 @@ export const mageHand: SpellAuthored = {
   id: SPELL_IDS.MAGE_HAND,
   label: 'Mage Hand',
   description:
-    'A spectral, floating hand appears at a point you choose within range, lasting 1 minute. You can use the hand to manipulate an object, open an unlocked door or container, stow or retrieve an item, or pour the contents out of a vial.',
+    "<p>A spectral, floating hand appears at a point you choose within range. The hand lasts for the duration or until you dismiss it as an action. The hand vanishes if it is ever more than 30 feet away from you or if you cast this spell again.</p><p>You can use your action to control the hand. You can use the hand to manipulate an object, open an unlocked door or container, stow or retrieve an item from an open container, or pour the contents out of a vial. You can move the hand up to 30 feet each time you use it. The hand can't attack, activate magic items, or carry more than 10 pounds.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],

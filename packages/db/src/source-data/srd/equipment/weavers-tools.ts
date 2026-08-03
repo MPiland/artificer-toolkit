@@ -5,7 +5,7 @@ export const weaversTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(66),
   label: "Weaver's Tools",
-  description: 'A loom shuttle, needles, and thread for weaving cloth and tapestries.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(1),

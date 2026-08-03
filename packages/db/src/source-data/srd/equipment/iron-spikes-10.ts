@@ -5,7 +5,7 @@ export const ironSpikes10: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(146),
   label: 'Iron Spikes (10)',
-  description: 'A bundle of 10 iron spikes useful for securing ropes, propping doors, or climbing.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(1),

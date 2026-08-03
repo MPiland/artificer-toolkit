@@ -5,7 +5,7 @@ export const whetstone: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(181),
   label: 'Whetstone',
-  description: 'A flat stone used to sharpen bladed weapons and tools.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

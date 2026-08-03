@@ -21,7 +21,7 @@ export const scorchingRay: SpellAuthored = {
   id: SPELL_IDS.SCORCHING_RAY,
   label: 'Scorching Ray',
   description:
-    'You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several. Make a ranged spell attack for each ray; on a hit, the target takes 2d6 fire damage.',
+    "<p>You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several. Make a ranged spell attack for each ray. On a hit, the target takes 2d6 fire damage. At Higher Levels. When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],

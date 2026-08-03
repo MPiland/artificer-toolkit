@@ -21,7 +21,7 @@ export const freedomOfMovement: SpellAuthored = {
   id: SPELL_IDS.FREEDOM_OF_MOVEMENT,
   label: 'Freedom of Movement',
   description:
-    "You touch a willing creature. For the duration, the target's movement is unaffected by difficult terrain, and spells and other magical effects can neither reduce the target's speed nor cause the target to be paralyzed or restrained.",
+    "<p>You touch a willing creature. For the duration, the target's movement is unaffected by difficult terrain, and spells and other magical effects can neither reduce the target's speed nor cause the target to be paralyzed or restrained. The target can also spend 5 feet of movement to automatically escape from nonmagical restraints, such as manacles or a creature that has it grappled. Finally, being underwater imposes no penalties on the target's movement or attacks.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -68,7 +68,8 @@ export const freedomOfMovement: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FREEDOM_OF_MOVEMENT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'FREEDOM_OF_MOVEMENT' as const
               }
             ]
           }

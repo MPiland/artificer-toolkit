@@ -5,8 +5,7 @@ export const paintersSupplies: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(62),
   label: "Painter's Supplies",
-  description:
-    'Brushes, pigments, and a palette for creating paintings on canvas or other surfaces.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(10),

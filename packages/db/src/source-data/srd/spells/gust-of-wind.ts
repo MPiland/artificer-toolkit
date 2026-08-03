@@ -29,7 +29,7 @@ export const gustOfWind: SpellAuthored = {
   id: SPELL_IDS.GUST_OF_WIND,
   label: 'Gust of Wind',
   description:
-    "A line of strong wind 60 feet long and 10 feet wide blasts from you in a direction you choose for the spell's duration. Each creature that starts its turn in the line must succeed on a Strength saving throw or be pushed 15 feet away from you in a direction following the line.",
+    "<p>A line of strong wind 60 feet long and 10 feet wide blasts from you in a direction you choose for the spell's duration. Each creature that starts its turn in the line must succeed on a Strength saving throw or be pushed 15 feet away from you in a direction following the line. Any creature in the line must spend 2 feet of movement for every 1 foot it moves when moving closer to you. The gust disperses gas or vapor, and it extinguishes candles, torches, and similar unprotected flames in the area. It causes protected flames, such as those of lanterns, to dance wildly and has a 50 percent chance to extinguish them. As a bonus action on each of your turns before the spell ends, you can change the direction in which the line blasts from you.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -74,7 +74,7 @@ export const gustOfWind: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -82,8 +82,16 @@ export const gustOfWind: SpellAuthored = {
             },
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'GUST_OF_WIND' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve Flames and Vapors",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "The gust disperses gas or vapor, and it extinguishes candles, torches, and similar unprotected flames in the area. It causes protected flames, such as those of lanterns, to dance wildly and has a 50 percent chance to extinguish them."
               }
             ]
           }

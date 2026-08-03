@@ -5,7 +5,7 @@ export const lance: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(21),
   label: 'Lance',
-  description: 'A long weapon designed for mounted combat.',
+  description: "You have disadvantage when you use a lance to attack a target within 5 feet of you. Also, a lance requires two hands to wield when you aren't mounted.",
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,
@@ -14,7 +14,10 @@ export const lance: EquipmentAuthored = {
     S.EQUIPMENT_PROPERTY_CODE.SPECIAL
   ],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(21)),
-  effects: S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12'),
+  effects: [
+    ...S.meleeReachWeaponEffects(S.equipId(21), 'PIERCING', '1d12'),
+    S.passiveEquipmentClosedRuleEffect(S.equipId(21), 'EQUIPMENT_LANCE', 2, 0x2e0)
+  ],
   cost: S.gp(10),
   weight: S.lbs(6),
   rarityId: S.RARITY_COMMON,

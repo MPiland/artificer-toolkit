@@ -5,8 +5,7 @@ export const cooksUtensils: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(57),
   label: "Cook's Utensils",
-  description:
-    'Pots, pans, knives, and seasoning equipment for preparing meals over a campfire or in a kitchen.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(1),

@@ -1,4 +1,9 @@
-import { SPELL_GRANT_ATTRIBUTE, type SpellGrantAuthored } from '@artificer-toolkit/shared'
+import {
+  ABILITY_CODE,
+  SPELL_GRANT_ATTRIBUTE,
+  type AbilityCode,
+  type SpellGrantAuthored
+} from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertSpellGrant } from '../upserts/spell.js'
 import { hydrateFacetById } from '../../shared/facets.js'
@@ -97,6 +102,14 @@ function requireSpellGrantAttribute(
   return value as NonNullable<SpellGrantAuthored['attributes']>[number]
 }
 
+function requireCastingAbility(grantId: string, value: string): AbilityCode {
+  if (!(value in ABILITY_CODE)) {
+    throw new Error(`Spell grant "${grantId}" has invalid casting_ability_code "${value}".`)
+  }
+
+  return value as AbilityCode
+}
+
 function requireSpellGrantApplicability(
   grantId: string,
   attributes: NonNullable<SpellGrantAuthored['attributes']>[number][] | undefined,
@@ -134,7 +147,8 @@ async function hydrateSpellGrantById(db: DBLike, id: string): Promise<SpellGrant
       'charge_id',
       'restriction_id',
       'filter_id',
-      'cast_at_level'
+      'cast_at_level',
+      'casting_ability_code'
     ])
     .where('id', '=', id)
     .executeTakeFirst()
@@ -194,6 +208,9 @@ async function hydrateSpellGrantById(db: DBLike, id: string): Promise<SpellGrant
     grantKind: 'SPELL_GRANT' as const,
     order: root.sort_order,
     castAtLevel: root.cast_at_level ?? undefined,
+    ...(root.casting_ability_code
+      ? { castingAbility: requireCastingAbility(id, root.casting_ability_code) }
+      : {}),
     charges: charge ?? undefined,
     attributes:
       attributeRows.length > 0

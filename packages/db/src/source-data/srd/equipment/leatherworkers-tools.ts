@@ -5,7 +5,7 @@ export const leatherworkersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(60),
   label: "Leatherworker's Tools",
-  description: 'Knives, punches, and dyes for cutting and stitching leather into goods.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(5),

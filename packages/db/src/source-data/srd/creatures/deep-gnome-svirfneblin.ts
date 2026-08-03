@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const deepGnomeSvirfneblin: CreatureAuthored = {
@@ -42,6 +42,18 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
       label: 'Stone Camouflage',
       description:
         'Stone Camouflage. The gnome has advantage on Dexterity (Stealth) checks made to hide in rocky terrain.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(78, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(78, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_STONE_CAMOUFLAGE
+        })
+      ],
       order: 1
     },
     {
@@ -49,13 +61,76 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
       label: 'Gnome Cunning',
       description:
         'Gnome Cunning. The gnome has advantage on Intelligence, Wisdom, and Charisma saving throws against magic.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(78, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(78, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GNOME_CUNNING
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(78, 3),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The gnome's innate spellcasting ability is Intelligence (spell save DC 11). It can innately cast the following spells, requiring no material components: At will: nondetection (self only). 1/day each: blindness/deafness, blur, disguise self.",
+        "Innate Spellcasting. The gnome's innate spellcasting ability is Intelligence (spell save DC 11). It can innately cast the following spells, requiring no material components: At will: nondetection (self only) 1/day each: blindness/deafness, blur, disguise self",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(78, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.NONDETECTION],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
+              S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY
+            ],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            order: 0
+          },
+          ...(
+            [S.SPELL_IDS.BLINDNESS_DEAFNESS, S.SPELL_IDS.BLUR, S.SPELL_IDS.DISGUISE_SELF] as const
+          ).map((spellId, index) => ({
+            id: S.actionId(78, 302 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            charges: {
+              id: S.actionId(78, 402 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 1
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(78, 305),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(78, 1303), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_INNATE_SPELLCASTING
+        })
+      ],
       order: 3
     },
     {
@@ -132,7 +207,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
             range: {
               id: S.actionId(78, 5),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
+              amount: 30,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -159,30 +234,69 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d4+2'
+                  },
+                  {
+                    id: S.actionId(78, 220),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(78, 221),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 12
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(78, 222),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('POISONED')
+                        },
+                        {
+                          id: S.actionId(78, 223),
+                          effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                          timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                          savingThrow: {
+                            id: S.actionId(78, 224),
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION,
+                            baseDc: 12
+                          },
+                          attempts: { kind: 'ONCE', repeatOnFailure: true },
+                          onSuccess: { kind: 'END' },
+                          onFailure: { kind: 'CONTINUE' }
+                        },
+                        {
+                          id: S.actionId(78, 225),
+                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_POISONED_DART
+                        }
+                      ]
+                    }
                   }
                 ]
               }
             },
             {
-              id: S.actionId(78, 7),
+              id: S.actionId(78, 205),
               order: 2,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(78, 7) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(78, 8),
-                  durationKind: DURATION_KIND.MINUTE,
-                  amount: 1
-                },
+                id: S.actionId(78, 206),
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(78, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
+                    id: S.actionId(78, 207),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEAPON_LONG_RANGE_120
                   }
                 ]
               }

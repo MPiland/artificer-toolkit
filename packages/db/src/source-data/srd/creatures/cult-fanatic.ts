@@ -36,19 +36,75 @@ export const cultFanatic: CreatureAuthored = {
       label: 'Dark Devotion',
       description:
         'Dark Devotion. The fanatic has advantage on saving throws against being charmed or frightened.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(74, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(74, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DARK_DEVOTION
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(74, 2),
       label: 'Spellcasting',
       description:
-        'Spellcasting. The fanatic is a 4th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 11, +3 to hit with spell attacks). The fanatic has the following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy. 1st level (4 slots): command, inflict wounds, shield of faith. 2nd level (3 slots): hold person, spiritual weapon.',
+        'Spellcasting. The fanatic is a 4th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 11, +3 to hit with spell attacks). The fanatic has the following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy 1st level (4 slots): command, inflict wounds, shield of faith 2nd level (3 slots): hold person, spiritual weapon',
+      grants: {
+        spells: [
+          {
+            id: S.actionId(74, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            order: 0
+          },
+          {
+            id: S.actionId(74, 302),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.COMMAND,
+              S.SPELL_IDS.INFLICT_WOUNDS,
+              S.SPELL_IDS.SHIELD_OF_FAITH,
+              S.SPELL_IDS.HOLD_PERSON,
+              S.SPELL_IDS.SPIRITUAL_WEAPON
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            order: 1
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(74, 303),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(74, 1301), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CULT_FANATIC_SPELLCASTING
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(74, 3),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(74, 2, 'COMMON')]
       },
@@ -58,6 +114,18 @@ export const cultFanatic: CreatureAuthored = {
       id: S.featureId(74, 4),
       label: 'Multiattack',
       description: 'Multiattack. The fanatic makes two melee attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(74, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(74, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CULT_FANATIC_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {

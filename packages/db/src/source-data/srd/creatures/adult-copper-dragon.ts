@@ -1,4 +1,5 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const adultCopperDragon: CreatureAuthored = {
   id: S.CREATURE_IDS.ADULT_COPPER_DRAGON,
@@ -47,9 +48,20 @@ export const adultCopperDragon: CreatureAuthored = {
         id: S.legendaryActionId(7, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(7, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(7, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -87,7 +99,8 @@ export const adultCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7, 12),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
                   }
                 ]
               }
@@ -297,7 +310,13 @@ export const adultCopperDragon: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(7, 601),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 16
+            },
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
@@ -307,23 +326,71 @@ export const adultCopperDragon: CreatureAuthored = {
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
             {
               id: S.actionId(7, 27),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(7, 27) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(7, 602),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
+                    id: S.actionId(7, 603),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('FRIGHTENED')
+                  },
+                  {
+                    id: S.actionId(7, 604),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(7, 605),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.WISDOM,
+                      baseDc: 16
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(7, 27),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(7, 606),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(7, 606)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(7, 607),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
                   }
                 ]
               }
@@ -443,16 +510,36 @@ export const adultCopperDragon: CreatureAuthored = {
               id: S.actionId(7, 36),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(7, 36) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(7, 615),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
+                    id: S.actionId(7, 616),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(7, 617),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 18
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(7, 36),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_SLOWING_BREATH
                   }
                 ]
               }
@@ -505,7 +592,8 @@ export const adultCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(7, 24),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
                   }
                 ]
               }
@@ -540,7 +628,8 @@ export const adultCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(7, 27),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_TAIL_ATTACK
                   }
                 ]
               }
@@ -575,7 +664,8 @@ export const adultCopperDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(7, 30),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_WING_ATTACK
                   }
                 ]
               }

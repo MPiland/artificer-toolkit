@@ -47,9 +47,20 @@ export const adultBrassDragon: CreatureAuthored = {
         id: S.legendaryActionId(5, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(5, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(5, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -57,6 +68,18 @@ export const adultBrassDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(5, 103),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(5, 104), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {
@@ -299,13 +322,25 @@ export const adultBrassDragon: CreatureAuthored = {
       id: S.featureId(5, 7),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(5, 105),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(5, 106), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
+        })
+      ],
       order: 7
     },
     {
       id: S.featureId(5, 8),
       label: 'Fire Breath',
       description:
-        'The dragon exhales fire in a 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one.',
+        'Fire Breath. The dragon exhales fire in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 18 Dexterity saving throw, taking 45 (13d6) fire damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(5, 30),
@@ -439,6 +474,16 @@ export const adultBrassDragon: CreatureAuthored = {
         amount: 3
       },
       effects: [
+        S.closedRuleEffect({
+          id: S.legendaryActionId(5, 101),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: { id: S.legendaryActionId(5, 102), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
+        }),
         {
           id: S.legendaryActionId(5, 25),
           order: 2,
@@ -475,7 +520,7 @@ export const adultBrassDragon: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8+6',
+                    diceConfig: '2d8',
                     bonuses: [
                       {
                         id: S.legendaryActionId(5, 32),
@@ -524,6 +569,16 @@ export const adultBrassDragon: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d6+6'
+                  },
+                  {
+                    id: S.legendaryActionId(5, 103),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('PRONE')
+                  },
+                  {
+                    id: S.legendaryActionId(5, 104),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_WING_ATTACK
                   }
                 ]
               }

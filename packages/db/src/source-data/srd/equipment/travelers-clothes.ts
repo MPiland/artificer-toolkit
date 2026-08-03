@@ -5,7 +5,7 @@ export const travelersClothes: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(134),
   label: "Traveler's Clothes",
-  description: 'Sturdy, practical garments designed for long journeys and outdoor conditions.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
   cost: S.gp(2),

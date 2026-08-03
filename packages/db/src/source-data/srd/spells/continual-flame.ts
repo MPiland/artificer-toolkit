@@ -5,6 +5,8 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -20,7 +22,7 @@ export const continualFlame: SpellAuthored = {
   id: SPELL_IDS.CONTINUAL_FLAME,
   label: 'Continual Flame',
   description:
-    "A flame, equivalent in brightness to a torch, springs forth from an object that you touch. The effect looks like a regular flame, but it creates no heat and doesn't use oxygen.",
+    "<p>A flame, equivalent in brightness to a torch, springs forth from an object that you touch. The effect looks like a regular flame, but it creates no heat and doesn't use oxygen. A continual flame can be covered or hidden but not smothered or quenched.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.WIZARD],
@@ -64,8 +66,22 @@ export const continualFlame: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.CONTINUAL_FLAME, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                id: spellChildId(SPELL_IDS.CONTINUAL_FLAME, 0x214, 1),
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.OBJECT,
+                label: 'Continual Flame',
+                attachmentKind: 'TOUCHED_OBJECT',
+                light: {
+                  bright: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET },
+                  dimAdditional: { amount: 20, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                properties: [
+                  'NO_HEAT',
+                  'NO_OXYGEN_USE',
+                  'CANNOT_BE_SMOTHERED',
+                  'CANNOT_BE_QUENCHED',
+                  'CAN_BE_COVERED_OR_HIDDEN'
+                ]
               }
             ]
           }

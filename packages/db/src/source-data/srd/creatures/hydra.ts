@@ -37,13 +37,37 @@ export const hydra: CreatureAuthored = {
       id: S.featureId(169, 1),
       label: 'Hold Breath',
       description: 'Hold Breath. The hydra can hold its breath for 1 hour.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(169, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(169, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HOLD_BREATH
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(169, 2),
       label: 'Multiple Heads',
       description:
-        'Multiple Heads. The hydra has five heads. While it has more than one head, the hydra has advantage on saving throws against being blinded, charmed, deafened, frightened, stunned, and knocked unconscious. Whenever the hydra takes 25 or more damage in a single turn, one of its heads dies. At the end of each of its turns, it regains 10 hit points for each head it lost since its last turn, provided it still has at least one head. If all its heads die, the hydra dies.',
+        'Multiple Heads. The hydra has five heads. While it has more than one head, the hydra has advantage on saving throws against being blinded, charmed, deafened, frightened, stunned, and knocked unconscious. Whenever the hydra takes 25 or more damage in a single turn, one of its heads dies. If all its heads die, the hydra dies. At the end of its turn, it grows two heads for each of its heads that died since its last turn, unless it has taken fire damage since its last turn. The hydra regains 10 hit points for each head regrown in this way.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(169, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(169, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_MULTIPLE_HEADS
+        })
+      ],
       order: 2
     },
     {
@@ -51,18 +75,54 @@ export const hydra: CreatureAuthored = {
       label: 'Reactive Heads',
       description:
         'Reactive Heads. For each head the hydra has beyond one, it gets an extra reaction that can be used only for opportunity attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(169, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(169, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_REACTIVE_HEADS
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(169, 4),
       label: 'Wakeful',
       description: 'Wakeful. While the hydra sleeps, at least one of its heads is awake.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(169, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(169, 1204), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_WAKEFUL
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(169, 5),
       label: 'Multiattack',
       description: 'Multiattack. The hydra makes as many bite attacks as it has heads.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(169, 205),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(169, 1205), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -70,6 +130,51 @@ export const hydra: CreatureAuthored = {
       label: 'Bite',
       description:
         'Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 10 (1d10 + 5) piercing damage.',
+      effects: [
+        {
+          id: S.actionId(169, 206),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(169, 1206),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(169, 207),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(169, 208),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(169, 209),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10+5'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     }
   ]

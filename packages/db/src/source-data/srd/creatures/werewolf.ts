@@ -38,6 +38,19 @@ export const werewolf: CreatureAuthored = {
       label: 'Shapechanger',
       description:
         "Shapechanger. The werewolf can use its action to polymorph into a wolf-humanoid hybrid or into a wolf, or back into its true form, which is humanoid. Its statistics, other than its AC, are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(291, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(291, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREWOLF_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
@@ -50,7 +63,7 @@ export const werewolf: CreatureAuthored = {
     {
       id: S.featureId(291, 3),
       label: 'Speech Limitation',
-      description: "Common (can't speak in wolf form).",
+      description: "Common (can't speak in wolf form)",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(291, 2, 'COMMON')]
       },
@@ -61,6 +74,18 @@ export const werewolf: CreatureAuthored = {
       label: 'Multiattack (Humanoid or Hybrid Form Only)',
       description:
         'Multiattack (Humanoid or Hybrid Form Only). The werewolf makes two attacks: one with its bite and one with its claws or spear.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(291, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(291, 203), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -68,6 +93,56 @@ export const werewolf: CreatureAuthored = {
       label: 'Bite (Wolf or Hybrid Form Only)',
       description:
         'Bite (Wolf or Hybrid Form Only). Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 6 (1d8 + 2) piercing damage. If the target is a humanoid, it must succeed on a DC 12 Constitution saving throw or be cursed with werewolf lycanthropy.',
+      effects: [
+        {
+          id: S.actionId(291, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(291, 205),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(291, 206),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(291, 207),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(291, 208),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+2'
+                  },
+                  {
+                    id: S.actionId(291, 209),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREWOLF_BITE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 5
     },
     {

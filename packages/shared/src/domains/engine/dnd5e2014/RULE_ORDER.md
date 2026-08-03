@@ -125,6 +125,10 @@ Stats are calculated in this exact order. Each step may depend on the result of 
 14. **Spell attack bonus** — present only if the character has a spellcasting class:
     `proficiencyBonus + spellcastingAbilityModifier`
 
+Per-source spell mechanics replace that class-wide default with a spell grant's authored casting
+ability when present. This applies to race and subrace grants even when the character has no
+spellcasting class.
+
 ---
 
 ## 5. Sheet Adjustment Precedence

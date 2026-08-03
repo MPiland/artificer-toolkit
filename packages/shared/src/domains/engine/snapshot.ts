@@ -8,11 +8,12 @@ import type {
 } from '../character/sheetAdjustment.js'
 import type { CharacterSpellSourceRef } from '../character/sheetResource.js'
 import type { SizeCode } from '../core/size.js'
-import type {
-  CharacterAcquisitionTiming,
-  CharacterChosenGrantSelectionRecord,
-  CharacterFeatureSelectionRecord,
-  CharacterProvenance
+import {
+  getCharacterChosenGrantSelectionIdentityKey,
+  type CharacterChosenGrantSelectionRecord,
+  type CharacterProvenance,
+  type CharacterAcquisitionTiming,
+  type CharacterFeatureSelectionRecord
 } from '../subjects/authored/character/intent.js'
 
 export type ContentRevisionBinding = { kind: 'ACTIVE' } | { kind: 'REVISION'; revisionId: string }
@@ -120,4 +121,23 @@ export interface CharacterBuildSnapshot {
   movementDisplayPreference?: CharacterMovementDisplayPreference
   spellSources?: CharacterSpellSourceRef[]
   companions?: CharacterCompanionCalculationInput[]
+}
+
+export function getChosenGrantTargetIds(
+  snapshot: CharacterBuildSnapshot,
+  grantId: string,
+  source: CharacterProvenance,
+  progressionLevel?: number
+): string[] {
+  const identityKey = getCharacterChosenGrantSelectionIdentityKey({
+    grantId,
+    source,
+    progressionLevel
+  })
+
+  return (
+    snapshot.chosenGrantSelections?.find(
+      (selection) => getCharacterChosenGrantSelectionIdentityKey(selection) === identityKey
+    )?.targetIds ?? []
+  )
 }

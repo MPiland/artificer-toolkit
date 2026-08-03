@@ -46,27 +46,98 @@ export const blackPudding: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The pudding can move through a space as narrow as 1 inch wide without squeezing.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(47, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(47, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMORPHOUS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(47, 2),
       label: 'Corrosive Form',
       description:
-        'Corrosive Form. A creature that hits the pudding with a melee attack roll takes 4 (1d8) acid damage. Nonmagical ammunition is destroyed immediately after hitting the pudding and dealing any damage. Any nonmagical weapon takes a cumulative -1 penalty to attack rolls immediately after dealing damage to the pudding and coming into contact with it. The weapon is destroyed if the penalty reaches -5. The penalty can be removed by casting the mending spell on the weapon. In 1 minute, the pudding can eat through 2 feet of nonmagical wood or metal.',
+        'Corrosive Form. A creature that touches the pudding or hits it with a melee attack while within 5 feet of it takes 4 (1d8) acid damage. Any nonmagical weapon made of metal or wood that hits the pudding corrodes. After dealing damage, the weapon takes a permanent and cumulative -1 penalty to damage rolls. If its penalty drops to -5, the weapon is destroyed. Nonmagical ammunition made of metal or wood that hits the pudding is destroyed after dealing damage. The pudding can eat through 2-inch-thick, nonmagical wood or metal in 1 round.',
+      effects: [
+        {
+          id: S.actionId(47, 103),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: {
+              id: S.actionId(47, 104),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(47, 105),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(47, 105)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(47, 106),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('ACID'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8'
+                  },
+                  {
+                    id: S.actionId(47, 107),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BLACK_PUDDING_CORROSIVE_FORM
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 2
     },
     {
       id: S.featureId(47, 3),
       label: 'Spider Climb',
       description:
-        'Spider Climb. The pudding can climb difficult surfaces, including along ceilings, without needing to make an ability check.',
+        'Spider Climb. The pudding can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(47, 108),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(47, 109), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(47, 4),
       label: 'Dissolving Pseudopod',
       description:
-        'Dissolving Pseudopod. Melee Attack Roll: +5, reach 10 ft. Hit: 17 (4d6 + 3) acid damage. Nonmagical armor worn by the target takes a -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10. The penalty can be removed by casting the mending spell on the armor.',
+        'Pseudopod. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage plus 18 (4d8) acid damage. In addition, nonmagical armor worn by the target is partly dissolved and takes a permanent and cumulative -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10.',
       effects: [
         {
           id: S.actionId(5665, 1),
@@ -81,7 +152,7 @@ export const blackPudding: CreatureAuthored = {
             range: {
               id: S.actionId(5665, 2),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
+              amount: 5,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -104,10 +175,10 @@ export const blackPudding: CreatureAuthored = {
                   {
                     id: S.actionId(5665, 3),
                     effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('ACID'),
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '4d6',
+                    diceConfig: '1d6',
                     bonuses: [
                       {
                         id: S.actionId(5665, 4),
@@ -116,6 +187,14 @@ export const blackPudding: CreatureAuthored = {
                         order: 1
                       }
                     ]
+                  },
+                  {
+                    id: S.actionId(47, 110),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('ACID'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d8'
                   }
                 ]
               }
@@ -133,7 +212,8 @@ export const blackPudding: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(5665, 5),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.BLACK_PUDDING_DISSOLVING_PSEUDOPOD
                   }
                 ]
               }
@@ -147,7 +227,7 @@ export const blackPudding: CreatureAuthored = {
       id: S.featureId(47, 5),
       label: 'Split',
       description:
-        "Split. While the pudding is Large or Medium and has 10 or more hit points, it becomes Bloodied or is subjected to lightning or slashing damage, it splits into two new black puddings. Each new pudding is one size smaller than the original pudding and acts on its own initiative. The original pudding's hit points are divided evenly between the new puddings, round down.",
+        "Split. When a pudding that is Medium or larger is subjected to lightning or slashing damage, it splits into two new puddings if it has at least 10 hit points. Each new pudding has hit points equal to half the original pudding's, rounded down. New puddings are one size smaller than the original pudding.",
       effects: [
         {
           id: S.reactionId(5665, 1),
@@ -178,7 +258,8 @@ export const blackPudding: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.reactionId(5665, 3),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.OOZE_SPLIT
                   }
                 ]
               }

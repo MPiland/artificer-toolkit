@@ -5,7 +5,7 @@ export const jugOrPitcher: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(113),
   label: 'Jug or Pitcher',
-  description: 'A ceramic or clay vessel for storing and pouring liquids.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.cp(2),

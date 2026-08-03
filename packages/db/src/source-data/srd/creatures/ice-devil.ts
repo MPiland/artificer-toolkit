@@ -49,112 +49,48 @@ export const iceDevil: CreatureAuthored = {
       order: 1
     },
     {
-      id: S.featureId(171, 2),
-      label: 'Ice Walk',
-      description:
-        "Ice Walk. The devil can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra movement.",
-      order: 2
-    },
-    {
       id: S.featureId(171, 3),
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(171, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(171, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(171, 4),
       label: 'Multiattack',
-      description: 'The devil makes two attacks: one with its spear and one with its tail.',
-      order: 4
-    },
-    {
-      id: S.featureId(171, 5),
-      label: 'Spear',
       description:
-        'Spear. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 12 (2d6 + 5) piercing damage plus 10 (3d6) cold damage.',
+        'Multiattack. The devil makes three attacks: one with its bite, one with its claws, and one with its tail.',
       effects: [
-        {
-          id: S.actionId(8846, 1),
-          order: 1,
+        S.closedRuleEffect({
+          id: S.actionId(171, 204),
           invocation: {
-            kind: 'ACTION' as const,
+            kind: 'ACTION',
             triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(8846, 2),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            range: { id: S.actionId(171, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
           },
-          paths: [
-            {
-              id: S.actionId(8846, 3),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(8846, 3) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(8846, 3),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6',
-                    bonuses: [
-                      {
-                        id: S.actionId(8846, 4),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(8846, 5),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(8846, 5) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(8846, 5),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('COLD'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6'
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ICE_DEVIL_MULTIATTACK
+        })
       ],
-      order: 5
+      order: 4
     },
     {
       id: S.featureId(171, 6),
       label: 'Tail',
       description:
-        'Tail. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 16 (2d8 + 5) bludgeoning damage plus 10 (3d6) cold damage.',
+        'Tail. Melee Weapon Attack: +10 to hit, reach 10 ft., one target. Hit: 12 (2d6 + 5) bludgeoning damage plus 10 (3d6) cold damage.',
       effects: [
         {
           id: S.actionId(8846, 6),
@@ -192,7 +128,7 @@ export const iceDevil: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8',
+                    diceConfig: '2d6',
                     bonuses: [
                       {
                         id: S.actionId(8846, 9),

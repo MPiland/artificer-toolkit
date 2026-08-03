@@ -23,7 +23,7 @@ export const suggestion: SpellAuthored = {
   id: SPELL_IDS.SUGGESTION,
   label: 'Suggestion',
   description:
-    'You suggest a course of activity and magically influence a creature you can see within range that can hear and understand you. The creature must make a Wisdom saving throw or follow the suggestion.',
+    "<p>You suggest a course of activity (limited to a sentence or two) and magically influence a creature you can see within range that can hear and understand you. Creatures that can't be charmed are immune to this effect. The suggestion must be worded in such a manner as to make the course of action sound reasonable. Asking the creature to stab itself, throw itself onto a spear, immolate itself, or do some other obviously harmful act ends the spell. The target must make a Wisdom saving throw. On a failed save, it pursues the course of action you described to the best of its ability. The suggested course of action can continue for the entire duration. If the suggested activity can be completed in a shorter time, the spell ends when the subject finishes what it was asked to do.</p><p>You can also specify conditions that will trigger a special activity during the duration. For example, you might suggest that a knight give her warhorse to the first beggar she meets. If the condition isn't met before the spell expires, the activity isn't performed. If you or any of your companions damage the target, the spell ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -68,7 +68,7 @@ export const suggestion: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SUGGESTION, 0x214, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -76,26 +76,16 @@ export const suggestion: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.SUGGESTION, 0x215, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.SUGGESTION, 0x215, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
+                id: spellChildId(SPELL_IDS.SUGGESTION, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SUGGESTION' as const
+              },
               {
-                id: spellChildId(SPELL_IDS.SUGGESTION, 0x215, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Judge the Suggested Course",
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions: "The suggestion must be worded in such a manner as to make the course of action sound reasonable."
               }
             ]
           }

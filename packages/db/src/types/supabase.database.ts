@@ -5843,11 +5843,14 @@ export type Database = {
         Row: {
           activation_type: string
           activation_value: number | null
+          allow_repeated_targets: boolean | null
           created_at: string
           effect_id: string
           excluded_creature_type_ids: string[] | null
           max_targets: number | null
           max_targets_scaling: Json | null
+          resolution_count: number | null
+          resolution_count_scaling: Json | null
           range_characteristic_id: string
           saving_throw_id: string | null
           shape_characteristic_id: string | null
@@ -5859,11 +5862,14 @@ export type Database = {
         Insert: {
           activation_type: string
           activation_value?: number | null
+          allow_repeated_targets?: boolean | null
           created_at?: string
           effect_id: string
           excluded_creature_type_ids?: string[] | null
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           range_characteristic_id: string
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
@@ -5875,11 +5881,14 @@ export type Database = {
         Update: {
           activation_type?: string
           activation_value?: number | null
+          allow_repeated_targets?: boolean | null
           created_at?: string
           effect_id?: string
           excluded_creature_type_ids?: string[] | null
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           range_characteristic_id?: string
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
@@ -5966,7 +5975,9 @@ export type Database = {
           created_at: string
           id: string
           path_id: string
-          result_block_id: string
+          repeat_config: Json | null
+          resolution_kind: string
+          result_block_id: string | null
           roll_max: number | null
           roll_min: number | null
           roll_value: number | null
@@ -5977,7 +5988,9 @@ export type Database = {
           created_at?: string
           id: string
           path_id: string
-          result_block_id: string
+          repeat_config?: Json | null
+          resolution_kind?: string
+          result_block_id?: string | null
           roll_max?: number | null
           roll_min?: number | null
           roll_value?: number | null
@@ -5988,7 +6001,9 @@ export type Database = {
           created_at?: string
           id?: string
           path_id?: string
-          result_block_id?: string
+          repeat_config?: Json | null
+          resolution_kind?: string
+          result_block_id?: string | null
           roll_max?: number | null
           roll_min?: number | null
           roll_value?: number | null
@@ -6014,6 +6029,7 @@ export type Database = {
       }
       effect_paths: {
         Row: {
+          allow_repeated_targets: boolean | null
           created_at: string
           die: string | null
           effect_id: string
@@ -6022,6 +6038,8 @@ export type Database = {
           id: string
           max_targets: number | null
           max_targets_scaling: Json | null
+          resolution_count: number | null
+          resolution_count_scaling: Json | null
           origin_kind: string | null
           path_code: string
           range_override_characteristic_id: string | null
@@ -6034,6 +6052,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_repeated_targets?: boolean | null
           created_at?: string
           die?: string | null
           effect_id: string
@@ -6042,6 +6061,8 @@ export type Database = {
           id: string
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           origin_kind?: string | null
           path_code: string
           range_override_characteristic_id?: string | null
@@ -6054,6 +6075,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_repeated_targets?: boolean | null
           created_at?: string
           die?: string | null
           effect_id?: string
@@ -6062,6 +6084,8 @@ export type Database = {
           id?: string
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           origin_kind?: string | null
           path_code?: string
           range_override_characteristic_id?: string | null
@@ -10947,6 +10971,7 @@ export type Database = {
         Row: {
           authoring_mode_kind: string
           cast_at_level: number | null
+          casting_ability_code: string | null
           charge_id: string | null
           class_id: string | null
           created_at: string
@@ -10964,6 +10989,7 @@ export type Database = {
         Insert: {
           authoring_mode_kind: string
           cast_at_level?: number | null
+          casting_ability_code?: string | null
           charge_id?: string | null
           class_id?: string | null
           created_at?: string
@@ -10981,6 +11007,7 @@ export type Database = {
         Update: {
           authoring_mode_kind?: string
           cast_at_level?: number | null
+          casting_ability_code?: string | null
           charge_id?: string | null
           class_id?: string | null
           created_at?: string
@@ -11518,6 +11545,8 @@ export type Database = {
           system_id: string
           updated_at: string
           user_id: string | null
+          weight_amount: number | null
+          weight_unit: string | null
         }
         Insert: {
           armor_class?: number | null
@@ -11541,6 +11570,8 @@ export type Database = {
           system_id: string
           updated_at?: string
           user_id?: string | null
+          weight_amount?: number | null
+          weight_unit?: string | null
         }
         Update: {
           armor_class?: number | null
@@ -11564,6 +11595,8 @@ export type Database = {
           system_id?: string
           updated_at?: string
           user_id?: string | null
+          weight_amount?: number | null
+          weight_unit?: string | null
         }
         Relationships: [
           {

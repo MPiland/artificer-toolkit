@@ -27,7 +27,7 @@ export const divineFavor: SpellAuthored = {
   id: SPELL_IDS.DIVINE_FAVOR,
   label: 'Divine Favor',
   description:
-    'Your prayer empowers you with divine radiance. Until the spell ends, your weapon attacks deal an extra 1d4 radiant damage on a hit.',
+    "<p>Your prayer empowers you with divine radiance. Until the spell ends, your weapon attacks deal an extra 1d4 radiant damage on a hit.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.PALADIN],
@@ -72,7 +72,8 @@ export const divineFavor: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DIVINE_FAVOR, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'DIVINE_FAVOR' as const
               }
             ]
           }

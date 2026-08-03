@@ -13,6 +13,7 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SCALING_SOURCE,
   SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
@@ -58,7 +59,7 @@ export const tiefling: RaceAuthored = {
   id: RACE_IDS.TIEFLING,
   label: 'Tiefling',
   description:
-    '<p>Tieflings are derived from human bloodlines, and in the broadest possible sense, they still look human. Their infernal heritage has left a clear imprint on their appearance.</p>',
+    '<p>Tieflings share certain racial traits as a result of their infernal descent.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
@@ -133,7 +134,7 @@ export const tiefling: RaceAuthored = {
       id: raceFeatureId(9, 2, 1),
       label: 'Darkvision',
       description:
-        'Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -182,7 +183,7 @@ export const tiefling: RaceAuthored = {
       id: raceFeatureId(9, 4, 1),
       label: 'Infernal Legacy',
       description:
-        'You know the Thaumaturgy cantrip. When you reach 3rd level, you can cast Hellish Rebuke as a 2nd-level spell once per long rest. When you reach 5th level, you can cast Darkness once per long rest. Charisma is your spellcasting ability for these spells.',
+        'You know the thaumaturgy cantrip. When you reach 3rd level, you can cast the hellish rebuke spell as a 2nd-level spell once with this trait and regain the ability to do so when you finish a long rest. When you reach 5th level, you can cast the darkness spell once with this trait and regain the ability to do so when you finish a long rest. Charisma is your spellcasting ability for these spells.',
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -194,25 +195,66 @@ export const tiefling: RaceAuthored = {
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: [SPELL_IDS.THAUMATURGY],
-            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: ABILITY_CODE.CHARISMA,
             order: 0
           },
           {
             id: raceFeatureId(9, 4, 3),
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [SPELL_IDS.HELLISH_REBUKE],
+            scalingKind: SCALING.PER_LEVEL,
+            progression: {
+              scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
+              levels: [
+                {
+                  id: raceFeatureId(9, 4, 5),
+                  level: 3,
+                  order: 0,
+                  authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                  spellIds: [SPELL_IDS.HELLISH_REBUKE]
+                }
+              ]
+            },
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 2,
+            castingAbility: ABILITY_CODE.CHARISMA,
+            charges: {
+              id: raceFeatureId(9, 4, 6),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
             order: 1
           },
           {
             id: raceFeatureId(9, 4, 4),
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [SPELL_IDS.DARKNESS],
+            scalingKind: SCALING.PER_LEVEL,
+            progression: {
+              scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
+              levels: [
+                {
+                  id: raceFeatureId(9, 4, 7),
+                  level: 5,
+                  order: 0,
+                  authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                  spellIds: [SPELL_IDS.DARKNESS]
+                }
+              ]
+            },
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 2,
+            castingAbility: ABILITY_CODE.CHARISMA,
+            charges: {
+              id: raceFeatureId(9, 4, 8),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
             order: 2
           }
         ]

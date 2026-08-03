@@ -1164,7 +1164,8 @@ describe('round-trip upsert correctness', () => {
             authoringModeKind: 'SELECTED',
             spellIds: ['magic-missile'],
             attributes: ['CAST_AT_LEVEL'],
-            castAtLevel: 1
+            castAtLevel: 1,
+            castingAbility: 'INTELLIGENCE'
           }
         ]
       },
@@ -1223,6 +1224,7 @@ describe('round-trip upsert correctness', () => {
             count: undefined,
             spellIds: ['magic-missile'],
             castAtLevel: 1,
+            castingAbility: 'INTELLIGENCE',
             charges: undefined,
             filters: undefined,
             restrictions: undefined
@@ -1271,7 +1273,8 @@ describe('round-trip upsert correctness', () => {
         charge_id: null,
         restriction_id: null,
         filter_id: null,
-        cast_at_level: 1
+        cast_at_level: 1,
+        casting_ability_code: 'INTELLIGENCE'
       }
     ])
     expect(db.snapshot('spell_grant_attributes')).toEqual([
@@ -2432,6 +2435,9 @@ describe('round-trip upsert correctness', () => {
         target_disposition_kind: null,
         max_targets: null,
         max_targets_scaling: null,
+        resolution_count: null,
+        resolution_count_scaling: null,
+        allow_repeated_targets: null,
         excluded_creature_type_ids: null,
         result_block_id: 'shared-PATH_CODE-2',
         roll_table_kind: null,

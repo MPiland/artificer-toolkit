@@ -20,7 +20,7 @@ export const nondetection: SpellAuthored = {
   id: SPELL_IDS.NONDETECTION,
   label: 'Nondetection',
   description:
-    'For the duration, you hide a target that you touch from divination magic. The target can be a willing creature or a place or an object no larger than 10 feet in any dimension.',
+    "<p>For the duration, you hide a target that you touch from divination magic. The target can be a willing creature or a place or an object no larger than 10 feet in any dimension. The target can't be targeted by any divination magic or perceived through magical scrying sensors.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.RANGER, CLASS_IDS.WIZARD],
@@ -67,7 +67,8 @@ export const nondetection: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.NONDETECTION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'NONDETECTION' as const
               }
             ]
           }

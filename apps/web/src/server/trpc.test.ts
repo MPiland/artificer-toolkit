@@ -48,23 +48,49 @@ describe('handleTrpcRequest', () => {
   it.each([
     ['missing', undefined],
     ['understated', '1']
-  ])('rejects an oversized mixed tRPC batch with a %s content-length', async (_name, length) => {
+  ])('rejects an oversized streamed payload with a %s content-length', async (_name, length) => {
     const { handleTrpcRequest } = await import('./trpc')
     const headers = length === undefined ? undefined : { 'content-length': length }
     const response = await handleTrpcRequest(
-      new Request(
-        'https://app.test/api/trpc/application.featureFlags,content.spells.saveDraft?batch=1',
-        {
-          body: 'x'.repeat(1_048_577),
-          headers,
-          method: 'POST'
-        }
-      )
+      new Request('https://app.test/api/trpc/content.spells.saveDraft', {
+        body: 'x'.repeat(1_048_577),
+        headers,
+        method: 'POST'
+      })
     )
 
     expect(response.status).toBe(413)
     expect(mocks.createServerClient).not.toHaveBeenCalled()
     expect(mocks.handleTrpcFetchRequest).not.toHaveBeenCalled()
+  })
+
+  it('forwards an acceptable streamed body with its request metadata intact', async () => {
+    mocks.createServerClient.mockReturnValue({
+      auth: {
+        getClaims: vi.fn().mockResolvedValue({ data: { claims: null }, error: null })
+      }
+    })
+
+    const runtimeRequest = new Request('https://app.test/api/trpc/nodeRuntime.resolve', {
+      body: '{}',
+      headers: {
+        cookie: 'session=value',
+        'content-length': '1',
+        'content-type': 'application/json'
+      },
+      method: 'POST'
+    })
+
+    const { handleTrpcRequest } = await import('./trpc')
+    await expect(handleTrpcRequest(runtimeRequest)).resolves.toBeInstanceOf(Response)
+
+    const forwardedRequest = mocks.handleTrpcFetchRequest.mock.calls[0]?.[0] as Request
+    expect(forwardedRequest).not.toBe(runtimeRequest)
+    expect(forwardedRequest.url).toBe(runtimeRequest.url)
+    expect(forwardedRequest.method).toBe(runtimeRequest.method)
+    expect(forwardedRequest.headers.get('cookie')).toBe('session=value')
+    expect(forwardedRequest.headers.get('content-length')).toBe('2')
+    await expect(forwardedRequest.text()).resolves.toBe('{}')
   })
 
   it('derives the user and super-admin flag from verified JWT claims', async () => {

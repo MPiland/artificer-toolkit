@@ -24,7 +24,7 @@ export const faerieFire: SpellAuthored = {
   id: SPELL_IDS.FAERIE_FIRE,
   label: 'Faerie Fire',
   description:
-    'Each object in a 20-foot cube within range is outlined in blue, green, or violet light. Creatures in the area when the spell is cast can also be outlined if they fail a Dexterity saving throw.',
+    "<p>Each object in a 20-foot cube within range is outlined in blue, green, or violet light (your choice). Any creature in the area when the spell is cast is also outlined in light if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed dim light in a 10-foot radius. Any attack roll against an affected creature or object has advantage if the attacker can see it, and the affected creature or object can't benefit from being invisible.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID],

@@ -36,6 +36,18 @@ export const nightmare: CreatureAuthored = {
       label: 'Confer Fire Resistance',
       description:
         'Confer Fire Resistance. The nightmare can grant resistance to fire damage to anyone riding it.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(205, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(205, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NIGHTMARE_CONFER_FIRE_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -43,12 +55,32 @@ export const nightmare: CreatureAuthored = {
       label: 'Illumination',
       description:
         'Illumination. The nightmare sheds bright light in a 10-foot radius and dim light for an additional 10 feet.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(205, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: {
+              id: S.actionId(205, 602),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 20,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NIGHTMARE_ILLUMINATION
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(205, 3),
       label: 'Language Limitation',
-      description: "Understands Abyssal, Common, and Infernal but can't speak.",
+      description: "understands Abyssal, Common, and Infernal but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(205, 1, 'INFERNAL', 'ABYSSAL', 'COMMON')]
       },

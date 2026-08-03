@@ -21,7 +21,7 @@ export const jump: SpellAuthored = {
   id: SPELL_IDS.JUMP,
   label: 'Jump',
   description:
-    "You touch a creature. The creature's jump distance is tripled until the spell ends.",
+    "<p>You touch a creature. The creature's jump distance is tripled until the spell ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.DRUID, CLASS_IDS.RANGER, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -68,7 +68,8 @@ export const jump: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.JUMP, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'JUMP' as const
               }
             ]
           }

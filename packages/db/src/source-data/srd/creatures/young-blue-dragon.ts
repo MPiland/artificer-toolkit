@@ -41,6 +41,18 @@ export const youngBlueDragon: CreatureAuthored = {
       id: S.featureId(302, 1),
       label: 'Multiattack',
       description: 'The dragon makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(302, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(302, 201), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 1
     },
     {
@@ -195,7 +207,7 @@ export const youngBlueDragon: CreatureAuthored = {
       id: S.featureId(302, 4),
       label: 'Lightning Breath (Recharge 5-6)',
       description:
-        'The dragon exhales lightning in a 60-foot line that is 5 feet wide. Each creature in that line must make a DC 16 Dexterity saving throw, taking 55 (10d10) lightning damage on a failed save, or half as much damage on a successful one.',
+        'Lightning Breath (Recharge 5-6). The dragon exhales lightning in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 16 Dexterity saving throw, taking 55 (10d10) lightning damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(302, 13),

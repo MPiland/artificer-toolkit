@@ -51,6 +51,8 @@ if (!walkSpeedId)
   throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const humanWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
+const HUMAN_LANGUAGES_DESCRIPTION =
+  'You can speak, read, and write Common and one extra language of your choice.'
 
 // ─── Human (raceIndex = 4) ────────────────────────────────────────────────────
 
@@ -58,7 +60,7 @@ export const human: RaceAuthored = {
   id: RACE_IDS.HUMAN,
   label: 'Human',
   description:
-    '<p>Humans are the most adaptable and ambitious people among the common races. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds.</p>',
+    "<p>It's hard to make generalizations about humans, but your human character has these traits.</p>",
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
@@ -82,7 +84,7 @@ export const human: RaceAuthored = {
       id: raceFeatureId(4, 0, 3),
       label: 'Size',
       description:
-        'Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Your size is Medium.',
+        'Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Regardless of your position in that range, your size is Medium.',
       order: 2
     },
     {
@@ -176,7 +178,7 @@ export const human: RaceAuthored = {
     {
       id: raceFeatureId(4, 2, 1),
       label: 'Extra Language',
-      description: 'You can speak, read, and write one extra language of your choice.',
+      description: HUMAN_LANGUAGES_DESCRIPTION,
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -201,7 +203,7 @@ export const human: RaceAuthored = {
       id: raceFeatureId(4, 3, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description: 'You can speak, read, and write Common.',
+      description: HUMAN_LANGUAGES_DESCRIPTION,
       availableAtLevel: 1,
       order: 2,
       grants: {

@@ -21,7 +21,7 @@ export const protectionFromEvilAndGood: SpellAuthored = {
   id: SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD,
   label: 'Protection from Evil and Good',
   description:
-    'One willing creature you touch is protected against aberrations, celestials, elementals, fey, fiends, and undead. Those creatures have disadvantage on attack rolls against the target, and the target gains protection against being charmed, frightened, or possessed by them.',
+    "<p>Until the spell ends, one willing creature you touch is protected against certain types of creatures: aberrations, celestials, elementals, fey, fiends, and undead. The protection grants several benefits. Creatures of those types have disadvantage on attack rolls against the target. The target also can't be charmed, frightened, or possessed by them. If the target is already charmed, frightened, or possessed by such a creature, the target has advantage on any new saving throw against the relevant effect.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -68,7 +68,8 @@ export const protectionFromEvilAndGood: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'PROTECTION_FROM_EVIL_AND_GOOD' as const
               }
             ]
           }

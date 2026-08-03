@@ -42,12 +42,24 @@ export const giantVulture: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The vulture has advantage on an attack roll against a creature if at least one of the vulture's allies is within 5 feet of the creature and the ally isn't incapacitated.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(137, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(137, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PACK_TACTICS
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(137, 3),
       label: 'Language Limitation',
-      description: "Understands Common but can't speak.",
+      description: "understands Common but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(137, 2, 'COMMON')]
       },
@@ -58,6 +70,18 @@ export const giantVulture: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The vulture makes two attacks: one with its beak and one with its talons.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(137, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(137, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_VULTURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {

@@ -50,6 +50,9 @@ export type EffectInvocationRow = {
   target_disposition_kind: string | null
   max_targets: number | null
   max_targets_scaling: Json | null
+  resolution_count: number | null
+  resolution_count_scaling: Json | null
+  allow_repeated_targets: boolean | null
   excluded_creature_type_ids: string[] | null
 }
 
@@ -66,6 +69,9 @@ export type EffectPathRow = {
   target_disposition_kind: string | null
   max_targets: number | null
   max_targets_scaling: Json | null
+  resolution_count: number | null
+  resolution_count_scaling: Json | null
+  allow_repeated_targets: boolean | null
   excluded_creature_type_ids: string[] | null
   result_block_id: string | null
   roll_table_kind: string | null
@@ -97,7 +103,9 @@ export type EffectPathRollTableRow = {
   roll_value: number | null
   roll_min: number | null
   roll_max: number | null
-  result_block_id: string
+  resolution_kind: 'RESULT' | 'REPEAT_TABLE'
+  result_block_id: string | null
+  repeat_config: Json | null
 }
 
 export type EffectResultBlockOutcomeRow = {
@@ -176,6 +184,9 @@ type TargetingColumns = Pick<
   | 'target_disposition_kind'
   | 'max_targets'
   | 'max_targets_scaling'
+  | 'resolution_count'
+  | 'resolution_count_scaling'
+  | 'allow_repeated_targets'
   | 'excluded_creature_type_ids'
 >
 
@@ -351,6 +362,24 @@ function mapTargetingColumns(ownerId: string, targeting?: TargetingAuthored): Ta
       'maxTargetsScaling' in targeting
         ? (targeting.maxTargetsScaling ?? null)
         : null,
+    resolution_count:
+      targeting &&
+      targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES &&
+      'resolutionCount' in targeting
+        ? (targeting.resolutionCount ?? null)
+        : null,
+    resolution_count_scaling:
+      targeting &&
+      targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES &&
+      'resolutionCountScaling' in targeting
+        ? (targeting.resolutionCountScaling ?? null)
+        : null,
+    allow_repeated_targets:
+      targeting &&
+      targeting.selectionKind === TARGET_SELECTION_KIND.CHOSEN_CREATURES &&
+      'allowRepeatedTargets' in targeting
+        ? (targeting.allowRepeatedTargets ?? null)
+        : null,
     excluded_creature_type_ids:
       targeting && 'excludedCreatureTypeIds' in targeting
         ? (targeting.excludedCreatureTypeIds ?? null)
@@ -466,7 +495,12 @@ export function mapEffectPathRollTableRow(
     roll_value: json_data.rollValue ?? null,
     roll_min: json_data.rollRange?.[0] ?? null,
     roll_max: json_data.rollRange?.[1] ?? null,
-    result_block_id: json_data.resultBlock.id
+    resolution_kind: json_data.resolutionKind,
+    result_block_id: json_data.resolutionKind === 'RESULT' ? json_data.resultBlock.id : null,
+    repeat_config:
+      json_data.resolutionKind === 'REPEAT_TABLE'
+        ? (JSON.parse(JSON.stringify(json_data.repeat)) as Json)
+        : null
   }
 }
 

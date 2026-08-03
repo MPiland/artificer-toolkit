@@ -23,7 +23,7 @@ export const sunbeam: SpellAuthored = {
   label: 'Sunbeam',
   attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   description:
-    'A brilliant 60-foot line of light flashes from your hand, burning and blinding creatures it catches, and you can fire the beam again with your action on later turns.',
+    "<p>A beam of brilliant light flashes out from your hand in a 5-foot-wide, 60-foot-long line. Each creature in the line must make a Constitution saving throw. On a failed save, a creature takes 6d8 radiant damage and is blinded until your next turn. On a successful save, it takes half as much damage and isn't blinded by this spell. Undead and oozes have disadvantage on this saving throw. You can create a new line of radiance as your action on any turn until the spell ends. For the duration, a mote of brilliant radiance shines in your hand. It sheds bright light in a 30-foot radius and dim light for an additional 30 feet. This light is sunlight.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 6,
   classIds: [CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -77,7 +77,8 @@ export const sunbeam: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SUNBEAM, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SUNBEAM' as const
               }
             ]
           }

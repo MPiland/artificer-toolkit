@@ -18,7 +18,7 @@ export const speakWithAnimals: SpellAuthored = {
   id: SPELL_IDS.SPEAK_WITH_ANIMALS,
   label: 'Speak with Animals',
   description:
-    'You gain the ability to comprehend and verbally communicate with beasts for the duration.',
+    "<p>You gain the ability to comprehend and verbally communicate with beasts for the duration. The knowledge and awareness of many beasts is limited by their intelligence, but at minimum, beasts can give you information about nearby locations and monsters, including whatever they can perceive or have perceived within the past day. You might be able to persuade a beast to perform a small favor for you, at the GM's discretion.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -54,7 +54,7 @@ export const speakWithAnimals: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x213, 1),
               durationKind: 'MINUTE',
@@ -62,8 +62,17 @@ export const speakWithAnimals: SpellAuthored = {
             },
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SPEAK_WITH_ANIMALS' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.SPEAK_WITH_ANIMALS, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve a Favor",
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "You might be able to persuade a beast to perform a small favor for you, at the GM's discretion."
               }
             ]
           }

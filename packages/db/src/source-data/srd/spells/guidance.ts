@@ -20,7 +20,7 @@ export const guidance: SpellAuthored = {
   id: SPELL_IDS.GUIDANCE,
   label: 'Guidance',
   description:
-    'You touch one willing creature. Once before the spell ends, the target can roll a d4 and add the number rolled to one ability check of its choice. It can roll the die before or after making the ability check.',
+    "<p>You touch one willing creature. Once before the spell ends, the target can roll a d4 and add the number rolled to one ability check of its choice. It can roll the die before or after making the ability check. The spell then ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
@@ -65,7 +65,8 @@ export const guidance: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GUIDANCE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'GUIDANCE' as const
               }
             ]
           }

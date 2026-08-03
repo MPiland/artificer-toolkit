@@ -6,7 +6,7 @@ export const splintArmorPlus2: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(337),
   label: 'Splint Armor +2',
-  description: 'You have a +2 bonus to AC while wearing this magic armor.',
+  description: S.MAGIC_ARMOR_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: splintArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

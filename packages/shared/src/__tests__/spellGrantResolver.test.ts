@@ -394,4 +394,147 @@ describe('spell grant resolver', () => {
       'CLASS:druid:druid:spellcasting:second-shield-grant'
     ])
   })
+
+  it('resolves character-level racial spell grants with source-specific casting mechanics', () => {
+    const infernalLegacy = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'infernal-legacy-hellish-rebuke',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.PER_LEVEL,
+      progression: {
+        scalingSource: SCALING_SOURCE.CHARACTER_LEVEL,
+        levels: [
+          {
+            id: 'infernal-legacy-hellish-rebuke-3',
+            level: 3,
+            order: 1,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: ['hellish-rebuke']
+          }
+        ]
+      },
+      attributes: ['CAST_AT_LEVEL', 'LIMITED_USE'],
+      castAtLevel: 2,
+      castingAbility: 'CHARISMA',
+      charges: {
+        id: 'infernal-legacy-hellish-rebuke-charge',
+        resetKind: 'LONG_REST',
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        amount: 1
+      }
+    })
+    const registry = makeRegistry()
+    registry.races.tiefling = {
+      id: 'tiefling',
+      category: 'BASE',
+      selectionMode: 'DIRECT',
+      size: 'MEDIUM',
+      speeds: [],
+      features: [{ id: 'infernal-legacy', order: 1, spells: [infernalLegacy] }]
+    } as never
+
+    expect(
+      resolveSpellGrantState(
+        makeSnapshot({ totalLevel: 2, raceId: 'tiefling', classes: [], hitpoints: [] }),
+        registry
+      ).spellAccess
+    ).toEqual([])
+
+    const output = runEngine(
+      makeSnapshot({
+        totalLevel: 3,
+        raceId: 'tiefling',
+        classes: [],
+        hitpoints: [],
+        abilities: { STR: 10, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 16 }
+      }),
+      registry,
+      dnd5e2014RulesSystem
+    )
+
+    expect(output.spellAccess).toEqual([
+      expect.objectContaining({
+        spellId: 'hellish-rebuke',
+        source: { kind: 'RACE', raceId: 'tiefling' },
+        timing: { kind: 'CHARACTER_LEVEL', level: 3 },
+        castAtLevel: 2,
+        castingAbility: 'CHARISMA',
+        attributes: ['CAST_AT_LEVEL', 'LIMITED_USE']
+      })
+    ])
+    expect(output.spellMechanics).toEqual([
+      expect.objectContaining({
+        source: {
+          spellId: 'hellish-rebuke',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'RACE:tiefling:infernal-legacy:infernal-legacy-hellish-rebuke'
+        },
+        attackBonus: 5,
+        saveDC: 13
+      })
+    ])
+  })
+
+  it('resolves the selected spell from a subrace grant instead of every authored option', () => {
+    const highElfCantrip = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'high-elf-cantrip',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      selectionDuplicatePolicy: 'UNIQUE',
+      count: 1,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['fire-bolt', 'mage-hand'],
+      attributes: ['KNOWN', 'CAST_AT_WILL'],
+      castingAbility: 'INTELLIGENCE'
+    })
+    const registry = makeRegistry()
+    registry.races.elf = {
+      id: 'elf',
+      category: 'BASE',
+      selectionMode: 'REQUIRES_SUBRACE',
+      size: 'MEDIUM',
+      speeds: [],
+      features: []
+    } as never
+    registry.races['high-elf'] = {
+      id: 'high-elf',
+      category: 'SUBRACE',
+      parentRaceId: 'elf',
+      size: 'MEDIUM',
+      speeds: [],
+      features: [{ id: 'high-elf-cantrip-feature', order: 1, spells: [highElfCantrip] }]
+    } as never
+
+    const spellAccess = resolveSpellGrantState(
+      makeSnapshot({
+        raceId: 'elf',
+        subraceId: 'high-elf',
+        classes: [],
+        hitpoints: [],
+        chosenGrantSelections: [
+          {
+            id: 'high-elf-cantrip-selection',
+            grantId: 'high-elf-cantrip',
+            source: { kind: 'SUBRACE', subraceId: 'high-elf' },
+            timing: { kind: 'CHARACTER_LEVEL', level: 1 },
+            targetIds: ['fire-bolt']
+          }
+        ]
+      }),
+      registry
+    ).spellAccess
+
+    expect(spellAccess).toEqual([
+      expect.objectContaining({
+        spellId: 'fire-bolt',
+        source: { kind: 'SUBRACE', subraceId: 'high-elf' },
+        castingAbility: 'INTELLIGENCE',
+        attributes: ['KNOWN', 'CAST_AT_WILL']
+      })
+    ])
+  })
 })

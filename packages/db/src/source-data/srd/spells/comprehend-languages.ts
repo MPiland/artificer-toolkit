@@ -18,7 +18,7 @@ export const comprehendLanguages: SpellAuthored = {
   id: SPELL_IDS.COMPREHEND_LANGUAGES,
   label: 'Comprehend Languages',
   description:
-    'For the duration, you understand the literal meaning of any spoken language that you hear. You also understand any written language that you see.',
+    "<p>For the duration, you understand the literal meaning of any spoken language that you hear. You also understand any written language that you see, but you must be touching the surface on which the words are written. It takes about 1 minute to read one page of text. This spell doesn't decode secret messages in a text or a glyph, such as an arcane sigil, that isn't part of a written language.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -64,7 +64,8 @@ export const comprehendLanguages: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COMPREHEND_LANGUAGES, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'COMPREHEND_LANGUAGES' as const
               }
             ]
           }

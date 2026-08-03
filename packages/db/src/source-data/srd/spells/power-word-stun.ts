@@ -21,7 +21,7 @@ export const powerWordStun: SpellAuthored = {
   id: SPELL_IDS.POWER_WORD_STUN,
   label: 'Power Word Stun',
   description:
-    'You speak a word of power that stuns one creature you can see within range if it has 150 hit points or fewer, and it can only shake the effect with successful Constitution saves at the end of its turns.',
+    "<p>You speak a word of power that can overwhelm the mind of one creature you can see within range, leaving it dumbfounded. If the target has 150 hit points or fewer, it is stunned. Otherwise, the spell has no effect. The stunned target must make a Constitution saving throw at the end of each of its turns. On a successful save, this stunning effect ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 8,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -68,7 +68,8 @@ export const powerWordStun: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.POWER_WORD_STUN, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'POWER_WORD_STUN' as const
               }
             ]
           }

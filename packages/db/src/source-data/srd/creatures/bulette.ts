@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const bulette: CreatureAuthored = {
   id: S.CREATURE_IDS.BULETTE,
@@ -38,13 +37,24 @@ export const bulette: CreatureAuthored = {
       label: 'Standing Leap',
       description:
         "Standing Leap. The bulette's long jump is up to 30 feet and its high jump is up to 15 feet, with or without a running start.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(57, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(57, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_STANDING_LEAP
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(57, 2),
       label: 'Deadly Leap',
       description:
-        "Deadly Leap. If the bulette jumps at least 15 feet as part of its movement, it can then use this action to land on its feet in a space that contains one or more other creatures. Each of those creatures must succeed on a DC 16 Dexterity saving throw or take 14 (3d6 + 4) bludgeoning damage and be knocked prone. On a successful save, the creature takes half the damage and isn't knocked prone.",
+        "Deadly Leap. If the bulette jumps at least 15 feet as part of its movement, it can then use this action to land on its feet in a space that contains one or more other creatures. Each of those creatures must succeed on a DC 16 Strength or Dexterity saving throw (target's choice) or be knocked prone and take 14 (3d6 + 4) bludgeoning damage plus 14 (3d6 + 4) slashing damage. On a successful save, the creature takes only half the damage, isn't knocked prone, and is pushed 5 feet out of the bulette's space into an unoccupied space of the creature's choice. If no unoccupied space is within range, the creature instead falls prone in the bulette's space.",
       effects: [
         {
           id: S.actionId(9521, 1),
@@ -75,7 +85,8 @@ export const bulette: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(9521, 3),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.BULETTE_DEADLY_LEAP
                   }
                 ]
               }
@@ -147,52 +158,6 @@ export const bulette: CreatureAuthored = {
         }
       ],
       order: 3
-    },
-    {
-      id: S.featureId(57, 4),
-      label: 'Knock Prone',
-      description:
-        "If the target of the bulette's bite is a Large or smaller creature, it must succeed on a DC 16 Strength saving throw or be knocked prone.",
-      effects: [
-        {
-          id: S.actionId(9521, 8),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(9521, 9),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(9521, 10),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(9521, 10) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(9521, 10),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PRONE')
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      order: 4
     }
   ]
 }

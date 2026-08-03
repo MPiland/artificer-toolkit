@@ -1,24 +1,37 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
+  RANGE_KIND,
+  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -43,75 +56,87 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 
 const B = 1 // Barbarian class index
 
-const ASI_ABILITIES = [
-  { ability: ABILITY_CODE.STRENGTH, label: 'Strength' },
-  { ability: ABILITY_CODE.DEXTERITY, label: 'Dexterity' },
-  { ability: ABILITY_CODE.CONSTITUTION, label: 'Constitution' },
-  { ability: ABILITY_CODE.INTELLIGENCE, label: 'Intelligence' },
-  { ability: ABILITY_CODE.WISDOM, label: 'Wisdom' },
-  { ability: ABILITY_CODE.CHARISMA, label: 'Charisma' }
-] as const
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
 const GREATAXE_ID = equipmentId(18)
 const HANDAXE_ID = equipmentId(4)
 const JAVELIN_ID = equipmentId(5)
 const EXPLORERS_PACK_ID = equipmentId(186)
 
-function createAbilityScoreModifier(
-  group: number,
+function selfClassRuleEffect(
   entry: number,
-  ability: (typeof ASI_ABILITIES)[number]['ability'],
-  amount: number,
-  order: number
-) {
-  return {
-    id: classRowId(B, group, entry),
-    grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
-    domain: { ability },
-    modifierKind: MODIFIER_KIND.BONUS,
-    scope: MODIFIER_SCOPE_KIND.GLOBAL,
-    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: { valueKind: 'FIXED' as const, amount },
-    order
-  }
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(B, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(B, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
 }
 
-function createAbilityScoreImprovementOptions(group: number) {
-  const options = ASI_ABILITIES.map((record, index) => ({
-    id: classRowId(B, group, index + 1),
-    label: `${record.label} +2`,
-    description: `Increase ${record.label} by 2.`,
-    grants: {
-      modifiers: [createAbilityScoreModifier(group, 64 + index, record.ability, 2, 0)]
-    },
-    order: index
-  }))
-
-  let optionEntry = ASI_ABILITIES.length + 1
-  let grantEntry = 96
-  for (let leftIndex = 0; leftIndex < ASI_ABILITIES.length; leftIndex += 1) {
-    for (let rightIndex = leftIndex + 1; rightIndex < ASI_ABILITIES.length; rightIndex += 1) {
-      const left = ASI_ABILITIES[leftIndex]
-      const right = ASI_ABILITIES[rightIndex]
-      options.push({
-        id: classRowId(B, group, optionEntry),
-        label: `${left.label} +1, ${right.label} +1`,
-        description: `Increase ${left.label} and ${right.label} by 1 each.`,
-        grants: {
-          modifiers: [
-            createAbilityScoreModifier(group, grantEntry, left.ability, 1, 0),
-            createAbilityScoreModifier(group, grantEntry + 1, right.ability, 1, 1)
-          ]
-        },
-        order: optionEntry - 1
-      })
-      optionEntry += 1
-      grantEntry += 2
+function dangerSenseEffect(): EffectAuthored {
+  const effect = closedRuleEffect({
+    id: classRowId(B, 0x60, 5),
+    ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_DANGER_SENSE,
+    pathCode: PATH_CODE.ON_SAVE_FAIL,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.SAVING_THROW,
+      savingThrow: {
+        id: classRowId(B, 0x6e, 5),
+        ability: ABILITY_CODE.DEXTERITY,
+        dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
+      },
+      range: { id: classRowId(B, 0x69, 5), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
     }
+  })
+  const failedSavePath = effect.paths[0]
+  if (!failedSavePath || failedSavePath.selectionKind !== 'FIXED') {
+    throw new Error('Danger Sense requires a fixed saving-throw path')
   }
 
-  return options
+  return {
+    ...effect,
+    paths: [
+      failedSavePath,
+      {
+        id: classRowId(B, 0x70, 5),
+        order: 2,
+        pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: classRowId(B, 0x71, 5),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: classRowId(B, 0x72, 5),
+              effectKind: EFFECT_KIND.CLOSED_RULE,
+              ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_DANGER_SENSE
+            }
+          ]
+        }
+      }
+    ]
+  }
 }
 
 // Rage resource charge — resets on long rest
@@ -149,7 +174,6 @@ export const barbarian: ClassAuthored = {
   label: 'Barbarian',
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 3,
-  description: 'A fierce warrior of primitive background who can enter a battle rage.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -418,7 +442,10 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 1),
       label: 'Rage',
       description:
-        'In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action. While raging, you have advantage on Strength checks and Strength saving throws, and you gain a bonus to damage rolls with melee weapons using Strength.',
+        "In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action.\n\nWhile raging, you gain the following benefits if you aren't wearing heavy armor:\n\n* You have advantage on Strength checks and Strength saving throws.\n* When you make a melee weapon attack using Strength, you gain a bonus to the damage roll that increases as you gain levels as a barbarian, as shown in the Rage Damage column of the Barbarian table.\n* You have resistance to bludgeoning, piercing, and slashing damage.\n\nIf you are able to cast spells, you can't cast them or concentrate on them while raging.\n\nYour rage lasts for 1 minute. It ends early if you are knocked unconscious or if your turn ends and you haven't attacked a hostile creature since your last turn or taken damage since then. You can also end your rage on your turn as a bonus action.\n\nOnce you have raged the number of times shown for your barbarian level in the Rages column of the Barbarian table, you must finish a long rest before you can rage again.",
+      effects: [
+        selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_BARBARIAN_RAGE, ACTIVATION_CODE.BONUS_ACTION)
+      ],
       availableAtLevel: 1,
       order: 0
     },
@@ -427,6 +454,7 @@ export const barbarian: ClassAuthored = {
       label: 'Unarmored Defense',
       description:
         'While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.',
+      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_BARBARIAN_UNARMORED_DEFENSE)],
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -450,6 +478,22 @@ export const barbarian: ClassAuthored = {
       label: 'Reckless Attack',
       description:
         'Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(B, 0x60, 4),
+          ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_RECKLESS_ATTACK,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(B, 0x69, 4), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'HOSTILE'
+            }
+          }
+        })
+      ],
       availableAtLevel: 2,
       order: 2
     },
@@ -457,14 +501,16 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 5),
       label: 'Danger Sense',
       description:
-        "At 2nd level, you gain an uncanny sense of when things nearby aren't as they should be, giving you an edge when you dodge away from danger. You have advantage on Dexterity saving throws against effects that you can see.",
+        "At 2nd level, you gain an uncanny sense of when things nearby aren't as they should be, giving you an edge when you dodge away from danger. You have advantage on Dexterity saving throws against effects that you can see, such as traps and spells. To gain this benefit, you can't be blinded, deafened, or incapacitated.",
+      effects: [dangerSenseEffect()],
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(B, 3, 6),
       label: 'Primal Path',
-      description: 'At 3rd level, you choose a path that shapes the nature of your rage.',
+      description:
+        'At 3rd level, you choose a path that shapes the nature of your rage. Choose the Path of the Berserker or the Path of the Totem Warrior, both detailed at the end of the class description. Your choice grants you features at 3rd level and again at 6th, 10th, and 14th levels.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
@@ -473,18 +519,22 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 7),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
       order: 5,
       optionChoices: [{ level: 4, count: 1 }],
-      options: createAbilityScoreImprovementOptions(7)
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(B, 7, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(B, 3, 8),
       label: 'Extra Attack',
       description:
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      effects: [selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_BARBARIAN_EXTRA_ATTACK)],
       availableAtLevel: 5,
       order: 6
     },
@@ -493,6 +543,7 @@ export const barbarian: ClassAuthored = {
       label: 'Fast Movement',
       description:
         "Starting at 5th level, your speed increases by 10 feet while you aren't wearing heavy armor.",
+      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_BARBARIAN_FAST_MOVEMENT)],
       availableAtLevel: 5,
       order: 7
     },
@@ -500,33 +551,71 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 10),
       label: 'Feral Instinct',
       description:
-        "By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren't incapacitated, you can act normally on your first turn.",
+        "By 7th level, your instincts are so honed that you have advantage on initiative rolls. Additionally, if you are surprised at the beginning of combat and aren't incapacitated, you can act normally on your first turn, but only if you enter your rage before doing anything else on that turn.",
+      effects: [selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_BARBARIAN_FERAL_INSTINCT)],
       availableAtLevel: 7,
-      order: 8
+      order: 8,
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0x6a, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.INITIATIVE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: classRowId(B, 3, 11),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
       order: 9,
       optionChoices: [{ level: 8, count: 1 }],
-      options: createAbilityScoreImprovementOptions(8)
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(B, 8, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(B, 3, 12),
       label: 'Brutal Critical',
       description:
-        'Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack. This increases at 13th and 17th level.',
+        'Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack. This increases to two additional dice at 13th level and three additional dice at 17th level.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(B, 0x60, 12),
+          ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_BRUTAL_CRITICAL,
+          pathCode: PATH_CODE.ON_CRIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(B, 0x69, 12), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'HOSTILE'
+            }
+          }
+        })
+      ],
       availableAtLevel: 9,
       order: 10
     },
     {
       id: classRowId(B, 3, 13),
       label: 'Primal Path Feature',
-      description: 'At 10th level, you gain a feature from your Primal Path.',
+      description:
+        'At 3rd level, you choose a path that shapes the nature of your rage. Choose the Path of the Berserker or the Path of the Totem Warrior, both detailed at the end of the class description. Your choice grants you features at 3rd level and again at 6th, 10th, and 14th levels.',
       availableAtLevel: 10,
       order: 11
     },
@@ -534,7 +623,8 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 14),
       label: 'Relentless Rage',
       description:
-        "Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you're raging and don't die outright, you can make a DC 10 Constitution saving throw.",
+        "Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you're raging and don't die outright, you can make a DC 10 Constitution saving throw. If you succeed, you drop to 1 hit point instead. Each time you use this feature after the first, the DC increases by 5. When you finish a short or long rest, the DC resets to 10.",
+      effects: [selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_BARBARIAN_RELENTLESS_RAGE)],
       availableAtLevel: 11,
       order: 12
     },
@@ -542,17 +632,23 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 15),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
       order: 13,
       optionChoices: [{ level: 12, count: 1 }],
-      options: createAbilityScoreImprovementOptions(9)
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(B, 9, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(B, 3, 16),
       label: 'Primal Path Feature',
-      description: 'At 14th level, you gain a feature from your Primal Path.',
+      description:
+        'At 3rd level, you choose a path that shapes the nature of your rage. Choose the Path of the Berserker or the Path of the Totem Warrior, both detailed at the end of the class description. Your choice grants you features at 3rd level and again at 6th, 10th, and 14th levels.',
       availableAtLevel: 14,
       order: 14
     },
@@ -561,6 +657,7 @@ export const barbarian: ClassAuthored = {
       label: 'Persistent Rage',
       description:
         'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
+      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_BARBARIAN_PERSISTENT_RAGE)],
       availableAtLevel: 15,
       order: 15
     },
@@ -568,18 +665,24 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 18),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
       order: 16,
       optionChoices: [{ level: 16, count: 1 }],
-      options: createAbilityScoreImprovementOptions(10)
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(B, 10, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(18, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(B, 3, 19),
       label: 'Indomitable Might',
       description:
         'Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.',
+      effects: [selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_BARBARIAN_INDOMITABLE_MIGHT)],
       availableAtLevel: 18,
       order: 17
     },
@@ -587,20 +690,54 @@ export const barbarian: ClassAuthored = {
       id: classRowId(B, 3, 20),
       label: 'Ability Score Improvement',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
       order: 18,
       optionChoices: [{ level: 19, count: 1 }],
-      options: createAbilityScoreImprovementOptions(11)
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(B, 11, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(B, 3, 21),
       label: 'Primal Champion',
       description:
-        'At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4 each. Your maximum for those scores is now 24.',
+        'At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4. Your maximum for those scores is now 24.',
+      effects: [
+        selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_BARBARIAN_PRIMAL_CHAMPION_MAXIMUM_24)
+      ],
       availableAtLevel: 20,
-      order: 19
+      order: 19,
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0x6a, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
+            domain: { ability: ABILITY_CODE.STRENGTH },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED', amount: 4 },
+            order: 0
+          },
+          {
+            id: classRowId(B, 0x6a, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE,
+            domain: { ability: ABILITY_CODE.CONSTITUTION },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED', amount: 4 },
+            order: 1
+          }
+        ]
+      }
     }
   ]
 }

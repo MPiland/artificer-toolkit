@@ -5,18 +5,26 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  SPELL_GRANT_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  type ClassAuthored
+  TRIGGER,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
+import { srdSpells } from '../spells/index.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -40,6 +48,28 @@ function equipmentId(index: number): string {
 }
 
 const WZ = 12 // Wizard class index
+
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
+  return closedRuleEffect({
+    id: classRowId(WZ, 0x60, entry),
+    ruleKind,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(WZ, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
+  })
+}
+
+function wizardSpellIdsAtLevel(level: number): string[] {
+  return srdSpells
+    .filter((spell) => spell.level === level && spell.classIds.includes(CLASS_IDS.WIZARD))
+    .map((spell) => spell.id)
+}
 
 // Wizard spell slot charge — full caster, resets on long rest
 const wizardSlotCharge = {
@@ -299,7 +329,6 @@ export const wizard: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 2,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description: 'A scholarly magic-user capable of manipulating the structures of reality.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -516,7 +545,7 @@ export const wizard: ClassAuthored = {
       {
         label: 'Learning Spells of 1st Level and Higher',
         description:
-          '<p>Each time you gain a wizard level, you can add two wizard spells of your choice to your spellbook for free. Each of these spells must be of a level for which you have spell slots, as shown on the Wizard table. On your adventures, you might find other spells that you can add to your spellbook.</p>'
+          '<p>Each time you gain a wizard level, you can add two wizard spells of your choice to your spellbook for free. Each of these spells must be of a level for which you have spell slots, as shown on the Wizard table. On your adventures, you might find other spells that you can add to your spellbook (see the "Your Spellbook" sidebar).</p>'
       }
     ]),
     charges: wizardSlotCharge,
@@ -585,7 +614,8 @@ export const wizard: ClassAuthored = {
       id: classRowId(WZ, 3, 2),
       label: 'Arcane Recovery',
       description:
-        'You have learned to regain some of your magical energy by studying your spellbook. Once per day when you finish a short rest, you can choose expended spell slots to recover.',
+        "You have learned to regain some of your magical energy by studying your spellbook. Once per day when you finish a short rest, you can choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your wizard level (rounded up), and none of the slots can be 6th level or higher.\n\nFor example, if you're a 4th-level wizard, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level spell slot or two 1st-level spell slots.",
+      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_WIZARD_ARCANE_RECOVERY)],
       availableAtLevel: 1,
       order: 1
     },
@@ -593,7 +623,7 @@ export const wizard: ClassAuthored = {
       id: classRowId(WZ, 3, 3),
       label: 'Arcane Tradition',
       description:
-        'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools.',
+        'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools, such as Evocation.\n\nYour choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 2,
       order: 2
@@ -601,77 +631,169 @@ export const wizard: ClassAuthored = {
     {
       id: classRowId(WZ, 3, 4),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 3
+      order: 3,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(WZ, 4, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(WZ, 3, 5),
       label: 'Arcane Tradition Feature',
-      description: 'At 6th level, you gain a feature from your Arcane Tradition.',
+      description:
+        'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools, such as Evocation.\n\nYour choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 6,
       order: 4
     },
     {
       id: classRowId(WZ, 3, 6),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 5
+      order: 5,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(WZ, 5, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(WZ, 3, 7),
       label: 'Arcane Tradition Feature',
-      description: 'At 10th level, you gain a feature from your Arcane Tradition.',
+      description:
+        'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools, such as Evocation.\n\nYour choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 10,
       order: 6
     },
     {
       id: classRowId(WZ, 3, 8),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 7
+      order: 7,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(WZ, 6, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(WZ, 3, 9),
       label: 'Arcane Tradition Feature',
-      description: 'At 14th level, you gain a feature from your Arcane Tradition.',
+      description:
+        'When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools, such as Evocation.\n\nYour choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 14,
       order: 8
     },
     {
       id: classRowId(WZ, 3, 10),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 9
+      order: 9,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(WZ, 7, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(WZ, 3, 11),
       label: 'Spell Mastery',
       description:
-        'At 18th level, you have achieved such mastery over certain spells that you can cast them at will. Choose a 1st-level wizard spell and a 2nd-level wizard spell that are in your spellbook. You can cast those spells at their lowest level without expending a spell slot when you have them prepared.',
+        'At 18th level, you have achieved such mastery over certain spells that you can cast them at will. Choose a 1st-level wizard spell and a 2nd-level wizard spell that are in your spellbook. You can cast those spells at their lowest level without expending a spell slot when you have them prepared. If you want to cast either spell at a higher level, you must expend a spell slot as normal.\n\nBy spending 8 hours in study, you can exchange one or both of the spells you chose for different spells of the same levels.',
+      grants: {
+        spells: [
+          {
+            id: classRowId(WZ, 0x50, 1),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: wizardSpellIdsAtLevel(1),
+            attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 1,
+            order: 0
+          },
+          {
+            id: classRowId(WZ, 0x50, 2),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: wizardSpellIdsAtLevel(2),
+            attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 2,
+            order: 1
+          }
+        ]
+      },
+      effects: [selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_WIZARD_SPELL_MASTERY)],
       availableAtLevel: 18,
       order: 10
     },
     {
       id: classRowId(WZ, 3, 12),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 11
+      order: 11,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(WZ, 8, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(WZ, 3, 13),
       label: 'Signature Spells',
       description:
-        'When you reach 20th level, you gain mastery over two powerful spells and can cast them with little effort. Choose two 3rd-level wizard spells in your spellbook as your signature spells.',
+        "When you reach 20th level, you gain mastery over two powerful spells and can cast them with little effort. Choose two 3rd-level wizard spells in your spellbook as your signature spells. You always have these spells prepared, they don't count against the number of spells you have prepared, and you can cast each of them once at 3rd level without expending a spell slot. When you do so, you can't do so again until you finish a short or long rest.\n\nIf you want to cast either spell at a higher level, you must expend a spell slot as normal.",
+      grants: {
+        spells: [
+          {
+            id: classRowId(WZ, 0x50, 3),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 2,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: wizardSpellIdsAtLevel(3),
+            attributes: [SPELL_GRANT_ATTRIBUTE.PREPARED, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 3,
+            order: 0
+          }
+        ]
+      },
+      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_WIZARD_SIGNATURE_SPELLS)],
       availableAtLevel: 20,
       order: 12
     }

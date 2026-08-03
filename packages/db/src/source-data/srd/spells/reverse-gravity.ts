@@ -21,7 +21,7 @@ export const reverseGravity: SpellAuthored = {
   id: SPELL_IDS.REVERSE_GRAVITY,
   label: 'Reverse Gravity',
   description:
-    'This spell reverses gravity in a large cylinder centered on a point within range. Unanchored creatures and objects fall upward, then fall back down when the spell ends.',
+    "<p>This spell reverses gravity in a 50-foot-radius, 100-foot high cylinder centered on a point within range. All creatures and objects that aren't somehow anchored to the ground in the area fall upward and reach the top of the area when you cast this spell. A creature can make a Dexterity saving throw to grab onto a fixed object it can reach, thus avoiding the fall. If some solid object (such as a ceiling) is encountered in this fall, falling objects and creatures strike it just as they would during a normal downward fall. If an object or creature reaches the top of the area without striking anything, it remains there, oscillating slightly, for the duration. At the end of the duration, affected objects and creatures fall back down.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 7,
   classIds: [CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -69,7 +69,8 @@ export const reverseGravity: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REVERSE_GRAVITY, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'REVERSE_GRAVITY' as const
               }
             ]
           }

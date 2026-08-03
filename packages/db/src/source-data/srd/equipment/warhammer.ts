@@ -5,7 +5,7 @@ export const warhammer: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(31),
   label: 'Warhammer',
-  description: 'A heavy hammer used in melee combat.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

@@ -3,6 +3,7 @@ import {
   AUTHORING_MODE_KIND_OPTIONS,
   AUTHORING_SELECTION_DUPLICATE_POLICY_OPTIONS,
   AUTHORING_SELECTION_OPTIONS,
+  ABILITY_OPTIONS,
   SCALING_OPTIONS,
   SCALING_SOURCE_OPTIONS,
   SPELL_GRANT_ATTRIBUTE_OPTIONS
@@ -220,6 +221,13 @@ export const SPELL_GRANT_NODE_MAP = spellGrant.define(
         'castAtLevel',
         number(['castAtLevel'], 'Cast At Level', {
           showIf: local.field(['attributes']).contains(['CAST_AT_LEVEL'])
+        })
+      )
+      .set(
+        'castingAbility',
+        selectSingle(['castingAbility'], 'Casting Ability', {
+          kind: 'INLINE_OPTIONS',
+          options: ABILITY_OPTIONS
         })
       )
       .set(

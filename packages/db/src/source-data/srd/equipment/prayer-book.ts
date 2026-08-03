@@ -5,7 +5,7 @@ export const prayerBook: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(165),
   label: 'Prayer Book',
-  description: 'A devotional text containing prayers, hymns, and religious teachings.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(25),

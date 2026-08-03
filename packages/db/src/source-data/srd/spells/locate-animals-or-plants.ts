@@ -21,7 +21,7 @@ export const locateAnimalsOrPlants: SpellAuthored = {
   id: SPELL_IDS.LOCATE_ANIMALS_OR_PLANTS,
   label: 'Locate Animals or Plants',
   description:
-    'Describe or name a specific kind of beast or plant. You learn the direction and distance to the closest creature or plant of that kind within 5 miles, if any are present.',
+    "<p>Describe or name a specific kind of beast or plant. Concentrating on the voice of nature in your surroundings, you learn the direction and distance to the closest creature or plant of that kind within 5 miles, if any are present.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -65,7 +65,10 @@ export const locateAnimalsOrPlants: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LOCATE_ANIMALS_OR_PLANTS, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Reveal the Nearest Match",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "Describe or name a specific kind of beast or plant."
               }
             ]
           }

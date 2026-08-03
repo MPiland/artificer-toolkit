@@ -20,7 +20,7 @@ export const foresight: SpellAuthored = {
   id: SPELL_IDS.FORESIGHT,
   label: 'Foresight',
   description:
-    "You touch a willing creature and bestow a limited ability to see into the immediate future. For the duration, the target can't be surprised and has advantage on attack rolls, ability checks, and saving throws.",
+    "<p>You touch a willing creature and bestow a limited ability to see into the immediate future. For the duration, the target can't be surprised and has advantage on attack rolls, ability checks, and saving throws. Additionally, other creatures have disadvantage on attack rolls against the target for the duration. This spell immediately ends if you cast it again before its duration ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 9,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -66,7 +66,8 @@ export const foresight: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FORESIGHT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'FORESIGHT' as const
               }
             ]
           }

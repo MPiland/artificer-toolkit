@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const purpleWorm: CreatureAuthored = {
   id: S.CREATURE_IDS.PURPLE_WORM,
@@ -36,20 +35,46 @@ export const purpleWorm: CreatureAuthored = {
       id: S.featureId(227, 1),
       label: 'Tunneler',
       description:
-        'Tunneler. The worm can burrow through solid rock at half its Burrow Speed and leaves a 10-foot-diameter tunnel in its wake.',
+        'Tunneler. The worm can burrow through solid rock at half its burrow speed and leaves a 10-foot-diameter tunnel in its wake.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(227, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(227, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PURPLE_WORM_TUNNELER
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(227, 2),
       label: 'Multiattack',
-      description: 'Multiattack. The worm makes one Bite attack and one Tail Stinger attack.',
+      description:
+        'Multiattack. The worm makes two attacks: one with its bite and one with its stinger.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(227, 502),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(227, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PURPLE_WORM_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(227, 3),
       label: 'Bite',
       description:
-        'Bite. Melee Attack Roll: +14, reach 10 ft. Hit: 22 (3d8 + 9) piercing damage. If the target is a Large or smaller creature, it has the grappled condition (escape DC 19), and it has the restrained condition until the grapple ends.',
+        "Bite. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 22 (3d8 + 9) piercing damage. If the target is a Large or smaller creature, it must succeed on a DC 19 Dexterity saving throw or be swallowed by the worm. A swallowed creature is blinded and restrained, it has total cover against attacks and other effects outside the worm, and it takes 21 (6d6) acid damage at the start of each of the worm's turns. If the worm takes 30 damage or more on a single turn from a creature inside it, the worm must succeed on a DC 21 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the worm. If the worm dies, a swallowed creature is no longer restrained by it and can escape from the corpse by using 20 feet of movement, exiting prone.",
       effects: [
         {
           id: S.actionId(7604, 1),
@@ -116,27 +141,8 @@ export const purpleWorm: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7604, 5),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(7604, 6),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(7604, 6) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(7604, 6),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'PURPLE_WORM_SWALLOW' as const
                   }
                 ]
               }
@@ -150,7 +156,7 @@ export const purpleWorm: CreatureAuthored = {
       id: S.featureId(227, 4),
       label: 'Tail Stinger',
       description:
-        'Tail Stinger. Melee Weapon Attack: +14 to hit, reach 10 ft., one creature. Hit: 19 (3d6 + 9) piercing damage, and the target must succeed on a DC 19 Constitution saving throw or become poisoned for 1 minute. While poisoned in this way, the target is unconscious. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
+        'Tail Stinger. Melee Weapon Attack: +9 to hit, reach 10 ft., one creature. Hit: 19 (3d6 + 9) piercing damage, and the target must make a DC 19 Constitution saving throw, taking 42 (12d6) poison damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(7604, 7),
@@ -203,41 +209,85 @@ export const purpleWorm: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          id: S.actionId(227, 503),
+          order: 2,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(227, 603),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 19
             },
+            range: {
+              id: S.actionId(227, 653),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
             {
-              id: S.actionId(7604, 11),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
+              id: S.actionId(227, 803),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(7604, 11) + '__result',
+                id: S.actionId(227, 803) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
-                    id: S.actionId(7604, 11),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
+                    id: S.actionId(227, 930),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '12d6'
+                  },
+                  {
+                    id: S.actionId(227, 938),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PURPLE_WORM_TAIL_STINGER
                   }
                 ]
               }
             },
             {
-              id: S.actionId(7604, 12),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
+              id: S.actionId(227, 823),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(7604, 12) + '__result',
+                id: S.actionId(227, 823) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
-                    id: S.actionId(7604, 12),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('UNCONSCIOUS')
+                    id: S.actionId(227, 950),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('POISON'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '12d6',
+                    multiplier: 0.5
+                  },
+                  {
+                    id: S.actionId(227, 958),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PURPLE_WORM_TAIL_STINGER
                   }
                 ]
               }
@@ -246,51 +296,6 @@ export const purpleWorm: CreatureAuthored = {
         }
       ],
       order: 4
-    },
-    {
-      id: S.featureId(227, 5),
-      label: 'Swallow',
-      description:
-        "Swallow. The worm makes one Bite attack against a Large or smaller creature it is grappling. If the attack hits, the target is swallowed, and the grapple ends. A swallowed creature is blinded and restrained, has total cover against attacks and other effects outside the worm, and takes 21 (6d6) acid damage at the start of each of the worm's turns. The worm can have only one creature swallowed at a time.",
-      effects: [
-        {
-          id: S.actionId(7604, 13),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.BONUS_ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(7604, 14),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(7604, 15),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(7604, 15) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(7604, 15),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      order: 5
     }
   ]
 }

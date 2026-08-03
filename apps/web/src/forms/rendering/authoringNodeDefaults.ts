@@ -301,6 +301,48 @@ export function createDefaultAuthoringNodeValue(
         },
         paths: []
       }
+    case 'manifestComponent':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        label: '',
+        behaviors: [],
+        blockingRules: [],
+        destructionCriteria: []
+      }
+    case 'manifestDestructionCriterion':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        kind: 'DAMAGE_THRESHOLD',
+        damageTypeId: '',
+        amount: 0
+      }
+    case 'manifestLight':
+      return {
+        bright: createMeasurement('FEET'),
+        dimAdditional: createMeasurement('FEET')
+      }
+    case 'manifestProximityRule':
+      return {
+        id: crypto.randomUUID(),
+        events: ['MOVE_WITHIN', 'START_TURN'],
+        distance: createMeasurement('FEET'),
+        requiresSight: true,
+        behavior: {
+          id: crypto.randomUUID(),
+          order: 1,
+          invocation: {
+            triggerCode: 'SAVING_THROW',
+            savingThrow: {
+              id: crypto.randomUUID(),
+              dcMethod: 'SOURCE_SAVE_DC',
+              ability: 'CONSTITUTION'
+            }
+          },
+          paths: []
+        }
+      }
     case 'measurement':
       return createMeasurement('FEET')
     case 'measurementScalingBreakpoint':
@@ -313,14 +355,30 @@ export function createDefaultAuthoringNodeValue(
     case 'outcome':
       return {
         id: crypto.randomUUID(),
-        effectKind: 'MANUAL_ADJUDICATION'
+        effectKind: 'MANUAL_ADJUDICATION',
+        label: '',
+        reasonCode: 'NARRATIVE_JUDGMENT',
+        instructions: ''
       }
+    case 'outcomeBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: { amount: 1, diceConfig: '1d6' }
+      }
+    case 'outcomeBreakpointValue':
+      return { amount: 1, diceConfig: '1d6' }
     case 'outcomeBonus':
       return {
         id: crypto.randomUUID(),
         order,
         bonusKind: 'PROFICIENCY_BONUS'
       }
+    case 'followUpSaveBranch':
+      return { kind: 'END' }
+    case 'followUpSaveAttempts':
+      return { kind: 'ONCE' }
     case 'pathChoiceOption':
       return {
         id: crypto.randomUUID(),
@@ -352,12 +410,21 @@ export function createDefaultAuthoringNodeValue(
         order,
         rollRange: [order, order],
         rollValue: order,
+        resolutionKind: 'RESULT',
         resultBlock: {
           id: crypto.randomUUID(),
           resultKind: 'SINGLE',
           outcomes: []
         }
       }
+    case 'rollTableRerollValue':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        value: order
+      }
+    case 'rollTableRepeat':
+      return { count: 2, rerollValues: [] }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':
@@ -410,8 +477,9 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'shape':
       return {
+        id: crypto.randomUUID(),
         shapeKind: 'SPHERE',
-        size: createMeasurement('FEET')
+        radius: createMeasurement('FEET')
       }
     case 'spellGrant':
       return createScalingGrant('SPELL_GRANT', order)

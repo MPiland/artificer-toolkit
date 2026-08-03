@@ -135,7 +135,8 @@ export const PATH_ROLL_TABLE_KIND_OPTIONS = valuesOf(
 
 export const PATH_RESOLUTION_KIND = {
   DIRECT: 'DIRECT',
-  ROLL_TABLE: 'ROLL_TABLE'
+  ROLL_TABLE: 'ROLL_TABLE',
+  ROLL_TABLE_REPEAT: 'ROLL_TABLE_REPEAT'
 } as const
 
 export type PathResolutionKind = keyof typeof PATH_RESOLUTION_KIND
@@ -154,6 +155,12 @@ export const PATH_RESOLUTION_KIND_REGISTRY: Record<PathResolutionKind, PathResol
     label: 'Roll Table',
     description: 'Outcome based on a roll table to determine effect.',
     tooltip: 'Roll table outcome'
+  },
+  [PATH_RESOLUTION_KIND.ROLL_TABLE_REPEAT]: {
+    code: PATH_RESOLUTION_KIND.ROLL_TABLE_REPEAT,
+    label: 'Repeat Roll Table',
+    description: 'Roll the same table again using the authored repeat and reroll rules.',
+    tooltip: 'Repeat the current roll table'
   }
 } as const
 
@@ -255,6 +262,7 @@ export const PATH_CODES_BY_TRIGGER: Record<Trigger, readonly PathCode[]> = {
     PATH_CODE.ON_MISS,
     PATH_CODE.ON_CRIT
   ],
+  [TRIGGER.INCOMING_SAVING_THROW]: [PATH_CODE.PASSIVE],
   [TRIGGER.SAVING_THROW]: [PATH_CODE.ON_SAVE_FAIL, PATH_CODE.ON_SAVE_SUCCESS],
   [TRIGGER.ENTER_AREA]: [PATH_CODE.PASSIVE]
 } as const
@@ -333,7 +341,8 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS = valuesOf(
 
 export const PATH_LIFECYCLE_END_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
-  ON_CAST_SPELL: 'ON_CAST_SPELL'
+  ON_CAST_SPELL: 'ON_CAST_SPELL',
+  ON_HIT_POINTS_REGAINED: 'ON_HIT_POINTS_REGAINED'
 } as const
 
 export type PathLifecycleEndEvent = keyof typeof PATH_LIFECYCLE_END_EVENT
@@ -355,6 +364,12 @@ export const PATH_LIFECYCLE_END_EVENT_REGISTRY: Record<
     label: 'On Cast Spell',
     description: 'The effect ends when a spell cast event occurs.',
     tooltip: 'Ends on spell cast.'
+  },
+  [PATH_LIFECYCLE_END_EVENT.ON_HIT_POINTS_REGAINED]: {
+    code: PATH_LIFECYCLE_END_EVENT.ON_HIT_POINTS_REGAINED,
+    label: 'On Hit Points Regained',
+    description: 'The effect ends when the affected creature regains hit points.',
+    tooltip: 'Ends on healing.'
   }
 } as const
 

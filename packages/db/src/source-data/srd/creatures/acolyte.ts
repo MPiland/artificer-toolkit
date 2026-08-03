@@ -34,13 +34,62 @@ export const acolyte: CreatureAuthored = {
       id: S.featureId(2, 1),
       label: 'Spellcasting',
       description:
-        'Spellcasting. The acolyte is a 1st-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 12, +4 to hit with spell attacks). The acolyte has the following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy. 1st level (3 slots): bless, cure wounds, sanctuary.',
+        'Spellcasting. The acolyte is a 1st-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 12, +4 to hit with spell attacks). The acolyte has following cleric spells prepared: Cantrips (at will): light, sacred flame, thaumaturgy 1st level (3 slots): bless, cure wounds, sanctuary',
+      grants: {
+        spells: [
+          {
+            id: S.featureId(2, 101),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            order: 0
+          },
+          {
+            id: S.featureId(2, 102),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.BLESS, S.SPELL_IDS.CURE_WOUNDS, S.SPELL_IDS.SANCTUARY],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.PREPARED,
+              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
+            castAtLevel: 1,
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            charges: {
+              id: S.featureId(2, 103),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: 3
+            },
+            order: 1
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(2, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(2, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(2, 2),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(2, 2, 'COMMON')]
       },

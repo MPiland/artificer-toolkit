@@ -5,7 +5,7 @@ export const cobblersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(56),
   label: "Cobbler's Tools",
-  description: 'Lasts, awls, and leather-working implements for making and repairing footwear.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(5),

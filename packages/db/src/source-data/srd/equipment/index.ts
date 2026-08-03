@@ -197,6 +197,14 @@ import { entertainersPack } from './entertainers-pack.js'
 import { explorersPack } from './explorers-pack.js'
 import { priestsPack } from './priests-pack.js'
 import { scholarsPack } from './scholars-pack.js'
+import { chain10Feet } from './chain-10-feet.js'
+import { hammerSledge } from './hammer-sledge.js'
+import { merchantsScale } from './merchants-scale.js'
+import { robes } from './robes.js'
+import { almsBox } from './alms-box.js'
+import { censer } from './censer.js'
+import { littleBagOfSand } from './little-bag-of-sand.js'
+import { smallKnife } from './small-knife.js'
 import { arrowsPlus1 } from './arrows-plus-1.js'
 import { arrowsPlus2 } from './arrows-plus-2.js'
 import { arrowsPlus3 } from './arrows-plus-3.js'
@@ -557,6 +565,14 @@ export const srdEquipment = [
   explorersPack,
   priestsPack,
   scholarsPack,
+  chain10Feet,
+  hammerSledge,
+  merchantsScale,
+  robes,
+  almsBox,
+  censer,
+  littleBagOfSand,
+  smallKnife,
   arrowsPlus1,
   arrowsPlus2,
   arrowsPlus3,

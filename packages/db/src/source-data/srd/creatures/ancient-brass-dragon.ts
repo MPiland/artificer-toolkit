@@ -48,9 +48,20 @@ export const ancientBrassDragon: CreatureAuthored = {
         id: S.legendaryActionId(16, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(16, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(16, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -58,6 +69,18 @@ export const ancientBrassDragon: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(16, 103),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(16, 104), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {
@@ -312,13 +335,25 @@ export const ancientBrassDragon: CreatureAuthored = {
       id: S.featureId(16, 7),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(16, 105),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(16, 106), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
+        })
+      ],
       order: 7
     },
     {
       id: S.featureId(16, 8),
       label: 'Fire Breath',
       description:
-        'The dragon exhales fire in a 90-foot line that is 10 feet wide. Each creature in that line must make a DC 21 Dexterity saving throw, taking 54 (15d8) fire damage on a failed save, or half as much damage on a successful one.',
+        'Fire Breath. The dragon exhales fire in an 90-foot line that is 10 feet wide. Each creature in that line must make a DC 21 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much damage on a successful one.',
       effects: [
         {
           id: S.actionId(16, 25),
@@ -359,7 +394,7 @@ export const ancientBrassDragon: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('FIRE'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '15d8'
+                    diceConfig: '16d6'
                   }
                 ]
               }
@@ -381,7 +416,7 @@ export const ancientBrassDragon: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('FIRE'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '15d8',
+                    diceConfig: '16d6',
                     multiplier: 0.5
                   }
                 ]
@@ -453,7 +488,7 @@ export const ancientBrassDragon: CreatureAuthored = {
       id: S.featureId(16, 10),
       label: 'Change Shape',
       description:
-        "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features, legendary actions, and lair actions of that form.",
+        "Change Shape. The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features or legendary actions of that form.",
       effects: [
         {
           id: S.actionId(16, 37),
@@ -484,7 +519,8 @@ export const ancientBrassDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(16, 39),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_CHANGE_SHAPE
                   }
                 ]
               }
@@ -537,7 +573,8 @@ export const ancientBrassDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(16, 24),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
                   }
                 ]
               }

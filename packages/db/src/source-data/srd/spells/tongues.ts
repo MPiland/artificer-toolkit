@@ -18,7 +18,7 @@ export const tongues: SpellAuthored = {
   id: SPELL_IDS.TONGUES,
   label: 'Tongues',
   description:
-    'This spell grants the creature you touch the ability to understand any spoken language it hears. Moreover, when the target speaks, any creature that knows at least one language and can hear the target understands what it says.',
+    "<p>This spell grants the creature you touch the ability to understand any spoken language it hears. Moreover, when the target speaks, any creature that knows at least one language and can hear the target understands what it says.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [
@@ -70,7 +70,8 @@ export const tongues: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TONGUES, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'TONGUES' as const
               }
             ]
           }

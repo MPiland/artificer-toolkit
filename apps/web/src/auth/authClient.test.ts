@@ -1,18 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  profile: vi.fn(),
-  updateProfile: vi.fn(),
-  updateUser: vi.fn(),
-  usernameStatus: vi.fn()
+  completeInvitation: vi.fn(),
+  updateUser: vi.fn()
 }))
 
 vi.mock('../lib/api', () => ({
   api: {
     account: {
-      profile: mocks.profile,
-      updateProfile: mocks.updateProfile,
-      usernameStatus: mocks.usernameStatus
+      completeInvitation: mocks.completeInvitation
     }
   }
 }))
@@ -28,17 +24,11 @@ import { browserAuthClient } from './authClient'
 describe('browserAuthClient password updates', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.profile.mockResolvedValue(null)
-    mocks.usernameStatus.mockResolvedValue({ status: 'available' })
+    mocks.completeInvitation.mockResolvedValue({ ok: true })
     mocks.updateUser.mockResolvedValue({ error: null })
-    mocks.updateProfile.mockResolvedValue({
-      username: 'morgan',
-      name: null,
-      bio: null
-    })
   })
 
-  it('updates the password before creating the required profile', async () => {
+  it('completes invitations through the authenticated API boundary', async () => {
     await expect(
       browserAuthClient.completeInvitation({
         username: 'morgan',
@@ -46,15 +36,11 @@ describe('browserAuthClient password updates', () => {
       })
     ).resolves.toEqual({ ok: true })
 
-    expect(mocks.updateUser).toHaveBeenCalledWith({ password: 'new-password-123' })
-    expect(mocks.updateProfile).toHaveBeenCalledWith({
-      username: 'morgan',
-      name: null,
-      bio: null
+    expect(mocks.completeInvitation).toHaveBeenCalledWith({
+      password: 'new-password-123',
+      username: 'morgan'
     })
-    expect(mocks.updateUser.mock.invocationCallOrder[0]!).toBeLessThan(
-      mocks.updateProfile.mock.invocationCallOrder[0]!
-    )
+    expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
   it('rejects invalid new passwords before calling Supabase', async () => {
@@ -70,8 +56,8 @@ describe('browserAuthClient password updates', () => {
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
-  it('does not change the password when the username is unavailable', async () => {
-    mocks.usernameStatus.mockResolvedValue({ status: 'taken' })
+  it('returns server-enforced username policy failures', async () => {
+    mocks.completeInvitation.mockRejectedValue(new Error('That username is already taken.'))
 
     await expect(
       browserAuthClient.completeInvitation({
@@ -83,39 +69,5 @@ describe('browserAuthClient password updates', () => {
       message: 'That username is already taken.'
     })
     expect(mocks.updateUser).not.toHaveBeenCalled()
-  })
-
-  it('returns a post-password username conflict so the invitation can be retried', async () => {
-    mocks.updateProfile.mockRejectedValue(new Error('That username is already taken.'))
-
-    await expect(
-      browserAuthClient.completeInvitation({
-        username: 'raced_name',
-        password: 'new-password-123'
-      })
-    ).resolves.toEqual({
-      ok: false,
-      message: 'That username is already taken.'
-    })
-    expect(mocks.updateUser).toHaveBeenCalledWith({ password: 'new-password-123' })
-  })
-
-  it('does not erase optional profile fields if invitation completion is revisited', async () => {
-    mocks.profile.mockResolvedValue({
-      username: 'morgan',
-      name: 'Morgan',
-      bio: 'Forge keeper.'
-    })
-
-    await browserAuthClient.completeInvitation({
-      username: 'morgan_new',
-      password: 'new-password-123'
-    })
-
-    expect(mocks.updateProfile).toHaveBeenCalledWith({
-      username: 'morgan_new',
-      name: 'Morgan',
-      bio: 'Forge keeper.'
-    })
   })
 })

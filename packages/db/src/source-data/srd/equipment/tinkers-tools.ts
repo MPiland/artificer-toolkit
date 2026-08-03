@@ -5,8 +5,7 @@ export const tinkersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(65),
   label: "Tinker's Tools",
-  description:
-    'Small tools for repairing and assembling mechanical devices, including screwdrivers and pliers.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(50),

@@ -18,7 +18,7 @@ export const locateCreature: SpellAuthored = {
   id: SPELL_IDS.LOCATE_CREATURE,
   label: 'Locate Creature',
   description:
-    "Describe or name a creature that is familiar to you. You sense the direction to the creature's location, as long as that creature is within 1,000 feet of you. If the creature is moving, you know the direction of its movement.",
+    "<p>Describe or name a creature that is familiar to you. You sense the direction to the creature's location, as long as that creature is within 1,000 feet of you. If the creature is moving, you know the direction of its movement. The spell can locate a specific creature known to you, or the nearest creature of a specific kind (such as a human or a unicorn), so long as you have seen such a creature up close-within 30 feet-at least once. If the creature you described or named is in a different form, such as being under the effects of a polymorph spell, this spell doesn't locate the creature. This spell can't locate a creature if running water at least 10 feet wide blocks a direct path between you and the creature.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [
@@ -72,7 +72,10 @@ export const locateCreature: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LOCATE_CREATURE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Reveal the Creature\u0027s Direction",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "The spell can locate a specific creature known to you, or the nearest creature of a specific kind (such as a human or a unicorn), so long as you have seen such a creature up close-within 30 feet-at least once."
               }
             ]
           }

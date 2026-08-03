@@ -5,7 +5,7 @@ export const signalWhistle: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(172),
   label: 'Signal Whistle',
-  description: 'A small metal whistle for sending audible signals over short distances.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(5),

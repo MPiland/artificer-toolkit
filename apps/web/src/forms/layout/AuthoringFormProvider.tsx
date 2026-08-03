@@ -402,10 +402,11 @@ export function AuthoringFormProvider({
       if (!current.domain) return current
 
       const next = resolveRequestedNavigation(
-        {
-          ...current,
-          ...getDomainRegistration(current.domain, current.mode, current.domainData)
-        },
+        applyDomainRegistration(current, {
+          data: current.domainData,
+          domain: current.domain,
+          mode: current.mode
+        }),
         requestedStepIdRef.current
       )
 
@@ -1030,6 +1031,9 @@ function applyDomainRegistration(
   const subjectChanged =
     current.authoredSession?.key !== domainRegistration.authoredSession?.key ||
     current.domain !== registration.domain
+  const authoredSession = subjectChanged
+    ? domainRegistration.authoredSession
+    : (current.authoredSession ?? domainRegistration.authoredSession)
 
   return {
     ...current,
@@ -1037,6 +1041,7 @@ function applyDomainRegistration(
     domainData: registration.data,
     mode: nextMode,
     ...domainRegistration,
+    authoredSession,
     visitedStepIds: subjectChanged ? new Set() : current.visitedStepIds
   }
 }

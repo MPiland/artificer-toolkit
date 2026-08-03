@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const giantFrog: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_FROG,
@@ -35,6 +36,18 @@ export const giantFrog: CreatureAuthored = {
       id: S.featureId(124, 1),
       label: 'Amphibious',
       description: 'Amphibious. The frog can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(124, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(124, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -42,6 +55,18 @@ export const giantFrog: CreatureAuthored = {
       label: 'Standing Leap',
       description:
         "Standing Leap. The frog's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(124, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(124, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_FROG_STANDING_LEAP
+        })
+      ],
       order: 2
     },
     {
@@ -107,7 +132,8 @@ export const giantFrog: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(124, 4),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.GIANT_FROG_BITE
                   }
                 ]
               }
@@ -148,11 +174,22 @@ export const giantFrog: CreatureAuthored = {
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(124, 7) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(124, 7),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.GIANT_FROG_SWALLOW
+                  },
+                  {
+                    id: S.actionId(124, 207),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('BLINDED')
+                  },
+                  {
+                    id: S.actionId(124, 208),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('RESTRAINED')
                   }
                 ]
               }

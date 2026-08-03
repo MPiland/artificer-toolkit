@@ -99,7 +99,7 @@ export const ogre: CreatureAuthored = {
       id: S.featureId(209, 2),
       label: 'Javelin',
       description:
-        'Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 11 (2d6 + 4) piercing damage in melee, or 9 (2d8 + 4) piercing damage at range.',
+        'Javelin. Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 11 (2d6 + 4) piercing damage.',
       effects: [
         {
           id: S.actionId(209, 5),

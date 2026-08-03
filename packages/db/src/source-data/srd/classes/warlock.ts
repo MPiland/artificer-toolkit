@@ -1,29 +1,48 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PATH_CODE,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  SPELL_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
-import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_CURRENCIES,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_SKILLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +58,9 @@ if (!goldCurrencyId)
   throw new Error('SRD GP currency vocabulary entry required for class source data.')
 
 const allCantripIds = srdSpells.filter((spell) => spell.level === 0).map((spell) => spell.id)
+const allFirstLevelRitualSpellIds = srdSpells
+  .filter((spell) => spell.level === 1 && spell.attributes?.includes(SPELL_ATTRIBUTE.RITUAL))
+  .map((spell) => spell.id)
 
 // ID helpers: class rows use domain c0XX where XX = class index (01–0c)
 // Format: 00000000-0000-0000-c0XX-GGNN00000000
@@ -58,6 +80,41 @@ function equipmentId(index: number): string {
 // ─── Warlock (index 11) ───────────────────────────────────────────────────────
 
 const W = 11 // warlock class index for ID generation
+
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(W, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(W, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
+
+function warlockSpellIdsAtLevel(level: number): string[] {
+  return srdSpells
+    .filter((spell) => spell.level === level && spell.classIds.includes(CLASS_IDS.WARLOCK))
+    .map((spell) => spell.id)
+}
 
 // Pact Magic charge (Warlock spell slots) — resets on short OR long rest
 const pactMagicCharge = {
@@ -219,8 +276,6 @@ export const warlock: ClassAuthored = {
   label: 'Warlock',
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 1,
-  description:
-    'A wielder of magic that is derived from a bargain with an extraplanar entity. Warlocks are defined by a pact with an otherworldly being.',
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
@@ -559,7 +614,7 @@ export const warlock: ClassAuthored = {
       id: classRowId(W, 3, 1),
       label: 'Otherworldly Patron',
       description:
-        'At 1st level, you have struck a bargain with an otherworldly being of your choice. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
+        'At 1st level, you have struck a bargain with an otherworldly being of your choice: the Archfey, the Fiend, or the Great Old One, each of which is detailed at the end of the class description. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 1,
       order: 0
@@ -569,7 +624,7 @@ export const warlock: ClassAuthored = {
       id: classRowId(W, 3, 2),
       label: 'Pact Magic',
       description:
-        'Your arcane research and the magic bestowed on you by your patron have given you facility with spells. You regain all expended spell slots when you finish a short or long rest.',
+        'Your arcane research and the magic bestowed on you by your patron have given you facility with spells.',
       availableAtLevel: 1,
       order: 1
     },
@@ -578,7 +633,7 @@ export const warlock: ClassAuthored = {
       id: classRowId(W, 3, 3),
       label: 'Eldritch Invocations',
       description:
-        'In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.',
+        'In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.\n\nAt 2nd level, you gain two eldritch invocations of your choice. Your invocation options are detailed at the end of the class description. When you gain certain warlock levels, you gain additional invocations of your choice, as shown in the Invocations Known column of the Warlock table.\n\nAdditionally, when you gain a level in this class, you can choose one of the invocations you know and replace it with another invocation that you could learn at that level.',
       availableAtLevel: 2,
       order: 2,
       optionChoices: [
@@ -595,7 +650,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 4),
           label: 'Agonizing Blast',
           description:
-            'When you cast Eldritch Blast, add your Charisma modifier to the damage it deals on a hit.',
+            'When you cast eldritch blast, add your Charisma modifier to the damage it deals on a hit.',
           // Requires Eldritch Blast cantrip (CHARACTER context, SPELL_OBTAINED predicate)
           restrictions: {
             id: classRowId(W, 4, 1),
@@ -665,7 +720,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 6),
           label: 'Armor of Shadows',
           description:
-            'You can cast Mage Armor on yourself at will, without expending a spell slot or material components.',
+            'You can cast mage armor on yourself at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -675,10 +730,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.MAGE_ARMOR],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
                 order: 0
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_WARLOCK_ARMOR_OF_SHADOWS_COMPONENTS)
+          ],
           order: 1
         },
         {
@@ -686,12 +745,32 @@ export const warlock: ClassAuthored = {
           label: "Devil's Sight",
           description:
             'You can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.',
+          grants: {
+            senses: [
+              {
+                id: classRowId(W, 0x50, 1),
+                grantKind: GRANT_KIND.SENSE_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                senseIds: [SRD_DARKVISION_SENSE_ID],
+                range: {
+                  id: classRowId(W, 0x50, 2),
+                  rangeKind: RANGE_KIND.DISTANCE,
+                  amount: 120,
+                  unit: MEASUREMENT_UNIT_CODE.FEET
+                },
+                order: 0
+              }
+            ]
+          },
+          effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_WARLOCK_DEVILS_SIGHT)],
           order: 2
         },
         {
           id: classRowId(W, 3, 9),
           label: 'Eldritch Sight',
-          description: 'You can cast Detect Magic at will, without expending a spell slot.',
+          description: 'You can cast detect magic at will, without expending a spell slot.',
           grants: {
             spells: [
               {
@@ -701,6 +780,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.DETECT_MAGIC],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
@@ -711,7 +791,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 11),
           label: 'Fiendish Vigor',
           description:
-            'You can cast False Life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
+            'You can cast false life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -721,16 +801,25 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.FALSE_LIFE],
+                attributes: [
+                  SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
+                  SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL,
+                  SPELL_GRANT_ATTRIBUTE.SELF_ONLY
+                ],
+                castAtLevel: 1,
                 order: 0
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_WARLOCK_FIENDISH_VIGOR_COMPONENTS)
+          ],
           order: 4
         },
         {
           id: classRowId(W, 3, 13),
           label: 'Mask of Many Faces',
-          description: 'You can cast Disguise Self at will, without expending a spell slot.',
+          description: 'You can cast disguise self at will, without expending a spell slot.',
           grants: {
             spells: [
               {
@@ -740,6 +829,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.DISGUISE_SELF],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
@@ -750,7 +840,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 15),
           label: 'Misty Visions',
           description:
-            'You can cast Silent Image at will, without expending a spell slot or material components.',
+            'You can cast silent image at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -760,17 +850,21 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.SILENT_IMAGE],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(4, CLOSED_RULE_KIND.CLASS_WARLOCK_MISTY_VISIONS_COMPONENTS)
+          ],
           order: 6
         },
         {
           id: classRowId(W, 3, 17),
           label: 'Repelling Blast',
           description:
-            'When you hit a creature with Eldritch Blast, you can push the creature up to 10 feet away from you in a straight line.',
+            'When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.',
           // Requires Eldritch Blast. Push effect is a combat action modifier not representable as a grant.
           restrictions: {
             id: classRowId(W, 4, 9),
@@ -798,13 +892,29 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 5),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_REPELLING_BLAST,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.SPELL_ATTACK,
+                range: { id: classRowId(W, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 7
         },
         {
           id: classRowId(W, 3, 19),
           label: 'Thief of Five Fates',
           description:
-            "You can cast Bane once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast bane once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -814,10 +924,21 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BANE],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 1),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 8
         },
         // ── Additional SRD 5.1 Eldritch Invocations ──────────────────────────────
@@ -847,7 +968,26 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 3),
           label: 'Book of Ancient Secrets',
           description:
-            'You can now inscribe magical rituals in your Book of Shadows. On your adventures, you can add other ritual spells to your Book of Shadows.',
+            "You can now inscribe magical rituals in your Book of Shadows. Choose two 1st-level spells that have the ritual tag from any class's spell list (the two needn't be from the same list). The spells appear in the book and don't count against the number of spells you know. With your Book of Shadows in hand, you can cast the chosen spells as rituals. You can't cast the spells except as rituals, unless you've learned them by some other means. You can also cast a warlock spell you know as a ritual if it has the ritual tag.\n\nOn your adventures, you can add other ritual spells to your Book of Shadows. When you find such a spell, you can add it to the book if the spell's level is equal to or less than half your warlock level (rounded up) and if you can spare the time to transcribe the spell. For each level of the spell, the transcription process takes 2 hours and costs 50 gp for the rare inks needed to inscribe it.",
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 0x52, 1),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                count: 2,
+                selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: allFirstLevelRitualSpellIds,
+                attributes: [SPELL_GRANT_ATTRIBUTE.RITUAL],
+                order: 0
+              }
+            ]
+          },
+          effects: [
+            selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_WARLOCK_BOOK_OF_ANCIENT_SECRETS)
+          ],
           // Requires Pact of the Tome (classRowId(W, 3, 25))
           restrictions: {
             id: classRowId(W, 6, 1),
@@ -881,7 +1021,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 4),
           label: 'Chains of Carceri',
           description:
-            'You can cast Hold Monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.',
+            'You can cast hold monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.',
           grants: {
             spells: [
               {
@@ -891,10 +1031,12 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.HOLD_MONSTER],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
           },
+          effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_WARLOCK_CHAINS_OF_CARCERI)],
           // Requires warlock level 15 + Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
             id: classRowId(W, 6, 5),
@@ -937,7 +1079,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 6),
           label: 'Dreadful Word',
           description:
-            "You can cast Confusion once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast confusion once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -947,6 +1089,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONFUSION],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 2),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
@@ -979,12 +1129,15 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 12
         },
         {
           id: classRowId(W, 5, 8),
           label: 'Eldritch Spear',
-          description: 'When you cast Eldritch Blast, its range is 300 feet.',
+          description: 'When you cast eldritch blast, its range is 300 feet.',
           // Range change is not representable as a modifier grant — description-only.
           // Requires Eldritch Blast cantrip.
           restrictions: {
@@ -1013,12 +1166,34 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 14),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_ELDRITCH_SPEAR,
+              pathCode: PATH_CODE.ON_ATTACK,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.SPELL_ATTACK,
+                range: {
+                  id: classRowId(W, 0x69, 14),
+                  rangeKind: RANGE_KIND.DISTANCE,
+                  amount: 300,
+                  unit: MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 13
         },
         {
           id: classRowId(W, 5, 9),
           label: 'Eyes of the Rune Keeper',
           description: 'You can read all writing.',
+          effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_WARLOCK_EYES_OF_RUNE_KEEPER)],
           // No requirements. Passive ability — description-only.
           order: 14
         },
@@ -1026,8 +1201,24 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 10),
           label: 'Gaze of Two Minds',
           description:
-            'You can use your action to touch a willing humanoid and perceive through its senses until the start of your next turn.',
+            "You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature's senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.",
           // No requirements. Action-based ability — description-only.
+          effects: [
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 16),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_GAZE_OF_TWO_MINDS,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: TRIGGER.ACTIVATED,
+                activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+                range: { id: classRowId(W, 0x69, 16), rangeKind: RANGE_KIND.TOUCH },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+                }
+              }
+            })
+          ],
           order: 15
         },
         {
@@ -1072,12 +1263,42 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 17),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_LIFEDRINKER,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(W, 0x69, 17), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            }),
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 0x81),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_LIFEDRINKER,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
+                range: { id: classRowId(W, 0x69, 0x81), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 16
         },
         {
           id: classRowId(W, 5, 12),
           label: 'Master of Myriad Forms',
-          description: 'You can cast Alter Self at will, without expending a spell slot.',
+          description: 'You can cast alter self at will, without expending a spell slot.',
           grants: {
             spells: [
               {
@@ -1087,6 +1308,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.ALTER_SELF],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
                 order: 0
               }
             ]
@@ -1125,7 +1347,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 14),
           label: 'Minions of Chaos',
           description:
-            "You can cast Conjure Elemental once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast conjure elemental once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1135,6 +1357,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONJURE_ELEMENTAL],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 3),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
@@ -1167,13 +1397,16 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 18
         },
         {
           id: classRowId(W, 5, 16),
           label: 'Mire the Mind',
           description:
-            "You can cast Slow once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast slow once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1183,6 +1416,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.SLOW],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 4),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
@@ -1215,6 +1456,9 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 19
         },
         {
@@ -1251,13 +1495,20 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(
+              18,
+              CLOSED_RULE_KIND.CLASS_WARLOCK_ONE_WITH_SHADOWS,
+              ACTIVATION_CODE.ACTION
+            )
+          ],
           order: 20
         },
         {
           id: classRowId(W, 5, 19),
           label: 'Otherworldly Leap',
           description:
-            'You can cast Jump on yourself at will, without expending a spell slot or material components.',
+            'You can cast jump on yourself at will, without expending a spell slot or material components.',
           grants: {
             spells: [
               {
@@ -1267,6 +1518,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.JUMP],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
                 order: 0
               }
             ]
@@ -1299,13 +1551,16 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_WARLOCK_OTHERWORLDLY_LEAP_COMPONENTS)
+          ],
           order: 21
         },
         {
           id: classRowId(W, 5, 21),
           label: 'Sculptor of Flesh',
           description:
-            "You can cast Polymorph once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast polymorph once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1315,6 +1570,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.POLYMORPH],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 5),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
@@ -1347,13 +1610,16 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 22
         },
         {
           id: classRowId(W, 5, 23),
           label: 'Sign of Ill Omen',
           description:
-            "You can cast Bestow Curse once using a warlock spell slot. You can't do so again until you finish a long rest.",
+            "You can cast bestow curse once using a warlock spell slot. You can't do so again until you finish a long rest.",
           grants: {
             spells: [
               {
@@ -1363,6 +1629,14 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BESTOW_CURSE],
+                attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                charges: {
+                  id: classRowId(W, 0x51, 6),
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: SCALING.NONE,
+                  resetKind: 'LONG_REST',
+                  amount: 1
+                },
                 order: 0
               }
             ]
@@ -1395,13 +1669,16 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
+          ],
           order: 23
         },
         {
           id: classRowId(W, 5, 25),
           label: 'Thirsting Blade',
           description:
-            'You can attack with your pact weapon twice, instead of once, when you take the Attack action on your turn.',
+            'You can attack with your pact weapon twice, instead of once, whenever you take the Attack action on your turn.',
           // Extra attack not representable as a standard modifier grant — description-only.
           // Requires warlock level 5 + Pact of the Blade (classRowId(W, 3, 24))
           restrictions: {
@@ -1439,12 +1716,13 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_WARLOCK_THIRSTING_BLADE)],
           order: 24
         },
         {
           id: classRowId(W, 5, 26),
           label: 'Visions of Distant Realms',
-          description: 'You can cast Arcane Eye at will, without expending a spell slot.',
+          description: 'You can cast arcane eye at will, without expending a spell slot.',
           grants: {
             spells: [
               {
@@ -1454,6 +1732,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.ARCANE_EYE],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
@@ -1492,7 +1771,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 28),
           label: 'Voice of the Chain Master',
           description:
-            "You can communicate telepathically with your familiar and perceive through your familiar's senses as long as you are on the same plane of existence.",
+            "You can communicate telepathically with your familiar and perceive through your familiar's senses as long as you are on the same plane of existence.\n\nAdditionally, while perceiving through your familiar's senses, you can also speak through your familiar in your own voice, even if your familiar is normally incapable of speech.",
           // Description-only — telepathic sense-sharing is not representable as a modifier.
           // Requires Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
@@ -1521,12 +1800,13 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_WARLOCK_VOICE_OF_CHAIN_MASTER)],
           order: 26
         },
         {
           id: classRowId(W, 5, 29),
           label: 'Whispers of the Grave',
-          description: 'You can cast Speak with Dead at will, without expending a spell slot.',
+          description: 'You can cast speak with dead at will, without expending a spell slot.',
           grants: {
             spells: [
               {
@@ -1536,6 +1816,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.SPEAK_WITH_DEAD],
+                attributes: [SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
@@ -1604,6 +1885,26 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(W, 0x60, 22),
+              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_WITCH_SIGHT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.ACTIVATED,
+                range: {
+                  id: classRowId(W, 0x69, 22),
+                  rangeKind: RANGE_KIND.DISTANCE,
+                  amount: 30,
+                  unit: MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                }
+              }
+            })
+          ],
           order: 28
         }
       ]
@@ -1613,7 +1914,7 @@ export const warlock: ClassAuthored = {
       id: classRowId(W, 3, 21),
       label: 'Pact Boon',
       description:
-        'At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service.',
+        'At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service. You gain one of the following features of your choice.',
       availableAtLevel: 3,
       order: 3,
       optionChoices: [{ level: 3, count: 1 }],
@@ -1622,7 +1923,7 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 22),
           label: 'Pact of the Chain',
           description:
-            "You learn the Find Familiar spell and can cast it as a ritual. The spell doesn't count against your number of spells known.",
+            "You learn the find familiar spell and can cast it as a ritual. The spell doesn't count against your number of spells known.\n\nWhen you cast the spell, you can choose one of the normal forms for your familiar or one of the following special forms: imp, pseudodragon, quasit, or sprite.\n\nAdditionally, when you take the Attack action, you can forgo one of your own attacks to allow your familiar to make one attack of its own with its reaction.",
           grants: {
             spells: [
               {
@@ -1637,19 +1938,28 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
+          effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_CHAIN)],
           order: 0
         },
         {
           id: classRowId(W, 3, 24),
           label: 'Pact of the Blade',
-          description: 'You can use your action to create a pact weapon in your empty hand.',
+          description:
+            "You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it. You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.\n\nYour pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.\n\nYou can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can't affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.",
+          effects: [
+            selfClassRuleEffect(
+              24,
+              CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_BLADE,
+              ACTIVATION_CODE.ACTION
+            )
+          ],
           order: 1
         },
         {
           id: classRowId(W, 3, 25),
           label: 'Pact of the Tome',
           description:
-            "Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class's spell list.",
+            "Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class's spell list (the three needn't be from the same list). While the book is on your person, you can cast those cantrips at will. They don't count against your number of cantrips known. If they don't appear on the warlock spell list, they are nonetheless warlock spells for you.\n\nIf you lose your Book of Shadows, you can perform a 1-hour ceremony to receive a replacement from your patron. This ceremony can be performed during a short or long rest, and it destroys the previous book. The book turns to ash when you die.",
           grants: {
             spells: [
               {
@@ -1661,11 +1971,12 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: allCantripIds,
-                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
                 order: 0
               }
             ]
           },
+          effects: [selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_TOME)],
           order: 2
         }
       ]
@@ -1674,17 +1985,26 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 26),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 4
+      order: 4,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(W, 0x20, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     // L5 — (no new feature — spell slot upgrade covered by spellLimits)
     // L6 — Otherworldly Patron Feature
     {
       id: classRowId(W, 3, 27),
       label: 'Otherworldly Patron Feature (6th)',
-      description: 'Your patron grants you an additional feature at 6th level.',
+      description:
+        'At 1st level, you have struck a bargain with an otherworldly being of your choice: the Archfey, the Fiend, or the Great Old One, each of which is detailed at the end of the class description. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 6,
       order: 5
     },
@@ -1693,17 +2013,26 @@ export const warlock: ClassAuthored = {
     {
       id: classRowId(W, 3, 28),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(W, 0x21, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     // L9 — (no new feature)
     // L10 — Otherworldly Patron Feature + Mystic Arcanum (6th level)
     {
       id: classRowId(W, 3, 29),
       label: 'Otherworldly Patron Feature (10th)',
-      description: 'Your patron grants you an additional feature at 10th level.',
+      description:
+        'At 1st level, you have struck a bargain with an otherworldly being of your choice: the Archfey, the Fiend, or the Great Old One, each of which is detailed at the end of the class description. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 10,
       order: 7
     },
@@ -1711,55 +2040,187 @@ export const warlock: ClassAuthored = {
       id: classRowId(W, 3, 30),
       label: 'Mystic Arcanum (6th Level)',
       description:
-        'Your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.',
+        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
+      grants: {
+        spells: [
+          {
+            id: classRowId(W, 0x53, 1),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: warlockSpellIdsAtLevel(6),
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 6,
+            charges: {
+              id: classRowId(W, 0x53, 2),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 11,
       order: 8
     },
     {
       id: classRowId(W, 3, 31),
       label: 'Mystic Arcanum (7th Level)',
-      description: 'Choose one 7th-level spell from the warlock spell list as this arcanum.',
+      description:
+        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
+      grants: {
+        spells: [
+          {
+            id: classRowId(W, 0x53, 3),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: warlockSpellIdsAtLevel(7),
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 7,
+            charges: {
+              id: classRowId(W, 0x53, 4),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 13,
       order: 9
     },
     {
+      id: classRowId(W, 3, 38),
+      label: 'Ability Score Improvement',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
+      availableAtLevel: 12,
+      order: 10,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(W, 0x22, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
+    },
+    {
       id: classRowId(W, 3, 32),
       label: 'Otherworldly Patron Feature (14th)',
-      description: 'Your patron grants you an additional feature at 14th level.',
+      description:
+        'At 1st level, you have struck a bargain with an otherworldly being of your choice: the Archfey, the Fiend, or the Great Old One, each of which is detailed at the end of the class description. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 14,
-      order: 10
+      order: 11
     },
     {
       id: classRowId(W, 3, 33),
       label: 'Mystic Arcanum (8th Level)',
-      description: 'Choose one 8th-level spell from the warlock spell list as this arcanum.',
+      description:
+        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
+      grants: {
+        spells: [
+          {
+            id: classRowId(W, 0x53, 5),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: warlockSpellIdsAtLevel(8),
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 8,
+            charges: {
+              id: classRowId(W, 0x53, 6),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 15,
-      order: 11
+      order: 12
     },
     // L16 — Ability Score Improvement
     {
       id: classRowId(W, 3, 34),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 12
+      order: 13,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(W, 0x23, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(W, 3, 35),
       label: 'Mystic Arcanum (9th Level)',
-      description: 'Choose one 9th-level spell from the warlock spell list as this arcanum.',
+      description:
+        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
+      grants: {
+        spells: [
+          {
+            id: classRowId(W, 0x53, 7),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: warlockSpellIdsAtLevel(9),
+            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+            castAtLevel: 9,
+            charges: {
+              id: classRowId(W, 0x53, 8),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: SCALING.NONE,
+              resetKind: 'LONG_REST',
+              amount: 1
+            },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 17,
-      order: 13
+      order: 14
     },
     // L19 — Ability Score Improvement
     {
       id: classRowId(W, 3, 36),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 14
+      order: 15,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(W, 0x24, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     // L20 — Eldritch Master
     {
@@ -1767,8 +2228,9 @@ export const warlock: ClassAuthored = {
       label: 'Eldritch Master',
       description:
         'At 20th level, you can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.',
+      effects: [selfClassRuleEffect(37, CLOSED_RULE_KIND.CLASS_WARLOCK_ELDRITCH_MASTER)],
       availableAtLevel: 20,
-      order: 15
+      order: 16
     }
   ]
 }

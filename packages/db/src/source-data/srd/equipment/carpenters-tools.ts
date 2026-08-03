@@ -5,8 +5,7 @@ export const carpentersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(54),
   label: "Carpenter's Tools",
-  description:
-    'Saws, hammers, chisels, and other woodworking instruments for shaping and joining timber.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(8),

@@ -22,7 +22,7 @@ export const waterBreathing: SpellAuthored = {
   id: SPELL_IDS.WATER_BREATHING,
   label: 'Water Breathing',
   description:
-    'This spell grants up to ten willing creatures you can see within range the ability to breathe underwater until the spell ends.',
+    "<p>This spell grants up to ten willing creatures you can see within range the ability to breathe underwater until the spell ends. Affected creatures also retain their normal mode of respiration.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.DRUID, CLASS_IDS.RANGER, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -72,7 +72,8 @@ export const waterBreathing: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WATER_BREATHING, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'WATER_BREATHING' as const
               }
             ]
           }

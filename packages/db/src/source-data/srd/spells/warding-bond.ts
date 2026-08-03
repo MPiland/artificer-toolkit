@@ -19,7 +19,7 @@ export const wardingBond: SpellAuthored = {
   id: SPELL_IDS.WARDING_BOND,
   label: 'Warding Bond',
   description:
-    'This spell wards a willing creature you touch and creates a mystic connection between you and the target until the spell ends. While the target is within 60 feet of you, it gains a bonus to AC and saving throws and has resistance to all damage.',
+    "<p>This spell wards a willing creature you touch and creates a mystic connection between you and the target until the spell ends. While the target is within 60 feet of you, it gains a +1 bonus to AC and saving throws, and it has resistance to all damage. Also, each time it takes damage, you take the same amount of damage. The spell ends if you drop to 0 hit points or if you and the target become separated by more than 60 feet. It also ends if the spell is cast again on either of the connected creatures. You can also dismiss the spell as an action.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC],
@@ -61,7 +61,8 @@ export const wardingBond: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WARDING_BOND, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'WARDING_BOND' as const
               }
             ]
           }

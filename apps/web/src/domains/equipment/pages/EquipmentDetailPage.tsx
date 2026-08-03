@@ -243,7 +243,9 @@ function getEquipmentFacts(
     { label: 'Cost', value: equipment.cost ? `${equipment.cost.amount} currency` : 'Not set' },
     {
       label: 'Weight',
-      value: `${formatNumber(equipment.weight.amount)} ${formatEnumLabel(equipment.weight.unit)}`
+      value: equipment.weight
+        ? `${formatNumber(equipment.weight.amount)} ${formatEnumLabel(equipment.weight.unit)}`
+        : 'Not set'
     }
   ]
 }

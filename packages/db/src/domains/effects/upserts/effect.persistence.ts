@@ -88,7 +88,7 @@ async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<E
     new Set([
       ...pathRows.flatMap((row) => (row.result_block_id ? [row.result_block_id] : [])),
       ...choiceOptions.map((row) => row.result_block_id),
-      ...rollRows.map((row) => row.result_block_id)
+      ...rollRows.flatMap((row) => (row.result_block_id ? [row.result_block_id] : []))
     ])
   )
 

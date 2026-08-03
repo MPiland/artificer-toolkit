@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -26,6 +27,7 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID
 } from '../vocabulary.js'
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -99,7 +101,7 @@ export const gnome: RaceAuthored = {
       id: raceFeatureId(6, 1, 1),
       label: 'Darkvision',
       description:
-        'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -152,50 +154,19 @@ export const gnome: RaceAuthored = {
         'You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.',
       availableAtLevel: 1,
       order: 2,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(6, 3, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: { ability: ABILITY_CODE.INTELLIGENCE },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 0
-          },
-          {
-            id: raceFeatureId(6, 3, 3),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: { ability: ABILITY_CODE.WISDOM },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 1
-          },
-          {
-            id: raceFeatureId(6, 3, 4),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: { ability: ABILITY_CODE.CHARISMA },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 2
-          }
-        ]
-      }
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(6, 3, entry),
+          CLOSED_RULE_KIND.RACE_GNOME_CUNNING
+        )
+      ]
     },
     {
       id: raceFeatureId(6, 4, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description:
-        'You can speak, read, and write Common and Gnomish. The Gnomish language uses the Dwarvish script and is renowned for technical treatises and catalogs of knowledge.',
+        'You can speak, read, and write Common and Gnomish. The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world.',
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -258,15 +229,24 @@ export const rockGnome: RaceAuthored = {
       description:
         'Whenever you make an Intelligence (History) check related to magic items, alchemical objects, or technological devices, you can add twice your proficiency bonus, instead of any proficiency bonus you normally apply.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(109, 2, entry),
+          CLOSED_RULE_KIND.RACE_ARTIFICERS_LORE
+        )
+      ]
     },
     {
       id: raceFeatureId(109, 3, 1),
       label: 'Tinker',
       description:
-        "You have proficiency with artisan's tools (tinker's tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp).",
+        "You have proficiency with artisan's tools (tinker's tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 hour repairing it to keep the device functioning), or when you use your action to dismantle it; at that time, you can reclaim the materials used to create it. You can have up to three such devices active at a time. When you create a device, choose one of the following options: Clockwork Toy. This toy is a clockwork animal, monster, or person, such as a frog, mouse, bird, dragon, or soldier. When placed on the ground, the toy moves 5 feet across the ground on each of your turns in a random direction. It makes noises as appropriate to the creature it represents. Fire Starter. The device produces a miniature flame, which you can use to light a candle, torch, or campfire. Using the device requires your action. Music Box. When opened, this music box plays a single song at a moderate volume. The box stops playing when it reaches the song's end or when it is closed.",
       availableAtLevel: 1,
       order: 2,
+      effects: [
+        raceClosedRuleEffect((entry) => raceFeatureId(109, 3, entry), CLOSED_RULE_KIND.RACE_TINKER)
+      ],
       grants: {
         proficiencies: [
           {

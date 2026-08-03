@@ -34,7 +34,7 @@ const equipmentBaseDtoSchema = z.object({
 const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   attributes: authoredReferenceCollectionSchema(equipmentAttributeCodeSchema).optional(),
   cost: costDtoSchema.optional(),
-  weight: weightDtoSchema,
+  weight: weightDtoSchema.optional(),
   effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   capacity: capacityDtoSchema.optional(),

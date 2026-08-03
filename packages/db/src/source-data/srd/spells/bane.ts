@@ -22,7 +22,7 @@ export const bane: SpellAuthored = {
   id: SPELL_IDS.BANE,
   label: 'Bane',
   description:
-    'Up to three creatures of your choice that you can see within range must make Charisma saving throws; on a failure, the target must roll a d4 and subtract it from attack rolls and saving throws for the duration.',
+    "<p>Up to three creatures of your choice that you can see within range must make Charisma saving throws. Whenever a target that fails this saving throw makes an attack roll or a saving throw before the spell ends, the target must roll a d4 and subtract the number rolled from the attack roll or saving throw. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC],
@@ -72,7 +72,8 @@ export const bane: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BANE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'BANE' as const
               }
             ]
           }

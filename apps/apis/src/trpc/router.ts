@@ -45,6 +45,8 @@ import {
   type AuthoredContentInput,
   type DirectAuthoredDomainConfig
 } from '@artificer-toolkit/functions'
+import { createSupabaseClient } from '@artificer-toolkit/functions/clients'
+import { authInvitationCompletionInputSchema } from '@artificer-toolkit/schema/api/auth'
 import {
   executeDiceConfigurationInputDtoSchema,
   executeRollInputDtoSchema,
@@ -231,6 +233,8 @@ const okResponseSchema = z.object({
   ok: z.literal(true)
 })
 
+const invitationUsernameMetadataKey = 'pending_profile_username'
+
 const characterDraftProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterBuilderDraftSaveRequestDtoSchema
@@ -366,6 +370,69 @@ export const appRouter = createTRPCRouter({
   }),
 
   account: createTRPCRouter({
+    completeInvitation: authenticatedProcedure
+      .input(authInvitationCompletionInputSchema)
+      .output(okResponseSchema)
+      .mutation(async ({ ctx, input }) => {
+        const validation = validateUsername(input.username)
+        if (validation.message) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: USERNAME_NOT_ALLOWED_MESSAGE
+          })
+        }
+
+        const userId = requireUserId(ctx)
+        const hasProfile = await withAuthenticatedDb(ctx, async (db, authenticatedUserId) =>
+          Boolean(await createAccountProfileRepository(db).findForUser(authenticatedUserId))
+        )
+        const usernameTaken = await withDb(ctx, (db) =>
+          createAccountProfileRepository(db).isUsernameTaken(validation.username)
+        )
+
+        if (hasProfile) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Registration is already complete.'
+          })
+        }
+        if (usernameTaken) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'That username is already taken.'
+          })
+        }
+
+        const supabase = createSupabaseClient()
+        const { data: authUser, error: authUserError } =
+          await supabase.auth.admin.getUserById(userId)
+        if (authUserError || !authUser.user) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Could not complete registration.'
+          })
+        }
+
+        const { error } = await supabase.auth.admin.updateUserById(userId, {
+          password: input.password,
+          app_metadata: {
+            ...authUser.user.app_metadata,
+            [invitationUsernameMetadataKey]: validation.username
+          }
+        })
+        if (error) {
+          const usernameTakenAfterFailure = await withDb(ctx, (db) =>
+            createAccountProfileRepository(db).isUsernameTaken(validation.username)
+          )
+          throw new TRPCError({
+            code: usernameTakenAfterFailure ? 'CONFLICT' : 'BAD_REQUEST',
+            message: usernameTakenAfterFailure ? 'That username is already taken.' : error.message
+          })
+        }
+
+        return { ok: true as const }
+      }),
+
     usernameStatus: t.procedure
       .input(accountUsernameStatusInputSchema)
       .output(accountUsernameStatusDtoSchema)

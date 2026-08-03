@@ -19,6 +19,11 @@ export function UpdatePasswordPage({ invitation = false }: { invitation?: boolea
     await navigate({ to: '/sign-in' })
   }
 
+  async function handleBackToSignIn() {
+    await router.invalidate()
+    await navigate({ to: '/sign-in', replace: true })
+  }
+
   return (
     <AuthPageShell
       title={invitation ? 'Complete your account' : 'Set a new password'}
@@ -28,7 +33,11 @@ export function UpdatePasswordPage({ invitation = false }: { invitation?: boolea
           : 'Choose a new password, then return to your toolkit.'
       }
     >
-      <UpdatePasswordForm invitation={invitation} onSuccess={handleSuccess} />
+      <UpdatePasswordForm
+        invitation={invitation}
+        onBackToSignIn={handleBackToSignIn}
+        onSuccess={handleSuccess}
+      />
     </AuthPageShell>
   )
 }

@@ -5,8 +5,7 @@ export const panFlute: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(75),
   label: 'Pan Flute',
-  description:
-    'A series of graduated pipes bound together, played by blowing across the open tops.',
+  description: S.MUSICAL_INSTRUMENT_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
   cost: S.gp(12),

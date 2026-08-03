@@ -43,7 +43,7 @@ export const blinkDog: CreatureAuthored = {
     {
       id: S.featureId(48, 2),
       label: 'Language Limitation',
-      description: "Understands Sylvan but can't speak it.",
+      description: "understands Sylvan but can't speak it",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(48, 3, 'SYLVAN')]
       },
@@ -115,8 +115,7 @@ export const blinkDog: CreatureAuthored = {
     {
       id: S.featureId(48, 4),
       label: 'Teleport (Recharge 4-6)',
-      description:
-        'Teleport (Recharge 4-6). The dog magically teleports, along with any equipment it is wearing or carrying, up to 40 feet to an unoccupied space it can see.',
+      description: 'Teleport (Recharge 4-6). The dog magically teleports,',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       charges: {
         id: S.actionId(48, 7),

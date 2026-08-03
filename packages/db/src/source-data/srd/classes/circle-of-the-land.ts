@@ -1,18 +1,28 @@
 import {
+  ABILITY_CODE,
+  ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
   SPELL_GRANT_ATTRIBUTE,
   SUBCLASS_ATTRIBUTE,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
+import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -191,7 +201,7 @@ export const circleOfTheLand: ClassAuthored = {
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.DRUID,
   description:
-    'The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition.',
+    "The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition. These druids meet within sacred circles of trees or standing stones to whisper primal secrets in Druidic. The circle's wisest members preside as the chief priests of communities that hold to the Old Faith and serve as advisors to the rulers of those folk. As a member of this circle, your magic is influenced by the land where you were initiated into the circle's mysterious rites.",
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   attributes: [SUBCLASS_ATTRIBUTE.SPECIALIZATION],
@@ -229,15 +239,36 @@ export const circleOfTheLand: ClassAuthored = {
       id: classRowId(D, 11, 2),
       label: 'Natural Recovery',
       description:
-        'Starting at 2nd level, you can regain some of your magical energy during a short rest. Choose expended spell slots to recover with a combined level equal to or less than half your druid level, rounded up, and none of the slots can be 6th level or higher. You must finish a long rest before you can use this feature again.',
+        "Starting at 2nd level, you can regain some of your magical energy by sitting in meditation and communing with nature. During a short rest, you choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your druid level (rounded up), and none of the slots can be 6th level or higher. You can't use this feature again until you finish a long rest. For example, when you are a 4th-level druid, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level slot or two 1st-level slots.",
       availableAtLevel: 2,
-      order: 1
+      order: 1,
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: classRowId(D, 22, 1),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1
+      },
+      effects: [
+        closedRuleEffect({
+          id: classRowId(D, 20, 1),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.FREE },
+            range: { id: classRowId(D, 21, 1), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURAL_RECOVERY
+        })
+      ]
     },
     {
       id: classRowId(D, 11, 3),
       label: 'Circle Spells',
       description:
-        'At 3rd, 5th, 7th, and 9th level, your chosen land specialization grants circle spells that are always prepared and do not count against the number of spells you can prepare each day.',
+        "Your mystical connection to the land infuses you with the ability to cast certain spells. At 3rd, 5th, 7th, and 9th level you gain access to circle spells connected to the land where you became a druid. Choose that land—arctic, coast, desert, forest, grassland, mountain, or swamp—and consult the associated list of spells. Once you gain access to a circle spell, you always have it prepared, and it doesn't count against the number of spells you can prepare each day. If you gain access to a spell that doesn't appear on the druid spell list, the spell is nonetheless a druid spell for you.",
       availableAtLevel: 2,
       order: 2,
       grants: {
@@ -248,25 +279,109 @@ export const circleOfTheLand: ClassAuthored = {
       id: classRowId(D, 11, 4),
       label: "Land's Stride",
       description:
-        'Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. You also have advantage on saving throws against plants magically created or manipulated to impede movement.',
+        'Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the entangle spell.',
       availableAtLevel: 6,
-      order: 3
+      order: 3,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(D, 20, 2),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(D, 21, 2), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_LANDS_STRIDE
+        })
+      ]
     },
     {
       id: classRowId(D, 11, 5),
       label: "Nature's Ward",
       description:
-        "At 10th level, you can't be charmed or frightened by elementals or fey, and you are immune to poison and disease.",
+        "When you reach 10th level, you can't be charmed or frightened by elementals or fey, and you are immune to poison and disease.",
       availableAtLevel: 10,
-      order: 4
+      order: 4,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(D, 20, 3),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(D, 21, 3), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_WARD
+        })
+      ]
     },
     {
       id: classRowId(D, 11, 6),
       label: "Nature's Sanctuary",
       description:
-        'At 14th level, beasts and plant creatures become hesitant to attack you. When a beast or plant creature attacks you, it must make a Wisdom saving throw against your druid spell save DC. On a failed save, it must choose a different target or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.',
+        'When you reach 14th level, creatures of the natural world sense your connection to nature and become hesitant to attack you. When a beast or plant creature attacks you, that creature must make a Wisdom saving throw against your druid spell save DC. On a failed save, the creature must choose a different target, or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.',
       availableAtLevel: 14,
-      order: 5
+      order: 5,
+      effects: [
+        {
+          id: classRowId(D, 20, 4),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: classRowId(D, 25, 1),
+              dcMethod: 'SOURCE_SAVE_DC',
+              ability: ABILITY_CODE.WISDOM
+            },
+            range: { id: classRowId(D, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          paths: [
+            {
+              id: classRowId(D, 27, 4),
+              order: 1,
+              pathCode: PATH_CODE.ON_SAVE_FAIL,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(D, 27, 4)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(D, 29, 7),
+                    effectKind: EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_SANCTUARY
+                  }
+                ]
+              }
+            },
+            {
+              id: classRowId(D, 28, 4),
+              order: 2,
+              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(D, 28, 4)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(D, 29, 8),
+                    effectKind: EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_SANCTUARY
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

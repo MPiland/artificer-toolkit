@@ -1,20 +1,28 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  type ClassAuthored
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
@@ -25,6 +33,7 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -54,6 +63,34 @@ function equipmentId(index: number): string {
 }
 
 const D = 4 // Druid class index
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(D, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 
 // Druid spell slot charge — full caster, resets on long rest
 const druidSlotCharge = {
@@ -310,8 +347,6 @@ export const druid: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 2,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description:
-    'A priest of the Old Faith, wielding the powers of nature and adopting animal forms.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -498,7 +533,7 @@ export const druid: ClassAuthored = {
       {
         label: 'Spellcasting Focus',
         description:
-          '<p>You can use a druidic focus as a spellcasting focus for your druid spells.</p>'
+          '<p>You can use a druidic focus (see "Equipment") as a spellcasting focus for your druid spells.</p>'
       }
     ]),
     charges: druidSlotCharge,
@@ -587,9 +622,24 @@ export const druid: ClassAuthored = {
       id: classRowId(D, 3, 1),
       label: 'Druidic',
       description:
-        'You know Druidic, the secret language of druids. You can speak the language and use it to leave hidden messages.',
+        "You know Druidic, the secret language of druids. You can speak the language and use it to leave hidden messages. You and others who know this language automatically spot such a message. Others spot the message's presence with a successful DC 15 Wisdom (Perception) check but can't decipher it without magic.",
       availableAtLevel: 1,
       order: 0,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(D, 0x60, 1),
+          ruleKind: CLOSED_RULE_KIND.CLASS_DRUID_DRUIDIC_MESSAGES,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(D, 0x69, 1), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: 'ANY'
+            }
+          }
+        })
+      ],
       grants: {
         proficiencies: [
           {
@@ -617,15 +667,27 @@ export const druid: ClassAuthored = {
     {
       id: classRowId(D, 3, 3),
       label: 'Wild Shape',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
       description:
-        'Starting at 2nd level, you can use your action to magically assume the shape of a beast that you have seen before.',
+        "Starting at 2nd level, you can use your action to magically assume the shape of a beast that you have seen before. You can use this feature twice. You regain expended uses when you finish a short or long rest. Your druid level determines the beasts you can transform into, as shown in the Beast Shapes table. At 2nd level, for example, you can transform into any beast that has a challenge rating of 1/4 or lower that doesn't have a flying or swimming speed. You can stay in a beast shape for a number of hours equal to half your druid level (rounded down). You then revert to your normal form unless you expend another use of this feature. You can revert to your normal form earlier by using a bonus action on your turn. You automatically revert if you fall unconscious, drop to 0 hit points, or die. While you are transformed, the following rules apply: * Your game statistics are replaced by the statistics of the beast, but you retain your alignment, personality, and Intelligence, Wisdom, and Charisma scores. You also retain all of your skill and saving throw proficiencies, in addition to gaining those of the creature. If the creature has the same proficiency as you and the bonus in its stat block is higher than yours, use the creature's bonus instead of yours. If the creature has any legendary or lair actions, you can't use them. * When you transform, you assume the beast's hit points and Hit Dice. When you revert to your normal form, you return to the number of hit points you had before you transformed. However, if you revert as a result of dropping to 0 hit points, any excess damage carries over to your normal form. For example, if you take 10 damage in animal form and have only 1 hit point left, you revert and take 9 damage. As long as the excess damage doesn't reduce your normal form to 0 hit points, you aren't knocked unconscious. * You can't cast spells, and your ability to speak or take any action that requires hands is limited to the capabilities of your beast form. Transforming doesn't break your concentration on a spell you've already cast, however, or prevent you from taking actions that are part of a spell, such as call lightning, that you've already cast. * You retain the benefit of any features from your class, race, or other source and can use them if the new form is physically capable of doing so. However, you can't use any of your special senses, such as darkvision, unless your new form also has that sense. * You choose whether your equipment falls to the ground in your space, merges into your new form, or is worn by it. Worn equipment functions as normal, but the GM decides whether it is practical for the new form to wear a piece of equipment, based on the creature's shape and size. Your equipment doesn't change size or shape to match the new form, and any equipment that the new form can't wear must either fall to the ground or merge with it. Equipment that merges with the form has no effect until you leave the form.",
       availableAtLevel: 2,
-      order: 2
+      order: 2,
+      charges: {
+        id: classRowId(D, 0x66, 3),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 2
+      },
+      effects: [
+        selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_DRUID_WILD_SHAPE, ACTIVATION_CODE.ACTION)
+      ]
     },
     {
       id: classRowId(D, 3, 4),
       label: 'Druid Circle',
-      description: 'At 2nd level, you choose to identify with a circle of druids.',
+      description:
+        'At 2nd level, you choose to identify with a circle of druids, such as the Circle of the Land. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 2,
       order: 3
@@ -633,55 +695,80 @@ export const druid: ClassAuthored = {
     {
       id: classRowId(D, 3, 5),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 4
+      order: 4,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(D, 5, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(D, 3, 6),
       label: 'Druid Circle Feature',
-      description: 'At 6th level, you gain a feature from your Druid Circle.',
+      description:
+        'At 2nd level, you choose to identify with a circle of druids, such as the Circle of the Land. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 6,
       order: 5
     },
     {
       id: classRowId(D, 3, 7),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(D, 7, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(D, 3, 8),
       label: 'Druid Circle Feature',
-      description: 'At 10th level, you gain a feature from your Druid Circle.',
+      description:
+        'At 2nd level, you choose to identify with a circle of druids, such as the Circle of the Land. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 10,
       order: 7
     },
     {
       id: classRowId(D, 3, 9),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 8
+      order: 8,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(D, 9, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(D, 3, 10),
       label: 'Druid Circle Feature',
-      description: 'At 14th level, you gain a feature from your Druid Circle.',
+      description:
+        'At 2nd level, you choose to identify with a circle of druids, such as the Circle of the Land. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
       availableAtLevel: 14,
       order: 9
     },
     {
       id: classRowId(D, 3, 11),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 10
+      order: 10,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(D, 11, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(D, 3, 12),
@@ -689,30 +776,41 @@ export const druid: ClassAuthored = {
       description:
         'Starting at 18th level, the primal magic that you wield causes you to age more slowly. For every 10 years that pass, your body ages only 1 year.',
       availableAtLevel: 18,
-      order: 11
+      order: 11,
+      effects: [selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_DRUID_TIMELESS_BODY)]
     },
     {
       id: classRowId(D, 3, 13),
       label: 'Beast Spells',
       description:
-        'Beginning at 18th level, you can cast many of your druid spells in any shape you assume using Wild Shape. You can perform the somatic and verbal components of a druid spell while in a beast shape.',
+        "Beginning at 18th level, you can cast many of your druid spells in any shape you assume using Wild Shape. You can perform the somatic and verbal components of a druid spell while in a beast shape, but you aren't able to provide material components.",
       availableAtLevel: 18,
-      order: 12
+      order: 12,
+      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_DRUID_BEAST_SPELLS)]
     },
     {
       id: classRowId(D, 3, 14),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 13
+      order: 13,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(D, 14, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(D, 3, 15),
       label: 'Archdruid',
-      description: 'At 20th level, you can use your Wild Shape an unlimited number of times.',
+      description:
+        "At 20th level, you can use your Wild Shape an unlimited number of times. Additionally, you can ignore the verbal and somatic components of your druid spells, as well as any material components that lack a cost and aren't consumed by a spell. You gain this benefit in both your normal shape and your beast shape from Wild Shape.",
       availableAtLevel: 20,
-      order: 14
+      order: 14,
+      effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_DRUID_ARCHDRUID)]
     }
   ]
 }

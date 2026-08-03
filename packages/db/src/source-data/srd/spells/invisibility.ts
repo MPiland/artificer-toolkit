@@ -15,13 +15,19 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  conditionTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const invisibility: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.INVISIBILITY,
   label: 'Invisibility',
   description:
-    'A creature you touch becomes invisible until the spell ends. The spell ends early on a target that attacks or casts a spell.',
+    "<p>A creature you touch becomes invisible until the spell ends. Anything the target is wearing or carrying is invisible as long as it is on the target's person. The spell ends for a target that attacks or casts a spell. At Higher Levels. When you cast this spell using a spell slot of 3rd level or higher, you can target one additional creature for each slot level above 2nd.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -65,10 +71,14 @@ export const invisibility: SpellAuthored = {
               durationKind: DURATION_KIND.HOUR,
               amount: 1
             },
+            lifecycle: {
+              endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.INVISIBILITY, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INVISIBLE')
               }
             ]
           }

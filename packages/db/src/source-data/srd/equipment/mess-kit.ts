@@ -5,7 +5,7 @@ export const messKit: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(154),
   label: 'Mess Kit',
-  description: 'A tin box containing a cup, fork, knife, and spoon for eating in the field.',
+  description: "This tin box contains a cup and simple cutlery. The box clamps together, and one side can be used as a cooking pan and the other as a plate or shallow bowl.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.sp(2),

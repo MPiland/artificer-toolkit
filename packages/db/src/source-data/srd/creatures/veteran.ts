@@ -34,7 +34,7 @@ export const veteran: CreatureAuthored = {
     {
       id: S.featureId(279, 1),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(279, 2, 'COMMON')]
       },
@@ -45,6 +45,18 @@ export const veteran: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(279, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(279, 201), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {
@@ -76,12 +88,12 @@ export const veteran: CreatureAuthored = {
               id: S.actionId(279, 9),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(279, 9) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(279, 9),
@@ -98,6 +110,11 @@ export const veteran: CreatureAuthored = {
                         order: 1
                       }
                     ]
+                  },
+                  {
+                    id: S.actionId(279, 19),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VETERAN_LONGSWORD_TWO_HANDED
                   }
                 ]
               }
