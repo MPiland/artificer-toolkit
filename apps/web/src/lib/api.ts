@@ -106,6 +106,7 @@ import {
   type AccountUsernameStatusDto,
   type AccountUsernameStatusInput
 } from '@artificer-toolkit/schema/api/account'
+import type { AuthInvitationCompletionInput } from '@artificer-toolkit/schema/api/auth'
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema,
@@ -314,6 +315,7 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
 
 interface TrpcClient {
   account: {
+    completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>
     profile: EmptyQueryProcedure<AccountProfileDto | null>
     updateProfile: MutationProcedure<AccountProfileUpdateInput, AccountProfileDto>
     usernameStatus: QueryProcedure<AccountUsernameStatusInput, AccountUsernameStatusDto>
@@ -537,6 +539,10 @@ function buildApi(client: TrpcClient) {
 
   return {
     account: {
+      completeInvitation: (input: AuthInvitationCompletionInput) =>
+        request('account.completeInvitation', okResponseSchema, () =>
+          client.account.completeInvitation.mutate(input)
+        ),
       profile: () =>
         request('account.profile', accountProfileDtoSchema.nullable(), () =>
           client.account.profile.query()

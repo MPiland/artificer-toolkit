@@ -8,11 +8,14 @@ const profileSchema = readFileSync(
 )
 
 describe('account profile trigger', () => {
-  it('creates a missing profile during the same auth metadata update', () => {
+  it('accepts invitation usernames only through trusted app metadata', () => {
+    expect(profileSchema).toContain('AFTER INSERT ON auth.users')
+    expect(profileSchema).toContain('BEFORE UPDATE OF raw_app_meta_data ON auth.users')
     expect(profileSchema).toContain(
-      'AFTER INSERT OR UPDATE OF raw_user_meta_data ON auth.users'
+      "requested_username text := trim(NEW.raw_app_meta_data ->> 'pending_profile_username')"
     )
-    expect(profileSchema).toContain('SELECT 1 FROM public.profiles WHERE id = NEW.id')
-    expect(profileSchema).toContain("requested_username text := trim(NEW.raw_user_meta_data ->> 'username')")
+    expect(profileSchema).toContain("NEW.raw_app_meta_data, '{}'::jsonb)")
+    expect(profileSchema).toContain("- 'pending_profile_username'")
+    expect(profileSchema).not.toContain('UPDATE OF raw_user_meta_data ON auth.users')
   })
 })

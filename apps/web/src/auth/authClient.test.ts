@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  updateUser: vi.fn(),
-  usernameStatus: vi.fn()
+  completeInvitation: vi.fn(),
+  updateUser: vi.fn()
 }))
 
 vi.mock('../lib/api', () => ({
   api: {
     account: {
-      usernameStatus: mocks.usernameStatus
+      completeInvitation: mocks.completeInvitation
     }
   }
 }))
@@ -24,11 +24,11 @@ import { browserAuthClient } from './authClient'
 describe('browserAuthClient password updates', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.usernameStatus.mockResolvedValue({ status: 'available' })
+    mocks.completeInvitation.mockResolvedValue({ ok: true })
     mocks.updateUser.mockResolvedValue({ error: null })
   })
 
-  it('submits the password and profile username in one auth update', async () => {
+  it('completes invitations through the authenticated API boundary', async () => {
     await expect(
       browserAuthClient.completeInvitation({
         username: 'morgan',
@@ -36,10 +36,11 @@ describe('browserAuthClient password updates', () => {
       })
     ).resolves.toEqual({ ok: true })
 
-    expect(mocks.updateUser).toHaveBeenCalledWith({
+    expect(mocks.completeInvitation).toHaveBeenCalledWith({
       password: 'new-password-123',
-      data: { username: 'morgan' }
+      username: 'morgan'
     })
+    expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
   it('rejects invalid new passwords before calling Supabase', async () => {
@@ -55,8 +56,8 @@ describe('browserAuthClient password updates', () => {
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
-  it('does not change the password when the username is unavailable', async () => {
-    mocks.usernameStatus.mockResolvedValue({ status: 'taken' })
+  it('returns server-enforced username policy failures', async () => {
+    mocks.completeInvitation.mockRejectedValue(new Error('That username is already taken.'))
 
     await expect(
       browserAuthClient.completeInvitation({
@@ -68,69 +69,5 @@ describe('browserAuthClient password updates', () => {
       message: 'That username is already taken.'
     })
     expect(mocks.updateUser).not.toHaveBeenCalled()
-  })
-
-  it('does not accept registration when the atomic auth update fails', async () => {
-    mocks.updateUser.mockResolvedValue({
-      error: {
-        code: 'unexpected_failure',
-        message: 'Database error updating user.'
-      }
-    })
-
-    await expect(
-      browserAuthClient.completeInvitation({
-        username: 'raced_name',
-        password: 'new-password-123'
-      })
-    ).resolves.toEqual({
-      ok: false,
-      message: 'Database error updating user.'
-    })
-    expect(mocks.updateUser).toHaveBeenCalledTimes(1)
-  })
-
-  it('finishes a partially completed invitation when the password is already set', async () => {
-    mocks.updateUser
-      .mockResolvedValueOnce({
-        error: {
-          code: 'same_password',
-          message: 'New password should be different from the old password.'
-        }
-      })
-      .mockResolvedValueOnce({ error: null })
-
-    await expect(
-      browserAuthClient.completeInvitation({
-        username: 'morgan',
-        password: 'new-password-123'
-      })
-    ).resolves.toEqual({ ok: true })
-
-    expect(mocks.updateUser).toHaveBeenNthCalledWith(1, {
-      password: 'new-password-123',
-      data: { username: 'morgan' }
-    })
-    expect(mocks.updateUser).toHaveBeenNthCalledWith(2, {
-      data: { username: 'morgan' }
-    })
-  })
-
-  it('does not retry other password update errors', async () => {
-    mocks.updateUser.mockResolvedValue({
-      error: {
-        code: 'weak_password',
-        message: 'Password does not meet requirements.'
-      }
-    })
-
-    await expect(
-      browserAuthClient.completeInvitation({
-        username: 'morgan',
-        password: 'new-password-123'
-      })
-    ).resolves.toEqual({ ok: false, message: 'Password does not meet requirements.' })
-
-    expect(mocks.updateUser).toHaveBeenCalledTimes(1)
   })
 })
