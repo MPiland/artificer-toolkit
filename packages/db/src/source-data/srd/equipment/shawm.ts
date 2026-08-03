@@ -5,7 +5,7 @@ export const shawm: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(76),
   label: 'Shawm',
-  description: 'A double-reed woodwind instrument with a loud, penetrating sound.',
+  description: S.MUSICAL_INSTRUMENT_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
   cost: S.gp(2),

@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -18,19 +19,13 @@ import {
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
 import {
-  SRD_CONDITION_TYPES,
   SRD_HALFLING_HERITAGE_ID,
   SRD_LANGUAGES,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
-
-function conditionTypeId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
-  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
-  return entry.id
-}
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -124,7 +119,13 @@ export const halfling: RaceAuthored = {
       description:
         'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(3, 2, entry),
+          CLOSED_RULE_KIND.RACE_HALFLING_LUCKY
+        )
+      ]
     },
     {
       id: raceFeatureId(3, 3, 1),
@@ -132,24 +133,12 @@ export const halfling: RaceAuthored = {
       description: 'You have advantage on saving throws against being frightened.',
       availableAtLevel: 1,
       order: 2,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(3, 3, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: {
-              ability: ABILITY_CODE.WISDOM,
-              conditionTypeId: conditionTypeId('FRIGHTENED')
-            },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 0
-          }
-        ]
-      }
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(3, 3, entry),
+          CLOSED_RULE_KIND.RACE_HALFLING_BRAVE
+        )
+      ]
     },
     {
       id: raceFeatureId(3, 4, 1),
@@ -157,14 +146,20 @@ export const halfling: RaceAuthored = {
       description:
         'You can move through the space of any creature that is of a size larger than yours.',
       availableAtLevel: 1,
-      order: 3
+      order: 3,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(3, 4, entry),
+          CLOSED_RULE_KIND.RACE_HALFLING_NIMBLENESS
+        )
+      ]
     },
     {
       id: raceFeatureId(3, 5, 1),
       label: 'Languages',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
       description:
-        'You can speak, read, and write Common and Halfling. The Halfling language is not secret, but halflings are loath to share it with others.',
+        "You can speak, read, and write Common and Halfling. The Halfling language isn't secret, but halflings are loath to share it with others. They write very little, so they don't have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling.",
       availableAtLevel: 1,
       order: 4,
       grants: {
@@ -227,7 +222,13 @@ export const lightfoot: RaceAuthored = {
       description:
         'You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(106, 2, entry),
+          CLOSED_RULE_KIND.RACE_NATURALLY_STEALTHY
+        )
+      ]
     }
   ]
 }

@@ -5,8 +5,7 @@ export const paperOneSheet: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(158),
   label: 'Paper (one sheet)',
-  description:
-    'A single sheet of fine paper suitable for writing correspondence or recording notes.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

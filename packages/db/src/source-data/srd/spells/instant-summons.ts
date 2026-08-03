@@ -19,7 +19,7 @@ export const instantSummons: SpellAuthored = {
   id: SPELL_IDS.INSTANT_SUMMONS,
   label: 'Instant Summons',
   description:
-    'You touch an object weighing 10 pounds or less whose longest dimension is 6 feet or less. The spell leaves an invisible mark on its surface and invisibly inscribes the name of the item on the sapphire you use as the material component.',
+    "<p>You touch an object weighing 10 pounds or less whose longest dimension is 6 feet or less. The spell leaves an invisible mark on its surface and invisibly inscribes the name of the item on the sapphire you use as the material component. Each time you cast this spell, you must use a different sapphire. At any time thereafter, you can use your action to speak the item's name and crush the sapphire. The item instantly appears in your hand regardless of physical or planar distances, and the spell ends. If another creature is holding or carrying the item, crushing the sapphire doesn't transport the item to you, but instead you learn who the creature possessing the object is and roughly where that creature is located at that moment. Dispel magic or a similar effect successfully applied to the sapphire ends this spell's effect.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 6,
   classIds: [CLASS_IDS.WIZARD],
@@ -60,7 +60,11 @@ export const instantSummons: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.INSTANT_SUMMONS, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve the Marked Object",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  "If another creature is holding or carrying the item, crushing the sapphire doesn't transport the item to you, but instead you learn who the creature possessing the object is and roughly where that creature is located at that moment."
               }
             ]
           }

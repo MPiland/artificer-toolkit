@@ -457,7 +457,9 @@ function collectPathResultBlocks(path: SpellPath): SpellResultBlock[] {
   }
 
   if ('rows' in path && Array.isArray(path.rows)) {
-    return path.rows.flatMap((row) => (isRecord(row) ? collectResultBlock(row.resultBlock) : []))
+    return path.rows.flatMap((row) =>
+      row.resolutionKind === 'RESULT' ? collectResultBlock(row.resultBlock) : []
+    )
   }
 
   return []

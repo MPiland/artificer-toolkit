@@ -58,6 +58,18 @@ export const lich: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(183, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(183, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -65,13 +77,91 @@ export const lich: CreatureAuthored = {
       label: 'Rejuvenation',
       description:
         'Rejuvenation. If it has a phylactery, a destroyed lich gains a new body in 1d10 days, regaining all its hit points and becoming active again.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(183, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(183, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_REJUVENATION
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(183, 3),
       label: 'Spellcasting',
       description:
-        'Spellcasting. The lich is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 20, +12 to hit with spell attacks). It requires no material components and has the following wizard spells prepared: Cantrips (at will): mage hand, prestidigitation, ray of frost, shocking grasp. 1st level (4 slots): detect magic, magic missile, shield, thunderwave. 2nd level (3 slots): blindness/deafness, invisibility, mirror image. 3rd level (3 slots): animate dead, counterspell, dispel magic, fireball. 4th level (3 slots): blight, dimension door, phantasmal killer. 5th level (3 slots): cloudkill, geas. 6th level (1 slot): disintegrate, globe of invulnerability. 7th level (1 slot): finger of death, plane shift. 8th level (1 slot): dominate monster, power word stun. 9th level (1 slot): power word kill.',
+        'Spellcasting. The lich is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 20, +12 to hit with spell attacks). The lich has the following wizard spells prepared: Cantrips (at will): mage hand, prestidigitation, ray of frost 1st level (4 slots): detect magic, magic missile, shield, thunderwave 2nd level (3 slots): acid arrow, detect thoughts, invisibility, mirror image 3rd level (3 slots): animate dead, counterspell, dispel magic, fireball 4th level (3 slots): blight, dimension door 5th level (3 slots): cloudkill, scrying 6th level (1 slot): disintegrate, globe of invulnerability 7th level (1 slot): finger of death, plane shift 8th level (1 slot): dominate monster, power word stun 9th level (1 slot): power word kill',
+      grants: {
+        spells: [
+          {
+            id: S.actionId(183, 701),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.MAGE_HAND,
+              S.SPELL_IDS.PRESTIDIGITATION,
+              S.SPELL_IDS.RAY_OF_FROST
+            ],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            order: 0
+          },
+          {
+            id: S.actionId(183, 702),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.DETECT_MAGIC,
+              S.SPELL_IDS.MAGIC_MISSILE,
+              S.SPELL_IDS.SHIELD,
+              S.SPELL_IDS.THUNDERWAVE,
+              S.SPELL_IDS.ACID_ARROW,
+              S.SPELL_IDS.DETECT_THOUGHTS,
+              S.SPELL_IDS.INVISIBILITY,
+              S.SPELL_IDS.MIRROR_IMAGE,
+              S.SPELL_IDS.ANIMATE_DEAD,
+              S.SPELL_IDS.COUNTERSPELL,
+              S.SPELL_IDS.DISPEL_MAGIC,
+              S.SPELL_IDS.FIREBALL,
+              S.SPELL_IDS.BLIGHT,
+              S.SPELL_IDS.DIMENSION_DOOR,
+              S.SPELL_IDS.CLOUDKILL,
+              S.SPELL_IDS.SCRYING,
+              S.SPELL_IDS.DISINTEGRATE,
+              S.SPELL_IDS.GLOBE_OF_INVULNERABILITY,
+              S.SPELL_IDS.FINGER_OF_DEATH,
+              S.SPELL_IDS.PLANE_SHIFT,
+              S.SPELL_IDS.DOMINATE_MONSTER,
+              S.SPELL_IDS.POWER_WORD_STUN,
+              S.SPELL_IDS.POWER_WORD_KILL
+            ],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
+            order: 1
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(183, 703),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(183, 704), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_SPELLCASTING
+        })
+      ],
       order: 3
     },
     {
@@ -79,13 +169,25 @@ export const lich: CreatureAuthored = {
       label: 'Turn Resistance',
       description:
         'Turn Resistance. The lich has advantage on saving throws against any effect that turns undead.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(183, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(183, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_TURN_RESISTANCE
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(183, 5),
       label: 'Paralyzing Touch',
       description:
-        'Paralyzing Touch. Melee Spell Attack: +12 to hit, reach 5 ft., one creature. Hit: 10 (3d6) cold damage, and the target must succeed on a DC 18 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
+        'Paralyzing Touch. Melee Spell Attack: +12 to hit, reach 5 ft., one creature. Hit: 10 (3d6) cold damage. The target must succeed on a DC 18 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
       effects: [
         {
           id: S.actionId(2794, 1),
@@ -153,7 +255,28 @@ export const lich: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(183, 504),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(183, 604),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_PARALYZING_TOUCH
+        })
       ],
       order: 5
     },
@@ -171,6 +294,18 @@ export const lich: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.legendaryActionId(183, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.legendaryActionId(183, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_LEGENDARY_ACTIONS
+        })
+      ],
       order: 6
     }
   ]

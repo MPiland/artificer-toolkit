@@ -5,8 +5,7 @@ export const rations1Day: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(166),
   label: 'Rations (1 day)',
-  description:
-    'Dry food for one day of travel, including dried meat, hard biscuits, and dried fruit.',
+  description: "Rations consist of dry foods suitable for extended travel, including jerky, dried fruit, hardtack, and nuts.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

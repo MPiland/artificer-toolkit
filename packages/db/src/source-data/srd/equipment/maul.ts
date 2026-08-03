@@ -5,7 +5,7 @@ export const maul: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(23),
   label: 'Maul',
-  description: 'A massive two-handed hammer.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

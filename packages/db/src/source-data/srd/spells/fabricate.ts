@@ -19,7 +19,7 @@ export const fabricate: SpellAuthored = {
   id: SPELL_IDS.FABRICATE,
   label: 'Fabricate',
   description:
-    'You convert raw materials into products of the same material. For example, you can fabricate a wooden bridge from a clump of trees, a rope from a patch of hemp, and clothes from flax or wool.',
+    "<p>You convert raw materials into products of the same material. For example, you can fabricate a wooden bridge from a clump of trees, a rope from a patch of hemp, and clothes from flax or wool. Choose raw materials that you can see within range. You can fabricate a Large or smaller object (contained within a 10-foot cube, or eight connected 5-foot cubes), given a sufficient quantity of raw material. If you are working with metal, stone, or another mineral substance, however, the fabricated object can be no larger than Medium (contained within a single 5-foot cube). The quality of objects made by the spell is commensurate with the quality of the raw materials. Creatures or magic items can't be created or transmuted by this spell. You also can't use it to create items that ordinarily require a high degree of craftsmanship, such as jewelry, weapons, glass, or armor, unless you have proficiency with the type of artisan's tools used to craft such objects.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.WIZARD],
@@ -61,7 +61,10 @@ export const fabricate: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FABRICATE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Choose the Fabricated Product",
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions: "You convert raw materials into products of the same material."
               }
             ]
           }

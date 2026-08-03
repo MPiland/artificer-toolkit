@@ -6,7 +6,7 @@ export const ringMailPlus3: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(332),
   label: 'Ring Mail +3',
-  description: 'You have a +3 bonus to AC while wearing this magic armor.',
+  description: S.MAGIC_ARMOR_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: ringMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

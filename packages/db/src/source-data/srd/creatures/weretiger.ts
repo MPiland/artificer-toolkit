@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const weretiger: CreatureAuthored = {
@@ -40,6 +41,19 @@ export const weretiger: CreatureAuthored = {
       label: 'Shapechanger',
       description:
         "Shapechanger. The weretiger can use its action to polymorph into a tiger-humanoid hybrid or into a tiger, or back into its true form, which is humanoid. Its statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(290, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(290, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WERETIGER_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
@@ -54,12 +68,64 @@ export const weretiger: CreatureAuthored = {
       label: 'Pounce (Tiger or Hybrid Form Only)',
       description:
         'Pounce (Tiger or Hybrid Form Only). If the weretiger moves at least 15 feet straight toward a creature and then hits it with a claw attack on the same turn, that target must succeed on a DC 14 Strength saving throw or be knocked prone. If the target is prone, the weretiger can make one bite attack against it as a bonus action.',
+      effects: [
+        {
+          id: S.actionId(290, 202),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(290, 203),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.STRENGTH,
+              baseDc: 14
+            },
+            range: {
+              id: S.actionId(290, 204),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(290, 205),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(290, 206),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(290, 207),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('PRONE')
+                  },
+                  {
+                    id: S.actionId(290, 208),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WERETIGER_POUNCE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
       id: S.featureId(290, 4),
       label: 'Speech Limitation',
-      description: "Common (can't speak in tiger form).",
+      description: "Common (can't speak in tiger form)",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(290, 2, 'COMMON')]
       },
@@ -70,6 +136,18 @@ export const weretiger: CreatureAuthored = {
       label: 'Multiattack (Humanoid or Hybrid Form Only)',
       description:
         'Multiattack (Humanoid or Hybrid Form Only). In humanoid form, the weretiger makes two scimitar attacks or two longbow attacks. In hybrid form, it can attack like a humanoid or make two claw attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(290, 209),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(290, 210), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -77,6 +155,56 @@ export const weretiger: CreatureAuthored = {
       label: 'Bite (Tiger or Hybrid Form Only)',
       description:
         'Bite (Tiger or Hybrid Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage. If the target is a humanoid, it must succeed on a DC 13 Constitution saving throw or be cursed with weretiger lycanthropy.',
+      effects: [
+        {
+          id: S.actionId(290, 211),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(290, 212),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(290, 213),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(290, 214),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(290, 215),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10+3'
+                  },
+                  {
+                    id: S.actionId(290, 216),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WERETIGER_BITE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     },
     {
@@ -84,6 +212,51 @@ export const weretiger: CreatureAuthored = {
       label: 'Claw (Tiger or Hybrid Form Only)',
       description:
         'Claw (Tiger or Hybrid Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) slashing damage.',
+      effects: [
+        {
+          id: S.actionId(290, 217),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(290, 218),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(290, 219),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(290, 220),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(290, 221),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+3'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 7
     },
     {
@@ -91,6 +264,51 @@ export const weretiger: CreatureAuthored = {
       label: 'Scimitar (Humanoid or Hybrid Form Only)',
       description:
         'Scimitar (Humanoid or Hybrid Form Only). Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
+      effects: [
+        {
+          id: S.actionId(290, 222),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(290, 223),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(290, 224),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(290, 225),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(290, 226),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d6+3'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 8
     },
     {
@@ -98,6 +316,51 @@ export const weretiger: CreatureAuthored = {
       label: 'Longbow (Humanoid or Hybrid Form Only)',
       description:
         'Longbow (Humanoid or Hybrid Form Only). Ranged Weapon Attack: +4 to hit, range 150/600 ft., one target. Hit: 6 (1d8 + 2) piercing damage.',
+      effects: [
+        {
+          id: S.actionId(290, 227),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(290, 228),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 600,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(290, 229),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(290, 230),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(290, 231),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d8+2'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 9
     }
   ]

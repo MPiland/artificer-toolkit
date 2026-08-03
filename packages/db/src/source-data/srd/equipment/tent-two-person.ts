@@ -5,7 +5,7 @@ export const tentTwoPerson: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(177),
   label: 'Tent (two-person)',
-  description: 'A simple canvas shelter providing modest protection for two occupants.',
+  description: "A simple and portable canvas shelter, a tent sleeps two.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),

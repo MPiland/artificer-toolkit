@@ -40,6 +40,18 @@ export const kraken: CreatureAuthored = {
       id: S.featureId(180, 1),
       label: 'Amphibious',
       description: 'Amphibious. The kraken can breathe air and water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(180, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_AMPHIBIOUS
+        })
+      ],
       order: 1
     },
     {
@@ -47,34 +59,57 @@ export const kraken: CreatureAuthored = {
       label: 'Freedom of Movement',
       description:
         "Freedom of Movement. The kraken ignores difficult terrain, and magical effects can't reduce its speed or cause it to be restrained. It can spend 5 feet of movement to escape from nonmagical restraints or being grappled.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(180, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_FREEDOM_OF_MOVEMENT
+        })
+      ],
       order: 2
-    },
-    {
-      id: S.featureId(180, 3),
-      label: 'Legendary Resistance (3/Day)',
-      description:
-        'Legendary Resistance (3/Day). If the kraken fails a saving throw, it can choose to succeed instead.',
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: {
-        id: S.legendaryActionId(9001, 20),
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
-        amount: 3
-      },
-      order: 3
     },
     {
       id: S.featureId(180, 4),
       label: 'Siege Monster',
       description: 'Siege Monster. The kraken deals double damage to objects and structures.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(180, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(180, 5),
       label: 'Multiattack',
       description:
-        'The kraken makes three tentacle attacks, each of which it can replace with one bite attack against a creature grappled by it.',
+        'Multiattack. The kraken makes three tentacle attacks, each of which it can replace with one use of Fling.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(180, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(180, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -141,7 +176,7 @@ export const kraken: CreatureAuthored = {
       id: S.featureId(180, 7),
       label: 'Bite',
       description:
-        'Bite. Melee Weapon Attack: +17 to hit, reach 5 ft., one target grappled by the kraken. Hit: 23 (3d8 + 10) piercing damage.',
+        "Bite. Melee Weapon Attack: +17 to hit, reach 5 ft., one target. Hit: 23 (3d8 + 10) piercing damage. If the target is a Large or smaller creature grappled by the kraken, that creature is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, it has total cover against attacks and other effects outside the kraken, and it takes 42 (12d6) acid damage at the start of each of the kraken's turns. If the kraken takes 50 damage or more on a single turn from a creature inside it, the kraken must succeed on a DC 25 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the kraken. If the kraken dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone.",
       effects: [
         {
           id: S.actionId(9001, 5),
@@ -193,7 +228,28 @@ export const kraken: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(180, 505),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(180, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_BITE
+        })
       ],
       order: 7
     },
@@ -201,7 +257,91 @@ export const kraken: CreatureAuthored = {
       id: S.featureId(180, 8),
       label: 'Lightning Storm',
       description:
-        'Lightning Storm. The kraken magically creates three bolts of lightning, each of which can strike a point or creature it can see within 120 feet of it. Each creature within 5 feet of a lightning strike point must make a DC 23 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.',
+        'Lightning Storm. The kraken magically creates three bolts of lightning, each of which can strike a target the kraken can see within 120 feet of it. A target must make a DC 23 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.',
+      effects: [
+        {
+          id: S.actionId(180, 506),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(180, 606),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.DEXTERITY,
+              baseDc: 23
+            },
+            range: {
+              id: S.actionId(180, 607),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(180, 806),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(180, 806) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(180, 960),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10'
+                  },
+                  {
+                    id: S.actionId(180, 968),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_LIGHTNING_STORM
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(180, 807),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(180, 807) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(180, 970),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('LIGHTNING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10',
+                    multiplier: 0.5
+                  },
+                  {
+                    id: S.actionId(180, 978),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_LIGHTNING_STORM
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 8
     }
   ]

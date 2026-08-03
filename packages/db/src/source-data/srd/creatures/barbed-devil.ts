@@ -46,7 +46,51 @@ export const barbedDevil: CreatureAuthored = {
       id: S.featureId(39, 1),
       label: 'Barbed Hide',
       description:
-        'Barbed Hide. At the start of each of its turns, the devil deals 5 (1d10) piercing damage to any creature it is grappling or any creature grappling it.',
+        'Barbed Hide. At the start of each of its turns, the barbed devil deals 5 (1d10) piercing damage to any creature grappling it.',
+      effects: [
+        {
+          id: S.actionId(39, 101),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(39, 102), rangeKind: S.RANGE_KIND.SELF },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(39, 103),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(39, 103)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(39, 104),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10'
+                  },
+                  {
+                    id: S.actionId(39, 105),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BARBED_HIDE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 1
     },
     {
@@ -60,13 +104,36 @@ export const barbedDevil: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(39, 106),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(39, 107), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(39, 4),
       label: 'Multiattack',
       description:
-        'Multiattack. The devil makes two attacks: one with its tail and one with its claws.',
+        'Multiattack. The devil makes three melee attacks: one with its tail and two with its claws. Alternatively, it can use Hurl Flame twice.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(39, 108),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(39, 109), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -136,7 +203,7 @@ export const barbedDevil: CreatureAuthored = {
       id: S.featureId(39, 6),
       label: 'Tail',
       description:
-        'Tail. Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage.',
+        'Tail. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage.',
       effects: [
         {
           id: S.actionId(7311, 5),
@@ -151,7 +218,7 @@ export const barbedDevil: CreatureAuthored = {
             range: {
               id: S.actionId(7311, 6),
               rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
+              amount: 5,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
@@ -174,7 +241,7 @@ export const barbedDevil: CreatureAuthored = {
                   {
                     id: S.actionId(7311, 7),
                     effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    damageTypeId: S.damageTypeId('PIERCING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d6',

@@ -33,7 +33,7 @@ export const bandit: CreatureAuthored = {
     {
       id: S.featureId(37, 1),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(37, 1, 'COMMON')]
       },

@@ -19,7 +19,7 @@ export const mistyStep: SpellAuthored = {
   id: SPELL_IDS.MISTY_STEP,
   label: 'Misty Step',
   description:
-    'Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see.',
+    "<p>Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],

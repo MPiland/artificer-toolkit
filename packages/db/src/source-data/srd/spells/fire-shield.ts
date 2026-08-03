@@ -27,7 +27,7 @@ export const fireShield: SpellAuthored = {
   id: SPELL_IDS.FIRE_SHIELD,
   label: 'Fire Shield',
   description:
-    'Thin and wispy flames wreathe your body for the duration, shedding bright light in a 10-foot radius and dim light for an additional 10 feet. The flames provide you resistance to cold or fire damage (your choice) and deal 2d8 fire or cold damage to any creature that hits you in melee.',
+    "<p>Thin and wispy flames wreathe your body for the duration, shedding bright light in a 10-foot radius and dim light for an additional 10 feet. You can end the spell early by using an action to dismiss it. The flames provide you with a warm shield or a chill shield, as you choose. The warm shield grants you resistance to cold damage, and the chill shield grants you resistance to fire damage. In addition, whenever a creature within 5 feet of you hits you with a melee attack, the shield erupts with flame. The attacker takes 2d8 fire damage from a warm shield, or 2d8 cold damage from a cold shield.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.WIZARD],
@@ -72,7 +72,8 @@ export const fireShield: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FIRE_SHIELD, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'FIRE_SHIELD' as const
               }
             ]
           }

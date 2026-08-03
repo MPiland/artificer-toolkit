@@ -20,7 +20,7 @@ export const shillelagh: SpellAuthored = {
   id: SPELL_IDS.SHILLELAGH,
   label: 'Shillelagh',
   description:
-    "The wood of a club or quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for attack and damage rolls made with that weapon.",
+    "<p>The wood of a club or quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon's damage die becomes a d8. The weapon also becomes magical, if it isn't already. The spell ends if you cast it again or if you let go of the weapon.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.DRUID],
@@ -66,7 +66,8 @@ export const shillelagh: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHILLELAGH, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'SHILLELAGH' as const
               }
             ]
           }

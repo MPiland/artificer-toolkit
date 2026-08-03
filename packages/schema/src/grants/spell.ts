@@ -5,7 +5,11 @@ import {
   authoredIdentifierSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
-import { authoringModeKindSchema, spellGrantAttributeSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  authoringModeKindSchema,
+  spellGrantAttributeSchema
+} from '../shared/enums.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import {
   createGrantProgressionFieldsDtoSchema,
@@ -28,7 +32,8 @@ const spellGrantProgressionFieldsDtoSchema =
 export const spellGrantDtoSchema = scalingGrantBaseDtoSchema
   .extend({
     grantKind: z.literal('SPELL_GRANT'),
-    castAtLevel: z.number().int().optional(),
+    castAtLevel: z.number().int().positive().optional(),
+    castingAbility: abilityCodeSchema.optional(),
     attributes: authoredReferenceCollectionSchema(spellGrantAttributeSchema).optional(),
     filters: facetDtoSchema.optional(),
     charges: chargeUseDtoSchema.optional()

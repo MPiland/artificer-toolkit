@@ -36,12 +36,23 @@ export const awakenedShrub: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the shrub remains motionless, it is indistinguishable from a normal shrub.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(30, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(30, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FALSE_APPEARANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(30, 2),
       label: 'Language Knowledge',
-      description: 'One language known by its creator.',
+      description: 'one language known by its creator',
       order: 2
     },
     {

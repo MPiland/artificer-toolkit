@@ -514,6 +514,7 @@ describe('shared compiler scaling', () => {
               id: 'slowed',
               order: 1,
               rollValue: 1,
+              resolutionKind: 'RESULT',
               resultBlock: {
                 id: 'slowed__result',
                 resultKind: 'SINGLE' as const,
@@ -530,6 +531,7 @@ describe('shared compiler scaling', () => {
               id: 'poisoned',
               order: 2,
               rollValue: 2,
+              resolutionKind: 'RESULT',
               resultBlock: {
                 id: 'poisoned__result',
                 resultKind: 'SINGLE' as const,
@@ -551,7 +553,7 @@ describe('shared compiler scaling', () => {
       throw new Error('Expected compileEffectResult to succeed')
     }
     expect(result.diagnostics).toEqual([])
-    expect(result.value).toEqual([
+    expect(result.value.entries).toEqual([
       {
         id: 'slowed',
         entryId: 'slowed',
@@ -650,7 +652,10 @@ describe('shared compiler scaling', () => {
             outcomes: [
               {
                 id: 'shield-rule',
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve shield rule',
+                reasonCode: 'NARRATIVE_JUDGMENT',
+                instructions: 'Apply the remaining shield rule as written.'
               }
             ]
           }
@@ -661,7 +666,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value).toEqual([
+    expect(result.value.entries).toEqual([
       {
         id: 'shield-buff',
         entryId: 'shield-buff',
@@ -706,7 +711,10 @@ describe('shared compiler scaling', () => {
         groupKind: PATH_GROUP_TYPE.SINGLE,
         outcome: {
           id: 'shield-rule',
-          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+          label: 'Resolve shield rule',
+          reasonCode: 'NARRATIVE_JUDGMENT',
+          instructions: 'Apply the remaining shield rule as written.'
         },
         duration: undefined
       }
@@ -762,7 +770,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value[0]).toMatchObject({
+    expect(result.value.entries[0]).toMatchObject({
       pathCode: PATH_CODE.ON_USE,
       outcome: {
         effectKind: EFFECT_KIND.HEAL,
@@ -805,7 +813,10 @@ describe('shared compiler scaling', () => {
             outcomes: [
               {
                 id: 'choice-copy-direct-entry',
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve direct choice',
+                reasonCode: 'NARRATIVE_JUDGMENT',
+                instructions: 'Resolve the authored direct choice.'
               }
             ]
           }
@@ -823,13 +834,17 @@ describe('shared compiler scaling', () => {
               id: 'choice-copy-roll-entry',
               order: 1,
               rollValue: 1,
+              resolutionKind: 'RESULT',
               resultBlock: {
                 id: 'choice-copy-roll-entry__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: 'choice-copy-roll-entry',
-                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Resolve rolled choice',
+                    reasonCode: 'NARRATIVE_JUDGMENT',
+                    instructions: 'Resolve the authored rolled choice.'
                   }
                 ]
               }
@@ -842,7 +857,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value).toEqual([
+    expect(result.value.entries).toEqual([
       {
         id: 'choice-copy-direct-entry',
         entryId: 'choice-copy-direct-entry',
@@ -854,7 +869,10 @@ describe('shared compiler scaling', () => {
         groupKind: PATH_GROUP_TYPE.SINGLE,
         outcome: {
           id: 'choice-copy-direct-entry',
-          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+          label: 'Resolve direct choice',
+          reasonCode: 'NARRATIVE_JUDGMENT',
+          instructions: 'Resolve the authored direct choice.'
         }
       },
       {
@@ -871,7 +889,10 @@ describe('shared compiler scaling', () => {
         rollValue: 1,
         outcome: {
           id: 'choice-copy-roll-entry',
-          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+          effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+          label: 'Resolve rolled choice',
+          reasonCode: 'NARRATIVE_JUDGMENT',
+          instructions: 'Resolve the authored rolled choice.'
         }
       }
     ])
@@ -922,7 +943,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value[0]).toMatchObject({
+    expect(result.value.entries[0]).toMatchObject({
       pathCode: PATH_CODE.ON_USE,
       outcome: {
         effectKind: EFFECT_KIND.MANIFEST,
@@ -994,7 +1015,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value[0]).toMatchObject({
+    expect(result.value.entries[0]).toMatchObject({
       outcome: {
         effectKind: EFFECT_KIND.MANIFEST,
         manifestKind: 'SUMMON',
@@ -1078,7 +1099,7 @@ describe('shared compiler scaling', () => {
     if (!result.ok) {
       throw new Error('Expected compileEffectResult to succeed')
     }
-    expect(result.value[0]).toMatchObject({
+    expect(result.value.entries[0]).toMatchObject({
       pathCode: PATH_CODE.ON_SAVE_FAIL,
       lifecycle: {
         recurringKind: 'NONE',

@@ -5,7 +5,7 @@ export const shieldMetal: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(354),
   label: 'Shield',
-  description: 'A metal shield strapped to the forearm.',
+  description: S.SHIELD_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.SHIELD,
   properties: [S.EQUIPMENT_PROPERTY_CODE.METAL],
   armorClass: 2,

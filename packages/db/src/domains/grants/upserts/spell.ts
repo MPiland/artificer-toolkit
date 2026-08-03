@@ -22,6 +22,7 @@ type SpellGrantRootRow = {
   restriction_id: string | null
   filter_id: string | null
   cast_at_level: number | null
+  casting_ability_code: string | null
 }
 
 type SpellGrantScalingLevelRow = {
@@ -201,7 +202,8 @@ function mapSpellGrantRootRow(
       charge_id: chargeId,
       restriction_id: json_data.restrictions?.id ?? null,
       filter_id: json_data.filters?.id ?? null,
-      cast_at_level: json_data.castAtLevel ?? null
+      cast_at_level: json_data.castAtLevel ?? null,
+      casting_ability_code: json_data.castingAbility ?? null
     }
   }
 
@@ -220,7 +222,8 @@ function mapSpellGrantRootRow(
     charge_id: chargeId,
     restriction_id: json_data.restrictions?.id ?? null,
     filter_id: json_data.filters?.id ?? null,
-    cast_at_level: json_data.castAtLevel ?? null
+    cast_at_level: json_data.castAtLevel ?? null,
+    casting_ability_code: json_data.castingAbility ?? null
   }
 }
 
@@ -360,7 +363,8 @@ export async function upsertSpellGrant(db: DBLike, json_data: SpellGrantAuthored
           charge_id: eb.ref('excluded.charge_id'),
           restriction_id: eb.ref('excluded.restriction_id'),
           filter_id: eb.ref('excluded.filter_id'),
-          cast_at_level: eb.ref('excluded.cast_at_level')
+          cast_at_level: eb.ref('excluded.cast_at_level'),
+          casting_ability_code: eb.ref('excluded.casting_ability_code')
         }))
       )
       .execute()

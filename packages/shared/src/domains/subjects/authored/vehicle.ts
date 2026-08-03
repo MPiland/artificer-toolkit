@@ -1,5 +1,5 @@
 import type { SizeCode, AuthoredRecordStatus } from '#core'
-import type { CostAuthored, DetailAuthored, FeatureAuthored } from '#authored'
+import type { CostAuthored, DetailAuthored, FeatureAuthored, WeightAuthored } from '#authored'
 
 export type VehicleCategory = 'LAND' | 'WATER' | 'AIR' | 'SPELLJAMMER'
 
@@ -21,6 +21,7 @@ export interface VehicleAuthored {
   crewMax?: number
   passengerCapacity?: number
   cargoCapacity?: string
+  weight?: WeightAuthored
   cost?: CostAuthored
   properties?: string[]
   features?: FeatureAuthored[]

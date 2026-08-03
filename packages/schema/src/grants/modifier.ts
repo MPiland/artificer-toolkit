@@ -80,7 +80,8 @@ const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
   }),
   z.object({
     valueKind: z.literal(modifierValueKindSchema.enum.SPELL_SLOT_LEVEL),
-    multiplier: z.number().optional()
+    multiplier: z.number().optional(),
+    subtractLevels: z.number().int().nonnegative().optional()
   })
 ])
 

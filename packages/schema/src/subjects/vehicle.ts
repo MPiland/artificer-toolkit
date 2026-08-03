@@ -9,7 +9,7 @@ import {
   detailDtoSchema
 } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
-import { costDtoSchema } from './shared.js'
+import { costDtoSchema, weightDtoSchema } from './shared.js'
 import {
   authoredRecordStatusSchema,
   sizeCodeSchema,
@@ -28,12 +28,13 @@ export const vehicleAuthoredDtoSchema = z.object({
   size: sizeCodeSchema.optional(),
   armorClass: z.number().int().nonnegative().optional(),
   hitPoints: z.number().int().nonnegative().optional(),
-  speed: z.number().int().nonnegative().optional(),
+  speed: z.number().nonnegative().optional(),
   speedNote: authoredPlainTextSchema.optional(),
   crewMin: z.number().int().nonnegative().optional(),
   crewMax: z.number().int().nonnegative().optional(),
   passengerCapacity: z.number().int().nonnegative().optional(),
   cargoCapacity: authoredPlainTextSchema.optional(),
+  weight: weightDtoSchema.optional(),
   cost: costDtoSchema.optional(),
   properties: authoredReferenceCollectionSchema(authoredShortTextSchema).optional(),
   features: authoredNestedCollectionSchema(featureDtoSchema).optional()

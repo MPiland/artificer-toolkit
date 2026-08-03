@@ -3,6 +3,56 @@ import { createEffectRepository } from '../repositories/index.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
 describe('createEffectRepository', () => {
+  it('round-trips an incoming saving-throw trigger through passive effect persistence', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never)
+
+    await repository.upsert({
+      id: 'effect-incoming-save-1',
+      order: 1,
+      invocation: {
+        kind: 'PASSIVE',
+        triggerCode: 'INCOMING_SAVING_THROW',
+        range: {
+          id: 'effect-incoming-save-1-range',
+          rangeKind: 'SELF'
+        }
+      },
+      paths: [
+        {
+          id: 'effect-incoming-save-1-path',
+          order: 1,
+          pathCode: 'PASSIVE',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'effect-incoming-save-1-result',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'effect-incoming-save-1-outcome',
+                effectKind: 'CONDITION',
+                conditionId: 'protected'
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    await expect(repository.findById('effect-incoming-save-1')).resolves.toMatchObject({
+      invocation: {
+        kind: 'PASSIVE',
+        triggerCode: 'INCOMING_SAVING_THROW'
+      },
+      paths: [
+        {
+          pathCode: 'PASSIVE'
+        }
+      ]
+    })
+  })
+
   it('round-trips a direct saving-throw effect with owned shape, duration, and damage payloads', async () => {
     const db = new InMemoryDb()
     const repository = createEffectRepository(db as never)
@@ -38,9 +88,13 @@ describe('createEffectRepository', () => {
         },
         shape: {
           id: 'shape-1',
-          shapeKind: 'SPHERE',
-          radius: {
+          shapeKind: 'LINE',
+          length: {
             amount: 20,
+            unit: 'FEET'
+          },
+          width: {
+            amount: 5,
             unit: 'FEET'
           }
         }
@@ -132,9 +186,13 @@ describe('createEffectRepository', () => {
         },
         shape: {
           id: 'shape-1',
-          shapeKind: 'SPHERE',
-          radius: {
+          shapeKind: 'LINE',
+          length: {
             amount: 20,
+            unit: 'FEET'
+          },
+          width: {
+            amount: 5,
             unit: 'FEET'
           }
         }
@@ -713,6 +771,7 @@ describe('createEffectRepository', () => {
               id: 'entry-1',
               order: 1,
               rollRange: [1, 3],
+              resolutionKind: 'RESULT',
               resultBlock: {
                 id: 'entry-1__result',
                 resultKind: 'SINGLE',
@@ -737,6 +796,7 @@ describe('createEffectRepository', () => {
               id: 'entry-2',
               order: 2,
               rollRange: [4, 6],
+              resolutionKind: 'RESULT',
               resultBlock: {
                 id: 'entry-2__result',
                 resultKind: 'SINGLE',

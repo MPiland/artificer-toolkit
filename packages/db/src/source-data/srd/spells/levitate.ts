@@ -22,7 +22,7 @@ export const levitate: SpellAuthored = {
   id: SPELL_IDS.LEVITATE,
   label: 'Levitate',
   description:
-    "One creature or object of your choice that you can see within range rises vertically and remains suspended for the duration. You can move the target up or down within the spell's limits.",
+    "<p>One creature or object of your choice that you can see within range rises vertically, up to 20 feet, and remains suspended there for the duration. The spell can levitate a target that weighs up to 500 pounds. An unwilling creature that succeeds on a Constitution saving throw is unaffected. The target can move only by pushing or pulling against a fixed object or surface within reach (such as a wall or a ceiling), which allows it to move as if it were climbing. You can change the target's altitude by up to 20 feet in either direction on your turn. If you are the target, you can move up or down as part of your move. Otherwise, you can use your action to move the target, which must remain within the spell's range. When the spell ends, the target floats gently to the ground if it is still aloft.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -72,7 +72,8 @@ export const levitate: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LEVITATE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'LEVITATE' as const
               }
             ]
           }

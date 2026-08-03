@@ -23,6 +23,8 @@ type VehicleRow = {
   crew_max: number | null
   passenger_capacity: number | null
   cargo_capacity: string | null
+  weight_amount: number | null
+  weight_unit: string | null
   cost: Json | null
   properties: string[] | null
   is_master: boolean | null
@@ -74,6 +76,8 @@ export async function upsertVehicle(db: DBLike, json_data: VehicleAuthored, _sys
     crew_max: json_data.crewMax ?? null,
     passenger_capacity: json_data.passengerCapacity ?? null,
     cargo_capacity: json_data.cargoCapacity ?? null,
+    weight_amount: json_data.weight?.amount ?? null,
+    weight_unit: json_data.weight?.unit ?? null,
     cost: json_data.cost ? (json_data.cost as unknown as Json) : null,
     properties: json_data.properties ?? null,
     is_master: null

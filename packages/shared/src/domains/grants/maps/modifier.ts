@@ -272,6 +272,13 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         })
       )
       .set(
+        'subtractLevels',
+        number(['subtractLevels'], 'Subtract Levels', {
+          constraints: { minimum: 0 },
+          showIf: local.field(['valueKind']).eq('SPELL_SLOT_LEVEL')
+        })
+      )
+      .set(
         'dice',
         text(['dice'], 'Dice', {
           showIf: parent.field(['modifierKind']).eq('ADD_BONUS_DIE')

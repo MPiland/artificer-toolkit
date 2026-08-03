@@ -1,15 +1,21 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import {
   AUTHORING_MODE_KIND,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
+  PATH_GROUP_TYPE,
   PATH_CODES_BY_TRIGGER,
   PROFICIENCY_KIND,
-  SCALING_AMOUNT_KIND
+  RANGE_KIND,
+  SCALING_AMOUNT_KIND,
+  TRIGGER
 } from '@artificer-toolkit/shared/core'
 import {
   compileBackground,
@@ -22,6 +28,7 @@ import {
   compileVehicle,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/compilers'
+import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -32,6 +39,8 @@ import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell
 import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 
 import { mapDurationToRow } from '../domains/shared/upserts/characteristic.js'
+import { closedRuleEffect } from '../source-data/srd/closed-rule-effect.js'
+import { abilityScoreImprovementOptions } from '../source-data/srd/classes/mechanics.js'
 import { srdBaselineContent } from '../source-data/srd/index.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -555,7 +564,100 @@ function hasManualAdjudicationOutcome(value: unknown): boolean {
   return Object.values(value).some(hasManualAdjudicationOutcome)
 }
 
+function collectManualInstructions(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(collectManualInstructions)
+  if (!isRecord(value)) return []
+
+  const own =
+    value.effectKind === 'MANUAL_ADJUDICATION' && typeof value.instructions === 'string'
+      ? [value.instructions]
+      : []
+
+  return [...own, ...Object.values(value).flatMap(collectManualInstructions)]
+}
+
+function normalizeSrdText(value: string): string {
+  return stripHtml(value)
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&(?:rsquo|#39);/g, "'")
+    .replace(/[‘’]/g, "'")
+    .replace(/[‐‑‒–—]/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 describe('SRD source data', () => {
+  it('builds stable closed-rule mechanics with authored invocation intact', () => {
+    const effect = closedRuleEffect({
+      id: '00000000-0000-0000-0000-000000000001',
+      invocation: {
+        kind: 'PASSIVE',
+        triggerCode: TRIGGER.ACTIVATED,
+        range: {
+          id: '00000000-0000-0000-0000-000000000002',
+          rangeKind: RANGE_KIND.SELF
+        }
+      },
+      ruleKind: CLOSED_RULE_KIND.GRAPPLER_PIN
+    })
+
+    expect(effect).toEqual(
+      closedRuleEffect({
+        id: effect.id,
+        invocation: effect.invocation,
+        ruleKind: CLOSED_RULE_KIND.GRAPPLER_PIN
+      })
+    )
+    const path = effect.paths[0]
+    expect(path?.groupType).toBe(PATH_GROUP_TYPE.SINGLE)
+    expect(path?.selectionKind).toBe('FIXED')
+    if (path?.selectionKind !== 'FIXED') {
+      throw new Error('Expected closed-rule helper to create a single-result path')
+    }
+    expect(path.resultBlock.outcomes[0]).toMatchObject({
+      effectKind: 'CLOSED_RULE',
+      ruleKind: CLOSED_RULE_KIND.GRAPPLER_PIN
+    })
+  })
+
+  it('builds every legal SRD ability score improvement choice', () => {
+    const options = abilityScoreImprovementOptions(
+      (entry) => `00000000-0000-0000-0000-${entry.toString().padStart(12, '0')}`,
+      'SRD ability score improvement.'
+    )
+
+    expect(options).toHaveLength(21)
+    expect(options.map((option) => option.label)).toEqual(
+      expect.arrayContaining(['Strength +2', 'Strength +1, Dexterity +1', 'Wisdom +1, Charisma +1'])
+    )
+    expect(
+      options.every((option) =>
+        option.grants?.modifiers?.every(
+          (modifier) =>
+            modifier.payload !== undefined &&
+            'valueKind' in modifier.payload &&
+            modifier.payload.valueKind === 'FIXED' &&
+            'amount' in modifier.payload &&
+            [1, 2].includes(modifier.payload.amount)
+        )
+      )
+    ).toBe(true)
+  })
+
+  it('keeps every manual-adjudication instruction verbatim from the tracked SRD', () => {
+    const source = normalizeSrdText(
+      readFileSync(new URL('../source-data/srd/SRD_CC_v5.1.txt', import.meta.url), 'utf8')
+    )
+    const mismatches = Object.values(srdBaselineContent.subjects)
+      .flatMap((records) => records)
+      .flatMap(collectManualInstructions)
+      .filter((instructions) => !source.includes(normalizeSrdText(instructions)))
+
+    expect(mismatches).toEqual([])
+  })
+
   const authoredRootSchemaCases = [
     {
       domain: 'backgrounds',
@@ -607,6 +709,17 @@ describe('SRD source data', () => {
     }
   })
 
+  it('keeps Shelter of the Faithful as an explicit external-world exception', () => {
+    const entry = compileBackground(srdBaselineContent.subjects.backgrounds[0]!).features?.[0]
+      ?.effects?.[0]?.entries[0]
+
+    expect(entry && 'outcome' in entry ? entry.outcome : undefined).toMatchObject({
+      effectKind: 'MANUAL_ADJUDICATION',
+      label: 'Shelter of the Faithful',
+      reasonCode: 'EXTERNAL_WORLD_STATE'
+    })
+  })
+
   it('compiles every class root', () => {
     for (const record of srdBaselineContent.subjects.classes) {
       expect(compileClass(record).id).toBe(record.id)
@@ -629,6 +742,27 @@ describe('SRD source data', () => {
     for (const record of srdBaselineContent.subjects.feats) {
       expect(compileFeat(record).id).toBe(record.id)
     }
+  })
+
+  it('compiles both Grappler benefits as closed deterministic rules', () => {
+    const compiled = compileFeat(srdBaselineContent.subjects.feats[0]!)
+    const outcomes =
+      compiled.features?.flatMap(
+        (feature) =>
+          feature.effects?.flatMap((effect) =>
+            effect.entries.flatMap((entry) => ('outcome' in entry ? [entry.outcome] : []))
+          ) ?? []
+      ) ?? []
+
+    expect(outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          effectKind: 'CLOSED_RULE',
+          ruleKind: 'GRAPPLER_ADVANTAGE_ON_GRAPPLED_TARGET'
+        }),
+        expect.objectContaining({ effectKind: 'CLOSED_RULE', ruleKind: 'GRAPPLER_PIN' })
+      ])
+    )
   })
 
   it('resolves inheritance and compiles every race root', () => {
@@ -659,6 +793,68 @@ describe('SRD source data', () => {
     for (const record of srdBaselineContent.subjects.vehicles) {
       expect(compileVehicle(record).id).toBe(record.id)
     }
+  })
+
+  it('preserves the exact SRD vehicle logistics through authored and compiled data', () => {
+    const vehicles = new Map(
+      srdBaselineContent.subjects.vehicles.map((vehicle) => [vehicle.label, vehicle])
+    )
+    const expectedLandWeights = new Map([
+      ['Carriage', 600],
+      ['Cart', 200],
+      ['Chariot', 100],
+      ['Sled', 300],
+      ['Wagon', 400]
+    ])
+
+    for (const [label, amount] of expectedLandWeights) {
+      const vehicle = vehicles.get(label)
+      expect(vehicle?.weight).toEqual({ amount, unit: 'POUNDS' })
+      expect(compileVehicle(vehicle!).features?.[0]?.effects?.[0]?.entries[0]).toMatchObject({
+        outcome: {
+          effectKind: 'CLOSED_RULE',
+          ruleKind: 'VEHICLE_DRAFT_ANIMAL_CAPACITY'
+        }
+      })
+    }
+
+    const rowboat = vehicles.get('Rowboat')
+    const warship = vehicles.get('Warship')
+    if (!rowboat || !warship) throw new Error('SRD rowboat and warship records are required.')
+
+    expect(rowboat).toMatchObject({
+      speed: 1.5,
+      speedNote: '1½ mph',
+      weight: { amount: 100, unit: 'POUNDS' }
+    })
+    expect(warship).toMatchObject({ speed: 2.5, speedNote: '2½ mph' })
+    expect(compileVehicle(rowboat).features?.[0]?.effects?.[0]?.entries[0]).toMatchObject({
+      outcome: {
+        effectKind: 'CLOSED_RULE',
+        ruleKind: 'VEHICLE_ROWED_VESSEL_CURRENT'
+      }
+    })
+
+    for (const vehicle of vehicles.values()) {
+      expect(vehicle).not.toHaveProperty('armorClass')
+      expect(vehicle).not.toHaveProperty('hitPoints')
+      expect(vehicle).not.toHaveProperty('crewMin')
+      expect(vehicle).not.toHaveProperty('crewMax')
+      expect(vehicle).not.toHaveProperty('passengerCapacity')
+    }
+
+    const clonedRowboat = cloneAuthoredItem(rowboat)
+    expect(clonedRowboat.features?.[0]?.id).not.toBe(rowboat.features?.[0]?.id)
+    expect(clonedRowboat.features?.[0]?.effects?.[0]?.paths[0]).toMatchObject({
+      resultBlock: {
+        outcomes: [
+          expect.objectContaining({
+            effectKind: 'CLOSED_RULE',
+            ruleKind: 'VEHICLE_ROWED_VESSEL_CURRENT'
+          })
+        ]
+      }
+    })
   })
 
   it('binds the SRD system container to the D&D 5e 2014 ruleset', () => {
@@ -1057,7 +1253,7 @@ describe('SRD source data', () => {
       srdBaselineContent.subjects.spells.find((spell) => spell.label === 'Acid Arrow')
     ).toMatchObject({
       components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
-      description: expect.stringContaining('<strong>At Higher Levels.</strong>'),
+      description: expect.stringContaining('At Higher Levels.'),
       materialDescription: "powdered rhubarb leaf and an adder's stomach",
       magicSchoolId: expect.stringMatching(/00000000-0000-0000-0007-000500000000/i),
       effects: expect.arrayContaining([expect.objectContaining({ id: expect.any(String) })])
@@ -1153,7 +1349,7 @@ describe('SRD source data', () => {
         min: 1
       })
     })
-    expect(bardFeatureLabels.has('Bardic Inspiration')).toBe(false)
+    expect(bardFeatureLabels.has('Bardic Inspiration')).toBe(true)
     expect(fontOfInspiration?.grants?.modifiers?.[0]).toMatchObject({
       valueDomainCode: 'CHARGE_RESET',
       modifierKind: 'REPLACE_CHARGE_RESET_KIND',
@@ -1214,7 +1410,7 @@ describe('SRD source data', () => {
       properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
     })
     expect(hasDamageOutcome(alchemistsFire, getSrdDamageTypeId('FIRE'), '1d4')).toBe(true)
-    expect(hasManualAdjudicationOutcome(alchemistsFire)).toBe(true)
+    expect(hasManualAdjudicationOutcome(alchemistsFire)).toBe(false)
 
     expect(antitoxin).toMatchObject({
       description: expect.stringContaining(
@@ -1225,15 +1421,15 @@ describe('SRD source data', () => {
         EQUIPMENT_PROPERTY_CODE.DRINK
       ])
     })
-    expect(hasManualAdjudicationOutcome(antitoxin)).toBe(true)
+    expect(hasManualAdjudicationOutcome(antitoxin)).toBe(false)
 
     expect(ballBearings.description).toContain(
       'cover a level, square area that is 10 feet on a side'
     )
-    expect(hasManualAdjudicationOutcome(ballBearings)).toBe(true)
+    expect(hasManualAdjudicationOutcome(ballBearings)).toBe(false)
 
     expect(caltrops.description).toContain('take 1 piercing damage')
-    expect(hasManualAdjudicationOutcome(caltrops)).toBe(true)
+    expect(hasManualAdjudicationOutcome(caltrops)).toBe(false)
 
     expect(holyWater).toMatchObject({
       description: expect.stringContaining(
@@ -1244,15 +1440,15 @@ describe('SRD source data', () => {
     expect(hasDamageOutcome(holyWater, getSrdDamageTypeId('RADIANT'), '2d6')).toBe(true)
 
     expect(huntingTrap.description).toContain('take 1d4 piercing damage and stop moving')
-    expect(hasManualAdjudicationOutcome(huntingTrap)).toBe(true)
+    expect(hasManualAdjudicationOutcome(huntingTrap)).toBe(false)
 
     expect(oil).toMatchObject({
       description: expect.stringContaining(
-        'If the target takes any fire damage before the oil dries after 1 minute'
+        'If the target takes any fire damage before the oil dries (after 1 minute)'
       ),
       properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
     })
-    expect(hasManualAdjudicationOutcome(oil)).toBe(true)
+    expect(hasManualAdjudicationOutcome(oil)).toBe(false)
 
     expect(poison).toMatchObject({
       description: expect.stringContaining('take 1d4 poison damage'),
@@ -1261,7 +1457,7 @@ describe('SRD source data', () => {
         EQUIPMENT_PROPERTY_CODE.POISON
       ])
     })
-    expect(hasManualAdjudicationOutcome(poison)).toBe(true)
+    expect(hasManualAdjudicationOutcome(poison)).toBe(false)
 
     expect(potion).toMatchObject({
       description: expect.stringContaining('regains 2d4 + 2 hit points'),

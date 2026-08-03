@@ -11,6 +11,12 @@ import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixt
 import type { AuthoringNavigationTarget } from './authoringNavigation'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
+const RACE_CREATE_REGISTRATION = {
+  data: { systems: [{ id: 'system-1' }] },
+  domain: 'race',
+  mode: 'create'
+} as const
+
 describe('AuthoringFormProvider domain registration', () => {
   it('registers authored form domain metadata from registerDomain', async () => {
     render(
@@ -42,6 +48,8 @@ describe('AuthoringFormProvider domain registration', () => {
   })
 
   it('resolves an authored form session from domain loader data', async () => {
+    const user = userEvent.setup()
+
     render(
       <ProviderHarness>
         <DomainDataRegistrationProbe />
@@ -52,6 +60,10 @@ describe('AuthoringFormProvider domain registration', () => {
       expect(screen.getByTestId('session-key').textContent).toBe('race:create:system-1')
     })
     expect(screen.getByTestId('system-id').textContent).toBe('system-1')
+
+    const sessionId = screen.getByTestId('session-id').textContent
+    await user.click(screen.getByRole('button', { name: 'Register again' }))
+    expect(screen.getByTestId('session-id').textContent).toBe(sessionId)
   })
 
   it('derives visible step state and navigation from the resolved model', async () => {
@@ -472,19 +484,21 @@ function RegistrationProbe() {
 function DomainDataRegistrationProbe() {
   const authoring = useAuthoringForm()
   const { registerDomain } = authoring
+  const initialValues = authoring.authoredSession?.initialValues
+  const sessionId = initialValues && 'id' in initialValues ? initialValues.id : undefined
 
   useEffect(() => {
-    registerDomain({
-      data: { systems: [{ id: 'system-1' }] },
-      domain: 'race',
-      mode: 'create'
-    })
+    registerDomain(RACE_CREATE_REGISTRATION)
   }, [registerDomain])
 
   return (
     <>
       <div data-testid='session-key'>{authoring.authoredSession?.key}</div>
+      <div data-testid='session-id'>{String(sessionId ?? '')}</div>
       <div data-testid='system-id'>{authoring.authoredSession?.systemId}</div>
+      <button type='button' onClick={() => registerDomain(RACE_CREATE_REGISTRATION)}>
+        Register again
+      </button>
     </>
   )
 }

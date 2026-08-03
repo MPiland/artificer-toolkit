@@ -1,4 +1,4 @@
-import type { CharacterBuildSnapshot } from '../snapshot.js'
+import { getChosenGrantTargetIds, type CharacterBuildSnapshot } from '../snapshot.js'
 import type { CompiledClass } from '../../subjects/compilers/class.js'
 import type { CompiledModifierGrant } from '../../grants/compilers/modifier.js'
 import type { CompiledProficiencyGrant } from '../../grants/compilers/proficiency.js'
@@ -12,7 +12,6 @@ import type {
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry, CharacterAssemblyRegistryFeature } from '../registry.js'
 import {
-  getCharacterChosenGrantSelectionIdentityKey,
   getCharacterProvenanceIdentityKey,
   type CharacterProvenance
 } from '../../subjects/authored/character/intent.js'
@@ -75,7 +74,7 @@ function extractProficiencies(
       pushProficiencies(
         out,
         grant,
-        getSelectedGrantTargetIds(snapshot, grant.id, ownerSource),
+        getChosenGrantTargetIds(snapshot, grant.id, ownerSource),
         scaling,
         mechanicSource
       )
@@ -246,7 +245,7 @@ function extractSenses(
         if (level.level > activeLevel) continue
         const ids =
           g.selectionKind === 'CHOSEN'
-            ? getSelectedGrantTargetIds(snapshot, grant.id, ownerSource, level.level)
+            ? getChosenGrantTargetIds(snapshot, grant.id, ownerSource, level.level)
             : (level.senseIds ?? [])
         for (const senseCode of ids) {
           out.push({ senseCode, range: g.range })
@@ -257,7 +256,7 @@ function extractSenses(
 
     const ids =
       g.selectionKind === 'CHOSEN'
-        ? getSelectedGrantTargetIds(snapshot, grant.id, ownerSource)
+        ? getChosenGrantTargetIds(snapshot, grant.id, ownerSource)
         : (g.senseIds ?? [])
     for (const senseCode of ids) {
       out.push({ senseCode, range: g.range })
@@ -514,32 +513,14 @@ function getSelectedOrGrantedScalingIds(
       if (level.level > (context?.activeLevel ?? 0)) return []
 
       return g.selectionKind === 'CHOSEN'
-        ? getSelectedGrantTargetIds(snapshot, g.id, ownerSource, level.level)
+        ? getChosenGrantTargetIds(snapshot, g.id, ownerSource, level.level)
         : (level[idKey] ?? [])
     })
   }
 
   return g.selectionKind === 'CHOSEN'
-    ? getSelectedGrantTargetIds(snapshot, g.id, ownerSource)
+    ? getChosenGrantTargetIds(snapshot, g.id, ownerSource)
     : (g[idKey] ?? [])
-}
-
-function getSelectedGrantTargetIds(
-  snapshot: CharacterBuildSnapshot,
-  grantId: string,
-  source: CharacterProvenance,
-  progressionLevel?: number
-): string[] {
-  const identityKey = getCharacterChosenGrantSelectionIdentityKey({
-    grantId,
-    source,
-    progressionLevel
-  })
-  return (
-    snapshot.chosenGrantSelections?.find(
-      (selection) => getCharacterChosenGrantSelectionIdentityKey(selection) === identityKey
-    )?.targetIds ?? []
-  )
 }
 
 function getSelectedFeatureOptions(

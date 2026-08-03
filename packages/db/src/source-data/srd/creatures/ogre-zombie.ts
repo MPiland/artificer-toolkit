@@ -38,12 +38,24 @@ export const ogreZombie: CreatureAuthored = {
       label: 'Undead Fortitude',
       description:
         'Undead Fortitude. If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(210, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(210, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_UNDEAD_FORTITUDE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(210, 2),
       label: 'Language Limitation',
-      description: "Understands Common and Giant but can't speak.",
+      description: "understands Common and Giant but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(210, 2, 'COMMON', 'GIANT')]
       },
@@ -53,7 +65,7 @@ export const ogreZombie: CreatureAuthored = {
       id: S.featureId(210, 3),
       label: 'Morningstar',
       description:
-        'Morningstar. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) piercing damage.',
+        'Morningstar. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage.',
       effects: [
         {
           id: S.actionId(210, 1),
@@ -91,7 +103,7 @@ export const ogreZombie: CreatureAuthored = {
                   {
                     id: S.actionId(210, 3),
                     effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d8',

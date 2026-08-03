@@ -227,6 +227,33 @@ describe('AuthForms', () => {
     expect(confirmPasswordInput).toHaveAttribute('autocomplete', 'new-password')
     expect(confirmPasswordInput).toHaveAttribute('minlength', '12')
     expect(confirmPasswordInput).toHaveAttribute('maxlength', '128')
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+      'href',
+      '/sign-in'
+    )
+  })
+
+  it('clears password-setup authentication before returning to sign in', async () => {
+    const calls: string[] = []
+    const signOut = vi.fn(async () => {
+      calls.push('sign-out')
+      return { ok: true }
+    })
+    const onBackToSignIn = vi.fn(async () => {
+      calls.push('navigate')
+    })
+
+    renderAuthForm(
+      <UpdatePasswordForm
+        authClient={createAuthClient({ signOut })}
+        onBackToSignIn={onBackToSignIn}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'Back to sign in' }))
+
+    await waitFor(() => expect(onBackToSignIn).toHaveBeenCalled())
+    expect(calls).toEqual(['sign-out', 'navigate'])
   })
 
   it('updates the password after a recovery link is accepted', async () => {

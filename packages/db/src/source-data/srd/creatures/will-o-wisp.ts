@@ -50,12 +50,79 @@ export const willOWisp: CreatureAuthored = {
       label: 'Consume Life',
       description:
         "Consume Life. As a bonus action, the will-o'-wisp can target one creature it can see within 5 feet of it that has 0 hit points and is still alive. The target must succeed on a DC 10 Constitution saving throw against this magic or die. If the target dies, the will-o'-wisp regains 10 (3d6) hit points.",
+      effects: [
+        {
+          id: S.actionId(294, 200),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(294, 201),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 10
+            },
+            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+            range: {
+              id: S.actionId(294, 202),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(294, 203),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(294, 204),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(294, 205),
+                    effectKind: S.EFFECT_KIND.HEAL,
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d6'
+                  },
+                  {
+                    id: S.actionId(294, 206),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_CONSUME_LIFE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 1
     },
     {
       id: S.featureId(294, 2),
       label: 'Ephemeral',
       description: "Ephemeral. The will-o'-wisp can't wear or carry anything.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(294, 207),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(294, 208), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_EPHEMERAL
+        })
+      ],
       order: 2
     },
     {
@@ -63,6 +130,47 @@ export const willOWisp: CreatureAuthored = {
       label: 'Incorporeal Movement',
       description:
         "Incorporeal Movement. The will-o'-wisp can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.",
+      effects: [
+        {
+          id: S.actionId(294, 209),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(294, 210), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(294, 211),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(294, 212),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(294, 213),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('FORCE'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10'
+                  },
+                  {
+                    id: S.actionId(294, 214),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_INCORPOREAL_MOVEMENT
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
@@ -70,12 +178,25 @@ export const willOWisp: CreatureAuthored = {
       label: 'Variable Illumination',
       description:
         "Variable Illumination. The will-o'-wisp sheds bright light in a 5- to 20-foot radius and dim light for an additional number of feet equal to the chosen radius. The will-o'-wisp can alter the radius as a bonus action.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(294, 215),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+            range: { id: S.actionId(294, 216), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_VARIABLE_ILLUMINATION
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(294, 5),
       label: 'Language Knowledge',
-      description: 'The languages it knew in life.',
+      description: 'the languages it knew in life',
       order: 5
     },
     {
@@ -89,7 +210,7 @@ export const willOWisp: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1

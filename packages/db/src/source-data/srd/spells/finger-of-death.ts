@@ -9,7 +9,6 @@ import {
   RANGE_KIND,
   SCALING_AMOUNT_KIND,
   SCALING,
-  SCALING_SOURCE,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   SUBJECT,
@@ -24,7 +23,7 @@ export const fingerOfDeath: SpellAuthored = {
   id: SPELL_IDS.FINGER_OF_DEATH,
   label: 'Finger of Death',
   description:
-    '<p>You send negative energy coursing through a creature that you can see within range, causing it searing pain. The target must make a Constitution saving throw. It takes 7d8 + 30 necrotic damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 8th level or higher, the damage increases by 1d8 for each slot level above 7th.</p>',
+    "<p>You send negative energy coursing through a creature that you can see within range, causing it searing pain. The target must make a Constitution saving throw. It takes 7d8 + 30 necrotic damage on a failed save, or half as much damage on a successful one. A humanoid killed by this spell rises at the start of your next turn as a zombie that is permanently under your command, following your verbal orders to the best of its ability.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 7,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -74,28 +73,8 @@ export const fingerOfDeath: SpellAuthored = {
                 effectKind: EFFECT_KIND.DAMAGE,
                 damageTypeId: damageTypeId('NECROTIC'),
                 valueKind: 'DICE',
-                scalingKind: SCALING.PER_LEVEL,
-                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-                levels: [
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x212, 2),
-                    level: 7,
-                    order: 1,
-                    diceConfig: '7d8+30'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x212, 3),
-                    level: 8,
-                    order: 2,
-                    diceConfig: '7d8+30'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x212, 4),
-                    level: 9,
-                    order: 3,
-                    diceConfig: '7d8+30'
-                  }
-                ]
+                scalingKind: SCALING.NONE,
+                diceConfig: '7d8+30'
               }
             ]
           }
@@ -113,7 +92,8 @@ export const fingerOfDeath: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'FINGER_OF_DEATH_ZOMBIE' as const
               }
             ]
           }
@@ -135,28 +115,8 @@ export const fingerOfDeath: SpellAuthored = {
                 damageTypeId: damageTypeId('NECROTIC'),
                 amountKind: SCALING_AMOUNT_KIND.HALF,
                 valueKind: 'DICE',
-                scalingKind: SCALING.PER_LEVEL,
-                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-                levels: [
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 2),
-                    level: 7,
-                    order: 1,
-                    diceConfig: '7d8+30'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 3),
-                    level: 8,
-                    order: 2,
-                    diceConfig: '7d8+30'
-                  },
-                  {
-                    id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 4),
-                    level: 9,
-                    order: 3,
-                    diceConfig: '7d8+30'
-                  }
-                ]
+                scalingKind: SCALING.NONE,
+                diceConfig: '7d8+30'
               }
             ]
           }

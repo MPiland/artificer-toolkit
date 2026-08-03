@@ -96,6 +96,9 @@ export interface CharacterSheetMechanicsInvocationRow {
   targetDispositionKind: string | null
   maxTargets: number | null
   maxTargetsScaling: Json | null
+  resolutionCount: number | null
+  resolutionCountScaling: Json | null
+  allowRepeatedTargets: boolean | null
   excludedCreatureTypeIds: string[] | null
 }
 
@@ -112,6 +115,9 @@ export interface CharacterSheetMechanicsPathRow {
   targetDispositionKind: string | null
   maxTargets: number | null
   maxTargetsScaling: Json | null
+  resolutionCount: number | null
+  resolutionCountScaling: Json | null
+  allowRepeatedTargets: boolean | null
   excludedCreatureTypeIds: string[] | null
   resultBlockId: string | null
   rollTableKind: string | null
@@ -134,7 +140,9 @@ export interface CharacterSheetMechanicsRollTableRow {
   rollValue: number | null
   rollMin: number | null
   rollMax: number | null
-  resultBlockId: string
+  resolutionKind: string
+  resultBlockId: string | null
+  repeatConfig: Json | null
 }
 
 export interface CharacterSheetMechanicsResultBlockRow {
@@ -729,6 +737,9 @@ export async function getCharacterSheetMechanicsQuery(
             'target_disposition_kind as targetDispositionKind',
             'max_targets as maxTargets',
             'max_targets_scaling as maxTargetsScaling',
+            'resolution_count as resolutionCount',
+            'resolution_count_scaling as resolutionCountScaling',
+            'allow_repeated_targets as allowRepeatedTargets',
             'excluded_creature_type_ids as excludedCreatureTypeIds'
           ])
           .where('effect_id', 'in', effectIds)
@@ -751,6 +762,9 @@ export async function getCharacterSheetMechanicsQuery(
             'target_disposition_kind as targetDispositionKind',
             'max_targets as maxTargets',
             'max_targets_scaling as maxTargetsScaling',
+            'resolution_count as resolutionCount',
+            'resolution_count_scaling as resolutionCountScaling',
+            'allow_repeated_targets as allowRepeatedTargets',
             'excluded_creature_type_ids as excludedCreatureTypeIds',
             'result_block_id as resultBlockId',
             'roll_table_kind as rollTableKind',
@@ -791,7 +805,9 @@ export async function getCharacterSheetMechanicsQuery(
             'roll_value as rollValue',
             'roll_min as rollMin',
             'roll_max as rollMax',
-            'result_block_id as resultBlockId'
+            'resolution_kind as resolutionKind',
+            'result_block_id as resultBlockId',
+            'repeat_config as repeatConfig'
           ])
           .where('path_id', 'in', pathIds)
           .orderBy('path_id')
@@ -803,7 +819,7 @@ export async function getCharacterSheetMechanicsQuery(
   const resultBlockIds = uniqueIds([
     ...paths.flatMap((path) => (path.resultBlockId === null ? [] : [path.resultBlockId])),
     ...choiceOptions.map((option) => option.resultBlockId),
-    ...rollTableRows.map((row) => row.resultBlockId)
+    ...rollTableRows.flatMap((row) => (row.resultBlockId === null ? [] : [row.resultBlockId]))
   ])
   const [resultBlocks, outcomes] = await Promise.all([
     resultBlockIds.length > 0

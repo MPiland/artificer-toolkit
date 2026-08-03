@@ -7,6 +7,7 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -14,18 +15,24 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
   RANGE_KIND,
+  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
@@ -44,6 +51,34 @@ function equipmentId(index: number): string {
   return `00000000-0000-0000-0060-${hex}00000000`
 }
 const F = 5 // Fighter class index
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(F, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(F, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 // Second Wind charge - resets on short or long rest
 const secondWindCharge = {
   id: classRowId(F, 1, 1),
@@ -57,7 +92,6 @@ export const fighter: ClassAuthored = {
   label: 'Fighter',
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 3,
-  description: 'A master of martial combat, skilled with a variety of weapons and armor.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   hitpoint: {
@@ -381,7 +415,7 @@ export const fighter: ClassAuthored = {
   ],
   resources: {
     order: 0,
-    id: classRowId(F, 5, 1),
+    id: classRowId(F, 0x6d, 2),
     label: 'Second Wind',
     availableAtLevel: 1,
     charges: secondWindCharge
@@ -391,7 +425,7 @@ export const fighter: ClassAuthored = {
       id: classRowId(F, 3, 1),
       label: 'Fighting Style',
       description:
-        'You adopt a particular style of fighting as your specialty. Choose one of the following options: Archery, Defense, Dueling, Great Weapon Fighting, Protection, Two-Weapon Fighting.',
+        "You adopt a particular style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
       availableAtLevel: 1,
       order: 0,
       optionChoices: [{ level: 1, count: 1 }],
@@ -436,7 +470,10 @@ export const fighter: ClassAuthored = {
               }
             ]
           },
-          order: 1
+          order: 1,
+          effects: [
+            selfClassRuleEffect(0x82, CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_DEFENSE)
+          ]
         },
         {
           id: classRowId(F, 4, 3),
@@ -458,28 +495,97 @@ export const fighter: ClassAuthored = {
               }
             ]
           },
-          order: 2
+          order: 2,
+          effects: [
+            closedRuleEffect({
+              id: classRowId(F, 0x60, 0x83),
+              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_DUELING,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(F, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: 'HOSTILE'
+                }
+              }
+            })
+          ]
         },
         {
           id: classRowId(F, 4, 4),
           label: 'Great Weapon Fighting',
           description:
-            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
-          order: 3
+            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.',
+          order: 3,
+          effects: [
+            closedRuleEffect({
+              id: classRowId(F, 0x60, 0x84),
+              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_GREAT_WEAPON_FIGHTING,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(F, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: 'HOSTILE'
+                }
+              }
+            })
+          ]
         },
         {
           id: classRowId(F, 4, 5),
           label: 'Protection',
           description:
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
-          order: 4
+          order: 4,
+          effects: [
+            closedRuleEffect({
+              id: classRowId(F, 0x60, 0x85),
+              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_PROTECTION,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: TRIGGER.ACTIVATED,
+                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+                range: {
+                  id: classRowId(F, 0x69, 0x85),
+                  rangeKind: RANGE_KIND.DISTANCE,
+                  amount: 5,
+                  unit: MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: 'ANY'
+                }
+              }
+            })
+          ]
         },
         {
           id: classRowId(F, 4, 6),
           label: 'Two-Weapon Fighting',
           description:
             'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
-          order: 5
+          order: 5,
+          effects: [
+            closedRuleEffect({
+              id: classRowId(F, 0x60, 0x86),
+              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_TWO_WEAPON_FIGHTING,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(F, 0x69, 0x86), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: 'HOSTILE'
+                }
+              }
+            })
+          ]
         }
       ]
     },
@@ -528,7 +634,7 @@ export const fighter: ClassAuthored = {
                 resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
-                    id: classRowId(F, 3, 23),
+                    id: classRowId(F, 0x6d, 1),
                     effectKind: EFFECT_KIND.HEAL,
                     valueKind: 'DICE',
                     scalingKind: SCALING.NONE,
@@ -554,16 +660,40 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 3),
       label: 'Action Surge',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
       description:
-        'Starting at 2nd level, you can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action. Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest.',
+        'Starting at 2nd level, you can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action on top of your regular action and a possible bonus action. Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest, but only once on the same turn.',
       availableAtLevel: 2,
-      order: 2
+      order: 2,
+      charges: {
+        id: classRowId(F, 0x66, 3),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.PER_LEVEL,
+        resetKind: 'SHORT_REST',
+        levels: [
+          { id: classRowId(F, 0x67, 1), level: 2, amount: 1 },
+          { id: classRowId(F, 0x67, 2), level: 17, amount: 2 }
+        ]
+      },
+      effects: [
+        closedRuleEffect({
+          id: classRowId(F, 0x60, 3),
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_ACTION_SURGE,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.FREE },
+            range: { id: classRowId(F, 0x69, 3), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          }
+        })
+      ]
     },
     {
       id: classRowId(F, 3, 4),
       label: 'Martial Archetype',
       description:
-        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques.',
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 3
@@ -571,100 +701,189 @@ export const fighter: ClassAuthored = {
     {
       id: classRowId(F, 3, 5),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 4
+      order: 4,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 5, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(F, 3, 6),
       label: 'Extra Attack',
       description:
-        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn. The number of attacks increases to three when you reach 11th level and to four when you reach 20th level.',
+        'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn. The number of attacks increases to three when you reach 11th level in this class and to four when you reach 20th level in this class.',
       availableAtLevel: 5,
-      order: 5
+      order: 5,
+      effects: [selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_FIGHTER_EXTRA_ATTACK)]
     },
     {
       id: classRowId(F, 3, 7),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 6,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 6, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 7, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(F, 3, 8),
       label: 'Martial Archetype Feature',
-      description: 'At 7th level, you gain a feature from your Martial Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 7,
       order: 7
     },
     {
       id: classRowId(F, 3, 9),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 8
+      order: 8,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 9, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(F, 3, 10),
       label: 'Indomitable',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
       description:
-        'Beginning at 9th level, you can reroll a saving throw that you fail. If you do so, you must use the new roll. You can use this feature twice between long rests starting at 13th level and three times between long rests starting at 17th level.',
+        "Beginning at 9th level, you can reroll a saving throw that you fail. If you do so, you must use the new roll, and you can't use this feature again until you finish a long rest. You can use this feature twice between long rests starting at 13th level and three times between long rests starting at 17th level.",
       availableAtLevel: 9,
-      order: 9
+      order: 9,
+      charges: {
+        id: classRowId(F, 0x66, 10),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.PER_LEVEL,
+        resetKind: 'LONG_REST',
+        levels: [
+          { id: classRowId(F, 0x68, 1), level: 9, amount: 1 },
+          { id: classRowId(F, 0x68, 2), level: 13, amount: 2 },
+          { id: classRowId(F, 0x68, 3), level: 17, amount: 3 }
+        ]
+      },
+      effects: [
+        ABILITY_CODE.STRENGTH,
+        ABILITY_CODE.DEXTERITY,
+        ABILITY_CODE.CONSTITUTION,
+        ABILITY_CODE.INTELLIGENCE,
+        ABILITY_CODE.WISDOM,
+        ABILITY_CODE.CHARISMA
+      ].map((ability, index) =>
+        closedRuleEffect({
+          id: index === 0 ? classRowId(F, 0x60, 10) : classRowId(F, 0x70, index + 1),
+          ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_INDOMITABLE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.SAVING_THROW,
+            activation: { code: ACTIVATION_CODE.FREE },
+            savingThrow: {
+              id: classRowId(F, 0x72, index + 1),
+              ability,
+              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
+            },
+            range: {
+              id: index === 0 ? classRowId(F, 0x69, 10) : classRowId(F, 0x71, index + 1),
+              rangeKind: RANGE_KIND.SELF
+            },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          }
+        })
+      )
     },
     {
       id: classRowId(F, 3, 11),
       label: 'Martial Archetype Feature',
-      description: 'At 10th level, you gain a feature from your Martial Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 10,
       order: 10
     },
     {
       id: classRowId(F, 3, 12),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 11
+      order: 11,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 12, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(F, 3, 13),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 14,
-      order: 12
+      order: 12,
+      optionChoices: [{ level: 14, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 13, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(F, 3, 14),
       label: 'Martial Archetype Feature',
-      description: 'At 15th level, you gain a feature from your Martial Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 15,
       order: 13
     },
     {
       id: classRowId(F, 3, 15),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 14
+      order: 14,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 15, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(F, 3, 16),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 15
+      order: 15,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(F, 16, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(F, 3, 17),
       label: 'Martial Archetype Feature',
-      description: 'At 18th level, you gain a feature from your Martial Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 18,
       order: 16
     }

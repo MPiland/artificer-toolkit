@@ -1,5 +1,5 @@
 import { SIZE_OPTIONS, VEHICLE_CATEGORY_OPTIONS } from '#core'
-import { COST_NODE_MAP, FEATURE_NODE_MAP } from '#maps'
+import { COST_NODE_MAP, FEATURE_NODE_MAP, WEIGHT_NODE_MAP } from '#maps'
 import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type { DetailAuthored, VehicleAuthored } from '#authored'
 
@@ -97,7 +97,14 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       'hitPoints',
       number(['hitPoints'], 'Hit Points', { section: VEHICLE_SECTIONS.stats, order: 30 })
     )
-    .set('speed', number(['speed'], 'Speed', { section: VEHICLE_SECTIONS.stats, order: 40 }))
+    .set(
+      'speed',
+      number(['speed'], 'Speed', {
+        constraints: { minimum: 0 },
+        section: VEHICLE_SECTIONS.stats,
+        order: 40
+      })
+    )
     .set(
       'speedNote',
       text(['speedNote'], 'Speed Note', {
@@ -130,11 +137,19 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       })
     )
     .set(
+      'weight',
+      groupObject(['weight'], 'Weight', () => WEIGHT_NODE_MAP, {
+        presentation: 'inline',
+        section: VEHICLE_SECTIONS.economy,
+        order: 10
+      })
+    )
+    .set(
       'cost',
       groupObject(['cost'], 'Cost', () => COST_NODE_MAP, {
         presentation: 'inline',
         section: VEHICLE_SECTIONS.economy,
-        order: 10
+        order: 20
       })
     )
     .set(
@@ -142,7 +157,7 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
       groupArray(['properties'], 'Properties', () => stringNode, {
         presentation: 'inline',
         section: VEHICLE_SECTIONS.economy,
-        order: 20
+        order: 30
       })
     )
     .set(

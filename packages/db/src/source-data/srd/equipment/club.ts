@@ -5,7 +5,7 @@ export const club: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(1),
   label: 'Club',
-  description: 'A simple bludgeoning weapon.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,

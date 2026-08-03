@@ -71,6 +71,7 @@ function requireFeatureSection(
 type FeatureEffectLinkRow = {
   feature_id: string
   effect_id: string
+  sort_order: number
 }
 
 type FeatureDetailLinkRow = {
@@ -214,8 +215,9 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       ? Promise.resolve([] as FeatureEffectLinkRow[])
       : (db
           .selectFrom('feature_effects')
-          .select(['feature_id', 'effect_id'])
+          .select(['feature_id', 'effect_id', 'sort_order'])
           .where('feature_id', 'in', featureIds)
+          .orderBy('sort_order')
           .execute() as Promise<FeatureEffectLinkRow[]>),
     db
       .selectFrom('feature_details')

@@ -1,5 +1,5 @@
 import { SIZE_CODE, type SizeCode, type VehicleAuthored } from '@artificer-toolkit/shared'
-import { costDtoSchema } from '@artificer-toolkit/schema/subjects/shared'
+import { costDtoSchema, weightDtoSchema } from '@artificer-toolkit/schema/subjects/shared'
 import type { DBLike } from '#types'
 import { upsertVehicle } from '../upserts/vehicle.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
@@ -48,6 +48,24 @@ function hydrateCost(vehicleId: string, value: unknown): VehicleAuthored['cost']
   return parsed.data
 }
 
+function hydrateWeight(
+  vehicleId: string,
+  amount: number | string | null | undefined,
+  unit: string | null | undefined
+): VehicleAuthored['weight'] {
+  if (amount == null && unit == null) return undefined
+
+  const parsed = weightDtoSchema.safeParse({
+    amount: typeof amount === 'string' ? Number(amount) : amount,
+    unit
+  })
+  if (!parsed.success) {
+    throw new Error(`Vehicle "${vehicleId}" has invalid weight. ${parsed.error.message}`)
+  }
+
+  return parsed.data
+}
+
 function selectVehicleIds(db: DBLike, filter?: RepositoryFindAllOptions) {
   let query = db.selectFrom('vehicles').select('id')
 
@@ -87,6 +105,8 @@ async function hydrateVehicleById(db: DBLike, id: string): Promise<VehicleAuthor
       'crew_max',
       'passenger_capacity',
       'cargo_capacity',
+      'weight_amount',
+      'weight_unit',
       'cost',
       'properties'
     ])
@@ -144,12 +164,13 @@ async function hydrateVehicleById(db: DBLike, id: string): Promise<VehicleAuthor
     size: row.size_code ? requireSizeCode(id, row.size_code) : undefined,
     armorClass: row.armor_class ?? undefined,
     hitPoints: row.hit_points ?? undefined,
-    speed: row.speed ?? undefined,
+    speed: row.speed == null ? undefined : Number(row.speed),
     speedNote: row.speed_note ?? undefined,
     crewMin: row.crew_min ?? undefined,
     crewMax: row.crew_max ?? undefined,
     passengerCapacity: row.passenger_capacity ?? undefined,
     cargoCapacity: row.cargo_capacity ?? undefined,
+    weight: hydrateWeight(id, row.weight_amount, row.weight_unit),
     cost: hydrateCost(id, row.cost),
     properties: row.properties ?? undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined

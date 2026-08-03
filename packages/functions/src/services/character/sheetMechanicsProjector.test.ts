@@ -498,6 +498,9 @@ function invocation(
     targetDispositionKind: null,
     maxTargets: null,
     maxTargetsScaling: null,
+    resolutionCount: null,
+    resolutionCountScaling: null,
+    allowRepeatedTargets: null,
     excludedCreatureTypeIds: null
   }
 }
@@ -522,6 +525,9 @@ function fixedPath(
     targetDispositionKind: null,
     maxTargets: null,
     maxTargetsScaling: null,
+    resolutionCount: null,
+    resolutionCountScaling: null,
+    allowRepeatedTargets: null,
     excludedCreatureTypeIds: null,
     resultBlockId,
     rollTableKind: null,

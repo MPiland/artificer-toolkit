@@ -5,7 +5,7 @@ export const hourglass: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(142),
   label: 'Hourglass',
-  description: 'A glass vessel containing sand that measures the passage of roughly one hour.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(25),

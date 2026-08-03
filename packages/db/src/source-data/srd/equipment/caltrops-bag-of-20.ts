@@ -42,7 +42,93 @@ export const caltropsBagOf20: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(128), 0x212, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.MANIFEST,
+                manifestKind: 'ZONE' as const,
+                attachmentKind: 'PLACED_SPACE' as const,
+                label: 'Caltrop field',
+                shape: {
+                  id: S.equipmentChildId(S.equipId(128), 0x220, 1),
+                  shapeKind: S.SHAPE_KIND.CUBE,
+                  edgeLength: { amount: 5, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: S.equipmentChildId(S.equipId(128), 0x221, 1),
+                    order: 1,
+                    label: 'Enter the caltrop field',
+                    interactionKind: 'ENTER_SPACE' as const,
+                    bypassAtHalfSpeed: true,
+                    behaviors: [
+                      {
+                        id: S.equipmentChildId(S.equipId(128), 0x222, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: S.TRIGGER.SAVING_THROW,
+                          savingThrow: {
+                            id: S.equipmentChildId(S.equipId(128), 0x223, 1),
+                            dcMethod: 'FIXED_DC' as const,
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 15
+                          },
+                          range: {
+                            id: S.equipmentChildId(S.equipId(128), 0x224, 1),
+                            rangeKind: S.RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: S.equipmentChildId(S.equipId(128), 0x225, 1),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${S.equipmentChildId(S.equipId(128), 0x225, 1)}__result`,
+                              resultKind: 'SEQUENCE' as const,
+                              lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+                              outcomes: [
+                                {
+                                  id: S.equipmentChildId(S.equipId(128), 0x226, 1),
+                                  effectKind: S.EFFECT_KIND.MOVEMENT_RULE,
+                                  ruleKind: 'STOP_CURRENT_MOVEMENT' as const
+                                },
+                                {
+                                  id: S.equipmentChildId(S.equipId(128), 0x227, 1),
+                                  effectKind: S.EFFECT_KIND.DAMAGE,
+                                  damageTypeId: S.damageTypeId('PIERCING'),
+                                  valueKind: S.DAMAGE_VALUE_KIND.FIXED,
+                                  scalingKind: S.SCALING.NONE,
+                                  amount: 1
+                                },
+                                {
+                                  id: S.equipmentChildId(S.equipId(128), 0x228, 1),
+                                  effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                                  grants: {
+                                    modifiers: [
+                                      {
+                                        id: S.equipmentChildId(S.equipId(128), 0x229, 1),
+                                        grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                                        valueDomainCode: S.VALUE_DOMAIN_CODE.SPEED,
+                                        domain: { speedId: S.speedId('WALK') },
+                                        modifierKind: S.MODIFIER_KIND.PENALTY,
+                                        scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                                        selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                                        payload: { valueKind: 'FIXED' as const, amount: 10 },
+                                        order: 1
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

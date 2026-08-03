@@ -49,7 +49,7 @@ export type BaseEquipmentAuthored = {
   attributes?: EquipmentAttribute[]
   quote?: string
   cost?: CostAuthored
-  weight: WeightAuthored
+  weight?: WeightAuthored
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   capacity?: CapacityAuthored

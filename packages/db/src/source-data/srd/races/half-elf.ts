@@ -3,6 +3,7 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
+  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -21,7 +22,6 @@ import {
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
 import {
-  SRD_CONDITION_TYPES,
   SRD_ELVEN_HERITAGE_ID,
   SRD_HUMAN_HERITAGE_ID,
   SRD_LANGUAGES,
@@ -31,6 +31,7 @@ import {
   SRD_DARKVISION_SENSE_ID,
   SRD_SKILLS
 } from '../vocabulary.js'
+import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -44,12 +45,6 @@ if (!walkSpeedId)
   throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const halfElfWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
-
-function conditionTypeId(code: string): string {
-  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
-  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
-  return entry.id
-}
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -80,7 +75,8 @@ function abilityIncreaseOption(
   return {
     id: optionId,
     label,
-    description: `Your ${label} score increases by 1.`,
+    description:
+      'Your Charisma score increases by 2, and two other ability scores of your choice increase by 1.',
     order,
     grants: {
       modifiers: [
@@ -210,7 +206,7 @@ export const halfElf: RaceAuthored = {
       id: raceFeatureId(7, 2, 1),
       label: 'Darkvision',
       description:
-        'Thanks to your elf blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
+        "Thanks to your elf blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray.",
       availableAtLevel: 1,
       order: 1,
       grants: {
@@ -240,24 +236,12 @@ export const halfElf: RaceAuthored = {
         "You have advantage on saving throws against being charmed, and magic can't put you to sleep.",
       availableAtLevel: 1,
       order: 2,
-      grants: {
-        modifiers: [
-          {
-            id: raceFeatureId(7, 3, 2),
-            grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-            domain: {
-              ability: ABILITY_CODE.CHARISMA,
-              conditionTypeId: conditionTypeId('CHARMED')
-            },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
-            scope: MODIFIER_SCOPE_KIND.GLOBAL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: undefined,
-            order: 0
-          }
-        ]
-      }
+      effects: [
+        raceClosedRuleEffect(
+          (entry) => raceFeatureId(7, 3, entry),
+          CLOSED_RULE_KIND.RACE_FEY_ANCESTRY
+        )
+      ]
     },
     {
       id: raceFeatureId(7, 4, 1),

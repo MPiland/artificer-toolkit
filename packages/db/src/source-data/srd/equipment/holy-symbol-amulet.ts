@@ -5,11 +5,12 @@ export const holySymbolAmulet: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(96),
   label: 'Holy Symbol: Amulet',
-  description: 'A pendant bearing the symbol of a deity, worn around the neck as a divine focus.',
+  description: S.HOLY_SYMBOL_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(5),
   weight: S.lbs(1),
+  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(96), 'EQUIPMENT_HOLY_SYMBOL')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

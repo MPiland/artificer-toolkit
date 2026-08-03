@@ -1,6 +1,15 @@
-import { CLASS_CATEGORY, type ClassAuthored } from '@artificer-toolkit/shared'
+import {
+  ACTIVATION_CODE,
+  CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
+  RANGE_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type ClassAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -17,7 +26,7 @@ export const schoolOfEvocation: ClassAuthored = {
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.WIZARD,
   description:
-    'You focus your study on magic that creates powerful elemental effects such as bitter cold, searing flame, rolling thunder, crackling lightning, and burning acid.',
+    'You focus your study on magic that creates powerful elemental effects such as bitter cold, searing flame, rolling thunder, crackling lightning, and burning acid. Some evokers find employment in military forces, serving as artillery to blast enemy armies from afar. Others use their spectacular power to protect the weak, while some seek their own gain as bandits, adventurers, or aspiring tyrants.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -27,15 +36,42 @@ export const schoolOfEvocation: ClassAuthored = {
       description:
         'Beginning when you select this school at 2nd level, the gold and time you must spend to copy an evocation spell into your spellbook is halved.',
       availableAtLevel: 2,
-      order: 0
+      order: 0,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(WZ, 20, 1),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(WZ, 21, 1), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_EVOCATION_SAVANT
+        })
+      ]
     },
     {
       id: classRowId(WZ, 11, 2),
       label: 'Sculpt Spells',
       description:
-        "Beginning at 2nd level, you can create pockets of relative safety within the effects of your evocation spells. When you cast an evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 + the spell's level.",
+        "Beginning at 2nd level, you can create pockets of relative safety within the effects of your evocation spells. When you cast an evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 + the spell's level. The chosen creatures automatically succeed on their saving throws against the spell, and they take no damage if they would normally take half damage on a successful save.",
       availableAtLevel: 2,
-      order: 1
+      order: 1,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(WZ, 20, 2),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(WZ, 21, 2), rangeKind: RANGE_KIND.SIGHT },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: 'ANY'
+            }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_SCULPT_SPELLS
+        })
+      ]
     },
     {
       id: classRowId(WZ, 11, 3),
@@ -43,7 +79,22 @@ export const schoolOfEvocation: ClassAuthored = {
       description:
         "Starting at 6th level, your damaging cantrips affect even creatures that avoid the brunt of the effect. When a creature succeeds on a saving throw against your cantrip, the creature takes half the cantrip's damage (if any) but suffers no additional effect from the cantrip.",
       availableAtLevel: 6,
-      order: 2
+      order: 2,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(WZ, 20, 3),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(WZ, 21, 3), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_POTENT_CANTRIP
+        })
+      ]
     },
     {
       id: classRowId(WZ, 11, 4),
@@ -51,15 +102,43 @@ export const schoolOfEvocation: ClassAuthored = {
       description:
         'Beginning at 10th level, you can add your Intelligence modifier to one damage roll of any wizard evocation spell you cast.',
       availableAtLevel: 10,
-      order: 3
+      order: 3,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(WZ, 20, 4),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(WZ, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: 'ANY'
+            }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_EMPOWERED_EVOCATION
+        })
+      ]
     },
     {
       id: classRowId(WZ, 11, 5),
       label: 'Overchannel',
       description:
-        'Starting at 14th level, you can increase the power of your simpler spells. When you cast a wizard spell of 1st through 5th level that deals damage, you can deal maximum damage with that spell.',
+        'Starting at 14th level, you can increase the power of your simpler spells. When you cast a wizard spell of 1st through 5th level that deals damage, you can deal maximum damage with that spell. The first time you do so, you suffer no adverse effect. If you use this feature again before you finish a long rest, you take 2d12 necrotic damage for each level of the spell, immediately after you cast it. Each time you use this feature again before finishing a long rest, the necrotic damage per spell level increases by 1d12. This damage ignores resistance and immunity.',
       availableAtLevel: 14,
-      order: 4
+      order: 4,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(WZ, 20, 5),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.FREE },
+            range: { id: classRowId(WZ, 21, 5), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_OVERCHANNEL
+        })
+      ]
     }
   ]
 }

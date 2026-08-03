@@ -46,6 +46,7 @@ export const invocationDtoSchema = z.union([
       triggerCodeSchema.enum.RANGED_WEAPON_ATTACK,
       triggerCodeSchema.enum.UNARMED_ATTACK,
       triggerCodeSchema.enum.SPELL_ATTACK,
+      triggerCodeSchema.enum.INCOMING_SAVING_THROW,
       triggerCodeSchema.enum.ENTER_AREA
     ]),
     range: rangeDtoSchema,
@@ -69,6 +70,7 @@ export const invocationDtoSchema = z.union([
       triggerCodeSchema.enum.RANGED_WEAPON_ATTACK,
       triggerCodeSchema.enum.UNARMED_ATTACK,
       triggerCodeSchema.enum.SPELL_ATTACK,
+      triggerCodeSchema.enum.INCOMING_SAVING_THROW,
       triggerCodeSchema.enum.ENTER_AREA
     ]),
     activation: activationDtoSchema,

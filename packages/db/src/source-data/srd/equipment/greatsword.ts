@@ -5,7 +5,7 @@ export const greatsword: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(19),
   label: 'Greatsword',
-  description: 'A large two-handed sword.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

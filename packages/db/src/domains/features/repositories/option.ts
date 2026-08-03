@@ -53,6 +53,7 @@ type OptionRow = {
 type OptionEffectLinkRow = {
   option_id: string
   effect_id: string
+  sort_order: number
 }
 
 type OptionDetailLinkRow = {
@@ -175,8 +176,9 @@ async function hydrateOptionsByIds<N extends NodeSubjectCode>(
       ? Promise.resolve([] as OptionEffectLinkRow[])
       : (db
           .selectFrom('option_effects')
-          .select(['option_id', 'effect_id'])
+          .select(['option_id', 'effect_id', 'sort_order'])
           .where('option_id', 'in', optionIds)
+          .orderBy('sort_order')
           .execute() as Promise<OptionEffectLinkRow[]>),
     db
       .selectFrom('option_details')

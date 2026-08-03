@@ -5,7 +5,7 @@ export const bell: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(124),
   label: 'Bell',
-  description: 'A small metal bell that produces a clear ringing tone when struck.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(1),

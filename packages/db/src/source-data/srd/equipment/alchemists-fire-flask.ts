@@ -21,7 +21,9 @@ export const alchemistsFireFlask: EquipmentAuthored = {
         },
         range: {
           id: S.equipmentChildId(S.equipId(120), 0x211, 1),
-          rangeKind: S.RANGE_KIND.SPECIAL
+          rangeKind: S.RANGE_KIND.DISTANCE,
+          amount: 20,
+          unit: S.MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
           selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
@@ -42,11 +44,56 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(120), 0x212, 1),
-                effectKind: S.EFFECT_KIND.DAMAGE,
-                damageTypeId: S.damageTypeId('FIRE'),
-                valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                scalingKind: S.SCALING.NONE,
-                diceConfig: '1d4'
+                effectKind: S.EFFECT_KIND.MANIFEST,
+                manifestKind: 'OBJECT' as const,
+                attachmentKind: 'PRIMARY_TARGET' as const,
+                label: "Burning alchemist's fire",
+                components: [
+                  {
+                    id: S.equipmentChildId(S.equipId(120), 0x220, 1),
+                    order: 1,
+                    label: 'Burning flames',
+                    interactionKind: 'START_OF_ATTACHED_TARGET_TURN' as const,
+                    behaviors: [
+                      {
+                        id: S.equipmentChildId(S.equipId(120), 0x221, 1),
+                        order: 1,
+                        invocation: {
+                          kind: 'PASSIVE' as const,
+                          triggerCode: S.TRIGGER.ACTIVATED,
+                          range: {
+                            id: S.equipmentChildId(S.equipId(120), 0x222, 1),
+                            rangeKind: S.RANGE_KIND.SELF
+                          }
+                        },
+                        paths: [
+                          {
+                            id: S.equipmentChildId(S.equipId(120), 0x223, 1),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_USE,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            originKind: 'SOURCE' as const,
+                            selectionKind: 'FIXED' as const,
+                            resultBlock: {
+                              id: `${S.equipmentChildId(S.equipId(120), 0x223, 1)}__result`,
+                              resultKind: 'SINGLE' as const,
+                              outcomes: [
+                                {
+                                  id: S.equipmentChildId(S.equipId(120), 0x224, 1),
+                                  effectKind: S.EFFECT_KIND.DAMAGE,
+                                  damageTypeId: S.damageTypeId('FIRE'),
+                                  valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                  scalingKind: S.SCALING.NONE,
+                                  diceConfig: '1d4'
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -64,29 +111,19 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(120), 0x213, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.FOLLOW_UP_CHECK,
+                label: 'Extinguish the flames',
+                activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                ability: S.ABILITY_CODE.DEXTERITY,
+                fixedDc: 10,
+                actorKinds: ['TARGET'],
+                repeatable: true,
+                onSuccess: { kind: 'END' as const },
+                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }
         },
-        {
-          id: S.equipmentChildId(S.equipId(120), 0x214, 1),
-          order: 3,
-          pathCode: S.PATH_CODE.ON_MISS,
-          groupType: S.PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: S.equipmentChildId(S.equipId(120), 0x214, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: S.equipmentChildId(S.equipId(120), 0x214, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        }
       ]
     }
   ],

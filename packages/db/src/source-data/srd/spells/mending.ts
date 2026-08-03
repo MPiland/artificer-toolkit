@@ -19,7 +19,7 @@ export const mending: SpellAuthored = {
   id: SPELL_IDS.MENDING,
   label: 'Mending',
   description:
-    'This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin.',
+    "<p>This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin. As long as the break or tear is no larger than 1 foot in any dimension, you mend it, leaving no trace of the former damage. This spell can physically repair a magic item or construct, but the spell can't restore magic to such an object.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 0,
   classIds: [
@@ -66,7 +66,10 @@ export const mending: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MENDING, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve the Break or Tear",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin."
               }
             ]
           }

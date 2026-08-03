@@ -1,6 +1,20 @@
-import { CLASS_CATEGORY, type ClassAuthored } from '@artificer-toolkit/shared'
+import {
+  ABILITY_CODE,
+  ACTIVATION_CODE,
+  CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
+  RANGE_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type ClassAuthored
+} from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -17,7 +31,7 @@ export const pathOfTheBerserker: ClassAuthored = {
   category: CLASS_CATEGORY.SUBCLASS,
   parentClassId: CLASS_IDS.BARBARIAN,
   description:
-    'For some barbarians, rage is a means to an end - that end being violence. The Path of the Berserker is a path of untrammeled fury, slick with blood.',
+    "For some barbarians, rage is a means to an end- that end being violence. The Path of the Berserker is a path of untrammeled fury, slick with blood. As you enter the berserker's rage, you thrill in the chaos of battle, heedless of your own health or well-being.",
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -25,9 +39,26 @@ export const pathOfTheBerserker: ClassAuthored = {
       id: classRowId(B, 11, 1),
       label: 'Frenzy',
       description:
-        'Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one.',
+        'Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one. When your rage ends, you suffer one level of exhaustion (as described in appendix PH-A).',
       availableAtLevel: 3,
-      order: 0
+      order: 0,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(B, 20, 1),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+            range: { id: classRowId(B, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_ATTACK,
+          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_FRENZY
+        })
+      ]
     },
     {
       id: classRowId(B, 11, 2),
@@ -35,15 +66,105 @@ export const pathOfTheBerserker: ClassAuthored = {
       description:
         "Beginning at 6th level, you can't be charmed or frightened while raging. If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage.",
       availableAtLevel: 6,
-      order: 1
+      order: 1,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(B, 20, 2),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(B, 21, 2), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_MINDLESS_RAGE
+        })
+      ]
     },
     {
       id: classRowId(B, 11, 3),
       label: 'Intimidating Presence',
       description:
-        'Beginning at 10th level, you can use your action to frighten someone with your menacing presence.',
+        "Beginning at 10th level, you can use your action to frighten someone with your menacing presence. When you do so, choose one creature that you can see within 30 feet of you. If the creature can see or hear you, it must succeed on a Wisdom saving throw (DC equal to 8 + your proficiency bonus + your Charisma modifier) or be frightened of you until the end of your next turn. On subsequent turns, you can use your action to extend the duration of this effect on the frightened creature until the end of your next turn. This effect ends if the creature ends its turn out of line of sight or more than 60 feet away from you. If the creature succeeds on its saving throw, you can't use this feature on that creature again for 24 hours.",
       availableAtLevel: 10,
-      order: 2
+      order: 2,
+      effects: [
+        {
+          id: classRowId(B, 20, 3),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: classRowId(B, 25, 1),
+              dcMethod: 'DERIVED_DC',
+              ability: ABILITY_CODE.WISDOM,
+              baseDc: 8,
+              bonuses: [
+                {
+                  id: classRowId(B, 26, 1),
+                  bonusKind: 'ABILITY_MODIFIER',
+                  ability: ABILITY_CODE.CHARISMA
+                },
+                {
+                  id: classRowId(B, 26, 2),
+                  bonusKind: 'PROFICIENCY_BONUS'
+                }
+              ]
+            },
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: classRowId(B, 21, 3),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          paths: [
+            {
+              id: classRowId(B, 27, 3),
+              order: 1,
+              pathCode: PATH_CODE.ON_SAVE_FAIL,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(B, 27, 3)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(B, 29, 5),
+                    effectKind: EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_INTIMIDATING_PRESENCE
+                  }
+                ]
+              }
+            },
+            {
+              id: classRowId(B, 28, 3),
+              order: 2,
+              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(B, 28, 3)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(B, 29, 6),
+                    effectKind: EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_INTIMIDATING_PRESENCE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       id: classRowId(B, 11, 4),
@@ -51,7 +172,29 @@ export const pathOfTheBerserker: ClassAuthored = {
       description:
         'Starting at 14th level, when you take damage from a creature that is within 5 feet of you, you can use your reaction to make a melee weapon attack against that creature.',
       availableAtLevel: 14,
-      order: 3
+      order: 3,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(B, 20, 4),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+            range: {
+              id: classRowId(B, 21, 4),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          },
+          pathCode: PATH_CODE.ON_ATTACK,
+          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_RETALIATION
+        })
+      ]
     }
   ]
 }

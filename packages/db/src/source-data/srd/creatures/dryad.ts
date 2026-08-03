@@ -39,7 +39,72 @@ export const dryad: CreatureAuthored = {
       id: S.featureId(90, 1),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The dryad's innate spellcasting ability is Charisma (spell save DC 14). The dryad can innately cast the following spells, requiring no material components: At will: druidcraft. 3/day each: entangle, goodberry. 1/day each: barkskin, pass without trace, shillelagh.",
+        "Innate Spellcasting. The dryad's innate spellcasting ability is Charisma (spell save DC 14). The dryad can innately cast the following spells, requiring no material components: At will: druidcraft 3/day each: entangle, goodberry 1/day each: barkskin, pass without trace, shillelagh",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(90, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DRUIDCRAFT],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            order: 0
+          },
+          ...([S.SPELL_IDS.ENTANGLE, S.SPELL_IDS.GOODBERRY] as const).map((spellId, index) => ({
+            id: S.actionId(90, 302 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.actionId(90, 402 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 3
+            },
+            order: index + 1
+          })),
+          ...(
+            [S.SPELL_IDS.BARKSKIN, S.SPELL_IDS.PASS_WITHOUT_TRACE, S.SPELL_IDS.SHILLELAGH] as const
+          ).map((spellId, index) => ({
+            id: S.actionId(90, 304 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.actionId(90, 404 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 1
+            },
+            order: index + 3
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(90, 307),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(90, 1301), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_INNATE_SPELLCASTING
+        })
+      ],
       order: 1
     },
     {
@@ -47,6 +112,18 @@ export const dryad: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The dryad has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(90, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(90, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
@@ -54,6 +131,18 @@ export const dryad: CreatureAuthored = {
       label: 'Speak with Beasts and Plants',
       description:
         'Speak with Beasts and Plants. The dryad can communicate with beasts and plants as if they shared a language.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(90, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(90, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_SPEAK_WITH_BEASTS_AND_PLANTS
+        })
+      ],
       order: 3
     },
     {
@@ -61,6 +150,51 @@ export const dryad: CreatureAuthored = {
       label: 'Tree Stride',
       description:
         'Tree Stride. Once on her turn, the dryad can use 10 feet of her movement to step magically into one living tree within her reach and emerge from a second living tree within 60 feet of the first tree, appearing in an unoccupied space within 5 feet of the second tree. Both trees must be Large or bigger.',
+      effects: [
+        {
+          id: S.actionId(90, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: {
+              id: S.actionId(90, 1204),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 60,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(90, 220),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(90, 221),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(90, 222),
+                    effectKind: S.EFFECT_KIND.TELEPORT,
+                    targetKind: 'SELF',
+                    destinationKind: 'SPECIAL'
+                  },
+                  {
+                    id: S.actionId(90, 223),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_TREE_STRIDE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -114,7 +248,17 @@ export const dryad: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(90, 205),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(90, 1205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_SHILLELAGH_CLUB_DAMAGE
+        })
       ],
       order: 5
     },

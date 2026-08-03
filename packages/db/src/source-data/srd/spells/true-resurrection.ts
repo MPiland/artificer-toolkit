@@ -19,7 +19,7 @@ export const trueResurrection: SpellAuthored = {
   id: SPELL_IDS.TRUE_RESURRECTION,
   label: 'True Resurrection',
   description:
-    'You restore a creature that has been dead for no longer than 200 years to full life, even recreating its body if necessary, so long as its soul is free and willing.',
+    "<p>You touch a creature that has been dead for no longer than 200 years and that died for any reason except old age. If the creature's soul is free and willing, the creature is restored to life with all its hit points. This spell closes all wounds, neutralizes any poison, cures all diseases, and lifts any curses affecting the creature when it died. The spell replaces damaged or missing organs and limbs. The spell can even provide a new body if the original no longer exists, in which case you must speak the creature's name. The creature then appears in an unoccupied space you choose within 10 feet of you.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
   level: 9,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
@@ -57,11 +57,19 @@ export const trueResurrection: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.TRUE_RESURRECTION, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.TRUE_RESURRECTION, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'TRUE_RESURRECTION' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.TRUE_RESURRECTION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve the Soul",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "If the creature\u0027s soul is free and willing, the creature is restored to life with all its hit points."
               }
             ]
           }

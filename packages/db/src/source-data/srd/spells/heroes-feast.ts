@@ -19,7 +19,7 @@ export const heroesFeast: SpellAuthored = {
   id: SPELL_IDS.HEROES_FEAST,
   label: "Heroes' Feast",
   description:
-    "You bring forth a great feast, including magnificent food and drink. The feast takes 1 hour to consume and disappears at the end of that time, and the beneficial effects don't set in until this hour is over. Up to twelve creatures can partake of the feast.",
+    "<p>You bring forth a great feast, including magnificent food and drink. The feast takes 1 hour to consume and disappears at the end of that time, and the beneficial effects don't set in until this hour is over. Up to twelve other creatures can partake of the feast. A creature that partakes of the feast gains several benefits. The creature is cured of all diseases and poison, becomes immune to poison and being frightened, and makes all Wisdom saving throws with advantage. Its hit point maximum also increases by 2d10, and it gains the same number of hit points. These benefits last for 24 hours.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 10 },
   level: 6,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
@@ -61,7 +61,8 @@ export const heroesFeast: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.HEROES_FEAST, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'HEROES_FEAST' as const
               }
             ]
           }

@@ -20,7 +20,7 @@ export const mindBlank: SpellAuthored = {
   id: SPELL_IDS.MIND_BLANK,
   label: 'Mind Blank',
   description:
-    'Until the spell ends, one willing creature you touch is immune to psychic damage, any effect that would sense its emotions or read its thoughts, divination spells, and the charmed condition.',
+    "<p>Until the spell ends, one willing creature you touch is immune to psychic damage, any effect that would sense its emotions or read its thoughts, divination spells, and the charmed condition. The spell even foils wish spells and spells or effects of similar power used to affect the target's mind or to gain information about the target.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 8,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
@@ -65,7 +65,8 @@ export const mindBlank: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MIND_BLANK, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'MIND_BLANK' as const
               }
             ]
           }

@@ -47,20 +47,114 @@ export const waterElemental: CreatureAuthored = {
       label: 'Water Form',
       description:
         'Water Form. The elemental can enter a hostile creature’s space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(285, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(285, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WATER_FORM
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(285, 2),
       label: 'Freeze',
       description:
-        'Freeze. If the elemental takes cold damage, it partially solidifies; if it takes a lot of cold damage in a turn, it is slowed until the end of its next turn.',
+        'Freeze. If the elemental takes cold damage, it partially freezes; its speed is reduced by 20 feet until the end of its next turn.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(285, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(285, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_FREEZE
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(285, 3),
       label: 'Whelm',
       description:
-        'Whelm. Each creature in the elemental’s space must make a Strength saving throw or be grappled. While grappling a creature, the elemental can’t use slam attacks on other creatures, and the grappled creature is restrained and unable to breathe unless it can breathe water.',
+        "Whelm (Recharge 4-6). Each creature in the elemental's space must make a DC 15 Strength saving throw. On a failure, a target takes 13 (2d8 + 4) bludgeoning damage. If it is Large or smaller, it is also grappled (escape DC 14). Until this grapple ends, the target is restrained and unable to breathe unless it can breathe water. If the saving throw is successful, the target is pushed out of the elemental's space. The elemental can grapple one Large creature or up to two Medium or smaller creatures at one time. At the start of each of the elemental's turns, each target grappled by it takes 13 (2d8 + 4) bludgeoning damage. A creature within 5 feet of the elemental can pull a creature or object out of it by taking an action to make a DC 14 Strength and succeeding.",
+      effects: [
+        {
+          id: S.actionId(285, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(285, 205),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.STRENGTH,
+              baseDc: 15
+            },
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(285, 206), rangeKind: S.RANGE_KIND.SELF },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(285, 207),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(285, 208),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(285, 209),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d8+4'
+                  },
+                  {
+                    id: S.actionId(285, 210),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WHELM
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(285, 211),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(285, 212),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(285, 213),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WHELM
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {

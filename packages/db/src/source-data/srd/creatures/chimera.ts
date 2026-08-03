@@ -35,7 +35,7 @@ export const chimera: CreatureAuthored = {
     {
       id: S.featureId(62, 1),
       label: 'Language Limitation',
-      description: "Understands Draconic but can't speak.",
+      description: "understands Draconic but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(62, 2, 'DRACONIC')]
       },
@@ -46,6 +46,18 @@ export const chimera: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The chimera makes three attacks: one with its bite, one with its horns, and one with its claws. When its fire breath is available, it can use the breath in place of its bite or horns.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(62, 101),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(62, 102), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {

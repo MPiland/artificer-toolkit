@@ -18,7 +18,7 @@ export const locateObject: SpellAuthored = {
   id: SPELL_IDS.LOCATE_OBJECT,
   label: 'Locate Object',
   description:
-    "Describe or name an object that is familiar to you. You sense the direction to the object's location, as long as that object is within 1,000 feet of you. If the object is in motion, you know the direction of its movement.",
+    "<p>Describe or name an object that is familiar to you. You sense the direction to the object's location, as long as that object is within 1,000 feet of you. If the object is in motion, you know the direction of its movement. The spell can locate a specific object known to you, as long as you have seen it up close-within 30 feet-at least once. Alternatively, the spell can locate the nearest object of a particular kind, such as a certain kind of apparel, jewelry, furniture, tool, or weapon. This spell can't locate an object if any thickness of lead, even a thin sheet, blocks a direct path between you and the object.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [
@@ -72,7 +72,10 @@ export const locateObject: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LOCATE_OBJECT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Reveal the Object\u0027s Direction",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "The spell can locate a specific object known to you, as long as you have seen it up close-within 30 feet-at least once."
               }
             ]
           }

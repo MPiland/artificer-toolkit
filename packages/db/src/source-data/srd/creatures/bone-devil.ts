@@ -54,12 +54,23 @@ export const boneDevil: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(52, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(52, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(52, 3),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 3
     },
     {
@@ -67,6 +78,18 @@ export const boneDevil: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The devil makes three attacks: two with its claws and one with its sting.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(52, 103),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(52, 104), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -211,27 +234,73 @@ export const boneDevil: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          id: S.actionId(52, 105),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(52, 106),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 14
             },
+            activation: { code: S.ACTIVATION_CODE.FREE },
+            range: {
+              id: S.actionId(52, 107),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
             {
-              id: S.actionId(52, 13),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
+              id: S.actionId(52, 108),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(52, 13) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                id: `${S.actionId(52, 108)}__result`,
+                resultKind: 'SEQUENCE',
                 duration: {
-                  id: S.actionId(52, 14),
+                  id: S.actionId(52, 109),
                   durationKind: DURATION_KIND.MINUTE,
                   amount: 1
                 },
                 outcomes: [
                   {
-                    id: S.actionId(52, 13),
+                    id: S.actionId(52, 110),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('POISONED')
+                  },
+                  {
+                    id: S.actionId(52, 111),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(52, 112),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 14
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
+                    id: S.actionId(52, 113),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_POISON_SAVE
                   }
                 ]
               }

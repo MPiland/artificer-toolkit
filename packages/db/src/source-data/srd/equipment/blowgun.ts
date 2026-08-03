@@ -5,7 +5,7 @@ export const blowgun: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(33),
   label: 'Blowgun',
-  description: 'A tube used to propel needles with a sharp breath.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

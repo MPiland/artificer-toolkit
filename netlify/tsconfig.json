@@ -4,5 +4,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["functions/**/*.mts"]
+  "include": ["edge-functions/**/*.ts", "functions/**/*.mts"]
 }

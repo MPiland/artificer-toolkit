@@ -1,4 +1,5 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const adultSilverDragon: CreatureAuthored = {
   id: S.CREATURE_IDS.ADULT_SILVER_DRAGON,
@@ -47,9 +48,20 @@ export const adultSilverDragon: CreatureAuthored = {
         id: S.legendaryActionId(11, 20),
         limitKind: 'FIXED_AMOUNT',
         scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
         amount: 3
       },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(11, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(11, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEGENDARY_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
@@ -81,7 +93,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(11, 12),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
                   }
                 ]
               }
@@ -282,30 +295,84 @@ export const adultSilverDragon: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(11, 601),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 18
+            },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
               id: S.actionId(11, 26),
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 120,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
             {
               id: S.actionId(11, 27),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(11, 27) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(11, 602),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
+                    id: S.actionId(11, 603),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('FRIGHTENED')
+                  },
+                  {
+                    id: S.actionId(11, 604),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(11, 605),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.WISDOM,
+                      baseDc: 18
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(11, 27),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(11, 606),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(11, 606)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(11, 607),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_FRIGHTFUL_PRESENCE
                   }
                 ]
               }
@@ -343,7 +410,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(11, 30),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_BREATH_WEAPON_CHOICE
                   }
                 ]
               }
@@ -451,16 +519,41 @@ export const adultSilverDragon: CreatureAuthored = {
               id: S.actionId(11, 39),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(11, 39) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(11, 611),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
+                    id: S.actionId(11, 612),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('PARALYZED')
+                  },
+                  {
+                    id: S.actionId(11, 613),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(11, 614),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 20
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(11, 39),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_PARALYZING_BREATH
                   }
                 ]
               }
@@ -474,7 +567,7 @@ export const adultSilverDragon: CreatureAuthored = {
       id: S.featureId(11, 10),
       label: 'Change Shape',
       description:
-        "The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features, legendary actions, and lair actions of that form.",
+        "Change Shape. The dragon magically polymorphs into a humanoid or beast that has a challenge rating no higher than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the dragon's choice). In a new form, the dragon retains its alignment, hit points, Hit Dice, ability to speak, proficiencies, Legendary Resistance, lair actions, and Intelligence, Wisdom, and Charisma scores, as well as this action. Its statistics and capabilities are otherwise replaced by those of the new form, except any class features or legendary actions of that form.",
       effects: [
         {
           id: S.actionId(11, 40),
@@ -499,7 +592,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(11, 42),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_CHANGE_SHAPE
                   }
                 ]
               }
@@ -547,7 +641,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(11, 24),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
                   }
                 ]
               }
@@ -577,7 +672,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(11, 27),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_TAIL_ATTACK
                   }
                 ]
               }
@@ -607,7 +703,8 @@ export const adultSilverDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.legendaryActionId(11, 30),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_WING_ATTACK
                   }
                 ]
               }

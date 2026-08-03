@@ -47,33 +47,55 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT equipment_variant_parent_chk CHECK (
-    (category = 'VARIANT' AND parent_equipment_id IS NOT NULL)
-    OR (category <> 'VARIANT' AND parent_equipment_id IS NULL)
+    (
+      category = 'VARIANT'
+      AND parent_equipment_id IS NOT NULL
+    )
+    OR (
+      category <> 'VARIANT'
+      AND parent_equipment_id IS NULL
+    )
   ),
   CONSTRAINT equipment_id_system_uq UNIQUE (id, system_id),
-  CONSTRAINT equipment_parent_system_fk FOREIGN KEY (parent_equipment_id, system_id)
-    REFERENCES public.equipment (id, system_id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT equipment_parent_system_fk FOREIGN KEY (parent_equipment_id, system_id) REFERENCES public.equipment (id, system_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT equipment_weight_chk CHECK (
-    (weight_amount IS NULL AND weight_unit IS NULL)
-    OR (weight_amount IS NOT NULL AND weight_unit IS NOT NULL)
+    (
+      weight_amount IS NULL
+      AND weight_unit IS NULL
+    )
+    OR (
+      weight_amount IS NOT NULL
+      AND weight_unit IS NOT NULL
+    )
   ),
   CONSTRAINT equipment_category_payload_chk CHECK (
-    (category = 'VARIANT' AND weight_amount IS NULL AND weight_unit IS NULL)
-    OR (category <> 'VARIANT' AND weight_amount IS NOT NULL AND weight_unit IS NOT NULL)
+    category <> 'VARIANT'
+    OR (
+      weight_amount IS NULL
+      AND weight_unit IS NULL
+    )
   ),
   CONSTRAINT equipment_capacity_chk CHECK (
-    (capacity_amount IS NULL AND capacity_unit IS NULL)
-    OR (capacity_amount IS NOT NULL AND capacity_unit IS NOT NULL)
+    (
+      capacity_amount IS NULL
+      AND capacity_unit IS NULL
+    )
+    OR (
+      capacity_amount IS NOT NULL
+      AND capacity_unit IS NOT NULL
+    )
   ),
   CONSTRAINT equipment_cost_chk CHECK (
-    (cost_amount IS NULL AND cost_currency_id IS NULL)
-    OR (cost_amount IS NOT NULL AND cost_currency_id IS NOT NULL)
+    (
+      cost_amount IS NULL
+      AND cost_currency_id IS NULL
+    )
+    OR (
+      cost_amount IS NOT NULL
+      AND cost_currency_id IS NOT NULL
+    )
   ),
-  CONSTRAINT equipment_status_chk CHECK (
-    status IN ('DRAFT', 'ACTIVE')
-  )
+  CONSTRAINT equipment_status_chk CHECK (status IN ('DRAFT', 'ACTIVE'))
 );
 
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;

@@ -185,6 +185,8 @@ describe('createVehicleRepository', () => {
             crew_max: null,
             passenger_capacity: null,
             cargo_capacity: null,
+            weight_amount: null,
+            weight_unit: null,
             cost: null,
             properties: null
           }
@@ -223,13 +225,14 @@ describe('createVehicleRepository', () => {
       crewMax: undefined,
       passengerCapacity: undefined,
       cargoCapacity: undefined,
+      weight: undefined,
       cost: undefined,
       properties: undefined,
       features: undefined
     })
   })
 
-  it('hydrates an SRD-style logistics vehicle with only category, speed, and cost fields', async () => {
+  it('hydrates SRD decimal speed, weight, and cost fields', async () => {
     const repo = createVehicleRepository(
       createFakeDb({
         vehicles: [
@@ -237,19 +240,21 @@ describe('createVehicleRepository', () => {
             id: 'vehicle-3',
             system_id: 'system-1',
             user_id: 'user-1',
-            label: 'Keelboat',
+            label: 'Rowboat',
             description: null,
             category: 'WATER',
             size_code: null,
             armor_class: null,
             hit_points: null,
-            speed: null,
-            speed_note: '1 mph',
+            speed: '1.5',
+            speed_note: '1½ mph',
             crew_min: null,
             crew_max: null,
             passenger_capacity: null,
             cargo_capacity: null,
-            cost: { amount: 3000, currencyId: 'gp' },
+            weight_amount: '100',
+            weight_unit: 'POUNDS',
+            cost: { amount: 50, currencyId: 'gp' },
             properties: null
           }
         ],
@@ -271,7 +276,7 @@ describe('createVehicleRepository', () => {
 
     await expect(repo.findById('vehicle-3')).resolves.toEqual({
       id: 'vehicle-3',
-      label: 'Keelboat',
+      label: 'Rowboat',
       description: undefined,
       status: 'DRAFT',
       details: undefined,
@@ -281,13 +286,14 @@ describe('createVehicleRepository', () => {
       size: undefined,
       armorClass: undefined,
       hitPoints: undefined,
-      speed: undefined,
-      speedNote: '1 mph',
+      speed: 1.5,
+      speedNote: '1½ mph',
       crewMin: undefined,
       crewMax: undefined,
       passengerCapacity: undefined,
       cargoCapacity: undefined,
-      cost: { amount: 3000, currencyId: 'gp' },
+      weight: { amount: 100, unit: 'POUNDS' },
+      cost: { amount: 50, currencyId: 'gp' },
       properties: undefined,
       features: undefined
     })
@@ -313,6 +319,8 @@ describe('createVehicleRepository', () => {
             crew_max: 20,
             passenger_capacity: 40,
             cargo_capacity: '20 tons',
+            weight_amount: null,
+            weight_unit: null,
             cost: { amount: 100000, currencyId: 'gp' },
             properties: ['ARMORED', 'SIEGE']
           }
@@ -412,6 +420,30 @@ describe('createVehicleRepository', () => {
 
     await expect(repo.findById('vehicle-invalid-cost')).rejects.toThrow(
       'Vehicle "vehicle-invalid-cost" has invalid cost.'
+    )
+  })
+
+  it('rejects partial weight data', async () => {
+    const repo = createVehicleRepository(
+      createFakeDb({
+        vehicles: [
+          {
+            id: 'vehicle-invalid-weight',
+            system_id: 'system-1',
+            user_id: 'user-1',
+            label: 'Invalid Vehicle',
+            category: 'LAND',
+            weight_amount: 100,
+            weight_unit: null
+          }
+        ],
+        vehicle_details: [],
+        vehicle_features: []
+      }) as unknown as DBLike
+    )
+
+    await expect(repo.findById('vehicle-invalid-weight')).rejects.toThrow(
+      'Vehicle "vehicle-invalid-weight" has invalid weight.'
     )
   })
 })

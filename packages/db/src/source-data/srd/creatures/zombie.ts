@@ -38,12 +38,24 @@ export const zombie: CreatureAuthored = {
       label: 'Undead Fortitude',
       description:
         'Undead Fortitude. If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(311, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(311, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ZOMBIE_UNDEAD_FORTITUDE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(311, 2),
       label: 'Language Limitation',
-      description: 'Understands the languages it knew in life.',
+      description: 'understands the languages it knew in life',
       order: 2
     },
     {

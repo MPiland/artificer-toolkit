@@ -20,7 +20,7 @@ export const revivify: SpellAuthored = {
   id: SPELL_IDS.REVIVIFY,
   label: 'Revivify',
   description:
-    'You touch a creature that has died within the last minute. That creature returns to life with 1 hit point, provided it has not died of old age and is not missing vital body parts.',
+    "<p>You touch a creature that has died within the last minute. That creature returns to life with 1 hit point. This spell can't return to life a creature that has died of old age, nor can it restore any missing body parts.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
@@ -57,15 +57,23 @@ export const revivify: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.REVIVIFY, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.REVIVIFY, 0x213, 1),
               durationKind: DURATION_KIND.INSTANTANEOUS
             },
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.REVIVIFY, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'REVIVIFY' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.REVIVIFY, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Check Revival Eligibility",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "This spell can\u0027t return to life a creature that has died of old age, nor can it restore any missing body parts."
               }
             ]
           }

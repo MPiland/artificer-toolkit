@@ -18,7 +18,7 @@ export const divination: SpellAuthored = {
   id: SPELL_IDS.DIVINATION,
   label: 'Divination',
   description:
-    "Your magic and an offering put you in contact with a god or a god's servants. You ask a single question concerning a specific goal, event, or activity to occur within 7 days.",
+    "<p>Your magic and an offering put you in contact with a god or a god's servants. You ask a single question concerning a specific goal, event, or activity to occur within 7 days. The GM offers a truthful reply. The reply might be a short phrase, a cryptic rhyme, or an omen. The spell doesn't take into account any possible circumstances that might change the outcome, such as the casting of additional spells or the loss or gain of a companion. If you cast the spell two or more times before finishing your next long rest, there is a cumulative 25 percent chance for each casting after the first that you get a random reading. The GM makes this roll in secret.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.CLERIC],
@@ -58,7 +58,10 @@ export const divination: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DIVINATION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Provide the Reply",
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions: "The GM offers a truthful reply. The reply might be a short phrase, a cryptic rhyme, or an omen."
               }
             ]
           }

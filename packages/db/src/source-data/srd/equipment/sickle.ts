@@ -5,7 +5,7 @@ export const sickle: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(9),
   label: 'Sickle',
-  description: 'A curved blade on a short handle.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,

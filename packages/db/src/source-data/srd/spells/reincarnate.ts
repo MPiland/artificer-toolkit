@@ -19,7 +19,7 @@ export const reincarnate: SpellAuthored = {
   id: SPELL_IDS.REINCARNATE,
   label: 'Reincarnate',
   description:
-    'You touch a dead humanoid and form a new adult body for it, calling the soul back to life in a randomly determined new race if the soul is free and willing.',
+    "<p>You touch a dead humanoid or a piece of a dead humanoid. Provided that the creature has been dead no longer than 10 days, the spell forms a new adult body for it and then calls the soul to enter that body. If the target's soul isn't free or willing to do so, the spell fails. The magic fashions a new body for the creature to inhabit, which likely causes the creature's race to change. The GM rolls a d100 and consults the following table to determine what form the creature takes when restored to life, or the GM chooses a form. d100 Race</p><p>05-13 Dwarf, hill</p><p>22-25 Elf, dark</p><p>35-42 Elf, wood</p><p>47-52 Gnome, rock</p><p>57-60 Half-orc</p><p>69-76 Halfling, stout</p><p>97-00 Tiefling</p><p>The reincarnated creature recalls its former life and experiences. It retains the capabilities it had in its original form, except it exchanges its original race for the new one and changes its racial traits accordingly.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.DRUID],
@@ -56,11 +56,19 @@ export const reincarnate: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.REINCARNATE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.REINCARNATE, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'REINCARNATE' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.REINCARNATE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Choose the New Form",
+                reasonCode: 'GM_CHOICE' as const,
+                instructions: "The GM rolls a d100 and consults the following table to determine what form the creature takes when restored to life, or the GM chooses a form."
               }
             ]
           }

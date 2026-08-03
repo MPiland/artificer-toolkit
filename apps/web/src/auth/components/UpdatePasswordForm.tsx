@@ -1,4 +1,4 @@
-import { type SubmitEvent, useState } from 'react'
+import { type MouseEvent, type SubmitEvent, useState } from 'react'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import {
   PASSWORD_MAX_LENGTH,
@@ -26,8 +26,9 @@ import IArrowLeft from '#assets/icons/IArrowLeft'
 export function UpdatePasswordForm({
   authClient = browserAuthClient,
   invitation = false,
+  onBackToSignIn,
   onSuccess
-}: AuthFormProps & { invitation?: boolean }) {
+}: AuthFormProps & { invitation?: boolean; onBackToSignIn?: () => void | Promise<void> }) {
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
@@ -36,6 +37,24 @@ export function UpdatePasswordForm({
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
     null
   )
+
+  async function handleBackToSignIn(event: MouseEvent<HTMLAnchorElement>) {
+    if (!onBackToSignIn) return
+
+    event.preventDefault()
+    setFeedback(null)
+
+    const result = await authClient.signOut()
+    if (!result.ok) {
+      setFeedback({
+        tone: 'error',
+        message: result.message ?? 'Could not return to sign in.'
+      })
+      return
+    }
+
+    await onBackToSignIn()
+  }
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -171,7 +190,7 @@ export function UpdatePasswordForm({
       )}
       <AuthDivider />
       <div className={authFooterRow}>
-        <Anchor className={inlineLink} href='/sign-in'>
+        <Anchor className={inlineLink} href='/sign-in' onClick={handleBackToSignIn}>
           <span className={inlineLinkIcon} aria-hidden='true'>
             <IArrowLeft className={inlineLinkIconGlyph} size={14} />
           </span>

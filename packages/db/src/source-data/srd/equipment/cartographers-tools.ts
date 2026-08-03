@@ -5,8 +5,7 @@ export const cartographersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(55),
   label: "Cartographer's Tools",
-  description:
-    'Instruments for drawing accurate maps, including compasses, rulers, and specialized inks.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(15),

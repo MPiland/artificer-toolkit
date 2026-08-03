@@ -32,7 +32,7 @@ export const commoner: CreatureAuthored = {
     {
       id: S.featureId(68, 1),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(68, 1, 'COMMON')]
       },

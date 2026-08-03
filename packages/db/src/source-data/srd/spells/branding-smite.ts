@@ -26,7 +26,7 @@ export const brandingSmite: SpellAuthored = {
   id: SPELL_IDS.BRANDING_SMITE,
   label: 'Branding Smite',
   description:
-    "The next time you hit a creature with a weapon attack before this spell ends, the weapon gleams with astral radiance as you strike. The attack deals an extra 2d6 radiant damage to the target, which becomes visible if it's invisible.",
+    "<p>The next time you hit a creature with a weapon attack before this spell ends, the weapon gleams with astral radiance as you strike. The attack deals an extra 2d6 radiant damage to the target, which becomes visible if it's invisible, and the target sheds dim light in a 5-foot radius and can't become invisible until the spell ends. At Higher Levels. When you cast this spell using a spell slot of 3rd level or higher, the extra damage increases by 1d6 for each slot level above 2nd.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.PALADIN],
@@ -66,7 +66,8 @@ export const brandingSmite: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'BRANDING_SMITE' as const
               }
             ]
           }

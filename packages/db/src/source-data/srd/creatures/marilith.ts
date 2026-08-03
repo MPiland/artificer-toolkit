@@ -42,24 +42,61 @@ export const marilith: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The marilith has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(192, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(192, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(192, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The marilith's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(192, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(192, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(192, 3),
       label: 'Reactive',
       description: 'Reactive. The marilith can take one reaction on every turn in a combat.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(192, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(192, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_REACTIVE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(192, 4),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 4
     },
     {
@@ -67,6 +104,19 @@ export const marilith: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The marilith makes seven attacks: six with its longswords and one with its tail.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(192, 504),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(192, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_MULTIATTACK
+        })
+      ],
       order: 5
     },
     {
@@ -74,6 +124,59 @@ export const marilith: CreatureAuthored = {
       label: 'Longsword',
       description:
         'Longsword. Melee Weapon Attack: +9 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
+      effects: [
+        {
+          id: S.actionId(192, 505),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(192, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(192, 805),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(192, 805) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(192, 950),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d8',
+                    bonuses: [
+                      {
+                        id: S.actionId(192, 1000),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     },
     {
@@ -81,6 +184,64 @@ export const marilith: CreatureAuthored = {
       label: 'Tail',
       description:
         "Tail. Melee Weapon Attack: +9 to hit, reach 10 ft., one creature. Hit: 15 (2d10 + 4) bludgeoning damage. If the target is Medium or smaller, it is grappled (escape DC 19). Until this grapple ends, the target is restrained, the marilith can automatically hit the target with its tail, and the marilith can't make tail attacks against other targets.",
+      effects: [
+        {
+          id: S.actionId(192, 506),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(192, 606),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(192, 806),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(192, 806) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(192, 960),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d10',
+                    bonuses: [
+                      {
+                        id: S.actionId(192, 1010),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  },
+                  {
+                    id: S.actionId(192, 968),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_TAIL
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 7
     },
     {
@@ -88,6 +249,27 @@ export const marilith: CreatureAuthored = {
       label: 'Teleport',
       description:
         'Teleport. The marilith magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(192, 507),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(192, 607),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 120,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_TELEPORT
+        })
+      ],
       order: 8
     }
   ]

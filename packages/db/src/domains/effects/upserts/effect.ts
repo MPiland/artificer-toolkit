@@ -137,7 +137,9 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
       }
 
       for (const row of path.rows) {
-        await upsertResultBlock(trx, json_data.id, row.resultBlock)
+        if (row.resolutionKind === 'RESULT') {
+          await upsertResultBlock(trx, json_data.id, row.resultBlock)
+        }
 
         await trx
           .insertInto('effect_path_roll_table_rows')

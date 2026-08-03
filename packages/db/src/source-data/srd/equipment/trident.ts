@@ -5,7 +5,7 @@ export const trident: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(29),
   label: 'Trident',
-  description: 'A three-pronged polearm used for thrusting or throwing.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

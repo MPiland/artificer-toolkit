@@ -5,7 +5,7 @@ export const halberd: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(20),
   label: 'Halberd',
-  description: 'A polearm combining a spear tip and an axe blade.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

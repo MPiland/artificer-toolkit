@@ -6,7 +6,7 @@ export const shieldMetalPlus2: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(359),
   label: 'Shield +2',
-  description: 'You have a +2 bonus to AC while wielding this magic shield.',
+  description: S.MAGIC_SHIELD_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: shieldMetal.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

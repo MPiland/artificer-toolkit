@@ -21,7 +21,7 @@ export const calmEmotions: SpellAuthored = {
   id: SPELL_IDS.CALM_EMOTIONS,
   label: 'Calm Emotions',
   description:
-    'You attempt to suppress strong emotions in a group of people. Each humanoid in a 20-foot-radius sphere centered on a point you choose within range must make a Charisma saving throw.',
+    "<p>You attempt to suppress strong emotions in a group of people. Each humanoid in a 20-foot-radius sphere centered on a point you choose within range must make a Charisma saving throw; a creature can choose to fail this saving throw if it wishes. If a creature fails its saving throw, choose one of the following two effects. You can suppress any effect causing a target to be charmed or frightened. When this spell ends, any suppressed effect resumes, provided that its duration has not expired in the meantime. Alternatively, you can make a target indifferent about creatures of your choice that it is hostile toward. This indifference ends if the target is attacked or harmed by a spell or if it witnesses any of its friends being harmed. When the spell ends, the creature becomes hostile again, unless the GM rules otherwise.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC],
@@ -64,7 +64,8 @@ export const calmEmotions: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'CALM_EMOTIONS' as const
               }
             ]
           }

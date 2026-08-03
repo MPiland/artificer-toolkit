@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const erinyes: CreatureAuthored = {
   id: S.CREATURE_IDS.ERINYES,
@@ -46,6 +47,18 @@ export const erinyes: CreatureAuthored = {
       label: 'Hellish Weapons',
       description:
         "Hellish Weapons. The erinyes's weapon attacks are magical and deal an extra 13 (3d8) poison damage on a hit (included in the attacks).",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(98, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(98, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ERINYES_HELLISH_WEAPONS
+        })
+      ],
       order: 1
     },
     {
@@ -53,12 +66,24 @@ export const erinyes: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The erinyes has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(98, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(98, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(98, 3),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 3
     },
     {
@@ -66,36 +91,16 @@ export const erinyes: CreatureAuthored = {
       label: 'Multiattack',
       description: 'The erinyes makes three attacks.',
       effects: [
-        {
-          id: S.actionId(98, 4),
-          order: 1,
+        S.closedRuleEffect({
+          id: S.actionId(98, 204),
           invocation: {
-            kind: 'ACTION' as const,
+            kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(98, 5), rangeKind: S.RANGE_KIND.SPECIAL }
+            range: { id: S.actionId(98, 1204), rangeKind: S.RANGE_KIND.SPECIAL }
           },
-          paths: [
-            {
-              id: S.actionId(98, 6),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(98, 6) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(98, 6),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
       ],
       order: 4
     },
@@ -110,9 +115,14 @@ export const erinyes: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(98, 8), rangeKind: S.RANGE_KIND.SPECIAL },
+            range: {
+              id: S.actionId(98, 8),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
@@ -122,20 +132,70 @@ export const erinyes: CreatureAuthored = {
             {
               id: S.actionId(98, 9),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.CHOICE,
               originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(98, 9) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(98, 9),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+              selectionKind: 'CHOICE' as const,
+              options: [
+                {
+                  id: S.actionId(98, 210),
+                  order: 1,
+                  label: '8 (1d8 + 4) slashing damage',
+                  description:
+                    'Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) slashing damage, or 9 (1d10 + 4) slashing damage if used with two hands, plus 13 (3d8) poison damage.',
+                  resultBlock: {
+                    id: S.actionId(98, 211),
+                    resultKind: 'SEQUENCE',
+                    outcomes: [
+                      {
+                        id: S.actionId(98, 212),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('SLASHING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d8+4'
+                      },
+                      {
+                        id: S.actionId(98, 213),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('POISON'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '3d8'
+                      }
+                    ]
                   }
-                ]
-              }
+                },
+                {
+                  id: S.actionId(98, 214),
+                  order: 2,
+                  label: '9 (1d10 + 4) slashing damage if used with two hands',
+                  description:
+                    'Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) slashing damage, or 9 (1d10 + 4) slashing damage if used with two hands, plus 13 (3d8) poison damage.',
+                  resultBlock: {
+                    id: S.actionId(98, 215),
+                    resultKind: 'SEQUENCE',
+                    outcomes: [
+                      {
+                        id: S.actionId(98, 216),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('SLASHING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d10+4'
+                      },
+                      {
+                        id: S.actionId(98, 217),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('POISON'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '3d8'
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }
@@ -193,21 +253,7 @@ export const erinyes: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(98, 14),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(98, 14) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(98, 14),
                     effectKind: S.EFFECT_KIND.DAMAGE,
@@ -215,24 +261,36 @@ export const erinyes: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d8'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(98, 15),
-              order: 3,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(98, 15) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
-                    id: S.actionId(98, 15),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    id: S.actionId(98, 220),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(98, 221),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 14
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(98, 222),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('POISONED')
+                        },
+                        {
+                          id: S.actionId(98, 223),
+                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                          ruleKind: S.CLOSED_RULE_KIND.ERINYES_LONGBOW_POISON
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -271,7 +329,8 @@ export const erinyes: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.reactionId(98, 3),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.ERINYES_PARRY
                   }
                 ]
               }

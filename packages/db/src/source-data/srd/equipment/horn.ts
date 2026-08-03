@@ -5,7 +5,7 @@ export const horn: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(72),
   label: 'Horn',
-  description: 'A brass or bone wind instrument producing a resonant, carrying tone.',
+  description: S.MUSICAL_INSTRUMENT_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
   cost: S.gp(3),

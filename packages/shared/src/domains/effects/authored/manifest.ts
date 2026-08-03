@@ -9,7 +9,9 @@ import {
   MANIFEST_KIND,
   type AbilityCode,
   type ManifestKind,
+  type MeasurementUnitCode,
   type NumericExpr,
+  type ShapeMeasurementValueAuthored,
   type SizeCode,
   type Trigger
 } from '#core'
@@ -38,6 +40,136 @@ export type SummonDamageabilityKind = keyof typeof SUMMON_DAMAGEABILITY_KIND
 export type SummonVisibilityKind = keyof typeof SUMMON_VISIBILITY_KIND
 export type SummonAbilityScoreCode = AbilityCode
 
+export const MANIFEST_BLOCKING_RULE = {
+  NONMAGICAL_RANGED_ATTACKS: 'NONMAGICAL_RANGED_ATTACKS',
+  MAGICAL_RANGED_ATTACKS: 'MAGICAL_RANGED_ATTACKS',
+  SPELLS: 'SPELLS',
+  THREE_QUARTERS_COVER: 'THREE_QUARTERS_COVER'
+} as const
+
+export const MANIFEST_BLOCKING_RULE_OPTIONS = [
+  { code: MANIFEST_BLOCKING_RULE.NONMAGICAL_RANGED_ATTACKS, label: 'Nonmagical Ranged Attacks' },
+  { code: MANIFEST_BLOCKING_RULE.MAGICAL_RANGED_ATTACKS, label: 'Magical Ranged Attacks' },
+  { code: MANIFEST_BLOCKING_RULE.SPELLS, label: 'Spells' },
+  { code: MANIFEST_BLOCKING_RULE.THREE_QUARTERS_COVER, label: 'Three-Quarters Cover' }
+] as const
+
+export const MANIFEST_SUPPRESSION_IMMUNITY = {
+  ANTIMAGIC_FIELD: 'ANTIMAGIC_FIELD'
+} as const
+
+export const MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS = [
+  { code: MANIFEST_SUPPRESSION_IMMUNITY.ANTIMAGIC_FIELD, label: 'Antimagic Field' }
+] as const
+
+export const MANIFEST_PROPERTY = {
+  NO_HEAT: 'NO_HEAT',
+  NO_OXYGEN_USE: 'NO_OXYGEN_USE',
+  CANNOT_BE_SMOTHERED: 'CANNOT_BE_SMOTHERED',
+  CANNOT_BE_QUENCHED: 'CANNOT_BE_QUENCHED',
+  CAN_BE_COVERED_OR_HIDDEN: 'CAN_BE_COVERED_OR_HIDDEN'
+} as const
+
+export const MANIFEST_PROPERTY_OPTIONS = [
+  { code: MANIFEST_PROPERTY.NO_HEAT, label: 'Produces No Heat' },
+  { code: MANIFEST_PROPERTY.NO_OXYGEN_USE, label: 'Uses No Oxygen' },
+  { code: MANIFEST_PROPERTY.CANNOT_BE_SMOTHERED, label: 'Cannot Be Smothered' },
+  { code: MANIFEST_PROPERTY.CANNOT_BE_QUENCHED, label: 'Cannot Be Quenched' },
+  { code: MANIFEST_PROPERTY.CAN_BE_COVERED_OR_HIDDEN, label: 'Can Be Covered or Hidden' }
+] as const
+
+export const MANIFEST_SPELL_CAPABILITY = {
+  OPEN_PORTAL_ON_SOLID_SURFACE: 'OPEN_PORTAL_ON_SOLID_SURFACE',
+  SHED_BRIGHT_LIGHT: 'SHED_BRIGHT_LIGHT',
+  END_SPELL_OR_MAGICAL_EFFECT: 'END_SPELL_OR_MAGICAL_EFFECT'
+} as const
+
+export const MANIFEST_SPELL_CAPABILITY_OPTIONS = [
+  { code: MANIFEST_SPELL_CAPABILITY.OPEN_PORTAL_ON_SOLID_SURFACE, label: 'Open Surface Portal' },
+  { code: MANIFEST_SPELL_CAPABILITY.SHED_BRIGHT_LIGHT, label: 'Shed Bright Light' },
+  { code: MANIFEST_SPELL_CAPABILITY.END_SPELL_OR_MAGICAL_EFFECT, label: 'End Magical Effect' }
+] as const
+
+export type ManifestDestructionCriterionAuthored =
+  | {
+      id: string
+      order: number
+      kind: 'DAMAGE_THRESHOLD'
+      damageTypeId: string
+      amount: number
+    }
+  | {
+      id: string
+      order: number
+      kind: 'STRONG_WIND'
+    }
+  | {
+      id: string
+      order: number
+      kind: 'WIND_SPEED'
+      minimumMilesPerHour: number
+      afterRounds: number
+    }
+  | {
+      id: string
+      order: number
+      kind: 'SPELL_CAPABILITY'
+      capability: keyof typeof MANIFEST_SPELL_CAPABILITY
+      minimumSpellLevel: number
+      exampleSpellIds?: string[]
+    }
+  | {
+      id: string
+      order: number
+      kind: 'NAMED_OBJECT'
+      objectLabel: string
+    }
+
+export type ManifestInteractionKind =
+  | 'ENTER_OR_PASS_THROUGH'
+  | 'MOVE_ACROSS'
+  | 'ENTER_SPACE'
+  | 'START_TURN_IN_SPACE'
+  | 'END_TURN_IN_SPACE'
+  | 'SOURCE_HIT'
+  | 'TARGET_TAKES_FIRE_DAMAGE'
+  | 'START_OF_ATTACHED_TARGET_TURN'
+  | 'END_OF_ATTACHED_TARGET_NEXT_TURN'
+
+export type ManifestComponentAuthored = {
+  id: string
+  order: number
+  label: string
+  interactionKind?: ManifestInteractionKind
+  interactionKinds?: ManifestInteractionKind[]
+  bypassAtHalfSpeed?: boolean
+  movementCostMultiplier?: number
+  requiresFullyWithin?: boolean
+  automaticSaveSuccessConditions?: Array<'DOES_NOT_BREATHE' | 'POISON_IMMUNE'>
+  requiresIgnition?: boolean
+  maxApplicationsPerTurn?: number
+  maxApplicationsTotal?: number
+  armorClass?: number
+  hitPoints?: number
+  behaviors?: ManifestBehaviorAuthored[]
+  blockingRules?: Array<keyof typeof MANIFEST_BLOCKING_RULE>
+  destructionCriteria?: ManifestDestructionCriterionAuthored[]
+  releaseCriteria?: ManifestDestructionCriterionAuthored[]
+}
+
+export type ManifestLightAuthored = {
+  bright: { amount: number; unit: MeasurementUnitCode }
+  dimAdditional: { amount: number; unit: MeasurementUnitCode }
+}
+
+export type ManifestProximityRuleAuthored = {
+  id: string
+  events: Array<'MOVE_WITHIN' | 'START_TURN'>
+  distance: { amount: number; unit: MeasurementUnitCode }
+  requiresSight: boolean
+  behavior: ManifestBehaviorAuthored
+}
+
 export type SummonStatBlockAuthored = {
   size?: SizeCode
   armorClass?: NumericExpr
@@ -61,6 +193,12 @@ type ManifestAuthoredBase = {
   effectKind: typeof EFFECT_KIND.MANIFEST
   label?: string
   shape?: ShapeAuthored
+  attachmentKind?: 'SOURCE' | 'PRIMARY_TARGET' | 'PLACED_SPACE' | 'TOUCHED_OBJECT'
+  maxApplicationsPerTurn?: number
+  placementSurfaceKind?: 'LEVEL'
+  applicationTargetKind?: 'WEAPON' | 'AMMUNITION'
+  applicationCount?: number
+  qualifyingDamageTypeIds?: string[]
 }
 
 type CreatureManifestAuthored = ManifestAuthoredBase & {
@@ -82,6 +220,24 @@ type NonCreatureManifestAuthored = ManifestAuthoredBase & {
   creatureId?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
+  components?: ManifestComponentAuthored[]
+  componentsMustResolveInOrder?: boolean
+  destructionMustResolveInOrder?: boolean
+  destroyedComponentsRemainDestroyed?: boolean
+  placementMustBeUnoccupied?: boolean
+  invalidPlacementConsumesInvocation?: boolean
+  designatedCreatureImmunity?: boolean
+  maximumTargetSize?: SizeCode
+  excludesFormlessTargets?: boolean
+  proximityRule?: ManifestProximityRuleAuthored
+  light?: ManifestLightAuthored
+  hollow?: boolean
+  wallThickness?: ShapeMeasurementValueAuthored
+  spreadsAroundCorners?: boolean
+  obscurementKind?: 'LIGHT' | 'HEAVY'
+  properties?: Array<keyof typeof MANIFEST_PROPERTY>
+  destructionCriteria?: ManifestDestructionCriterionAuthored[]
+  suppressionImmunities?: Array<keyof typeof MANIFEST_SUPPRESSION_IMMUNITY>
 }
 
 export type ManifestAuthored =

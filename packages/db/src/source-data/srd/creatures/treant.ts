@@ -37,25 +37,122 @@ export const treant: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the treant remains motionless, it is indistinguishable from a normal tree.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(271, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(271, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_TREANT_FALSE_APPEARANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(271, 2),
       label: 'Siege Monster',
       description: 'Siege Monster. The treant deals double damage to objects and structures.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(271, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(271, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(271, 3),
       label: 'Animate Trees',
       description:
-        'Animate Trees. The treant magically animates one or two trees it can see within 60 feet of it. The trees act as allies for a day or until the treant ends the effect.',
+        "Animate Trees (1/Day). The treant magically animates one or two trees it can see within 60 feet of it. These trees have the same statistics as a treant, except they have Intelligence and Charisma scores of 1, they can't speak, and they have only the Slam action option. An animated tree acts as an ally of the treant. The tree remains animate for 1 day or until it dies; until the treant dies or is more than 120 feet from the tree; or until the treant takes a bonus action to turn it back into an inanimate tree. The tree then takes root if possible.",
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(271, 204),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+        amount: 1
+      },
+      effects: [
+        {
+          id: S.actionId(271, 205),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(271, 206),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 60,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(271, 207),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(271, 208),
+                resultKind: 'SEQUENCE',
+                duration: {
+                  id: S.actionId(271, 209),
+                  durationKind: 'DAY',
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(271, 210),
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: 'CREATURE',
+                    creatureId: S.CREATURE_IDS.TREANT
+                  },
+                  {
+                    id: S.actionId(271, 211),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_TREANT_ANIMATE_TREES
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 3
     },
     {
       id: S.featureId(271, 4),
       label: 'Multiattack',
       description: 'Multiattack. The treant makes two slam attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(271, 212),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(271, 213), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -118,6 +215,51 @@ export const treant: CreatureAuthored = {
       label: 'Rock',
       description:
         'Rock. Ranged Weapon Attack: +10 to hit, range 60/180 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
+      effects: [
+        {
+          id: S.actionId(271, 214),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(271, 215),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 180,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(271, 216),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(271, 217),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(271, 218),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '4d10+6'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     }
   ]

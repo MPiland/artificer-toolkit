@@ -1,27 +1,39 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PATH_CODE,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -45,6 +57,35 @@ function equipmentId(index: number): string {
 }
 
 const RA = 8 // Ranger class index
+
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(RA, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 
 // Ranger spell slot charge — half caster (starts L2), resets on long rest
 const rangerSlotCharge = {
@@ -239,8 +280,6 @@ export const ranger: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description:
-    'A warrior who uses martial prowess and nature magic to combat threats on the edges of civilization.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -583,7 +622,8 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 1),
       label: 'Favored Enemy',
       description:
-        'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.',
+        'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.\n\nChoose a type of favored enemy: aberrations, beasts, celestials, constructs, dragons, elementals, fey, fiends, giants, monstrosities, oozes, plants, or undead. Alternatively, you can select two races of humanoid (such as gnolls and orcs) as favored enemies.\n\nYou have advantage on Wisdom (Survival) checks to track your favored enemies, as well as on Intelligence checks to recall information about them.\n\nWhen you gain this feature, you also learn one language of your choice that is spoken by your favored enemies, if they speak one at all.\n\nYou choose one additional favored enemy, as well as an associated language, at 6th and 14th level. As you gain levels, your choices should reflect the types of monsters you have encountered on your adventures.',
+      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_RANGER_FAVORED_ENEMY)],
       availableAtLevel: 1,
       order: 0
     },
@@ -591,7 +631,8 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 2),
       label: 'Natural Explorer',
       description:
-        'You are a master of navigating the natural world, and you react with swift and decisive action when attacked. This grants you several benefits while you are traveling for an hour or more in your favored terrain.',
+        "You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions. Choose one type of favored terrain: arctic, coast, desert, forest, grassland, mountain, or swamp. When you make an Intelligence or Wisdom check related to your favored terrain, your proficiency bonus is doubled if you are using a skill that you're proficient in.\n\nWhile traveling for an hour or more in your favored terrain, you gain the following benefits:\n\n* Difficult terrain doesn't slow your group's travel.\n* Your group can't become lost except by magical means.\n* Even when you are engaged in another activity while traveling (such as foraging, navigating, or tracking), you remain alert to danger.\n* If you are traveling alone, you can move stealthily at a normal pace.\n* When you forage, you find twice as much food as you normally would.\n* While tracking other creatures, you also learn their exact number, their sizes, and how long ago they passed through the area.\n\nYou choose additional favored terrain types at 6th and 10th level.",
+      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_RANGER_NATURAL_EXPLORER)],
       availableAtLevel: 1,
       order: 1
     },
@@ -599,7 +640,7 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 3),
       label: 'Fighting Style',
       description:
-        'At 2nd level, you adopt a particular style of fighting. Choose one of the following options.',
+        "At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
       availableAtLevel: 2,
       order: 2,
       optionChoices: [{ level: 2, count: 1 }],
@@ -640,7 +681,34 @@ export const ranger: ClassAuthored = {
                 scope: MODIFIER_SCOPE_KIND.SOURCE,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 1 },
-                order: 0
+                order: 0,
+                restrictions: {
+                  id: classRowId(RA, 0x70, 1),
+                  groups: [
+                    {
+                      id: classRowId(RA, 0x70, 2),
+                      order: 0,
+                      contexts: [
+                        {
+                          id: classRowId(RA, 0x70, 3),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(RA, 0x70, 4),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_EQUIPPED',
+                              authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                              category: EQUIPMENT_CATEGORY_CODE.ARMOR
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -666,6 +734,22 @@ export const ranger: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(RA, 0x60, 0x81),
+              ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FIGHTING_STYLE_DUELING,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(RA, 0x69, 0x81), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 2
         },
         {
@@ -673,6 +757,22 @@ export const ranger: ClassAuthored = {
           label: 'Two-Weapon Fighting',
           description:
             'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
+          effects: [
+            closedRuleEffect({
+              id: classRowId(RA, 0x60, 0x82),
+              ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FIGHTING_STYLE_TWO_WEAPON,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(RA, 0x69, 0x82), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 3
         }
       ]
@@ -681,14 +781,15 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 4),
       label: 'Spellcasting',
       description:
-        'By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells.',
+        'By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells, much as a druid does.',
       availableAtLevel: 2,
       order: 3
     },
     {
       id: classRowId(RA, 3, 5),
       label: 'Ranger Archetype',
-      description: 'At 3rd level, you choose an archetype that you strive to emulate.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate, such as the Hunter. Your choice grants you features at 3rd level and again at 7th, 11th, and 15th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
@@ -697,23 +798,53 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 6),
       label: 'Primeval Awareness',
       description:
-        'Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you.',
+        "Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you. For 1 minute per level of the spell slot you expend, you can sense whether the following types of creatures are present within 1 mile of you (or within up to 6 miles if you are in your favored terrain): aberrations, celestials, dragons, elementals, fey, fiends, and undead. This feature doesn't reveal the creatures' location or number.",
+      effects: [
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 6),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_PRIMEVAL_AWARENESS,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: classRowId(RA, 0x69, 6),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 1,
+              unit: MEASUREMENT_UNIT_CODE.MILES
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        })
+      ],
       availableAtLevel: 3,
       order: 5
     },
     {
       id: classRowId(RA, 3, 7),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(RA, 5, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(RA, 3, 8),
       label: 'Extra Attack',
       description:
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      effects: [selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_RANGER_EXTRA_ATTACK)],
       availableAtLevel: 5,
       order: 7
     },
@@ -721,101 +852,304 @@ export const ranger: ClassAuthored = {
       id: classRowId(RA, 3, 9),
       label: 'Favored Enemy Improvement',
       description:
-        'At 6th level, you choose one additional favored enemy, as well as an associated language.',
+        'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.\n\nChoose a type of favored enemy: aberrations, beasts, celestials, constructs, dragons, elementals, fey, fiends, giants, monstrosities, oozes, plants, or undead. Alternatively, you can select two races of humanoid (such as gnolls and orcs) as favored enemies.\n\nYou have advantage on Wisdom (Survival) checks to track your favored enemies, as well as on Intelligence checks to recall information about them.\n\nWhen you gain this feature, you also learn one language of your choice that is spoken by your favored enemies, if they speak one at all.\n\nYou choose one additional favored enemy, as well as an associated language, at 6th and 14th level. As you gain levels, your choices should reflect the types of monsters you have encountered on your adventures.',
+      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_RANGER_FAVORED_ENEMY)],
       availableAtLevel: 6,
       order: 8
     },
     {
       id: classRowId(RA, 3, 10),
       label: 'Natural Explorer Improvement',
-      description: 'At 6th level, you choose one additional favored terrain.',
+      description:
+        "You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions. Choose one type of favored terrain: arctic, coast, desert, forest, grassland, mountain, or swamp. When you make an Intelligence or Wisdom check related to your favored terrain, your proficiency bonus is doubled if you are using a skill that you're proficient in.\n\nWhile traveling for an hour or more in your favored terrain, you gain the following benefits:\n\n* Difficult terrain doesn't slow your group's travel.\n* Your group can't become lost except by magical means.\n* Even when you are engaged in another activity while traveling (such as foraging, navigating, or tracking), you remain alert to danger.\n* If you are traveling alone, you can move stealthily at a normal pace.\n* When you forage, you find twice as much food as you normally would.\n* While tracking other creatures, you also learn their exact number, their sizes, and how long ago they passed through the area.\n\nYou choose additional favored terrain types at 6th and 10th level.",
+      effects: [selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_RANGER_NATURAL_EXPLORER)],
       availableAtLevel: 6,
       order: 9
     },
     {
       id: classRowId(RA, 3, 11),
       label: 'Ranger Archetype Feature',
-      description: 'At 7th level, you gain a feature from your Ranger Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate, such as the Hunter. Your choice grants you features at 3rd level and again at 7th, 11th, and 15th level.',
       availableAtLevel: 7,
       order: 10
     },
     {
       id: classRowId(RA, 3, 12),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 11
+      order: 11,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(RA, 6, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
+    },
+    {
+      id: classRowId(RA, 3, 22),
+      label: "Land's Stride",
+      description:
+        'Starting at 8th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the entangle spell.',
+      effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_RANGER_LANDS_STRIDE)],
+      availableAtLevel: 8,
+      order: 12
     },
     {
       id: classRowId(RA, 3, 13),
       label: 'Hide in Plain Sight',
       description:
-        'Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.',
+        'Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.\n\nOnce you are camouflaged in this way, you can try to hide by pressing yourself up against a solid surface, such as a tree or wall, that is at least as tall and wide as you are. You gain a +10 bonus to Dexterity (Stealth) checks as long as you remain there without moving or taking actions. Once you move or take an action or a reaction, you must camouflage yourself again to gain this benefit.',
+      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_RANGER_HIDE_IN_PLAIN_SIGHT)],
       availableAtLevel: 10,
-      order: 12
+      order: 13
     },
     {
       id: classRowId(RA, 3, 14),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 13
+      order: 14,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(RA, 7, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(RA, 3, 15),
       label: 'Ranger Archetype Feature',
-      description: 'At 11th level, you gain a feature from your Ranger Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate, such as the Hunter. Your choice grants you features at 3rd level and again at 7th, 11th, and 15th level.',
       availableAtLevel: 11,
-      order: 14
+      order: 15
     },
     {
       id: classRowId(RA, 3, 16),
       label: 'Vanish',
       description:
         "Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can't be tracked by nonmagical means, unless you choose to leave a trail.",
+      effects: [
+        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_RANGER_VANISH, ACTIVATION_CODE.BONUS_ACTION),
+        selfClassRuleEffect(0x8b, CLOSED_RULE_KIND.CLASS_RANGER_VANISH)
+      ],
       availableAtLevel: 14,
-      order: 15
+      order: 16
     },
     {
       id: classRowId(RA, 3, 17),
       label: 'Ranger Archetype Feature',
-      description: 'At 15th level, you gain a feature from your Ranger Archetype.',
+      description:
+        'At 3rd level, you choose an archetype that you strive to emulate, such as the Hunter. Your choice grants you features at 3rd level and again at 7th, 11th, and 15th level.',
       availableAtLevel: 15,
-      order: 16
+      order: 17
     },
     {
       id: classRowId(RA, 3, 18),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 17
+      order: 18,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(RA, 8, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(RA, 3, 19),
       label: 'Feral Senses',
       description:
-        "At 18th level, you gain preternatural senses that help you fight creatures you can't see. When you attack a creature you can't see, your inability to see it doesn't impose disadvantage on your attack rolls against it.",
+        "At 18th level, you gain preternatural senses that help you fight creatures you can't see. When you attack a creature you can't see, your inability to see it doesn't impose disadvantage on your attack rolls against it.\n\nYou are also aware of the location of any invisible creature within 30 feet of you, provided that the creature isn't hidden from you and you aren't blinded or deafened.",
+      effects: [
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 19),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 19), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x89),
+          order: 2,
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x89), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x8a),
+          order: 3,
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x8a), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x85),
+          order: 4,
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: {
+              id: classRowId(RA, 0x69, 0x85),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        })
+      ],
       availableAtLevel: 18,
-      order: 18
+      order: 19
     },
     {
       id: classRowId(RA, 3, 20),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 19
+      order: 20,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(RA, 9, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(RA, 3, 21),
       label: 'Foe Slayer',
       description:
-        'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies.',
+        'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies. You can choose to use this feature before or after the roll, but before any effects of the roll are applied.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 21),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 21), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x83),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x84),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_ATTACK,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x86),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x86), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x87),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x87), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        }),
+        closedRuleEffect({
+          id: classRowId(RA, 0x60, 0x88),
+          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.SPELL_ATTACK,
+            range: { id: classRowId(RA, 0x69, 0x88), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        })
+      ],
       availableAtLevel: 20,
-      order: 20
+      order: 21
     }
   ]
 }

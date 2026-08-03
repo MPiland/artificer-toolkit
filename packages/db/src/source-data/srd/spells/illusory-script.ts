@@ -26,7 +26,7 @@ export const illusoryScript: SpellAuthored = {
   id: SPELL_IDS.ILLUSORY_SCRIPT,
   label: 'Illusory Script',
   description:
-    'You write on parchment, paper, or some other suitable writing material and imbue it with a potent illusion that lasts for the duration. To you and any creatures you designate when you cast the spell, the writing appears normal, written in your hand, and conveys whatever meaning you intended when you wrote the text.',
+    "<p>You write on parchment, paper, or some other suitable writing material and imbue it with a potent illusion that lasts for the duration. To you and any creatures you designate when you cast the spell, the writing appears normal, written in your hand, and conveys whatever meaning you intended when you wrote the text. To all others, the writing appears as if it were written in an unknown or magical script that is unintelligible. Alternatively, you can cause the writing to appear to be an entirely different message, written in a different hand and language, though the language must be one you know. Should the spell be dispelled, the original script and the illusion both disappear. A creature with truesight can read the hidden message.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -67,7 +67,10 @@ export const illusoryScript: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ILLUSORY_SCRIPT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Define the Writing and Readers",
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions: "You write on parchment, paper, or some other suitable writing material and imbue it with a potent illusion that lasts for the duration."
               }
             ]
           }

@@ -21,7 +21,7 @@ export const maze: SpellAuthored = {
   id: SPELL_IDS.MAZE,
   label: 'Maze',
   description:
-    'You banish a creature that you can see within range into a labyrinthine demiplane. The target remains there for the duration or until it escapes the maze.',
+    "<p>You banish a creature that you can see within range into a labyrinthine demiplane. The target remains there for the duration or until it escapes the maze. The target can use its action to attempt to escape. When it does so, it makes a DC 20 Intelligence check. If it succeeds, it escapes, and the spell ends (a minotaur or goristro demon automatically succeeds). When the spell ends, the target reappears in the space it left or, if that space is occupied, in the nearest unoccupied space.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 8,
   classIds: [CLASS_IDS.WIZARD],
@@ -34,12 +34,7 @@ export const maze: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.SAVING_THROW,
-        savingThrow: {
-          id: spellChildId(SPELL_IDS.MAZE, 0x211, 1),
-          dcMethod: 'SOURCE_SAVE_DC',
-          ability: 'INTELLIGENCE'
-        },
+        triggerCode: TRIGGER.ACTIVATED,
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -59,7 +54,7 @@ export const maze: SpellAuthored = {
         {
           id: spellChildId(SPELL_IDS.MAZE, 0x213, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          pathCode: PATH_CODE.ON_USE,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
@@ -73,26 +68,9 @@ export const maze: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.MAZE, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.MAZE, 0x215, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.MAZE, 0x215, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
                 id: spellChildId(SPELL_IDS.MAZE, 0x215, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'MAZE' as const
               }
             ]
           }

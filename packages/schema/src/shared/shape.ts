@@ -18,7 +18,8 @@ export const shapeDtoSchema = z.discriminatedUnion('shapeKind', [
   z.object({
     id: authoredIdentifierSchema,
     shapeKind: z.literal(shapeKindSchema.enum.LINE),
-    length: shapeMeasurementDtoSchema
+    length: shapeMeasurementDtoSchema,
+    width: shapeMeasurementDtoSchema.optional()
   }),
   z.object({
     id: authoredIdentifierSchema,

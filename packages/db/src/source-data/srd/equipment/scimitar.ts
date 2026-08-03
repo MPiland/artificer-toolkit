@@ -5,7 +5,7 @@ export const scimitar: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(27),
   label: 'Scimitar',
-  description: 'A curved, single-edged blade.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

@@ -5,8 +5,7 @@ export const string10Feet: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(176),
   label: 'String (10 feet)',
-  description:
-    'Ten feet of thin but strong string useful for rigging simple traps or tying bundles.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(1),

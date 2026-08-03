@@ -5,7 +5,7 @@ export const waterskin: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(117),
   label: 'Waterskin',
-  description: 'A treated animal-hide pouch for carrying up to 4 pints of water or other liquid.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.sp(2),

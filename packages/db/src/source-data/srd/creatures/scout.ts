@@ -41,7 +41,7 @@ export const scout: CreatureAuthored = {
     {
       id: S.featureId(247, 2),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(247, 2, 'COMMON')]
       },
@@ -51,6 +51,19 @@ export const scout: CreatureAuthored = {
       id: S.featureId(247, 3),
       label: 'Multiattack',
       description: 'The scout makes two melee attacks or two ranged attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(247, 501),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(247, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SCOUT_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {

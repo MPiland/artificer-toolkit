@@ -5,7 +5,7 @@ export const hideArmor: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(41),
   label: 'Hide Armor',
-  description: 'Crude armor made from thick furs and pelts.',
+  description: "This crude armor consists of thick furs and pelts. It is commonly worn by barbarian tribes, evil humanoids, and other folk who lack access to the tools and materials needed to create better armor.",
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
   armorClass: 12,

@@ -1,4 +1,5 @@
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 
 import * as S from './shared.js'
 
@@ -54,18 +55,41 @@ export const chainDevil: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(61, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(61, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(61, 3),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 3
     },
     {
       id: S.featureId(61, 4),
       label: 'Multiattack',
       description: 'Multiattack. The devil makes two attacks with its chains.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(61, 103),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(61, 104), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 4
     },
     {
@@ -73,6 +97,74 @@ export const chainDevil: CreatureAuthored = {
       label: 'Chain',
       description:
         "Chain. Melee Weapon Attack: +8 to hit, reach 10 ft., one target. Hit: 11 (2d6 + 4) slashing damage. The target is grappled (escape DC 14) if the devil isn't already grappling a creature. Until this grapple ends, the target is restrained and takes 7 (2d6) piercing damage at the start of each of its turns.",
+      effects: [
+        {
+          id: S.actionId(61, 105),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(61, 106),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(61, 107),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(61, 107)}__result`,
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(61, 108),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('SLASHING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d6',
+                    bonuses: [
+                      {
+                        id: S.actionId(61, 109),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  },
+                  {
+                    id: S.actionId(61, 110),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('GRAPPLED')
+                  },
+                  {
+                    id: S.actionId(61, 111),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('RESTRAINED')
+                  },
+                  {
+                    id: S.actionId(61, 112),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_CHAIN
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 5
     },
     {
@@ -88,6 +180,58 @@ export const chainDevil: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
         amount: 1
       },
+      effects: [
+        {
+          id: S.actionId(61, 113),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(61, 114),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 60,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(61, 115),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(61, 115)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(61, 116),
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: 'OBJECT',
+                    label: 'Animated Chains',
+                    attachmentKind: 'TOUCHED_OBJECT',
+                    components: [1, 2, 3, 4].map((order) => ({
+                      id: S.actionId(61, 116 + order),
+                      order,
+                      label: `Animated Chain ${order}`,
+                      armorClass: 20,
+                      hitPoints: 20
+                    }))
+                  },
+                  {
+                    id: S.actionId(61, 121),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_ANIMATE_CHAINS
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 6
     },
     {
@@ -95,6 +239,58 @@ export const chainDevil: CreatureAuthored = {
       label: 'Unnerving Mask',
       description:
         "When a creature the devil can see starts its turn within 30 feet of the devil, the devil can create the illusion that it looks like one of the creature's departed loved ones or bitter enemies. If the creature can see the devil, it must succeed on a DC 14 Wisdom saving throw or be frightened until the end of its turn.",
+      effects: [
+        {
+          id: S.actionId(61, 122),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(61, 123),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 14
+            },
+            range: {
+              id: S.actionId(61, 124),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(61, 125),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(61, 125)}__result`,
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(61, 126),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('FRIGHTENED')
+                  },
+                  {
+                    id: S.actionId(61, 127),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_UNNERVING_MASK
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 7
     }
   ]

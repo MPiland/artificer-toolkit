@@ -35,12 +35,23 @@ export const berserker: CreatureAuthored = {
       label: 'Reckless',
       description:
         'Reckless. At the start of its turn, the berserker can gain advantage on all melee weapon attack rolls during that turn, but attack rolls against it have advantage until the start of its next turn.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(44, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(44, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RECKLESS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(44, 2),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(44, 1, 'COMMON')]
       },

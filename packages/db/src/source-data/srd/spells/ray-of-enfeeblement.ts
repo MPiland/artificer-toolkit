@@ -21,7 +21,7 @@ export const rayOfEnfeeblement: SpellAuthored = {
   id: SPELL_IDS.RAY_OF_ENFEEBLEMENT,
   label: 'Ray of Enfeeblement',
   description:
-    'A black beam of enervating energy springs from your finger toward a creature within range. On a hit, the target deals only half damage with Strength-based weapon attacks until the spell ends.',
+    "<p>A black beam of enervating energy springs from your finger toward a creature within range. Make a ranged spell attack against the target. On a hit, the target deals only half damage with weapon attacks that use Strength until the spell ends. At the end of each of the target's turns, it can make a Constitution saving throw against the spell. On a success, the spell ends.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -64,25 +64,8 @@ export const rayOfEnfeeblement: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x213, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_MISS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'RAY_OF_ENFEEBLEMENT' as const
               }
             ]
           }

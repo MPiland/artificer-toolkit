@@ -20,7 +20,7 @@ export const lesserRestoration: SpellAuthored = {
   id: SPELL_IDS.LESSER_RESTORATION,
   label: 'Lesser Restoration',
   description:
-    'You touch a creature and can end either one disease or one condition afflicting it. The condition can be blinded, deafened, paralyzed, or poisoned.',
+    "<p>You touch a creature and can end either one disease or one condition afflicting it. The condition can be blinded, deafened, paralyzed, or poisoned.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [
@@ -70,7 +70,8 @@ export const lesserRestoration: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LESSER_RESTORATION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'LESSER_RESTORATION' as const
               }
             ]
           }

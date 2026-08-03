@@ -40,13 +40,70 @@ export const drider: CreatureAuthored = {
       label: 'Fey Ancestry',
       description:
         "Fey Ancestry. The drider has advantage on saving throws against being charmed, and magic can't put the drider to sleep.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(87, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FEY_ANCESTRY
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(87, 2),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The drider's innate spellcasting ability is Wisdom (spell save DC 13). The drider can innately cast the following spells, requiring no material components: At will: dancing lights. 1/day each: darkness, faerie fire.",
+        "Innate Spellcasting. The drider's innate spellcasting ability is Wisdom (spell save DC 13). The drider can innately cast the following spells, requiring no material components: At will: dancing lights 1/day each: darkness, faerie fire",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(87, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DANCING_LIGHTS],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            order: 0
+          },
+          ...([S.SPELL_IDS.DARKNESS, S.SPELL_IDS.FAERIE_FIRE] as const).map((spellId, index) => ({
+            id: S.actionId(87, 302 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.WISDOM,
+            charges: {
+              id: S.actionId(87, 402 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.DAILY,
+              amount: 1
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 304),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(87, 1302), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRIDER_INNATE_SPELLCASTING
+        })
+      ],
       order: 2
     },
     {
@@ -54,6 +111,18 @@ export const drider: CreatureAuthored = {
       label: 'Spider Climb',
       description:
         'Spider Climb. The drider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(87, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+        })
+      ],
       order: 3
     },
     {
@@ -61,12 +130,36 @@ export const drider: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the drider has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(87, 1204), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUNLIGHT_SENSITIVITY
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(87, 5),
       label: 'Web Walker',
       description: 'Web Walker. The drider ignores movement restrictions caused by webbing.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 205),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(87, 1205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEB_WALKER
+        })
+      ],
       order: 5
     },
     {
@@ -74,6 +167,18 @@ export const drider: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The drider makes three attacks, either with its longsword or its longbow. It can replace one of those attacks with a bite attack.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(87, 206),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(87, 1206), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRIDER_MULTIATTACK
+        })
+      ],
       order: 6
     },
     {
@@ -182,7 +287,7 @@ export const drider: CreatureAuthored = {
           },
           paths: [
             {
-              id: S.actionId(87, 10),
+              id: S.actionId(87, 801),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
               groupType: S.PATH_GROUP_TYPE.CHOICE,
@@ -190,16 +295,16 @@ export const drider: CreatureAuthored = {
               selectionKind: 'CHOICE' as const,
               options: [
                 {
-                  id: S.actionId(87, 10),
+                  id: S.actionId(87, 802),
                   order: 1,
                   label: 'One-Handed',
-                  description: 'The drider deals 1d8 + 3 slashing damage.',
+                  description: 'Hit: 7 (1d8 + 3) slashing damage',
                   resultBlock: {
-                    id: S.actionId(87, 10) + '__result',
+                    id: S.actionId(87, 803),
                     resultKind: 'SINGLE' as const,
                     outcomes: [
                       {
-                        id: S.actionId(87, 10),
+                        id: S.actionId(87, 804),
                         effectKind: S.EFFECT_KIND.DAMAGE,
                         damageTypeId: S.damageTypeId('SLASHING'),
                         valueKind: S.DAMAGE_VALUE_KIND.DICE,
@@ -208,29 +313,18 @@ export const drider: CreatureAuthored = {
                       }
                     ]
                   }
-                }
-              ]
-            },
-            {
-              id: S.actionId(87, 11),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.CHOICE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'CHOICE' as const,
-              options: [
+                },
                 {
-                  id: S.actionId(87, 11),
-                  order: 1,
+                  id: S.actionId(87, 805),
+                  order: 2,
                   label: 'Two-Handed',
-                  description:
-                    'The drider deals 1d10 + 3 slashing damage when using the longsword with two hands.',
+                  description: '8 (1d10 + 3) slashing damage if used with two hands',
                   resultBlock: {
-                    id: S.actionId(87, 11) + '__result',
+                    id: S.actionId(87, 806),
                     resultKind: 'SINGLE' as const,
                     outcomes: [
                       {
-                        id: S.actionId(87, 11),
+                        id: S.actionId(87, 807),
                         effectKind: S.EFFECT_KIND.DAMAGE,
                         damageTypeId: S.damageTypeId('SLASHING'),
                         valueKind: S.DAMAGE_VALUE_KIND.DICE,

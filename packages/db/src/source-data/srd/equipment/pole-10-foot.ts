@@ -5,7 +5,7 @@ export const pole10Foot: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(162),
   label: 'Pole (10-foot)',
-  description: 'A sturdy wooden pole 10 feet long for probing, pushing, or bridging narrow gaps.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(5),

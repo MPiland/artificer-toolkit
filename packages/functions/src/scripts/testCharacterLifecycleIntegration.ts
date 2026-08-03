@@ -147,6 +147,9 @@ async function createAttunementEquipmentFixture(
   if (source.category === 'VARIANT') {
     throw new Error('The seeded Club must be base equipment for the Sheet command fixture.')
   }
+  if (!source.weight) {
+    throw new Error('The seeded Club must have weight for the Sheet command fixture.')
+  }
 
   await repository.upsert({
     kind: source.kind,

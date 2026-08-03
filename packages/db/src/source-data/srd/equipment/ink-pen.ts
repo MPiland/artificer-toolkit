@@ -5,7 +5,7 @@ export const inkPen: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(145),
   label: 'Ink Pen',
-  description: 'A quill or reed pen for writing with ink.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(2),

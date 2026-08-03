@@ -21,7 +21,7 @@ export const raiseDead: SpellAuthored = {
   id: SPELL_IDS.RAISE_DEAD,
   label: 'Raise Dead',
   description:
-    'You return a dead creature you touch to life, provided it has been dead no longer than 10 days. The creature returns with 1 hit point, and the spell also neutralizes poisons and cures nonmagical diseases that affected it at the time of death.',
+    "<p>You return a dead creature you touch to life, provided that it has been dead no longer than 10 days. If the creature's soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point. This spell also neutralizes any poisons and cures nonmagical diseases that affected the creature at the time it died. This spell doesn't, however, remove magical diseases, curses, or similar effects; if these aren't first removed prior to casting the spell, they take effect when the creature returns to life. The spell can't return an undead creature to life. This spell closes all mortal wounds, but it doesn't restore missing body parts. If the creature is lacking body parts or organs integral for its survival-its head, for instance-the spell automatically fails. Coming back from the dead is an ordeal. The target takes a -4 penalty to all attack rolls, saving throws, and ability checks. Every time the target finishes a long rest, the penalty is reduced by 1 until it disappears.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
@@ -59,15 +59,23 @@ export const raiseDead: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x213, 1),
               durationKind: DURATION_KIND.INSTANTANEOUS
             },
             outcomes: [
               {
+                id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'RAISE_DEAD' as const
+              },
+              {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Resolve the Soul",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "If the creature\u0027s soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point."
               }
             ]
           }

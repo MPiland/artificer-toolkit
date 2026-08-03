@@ -6,7 +6,7 @@ export const morningstarPlus2: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(205),
   label: 'Morningstar +2',
-  description: 'You have a +2 bonus to attack and damage rolls made with this magic weapon.',
+  description: S.MAGIC_WEAPON_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: morningstar.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

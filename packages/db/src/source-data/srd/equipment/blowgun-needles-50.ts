@@ -5,7 +5,7 @@ export const blowgunNeedles50: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(100),
   label: 'Blowgun Needles (50)',
-  description: 'A case of 50 sharp needles for use with a blowgun.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

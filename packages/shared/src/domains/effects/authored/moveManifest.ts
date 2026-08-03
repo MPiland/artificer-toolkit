@@ -7,4 +7,5 @@ export type MoveManifestAuthored = {
   manifestId: string
   amount: number
   unit: MeasurementUnitCode
+  upTo?: boolean
 }

@@ -70,6 +70,13 @@ type DragonbornAncestryConfig = {
   shapeKind: 'LINE' | 'CONE'
   saveAbility: 'DEXTERITY' | 'CONSTITUTION'
 }
+
+const DRACONIC_ANCESTRY_DESCRIPTION =
+  'You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type, as shown in the table.'
+
+const BREATH_WEAPON_DESCRIPTION =
+  "You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation. When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level. After you use your breath weapon, you can't use it again until you complete a short or long rest."
+
 function dragonbornAncestryFeatures(
   optionIndex: number,
   config: DragonbornAncestryConfig
@@ -79,8 +86,7 @@ function dragonbornAncestryFeatures(
     {
       id: ancestryFeatureId(optionIndex, 1),
       label: 'Breath Weapon',
-      description:
-        "You can use your action to exhale destructive energy. The size, shape, saving throw, and damage type are determined by your draconic ancestry. The DC equals 8 + your Constitution modifier + your proficiency bonus. A creature takes damage on a failed save, or half as much damage on a successful one. After you use your breath weapon, you can't use it again until you complete a short or long rest.",
+      description: BREATH_WEAPON_DESCRIPTION,
       attributes: ['LIMITED_USE'],
       charges: {
         id: ancestryFeatureId(optionIndex, 2),
@@ -132,6 +138,10 @@ function dragonbornAncestryFeatures(
                     shapeKind: SHAPE_KIND.LINE,
                     length: {
                       amount: 30,
+                      unit: MEASUREMENT_UNIT_CODE.FEET
+                    },
+                    width: {
+                      amount: 5,
                       unit: MEASUREMENT_UNIT_CODE.FEET
                     }
                   }
@@ -279,14 +289,12 @@ const dragonbornWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_
 const dragonbornAncestry: RaceAncestryAuthored = {
   id: raceFeatureId(5, 9, 1),
   label: 'Draconic Ancestry',
-  description:
-    'You have draconic ancestry of a particular dragon type. Choose one type from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type.',
+  description: DRACONIC_ANCESTRY_DESCRIPTION,
   options: [
     {
       id: ancestryOptionId(1),
       label: 'Black (Acid)',
-      description:
-        'Your draconic ancestry is black dragon. Damage type: acid. Breath weapon: 5 by 30 ft. line (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 0,
       features: dragonbornAncestryFeatures(1, {
         damageCode: 'ACID',
@@ -297,8 +305,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(2),
       label: 'Blue (Lightning)',
-      description:
-        'Your draconic ancestry is blue dragon. Damage type: lightning. Breath weapon: 5 by 30 ft. line (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 1,
       features: dragonbornAncestryFeatures(2, {
         damageCode: 'LIGHTNING',
@@ -309,8 +316,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(3),
       label: 'Brass (Fire)',
-      description:
-        'Your draconic ancestry is brass dragon. Damage type: fire. Breath weapon: 5 by 30 ft. line (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 2,
       features: dragonbornAncestryFeatures(3, {
         damageCode: 'FIRE',
@@ -321,8 +327,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(4),
       label: 'Bronze (Lightning)',
-      description:
-        'Your draconic ancestry is bronze dragon. Damage type: lightning. Breath weapon: 5 by 30 ft. line (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 3,
       features: dragonbornAncestryFeatures(4, {
         damageCode: 'LIGHTNING',
@@ -333,8 +338,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(5),
       label: 'Copper (Acid)',
-      description:
-        'Your draconic ancestry is copper dragon. Damage type: acid. Breath weapon: 5 by 30 ft. line (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 4,
       features: dragonbornAncestryFeatures(5, {
         damageCode: 'ACID',
@@ -345,8 +349,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(6),
       label: 'Gold (Fire)',
-      description:
-        'Your draconic ancestry is gold dragon. Damage type: fire. Breath weapon: 15 ft. cone (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 5,
       features: dragonbornAncestryFeatures(6, {
         damageCode: 'FIRE',
@@ -357,8 +360,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(7),
       label: 'Green (Poison)',
-      description:
-        'Your draconic ancestry is green dragon. Damage type: poison. Breath weapon: 15 ft. cone (CON save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 6,
       features: dragonbornAncestryFeatures(7, {
         damageCode: 'POISON',
@@ -369,8 +371,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(8),
       label: 'Red (Fire)',
-      description:
-        'Your draconic ancestry is red dragon. Damage type: fire. Breath weapon: 15 ft. cone (DEX save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 7,
       features: dragonbornAncestryFeatures(8, {
         damageCode: 'FIRE',
@@ -381,8 +382,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(9),
       label: 'Silver (Cold)',
-      description:
-        'Your draconic ancestry is silver dragon. Damage type: cold. Breath weapon: 15 ft. cone (CON save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 8,
       features: dragonbornAncestryFeatures(9, {
         damageCode: 'COLD',
@@ -393,8 +393,7 @@ const dragonbornAncestry: RaceAncestryAuthored = {
     {
       id: ancestryOptionId(10),
       label: 'White (Cold)',
-      description:
-        'Your draconic ancestry is white dragon. Damage type: cold. Breath weapon: 15 ft. cone (CON save).',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       order: 9,
       features: dragonbornAncestryFeatures(10, {
         damageCode: 'COLD',
@@ -421,7 +420,7 @@ export const dragonborn: RaceAuthored = {
       id: raceFeatureId(5, 0, 1),
       label: 'Age',
       description:
-        'Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by age 3, and reach adulthood by 15. They live to be around 80.',
+        'Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by the age of 3, and reach adulthood by 15. They live to be around 80.',
       order: 0
     },
     {
@@ -486,8 +485,7 @@ export const dragonborn: RaceAuthored = {
       id: raceFeatureId(5, 2, 1),
       label: 'Draconic Ancestry',
       attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
-      description:
-        'You have draconic ancestry of a particular dragon type, which determines your breath weapon and damage resistance.',
+      description: DRACONIC_ANCESTRY_DESCRIPTION,
       availableAtLevel: 1,
       order: 1
     },

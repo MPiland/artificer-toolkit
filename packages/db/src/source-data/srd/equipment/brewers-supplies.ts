@@ -5,8 +5,7 @@ export const brewersSupplies: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(52),
   label: "Brewer's Supplies",
-  description:
-    'Equipment for brewing ale, wine, and other beverages, including a large pot and various fermentation tools.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(20),

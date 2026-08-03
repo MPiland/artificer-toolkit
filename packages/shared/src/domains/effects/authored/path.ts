@@ -46,8 +46,20 @@ export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeA
   PathEntryBase & {
     rollRange?: [number, number]
     rollValue?: number
-    resultBlock: ResultBlockAuthored<TOutcome>
-  }
+  } &
+    (
+      | {
+          resolutionKind: 'RESULT'
+          resultBlock: ResultBlockAuthored<TOutcome>
+        }
+      | {
+          resolutionKind: 'REPEAT_TABLE'
+          repeat: {
+            count: number
+            rerollValues: Array<PathEntryBase & { value: number }>
+          }
+        }
+    )
 
 export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   id: string

@@ -5,7 +5,7 @@ export const fishingTackle: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(137),
   label: 'Fishing Tackle',
-  description: 'A rod, line, hooks, floats, and bait for catching fish.',
+  description: "This kit includes a wooden rod, silken line, corkwood bobbers, steel hooks, lead sinkers, velvet lures, and narrow netting.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(1),

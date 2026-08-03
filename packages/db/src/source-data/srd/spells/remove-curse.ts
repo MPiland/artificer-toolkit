@@ -20,7 +20,7 @@ export const removeCurse: SpellAuthored = {
   id: SPELL_IDS.REMOVE_CURSE,
   label: 'Remove Curse',
   description:
-    "At your touch, all curses affecting one creature or object end. If the target is a cursed magic item, the curse remains, but the spell breaks its owner's attunement so it can be removed or discarded.",
+    "<p>At your touch, all curses affecting one creature or object end. If the object is a cursed magic item, its curse remains, but the spell breaks its owner's attunement to the object so it can be removed or discarded.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -64,7 +64,8 @@ export const removeCurse: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REMOVE_CURSE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'REMOVE_CURSE' as const
               }
             ]
           }

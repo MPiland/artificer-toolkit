@@ -5,7 +5,7 @@ export const shortbow: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(13),
   label: 'Shortbow',
-  description: 'A small bow suited for mounted or stealthy use.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,

@@ -18,7 +18,7 @@ export const commune: SpellAuthored = {
   id: SPELL_IDS.COMMUNE,
   label: 'Commune',
   description:
-    'You contact your deity or a divine proxy and ask up to three questions that can be answered with a yes or no. You must ask your questions before the spell ends.',
+    "<p>You contact your deity or a divine proxy and ask up to three questions that can be answered with a yes or no. You must ask your questions before the spell ends. You receive a correct answer for each question. Divine beings aren't necessarily omniscient, so you might receive &quot;unclear&quot; as an answer if a question pertains to information that lies beyond the deity's knowledge. In a case where a one-word answer could be misleading or contrary to the deity's interests, the GM might offer a short phrase as an answer instead. If you cast the spell two or more times before finishing your next long rest, there is a cumulative 25 percent chance for each casting after the first that you get no answer. The GM makes this roll in secret.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.CLERIC],
@@ -59,7 +59,10 @@ export const commune: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COMMUNE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Answer the Questions",
+                reasonCode: 'GM_CHOICE' as const,
+                instructions: "You receive a correct answer for each question."
               }
             ]
           }

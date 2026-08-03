@@ -378,6 +378,7 @@ export const SPELL_IDS = {
   SPIKE_GROWTH: subjectId('0020', 287),
   SPIRIT_GUARDIANS: subjectId('0020', 288),
   SPIRITUAL_WEAPON: subjectId('0020', 289),
+  STINKING_CLOUD: subjectId('0020', 290),
   STONE_SHAPE: subjectId('0020', 291),
   STONESKIN: subjectId('0020', 292),
   STORM_OF_VENGEANCE: subjectId('0020', 293),
@@ -386,6 +387,7 @@ export const SPELL_IDS = {
   SUNBURST: subjectId('0020', 296),
   SYMBOL: subjectId('0020', 298),
   TELEKINESIS: subjectId('0020', 299),
+  TELEPATHIC_BOND: subjectId('0020', 300),
   TELEPORT: subjectId('0020', 301),
   TELEPORTATION_CIRCLE: subjectId('0020', 302),
   THUNDERWAVE: subjectId('0020', 305),
@@ -414,7 +416,11 @@ export const SPELL_IDS = {
   WISH: subjectId('0020', 329),
   WORD_OF_RECALL: subjectId('0020', 331),
   ZONE_OF_TRUTH: subjectId('0020', 333),
-  THAUMATURGY: subjectId('0020', 335)
+  THAUMATURGY: subjectId('0020', 335),
+  BARKSKIN: subjectId('0020', 336),
+  BLADE_BARRIER: subjectId('0020', 337),
+  TRANSPORT_VIA_PLANTS: subjectId('0020', 338),
+  TREE_STRIDE: subjectId('0020', 339)
 } as const
 
 // ─── Creatures (domain 0070) ─────────────────────────────────────────────────

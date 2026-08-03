@@ -243,6 +243,7 @@ function resolveScalarModifierValue(
         value?: number
         valueKind?: string
         multiplier?: number
+        subtractLevels?: number
         classId?: string
         skillId?: string
       }

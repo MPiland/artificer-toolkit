@@ -5,7 +5,7 @@ export const warPick: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(30),
   label: 'War Pick',
-  description: 'A pick-shaped weapon designed to pierce armor.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
   modifiers: S.meleeWeaponAbilityModifiers(S.equipId(30)),

@@ -38,7 +38,20 @@ export const werebear: CreatureAuthored = {
       id: S.featureId(287, 1),
       label: 'Shapechanger',
       description:
-        'Shapechanger. The werebear can use its action to polymorph into a bear-humanoid hybrid or into a bear, or back into its true form, which is humanoid.',
+        "Shapechanger. The werebear can use its action to polymorph into a Large bear-humanoid hybrid or into a Large bear, or back into its true form, which is humanoid. Its statistics, other than its size and AC, are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(287, 200),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(287, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBEAR_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
@@ -52,14 +65,76 @@ export const werebear: CreatureAuthored = {
       id: S.featureId(287, 3),
       label: 'Multiattack',
       description:
-        'Multiattack. The werebear makes two attacks: one with its bite and one with its claws, or one with its bite and one with a weapon.',
+        'Multiattack. In bear form, the werebear makes two claw attacks. In humanoid form, it makes two greataxe attacks. In hybrid form, it can attack like a bear or a humanoid.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(287, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(287, 203), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(287, 4),
       label: 'Bite',
       description:
-        'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage.',
+        'Bite (Bear or Hybrid Form Only). Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage. If the target is a humanoid, it must succeed on a DC 14 Constitution saving throw or be cursed with werebear lycanthropy.',
+      effects: [
+        {
+          id: S.actionId(287, 204),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(287, 205),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          order: 1,
+          paths: [
+            {
+              id: S.actionId(287, 206),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(287, 207),
+                resultKind: 'SEQUENCE',
+                outcomes: [
+                  {
+                    id: S.actionId(287, 208),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '2d10+4'
+                  },
+                  {
+                    id: S.actionId(287, 209),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBEAR_BITE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -116,13 +191,6 @@ export const werebear: CreatureAuthored = {
         }
       ],
       order: 5
-    },
-    {
-      id: S.featureId(287, 6),
-      label: 'Curse of Lycanthropy',
-      description:
-        'Curse of Lycanthropy. A humanoid hit by the werebear’s bite must succeed on a Constitution saving throw or be cursed with werebear lycanthropy.',
-      order: 6
     }
   ]
 }

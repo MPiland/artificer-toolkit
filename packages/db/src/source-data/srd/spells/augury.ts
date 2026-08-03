@@ -18,7 +18,7 @@ export const augury: SpellAuthored = {
   id: SPELL_IDS.AUGURY,
   label: 'Augury',
   description:
-    'By casting this spell, you can ask a deity or diviner advice about a specific course of action you plan to take within the next 30 minutes. The DM chooses from the possible outcomes: weal, woe, weal and woe, or nothing.',
+    "<p>By casting gem-inlaid sticks, rolling dragon bones, laying out ornate cards, or employing some other divining tool, you receive an omen from an otherworldly entity about the results of a specific course of action that you plan to take within the next 30 minutes. The GM chooses from the following possible omens: * Weal, for good results * Woe, for bad results * Weal and woe, for both good and bad results * Nothing, for results that aren't especially good or bad The spell doesn't take into account any possible circumstances that might change the outcome, such as the casting of additional spells or the loss or gain of a companion. If you cast the spell two or more times before completing your next long rest, there is a cumulative 25 percent chance for each casting after the first that you get a random reading. The GM makes this roll in secret.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC],
@@ -59,7 +59,10 @@ export const augury: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.AUGURY, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Choose an Omen",
+                reasonCode: 'GM_CHOICE' as const,
+                instructions: "The GM chooses from the following possible omens:"
               }
             ]
           }

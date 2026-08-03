@@ -22,7 +22,7 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 - Use focused exports from `packages/schema` and `packages/shared`; do not invent local DTO shapes.
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
 - Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; the sign-up server function rechecks it before calling Supabase Auth.
-- `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to password and username setup. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag. Authenticated routes require the cached account profile, so an invitee whose profile is still absent returns to invitation completion.
+- `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to password and username setup. Invitation completion sends both values in one authenticated user update; the database profile trigger makes the profile insert part of that update so neither half is retained when profile validation fails. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag. Authenticated routes require the cached account profile, so an invitee whose profile is still absent returns to invitation completion.
 
 ## Focused validation
 
@@ -34,7 +34,7 @@ TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which pac
 
 When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
 
-The committed edge rule limits `/api/trpc/*` to 60 requests per 60 seconds per IP and domain so mixed tRPC batches cannot bypass it. The application rejects actual tRPC POST bodies over 1 MiB before authentication or JSON parsing, and Postgres enforces the durable per-account root-creation windows. Confirm the rate-limit rule appears in each production deploy log; Netlify may accept a deploy even when a rule is invalid.
+The committed edge function limits `/api/trpc/*` to 60 requests per 60 seconds per IP and domain so mixed tRPC batches cannot bypass it. The application rejects tRPC POST bodies with a declared size over 1 MiB before authentication or JSON parsing, and Postgres enforces the durable per-account root-creation windows. Confirm the rate-limit rule appears in each production deploy log; Netlify may accept a deploy even when a rule is invalid.
 
 Set these values in the Netlify UI rather than in `netlify.toml`:
 

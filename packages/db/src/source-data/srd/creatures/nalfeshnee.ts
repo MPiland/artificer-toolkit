@@ -47,12 +47,24 @@ export const nalfeshnee: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The nalfeshnee has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(203, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(203, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(203, 2),
       label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
+      description: 'telepathy 120 ft.',
       order: 2
     },
     {
@@ -60,6 +72,19 @@ export const nalfeshnee: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'The nalfeshnee uses Horror Nimbus if it can. It then makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(203, 502),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(203, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NALFESHNEE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {
@@ -67,6 +92,59 @@ export const nalfeshnee: CreatureAuthored = {
       label: 'Bite',
       description:
         'Melee Weapon Attack: +10 to hit, reach 5 ft., one target. Hit: 32 (5d10 + 5) piercing damage.',
+      effects: [
+        {
+          id: S.actionId(203, 503),
+          order: 1,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(203, 603),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(203, 803),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(203, 803) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(203, 930),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '5d10',
+                    bonuses: [
+                      {
+                        id: S.actionId(203, 980),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -179,7 +257,34 @@ export const nalfeshnee: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(203, 504),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            savingThrow: {
+              id: S.actionId(203, 604),
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.WISDOM,
+              baseDc: 15
+            },
+            range: {
+              id: S.actionId(203, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 15,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NALFESHNEE_HORROR_NIMBUS_RECHARGE_5_6
+        })
       ],
       order: 6
     },

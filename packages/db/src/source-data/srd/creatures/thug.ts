@@ -37,12 +37,24 @@ export const thug: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The thug has advantage on an attack roll against a creature if at least one of the thug's allies is within 5 feet of the creature and the ally isn't incapacitated.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(269, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(269, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PACK_TACTICS
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(269, 2),
       label: 'Language Knowledge',
-      description: 'Any one language (usually Common).',
+      description: 'any one language (usually Common)',
       grants: {
         proficiencies: [S.grantedLanguageProficiency(269, 2, 'COMMON')]
       },
@@ -52,6 +64,18 @@ export const thug: CreatureAuthored = {
       id: S.featureId(269, 3),
       label: 'Multiattack',
       description: 'The thug makes two melee attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(269, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(269, 203), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 3
     },
     {
@@ -59,6 +83,51 @@ export const thug: CreatureAuthored = {
       label: 'Mace',
       description:
         'Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 5 (1d6 + 2) bludgeoning damage.',
+      effects: [
+        {
+          id: S.actionId(269, 204),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(269, 205),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(269, 206),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(269, 207),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(269, 208),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('BLUDGEONING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d6+2'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {
@@ -66,6 +135,51 @@ export const thug: CreatureAuthored = {
       label: 'Heavy Crossbow',
       description:
         'Ranged Weapon Attack: +2 to hit, range 100/400 ft., one target. Hit: 5 (1d10) piercing damage.',
+      effects: [
+        {
+          id: S.actionId(269, 209),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(269, 210),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 400,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          paths: [
+            {
+              id: S.actionId(269, 211),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(269, 212),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(269, 213),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '1d10'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 5
     }
   ]

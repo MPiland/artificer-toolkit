@@ -5,7 +5,7 @@ export const sack: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(116),
   label: 'Sack',
-  description: 'A large cloth bag for carrying bulky or loose goods.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
   cost: S.cp(1),

@@ -33,17 +33,22 @@ export const gelatinousCube: CreatureAuthored = {
   xp: 450,
   features: [
     {
-      id: S.featureId(109, 1),
-      label: 'Amorphous',
-      description:
-        'Amorphous. The cube can move through a space as narrow as 1 inch wide without squeezing.',
-      order: 1
-    },
-    {
       id: S.featureId(109, 2),
       label: 'Ooze Cube',
       description:
         "Ooze Cube. The cube takes up its entire space. Other creatures can enter the space, but a creature that does so is subjected to the cube's Engulf and has disadvantage on the saving throw. Creatures inside the cube can be seen but have total cover. A creature within 5 feet of the cube can take an action to pull a creature or object out of the cube. Doing so requires a successful DC 12 Strength check, and the creature making the attempt takes 10 (3d6) acid damage. The cube can hold only one Large creature or up to four Medium or smaller creatures inside it at a time.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(109, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ENTER_AREA,
+            range: { id: S.actionId(109, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GELATINOUS_CUBE_OOZE_CUBE
+        })
+      ],
       order: 2
     },
     {
@@ -51,6 +56,18 @@ export const gelatinousCube: CreatureAuthored = {
       label: 'Transparent',
       description:
         "Transparent. Even when the cube is in plain sight, it takes a successful DC 15 Wisdom (Perception) check to spot a cube that has neither moved nor attacked. A creature that tries to enter the cube's space while unaware of the cube is surprised by the cube.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(109, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(109, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GELATINOUS_CUBE_TRANSPARENT
+        })
+      ],
       order: 3
     },
     {
@@ -143,7 +160,8 @@ export const gelatinousCube: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(1107, 6),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'GELATINOUS_CUBE_ENGULF' as const
                   }
                 ]
               }

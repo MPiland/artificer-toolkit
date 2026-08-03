@@ -34,13 +34,25 @@ export const rugOfSmothering: CreatureAuthored = {
       label: 'False Appearance',
       description:
         'False Appearance. While the rug remains motionless, it is indistinguishable from a normal rug.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(240, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(240, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUG_OF_SMOTHERING_FALSE_APPEARANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(240, 2),
       label: 'Smother',
       description:
-        'Smother. The rug targets one Medium or smaller creature within 5 feet of it. On a hit, the target is grappled (escape DC 13), and while grappled by the rug it is restrained and blinded. If the rug moves, the grappled target moves with it. If the target is still grappled at the start of the rug’s turn, the target takes bludgeoning damage and begins suffocating.',
+        "Smother. Melee Weapon Attack: +5 to hit, reach 5 ft., one Medium or smaller creature. Hit: The creature is grappled (escape DC 13). Until this grapple ends, the target is restrained, blinded, and at risk of suffocating, and the rug can't smother another target. In addition, at the start of each of the target's turns, the target takes 10 (2d6 + 3) bludgeoning damage.",
       effects: [
         {
           id: S.actionId(7705, 1),
@@ -81,13 +93,34 @@ export const rugOfSmothering: CreatureAuthored = {
                     damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d6+3'
+                    diceConfig: '2d6+3'
                   }
                 ]
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(240, 502),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(240, 602),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUG_OF_SMOTHERING_SMOTHER
+        })
       ],
       order: 2
     }

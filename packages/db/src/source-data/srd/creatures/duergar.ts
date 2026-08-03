@@ -43,6 +43,18 @@ export const duergar: CreatureAuthored = {
       label: 'Duergar Resilience',
       description:
         'Duergar Resilience. The duergar has advantage on saving throws against poison, spells, and illusions, as well as to resist being charmed or paralyzed.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(91, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(91, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_RESILIENCE
+        })
+      ],
       order: 1
     },
     {
@@ -50,13 +62,25 @@ export const duergar: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the duergar has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(91, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(91, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUNLIGHT_SENSITIVITY
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(91, 3),
       label: 'Enlarge (Recharges after a Short or Long Rest)',
       description:
-        'Enlarge (Recharges after a Short or Long Rest). For 1 minute, the duergar magically increases in size, along with anything it is wearing or carrying. While enlarged, the duergar is Large, doubles its damage dice on Strength-based weapon attacks, and makes Strength checks and Strength saving throws with advantage. If the duergar lacks the room to become Large, it attains the maximum size possible in the space available.',
+        'Enlarge (Recharges after a Short or Long Rest). For 1 minute, the duergar magically increases in size, along with anything it is wearing or carrying. While enlarged, the duergar is Large, doubles its damage dice on Strength-based weapon attacks (included in the attacks), and makes Strength checks and Strength saving throws with advantage. If the duergar lacks the room to become Large, it attains the maximum size possible in the space available.',
       effects: [
         {
           id: S.actionId(3450, 1),
@@ -87,7 +111,8 @@ export const duergar: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(3450, 3),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: 'DUERGAR_ENLARGE' as const
                   }
                 ]
               }
@@ -148,7 +173,17 @@ export const duergar: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(91, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(91, 1204), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_ENLARGED_WAR_PICK_DAMAGE
+        })
       ],
       order: 4
     },
@@ -249,7 +284,17 @@ export const duergar: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(91, 205),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            range: { id: S.actionId(91, 1205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_ENLARGED_JAVELIN_DAMAGE
+        })
       ],
       order: 5
     },
@@ -257,7 +302,7 @@ export const duergar: CreatureAuthored = {
       id: S.featureId(91, 6),
       label: 'Invisibility (Recharges after a Short or Long Rest)',
       description:
-        'Invisibility (Recharges after a Short or Long Rest). The duergar magically turns invisible until it attacks, casts a spell, or uses its enlarge ability, or until its concentration ends (as if concentrating on a spell). Any equipment the duergar wears or carries is invisible with it.',
+        'Invisibility (Recharges after a Short or Long Rest). The duergar magically turns invisible until it attacks, casts a spell, or uses its Enlarge, or until its concentration is broken, up to 1 hour (as if concentrating on a spell). Any equipment the duergar wears or carries is invisible with it.',
       effects: [
         {
           id: S.actionId(3450, 13),

@@ -1,4 +1,5 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
@@ -6,23 +7,33 @@ import {
   CHARGE_RESET_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
+  SHAPE_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -41,6 +52,36 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const BD = 2 // Bard class index
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+const bardicInspirationDescription =
+  '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>'
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(BD, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(BD, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 
 // Bard spell slot charge — resets on long rest
 const bardSlotCharge = {
@@ -340,7 +381,6 @@ export const bard: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description: 'An inspiring magician whose power echoes the music of creation.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -535,8 +575,6 @@ export const bard: ClassAuthored = {
   resources: {
     id: classRowId(BD, 5, 1),
     label: 'Bardic Inspiration',
-    description:
-      '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>',
     availableAtLevel: 1,
     order: 1,
     charges: bardicInspirationCharge
@@ -582,7 +620,7 @@ export const bard: ClassAuthored = {
       {
         label: 'Spellcasting Focus',
         description:
-          '<p>You can use a musical instrument as a spellcasting focus for your bard spells.</p>'
+          '<p>You can use a musical instrument (see "Equipment") as a spellcasting focus for your bard spells.</p>'
       }
     ]),
     charges: bardSlotCharge,
@@ -665,26 +703,70 @@ export const bard: ClassAuthored = {
 
   features: [
     {
+      id: classRowId(BD, 3, 1),
+      label: 'Bardic Inspiration',
+      description: bardicInspirationDescription,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(BD, 0x60, 1),
+          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_BARDIC_INSPIRATION,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+            range: {
+              id: classRowId(BD, 0x69, 1),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 60,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: 'ANY'
+            }
+          }
+        })
+      ],
+      availableAtLevel: 1,
+      order: 0
+    },
+    {
       id: classRowId(BD, 3, 3),
       label: 'Jack of All Trades',
       description:
         "Starting at 2nd level, you can add half your proficiency bonus, rounded down, to any ability check you make that doesn't already include your proficiency bonus.",
       availableAtLevel: 2,
-      order: 2
+      order: 2,
+      effects: [selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_BARD_JACK_OF_ALL_TRADES)]
     },
     {
       id: classRowId(BD, 3, 4),
       label: 'Song of Rest',
       description:
-        'Beginning at 2nd level, you can use soothing music or oration to help revitalize your wounded allies during a short rest.',
+        'Beginning at 2nd level, you can use soothing music or oration to help revitalize your wounded allies during a short rest. If you or any friendly creatures who can hear your performance regain hit points at the end of the short rest by spending one or more Hit Dice, each of those creatures regains an extra 1d6 hit points. The extra hit points increase when you reach certain levels in this class: to 1d8 at 9th level, to 1d10 at 13th level, and to 1d12 at 17th level.',
       availableAtLevel: 2,
-      order: 3
+      order: 3,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(BD, 0x60, 4),
+          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_SONG_OF_REST,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(BD, 0x69, 4), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: 'WILLING'
+            }
+          }
+        })
+      ]
     },
     {
       id: classRowId(BD, 3, 5),
       label: 'Bard College',
       description:
-        'At 3rd level, you delve into the advanced techniques of a bard college of your choice.',
+        'At 3rd level, you delve into the advanced techniques of a bard college of your choice, such as the College of Lore. Your choice grants you features at 3rd level and again at 6th and 14th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 4
@@ -736,10 +818,15 @@ export const bard: ClassAuthored = {
     {
       id: classRowId(BD, 3, 7),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(BD, 7, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
     },
     {
       id: classRowId(BD, 3, 8),
@@ -786,30 +873,59 @@ export const bard: ClassAuthored = {
       id: classRowId(BD, 3, 9),
       label: 'Countercharm',
       description:
-        'At 6th level, you gain the ability to use musical notes or words of power to disrupt mind-influencing effects.',
+        'At 6th level, you gain the ability to use musical notes or words of power to disrupt mind-influencing effects. As an action, you can start a performance that lasts until the end of your next turn. During that time, you and any friendly creatures within 30 feet of you have advantage on saving throws against being frightened or charmed. A creature must be able to hear you to gain this benefit. The performance ends early if you are incapacitated or silenced or if you voluntarily end it (no action required).',
       availableAtLevel: 6,
-      order: 8
+      order: 8,
+      effects: [
+        closedRuleEffect({
+          id: classRowId(BD, 0x60, 9),
+          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_COUNTERCHARM,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(BD, 0x69, 9), rangeKind: RANGE_KIND.SELF },
+            shape: {
+              id: classRowId(BD, 0x6e, 9),
+              shapeKind: SHAPE_KIND.SPHERE,
+              radius: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: 'WILLING'
+            }
+          }
+        })
+      ]
     },
     {
       id: classRowId(BD, 3, 10),
       label: 'Bard College Feature',
-      description: 'At 6th level, you gain a feature from your Bard College.',
+      description:
+        'At 3rd level, you delve into the advanced techniques of a bard college of your choice, such as the College of Lore. Your choice grants you features at 3rd level and again at 6th and 14th level.',
       availableAtLevel: 6,
       order: 9
     },
     {
       id: classRowId(BD, 3, 11),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 10
+      order: 10,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(BD, 11, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(BD, 3, 12),
       label: 'Expertise',
       description:
-        'At 10th level, choose two more of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.',
+        'At 10th level, you can choose another two skill proficiencies to gain this benefit.',
       availableAtLevel: 10,
       order: 11,
       grants: {
@@ -853,54 +969,81 @@ export const bard: ClassAuthored = {
       id: classRowId(BD, 3, 13),
       label: 'Magical Secrets',
       description:
-        'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one.',
+        'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 10,
-      order: 12
+      order: 12,
+      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
     },
     {
       id: classRowId(BD, 3, 14),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 13
+      order: 13,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(BD, 14, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(BD, 3, 15),
       label: 'Bard College Feature',
-      description: 'At 14th level, you gain a feature from your Bard College.',
+      description:
+        'At 3rd level, you delve into the advanced techniques of a bard college of your choice, such as the College of Lore. Your choice grants you features at 3rd level and again at 6th and 14th level.',
       availableAtLevel: 14,
       order: 14
     },
     {
       id: classRowId(BD, 3, 16),
       label: 'Magical Secrets',
-      description: 'At 14th level, you can choose two more spells from any class.',
+      description:
+        'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 14,
-      order: 15
+      order: 15,
+      effects: [selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
     },
     {
       id: classRowId(BD, 3, 17),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 16
+      order: 16,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(BD, 17, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(BD, 3, 18),
       label: 'Magical Secrets',
-      description: 'At 18th level, you can choose two more spells from any class.',
+      description:
+        'By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table. You learn two additional spells from any class at 14th level and again at 18th level.',
       availableAtLevel: 18,
-      order: 17
+      order: 17,
+      effects: [selfClassRuleEffect(18, CLOSED_RULE_KIND.CLASS_BARD_MAGICAL_SECRETS)]
     },
     {
       id: classRowId(BD, 3, 19),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 18
+      order: 18,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (optionEntry) => classRowId(BD, 19, optionEntry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(BD, 3, 20),
@@ -908,7 +1051,8 @@ export const bard: ClassAuthored = {
       description:
         'At 20th level, when you roll initiative and have no uses of Bardic Inspiration left, you regain one use.',
       availableAtLevel: 20,
-      order: 19
+      order: 19,
+      effects: [selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_BARD_SUPERIOR_INSPIRATION)]
     }
   ]
 }

@@ -19,7 +19,7 @@ export const findTraps: SpellAuthored = {
   id: SPELL_IDS.FIND_TRAPS,
   label: 'Find Traps',
   description:
-    'You sense the presence of any trap within range that is within line of sight. A trap, for the purpose of this spell, includes anything that would inflict a sudden or unexpected effect you consider harmful or undesirable.',
+    "<p>You sense the presence of any trap within range that is within line of sight. A trap, for the purpose of this spell, includes anything that would inflict a sudden or unexpected effect you consider harmful or undesirable, which was specifically intended as such by its creator. Thus, the spell would sense an area affected by the alarm spell, a glyph of warding, or a mechanical pit trap, but it would not reveal a natural weakness in the floor, an unstable ceiling, or a hidden sinkhole. This spell merely reveals that a trap is present. You don't learn the location of each trap, but you do learn the general nature of the danger posed by a trap you sense.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID, CLASS_IDS.RANGER],
@@ -61,7 +61,10 @@ export const findTraps: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FIND_TRAPS, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Reveal Nearby Traps",
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions: "You sense the presence of any trap within range that is within line of sight."
               }
             ]
           }

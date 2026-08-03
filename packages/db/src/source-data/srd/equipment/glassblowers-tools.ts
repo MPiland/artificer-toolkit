@@ -5,7 +5,7 @@ export const glassblowersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(58),
   label: "Glassblower's Tools",
-  description: 'A blowpipe and shaping tools for working molten glass into vessels and objects.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(30),

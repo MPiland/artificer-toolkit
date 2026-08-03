@@ -5,7 +5,7 @@ export const flute: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(71),
   label: 'Flute',
-  description: 'A small woodwind instrument played by blowing across an embouchure hole.',
+  description: S.MUSICAL_INSTRUMENT_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MUSICAL_INSTRUMENT],
   cost: S.gp(2),

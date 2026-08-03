@@ -21,7 +21,7 @@ export const windWalk: SpellAuthored = {
   id: SPELL_IDS.WIND_WALK,
   label: 'Wind Walk',
   description:
-    'You and up to ten willing creatures within range become cloudlike forms with great speed, and can later spend a minute returning to flesh or back to vapor before the spell ends.',
+    "<p>You and up to ten willing creatures you can see within range assume a gaseous form for the duration, appearing as wisps of cloud. While in this cloud form, a creature has a flying speed of 300 feet and has resistance to damage from nonmagical weapons. The only actions a creature can take in this form are the Dash action or to revert to its normal form. Reverting takes 1 minute, during which time a creature is incapacitated and can't move. Until the spell ends, a creature can revert to cloud form, which also requires the 1-minute transformation. If a creature is in cloud form and flying when the effect ends, the creature descends 60 feet per round for 1 minute until it lands, which it does safely. If it can't land after 1 minute, the creature falls the remaining distance.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
   level: 6,
   classIds: [CLASS_IDS.DRUID],
@@ -70,7 +70,8 @@ export const windWalk: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WIND_WALK, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'WIND_WALK' as const
               }
             ]
           }

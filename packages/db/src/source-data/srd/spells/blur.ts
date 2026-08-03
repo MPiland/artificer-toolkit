@@ -20,7 +20,7 @@ export const blur: SpellAuthored = {
   id: SPELL_IDS.BLUR,
   label: 'Blur',
   description:
-    'Your body becomes blurred, shifting and wavering to all who can see you. For the duration, any creature has disadvantage on attack rolls against you.',
+    "<p>Your body becomes blurred, shifting and wavering to all who can see you. For the duration, any creature has disadvantage on attack rolls against you. An attacker is immune to this effect if it doesn't rely on sight, as with blindsight, or can see through illusions, as with truesight.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
   classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -65,7 +65,8 @@ export const blur: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BLUR, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'BLUR' as const
               }
             ]
           }

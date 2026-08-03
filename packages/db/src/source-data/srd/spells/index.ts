@@ -21,9 +21,11 @@ import { augury } from './augury.js'
 import { awaken } from './awaken.js'
 import { bane } from './bane.js'
 import { banishment } from './banishment.js'
+import { barkskin } from './barkskin.js'
 import { beaconOfHope } from './beacon-of-hope.js'
 import { bestowCurse } from './bestow-curse.js'
 import { blackTentacles } from './black-tentacles.js'
+import { bladeBarrier } from './blade-barrier.js'
 import { bless } from './bless.js'
 import { blight } from './blight.js'
 import { blindnessDeafness } from './blindness-deafness.js'
@@ -300,12 +302,16 @@ import { slow } from './slow.js'
 import { spikeGrowth } from './spike-growth.js'
 import { spiritGuardians } from './spirit-guardians.js'
 import { spiritualWeapon } from './spiritual-weapon.js'
+import { stinkingCloud } from './stinking-cloud.js'
 import { stormOfVengeance } from './storm-of-vengeance.js'
 import { sunbeam } from './sunbeam.js'
 import { sunburst } from './sunburst.js'
 import { symbol } from './symbol.js'
 import { telekinesis } from './telekinesis.js'
+import { telepathicBond } from './telepathic-bond.js'
 import { teleport } from './teleport.js'
+import { transportViaPlants } from './transport-via-plants.js'
+import { treeStride } from './tree-stride.js'
 import { truePolymorph } from './true-polymorph.js'
 import { trueResurrection } from './true-resurrection.js'
 import { wallOfThorns } from './wall-of-thorns.js'
@@ -336,9 +342,11 @@ const itemSpells = [
   awaken,
   bane,
   banishment,
+  barkskin,
   beaconOfHope,
   bestowCurse,
   blackTentacles,
+  bladeBarrier,
   bless,
   blight,
   blindnessDeafness,
@@ -615,12 +623,16 @@ const itemSpells = [
   spikeGrowth,
   spiritGuardians,
   spiritualWeapon,
+  stinkingCloud,
   stormOfVengeance,
   sunbeam,
   sunburst,
   symbol,
   telekinesis,
+  telepathicBond,
   teleport,
+  transportViaPlants,
+  treeStride,
   truePolymorph,
   trueResurrection,
   wallOfThorns,

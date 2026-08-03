@@ -5,7 +5,7 @@ export const soap: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(173),
   label: 'Soap',
-  description: 'A bar of tallow and lye soap for cleaning wounds, clothing, or equipment.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.cp(2),

@@ -5,8 +5,7 @@ export const calligraphersSupplies: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(53),
   label: "Calligrapher's Supplies",
-  description:
-    'Inks, pens, and specialized paper for producing fine handwriting and illuminated manuscripts.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(10),

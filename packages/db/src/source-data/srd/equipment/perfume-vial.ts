@@ -5,7 +5,7 @@ export const perfumeVial: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(160),
   label: 'Perfume (vial)',
-  description: 'A small vial of pleasant-smelling aromatic liquid.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL],
   cost: S.gp(5),

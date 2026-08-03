@@ -33,7 +33,6 @@ import {
   type DurationAuthored,
   type EffectAuthored,
   type OutcomeAuthored,
-  type OutcomeRowMetadataAuthored,
   type RangeAuthored,
   type ScalableValueAuthored,
   type SavingThrowAuthored,
@@ -101,6 +100,48 @@ function requireLinkedRecord<T>(value: T | null | undefined, message: string): T
   }
 
   return value
+}
+
+function readRollTableRepeatConfig(
+  effectId: string,
+  rowId: string,
+  value: Json | null
+): Extract<
+  import('@artificer-toolkit/shared').PathRollTableRowAuthored,
+  { resolutionKind: 'REPEAT_TABLE' }
+>['repeat'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Effect "${effectId}" roll row "${rowId}" is missing repeat_config.`)
+  }
+
+  const count = value.count
+  const rerollValues = value.rerollValues
+  if (!Number.isInteger(count) || (count as number) < 1 || (count as number) > 100) {
+    throw new Error(`Effect "${effectId}" roll row "${rowId}" has invalid repeat count.`)
+  }
+  if (!Array.isArray(rerollValues)) {
+    throw new Error(`Effect "${effectId}" roll row "${rowId}" has invalid reroll values.`)
+  }
+
+  const parsedRerollValues = rerollValues.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(
+        `Effect "${effectId}" roll row "${rowId}" reroll value ${index + 1} is invalid.`
+      )
+    }
+    if (
+      typeof entry.id !== 'string' ||
+      !Number.isInteger(entry.order) ||
+      !Number.isInteger(entry.value)
+    ) {
+      throw new Error(
+        `Effect "${effectId}" roll row "${rowId}" reroll value ${index + 1} is invalid.`
+      )
+    }
+    return { id: entry.id, order: entry.order as number, value: entry.value as number }
+  })
+
+  return { count: count as number, rerollValues: parsedRerollValues }
 }
 
 function indexRowsById<T extends { id: string }>(rows: readonly T[]): Map<string, T> {
@@ -375,6 +416,9 @@ function buildTargeting(
   dispositionKind: string | null,
   maxTargets: number | null,
   maxTargetsScaling: Json | null,
+  resolutionCount: number | null,
+  resolutionCountScaling: Json | null,
+  allowRepeatedTargets: boolean | null,
   excludedCreatureTypeIds: string[] | null
 ): TargetingAuthored | undefined {
   if (!selectionKind) {
@@ -404,6 +448,16 @@ function buildTargeting(
             >['maxTargetsScaling']
           >)
         : undefined,
+      resolutionCount: resolutionCount ?? undefined,
+      resolutionCountScaling: resolutionCountScaling
+        ? (resolutionCountScaling as NonNullable<
+            Extract<
+              TargetingAuthored,
+              { selectionKind: typeof TARGET_SELECTION_KIND.CHOSEN_CREATURES }
+            >['resolutionCountScaling']
+          >)
+        : undefined,
+      allowRepeatedTargets: allowRepeatedTargets ?? undefined,
       excludedCreatureTypeIds: excludedCreatureTypeIds?.length ? excludedCreatureTypeIds : undefined
     }
   }
@@ -573,6 +627,13 @@ async function hydrateShapeById(db: DBLike, id: string): Promise<ShapeAuthored> 
 
   switch (kind) {
     case SHAPE_KIND.LINE:
+      return {
+        id,
+        shapeKind: kind,
+        length: measurement('LENGTH'),
+        width: dimensions.has('WIDTH') ? measurement('WIDTH') : undefined
+      }
+
     case SHAPE_KIND.CONE:
       return {
         id,
@@ -878,6 +939,14 @@ async function hydrateShapesByIds(
 
     switch (kind) {
       case SHAPE_KIND.LINE:
+        shapes.set(id, {
+          id,
+          shapeKind: kind,
+          length: measurement('LENGTH'),
+          width: dimensions.has('WIDTH') ? measurement('WIDTH') : undefined
+        })
+        break
+
       case SHAPE_KIND.CONE:
         shapes.set(id, {
           id,
@@ -1033,13 +1102,7 @@ function normalizeGenericOutcome(
     )
   }
 
-  const {
-    label: _label,
-    description: _description,
-    ...normalized
-  } = outcome as OutcomeAuthored & Partial<OutcomeRowMetadataAuthored>
-
-  return normalized
+  return outcome
 }
 
 async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored | null> {
@@ -1746,6 +1809,9 @@ async function hydrateNativePaths(
       'target_disposition_kind',
       'max_targets',
       'max_targets_scaling',
+      'resolution_count',
+      'resolution_count_scaling',
+      'allow_repeated_targets',
       'excluded_creature_type_ids',
       'result_block_id',
       'roll_table_kind',
@@ -1771,6 +1837,9 @@ async function hydrateNativePaths(
       pathRow.target_disposition_kind,
       pathRow.max_targets,
       pathRow.max_targets_scaling,
+      pathRow.resolution_count,
+      pathRow.resolution_count_scaling,
+      pathRow.allow_repeated_targets,
       pathRow.excluded_creature_type_ids
     )
     const originKind = pathRow.origin_kind
@@ -1845,7 +1914,16 @@ async function hydrateNativePaths(
     )
     const rowRows = await db
       .selectFrom('effect_path_roll_table_rows')
-      .select(['id', 'sort_order', 'roll_value', 'roll_min', 'roll_max', 'result_block_id'])
+      .select([
+        'id',
+        'sort_order',
+        'roll_value',
+        'roll_min',
+        'roll_max',
+        'resolution_kind',
+        'result_block_id',
+        'repeat_config'
+      ])
       .where('path_id', '=', pathRow.id)
       .orderBy('sort_order')
       .execute()
@@ -1859,25 +1937,53 @@ async function hydrateNativePaths(
       rollTableKind,
       dieConfig,
       rows: await Promise.all(
-        rowRows.map(async (row) => ({
-          id: row.id,
-          order: row.sort_order,
-          ...(row.roll_value !== null
-            ? { rollValue: row.roll_value }
-            : {
-                rollRange: [
-                  requireLinkedRecord(
-                    row.roll_min,
-                    `Effect "${effectId}" roll row "${row.id}" is missing roll_min.`
-                  ),
-                  requireLinkedRecord(
-                    row.roll_max,
-                    `Effect "${effectId}" roll row "${row.id}" is missing roll_max.`
-                  )
-                ] as [number, number]
-              }),
-          resultBlock: await hydrateResultBlockById(db, effectId, row.result_block_id)
-        }))
+        rowRows.map(async (row) => {
+          const roll =
+            row.roll_value !== null
+              ? { rollValue: row.roll_value }
+              : {
+                  rollRange: [
+                    requireLinkedRecord(
+                      row.roll_min,
+                      `Effect "${effectId}" roll row "${row.id}" is missing roll_min.`
+                    ),
+                    requireLinkedRecord(
+                      row.roll_max,
+                      `Effect "${effectId}" roll row "${row.id}" is missing roll_max.`
+                    )
+                  ] as [number, number]
+                }
+
+          if (row.resolution_kind === 'REPEAT_TABLE') {
+            return {
+              id: row.id,
+              order: row.sort_order,
+              ...roll,
+              resolutionKind: 'REPEAT_TABLE' as const,
+              repeat: readRollTableRepeatConfig(effectId, row.id, row.repeat_config)
+            }
+          }
+          if (row.resolution_kind !== 'RESULT') {
+            throw new Error(
+              `Effect "${effectId}" roll row "${row.id}" has invalid resolution_kind "${row.resolution_kind}".`
+            )
+          }
+
+          return {
+            id: row.id,
+            order: row.sort_order,
+            ...roll,
+            resolutionKind: 'RESULT' as const,
+            resultBlock: await hydrateResultBlockById(
+              db,
+              effectId,
+              requireLinkedRecord(
+                row.result_block_id,
+                `Effect "${effectId}" roll row "${row.id}" is missing result_block_id.`
+              )
+            )
+          }
+        })
       ),
       ...(originKind ? { originKind } : {}),
       ...(rangeOverride ? { rangeOverride } : {}),
@@ -1910,6 +2016,9 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
       'target_disposition_kind',
       'max_targets',
       'max_targets_scaling',
+      'resolution_count',
+      'resolution_count_scaling',
+      'allow_repeated_targets',
       'excluded_creature_type_ids'
     ])
     .where('effect_id', '=', id)
@@ -1934,6 +2043,9 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
     invocation.target_disposition_kind,
     invocation.max_targets,
     invocation.max_targets_scaling,
+    invocation.resolution_count,
+    invocation.resolution_count_scaling,
+    invocation.allow_repeated_targets,
     invocation.excluded_creature_type_ids
   )
   const passive = isPassiveInvocation(invocation.activation_type, invocation.activation_value)
@@ -2023,6 +2135,9 @@ async function hydrateSimpleFixedEffectsByIds(
         'target_disposition_kind',
         'max_targets',
         'max_targets_scaling',
+        'resolution_count',
+        'resolution_count_scaling',
+        'allow_repeated_targets',
         'excluded_creature_type_ids'
       ])
       .where('effect_id', 'in', distinctIds)
@@ -2042,6 +2157,9 @@ async function hydrateSimpleFixedEffectsByIds(
         'target_disposition_kind',
         'max_targets',
         'max_targets_scaling',
+        'resolution_count',
+        'resolution_count_scaling',
+        'allow_repeated_targets',
         'excluded_creature_type_ids',
         'result_block_id',
         'roll_table_kind',
@@ -2189,6 +2307,9 @@ async function hydrateSimpleFixedEffectsByIds(
       invocation.target_disposition_kind,
       invocation.max_targets,
       invocation.max_targets_scaling,
+      invocation.resolution_count,
+      invocation.resolution_count_scaling,
+      invocation.allow_repeated_targets,
       invocation.excluded_creature_type_ids
     )
     const passive = isPassiveInvocation(invocation.activation_type, invocation.activation_value)
@@ -2252,6 +2373,9 @@ async function hydrateSimpleFixedEffectsByIds(
         pathRow.target_disposition_kind,
         pathRow.max_targets,
         pathRow.max_targets_scaling,
+        pathRow.resolution_count,
+        pathRow.resolution_count_scaling,
+        pathRow.allow_repeated_targets,
         pathRow.excluded_creature_type_ids
       )
       const originKind = pathRow.origin_kind

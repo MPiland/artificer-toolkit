@@ -5,7 +5,7 @@ export const sealingWax: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(169),
   label: 'Sealing Wax',
-  description: 'Wax melted and pressed with a signet ring to seal and authenticate documents.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.sp(5),

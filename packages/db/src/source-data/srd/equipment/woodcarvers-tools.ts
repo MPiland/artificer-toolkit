@@ -5,8 +5,7 @@ export const woodcarversTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(67),
   label: "Woodcarver's Tools",
-  description:
-    'Chisels, gouges, and knives for carving decorative or functional objects from wood.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(1),

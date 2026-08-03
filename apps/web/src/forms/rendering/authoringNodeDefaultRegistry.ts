@@ -48,8 +48,14 @@ export type AuthoringDefaultKind =
   | 'featGrant'
   | 'featGrantLevel'
   | 'featGrantProgression'
+  | 'followUpSaveAttempts'
+  | 'followUpSaveBranch'
   | 'invocation'
   | 'manifestBehavior'
+  | 'manifestComponent'
+  | 'manifestDestructionCriterion'
+  | 'manifestLight'
+  | 'manifestProximityRule'
   | 'measurement'
   | 'measurementScalingBreakpoint'
   | 'modifierChargeLimitLevel'
@@ -58,6 +64,8 @@ export type AuthoringDefaultKind =
   | 'modifierGrantPayload'
   | 'numericExpr'
   | 'outcome'
+  | 'outcomeBreakpoint'
+  | 'outcomeBreakpointValue'
   | 'outcomeBonus'
   | 'pathChoiceOption'
   | 'pathLifecycle'
@@ -68,6 +76,8 @@ export type AuthoringDefaultKind =
   | 'range'
   | 'scaling'
   | 'resultBlock'
+  | 'rollTableRepeat'
+  | 'rollTableRerollValue'
   | 'savingThrow'
   | 'savingThrowDcBonus'
   | 'senseGrant'
@@ -148,8 +158,14 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrant: ['featGrant'],
   featGrantLevel: ['featGrantLevel'],
   featGrantProgression: ['featGrantProgression'],
+  followUpSaveAttempts: ['followUpSaveAttempts'],
+  followUpSaveBranch: ['followUpSaveBranch'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
+  manifestComponent: ['manifestComponent'],
+  manifestDestructionCriterion: ['manifestDestructionCriterion'],
+  manifestLight: ['manifestLight'],
+  manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],
   measurementScalingBreakpoint: ['rangeScalingBreakpoint', 'shapeMeasurementScalingBreakpoint'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],
@@ -158,6 +174,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   modifierGrantPayload: ['modifierGrantPayload'],
   numericExpr: ['numericAtom', 'numericExpr'],
   outcome: ['nonManifestOutcome', 'outcome'],
+  outcomeBreakpoint: ['outcomeBreakpoint'],
+  outcomeBreakpointValue: ['outcomeBreakpointValue'],
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
@@ -168,6 +186,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range'],
   scaling: ['durationScaling', 'rangeScaling', 'shapeMeasurementScaling', 'targetCountScaling'],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],
+  rollTableRepeat: ['rollTableRepeat'],
+  rollTableRerollValue: ['rollTableRerollValue'],
   savingThrow: ['savingThrow'],
   savingThrowDcBonus: ['savingThrowDcBonus'],
   senseGrant: ['senseGrant'],

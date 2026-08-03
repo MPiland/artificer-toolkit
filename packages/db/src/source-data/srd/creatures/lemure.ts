@@ -45,12 +45,24 @@ export const lemure: CreatureAuthored = {
       label: 'Hellish Rejuvenation',
       description:
         'Hellish Rejuvenation. A lemure that dies in the Nine Hells comes back to life with all its hit points in 1d10 days unless it is killed by a good-aligned creature with a bless spell cast on that creature or its remains are sprinkled with holy water.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(182, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(182, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEMURE_HELLISH_REJUVENATION
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(182, 3),
       label: 'Language Limitation',
-      description: "Understands Infernal but can't speak.",
+      description: "understands Infernal but can't speak",
       grants: {
         proficiencies: [S.grantedLanguageProficiency(182, 1, 'INFERNAL')]
       },

@@ -5,10 +5,20 @@ import { commandManifestDtoSchema } from './commandManifest.js'
 import { conditionDtoSchema } from './condition.js'
 import { damageDtoSchema } from './damage.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
+import { createFollowUpSaveDtoSchema } from './followUpSave.js'
+import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
 import { moveManifestDtoSchema } from './moveManifest.js'
 import { manualAdjudicationDtoSchema } from './manualAdjudication.js'
+import { movementRuleDtoSchema } from './movementRule.js'
+import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
+import { stabilizeDtoSchema } from './stabilize.js'
+import { armorClassFloorDtoSchema } from './armorClassFloor.js'
+import { telepathicLinkDtoSchema } from './telepathicLink.js'
+import { plantPortalDtoSchema } from './plantPortal.js'
+import { treeStrideDtoSchema } from './treeStride.js'
+import { closedRuleDtoSchema } from './closedRule.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -30,10 +40,11 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 
-const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: boolean }) =>
-  z.union(
-    includeManifest
-      ? [
+const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: boolean }) => {
+  const outcomePayloadDtoSchema: z.ZodTypeAny = z.lazy(() =>
+    z.union(
+      includeManifest
+        ? [
           damageDtoSchema,
           conditionDtoSchema,
           healDtoSchema,
@@ -43,9 +54,19 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
           z.lazy(() => manifestDtoSchema),
           moveManifestDtoSchema,
           commandManifestDtoSchema,
-          manualAdjudicationDtoSchema
-        ]
-      : [
+            createFollowUpSaveDtoSchema(outcomePayloadDtoSchema),
+            createFollowUpCheckDtoSchema(outcomePayloadDtoSchema),
+            movementRuleDtoSchema,
+            actionEconomyRuleDtoSchema,
+            stabilizeDtoSchema,
+            armorClassFloorDtoSchema,
+            telepathicLinkDtoSchema,
+            plantPortalDtoSchema,
+            treeStrideDtoSchema,
+            closedRuleDtoSchema,
+            manualAdjudicationDtoSchema
+          ]
+        : [
           damageDtoSchema,
           conditionDtoSchema,
           healDtoSchema,
@@ -54,9 +75,23 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
           teleportDtoSchema,
           moveManifestDtoSchema,
           commandManifestDtoSchema,
-          manualAdjudicationDtoSchema
-        ]
+            createFollowUpSaveDtoSchema(outcomePayloadDtoSchema),
+            createFollowUpCheckDtoSchema(outcomePayloadDtoSchema),
+            movementRuleDtoSchema,
+            actionEconomyRuleDtoSchema,
+            stabilizeDtoSchema,
+            armorClassFloorDtoSchema,
+            telepathicLinkDtoSchema,
+            plantPortalDtoSchema,
+            treeStrideDtoSchema,
+            closedRuleDtoSchema,
+            manualAdjudicationDtoSchema
+          ]
+    )
   )
+
+  return outcomePayloadDtoSchema
+}
 
 export const pathLifecycleDtoSchema = z.object({
   recurringKind: pathLifecycleRecurringKindSchema.optional(),
@@ -91,19 +126,41 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) => {
     resultBlock: resultBlockDtoSchema
   })
 
-  const exactRollTableRowDtoSchema = z.object({
-    id: authoredIdentifierSchema,
-    order: z.number().int(),
-    rollValue: z.number(),
-    resultBlock: resultBlockDtoSchema
-  })
+  const rollTableRowResolutionDtoSchema = z.discriminatedUnion('resolutionKind', [
+      z.object({
+        resolutionKind: z.literal('RESULT'),
+        resultBlock: resultBlockDtoSchema
+      }),
+      z.object({
+        resolutionKind: z.literal('REPEAT_TABLE'),
+        repeat: z.object({
+          count: z.number().int().min(1).max(100),
+          rerollValues: authoredNestedCollectionSchema(
+            z.object({
+              id: authoredIdentifierSchema,
+              order: z.number().int(),
+              value: z.number().int()
+            })
+          )
+        })
+      })
+    ])
 
-  const rangeRollTableRowDtoSchema = z.object({
-    id: authoredIdentifierSchema,
-    order: z.number().int(),
-    rollRange: z.tuple([z.number(), z.number()]),
-    resultBlock: resultBlockDtoSchema
-  })
+  const exactRollTableRowDtoSchema = z
+    .object({
+      id: authoredIdentifierSchema,
+      order: z.number().int(),
+      rollValue: z.number()
+    })
+    .and(rollTableRowResolutionDtoSchema)
+
+  const rangeRollTableRowDtoSchema = z
+    .object({
+      id: authoredIdentifierSchema,
+      order: z.number().int(),
+      rollRange: z.tuple([z.number(), z.number()])
+    })
+    .and(rollTableRowResolutionDtoSchema)
 
   return z
     .object({

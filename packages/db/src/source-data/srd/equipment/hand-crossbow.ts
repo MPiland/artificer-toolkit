@@ -5,7 +5,7 @@ export const handCrossbow: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(34),
   label: 'Hand Crossbow',
-  description: 'A small, compact crossbow wielded in one hand.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL,

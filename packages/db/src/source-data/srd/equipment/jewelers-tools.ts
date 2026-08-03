@@ -5,8 +5,7 @@ export const jewelersTools: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(59),
   label: "Jeweler's Tools",
-  description:
-    'Fine pliers, magnifying lenses, and polishing cloths for cutting, setting, and appraising gems.',
+  description: S.ARTISANS_TOOLS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.gp(25),

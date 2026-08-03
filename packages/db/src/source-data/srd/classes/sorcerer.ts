@@ -1,24 +1,34 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  type ClassAuthored
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -42,6 +52,35 @@ function equipmentId(index: number): string {
 }
 
 const S = 10 // Sorcerer class index
+
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(S, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(S, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 
 // Sorcerer spell slot charge — full caster, resets on long rest
 const sorcererSlotCharge = {
@@ -335,7 +374,6 @@ export const sorcerer: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 1,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER, CLASS_ATTRIBUTE.RESOURCE],
-  description: 'A spellcaster who draws on inherent magic from a gift or bloodline.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -617,7 +655,7 @@ export const sorcerer: ClassAuthored = {
       id: classRowId(S, 4, 1),
       label: 'Spellcasting',
       description:
-        'An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic.',
+        'An event in your past, or in the life of a parent or ancestor, left an indelible mark on you, infusing you with arcane magic. This font of magic, whatever its origin, fuels your spells.',
       availableAtLevel: 1,
       order: 0
     },
@@ -625,7 +663,7 @@ export const sorcerer: ClassAuthored = {
       id: classRowId(S, 4, 2),
       label: 'Sorcerous Origin',
       description:
-        'Choose a sorcerous origin, which describes the source of your innate magical power.',
+        'Choose a sorcerous origin, which describes the source of your innate magical power, such as Draconic Bloodline.\n\nYour choice grants you features when you choose it at 1st level and again at 6th, 14th, and 18th level.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 1,
       order: 1
@@ -633,16 +671,31 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 3),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 2
+      order: 2,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(S, 6, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(S, 4, 4),
       label: 'Font of Magic',
       description:
-        'At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.',
+        "At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.\n\nSorcery Points\n\nYou have 2 sorcery points, and you gain more as you reach higher levels, as shown in the Sorcery Points column of the Sorcerer table. You can never have more sorcery points than shown on the table for your level. You regain all spent sorcery points when you finish a long rest.\n\nFlexible Casting\n\nYou can use your sorcery points to gain additional spell slots, or sacrifice spell slots to gain additional sorcery points. You learn other ways to use your sorcery points as you reach higher levels.\n\nCreating Spell Slots. You can transform unexpended sorcery points into one spell slot as a bonus action on your turn. The Creating Spell Slots table shows the cost of creating a spell slot of a given level. You can create spell slots no higher in level than 5th.\n\nAny spell slot you create with this feature vanishes when you finish a long rest.\n\nConverting a Spell Slot to Sorcery Points. As a bonus action on your turn, you can expend one spell slot and gain a number of sorcery points equal to the slot's level.",
+      effects: [
+        selfClassRuleEffect(
+          4,
+          CLOSED_RULE_KIND.CLASS_SORCERER_FLEXIBLE_CASTING,
+          ACTIVATION_CODE.BONUS_ACTION
+        )
+      ],
       availableAtLevel: 2,
       order: 3
     },
@@ -650,7 +703,7 @@ export const sorcerer: ClassAuthored = {
       id: classRowId(S, 4, 5),
       label: 'Metamagic',
       description:
-        'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice.',
+        'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice. You gain another one at 10th and 17th level.\n\nYou can use only one Metamagic option on a spell when you cast it, unless otherwise noted.',
       availableAtLevel: 3,
       order: 4,
       optionChoices: [
@@ -664,6 +717,21 @@ export const sorcerer: ClassAuthored = {
           label: 'Careful Spell',
           description:
             "When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell's full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.",
+          effects: [
+            closedRuleEffect({
+              id: classRowId(S, 0x60, 20),
+              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_CAREFUL,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.ACTIVATED,
+                range: { id: classRowId(S, 0x69, 20), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                }
+              }
+            })
+          ],
           order: 0
         },
         {
@@ -671,6 +739,7 @@ export const sorcerer: ClassAuthored = {
           label: 'Distant Spell',
           description:
             'When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell. When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.',
+          effects: [selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_DISTANT)],
           order: 1
         },
         {
@@ -678,6 +747,7 @@ export const sorcerer: ClassAuthored = {
           label: 'Empowered Spell',
           description:
             'When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls. You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.',
+          effects: [selfClassRuleEffect(22, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_EMPOWERED)],
           order: 2
         },
         {
@@ -685,6 +755,7 @@ export const sorcerer: ClassAuthored = {
           label: 'Extended Spell',
           description:
             'When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.',
+          effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_EXTENDED)],
           order: 3
         },
         {
@@ -692,6 +763,21 @@ export const sorcerer: ClassAuthored = {
           label: 'Heightened Spell',
           description:
             'When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.',
+          effects: [
+            closedRuleEffect({
+              id: classRowId(S, 0x60, 24),
+              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_HEIGHTENED,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.ACTIVATED,
+                range: { id: classRowId(S, 0x69, 24), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 4
         },
         {
@@ -699,6 +785,7 @@ export const sorcerer: ClassAuthored = {
           label: 'Quickened Spell',
           description:
             'When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.',
+          effects: [selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_QUICKENED)],
           order: 5
         },
         {
@@ -706,13 +793,29 @@ export const sorcerer: ClassAuthored = {
           label: 'Subtle Spell',
           description:
             'When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.',
+          effects: [selfClassRuleEffect(26, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_SUBTLE)],
           order: 6
         },
         {
           id: classRowId(S, 13, 8),
           label: 'Twinned Spell',
           description:
-            "When you cast a spell that targets only one creature and doesn't have a range of self, you can spend a number of sorcery points equal to the spell's level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip). To be eligible, a spell must be incapable of targeting more than one creature at the spell's current level.",
+            "When you cast a spell that targets only one creature and doesn't have a range of self, you can spend a number of sorcery points equal to the spell's level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip).\n\nTo be eligible, a spell must be incapable of targeting more than one creature at the spell's current level. For example, magic missile and scorching ray aren't eligible, but ray of frost is.",
+          effects: [
+            closedRuleEffect({
+              id: classRowId(S, 0x60, 27),
+              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_TWINNED,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.ACTIVATED,
+                range: { id: classRowId(S, 0x69, 27), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                }
+              }
+            })
+          ],
           order: 7
         }
       ]
@@ -720,75 +823,113 @@ export const sorcerer: ClassAuthored = {
     {
       id: classRowId(S, 4, 6),
       label: 'Sorcerous Origin Feature',
-      description: 'At 6th level, you gain a feature from your Sorcerous Origin.',
+      description:
+        'Choose a sorcerous origin, which describes the source of your innate magical power, such as Draconic Bloodline.\n\nYour choice grants you features when you choose it at 1st level and again at 6th, 14th, and 18th level.',
       availableAtLevel: 6,
       order: 5
     },
     {
       id: classRowId(S, 4, 7),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 6
+      order: 6,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(S, 7, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(S, 4, 8),
       label: 'Metamagic',
-      description: 'At 10th level, you learn an additional Metamagic option.',
+      description:
+        'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice. You gain another one at 10th and 17th level.\n\nYou can use only one Metamagic option on a spell when you cast it, unless otherwise noted.',
       availableAtLevel: 10,
       order: 7
     },
     {
       id: classRowId(S, 4, 9),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 8
+      order: 8,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(S, 8, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(S, 4, 10),
       label: 'Sorcerous Origin Feature',
-      description: 'At 14th level, you gain a feature from your Sorcerous Origin.',
+      description:
+        'Choose a sorcerous origin, which describes the source of your innate magical power, such as Draconic Bloodline.\n\nYour choice grants you features when you choose it at 1st level and again at 6th, 14th, and 18th level.',
       availableAtLevel: 14,
       order: 9
     },
     {
       id: classRowId(S, 4, 11),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 10
+      order: 10,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(S, 9, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(S, 4, 12),
       label: 'Metamagic',
-      description: 'At 17th level, you learn an additional Metamagic option.',
+      description:
+        'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice. You gain another one at 10th and 17th level.\n\nYou can use only one Metamagic option on a spell when you cast it, unless otherwise noted.',
       availableAtLevel: 17,
       order: 11
     },
     {
       id: classRowId(S, 4, 13),
       label: 'Sorcerous Origin Feature',
-      description: 'At 18th level, you gain a feature from your Sorcerous Origin.',
+      description:
+        'Choose a sorcerous origin, which describes the source of your innate magical power, such as Draconic Bloodline.\n\nYour choice grants you features when you choose it at 1st level and again at 6th, 14th, and 18th level.',
       availableAtLevel: 18,
       order: 12
     },
     {
       id: classRowId(S, 4, 14),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 13
+      order: 13,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(S, 10, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(S, 4, 15),
       label: 'Sorcerous Restoration',
       description:
         'At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.',
+      effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_SORCERER_SORCEROUS_RESTORATION)],
       availableAtLevel: 20,
       order: 14
     }

@@ -40,6 +40,19 @@ export const mimic: CreatureAuthored = {
       label: 'Shapechanger',
       description:
         "Shapechanger. The mimic can use its action to polymorph into an object or back into its true, amorphous form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(197, 501),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(197, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_SHAPECHANGER
+        })
+      ],
       order: 1
     },
     {
@@ -47,6 +60,18 @@ export const mimic: CreatureAuthored = {
       label: 'Adhesive (Object Form Only)',
       description:
         'Adhesive (Object Form Only). The mimic adheres to anything that touches it. A Huge or smaller creature adhered to the mimic is also grappled by it (escape DC 13). Ability checks made to escape this grapple have disadvantage.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(197, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(197, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_ADHESIVE
+        })
+      ],
       order: 2
     },
     {
@@ -54,6 +79,18 @@ export const mimic: CreatureAuthored = {
       label: 'False Appearance (Object Form Only)',
       description:
         'False Appearance (Object Form Only). While the mimic remains motionless, it is indistinguishable from an ordinary object.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(197, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(197, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_FALSE_APPEARANCE_OBJECT_FORM_ONLY
+        })
+      ],
       order: 3
     },
     {
@@ -61,13 +98,26 @@ export const mimic: CreatureAuthored = {
       label: 'Grappler',
       description:
         'Grappler. The mimic has advantage on attack rolls against any creature grappled by it.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(197, 504),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(197, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_GRAPPLER
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(197, 5),
       label: 'Pseudopod',
       description:
-        'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) bludgeoning damage. If the mimic is in object form, the target is subjected to its Adhesive trait.',
+        'Pseudopod. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) bludgeoning damage. If the mimic is in object form, the target is subjected to its Adhesive trait.',
       effects: [
         {
           id: S.actionId(197, 3),
@@ -141,7 +191,28 @@ export const mimic: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(197, 505),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(197, 605),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_PSEUDOPOD_ADHESIVE
+        })
       ],
       order: 5
     },

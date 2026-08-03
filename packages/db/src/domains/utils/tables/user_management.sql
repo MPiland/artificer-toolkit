@@ -3,7 +3,7 @@
  *
  * Defines:
  *   - profiles              (private account profile, mirrors auth.users)
- *   - handle_new_user()     (trigger: auto-create profile on signup)
+ *   - handle_new_user()     (trigger: create a profile from accepted auth metadata)
  *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
@@ -66,7 +66,7 @@ CREATE POLICY "Users can update own profile."
  * ────────────────────────────────────────────── */
 
 /* ──────────────────────────────────────────────
- * TRIGGER: auto-create profile on signup
+ * TRIGGER: create profile during signup or invitation completion
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -74,15 +74,19 @@ RETURNS trigger
 SET search_path = pg_catalog, public
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
+DECLARE
+  requested_username text := trim(NEW.raw_user_meta_data ->> 'username');
 BEGIN
-  IF NEW.raw_user_meta_data ->> 'username' IS NULL THEN
+  IF requested_username IS NULL OR EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = NEW.id
+  ) THEN
     RETURN NEW;
   END IF;
 
   INSERT INTO public.profiles (id, username, full_name, avatar_url)
   VALUES (
     NEW.id,
-    trim(NEW.raw_user_meta_data ->> 'username'),
+    requested_username,
     NEW.raw_user_meta_data ->> 'full_name',
     NEW.raw_user_meta_data ->> 'avatar_url'
   );
@@ -90,20 +94,12 @@ BEGIN
 END;
 $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger
-    WHERE tgname = 'on_auth_user_created'
-      AND tgrelid = 'auth.users'::regclass
-  ) THEN
-    CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE PROCEDURE public.handle_new_user();
-  END IF;
-END;
-$$;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT OR UPDATE OF raw_user_meta_data ON auth.users
+FOR EACH ROW
+EXECUTE PROCEDURE public.handle_new_user();
 
 
 /* ──────────────────────────────────────────────

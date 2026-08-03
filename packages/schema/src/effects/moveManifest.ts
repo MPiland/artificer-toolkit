@@ -8,5 +8,6 @@ export const moveManifestDtoSchema = z.object({
   effectKind: z.literal(effectKindSchema.enum.MOVE_MANIFEST),
   manifestId: authoredIdentifierSchema,
   amount: z.number(),
-  unit: measurementUnitCodeSchema
+  unit: measurementUnitCodeSchema,
+  upTo: z.boolean().optional()
 })

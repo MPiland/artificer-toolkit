@@ -1,5 +1,11 @@
 import type {
   ApplyGrantAuthored,
+  FollowUpSaveAuthored,
+  FollowUpSaveBranchAuthored,
+  ManifestComponentAuthored,
+  ManifestDestructionCriterionAuthored,
+  ManifestLightAuthored,
+  ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
   EffectPathAuthored,
   ManifestBehaviorAuthored,
@@ -10,7 +16,14 @@ import type {
   ResultBlockAuthored,
   SummonStatBlockAuthored
 } from '#authored'
-import { SUMMON_DAMAGEABILITY_KIND, SUMMON_VISIBILITY_KIND } from '#authored'
+import {
+  MANIFEST_BLOCKING_RULE_OPTIONS,
+  MANIFEST_PROPERTY_OPTIONS,
+  MANIFEST_SPELL_CAPABILITY_OPTIONS,
+  MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS,
+  SUMMON_DAMAGEABILITY_KIND,
+  SUMMON_VISIBILITY_KIND
+} from '#authored'
 import {
   PATH_ORIGIN_KIND_OPTIONS,
   PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS,
@@ -22,14 +35,23 @@ import {
   DAMAGE_VALUE_OPTIONS,
   EFFECT_KIND,
   EFFECT_KIND_OPTIONS,
+  FOLLOW_UP_SAVE_ATTEMPT_KIND_OPTIONS,
+  FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS,
+  FOLLOW_UP_SAVE_TIMING_OPTIONS,
+  FOLLOW_UP_CHECK_ACTOR_OPTIONS,
   FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS,
   FORCED_MOVEMENT_DIRECTION_OPTIONS,
   FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS,
   MANIFEST_KIND,
   MANIFEST_KIND_OPTIONS,
+  MANUAL_ADJUDICATION_REASON_OPTIONS,
   MEASUREMENT_UNIT_OPTIONS,
+  MOVEMENT_RULE_KIND_OPTIONS,
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
+  ABILITY_OPTIONS,
+  ACTION_ECONOMY_RULE_KIND_OPTIONS,
+  CLOSED_RULE_KIND_OPTIONS,
   SIZE_OPTIONS,
   type Trigger
 } from '#core'
@@ -39,21 +61,31 @@ import {
   DURATION_NODE_MAP,
   NUMERIC_EXPR_NODE_MAP,
   RANGE_NODE_MAP,
+  SAVING_THROW_NODE_MAP,
   SHAPE_NODE_MAP,
-  SPEED_NODE_MAP
+  SPEED_NODE_MAP,
+  MEASUREMENT_NODE_MAP
 } from '../../shared/maps/index.js'
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { INVOCATION_NODE_MAP } from './invocation.js'
+import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
 type OutcomeNode = AllUnionFields<OutcomeAuthored>
 type NonManifestOutcomeNode = AllUnionFields<NonManifestOutcomeAuthored>
+type OutcomeBreakpointNode = NonNullable<OutcomeNode['breakpoints']>[number]
+type OutcomeBreakpointValueNode = AllUnionFields<OutcomeBreakpointNode['value']>
 type ApplyGrantsNode = ApplyGrantAuthored['grants']
 type SummonAbilityScoresNode = NonNullable<SummonStatBlockAuthored['abilityScores']>
+type RollTableRerollValueNode = { id: string; order: number; value: number }
+type FollowUpSaveBranchNode = AllUnionFields<FollowUpSaveBranchAuthored>
+type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
+type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
+type ManifestProximityRuleNode = ManifestProximityRuleAuthored
+type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -95,6 +127,19 @@ const RESULT_KIND_OPTIONS = [
     description: 'Resolve multiple outcomes in order.',
     tooltip: 'Sequential outcomes.'
   }
+] as const
+
+const ROLL_TABLE_ROW_RESOLUTION_OPTIONS = [
+  { code: 'RESULT', label: 'Result' },
+  { code: 'REPEAT_TABLE', label: 'Repeat Table' }
+] as const
+
+const MANIFEST_DESTRUCTION_KIND_OPTIONS = [
+  { code: 'DAMAGE_THRESHOLD', label: 'Damage Threshold' },
+  { code: 'STRONG_WIND', label: 'Strong Wind' },
+  { code: 'WIND_SPEED', label: 'Wind Speed' },
+  { code: 'SPELL_CAPABILITY', label: 'Spell Capability' },
+  { code: 'NAMED_OBJECT', label: 'Named Object' }
 ] as const
 
 const TELEPORT_TARGET_KIND_OPTIONS = [
@@ -141,15 +186,63 @@ const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
 const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
+const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
+const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
+const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
+const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
+const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
+const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
+const manifestLight = buildNodeMap<ManifestLightAuthored>()
+const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
 const choiceOption = buildNodeMap<PathChoiceOptionAuthored>()
 const nonManifestChoiceOption = buildNodeMap<PathChoiceOptionAuthored<NonManifestOutcomeAuthored>>()
 const rollRow = buildNodeMap<PathRollTableRowAuthored>()
 const nonManifestRollRow = buildNodeMap<PathRollTableRowAuthored<NonManifestOutcomeAuthored>>()
+const rollTableRerollValue = buildNodeMap<RollTableRerollValueNode>()
+const rollTableRepeat = buildNodeMap<RollTableRepeatNode>()
 const effectPath = buildNodeMap<EffectPathAuthored>()
 const manifestNestedPath = buildNodeMap<EffectPathAuthored<Trigger, NonManifestOutcomeAuthored>>()
 const manifestBehavior = buildNodeMap<ManifestBehaviorAuthored>()
+
+const OUTCOME_BREAKPOINT_VALUE_NODE_MAP: NodeMap<OutcomeBreakpointValueNode> =
+  outcomeBreakpointValue.define('outcomeBreakpointValue', ({ map, nodes, cond }) => {
+    const { number, text } = nodes
+    const outcome = cond.ancestor<OutcomeNode>(2)
+
+    map
+      .set(
+        'amount',
+        number(['amount'], 'Amount', {
+          constraints: { minimum: 0 },
+          requiredIf: true,
+          showIf: outcome.field(['valueKind']).eq('FIXED')
+        })
+      )
+      .set(
+        'diceConfig',
+        text(['diceConfig'], 'Dice Config', {
+          requiredIf: true,
+          showIf: outcome.field(['valueKind']).eq('DICE')
+        })
+      )
+  })
+
+const OUTCOME_BREAKPOINT_NODE_MAP: NodeMap<OutcomeBreakpointNode> = outcomeBreakpoint.define(
+  'outcomeBreakpoint',
+  ({ map, nodes }) => {
+    const { number, groupObject } = nodes
+
+    map.set('level', number(['level'], 'Level', { requiredIf: true })).set(
+      'value',
+      groupObject(['value'], 'Value', () => OUTCOME_BREAKPOINT_VALUE_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
+  }
+)
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
@@ -362,6 +455,273 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
   }
 )
 
+const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
+  manifestDestructionCriterion.define(
+    'manifestDestructionCriterion',
+    ({ map, nodes, cond, data }) => {
+      const { text, number, selectSingle, selectMulti } = nodes
+      const local = cond.local()
+      const { table } = data
+
+      map
+        .set('id', text(['id'], 'ID'))
+        .set('order', number(['order'], 'Order', { requiredIf: true }))
+        .set(
+          'kind',
+          selectSingle(
+            ['kind'],
+            'Criterion',
+            { kind: 'INLINE_OPTIONS', options: MANIFEST_DESTRUCTION_KIND_OPTIONS },
+            { requiredIf: true }
+          )
+        )
+        .set(
+          'damageTypeId',
+          selectSingle(
+            ['damageTypeId'],
+            'Damage Type',
+            {
+              kind: 'DATA',
+              relationship: table('damage_types', { selectColumns: ['id', 'label', 'tooltip'] })
+            },
+            {
+              requiredIf: true,
+              showIf: local.field(['kind']).eq('DAMAGE_THRESHOLD')
+            }
+          )
+        )
+        .set(
+          'amount',
+          number(['amount'], 'Minimum Damage', {
+            constraints: { minimum: 0 },
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('DAMAGE_THRESHOLD')
+          })
+        )
+        .set(
+          'minimumMilesPerHour',
+          number(['minimumMilesPerHour'], 'Minimum Wind Speed (mph)', {
+            constraints: { minimum: 0.01 },
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('WIND_SPEED')
+          })
+        )
+        .set(
+          'afterRounds',
+          number(['afterRounds'], 'Disperses After Rounds', {
+            constraints: { minimum: 1 },
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('WIND_SPEED')
+          })
+        )
+        .set(
+          'capability',
+          selectSingle(
+            ['capability'],
+            'Spell Capability',
+            { kind: 'INLINE_OPTIONS', options: MANIFEST_SPELL_CAPABILITY_OPTIONS },
+            {
+              requiredIf: true,
+              showIf: local.field(['kind']).eq('SPELL_CAPABILITY')
+            }
+          )
+        )
+        .set(
+          'minimumSpellLevel',
+          number(['minimumSpellLevel'], 'Minimum Spell Level', {
+            constraints: { minimum: 0, maximum: 9 },
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('SPELL_CAPABILITY')
+          })
+        )
+        .set(
+          'exampleSpellIds',
+          selectMulti(
+            ['exampleSpellIds'],
+            'Example Spells',
+            {
+              kind: 'DATA',
+              relationship: table('spells', { selectColumns: ['id', 'label'] })
+            },
+            { showIf: local.field(['kind']).eq('SPELL_CAPABILITY') }
+          )
+        )
+        .set(
+          'objectLabel',
+          text(['objectLabel'], 'Object', {
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('NAMED_OBJECT')
+          })
+        )
+    }
+  )
+
+const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.define(
+  'manifestLight',
+  ({ map, nodes }) => {
+    const { groupObject } = nodes
+
+    map
+      .set(
+        'bright',
+        groupObject(['bright'], 'Bright Light', () => MEASUREMENT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'dimAdditional',
+        groupObject(['dimAdditional'], 'Additional Dim Light', () => MEASUREMENT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  }
+)
+
+const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifestComponent.define(
+  'manifestComponent',
+  ({ map, nodes }) => {
+    const { text, number, selectSingle, selectMulti, toggle, groupArray } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set(
+        'interactionKind',
+        selectSingle(['interactionKind'], 'Interaction', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
+            { code: 'MOVE_ACROSS', label: 'Move Across' },
+            { code: 'ENTER_SPACE', label: 'Enter Space' },
+            { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
+            { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
+            { code: 'SOURCE_HIT', label: 'Source Hits' },
+            { code: 'TARGET_TAKES_FIRE_DAMAGE', label: 'Target Takes Fire Damage' },
+            { code: 'START_OF_ATTACHED_TARGET_TURN', label: 'Start of Attached Target Turn' },
+            { code: 'END_OF_ATTACHED_TARGET_NEXT_TURN', label: 'End of Attached Target Next Turn' }
+          ]
+        })
+      )
+      .set(
+        'interactionKinds',
+        selectMulti(['interactionKinds'], 'Interactions', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
+            { code: 'MOVE_ACROSS', label: 'Move Across' },
+            { code: 'ENTER_SPACE', label: 'Enter Space' },
+            { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
+            { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
+            { code: 'SOURCE_HIT', label: 'Source Hits' },
+            { code: 'TARGET_TAKES_FIRE_DAMAGE', label: 'Target Takes Fire Damage' },
+            { code: 'START_OF_ATTACHED_TARGET_TURN', label: 'Start of Attached Target Turn' },
+            { code: 'END_OF_ATTACHED_TARGET_NEXT_TURN', label: 'End of Attached Target Next Turn' }
+          ]
+        })
+      )
+      .set('bypassAtHalfSpeed', toggle(['bypassAtHalfSpeed'], 'Bypass at Half Speed'))
+      .set(
+        'movementCostMultiplier',
+        number(['movementCostMultiplier'], 'Movement Cost Multiplier', {
+          constraints: { minimum: 0.01 }
+        })
+      )
+      .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
+      .set(
+        'automaticSaveSuccessConditions',
+        selectMulti(['automaticSaveSuccessConditions'], 'Automatic Save Success', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'DOES_NOT_BREATHE', label: 'Does Not Breathe' },
+            { code: 'POISON_IMMUNE', label: 'Poison Immune' }
+          ]
+        })
+      )
+      .set('requiresIgnition', toggle(['requiresIgnition'], 'Requires Ignition'))
+      .set(
+        'maxApplicationsPerTurn',
+        number(['maxApplicationsPerTurn'], 'Maximum Applications per Turn', {
+          constraints: { minimum: 1 }
+        })
+      )
+      .set(
+        'maxApplicationsTotal',
+        number(['maxApplicationsTotal'], 'Maximum Total Applications', {
+          constraints: { minimum: 1 }
+        })
+      )
+      .set('armorClass', number(['armorClass'], 'Armor Class', { constraints: { minimum: 0 } }))
+      .set('hitPoints', number(['hitPoints'], 'Hit Points', { constraints: { minimum: 0 } }))
+      .set(
+        'blockingRules',
+        selectMulti(['blockingRules'], 'Blocks', {
+          kind: 'INLINE_OPTIONS',
+          options: MANIFEST_BLOCKING_RULE_OPTIONS
+        })
+      )
+      .set(
+        'destructionCriteria',
+        groupArray(
+          ['destructionCriteria'],
+          'Destruction Criteria',
+          () => MANIFEST_DESTRUCTION_CRITERION_NODE_MAP,
+          { presentation: 'summary' }
+        )
+      )
+      .set(
+        'releaseCriteria',
+        groupArray(
+          ['releaseCriteria'],
+          'Release Criteria',
+          () => MANIFEST_DESTRUCTION_CRITERION_NODE_MAP,
+          { presentation: 'summary' }
+        )
+      )
+      .set(
+        'behaviors',
+        groupArray(['behaviors'], 'Behaviors', () => MANIFEST_BEHAVIOR_NODE_MAP, {
+          presentation: 'summary'
+        })
+      )
+  }
+)
+
+const MANIFEST_PROXIMITY_RULE_NODE_MAP: NodeMap<ManifestProximityRuleNode> =
+  manifestProximityRule.define('manifestProximityRule', ({ map, nodes }) => {
+    const { text, selectMulti, toggle, groupObject } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'events',
+        selectMulti(['events'], 'Events', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'MOVE_WITHIN', label: 'Move Within Range' },
+            { code: 'START_TURN', label: 'Start Turn Within Range' }
+          ]
+        })
+      )
+      .set(
+        'distance',
+        groupObject(['distance'], 'Distance', () => MEASUREMENT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set('requiresSight', toggle(['requiresSight'], 'Requires Sight'))
+      .set(
+        'behavior',
+        groupObject(['behavior'], 'Behavior', () => MANIFEST_BEHAVIOR_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+  })
+
 function registerOutcomeFields(
   map: OutcomeNodeMapApi['map'],
   nodes: OutcomeNodeMapApi['nodes'],
@@ -370,7 +730,8 @@ function registerOutcomeFields(
   data: OutcomeNodeMapApi['data'],
   effectKindOptions: readonly { code: string; label: string }[]
 ) {
-  const { text, number, selectSingle, toggle, groupArray, groupObject } = nodes
+  const { text, richText, number, selectSingle, selectMulti, toggle, groupArray, groupObject } =
+    nodes
   const { and, or, not } = logic
   const local = cond.local()
   const { table } = data
@@ -611,6 +972,19 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'breakpoints',
+      groupArray(['breakpoints'], 'Breakpoints', () => OUTCOME_BREAKPOINT_NODE_MAP, {
+        presentation: 'table',
+        showIf: and([
+          or([
+            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
+            local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
+          ]),
+          local.field(['scalingKind']).eq('BREAKPOINTS')
+        ])
+      })
+    )
+    .set(
       'scalingSource',
       selectSingle(
         ['scalingSource'],
@@ -631,8 +1005,13 @@ function registerOutcomeFields(
               local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
               local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
             ]),
-            local.field(['scalingKind']).eq('PER_LEVEL'),
-            not(local.field(['valueKind']).eq('POOL'))
+            or([
+              and([
+                local.field(['scalingKind']).eq('PER_LEVEL'),
+                not(local.field(['valueKind']).eq('POOL'))
+              ]),
+              local.field(['scalingKind']).eq('BREAKPOINTS')
+            ])
           ])
         }
       )
@@ -655,8 +1034,13 @@ function registerOutcomeFields(
               local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
               local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
             ]),
-            local.field(['scalingKind']).eq('PER_LEVEL'),
-            not(local.field(['valueKind']).eq('POOL')),
+            or([
+              and([
+                local.field(['scalingKind']).eq('PER_LEVEL'),
+                not(local.field(['valueKind']).eq('POOL'))
+              ]),
+              local.field(['scalingKind']).eq('BREAKPOINTS')
+            ]),
             local.field(['scalingSource']).eq('CLASS_LEVEL')
           ])
         }
@@ -815,6 +1199,56 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'manifestMaxApplicationsPerTurn',
+      number(['maxApplicationsPerTurn'], 'Maximum Applications per Turn', {
+        constraints: { minimum: 1 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'placementSurfaceKind',
+      selectSingle(
+        ['placementSurfaceKind'],
+        'Placement Surface',
+        { kind: 'INLINE_OPTIONS', options: [{ code: 'LEVEL', label: 'Level Surface' }] },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
+      'applicationTargetKind',
+      selectSingle(
+        ['applicationTargetKind'],
+        'Application Target',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'WEAPON', label: 'Weapon' },
+            { code: 'AMMUNITION', label: 'Ammunition' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
+      'applicationCount',
+      number(['applicationCount'], 'Application Count', {
+        constraints: { minimum: 1 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'qualifyingDamageTypeIds',
+      selectMulti(
+        ['qualifyingDamageTypeIds'],
+        'Qualifying Damage Types',
+        {
+          kind: 'DATA',
+          relationship: table('damage_types', { selectColumns: ['id', 'label'] })
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
       'creatureId',
       selectSingle(
         ['creatureId'],
@@ -846,7 +1280,372 @@ function registerOutcomeFields(
     .set(
       'label',
       text(['label'], 'Label', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+        requiredIf: or([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION),
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+        ]),
+        showIf: or([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK),
+          local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION)
+        ])
+      })
+    )
+    .set(
+      'reasonCode',
+      selectSingle(
+        ['reasonCode'],
+        'Reason',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: MANUAL_ADJUDICATION_REASON_OPTIONS
+        },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION)
+        }
+      )
+    )
+    .set(
+      'instructions',
+      richText(['instructions'], 'Instructions', {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION)
+      })
+    )
+    .set(
+      'followUpTiming',
+      selectSingle(
+        ['timing'],
+        'Timing',
+        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'savingThrow',
+      groupObject(['savingThrow'], 'Saving Throw', () => SAVING_THROW_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+      })
+    )
+    .set(
+      'attempts',
+      groupObject(['attempts'], 'Attempts', () => FOLLOW_UP_SAVE_ATTEMPTS_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+      })
+    )
+    .set(
+      'onSuccess',
+      groupObject(['onSuccess'], 'On Success', () => FOLLOW_UP_SAVE_BRANCH_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: or([
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE),
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+        ])
+      })
+    )
+    .set(
+      'onFailure',
+      groupObject(['onFailure'], 'On Failure', () => FOLLOW_UP_SAVE_BRANCH_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: or([
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE),
+          local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+        ])
+      })
+    )
+    .set(
+      'onDurationComplete',
+      groupObject(
+        ['onDurationComplete'],
+        'When Duration Completes',
+        () => FOLLOW_UP_SAVE_BRANCH_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'activation',
+      groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+      })
+    )
+    .set(
+      'ability',
+      selectSingle(
+        ['ability'],
+        'Ability',
+        { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+        }
+      )
+    )
+    .set(
+      'fixedDc',
+      number(['fixedDc'], 'DC', {
+        constraints: { minimum: 1 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+      })
+    )
+    .set(
+      'skillId',
+      selectSingle(
+        ['skillId'],
+        'Skill',
+        { kind: 'DATA', relationship: table('skills', { selectColumns: ['id', 'label'] }) },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK) }
+      )
+    )
+    .set(
+      'toolEquipmentId',
+      selectSingle(
+        ['toolEquipmentId'],
+        'Required Tool',
+        { kind: 'DATA', relationship: table('equipment', { selectColumns: ['id', 'label'] }) },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK) }
+      )
+    )
+    .set(
+      'actorKinds',
+      selectMulti(
+        ['actorKinds'],
+        'Who Can Attempt',
+        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_CHECK_ACTOR_OPTIONS },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK) }
+      )
+    )
+    .set(
+      'repeatable',
+      toggle(['repeatable'], 'Repeatable', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+      })
+    )
+    .set(
+      'ruleKind',
+      selectSingle(
+        ['ruleKind'],
+        'Movement Rule',
+        { kind: 'INLINE_OPTIONS', options: MOVEMENT_RULE_KIND_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE)
+        }
+      )
+    )
+    .set(
+      'movementRuleDistance',
+      groupObject(['limitDistance'], 'Distance', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE),
+          not(local.field(['ruleKind']).eq('STOP_CURRENT_MOVEMENT')),
+          not(local.field(['ruleKind']).eq('MOVEMENT_COST_MULTIPLIER'))
+        ])
+      })
+    )
+    .set(
+      'movementRuleMultiplier',
+      number(['multiplier'], 'Multiplier', {
+        constraints: { minimum: 0.01 },
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE),
+          local.field(['ruleKind']).eq('MOVEMENT_COST_MULTIPLIER')
+        ])
+      })
+    )
+    .set(
+      'requiresZeroHitPoints',
+      toggle(['requiresZeroHitPoints'], 'Requires 0 Hit Points', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.STABILIZE)
+      })
+    )
+    .set(
+      'minimum',
+      number(['minimum'], 'Minimum Armor Class', {
+        constraints: { minimum: 0 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ARMOR_CLASS_FLOOR)
+      })
+    )
+    .set(
+      'maximumCreatures',
+      number(['maximumCreatures'], 'Maximum Creatures', {
+        constraints: { minimum: 1 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+      })
+    )
+    .set(
+      'excludesIntelligenceAtOrBelow',
+      number(['excludesIntelligenceAtOrBelow'], 'Exclude Intelligence At or Below', {
+        constraints: { minimum: 0 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+      })
+    )
+    .set(
+      'anyDistance',
+      toggle(['anyDistance'], 'Any Distance', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+      })
+    )
+    .set(
+      'crossesPlanes',
+      toggle(['crossesPlanes'], 'Crosses Planes', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+      })
+    )
+    .set(
+      'requiresSharedLanguage',
+      toggle(['requiresSharedLanguage'], 'Requires Shared Language', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+      })
+    )
+    .set(
+      'minimumPlantSize',
+      selectSingle(
+        ['minimumPlantSize'],
+        'Minimum Plant Size',
+        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
+        }
+      )
+    )
+    .set(
+      'requiresInanimatePlant',
+      toggle(['requiresInanimatePlant'], 'Requires Inanimate Plant', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
+      })
+    )
+    .set(
+      'samePlaneOnly',
+      toggle(['samePlaneOnly'], 'Same Plane Only', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
+      })
+    )
+    .set(
+      'destinationMustBeSeenOrTouched',
+      toggle(['destinationMustBeSeenOrTouched'], 'Destination Previously Seen or Touched', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
+      })
+    )
+    .set(
+      'movementCost',
+      groupObject(['movementCost'], 'Movement Cost', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
+      })
+    )
+    .set(
+      'destinationDistance',
+      groupObject(['destinationDistance'], 'Destination Distance', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'entryMovementCost',
+      groupObject(['entryMovementCost'], 'Entry Movement Cost', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'exitMovementCost',
+      groupObject(['exitMovementCost'], 'Exit Movement Cost', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'sameTreeKind',
+      toggle(['sameTreeKind'], 'Same Tree Kind', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'livingTreesOnly',
+      toggle(['livingTreesOnly'], 'Living Trees Only', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'minimumTreeSizeRelativeToTraveler',
+      toggle(['minimumTreeSizeRelativeToTraveler'], 'Tree At Least Traveler Size', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'usesPerRound',
+      number(['usesPerRound'], 'Uses per Round', {
+        constraints: { minimum: 1 },
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'mustEndTurnOutside',
+      toggle(['mustEndTurnOutside'], 'Must End Turn Outside Tree', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TREE_STRIDE)
+      })
+    )
+    .set(
+      'closedRuleKind',
+      selectSingle(
+        ['ruleKind'],
+        'Closed Rule',
+        { kind: 'INLINE_OPTIONS', options: CLOSED_RULE_KIND_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.CLOSED_RULE)
+        }
+      )
+    )
+    .set(
+      'actionEconomyRuleKind',
+      selectSingle(
+        ['ruleKind'],
+        'Action Economy Rule',
+        { kind: 'INLINE_OPTIONS', options: ACTION_ECONOMY_RULE_KIND_OPTIONS },
+        {
+          requiredIf: true,
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTION_ECONOMY_RULE)
+        }
+      )
+    )
+    .set(
+      'maximum',
+      number(['maximum'], 'Maximum', {
+        constraints: { minimum: 0 },
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.ACTION_ECONOMY_RULE),
+          not(local.field(['ruleKind']).eq('LOSE_ACTION'))
+        ])
       })
     )
     .set(
@@ -870,6 +1669,187 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'components',
+      groupArray(['components'], 'Components', () => MANIFEST_COMPONENT_NODE_MAP, {
+        presentation: 'summary',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+        ])
+      })
+    )
+    .set(
+      'componentsMustResolveInOrder',
+      toggle(['componentsMustResolveInOrder'], 'Resolve Components in Order', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'attachmentKind',
+      selectSingle(
+        ['attachmentKind'],
+        'Attachment',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'SOURCE', label: 'Source' },
+            { code: 'PRIMARY_TARGET', label: 'Primary Target' },
+            { code: 'PLACED_SPACE', label: 'Placed Space' },
+            { code: 'TOUCHED_OBJECT', label: 'Touched Object' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
+      'destructionMustResolveInOrder',
+      toggle(['destructionMustResolveInOrder'], 'Destroy Components in Order', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'destroyedComponentsRemainDestroyed',
+      toggle(['destroyedComponentsRemainDestroyed'], 'Destroyed Components Stay Destroyed', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'placementMustBeUnoccupied',
+      toggle(['placementMustBeUnoccupied'], 'Placement Must Be Unoccupied', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+        ])
+      })
+    )
+    .set(
+      'invalidPlacementConsumesInvocation',
+      toggle(['invalidPlacementConsumesInvocation'], 'Invalid Placement Consumes Use', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'designatedCreatureImmunity',
+      toggle(['designatedCreatureImmunity'], 'Caster-Designated Creature Immunity', {
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+        ])
+      })
+    )
+    .set(
+      'maximumTargetSize',
+      selectSingle(
+        ['maximumTargetSize'],
+        'Maximum Target Size',
+        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
+      'excludesFormlessTargets',
+      toggle(['excludesFormlessTargets'], 'Excludes Formless Targets', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'light',
+      groupObject(['light'], 'Light', () => MANIFEST_LIGHT_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+        ])
+      })
+    )
+    .set(
+      'hollow',
+      toggle(['hollow'], 'Hollow', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'wallThickness',
+      groupObject(['wallThickness'], 'Wall Thickness', () => MEASUREMENT_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'spreadsAroundCorners',
+      toggle(['spreadsAroundCorners'], 'Spreads Around Corners', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'obscurementKind',
+      selectSingle(
+        ['obscurementKind'],
+        'Obscurement',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'LIGHT', label: 'Lightly Obscured' },
+            { code: 'HEAVY', label: 'Heavily Obscured' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
+      )
+    )
+    .set(
+      'properties',
+      selectMulti(
+        ['properties'],
+        'Properties',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: MANIFEST_PROPERTY_OPTIONS
+        },
+        {
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+        }
+      )
+    )
+    .set(
+      'proximityRule',
+      groupObject(['proximityRule'], 'Proximity Rule', () => MANIFEST_PROXIMITY_RULE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
+    )
+    .set(
+      'destructionCriteria',
+      groupArray(
+        ['destructionCriteria'],
+        'Destruction Criteria',
+        () => MANIFEST_DESTRUCTION_CRITERION_NODE_MAP,
+        {
+          presentation: 'summary',
+          showIf: and([
+            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+            not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+          ])
+        }
+      )
+    )
+    .set(
+      'suppressionImmunities',
+      selectMulti(
+        ['suppressionImmunities'],
+        'Suppression Immunities',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS
+        },
+        {
+          showIf: and([
+            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+            not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+          ])
+        }
+      )
+    )
+    .set(
       'manifestId',
       text(['manifestId'], 'Manifest', {
         requiredIf: true,
@@ -879,7 +1859,108 @@ function registerOutcomeFields(
         ])
       })
     )
+    .set(
+      'behaviorId',
+      text(['behaviorId'], 'Behavior', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.COMMAND_MANIFEST)
+      })
+    )
+    .set(
+      'upTo',
+      toggle(['upTo'], 'Up To This Distance', {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST)
+      })
+    )
 }
+
+const FOLLOW_UP_SAVE_ATTEMPTS_NODE_MAP: NodeMap<FollowUpSaveAttemptsNode> =
+  followUpSaveAttempts.define('followUpSaveAttempts', ({ map, nodes, cond }) => {
+    const { selectSingle, number, toggle } = nodes
+    const local = cond.local()
+
+    map
+      .set(
+        'kind',
+        selectSingle(
+          ['kind'],
+          'Attempts',
+          { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_ATTEMPT_KIND_OPTIONS },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'successesToEnd',
+        number(['successesToEnd'], 'Successes to End', {
+          constraints: { minimum: 1 },
+          requiredIf: true,
+          showIf: local.field(['kind']).eq('THRESHOLDS')
+        })
+      )
+      .set(
+        'failuresToResolve',
+        number(['failuresToResolve'], 'Failures to Resolve', {
+          constraints: { minimum: 1 },
+          requiredIf: true,
+          showIf: local.field(['kind']).eq('THRESHOLDS')
+        })
+      )
+      .set(
+        'consecutive',
+        toggle(['consecutive'], 'Must Be Consecutive', {
+          showIf: local.field(['kind']).eq('THRESHOLDS')
+        })
+      )
+      .set(
+        'repeatOnFailure',
+        toggle(['repeatOnFailure'], 'Repeat On Failure', {
+          showIf: local.field(['kind']).eq('ONCE')
+        })
+      )
+  })
+
+const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUpSaveBranch.define(
+  'followUpSaveBranch',
+  ({ map, nodes, cond }) => {
+    const { selectSingle, toggle, groupArray } = nodes
+    const local = cond.local()
+
+    map
+      .set(
+        'kind',
+        selectSingle(
+          ['kind'],
+          'Result',
+          { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS },
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'endCurrent',
+        toggle(['endCurrent'], 'End Current Result', {
+          showIf: local.field(['kind']).eq('OUTCOMES')
+        })
+      )
+      .set(
+        'resultKind',
+        selectSingle(
+          ['resultKind'],
+          'Outcome Type',
+          { kind: 'INLINE_OPTIONS', options: RESULT_KIND_OPTIONS },
+          {
+            requiredIf: true,
+            showIf: local.field(['kind']).eq('OUTCOMES')
+          }
+        )
+      )
+      .set(
+        'outcomes',
+        groupArray(['outcomes'], 'Outcomes', () => OUTCOME_NODE_MAP, {
+          presentation: 'summary',
+          showIf: local.field(['kind']).eq('OUTCOMES')
+        })
+      )
+  }
+)
 
 const OUTCOME_NODE_MAP: NodeMap<OutcomeNode> = outcome.define(
   'outcome',
@@ -1059,10 +2140,43 @@ const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<
     )
 })
 
+const ROLL_TABLE_REROLL_VALUE_NODE_MAP: NodeMap<RollTableRerollValueNode> =
+  rollTableRerollValue.define('rollTableRerollValue', ({ map, nodes }) => {
+    const { text, number } = nodes
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('value', number(['value'], 'Reroll Value', { requiredIf: true }))
+  })
+
+const ROLL_TABLE_REPEAT_NODE_MAP: NodeMap<RollTableRepeatNode> = rollTableRepeat.define(
+  'rollTableRepeat',
+  ({ map, nodes }) => {
+    const { number, groupArray } = nodes
+
+    map
+      .set(
+        'count',
+        number(['count'], 'Repeat Count', {
+          constraints: { minimum: 1, maximum: 100 },
+          requiredIf: true
+        })
+      )
+      .set(
+        'rerollValues',
+        groupArray(['rerollValues'], 'Reroll Values', () => ROLL_TABLE_REROLL_VALUE_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+  }
+)
+
 const ROLL_TABLE_ROW_NODE_MAP: NodeMap<PathRollTableRowAuthored> = rollRow.define(
   'rollTableRow',
   ({ map, nodes, cond }) => {
-    const { text, number, groupObject } = nodes
+    const { text, number, selectSingle, groupObject } = nodes
+    const local = cond.local()
     const parent = cond.parent<{ rollTableKind: 'RANGE' | 'EXACT' }>()
 
     map
@@ -1072,6 +2186,15 @@ const ROLL_TABLE_ROW_NODE_MAP: NodeMap<PathRollTableRowAuthored> = rollRow.defin
         number(['order'], 'Order', {
           requiredIf: true
         })
+      )
+      .set(
+        'resolutionKind',
+        selectSingle(
+          ['resolutionKind'],
+          'Resolution',
+          { kind: 'INLINE_OPTIONS', options: ROLL_TABLE_ROW_RESOLUTION_OPTIONS },
+          { requiredIf: true }
+        )
       )
       .set(
         'rollRangeMin',
@@ -1098,7 +2221,16 @@ const ROLL_TABLE_ROW_NODE_MAP: NodeMap<PathRollTableRowAuthored> = rollRow.defin
         'resultBlock',
         groupObject(['resultBlock'], 'Result', () => RESULT_BLOCK_NODE_MAP, {
           presentation: 'inline',
-          requiredIf: true
+          requiredIf: true,
+          showIf: local.field(['resolutionKind']).eq('RESULT')
+        })
+      )
+      .set(
+        'repeat',
+        groupObject(['repeat'], 'Repeat Table', () => ROLL_TABLE_REPEAT_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true,
+          showIf: local.field(['resolutionKind']).eq('REPEAT_TABLE')
         })
       )
   }
@@ -1107,7 +2239,8 @@ const ROLL_TABLE_ROW_NODE_MAP: NodeMap<PathRollTableRowAuthored> = rollRow.defin
 const NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP: NodeMap<
   PathRollTableRowAuthored<NonManifestOutcomeAuthored>
 > = nonManifestRollRow.define('nonManifestRollTableRow', ({ map, nodes, cond }) => {
-  const { text, number, groupObject } = nodes
+  const { text, number, selectSingle, groupObject } = nodes
+  const local = cond.local()
   const parent = cond.parent<{ rollTableKind: 'RANGE' | 'EXACT' }>()
 
   map
@@ -1117,6 +2250,15 @@ const NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP: NodeMap<
       number(['order'], 'Order', {
         requiredIf: true
       })
+    )
+    .set(
+      'resolutionKind',
+      selectSingle(
+        ['resolutionKind'],
+        'Resolution',
+        { kind: 'INLINE_OPTIONS', options: ROLL_TABLE_ROW_RESOLUTION_OPTIONS },
+        { requiredIf: true }
+      )
     )
     .set(
       'rollRangeMin',
@@ -1143,7 +2285,16 @@ const NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP: NodeMap<
       'resultBlock',
       groupObject(['resultBlock'], 'Result', () => NON_MANIFEST_RESULT_BLOCK_NODE_MAP, {
         presentation: 'inline',
-        requiredIf: true
+        requiredIf: true,
+        showIf: local.field(['resolutionKind']).eq('RESULT')
+      })
+    )
+    .set(
+      'repeat',
+      groupObject(['repeat'], 'Repeat Table', () => ROLL_TABLE_REPEAT_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true,
+        showIf: local.field(['resolutionKind']).eq('REPEAT_TABLE')
       })
     )
 })

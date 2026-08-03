@@ -5,7 +5,7 @@ export const diceSet: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(78),
   label: 'Dice Set',
-  description: 'A collection of polyhedral dice used for games of chance and strategy.',
+  description: S.GAMING_SET_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   cost: S.sp(1),

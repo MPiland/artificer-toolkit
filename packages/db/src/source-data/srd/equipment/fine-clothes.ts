@@ -5,8 +5,7 @@ export const fineClothes: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(133),
   label: 'Fine Clothes',
-  description:
-    'Elegant attire of high-quality fabric, appropriate for nobles and formal occasions.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
   cost: S.gp(15),

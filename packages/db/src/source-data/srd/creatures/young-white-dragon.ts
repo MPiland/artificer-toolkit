@@ -41,20 +41,44 @@ export const youngWhiteDragon: CreatureAuthored = {
       id: S.featureId(310, 1),
       label: 'Ice Walk',
       description:
-        "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra movement.",
+        "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra moment.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(310, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(310, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_YOUNG_WHITE_DRAGON_ICE_WALK
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(310, 2),
       label: 'Multiattack',
       description: 'The dragon makes three attacks: one with its bite and two with its claws.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(310, 202),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(310, 203), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(310, 3),
       label: 'Bite',
       description:
-        'Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage plus 4 (1d8) cold damage.',
+        'Bite. Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 15 (2d10 + 4) piercing damage plus 4 (1d8) cold damage.',
       effects: [
         {
           id: S.actionId(310, 4),

@@ -5,11 +5,12 @@ export const druidicFocusYewWand: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(95),
   label: 'Druidic Focus: Yew Wand',
-  description: 'A wand of yew wood that channels the natural magic of druids.',
+  description: S.DRUIDIC_FOCUS_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(10),
   weight: S.lbs(1),
+  effects: [S.passiveEquipmentClosedRuleEffect(S.equipId(95), 'EQUIPMENT_DRUIDIC_FOCUS')],
   rarityId: S.RARITY_COMMON,
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID

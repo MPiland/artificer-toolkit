@@ -39,6 +39,12 @@ Current structural selections use stable authored-definition IDs and resolve aga
 
 The output includes derived ability scores/modifiers, saving throws, skills, passive checks, movement, initiative, armor class, max hit points, proficiencies, senses, spell state/slots, resources, per-source spell mechanics, per-instance item mechanics, equipment-feature source-charge bindings, companion stats, and source-aware calculation breakdowns. Re-running identical inputs must produce identical output.
 
+Compiled effect groups preserve their stable effect ID and order, compiled invocation, and compiled path entries. A compiler must not reduce an authored effect to outcome arrays or otherwise discard targeting, saves, path overrides, timing, roll-table behavior, follow-up checks/saves, duration, lifecycle, or manifestation data.
+
+Spell access resolves class, race, and subrace grants against the same character snapshot. Race and subrace grants use character-level gates, preserve their authored casting ability, and resolve chosen grants from the stored authored selection instead of exposing every candidate.
+
+`CLOSED_RULE` is a closed resolver-dispatch discriminant for deterministic SRD behavior that has no smaller existing typed outcome. It is not a scripting language and carries no free-form parameter bag. Values that vary per record remain in existing typed invocation, target, duration, path, manifest, modifier, or result fields; a new closed rule kind is justified by audited source semantics and is preserved unchanged for a future resolver.
+
 ## Sheet adjustments and calculation provenance
 
 Application orchestration projects persisted adjustments through `toCharacterMechanicalAdjustment` before snapshot assembly. That projection deliberately removes character ownership, optional `sourceNote`, actors, and timestamps. The engine receives only stable adjustment identity, typed target, and mechanical value.
@@ -53,4 +59,4 @@ Application orchestration resolves the system's `rulesetCode` and `rulesetVersio
 
 The registry is the extension seam. Another D&D-5e-family ruleset may reuse this kernel when its contracts fit. A materially different game should register a system-specific engine adapter with its own snapshot/output contracts instead of adding cross-system conditionals to the current kernel.
 
-Future VTT encounter sequencing belongs in a separate encounter/event application module. Encounter commands may assemble actor snapshots and invoke pure rule functions, but the character engine does not persist rolls, targets, turns, or outcomes.
+Future VTT encounter sequencing belongs in a separate encounter/event application module. Encounter commands will supply actors, resolved targets, rolls, selections, and external world state to pure compiled-rule resolvers, then apply and persist the proposed outcomes in the Encounter aggregate. The character engine and compiled content do not persist rolls, targets, turns, or outcomes.

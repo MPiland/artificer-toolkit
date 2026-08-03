@@ -29,7 +29,7 @@ export const bestowCurse: SpellAuthored = {
   id: SPELL_IDS.BESTOW_CURSE,
   label: 'Bestow Curse',
   description:
-    'You touch a creature, and that creature must succeed on a Wisdom saving throw or become cursed for the duration of the spell. When you cast this spell using a spell slot of 4th level or higher, the duration is concentration, up to 10 minutes.',
+    "<p>You touch a creature, and that creature must succeed on a Wisdom saving throw or become cursed for the duration of the spell. When you cast this spell, choose the nature of the curse from the following options: * Choose one ability score. While cursed, the target has disadvantage on ability checks and saving throws made with that ability score. * While cursed, the target has disadvantage on attack rolls against you. * While cursed, the target must make a Wisdom saving throw at the start of each of its turns. If it fails, it wastes its action that turn doing nothing. * While the target is cursed, your attacks and spells deal an extra 1d8 necrotic damage to the target. A remove curse spell ends this effect. At the GM's option, you may choose an alternative curse effect, but it should be no more powerful than those described above. The GM has final say on such a curse's effect. At Higher Levels. If you cast this spell using a spell slot of 4th level or higher, the duration is concentration, up to 10 minutes. If you use a spell slot of 5th level or higher, the duration is 8 hours. If you use a spell slot of 7th level or higher, the duration is 24 hours. If you use a 9th level spell slot, the spell lasts until it is dispelled. Using a spell slot of 5th level or higher grants a duration that doesn't require concentration.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.WIZARD],
@@ -71,7 +71,7 @@ export const bestowCurse: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -79,26 +79,16 @@ export const bestowCurse: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x215, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x215, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
+                id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x2f0, 1),
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'BESTOW_CURSE' as const
+              },
               {
-                id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x215, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x212, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Choose an Alternative Curse",
+                reasonCode: 'GM_CHOICE' as const,
+                instructions: "At the GM\u0027s option, you may choose an alternative curse effect, but it should be no more powerful than those described above. The GM has final say on such a curse\u0027s effect."
               }
             ]
           }

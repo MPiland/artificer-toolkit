@@ -1133,6 +1133,9 @@ describe('character sheet command application', () => {
           targetDispositionKind: null,
           maxTargets: null,
           maxTargetsScaling: null,
+          resolutionCount: null,
+          resolutionCountScaling: null,
+          allowRepeatedTargets: null,
           excludedCreatureTypeIds: null
         }
       ],
@@ -1150,6 +1153,9 @@ describe('character sheet command application', () => {
           targetDispositionKind: null,
           maxTargets: null,
           maxTargetsScaling: null,
+          resolutionCount: null,
+          resolutionCountScaling: null,
+          allowRepeatedTargets: null,
           excludedCreatureTypeIds: null,
           resultBlockId: 'recover-superiority-dice-result',
           rollTableKind: null,
@@ -1293,6 +1299,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null
           }
         ]
@@ -3276,6 +3285,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null
           },
           {
@@ -3290,6 +3302,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null
           },
           {
@@ -3304,6 +3319,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null
           }
         ],
@@ -3498,6 +3516,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null
           }
         ],
@@ -3515,6 +3536,9 @@ describe('character sheet command application', () => {
             targetDispositionKind: null,
             maxTargets: null,
             maxTargetsScaling: null,
+            resolutionCount: null,
+            resolutionCountScaling: null,
+            allowRepeatedTargets: null,
             excludedCreatureTypeIds: null,
             resultBlockId: 'result-1',
             rollTableKind: null,

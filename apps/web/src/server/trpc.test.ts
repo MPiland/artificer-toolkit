@@ -45,26 +45,27 @@ describe('handleTrpcRequest', () => {
     expect(mocks.handleTrpcFetchRequest).not.toHaveBeenCalled()
   })
 
-  it.each([
-    ['missing', undefined],
-    ['understated', '1']
-  ])('rejects an oversized mixed tRPC batch with a %s content-length', async (_name, length) => {
-    const { handleTrpcRequest } = await import('./trpc')
-    const headers = length === undefined ? undefined : { 'content-length': length }
-    const response = await handleTrpcRequest(
-      new Request(
-        'https://app.test/api/trpc/application.featureFlags,content.spells.saveDraft?batch=1',
-        {
-          body: 'x'.repeat(1_048_577),
-          headers,
-          method: 'POST'
-        }
-      )
-    )
+  it('forwards acceptable runtime requests without reading or rebuilding their bodies', async () => {
+    mocks.createServerClient.mockReturnValue({
+      auth: {
+        getClaims: vi.fn().mockResolvedValue({ data: { claims: null }, error: null })
+      }
+    })
 
-    expect(response.status).toBe(413)
-    expect(mocks.createServerClient).not.toHaveBeenCalled()
-    expect(mocks.handleTrpcFetchRequest).not.toHaveBeenCalled()
+    const runtimeRequest = {
+      get body() {
+        throw new Error('Runtime request body was read.')
+      },
+      headers: new Headers({ 'content-length': '404', 'content-type': 'application/json' }),
+      method: 'POST',
+      url: 'https://app.test/api/trpc/nodeRuntime.resolve'
+    } as unknown as Request
+
+    const { handleTrpcRequest } = await import('./trpc')
+    await expect(handleTrpcRequest(runtimeRequest)).resolves.toBeInstanceOf(Response)
+
+    const forwardedRequest = mocks.handleTrpcFetchRequest.mock.calls[0]?.[0] as Request
+    expect(forwardedRequest).toBe(runtimeRequest)
   })
 
   it('derives the user and super-admin flag from verified JWT claims', async () => {

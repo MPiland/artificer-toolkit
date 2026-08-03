@@ -45,6 +45,18 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Berserk',
       description:
         "Berserk. Whenever the golem starts its turn with 40 hit points or fewer, roll a d6. On a 6, the golem goes berserk. On each of its turns while berserk, the golem attacks the nearest creature it can see. If no creature is near enough to move to and attack, the golem attacks an object, with preference for an object smaller than itself. Once the golem goes berserk, it continues to do so until it is destroyed or regains all its hit points. The golem's creator, if within 60 feet of the berserk golem, can try to calm it by speaking firmly and persuasively. The golem must be able to hear its creator, who must take an action to make a DC 15 Charisma (Persuasion) check. If the check succeeds, the golem ceases being berserk. If it takes damage while still at 40 hit points or fewer, the golem might go berserk again.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 201),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(103, 1201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_BERSERK
+        })
+      ],
       order: 1
     },
     {
@@ -52,6 +64,18 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Aversion of Fire',
       description:
         'Aversion of Fire. If the golem takes fire damage, it has disadvantage on attack rolls and ability checks until the end of its next turn.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(103, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_AVERSION_OF_FIRE
+        })
+      ],
       order: 2
     },
     {
@@ -59,6 +83,18 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Immutable Form',
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(103, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMMUTABLE_FORM
+        })
+      ],
       order: 3
     },
     {
@@ -66,6 +102,18 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Lightning Absorption',
       description:
         'Lightning Absorption. Whenever the golem is subjected to lightning damage, it takes no damage and instead regains a number of hit points equal to the lightning damage dealt.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(103, 1204), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_LIGHTNING_ABSORPTION
+        })
+      ],
       order: 4
     },
     {
@@ -73,24 +121,60 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 205),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
+            range: { id: S.actionId(103, 1205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 5
     },
     {
       id: S.featureId(103, 6),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 206),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(103, 1206), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 6
     },
     {
       id: S.featureId(103, 7),
       label: 'Language Limitation',
-      description: "Understands the languages of its creator but can't speak.",
+      description: "understands the languages of its creator but can't speak",
       order: 7
     },
     {
       id: S.featureId(103, 8),
       label: 'Multiattack',
       description: 'The golem makes two slam attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(103, 208),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(103, 1208), rangeKind: S.RANGE_KIND.SPECIAL }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_MULTIATTACK
+        })
+      ],
       order: 8
     },
     {

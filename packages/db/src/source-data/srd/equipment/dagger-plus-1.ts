@@ -6,7 +6,7 @@ export const daggerPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(252),
   label: 'Dagger +1',
-  description: 'You have a +1 bonus to attack and damage rolls made with this magic weapon.',
+  description: S.MAGIC_WEAPON_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: dagger.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

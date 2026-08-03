@@ -1,12 +1,14 @@
 import { CLASS_CATEGORY, SCALING_SOURCE } from '#core'
 
 import type { CharacterAssemblyRegistry } from '../registry.js'
-import type { CharacterBuildSnapshot } from '../snapshot.js'
+import { getChosenGrantTargetIds, type CharacterBuildSnapshot } from '../snapshot.js'
 import type { CompiledClass } from '../../subjects/compilers/class.js'
 import type { CompiledCharacterClassState } from '../../subjects/compilers/character/state.js'
 import type { CompiledFeature } from '../../features/compilers/feature.js'
 import type { CompiledSpellGrant } from '../../grants/compilers/spell.js'
 import type { EngineSpellAccess } from '../contracts/engineState.js'
+import type { CompiledRace } from '../../subjects/compilers/race.js'
+import type { CharacterProvenance } from '../../subjects/authored/character/intent.js'
 
 export interface ResolvedSpellGrantState {
   spellState?: CompiledCharacterClassState[]
@@ -47,10 +49,112 @@ export function resolveSpellGrantState(
     }
   }
 
+  for (const access of resolveRaceSpellGrantState(snapshot, registry)) {
+    if (seenAccessIds.has(access.id)) continue
+    seenAccessIds.add(access.id)
+    spellAccess.push(access)
+  }
+
   return {
     spellState: spellState.length ? spellState : undefined,
     spellAccess
   }
+}
+
+function resolveRaceSpellGrantState(
+  snapshot: CharacterBuildSnapshot,
+  registry: CharacterAssemblyRegistry
+): EngineSpellAccess[] {
+  const spellAccess: EngineSpellAccess[] = []
+  const compiledSubrace = snapshot.subraceId ? registry.races[snapshot.subraceId] : undefined
+  const baseRaceId =
+    snapshot.raceId ??
+    (compiledSubrace?.category === 'SUBRACE' ? compiledSubrace.parentRaceId : undefined)
+  const compiledBaseRace = baseRaceId ? registry.races[baseRaceId] : undefined
+  const inheritedFeatureIds = new Set(
+    compiledBaseRace?.features?.map((feature) => feature.id) ?? []
+  )
+
+  if (compiledBaseRace && baseRaceId) {
+    resolveSpellGrantsFromCompiledRace(
+      compiledBaseRace,
+      snapshot,
+      { kind: 'RACE', raceId: baseRaceId },
+      spellAccess
+    )
+  }
+
+  if (compiledSubrace && snapshot.subraceId) {
+    resolveSpellGrantsFromCompiledRace(
+      compiledSubrace,
+      snapshot,
+      { kind: 'SUBRACE', subraceId: snapshot.subraceId },
+      spellAccess,
+      inheritedFeatureIds
+    )
+  }
+
+  return spellAccess
+}
+
+function resolveSpellGrantsFromCompiledRace(
+  race: CompiledRace,
+  snapshot: CharacterBuildSnapshot,
+  source: Extract<CharacterProvenance, { kind: 'RACE' | 'SUBRACE' }>,
+  spellAccess: EngineSpellAccess[],
+  excludedFeatureIds: ReadonlySet<string> = new Set()
+): void {
+  for (const feature of race.features ?? []) {
+    if (excludedFeatureIds.has(feature.id)) continue
+    if ((feature.availableAtLevel ?? 1) > snapshot.totalLevel) continue
+
+    for (const grant of feature.spells ?? []) {
+      const spellIds = resolveRaceGrantSpellIds(grant, snapshot, source)
+      const sourceId = source.kind === 'RACE' ? source.raceId : source.subraceId
+      const sourceInstanceId = `${source.kind}:${sourceId}:${feature.id}:${grant.id}`
+
+      for (const spellId of spellIds) {
+        spellAccess.push({
+          id: `${sourceInstanceId}:${spellId}`,
+          spellId,
+          source,
+          timing: { kind: 'CHARACTER_LEVEL', level: snapshot.totalLevel },
+          sourceFeatureId: feature.id,
+          grantId: grant.id,
+          sourceInstanceId,
+          attributes: grant.attributes,
+          castAtLevel: grant.castAtLevel,
+          castingAbility: grant.castingAbility,
+          charges: grant.charges
+        })
+      }
+    }
+  }
+}
+
+function resolveRaceGrantSpellIds(
+  grant: CompiledSpellGrant,
+  snapshot: CharacterBuildSnapshot,
+  source: Extract<CharacterProvenance, { kind: 'RACE' | 'SUBRACE' }>
+): string[] {
+  if (grant.scalingKind === 'NONE') {
+    if (grant.selectionKind === 'CHOSEN') {
+      return getChosenGrantTargetIds(snapshot, grant.id, source)
+    }
+
+    return grant.authoringModeKind === 'SELECTED' ? [...(grant.spellIds ?? [])] : []
+  }
+
+  if (grant.scalingSource !== SCALING_SOURCE.CHARACTER_LEVEL) return []
+
+  return grant.levels.flatMap((level) => {
+    if (level.level > snapshot.totalLevel) return []
+    if (grant.selectionKind === 'CHOSEN') {
+      return getChosenGrantTargetIds(snapshot, grant.id, source, level.level)
+    }
+
+    return level.authoringModeKind === 'SELECTED' ? [...(level.spellIds ?? [])] : []
+  })
 }
 
 function resolveClassSpellGrantState(
@@ -168,6 +272,7 @@ function resolveSpellGrant(
       sourceInstanceId,
       attributes: grant.attributes,
       castAtLevel: grant.castAtLevel,
+      castingAbility: grant.castingAbility,
       charges: grant.charges
     })
   }

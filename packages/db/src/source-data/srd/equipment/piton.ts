@@ -5,7 +5,7 @@ export const piton: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(161),
   label: 'Piton',
-  description: 'A metal spike driven into stone or wood to anchor a rope for climbing.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

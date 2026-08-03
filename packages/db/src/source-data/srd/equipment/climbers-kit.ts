@@ -4,7 +4,8 @@ export const climbersKit: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(86),
   label: "Climber's Kit",
-  description: 'Pitons, boot tips, gloves, and a harness for ascending sheer surfaces.',
+  description:
+    "A climber's kit includes special pitons, boot tips, gloves, and a harness. You can use the climber's kit as an action to anchor yourself; when you do, you can't fall more than 25 feet from the point where you anchored yourself, and you can't climb more than 25 feet away from that point without undoing the anchor.",
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
   effects: [
@@ -36,11 +37,26 @@ export const climbersKit: EquipmentAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: S.equipmentChildId(S.equipId(86), 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(86), 0x212, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.MANIFEST,
+                manifestKind: 'OBJECT' as const,
+                attachmentKind: 'SOURCE' as const,
+                label: 'Climbing anchor'
+              },
+              {
+                id: S.equipmentChildId(S.equipId(86), 0x213, 1),
+                effectKind: S.EFFECT_KIND.MOVEMENT_RULE,
+                ruleKind: 'MAX_FALL_DISTANCE_FROM_ANCHOR' as const,
+                limitDistance: { amount: 25, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+              },
+              {
+                id: S.equipmentChildId(S.equipId(86), 0x214, 1),
+                effectKind: S.EFFECT_KIND.MOVEMENT_RULE,
+                ruleKind: 'MAX_CLIMB_DISTANCE_FROM_ANCHOR' as const,
+                limitDistance: { amount: 25, unit: S.MEASUREMENT_UNIT_CODE.FEET }
               }
             ]
           }

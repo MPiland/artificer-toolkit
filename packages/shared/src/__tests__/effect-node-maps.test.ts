@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { EFFECT_KIND } from '#core'
+import { EFFECT_KIND, TRIGGER } from '#core'
 import {
   EFFECT_NODE_MAP,
   MANIFEST_NESTED_EFFECT_NODE_MAP,
@@ -9,6 +9,30 @@ import {
 } from '#maps'
 
 describe('effect node maps', () => {
+  it('offers incoming saving throws as an authored trigger', () => {
+    const triggerNode = EFFECT_NODE_MAP.nodes.invocation
+
+    if (triggerNode.kind !== 'GROUP') {
+      throw new Error('Expected invocation to be a group node')
+    }
+
+    const invocationMap =
+      typeof triggerNode.nodes === 'function' ? triggerNode.nodes() : triggerNode.nodes
+    const triggerCodeNode = invocationMap.nodes.triggerCode
+
+    if (
+      triggerCodeNode.kind !== 'INPUT' ||
+      triggerCodeNode.type !== 'SELECT_SINGLE' ||
+      triggerCodeNode.source.kind !== 'INLINE_OPTIONS'
+    ) {
+      throw new Error('Expected trigger code to be an inline select')
+    }
+
+    expect(triggerCodeNode.source.options.map((option) => option.code)).toContain(
+      TRIGGER.INCOMING_SAVING_THROW
+    )
+  })
+
   it('declares explicit authoring presentation for effect groups', () => {
     const effectsNode = SPELL_NODE_MAP.nodes.effects
     const invocationNode = EFFECT_NODE_MAP.nodes.invocation

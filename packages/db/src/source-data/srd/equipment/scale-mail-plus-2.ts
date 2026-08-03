@@ -6,7 +6,7 @@ export const scaleMailPlus2: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(322),
   label: 'Scale Mail +2',
-  description: 'You have a +2 bonus to AC while wearing this magic armor.',
+  description: S.MAGIC_ARMOR_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: scaleMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],

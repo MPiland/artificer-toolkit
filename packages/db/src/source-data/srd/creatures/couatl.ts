@@ -1,4 +1,4 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const couatl: CreatureAuthored = {
@@ -39,13 +39,56 @@ export const couatl: CreatureAuthored = {
       id: S.featureId(71, 1),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The couatl's spellcasting ability is Charisma (spell save DC 14). It can innately cast the following spells, requiring only verbal components: At will: detect evil and good, detect magic, detect thoughts. 3/day each: bless, create food and water, cure wounds, lesser restoration, protection from poison, sanctuary, shield. 1/day each: dream, greater restoration, scrying.",
+        "Innate Spellcasting. The couatl's spellcasting ability is Charisma (spell save DC 14). It can innately cast the following spells, requiring only verbal components: At will: detect evil and good, detect magic, detect thoughts",
+      grants: {
+        spells: [
+          {
+            id: S.actionId(71, 301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.DETECT_EVIL_AND_GOOD,
+              S.SPELL_IDS.DETECT_MAGIC,
+              S.SPELL_IDS.DETECT_THOUGHTS
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            order: 0
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(71, 302),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SPELL_ATTACK,
+            range: { id: S.actionId(71, 1301), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_INNATE_SPELLCASTING
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(71, 2),
       label: 'Magic Weapons',
       description: "Magic Weapons. The couatl's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(71, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(71, 1202), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 2
     },
     {
@@ -53,6 +96,18 @@ export const couatl: CreatureAuthored = {
       label: 'Shielded Mind',
       description:
         'Shielded Mind. The couatl is immune to scrying and to any effect that would sense its emotions, read its thoughts, or detect its location.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(71, 203),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(71, 1203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_SHIELDED_MIND
+        })
+      ],
       order: 3
     },
     {
@@ -109,30 +164,41 @@ export const couatl: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(8048, 5),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(8048, 5) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                duration: {
-                  id: S.actionId(8048, 6),
-                  durationKind: DURATION_KIND.HOUR,
-                  amount: 24
-                },
-                outcomes: [
+                  },
                   {
-                    id: S.actionId(8048, 5),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
+                    id: S.actionId(71, 220),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(71, 221),
+                      dcMethod: 'FIXED_DC',
+                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(71, 222),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('POISONED')
+                        },
+                        {
+                          id: S.actionId(71, 223),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('UNCONSCIOUS')
+                        },
+                        {
+                          id: S.actionId(71, 224),
+                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_BITE_POISON
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -215,6 +281,16 @@ export const couatl: CreatureAuthored = {
                     id: S.actionId(8048, 11),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('GRAPPLED')
+                  },
+                  {
+                    id: S.actionId(71, 207),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('RESTRAINED')
+                  },
+                  {
+                    id: S.actionId(71, 208),
+                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
+                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_CONSTRICT
                   }
                 ]
               }
@@ -229,60 +305,20 @@ export const couatl: CreatureAuthored = {
       label: 'Change Shape',
       description:
         "Change Shape. The couatl magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the couatl's choice). In a new form, the couatl retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and other actions are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
-      order: 6
-    },
-    {
-      id: S.featureId(71, 7),
-      label: 'Divine Aid (2/Day)',
-      description:
-        'Divine Aid (2/Day). The couatl casts bless, lesser restoration, or sanctuary, requiring no spell components and using the same spellcasting ability as Innate Spellcasting.',
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: {
-        id: S.actionId(8048, 12),
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
-        amount: 2
-      },
       effects: [
-        {
-          id: S.actionId(8048, 13),
-          order: 1,
+        S.closedRuleEffect({
+          id: S.actionId(71, 209),
           invocation: {
-            kind: 'ACTION' as const,
+            kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.BONUS_ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(8048, 14),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(71, 1206), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          paths: [
-            {
-              id: S.actionId(8048, 15),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(8048, 15) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(8048, 15),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_CHANGE_SHAPE
+        })
       ],
-      order: 7
+      order: 6
     }
   ]
 }

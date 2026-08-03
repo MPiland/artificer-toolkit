@@ -53,7 +53,6 @@ export const browserAuthClient: AuthClient = {
     }
 
     try {
-      const existingProfile = await api.account.profile()
       const usernameStatus = await api.account.usernameStatus({ username: parsed.data.username })
       if (usernameStatus.status !== 'available') {
         return {
@@ -66,15 +65,19 @@ export const browserAuthClient: AuthClient = {
       }
 
       const { error } = await getSupabaseBrowserClient().auth.updateUser({
-        password: parsed.data.password
+        password: parsed.data.password,
+        data: { username: parsed.data.username }
       })
-      if (error) return { ok: false, message: error.message }
+      if (error?.code === 'same_password') {
+        const { error: profileError } = await getSupabaseBrowserClient().auth.updateUser({
+          data: { username: parsed.data.username }
+        })
+        return profileError ? { ok: false, message: profileError.message } : { ok: true }
+      }
+      if (error) {
+        return { ok: false, message: error.message }
+      }
 
-      await api.account.updateProfile({
-        username: parsed.data.username,
-        name: existingProfile?.name ?? null,
-        bio: existingProfile?.bio ?? null
-      })
       return { ok: true }
     } catch (error) {
       return {

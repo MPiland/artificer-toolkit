@@ -28,7 +28,7 @@ export const minorIllusion: SpellAuthored = {
   id: SPELL_IDS.MINOR_ILLUSION,
   label: 'Minor Illusion',
   description:
-    'You create a sound or an image of an object within range that lasts for 1 minute. A creature that sees through the illusion recognizes it as illusory.',
+    "<p>You create a sound or an image of an object within range that lasts for the duration. The illusion also ends if you dismiss it as an action or cast this spell again. If you create a sound, its volume can range from a whisper to a scream. It can be your voice, someone else's voice, a lion's roar, a beating of drums, or any other sound you choose. The sound continues unabated throughout the duration, or you can make discrete sounds at different times before the spell ends.</p><p>If you create an image of an object-such as a chair, muddy footprints, or a small chest-it must be no larger than a 5-foot cube. The image can't create sound, light, smell, or any other sensory effect. Physical interaction with the image reveals it to be an illusion, because things can pass through it. If a creature uses its action to examine the sound or image, the creature can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the illusion becomes faint to the creature.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
@@ -76,7 +76,10 @@ export const minorIllusion: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MINOR_ILLUSION, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: "Define the Sound or Image",
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions: "You create a sound or an image of an object within range that lasts for the duration."
               }
             ]
           }

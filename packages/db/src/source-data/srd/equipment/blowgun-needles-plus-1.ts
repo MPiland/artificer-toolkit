@@ -6,11 +6,11 @@ export const blowgunNeedlesPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(345),
   label: 'Blowgun Needles +1',
-  description:
-    'These 50 magic blowgun needles grant a +1 bonus to attack and damage rolls made with them.',
+  description: S.MAGIC_AMMUNITION_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: blowgunNeedles50.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
+  effects: [S.magicAmmunitionExpirationEffect(S.equipId(345))],
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.magicAmmoModifiers(S.equipId(345), 1),

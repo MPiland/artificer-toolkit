@@ -130,12 +130,12 @@ function requireCategory(equipmentId: string, value: string): EquipmentCategory 
 function requireMeasurementUnit(
   equipmentId: string,
   value: string
-): BaseEquipmentAuthored['weight']['unit'] {
+): NonNullable<BaseEquipmentAuthored['weight']>['unit'] {
   if (!(value in MEASUREMENT_UNIT_CODE)) {
     throw new Error(`Equipment "${equipmentId}" has invalid unit_code "${value}".`)
   }
 
-  return value as BaseEquipmentAuthored['weight']['unit']
+  return value as NonNullable<BaseEquipmentAuthored['weight']>['unit']
 }
 
 function requireAttribute(equipmentId: string, value: string): EquipmentAttributeCode {
@@ -226,10 +226,6 @@ function buildEquipmentAuthored(
     }
   }
 
-  if (row.weight_amount == null || !row.weight_unit) {
-    throw new Error(`Equipment "${id}" is missing weight for BASE payload.`)
-  }
-
   return {
     ...common,
     attributes:
@@ -243,10 +239,14 @@ function buildEquipmentAuthored(
             currencyId: row.cost_currency_id
           }
         : undefined,
-    weight: {
-      amount: readNumericValue(id, row.weight_amount, 'weight_amount'),
-      unit: requireMeasurementUnit(id, row.weight_unit)
-    },
+    ...(row.weight_amount != null && row.weight_unit
+      ? {
+          weight: {
+            amount: readNumericValue(id, row.weight_amount, 'weight_amount'),
+            unit: requireMeasurementUnit(id, row.weight_unit)
+          }
+        }
+      : {}),
     capacity:
       row.capacity_amount != null && row.capacity_unit
         ? {

@@ -38,13 +38,74 @@ export const mage: CreatureAuthored = {
       id: S.featureId(187, 1),
       label: 'Spellcasting',
       description:
-        'Spellcasting. The mage is a 9th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 14, +6 to hit with spell attacks). The mage has the following wizard spells prepared: Cantrips (at will): fire bolt, light, mage hand, prestidigitation. 1st level (4 slots): detect magic, mage armor, magic missile, shield. 2nd level (3 slots): misty step, suggestion. 3rd level (3 slots): counterspell, fireball, fly. 4th level (3 slots): greater invisibility, ice storm. 5th level (1 slot): cone of cold.',
+        'Spellcasting. The mage is a 9th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 14, +6 to hit with spell attacks). The mage has the following wizard spells prepared: Cantrips (at will): fire bolt, light, mage hand, prestidigitation 1st level (4 slots): detect magic, mage armor, magic missile, shield 2nd level (3 slots): misty step, suggestion 3rd level (3 slots): counterspell, fireball, fly 4th level (3 slots): greater invisibility, ice storm 5th level (1 slot): cone of cold',
+      grants: {
+        spells: [
+          {
+            id: S.actionId(187, 701),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.FIRE_BOLT,
+              S.SPELL_IDS.LIGHT,
+              S.SPELL_IDS.MAGE_HAND,
+              S.SPELL_IDS.PRESTIDIGITATION
+            ],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            order: 0
+          },
+          {
+            id: S.actionId(187, 702),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.DETECT_MAGIC,
+              S.SPELL_IDS.MAGE_ARMOR,
+              S.SPELL_IDS.MAGIC_MISSILE,
+              S.SPELL_IDS.SHIELD,
+              S.SPELL_IDS.MISTY_STEP,
+              S.SPELL_IDS.SUGGESTION,
+              S.SPELL_IDS.COUNTERSPELL,
+              S.SPELL_IDS.FIREBALL,
+              S.SPELL_IDS.FLY,
+              S.SPELL_IDS.GREATER_INVISIBILITY,
+              S.SPELL_IDS.ICE_STORM,
+              S.SPELL_IDS.CONE_OF_COLD
+            ],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED],
+            order: 1
+          }
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(187, 703),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: {
+              id: S.actionId(187, 704),
+              rangeKind: S.RANGE_KIND.SELF
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SELF
+            }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGE_SPELLCASTING
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(187, 2),
       label: 'Language Knowledge',
-      description: 'Any four languages.',
+      description: 'any four languages',
       order: 2
     },
     {

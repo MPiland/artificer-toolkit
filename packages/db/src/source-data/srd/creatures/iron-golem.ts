@@ -47,6 +47,18 @@ export const ironGolem: CreatureAuthored = {
       label: 'Fire Absorption',
       description:
         'Fire Absorption. Whenever the golem is subjected to fire damage, it takes no damage and instead regains a number of hit points equal to the fire damage dealt.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(175, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(175, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IRON_GOLEM_FIRE_ABSORPTION
+        })
+      ],
       order: 1
     },
     {
@@ -54,6 +66,18 @@ export const ironGolem: CreatureAuthored = {
       label: 'Immutable Form',
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(175, 502),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(175, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IRON_GOLEM_IMMUTABLE_FORM
+        })
+      ],
       order: 2
     },
     {
@@ -61,24 +85,68 @@ export const ironGolem: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(175, 503),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(175, 603),
+              dcMethod: 'SOURCE_SAVE_DC',
+              ability: S.ABILITY_CODE.WISDOM
+            },
+            range: { id: S.actionId(175, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(175, 4),
       label: 'Magic Weapons',
       description: "Magic Weapons. The golem's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(175, 504),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: S.actionId(175, 605), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(175, 5),
       label: 'Language Limitation',
-      description: "Understands the languages of its creator but can't speak.",
+      description: "understands the languages of its creator but can't speak",
       order: 5
     },
     {
       id: S.featureId(175, 6),
       label: 'Multiattack',
       description: 'The golem makes two slam attacks.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(175, 505),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(175, 606), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IRON_GOLEM_MULTIATTACK
+        })
+      ],
       order: 6
     },
     {

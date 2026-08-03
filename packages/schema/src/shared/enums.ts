@@ -61,6 +61,7 @@ export const triggerCodeSchema = z.enum([
   'RANGED_WEAPON_ATTACK',
   'UNARMED_ATTACK',
   'SPELL_ATTACK',
+  'INCOMING_SAVING_THROW',
   'SAVING_THROW',
   'ENTER_AREA'
 ])
@@ -277,6 +278,11 @@ export const effectKindSchema = z.enum([
   'MANIFEST',
   'MOVE_MANIFEST',
   'COMMAND_MANIFEST',
+  'FOLLOW_UP_SAVE',
+  'FOLLOW_UP_CHECK',
+  'MOVEMENT_RULE',
+  'ACTION_ECONOMY_RULE',
+  'STABILIZE',
   'MANUAL_ADJUDICATION'
 ])
 export const pathCodeSchema = z.enum([
@@ -300,7 +306,11 @@ export const pathResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
 export const pathRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
 export const pathLifecycleRecurringKindSchema = z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
 export const pathLifecycleConsumeEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
-export const pathLifecycleEndEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+export const pathLifecycleEndEventSchema = z.enum([
+  'ON_ATTACK_ROLL',
+  'ON_CAST_SPELL',
+  'ON_HIT_POINTS_REGAINED'
+])
 export const forcedMovementDirectionSchema = z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])
 export const forcedMovementDistanceModeSchema = z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE'])
 export const forcedMovementActionEconomySchema = z.enum(['NONE', 'REACTION'])

@@ -1,27 +1,39 @@
 import {
+  ACTIVATION_CODE,
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PATH_CODE,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ActivationCode,
+  type ClassAuthored,
+  type ClosedRuleKind,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -45,6 +57,35 @@ function equipmentId(index: number): string {
 }
 
 const P = 7 // Paladin class index
+
+const abilityScoreImprovementDescription =
+  "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+function selfClassRuleEffect(
+  entry: number,
+  ruleKind: ClosedRuleKind,
+  activationCode?: Exclude<ActivationCode, 'FREE'>
+): EffectAuthored {
+  const range = { id: classRowId(P, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+  return closedRuleEffect({
+    id: classRowId(P, 0x60, entry),
+    ruleKind,
+    invocation: activationCode
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          activation: { code: activationCode, amount: 1 },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+  })
+}
 
 // Paladin spell slot charge — half caster (starts L2), resets on long rest
 const paladinSlotCharge = {
@@ -223,7 +264,6 @@ export const paladin: ClassAuthored = {
   category: CLASS_CATEGORY.BASE,
   subclassSelectionLevel: 3,
   attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
-  description: 'A holy warrior bound to a sacred oath.',
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
 
@@ -553,7 +593,28 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 1),
       label: 'Divine Sense',
       description:
-        'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you open your awareness to detect such forces.',
+        'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you can open your awareness to detect such forces. Until the end of your next turn, you know the location of any celestial, fiend, or undead within 60 feet of you that is not behind total cover. You know the type (celestial, fiend, or undead) of any being whose presence you sense, but not its identity (the vampire Count Strahd von Zarovich, for instance). Within the same radius, you also detect the presence of any place or object that has been consecrated or desecrated, as with the hallow spell.\n\nYou can use this feature a number of times equal to 1 + your Charisma modifier. When you finish a long rest, you regain all expended uses.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 1),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_SENSE,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: classRowId(P, 0x69, 1),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 60,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        })
+      ],
       availableAtLevel: 1,
       order: 0
     },
@@ -561,7 +622,23 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 2),
       label: 'Lay on Hands',
       description:
-        'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.',
+        'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.\n\nAs an action, you can touch a creature and draw power from the pool to restore a number of hit points to that creature, up to the maximum amount remaining in your pool.\n\nAlternatively, you can expend 5 hit points from your pool of healing to cure the target of one disease or neutralize one poison affecting it. You can cure multiple diseases and neutralize multiple poisons with a single use of Lay on Hands, expending hit points separately for each one.\n\nThis feature has no effect on undead and constructs.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 2),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_LAY_ON_HANDS,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(P, 0x69, 2), rangeKind: RANGE_KIND.TOUCH },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            }
+          }
+        })
+      ],
       availableAtLevel: 1,
       order: 1
     },
@@ -569,7 +646,7 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 3),
       label: 'Fighting Style',
       description:
-        'At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.',
+        "At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
       availableAtLevel: 2,
       order: 2,
       optionChoices: [{ level: 2, count: 1 }],
@@ -589,7 +666,34 @@ export const paladin: ClassAuthored = {
                 scope: MODIFIER_SCOPE_KIND.SOURCE,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                 payload: { valueKind: 'FIXED' as const, amount: 1 },
-                order: 0
+                order: 0,
+                restrictions: {
+                  id: classRowId(P, 0x70, 1),
+                  groups: [
+                    {
+                      id: classRowId(P, 0x70, 2),
+                      order: 0,
+                      contexts: [
+                        {
+                          id: classRowId(P, 0x70, 3),
+                          order: 0,
+                          subject: 'CHARACTER',
+                          conditions: [
+                            {
+                              id: classRowId(P, 0x70, 4),
+                              order: 0,
+                              kind: 'PREDICATE',
+                              constraint: 'INCLUDE',
+                              predicateCode: 'EQUIPMENT_EQUIPPED',
+                              authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                              category: EQUIPMENT_CATEGORY_CODE.ARMOR
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             ]
           },
@@ -615,13 +719,45 @@ export const paladin: ClassAuthored = {
               }
             ]
           },
+          effects: [
+            closedRuleEffect({
+              id: classRowId(P, 0x60, 21),
+              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_DUELING,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(P, 0x69, 21), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 1
         },
         {
           id: classRowId(P, 4, 3),
           label: 'Great Weapon Fighting',
           description:
-            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
+            'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll. The weapon must have the two-handed or versatile property for you to gain this benefit.',
+          effects: [
+            closedRuleEffect({
+              id: classRowId(P, 0x60, 22),
+              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_GREAT_WEAPON,
+              pathCode: PATH_CODE.ON_HIT,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+                range: { id: classRowId(P, 0x69, 22), rangeKind: RANGE_KIND.SPECIAL },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                }
+              }
+            })
+          ],
           order: 2
         },
         {
@@ -629,6 +765,27 @@ export const paladin: ClassAuthored = {
           label: 'Protection',
           description:
             'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
+          effects: [
+            closedRuleEffect({
+              id: classRowId(P, 0x60, 23),
+              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_PROTECTION,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: TRIGGER.ACTIVATED,
+                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+                range: {
+                  id: classRowId(P, 0x69, 23),
+                  rangeKind: RANGE_KIND.DISTANCE,
+                  amount: 5,
+                  unit: MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                }
+              }
+            })
+          ],
           order: 3
         }
       ]
@@ -645,7 +802,23 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 5),
       label: 'Divine Smite',
       description:
-        "Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon's damage.",
+        "Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon's damage. The extra damage is 2d8 for a 1st-level spell slot, plus 1d8 for each spell level higher than 1st, to a maximum of 5d8. The damage increases by 1d8 if the target is an undead or a fiend.",
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 5),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_SMITE,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(P, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        })
+      ],
       availableAtLevel: 2,
       order: 4
     },
@@ -654,6 +827,7 @@ export const paladin: ClassAuthored = {
       label: 'Divine Health',
       description:
         'By 3rd level, the divine magic flowing through you makes you immune to disease.',
+      effects: [selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_PALADIN_DIVINE_HEALTH)],
       availableAtLevel: 3,
       order: 5
     },
@@ -661,7 +835,7 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 7),
       label: 'Sacred Oath',
       description:
-        'When you reach 3rd level, you swear the oath that binds you as a paladin forever.',
+        'When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose an oath, such as the Oath of Devotion.\n\nYour choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.',
       attributes: [FEATURE_ATTRIBUTE.SUBCLASS_SELECTION],
       availableAtLevel: 3,
       order: 6
@@ -669,16 +843,25 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 8),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 4,
-      order: 7
+      order: 7,
+      optionChoices: [{ level: 4, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(P, 5, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(P, 3, 9),
       label: 'Extra Attack',
       description:
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_PALADIN_EXTRA_ATTACK)],
       availableAtLevel: 5,
       order: 8
     },
@@ -686,30 +869,79 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 10),
       label: 'Aura of Protection',
       description:
-        'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1).',
+        'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1). You must be conscious to grant this bonus.\n\nAt 18th level, the range of this aura increases to 30 feet.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 10),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_AURA_OF_PROTECTION,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: {
+              id: classRowId(P, 0x69, 10),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+            }
+          }
+        })
+      ],
       availableAtLevel: 6,
       order: 9
     },
     {
       id: classRowId(P, 3, 11),
       label: 'Sacred Oath Feature',
-      description: 'At 7th level, you gain a feature from your Sacred Oath.',
+      description:
+        'When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose an oath, such as the Oath of Devotion.\n\nYour choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.',
       availableAtLevel: 7,
       order: 10
     },
     {
       id: classRowId(P, 3, 12),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 8,
-      order: 11
+      order: 11,
+      optionChoices: [{ level: 8, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(P, 6, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(P, 3, 13),
       label: 'Aura of Courage',
       description:
-        "Starting at 10th level, you and friendly creatures within 10 feet of you can't be frightened while you are conscious.",
+        "Starting at 10th level, you and friendly creatures within 10 feet of you can't be frightened while you are conscious.\n\nAt 18th level, the range of this aura increases to 30 feet.",
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 13),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_AURA_OF_COURAGE,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: {
+              id: classRowId(P, 0x69, 13),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+            }
+          }
+        })
+      ],
       availableAtLevel: 10,
       order: 12
     },
@@ -717,55 +949,118 @@ export const paladin: ClassAuthored = {
       id: classRowId(P, 3, 14),
       label: 'Improved Divine Smite',
       description:
-        'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage.',
+        'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage. If you also use your Divine Smite with an attack, you add this damage to the extra damage of your Divine Smite.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 14),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_IMPROVED_DIVINE_SMITE,
+          pathCode: PATH_CODE.ON_HIT,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
+            range: { id: classRowId(P, 0x69, 14), rangeKind: RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+            }
+          }
+        })
+      ],
       availableAtLevel: 11,
       order: 13
     },
     {
       id: classRowId(P, 3, 15),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 14
+      order: 14,
+      optionChoices: [{ level: 12, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(P, 7, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(P, 3, 16),
       label: 'Cleansing Touch',
       description:
-        'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.',
+        'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.\n\nYou can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain expended uses when you finish a long rest.',
+      effects: [
+        closedRuleEffect({
+          id: classRowId(P, 0x60, 16),
+          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_CLEANSING_TOUCH,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(P, 0x69, 16), rangeKind: RANGE_KIND.TOUCH },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+            }
+          }
+        }),
+        selfClassRuleEffect(
+          0x80,
+          CLOSED_RULE_KIND.CLASS_PALADIN_CLEANSING_TOUCH,
+          ACTIVATION_CODE.ACTION
+        )
+      ],
       availableAtLevel: 14,
       order: 15
     },
     {
       id: classRowId(P, 3, 17),
       label: 'Sacred Oath Feature',
-      description: 'At 15th level, you gain a feature from your Sacred Oath.',
+      description:
+        'When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose an oath, such as the Oath of Devotion.\n\nYour choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.',
       availableAtLevel: 15,
       order: 16
     },
     {
       id: classRowId(P, 3, 18),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 17
+      order: 17,
+      optionChoices: [{ level: 16, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(P, 8, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     },
     {
       id: classRowId(P, 3, 19),
       label: 'Sacred Oath Feature',
-      description: 'At 20th level, you gain a feature from your Sacred Oath.',
+      description:
+        'When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose an oath, such as the Oath of Devotion.\n\nYour choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.',
       availableAtLevel: 20,
       order: 18
     },
     {
       id: classRowId(P, 3, 20),
       label: 'Ability Score Improvement',
-      description:
-        'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      attributes: [FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET],
+      description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 19
+      order: 19,
+      optionChoices: [{ level: 19, count: 1 }],
+      options: abilityScoreImprovementOptions(
+        (entry) => classRowId(P, 9, entry),
+        abilityScoreImprovementDescription
+      ),
+      effects: [
+        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
+      ]
     }
   ]
 }

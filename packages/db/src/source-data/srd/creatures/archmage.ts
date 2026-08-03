@@ -42,19 +42,136 @@ export const archmage: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The archmage has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(28, 101),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(28, 102), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(28, 2),
       label: 'Spellcasting',
       description:
-        'Spellcasting. The archmage is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared: Cantrips (at will): fire bolt, light, mage hand, prestidigitation, shocking grasp. 1st level (4 slots): detect magic, identify, mage armor, magic missile. 2nd level (3 slots): detect thoughts, mirror image, misty step. 3rd level (3 slots): counterspell, fly, lightning bolt. 4th level (3 slots): banishment, fire shield, stoneskin. 5th level (3 slots): cone of cold, scrying, wall of force. 6th level (1 slot): globe of invulnerability. 7th level (1 slot): teleport. 8th level (1 slot): mind blank. 9th level (1 slot): time stop. The archmage casts mage armor, stoneskin, and mind blank on itself before combat.',
+        'Spellcasting. The archmage is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared: Cantrips (at will): fire bolt, light, mage hand, prestidigitation, shocking grasp 1st level (4 slots): detect magic, identify, mage armor,* magic missile 2nd level (3 slots): detect thoughts, mirror image, misty step 3rd level (3 slots): counterspell, fly, lightning bolt 4th level (3 slots): banishment, fire shield, stoneskin* 5th level (3 slots): cone of cold, scrying, wall of force 6th level (1 slot): globe of invulnerability 7th level (1 slot): teleport 8th level (1 slot): mind blank* 9th level (1 slot): time stop *The archmage casts these spells on itself before combat.',
+      grants: {
+        spells: [
+          {
+            id: S.featureId(28, 201),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.FIRE_BOLT,
+              S.SPELL_IDS.LIGHT,
+              S.SPELL_IDS.MAGE_HAND,
+              S.SPELL_IDS.PRESTIDIGITATION,
+              S.SPELL_IDS.SHOCKING_GRASP
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            order: 0
+          },
+          {
+            id: S.featureId(28, 202),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.DISGUISE_SELF],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
+            castAtLevel: 1,
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            order: 1
+          },
+          {
+            id: S.featureId(28, 203),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.INVISIBILITY],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
+            castAtLevel: 2,
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            order: 2
+          },
+          ...[
+            [
+              1,
+              4,
+              [
+                S.SPELL_IDS.DETECT_MAGIC,
+                S.SPELL_IDS.IDENTIFY,
+                S.SPELL_IDS.MAGE_ARMOR,
+                S.SPELL_IDS.MAGIC_MISSILE
+              ]
+            ],
+            [2, 3, [S.SPELL_IDS.DETECT_THOUGHTS, S.SPELL_IDS.MIRROR_IMAGE, S.SPELL_IDS.MISTY_STEP]],
+            [3, 3, [S.SPELL_IDS.COUNTERSPELL, S.SPELL_IDS.FLY, S.SPELL_IDS.LIGHTNING_BOLT]],
+            [4, 3, [S.SPELL_IDS.BANISHMENT, S.SPELL_IDS.FIRE_SHIELD, S.SPELL_IDS.STONESKIN]],
+            [5, 3, [S.SPELL_IDS.CONE_OF_COLD, S.SPELL_IDS.SCRYING, S.SPELL_IDS.WALL_OF_FORCE]],
+            [6, 1, [S.SPELL_IDS.GLOBE_OF_INVULNERABILITY]],
+            [7, 1, [S.SPELL_IDS.TELEPORT]],
+            [8, 1, [S.SPELL_IDS.MIND_BLANK]],
+            [9, 1, [S.SPELL_IDS.TIME_STOP]]
+          ].map(([level, slots, spellIds], index) => ({
+            id: S.featureId(28, 210 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: spellIds as string[],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.PREPARED,
+              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE,
+              S.SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL
+            ],
+            castAtLevel: level as number,
+            castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            charges: {
+              id: S.featureId(28, 220 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: slots as number
+            },
+            order: index + 3
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(28, 103),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(28, 104), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPELLCASTING_SLOTS
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(28, 3),
       label: 'Language Knowledge',
-      description: 'Any six languages.',
+      description: 'any six languages',
       order: 3
     },
     {

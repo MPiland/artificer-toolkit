@@ -81,6 +81,7 @@ export type ShapeMeasurementAuthored = ShapeMeasurementValueAuthored & {
 export type ShapePayloadByType = {
   [SHAPE_KIND.LINE]: {
     length: ShapeMeasurementAuthored
+    width?: ShapeMeasurementAuthored
   }
   [SHAPE_KIND.CONE]: {
     length: ShapeMeasurementAuthored

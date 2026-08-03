@@ -5,7 +5,7 @@ export const sling: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(14),
   label: 'Sling',
-  description: 'A simple ranged weapon that hurls stone or lead bullets.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.SIMPLE,

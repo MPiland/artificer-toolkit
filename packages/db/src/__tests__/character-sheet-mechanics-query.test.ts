@@ -128,6 +128,9 @@ const rowsByTable: Record<string, QueryRows> = {
       targetDispositionKind: 'HOSTILE',
       maxTargets: 1,
       maxTargetsScaling: null,
+      resolutionCount: null,
+      resolutionCountScaling: null,
+      allowRepeatedTargets: null,
       excludedCreatureTypeIds: null
     },
     {
@@ -142,6 +145,9 @@ const rowsByTable: Record<string, QueryRows> = {
       targetDispositionKind: 'HOSTILE',
       maxTargets: 1,
       maxTargetsScaling: null,
+      resolutionCount: null,
+      resolutionCountScaling: null,
+      allowRepeatedTargets: null,
       excludedCreatureTypeIds: null
     }
   ],
@@ -159,6 +165,9 @@ const rowsByTable: Record<string, QueryRows> = {
       targetDispositionKind: null,
       maxTargets: null,
       maxTargetsScaling: null,
+      resolutionCount: null,
+      resolutionCountScaling: null,
+      allowRepeatedTargets: null,
       excludedCreatureTypeIds: null,
       resultBlockId: 'result-fixed',
       rollTableKind: null,
@@ -177,6 +186,9 @@ const rowsByTable: Record<string, QueryRows> = {
       targetDispositionKind: null,
       maxTargets: null,
       maxTargetsScaling: null,
+      resolutionCount: null,
+      resolutionCountScaling: null,
+      allowRepeatedTargets: null,
       excludedCreatureTypeIds: null,
       resultBlockId: 'result-feat',
       rollTableKind: null,

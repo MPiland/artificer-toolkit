@@ -45,6 +45,31 @@ export const steamMephit: CreatureAuthored = {
       label: 'Innate Spellcasting (1/Day)',
       description:
         'Innate Spellcasting (1/Day). The mephit can innately cast blur, requiring no material components. Its innate spellcasting ability is Charisma.',
+      grants: {
+        spells: [
+          {
+            id: S.actionId(262, 1301),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [S.SPELL_IDS.BLUR],
+            attributes: [
+              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
+              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE
+            ],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.actionId(262, 1302),
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: 1
+            },
+            order: 1
+          }
+        ]
+      },
       order: 2
     },
     {

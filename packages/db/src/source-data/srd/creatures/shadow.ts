@@ -48,6 +48,18 @@ export const shadow: CreatureAuthored = {
       label: 'Amorphous',
       description:
         'Amorphous. The shadow can move through a space as narrow as 1 inch wide without squeezing.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(250, 501),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(250, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_AMORPHOUS
+        })
+      ],
       order: 1
     },
     {
@@ -55,13 +67,26 @@ export const shadow: CreatureAuthored = {
       label: 'Shadow Stealth',
       description:
         'Shadow Stealth. While in dim light or darkness, the shadow can take the Hide action as a bonus action.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(250, 502),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+            range: { id: S.actionId(250, 602), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_STEALTH
+        })
+      ],
       order: 2
     },
     {
       id: S.featureId(250, 3),
       label: 'Strength Drain',
       description:
-        'Strength Drain. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 9 (2d6 + 2) necrotic damage, and the target’s Strength score is reduced. If this reduces the target to 0, the target dies and a new shadow rises from the corpse.',
+        "Strength Drain. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 9 (2d6 + 2) necrotic damage, and the target's Strength score is reduced by 1d4. The target dies if this reduces its Strength to 0. Otherwise, the reduction lasts until the target finishes a short or long rest. If a non-evil humanoid dies from this attack, a new shadow rises from the corpse 1d4 hours later.",
       effects: [
         {
           id: S.actionId(7360, 1),
@@ -108,7 +133,28 @@ export const shadow: CreatureAuthored = {
               }
             }
           ]
-        }
+        },
+        S.closedRuleEffect({
+          id: S.actionId(250, 503),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(250, 603),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
+          },
+          pathCode: S.PATH_CODE.ON_HIT,
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_STRENGTH_DRAIN
+        })
       ],
       order: 3
     }

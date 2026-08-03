@@ -20,7 +20,7 @@ export const dispelMagic: SpellAuthored = {
   id: SPELL_IDS.DISPEL_MAGIC,
   label: 'Dispel Magic',
   description:
-    'Choose one creature, object, or magical effect within range. Any spell of 3rd level or lower on the target ends. Stronger spells require a spellcasting ability check to dispel.',
+    "<p>Choose one creature, object, or magical effect within range. Any spell of 3rd level or lower on the target ends. For each spell of 4th level or higher on the target, make an ability check using your spellcasting ability. The DC equals 10 + the spell's level. On a successful check, the spell ends. At Higher Levels. When you cast this spell using a spell slot of 4th level or higher, you automatically end the effects of a spell on the target if the spell's level is equal to or less than the level of the spell slot you used.</p>",
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [
@@ -70,7 +70,8 @@ export const dispelMagic: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DISPEL_MAGIC, 0x212, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: EFFECT_KIND.CLOSED_RULE,
+                ruleKind: 'DISPEL_MAGIC' as const
               }
             ]
           }

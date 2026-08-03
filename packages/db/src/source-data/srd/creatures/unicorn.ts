@@ -38,13 +38,78 @@ export const unicorn: CreatureAuthored = {
       label: 'Charge',
       description:
         'Charge. If the unicorn moves at least 20 feet straight toward a target and then hits it with a horn attack on the same turn, the target takes an extra 9 (2d8) piercing damage. If the target is a creature, it must succeed on a DC 15 Strength saving throw or be knocked prone.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(276, 200),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(276, 201), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_UNICORN_CHARGE
+        })
+      ],
       order: 1
     },
     {
       id: S.featureId(276, 2),
       label: 'Innate Spellcasting',
       description:
-        "Innate Spellcasting. The unicorn's innate spellcasting ability is Charisma (spell save DC 14). The unicorn can innately cast the following spells, requiring no components: At will: detect evil and good, druidcraft, pass without trace. 1/day each: calm emotions, dispel evil and good, entangle.",
+        "Innate Spellcasting. The unicorn's innate spellcasting ability is Charisma (spell save DC 14). The unicorn can innately cast the following spells, requiring no components: At will: detect evil and good, druidcraft, pass without trace 1/day each: calm emotions, dispel evil and good, entangle",
+      grants: {
+        spells: [
+          {
+            id: S.featureId(276, 220),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              S.SPELL_IDS.DETECT_EVIL_AND_GOOD,
+              S.SPELL_IDS.DRUIDCRAFT,
+              S.SPELL_IDS.PASS_WITHOUT_TRACE
+            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            order: 0
+          },
+          ...[
+            S.SPELL_IDS.CALM_EMOTIONS,
+            S.SPELL_IDS.DISPEL_EVIL_AND_GOOD,
+            S.SPELL_IDS.ENTANGLE
+          ].map((spellId, index) => ({
+            id: S.featureId(276, 221 + index),
+            grantKind: S.GRANT_KIND.SPELL_GRANT,
+            selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: S.SCALING.NONE,
+            authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [spellId],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+            castingAbility: S.ABILITY_CODE.CHARISMA,
+            charges: {
+              id: S.featureId(276, 230 + index),
+              limitKind: 'FIXED_AMOUNT' as const,
+              scalingKind: S.SCALING.NONE,
+              resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+              amount: 1
+            },
+            order: index + 1
+          }))
+        ]
+      },
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(276, 202),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(276, 203), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_UNICORN_INNATE_SPELLCASTING
+        })
+      ],
       order: 2
     },
     {
@@ -52,18 +117,42 @@ export const unicorn: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The unicorn has advantage on saving throws against spells and other magical effects.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(276, 204),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(276, 205), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
+        })
+      ],
       order: 3
     },
     {
       id: S.featureId(276, 4),
       label: 'Magic Weapons',
       description: "Magic Weapons. The unicorn's weapon attacks are magical.",
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(276, 206),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(276, 207), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_WEAPONS
+        })
+      ],
       order: 4
     },
     {
       id: S.featureId(276, 5),
       label: 'Telepathy',
-      description: 'Telepathy 60 ft.',
+      description: 'telepathy 60 ft.',
       order: 5
     },
     {
@@ -71,6 +160,18 @@ export const unicorn: CreatureAuthored = {
       label: 'Multiattack',
       description:
         'Multiattack. The unicorn makes two attacks: one with its hooves and one with its horn.',
+      effects: [
+        S.closedRuleEffect({
+          id: S.actionId(276, 208),
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(276, 209), rangeKind: S.RANGE_KIND.SELF }
+          },
+          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MULTIATTACK
+        })
+      ],
       order: 6
     },
     {

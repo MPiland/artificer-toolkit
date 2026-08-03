@@ -433,7 +433,7 @@ export type ModifierScalarValueAuthored =
   | { valueKind: 'CHARACTER_LEVEL'; multiplier?: number }
   | { valueKind: 'CLASS_LEVEL'; classId: string; multiplier?: number }
   // NOTE: slot/spell level is contextual; keep it scalar-only if needed
-  | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number }
+  | { valueKind: 'SPELL_SLOT_LEVEL'; multiplier?: number; subtractLevels?: number }
 
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like

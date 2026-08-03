@@ -25,7 +25,11 @@ export const antitoxinVial: EquipmentAuthored = {
         },
         targeting: {
           selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+          dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+          excludedCreatureTypeIds: [
+            S.creatureTypeId('UNDEAD'),
+            S.creatureTypeId('CONSTRUCT')
+          ]
         }
       },
       paths: [
@@ -39,10 +43,31 @@ export const antitoxinVial: EquipmentAuthored = {
           resultBlock: {
             id: S.equipmentChildId(S.equipId(121), 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: S.equipmentChildId(S.equipId(121), 0x213, 1),
+              durationKind: S.DURATION_KIND.HOUR,
+              amount: 1
+            },
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(121), 0x212, 1),
-                effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION
+                effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: Object.values(S.ABILITY_CODE).map((ability, index) => ({
+                    id: S.equipmentChildId(S.equipId(121), 0x214, index + 1),
+                    grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: S.VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                    domain: {
+                      ability,
+                      conditionTypeId: S.conditionTypeId('POISONED')
+                    },
+                    modifierKind: S.MODIFIER_KIND.ADVANTAGE,
+                    scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                    payload: undefined,
+                    order: index + 1
+                  }))
+                }
               }
             ]
           }

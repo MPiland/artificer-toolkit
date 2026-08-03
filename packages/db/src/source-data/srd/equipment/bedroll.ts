@@ -5,7 +5,7 @@ export const bedroll: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(123),
   label: 'Bedroll',
-  description: 'A rolled blanket and sleeping pad for resting outdoors in modest comfort.',
+  description: null,
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(1),
