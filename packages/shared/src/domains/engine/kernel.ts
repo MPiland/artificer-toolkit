@@ -76,7 +76,12 @@ export function runEngine(
     registry,
     accumulated
   )
-  const subjectMechanics = resolveSheetSubjectMechanics(snapshot, derived.calculations)
+  const subjectMechanics = resolveSheetSubjectMechanics(
+    snapshot,
+    derived.calculations,
+    resolvedSpellGrantState.spellAccess,
+    modifierState
+  )
 
   return {
     characterId: snapshot.characterId,

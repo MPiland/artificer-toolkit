@@ -41,7 +41,7 @@ The output includes derived ability scores/modifiers, saving throws, skills, pas
 
 Compiled effect groups preserve their stable effect ID and order, compiled invocation, and compiled path entries. A compiler must not reduce an authored effect to outcome arrays or otherwise discard targeting, saves, path overrides, timing, roll-table behavior, follow-up checks/saves, duration, lifecycle, or manifestation data.
 
-Spell access resolves class, race, and subrace grants against the same character snapshot. Race and subrace grants use character-level gates, preserve their authored casting ability, and resolve chosen grants from the stored authored selection instead of exposing every candidate.
+Spell access resolves class, race, and subrace grants against the same character snapshot. Race and subrace grants use character-level gates, preserve their authored casting ability, and resolve chosen grants from the stored authored selection instead of exposing every candidate. Per-source spell mechanics use that grant-specific ability for attack and save calculations, including characters with no spellcasting class; class-wide derived spell values remain the default only for sources without an authored override.
 
 `CLOSED_RULE` is a closed resolver-dispatch discriminant for deterministic SRD behavior that has no smaller existing typed outcome. It is not a scripting language and carries no free-form parameter bag. Values that vary per record remain in existing typed invocation, target, duration, path, manifest, modifier, or result fields; a new closed rule kind is justified by audited source semantics and is preserved unchanged for a future resolver.
 

@@ -395,7 +395,7 @@ describe('spell grant resolver', () => {
     ])
   })
 
-  it('resolves character-level racial spell grants with casting metadata', () => {
+  it('resolves character-level racial spell grants with source-specific casting mechanics', () => {
     const infernalLegacy = compileSpellGrant({
       grantKind: GRANT_KIND.SPELL_GRANT,
       id: 'infernal-legacy-hellish-rebuke',
@@ -442,12 +442,19 @@ describe('spell grant resolver', () => {
       ).spellAccess
     ).toEqual([])
 
-    expect(
-      resolveSpellGrantState(
-        makeSnapshot({ totalLevel: 3, raceId: 'tiefling', classes: [], hitpoints: [] }),
-        registry
-      ).spellAccess
-    ).toEqual([
+    const output = runEngine(
+      makeSnapshot({
+        totalLevel: 3,
+        raceId: 'tiefling',
+        classes: [],
+        hitpoints: [],
+        abilities: { STR: 10, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 16 }
+      }),
+      registry,
+      dnd5e2014RulesSystem
+    )
+
+    expect(output.spellAccess).toEqual([
       expect.objectContaining({
         spellId: 'hellish-rebuke',
         source: { kind: 'RACE', raceId: 'tiefling' },
@@ -455,6 +462,17 @@ describe('spell grant resolver', () => {
         castAtLevel: 2,
         castingAbility: 'CHARISMA',
         attributes: ['CAST_AT_LEVEL', 'LIMITED_USE']
+      })
+    ])
+    expect(output.spellMechanics).toEqual([
+      expect.objectContaining({
+        source: {
+          spellId: 'hellish-rebuke',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'RACE:tiefling:infernal-legacy:infernal-legacy-hellish-rebuke'
+        },
+        attackBonus: 5,
+        saveDC: 13
       })
     ])
   })

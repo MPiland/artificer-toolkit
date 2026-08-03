@@ -74,7 +74,7 @@ function adjustmentOverride<T extends string | number>(
     : undefined
 }
 
-function modifierContributions(
+export function modifierContributions(
   state: ResolvedModifierState,
   predicate: (parsed: ReturnType<typeof parseModifierDomainKey>) => boolean
 ): CharacterCalculationContribution<number>[] {
