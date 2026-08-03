@@ -33,7 +33,7 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug/
       context.queryClient.ensureQueryData(getSpellDraft(spellId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(spellId, response, draft)
-    const systemId = response?.item?.systemId
+    const systemId = response?.item?.systemId ?? draft?.systemId
     const system = systemId
       ? await context.queryClient.ensureQueryData(getSystem(systemId, client))
       : null
