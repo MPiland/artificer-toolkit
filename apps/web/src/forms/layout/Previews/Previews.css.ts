@@ -43,9 +43,6 @@ export const header = style({
 export const content = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateRows: 'minmax(0, 1fr) auto',
-      gap: foundationVars.space[3],
       blockSize: 'calc(100% - 50px)',
       padding: foundationVars.space[4],
       overflow: 'hidden'
@@ -60,48 +57,13 @@ export const previewFrame = style({
       alignContent: 'start',
       gridAutoRows: 'max-content',
       gap: 0,
+      blockSize: '100%',
       minBlockSize: 0,
       border: `1px solid ${foundationVars.color.authoring.previewBorder}`,
       borderRadius: foundationVars.radius.sm,
       backgroundColor: foundationVars.color.authoring.preview,
       overflowX: 'hidden',
       overflowY: 'auto'
-    }
-  }
-})
-
-export const previewNotice = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gridTemplateColumns: '20px minmax(0, 1fr)',
-      alignItems: 'center',
-      gap: foundationVars.space[3],
-      minBlockSize: 76,
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.authoring.noticeBorder}`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.authoring.notice,
-      color: foundationVars.color.text.secondary,
-      fontSize: '13px',
-      lineHeight: '19px'
-    }
-  }
-})
-
-export const previewNoticeIcon = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.accent.tertiarySolid
-    }
-  }
-})
-
-export const previewNoticeCopy = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: 2
     }
   }
 })

@@ -165,8 +165,9 @@ async function hydrateSpellGrantById(db: DBLike, id: string): Promise<SpellGrant
         .execute(),
       db
         .selectFrom('spell_grant_spells')
-        .select(['spell_grant_id', 'spell_id'])
+        .select(['spell_grant_id', 'spell_id', 'sort_order'])
         .where('spell_grant_id', '=', id)
+        .orderBy('sort_order')
         .execute(),
       db
         .selectFrom('spell_grant_scaling_levels')
@@ -190,8 +191,9 @@ async function hydrateSpellGrantById(db: DBLike, id: string): Promise<SpellGrant
   const scalingLevelSpells = scalingLevelIds.length
     ? await db
         .selectFrom('spell_grant_scaling_level_spells')
-        .select(['scaling_level_id', 'spell_id'])
+        .select(['scaling_level_id', 'spell_id', 'sort_order'])
         .where('scaling_level_id', 'in', scalingLevelIds)
+        .orderBy('sort_order')
         .execute()
     : []
 

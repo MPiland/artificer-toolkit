@@ -1,6 +1,4 @@
 import { AuthoredDetailItemList, AuthoredDetailProse } from '#app/components/AuthoredDetail'
-import { ContextCard } from '#app/ui/components/ContextCard/ContextCard'
-import * as contextStyles from '#ui/components/ContextCard/ContextCard.css'
 import { Axe, Backpack, BowArrow, Hammer, Shield, Shirt, Sword, Wrench } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type {
@@ -22,24 +20,86 @@ export function AuthoredPreview({ model }: AuthoredPreviewProps) {
     <div className={styles.root}>
       {model.domain === 'equipment' ? (
         <EquipmentPreview model={model} />
+      ) : model.domain === 'spell' ? (
+        <SpellPreview model={model} />
       ) : (
-        <>
-          <PreviewIdentity model={model} />
-          {model.sections.map((section) => (
-            <PreviewSectionView key={section.id} section={section} />
-          ))}
-        </>
+        <DomainSheetPreview model={model} />
       )}
     </div>
   )
 }
 
-function PreviewIdentity({ model }: { model: AuthoredPreviewModel }) {
+function SpellPreview({ model }: { model: AuthoredPreviewModel }) {
+  const facts = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'facts' }> =>
+      section.id === 'spell-facts' && section.type === 'facts'
+  )
+  const prose = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'prose' }> =>
+      section.id === 'spell-prose' && section.type === 'prose'
+  )
+  const damage = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'damage' }> =>
+      section.id === 'damage-preview' && section.type === 'damage'
+  )
+  const outcomes = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'facts' }> =>
+      section.id === 'spell-outcomes' && section.type === 'facts'
+  )
+  const materials = model.sections.find(
+    (section): section is Extract<PreviewSection, { type: 'prose' }> =>
+      section.id === 'spell-materials' && section.type === 'prose'
+  )
+  const level = facts?.facts.find((fact) => fact.label === 'Level')?.value
+  const school = facts?.facts.find((fact) => fact.label === 'School')?.value
+  const metadata = [level, school].filter(Boolean)
+  const stats =
+    facts?.facts.filter((fact) => fact.label !== 'Level' && fact.label !== 'School') ?? []
+  const hasProse = Boolean(prose?.html || prose?.quote)
+  const hasMaterials = Boolean(materials?.html || materials?.quote)
+
   return (
-    <section className={styles.previewIdentity}>
-      <span className={styles.previewStatus}>{model.statusLabel}</span>
-      <strong className={styles.previewTitle}>{model.label}</strong>
-    </section>
+    <>
+      <section className={styles.spellHero}>
+        <strong className={styles.spellTitle}>{model.label}</strong>
+        {metadata.length ? (
+          <span className={styles.spellMeta}>{metadata.map(String).join(' · ')}</span>
+        ) : null}
+      </section>
+      {stats.length ? (
+        <dl className={styles.spellStats}>
+          {stats.map((fact) => (
+            <div className={styles.spellStat} key={fact.label}>
+              <dt className={styles.spellStatLabel}>{fact.label}</dt>
+              <dd className={styles.spellStatValue}>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {hasProse && prose ? (
+        <section className={styles.spellProse}>
+          <AuthoredDetailProse html={prose.html}>
+            {prose.quote ? <p className={styles.spellQuote}>{prose.quote}</p> : null}
+          </AuthoredDetailProse>
+        </section>
+      ) : null}
+      {damage?.items.length ? <SheetSectionView section={damage} /> : null}
+      {outcomes?.facts.length ? <SheetSectionView section={outcomes} /> : null}
+      {hasMaterials && materials ? <SheetSectionView section={materials} /> : null}
+    </>
+  )
+}
+
+function DomainSheetPreview({ model }: { model: AuthoredPreviewModel }) {
+  return (
+    <>
+      <section className={styles.sheetHero} data-domain={model.domain}>
+        <strong className={styles.sheetTitle}>{model.label}</strong>
+      </section>
+      {model.sections.map((section) => (
+        <SheetSectionView key={section.id} section={section} />
+      ))}
+    </>
   )
 }
 
@@ -112,7 +172,7 @@ function EquipmentPreview({ model }: { model: AuthoredPreviewModel }) {
       {model.sections
         .filter((section) => !consumedSectionIds.has(section.id))
         .map((section) => (
-          <PreviewSectionView key={section.id} section={section} />
+          <SheetSectionView key={section.id} section={section} />
         ))}
     </>
   )
@@ -142,50 +202,68 @@ function EquipmentIcon({ icon }: { icon: EquipmentPreviewIcon }) {
   }
 }
 
-function PreviewSectionView({ section }: { section: PreviewSection }) {
+function SheetSectionView({ section }: { section: PreviewSection }) {
+  const title = (
+    <h3 className={styles.sheetSectionTitle} id={`${section.id}-title`}>
+      {section.title}
+    </h3>
+  )
+
   if (section.type === 'facts') {
+    if (!section.facts.length) return null
     return (
-      <ContextCard title={section.title} titleId={`${section.id}-title`}>
-        <dl className={styles.rows}>{section.facts.map((fact) => renderPreviewRow(fact))}</dl>
-      </ContextCard>
+      <section className={styles.sheetSection} aria-labelledby={`${section.id}-title`}>
+        {title}
+        <dl className={styles.sheetFacts}>
+          {section.facts.map((fact, index) => renderPreviewFact(fact, index))}
+        </dl>
+      </section>
     )
   }
 
   if (section.type === 'prose') {
+    if (!section.html && !section.quote && !section.fallback) return null
+    const showsTitle = !section.id.endsWith('-prose')
     return (
-      <ContextCard title={section.title} titleId={`${section.id}-title`}>
+      <section
+        className={styles.sheetSection}
+        aria-labelledby={showsTitle ? `${section.id}-title` : undefined}
+      >
+        {showsTitle ? title : null}
         <AuthoredDetailProse html={section.html} fallback={section.fallback}>
-          {section.quote ? <p className={contextStyles.body}>{section.quote}</p> : null}
+          {section.quote ? <p className={styles.sheetQuote}>{section.quote}</p> : null}
         </AuthoredDetailProse>
-      </ContextCard>
+      </section>
     )
   }
 
   if (section.type === 'rows') {
+    if (!section.rows.length) return null
     return (
-      <ContextCard title={section.title} titleId={`${section.id}-title`}>
-        {section.rows.length ? (
-          <dl className={styles.rows}>
-            {section.rows.map((row, index) => renderPreviewRow(row, index))}
-          </dl>
-        ) : section.empty ? (
-          <p className={contextStyles.body}>{section.empty}</p>
-        ) : null}
-      </ContextCard>
+      <section className={styles.sheetSection} aria-labelledby={`${section.id}-title`}>
+        {title}
+        <dl className={styles.rows}>
+          {section.rows.map((row, index) => renderPreviewRow(row, index))}
+        </dl>
+      </section>
     )
   }
 
   if (section.type === 'list') {
+    if (!section.items.length) return null
     return (
-      <ContextCard title={section.title} titleId={`${section.id}-title`}>
+      <section className={styles.sheetSection} aria-labelledby={`${section.id}-title`}>
+        {title}
         <AuthoredDetailItemList empty={section.empty} items={section.items} />
-      </ContextCard>
+      </section>
     )
   }
 
   if (section.type === 'chips') {
+    if (!section.items.length) return null
     return (
-      <ContextCard title={section.title} titleId={`${section.id}-title`}>
+      <section className={styles.sheetSection} aria-labelledby={`${section.id}-title`}>
+        {title}
         <div className={styles.chips}>
           {section.items.map((item) => (
             <span className={styles.chip} key={item}>
@@ -193,12 +271,14 @@ function PreviewSectionView({ section }: { section: PreviewSection }) {
             </span>
           ))}
         </div>
-      </ContextCard>
+      </section>
     )
   }
 
+  if (!section.items.length) return null
   return (
-    <ContextCard title={section.title} titleId={`${section.id}-title`}>
+    <section className={styles.sheetSection} aria-labelledby={`${section.id}-title`}>
+      {title}
       <div className={styles.damageList}>
         {section.items.map((item) => (
           <div className={styles.damageItem} key={`${item.amount}:${item.label}`}>
@@ -207,7 +287,16 @@ function PreviewSectionView({ section }: { section: PreviewSection }) {
           </div>
         ))}
       </div>
-    </ContextCard>
+    </section>
+  )
+}
+
+function renderPreviewFact(fact: PreviewFact, index: number) {
+  return (
+    <div className={styles.sheetFact} key={`${fact.label}:${index}`}>
+      <dt className={styles.spellStatLabel}>{fact.label}</dt>
+      <dd className={styles.spellStatValue}>{fact.value}</dd>
+    </div>
   )
 }
 

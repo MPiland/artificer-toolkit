@@ -1,5 +1,6 @@
 import { Text } from '@mantine/core'
 import { CircleCheck } from 'lucide-react'
+import type { ReactNode } from 'react'
 import * as styles from './Header.css'
 import {
   ActivateAction,
@@ -12,11 +13,19 @@ import {
 import { useAuthoringForm } from '../AuthoringFormContext'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 
-export function Header() {
+export function Header({
+  showActivate = true,
+  showStepsNavigation = true,
+  title: titleOverride
+}: {
+  showActivate?: boolean
+  showStepsNavigation?: boolean
+  title?: ReactNode
+}) {
   const { hasChanges, authoredSession, subjectKindLabel, subjectLabel } = useAuthoringForm()
   const { status } = useAuthoringLayout()
 
-  const title = subjectLabel ?? subjectKindLabel
+  const title = titleOverride ?? subjectLabel ?? subjectKindLabel
   const provenanceLabel =
     authoredSession?.provenanceKind === 'MASTER'
       ? 'SRD'
@@ -43,7 +52,7 @@ export function Header() {
             <span className={styles.provenanceBadge}>{provenanceLabel}</span>
           ) : null}
           <div className={styles.viewActions}>
-            <StepsNavigationAction />
+            {showStepsNavigation ? <StepsNavigationAction /> : null}
             <PreviewToggleAction />
           </div>
         </div>
@@ -63,7 +72,7 @@ export function Header() {
           </div>
           <div className={styles.lifecycleActions}>
             <SaveDraftAction />
-            <ActivateAction />
+            {showActivate ? <ActivateAction /> : null}
           </div>
         </div>
       </div>

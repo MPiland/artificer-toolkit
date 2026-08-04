@@ -102,28 +102,50 @@ function createDomainSections(
           'Add a description to preview its reader copy.'
         ),
         createListSection(
+          'background-benefits',
+          'Benefits',
+          readRecords(values.details),
+          'No background benefits yet.'
+        ),
+        createRowsSection('background-gear', 'Starting Gear', [
+          ...createFactRows([
+            [
+              'Items',
+              formatCount(
+                collectRecords(values.startingEquipment).filter(
+                  (record) => record.startingEquipmentKind === 'EQUIPMENT'
+                ).length,
+                'item'
+              )
+            ],
+            ['Proficiencies', formatCount(readRecords(values.proficiencies).length, 'proficiency')]
+          ])
+        ]),
+        createListSection(
           'background-features',
           'Features',
           readRecords(values.features),
           'No background features yet.'
-        ),
-        createListSection(
-          'background-details',
-          'Details',
-          readRecords(values.details),
-          'No background details yet.'
         )
       ]
     case 'class':
       return [
         createFactsSection('class-facts', 'Class Snapshot', [
+          ['Type', formatEnumLabel(readString(values.category))],
           ['Hit Die', readRecord(values.hitpoint)?.dieConfig],
           ['Starting Gold', formatCost(readRecord(values.startingGold), system)],
+          ['Proficiencies', formatCount(readRecords(values.proficiencies).length, 'proficiency')],
+          [
+            'Spellcasting',
+            readRecord(values.spellcasting)
+              ? (formatEnumLabel(readString(readRecord(values.spellcasting)?.ability)) ?? 'Yes')
+              : undefined
+          ],
           ['Features', formatCount(readRecords(values.features).length, 'feature')]
         ]),
         createListSection(
           'class-features',
-          'Progression Hooks',
+          'Level Features',
           readRecords(values.features),
           'No class features yet.'
         ),
@@ -131,14 +153,26 @@ function createDomainSections(
       ]
     case 'creature':
       return [
+        createFactsSection('creature-identity', 'Creature', [
+          ['Category', formatEnumLabel(readString(values.category))],
+          ['Size', formatEnumLabel(readString(values.size))],
+          ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))]
+        ]),
         createFactsSection('creature-facts', 'Stat Block', [
           ['AC', readNumber(values.armorClass)],
           ['HP', formatHitPoints(values)],
           [
             'CR',
             labelForVocabularyId(system, 'challengeRatings', readString(values.challengeRatingId))
-          ],
-          ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))]
+          ]
+        ]),
+        createFactsSection('creature-abilities', 'Ability Scores', [
+          ['STR', readNumber(readRecord(values.abilityScores)?.STRENGTH)],
+          ['DEX', readNumber(readRecord(values.abilityScores)?.DEXTERITY)],
+          ['CON', readNumber(readRecord(values.abilityScores)?.CONSTITUTION)],
+          ['INT', readNumber(readRecord(values.abilityScores)?.INTELLIGENCE)],
+          ['WIS', readNumber(readRecord(values.abilityScores)?.WISDOM)],
+          ['CHA', readNumber(readRecord(values.abilityScores)?.CHARISMA)]
         ]),
         createRowsSection(
           'creature-speeds',
@@ -221,7 +255,10 @@ function createDomainSections(
           'Add a description to preview how this will read.'
         ),
         createRowsSection('race-traits', 'Traits', [
-          ...createFactRows([['Size', formatEnumLabel(readString(values.size))]]),
+          ...createFactRows([
+            ['Type', formatEnumLabel(readString(values.category))],
+            ['Size', formatEnumLabel(readString(values.size))]
+          ]),
           ...createSpeedRows(readRecords(values.speeds), system).map((speed) => ({
             label: 'Speeds',
             value: speed.label
@@ -230,7 +267,7 @@ function createDomainSections(
         createListSection(
           'race-options',
           'Ancestry Options',
-          readRecords(values.options),
+          readRecords(readRecord(values.ancestry)?.options),
           'No ancestry options yet.'
         ),
         createListSection(
@@ -258,6 +295,7 @@ function createDomainSections(
           ['Components', readStrings(values.components).map(formatEnumLabel).join(', ')]
         ]),
         createDamageSection(values, system),
+        createSpellOutcomeSection(values, system),
         createProseSection(
           'spell-prose',
           'Description',
@@ -273,6 +311,12 @@ function createDomainSections(
       ]
     case 'vehicle':
       return [
+        createProseSection(
+          'vehicle-prose',
+          'Description',
+          values,
+          'Add a description to preview its reader copy.'
+        ),
         createFactsSection('vehicle-facts', 'Vehicle Snapshot', [
           ['Category', formatEnumLabel(readString(values.category))],
           ['Armor Class', readNumber(values.armorClass)],
@@ -333,10 +377,15 @@ function createListSection(
   records: readonly RuntimeRecord[],
   empty: string
 ): PreviewSection {
+  const visibleRecords = records.filter(
+    (record) =>
+      readString(record.label) || readString(record.title) || readString(record.description)
+  )
+
   return {
     empty,
     id,
-    items: records.slice(0, MAX_COLLECTION_ITEMS).map(createListItem),
+    items: visibleRecords.slice(0, MAX_COLLECTION_ITEMS).map(createListItem),
     title,
     type: 'list'
   }
@@ -380,6 +429,89 @@ function createDamageSection(
     title: 'Damage',
     type: 'damage'
   }
+}
+
+function createSpellOutcomeSection(
+  values: RuntimeRecord,
+  system?: SystemResponseDto | null
+): PreviewSection {
+  const seen = new Set<string>()
+  const facts = collectRecords(values)
+    .filter((record) => record.effectKind !== 'DAMAGE')
+    .flatMap((record) => {
+      const fact = createSpellOutcomeFact(record, system)
+      if (!fact) return []
+
+      const key = `${fact.label}:${String(fact.value)}`
+      if (seen.has(key)) return []
+      seen.add(key)
+      return [fact]
+    })
+    .slice(0, MAX_COLLECTION_ITEMS)
+
+  return {
+    facts,
+    id: 'spell-outcomes',
+    title: 'Outcomes',
+    type: 'facts'
+  }
+}
+
+function createSpellOutcomeFact(
+  record: RuntimeRecord,
+  system?: SystemResponseDto | null
+): PreviewFact | undefined {
+  switch (record.effectKind) {
+    case 'CONDITION': {
+      const condition =
+        labelForVocabularyId(system, 'conditionTypes', readString(record.conditionId)) ??
+        formatEnumLabel(readString(record.conditionId))
+      return condition ? { label: 'Condition', value: condition } : undefined
+    }
+    case 'HEAL': {
+      const amount = formatHealingAmount(record)
+      if (!amount) return undefined
+      return {
+        label: 'Healing',
+        value: `${amount} ${record.temporary === true ? 'temporary hit points' : 'hit points'}`
+      }
+    }
+    case 'FORCED_MOVEMENT': {
+      const amount = readNumber(record.amount)
+      const direction =
+        record.direction === 'TOWARD_SOURCE'
+          ? 'Pull'
+          : record.direction === 'AWAY_FROM_SOURCE'
+            ? 'Push'
+            : undefined
+      const unit = formatEnumLabel(readString(record.unit))?.toLowerCase()
+      if (amount === undefined || !direction || !unit) return undefined
+      return { label: 'Movement', value: `${direction} ${formatNumber(amount)} ${unit}` }
+    }
+    default:
+      return undefined
+  }
+}
+
+function formatHealingAmount(record: RuntimeRecord): string | undefined {
+  if (record.valueKind === 'DICE') {
+    return (
+      readString(record.diceConfig) ??
+      formatScalingValue(readFirstScalingValue(record.levels, 'diceConfig'))
+    )
+  }
+
+  if (record.valueKind === 'FIXED') {
+    return formatNumber(
+      readNumber(record.amount) ??
+        (() => {
+          const value = readFirstScalingValue(record.levels, 'amount')
+          return typeof value === 'number' ? value : undefined
+        })()
+    )
+  }
+
+  return undefined
 }
 
 function createChargesSection(values: RuntimeRecord): PreviewSection {
@@ -455,10 +587,7 @@ function formatChargeRows(record: RuntimeRecord): PreviewFact[] {
   const limit = amount !== undefined ? `${amount}` : (formatEnumLabel(limitKind) ?? 'Scaling')
   const reset = formatEnumLabel(resetKind)
 
-  return [
-    { label: 'Uses', value: limit },
-    ...(reset ? [{ label: 'Resets', value: reset }] : [])
-  ]
+  return [{ label: 'Uses', value: limit }, ...(reset ? [{ label: 'Resets', value: reset }] : [])]
 }
 
 function formatCost(

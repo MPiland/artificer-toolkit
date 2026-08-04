@@ -57,6 +57,40 @@ describe('authored preview factories', () => {
     ])
   })
 
+  it('summarizes non-damage spell outcomes in one facts section', () => {
+    const model = createAuthoredPreviewModel({
+      domain: 'spell',
+      label: 'Control and Mend',
+      statusLabel: 'Draft',
+      system: authoredRouteStorySystem,
+      values: {
+        effects: [
+          {
+            effectKind: 'CONDITION',
+            conditionId: authoredRouteStorySystem.conditionTypes[0]?.id ?? 'condition-poisoned'
+          },
+          { effectKind: 'HEAL', valueKind: 'DICE', diceConfig: '2d8', temporary: true },
+          {
+            effectKind: 'FORCED_MOVEMENT',
+            direction: 'TOWARD_SOURCE',
+            amount: 10,
+            unit: 'FEET'
+          }
+        ]
+      }
+    })
+
+    expect(model.sections.find((section) => section.id === 'spell-outcomes')).toMatchObject({
+      facts: [
+        { label: 'Condition', value: 'Poisoned' },
+        { label: 'Healing', value: '2d8 temporary hit points' },
+        { label: 'Movement', value: 'Pull 10 feet' }
+      ],
+      title: 'Outcomes',
+      type: 'facts'
+    })
+  })
+
   it('includes authored equipment prose in the live preview', () => {
     const model = createAuthoredPreviewModel({
       domain: 'equipment',
@@ -144,6 +178,7 @@ describe('authored preview factories', () => {
 
     expect(traits).toMatchObject({
       rows: [
+        { label: 'Type', value: 'Base' },
         { label: 'Size', value: 'Medium' },
         { label: 'Speeds', value: 'Walking - 30 feet' }
       ],
@@ -166,7 +201,10 @@ describe('authored preview factories', () => {
     const traits = model.sections.find((section) => section.id === 'race-traits')
 
     expect(traits).toMatchObject({
-      rows: [{ label: 'Size', value: 'Medium' }],
+      rows: [
+        { label: 'Type', value: 'Base' },
+        { label: 'Size', value: 'Medium' }
+      ],
       title: 'Traits',
       type: 'rows'
     })

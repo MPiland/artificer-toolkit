@@ -55,6 +55,9 @@ function createTestRouter(initialPath: string, user: User | null) {
     createStaticRoute('/settings/preferences', getParentRoute),
     createStaticRoute('/settings/account', getParentRoute),
     createStaticRoute('/races', getParentRoute),
+    createStaticRoute('/races/new', getParentRoute),
+    createStaticRoute('/races/$racePublicId/$raceSlug', getParentRoute),
+    createStaticRoute('/races/$racePublicId/$raceSlug/edit', getParentRoute),
     createStaticRoute('/spells', getParentRoute),
     createStaticRoute('/backgrounds', getParentRoute)
   ])
