@@ -4,6 +4,7 @@ import { createAuthoredFormRouteLoaderData } from '#forms/layout/authoredFormRou
 import { createStaticResolvedFormModel } from '#forms/node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '#forms/factories/authoredFormFactories.types'
 import {
+  authoredRouteStoryRecords,
   authoredRouteStorySystem,
   authoredRouteStorySystems,
   createEditLoaderData,
@@ -30,7 +31,15 @@ export const authoredRouteNodeRuntimeHandlers = [
           }
       )
     )
-  })
+  }),
+  createCopySourceHandler('backgrounds', authoredRouteStoryRecords.background),
+  createCopySourceHandler('classes', authoredRouteStoryRecords.class),
+  createCopySourceHandler('creatures', authoredRouteStoryRecords.creature),
+  createCopySourceHandler('equipment', authoredRouteStoryRecords.equipment),
+  createCopySourceHandler('feats', authoredRouteStoryRecords.feat),
+  createCopySourceHandler('races', authoredRouteStoryRecords.race),
+  createCopySourceHandler('spells', authoredRouteStoryRecords.spell),
+  createCopySourceHandler('vehicles', authoredRouteStoryRecords.vehicle)
 ]
 
 export function createAuthoredCreateRouteOverrides(routeId: string, publicPath: string) {
@@ -63,6 +72,38 @@ export function createAuthoredEditRouteOverrides<TDomain extends AuthoredFormDom
 
 function trpcBatchJson(data: readonly unknown[]) {
   return HttpResponse.json(data.map((item) => ({ result: { data: item } })))
+}
+
+function createCopySourceHandler(
+  endpoint: string,
+  record: { description?: string | null; id: string; label: string }
+) {
+  return http.get(`*/api/trpc/content.${endpoint}.list`, () =>
+    trpcBatchJson([
+      {
+        drafts: [],
+        items: [
+          {
+            ...record,
+            activeRevisionId: `${record.id}-active-revision`,
+            description: record.description,
+            id: record.id,
+            label: record.label,
+            permissions: {
+              canCopy: true,
+              canDelete: false,
+              canEdit: false,
+              canView: true
+            },
+            provenance: { kind: 'MASTER', ownerUserId: null },
+            publicId: record.id,
+            status: 'ACTIVE'
+          }
+        ],
+        meta: {}
+      }
+    ])
+  )
 }
 
 function readBatchedInputs<TInput>(body: unknown): TInput[] {

@@ -108,16 +108,6 @@ function readLocalSourceDatabaseUrl(): string {
   return connectionString
 }
 
-function readProductionSourceDatabaseUrl(): string {
-  const connectionString = requireEnvironmentVariable('PROD_LOCAL_CONNECTION_STRING')
-
-  if (!isLocalDatabaseUrl(connectionString)) {
-    throw new Error('PROD_LOCAL_CONNECTION_STRING must point to a local database.')
-  }
-
-  return connectionString
-}
-
 function readSeedOwnerUserId(): string | undefined {
   return process.env.SEED_OWNER_USER_ID
 }
@@ -159,14 +149,8 @@ function withSeedOwner(bundle: BaselineContentBundle, userId: string): BaselineC
   }
 }
 
-async function seedLocalSrdCorpus(
-  connectionString: string,
-  requireProductionSeedOwnerEmail = false
-): Promise<void> {
-  const localEnvironment = readSeedOwnerEnvironment(false, connectionString)
-  const environment = requireProductionSeedOwnerEmail
-    ? { ...localEnvironment, email: requireEnvironmentVariable('PROD_SEED_OWNER_EMAIL') }
-    : localEnvironment
+async function seedLocalSrdCorpus(connectionString: string): Promise<void> {
+  const environment = readSeedOwnerEnvironment(false, connectionString)
   const db = createDb({ connectionString })
 
   try {
@@ -277,31 +261,40 @@ async function readTableShapes(
   }>(
     `
     select
-      column_info.table_name,
-      column_info.column_name,
-      column_info.udt_name,
-      column_info.is_nullable,
-      column_info.is_generated,
-      column_info.column_default,
-      key_info.ordinal_position as primary_key_ordinal
-    from information_schema.columns column_info
-    left join (
-      select
-        key_column.table_name,
-        key_column.column_name,
-        key_column.ordinal_position
-      from information_schema.table_constraints constraint_info
-      join information_schema.key_column_usage key_column
-        on key_column.constraint_schema = constraint_info.constraint_schema
-        and key_column.constraint_name = constraint_info.constraint_name
-      where constraint_info.table_schema = 'public'
-        and constraint_info.constraint_type = 'PRIMARY KEY'
-    ) key_info
-      on key_info.table_name = column_info.table_name
-      and key_info.column_name = column_info.column_name
-    where column_info.table_schema = 'public'
-      and column_info.table_name = any($1::text[])
-    order by column_info.table_name, column_info.ordinal_position
+      table_info.relname as table_name,
+      attribute_info.attname as column_name,
+      type_info.typname as udt_name,
+      case when attribute_info.attnotnull then 'NO' else 'YES' end as is_nullable,
+      case when attribute_info.attgenerated = '' then 'NEVER' else 'ALWAYS' end as is_generated,
+      case
+        when attribute_info.attgenerated = ''
+          then pg_get_expr(default_info.adbin, default_info.adrelid)
+        else null
+      end as column_default,
+      primary_key.ordinal_position as primary_key_ordinal
+    from pg_class table_info
+    join pg_namespace namespace_info on namespace_info.oid = table_info.relnamespace
+    join pg_attribute attribute_info
+      on attribute_info.attrelid = table_info.oid
+      and attribute_info.attnum > 0
+      and not attribute_info.attisdropped
+    join pg_type type_info on type_info.oid = attribute_info.atttypid
+    left join pg_attrdef default_info
+      on default_info.adrelid = table_info.oid
+      and default_info.adnum = attribute_info.attnum
+    left join lateral (
+      select key_column.ordinal_position::integer
+      from pg_index index_info
+      cross join unnest(index_info.indkey) with ordinality
+        as key_column(attribute_number, ordinal_position)
+      where index_info.indrelid = table_info.oid
+        and index_info.indisprimary
+        and key_column.attribute_number = attribute_info.attnum
+    ) primary_key on true
+    where namespace_info.nspname = 'public'
+      and table_info.relkind in ('r', 'p')
+      and table_info.relname = any($1::text[])
+    order by table_info.relname, attribute_info.attnum
   `,
     [tableNames]
   )
@@ -404,7 +397,7 @@ async function readSystemOwner(client: PoolClient): Promise<string> {
   `)
   const ownerId = result.rows[0]?.user_id
   if (!ownerId)
-    throw new Error('The SRD system and its seed owner must exist before bulk synchronization.')
+    throw new Error('The local SRD system and its seed owner must exist before bulk synchronization.')
   return ownerId
 }
 
@@ -961,6 +954,7 @@ async function main() {
   if (!targetDatabaseUrl) {
     throw new Error('PROD_DATABASE_CONNECTION_STRING is required for the bulk SRD seed target.')
   }
+  const productionSeedOwnerEmail = requireEnvironmentVariable('PROD_SEED_OWNER_EMAIL')
   if (!dryRun && !process.argv.includes(CONFIRM_FLAG)) {
     throw new Error(`Bulk SRD synchronization requires the explicit ${CONFIRM_FLAG} flag.`)
   }
@@ -972,11 +966,7 @@ async function main() {
     throw new Error(`A local bulk target requires the explicit ${ALLOW_LOCAL_TARGET_FLAG} flag.`)
   }
 
-  const sourceDatabaseUrl = readProductionSourceDatabaseUrl()
-
-  if (!dryRun) {
-    await seedLocalSrdCorpus(sourceDatabaseUrl, true)
-  }
+  const sourceDatabaseUrl = readLocalSourceDatabaseUrl()
 
   console.info('Auditing the local SRD materialization...')
   const sourceAuditDb = createDb({ connectionString: sourceDatabaseUrl })
@@ -1000,11 +990,18 @@ async function main() {
     console.info('Validating the source corpus and target schema...')
     await assertMasterOnlySource(source)
 
-    const [sourceOwnerId, targetOwnerId, sourceTableNames] = await Promise.all([
+    const [sourceOwnerId, targetOwnerResult, sourceTableNames] = await Promise.all([
       readSystemOwner(source),
-      readSystemOwner(target),
+      target.query<{ id: string }>(
+        `select id::text from auth.users where lower(email) = lower($1) limit 1`,
+        [productionSeedOwnerEmail]
+      ),
       listCorpusTableNames(source)
     ])
+    const targetOwnerId = targetOwnerResult.rows[0]?.id
+    if (!targetOwnerId) {
+      throw new Error('The production seed owner must exist before bulk synchronization.')
+    }
     const targetTableNames = await listCorpusTableNames(target)
     const missingFromTarget = sourceTableNames.filter(
       (tableName) => !targetTableNames.includes(tableName)

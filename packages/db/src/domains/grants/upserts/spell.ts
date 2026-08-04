@@ -38,6 +38,7 @@ type SpellGrantScalingLevelRow = {
 type SpellGrantScalingLevelSpellRow = {
   scaling_level_id: string
   spell_id: string
+  sort_order: number
 }
 
 type SpellGrantAttributeRow = {
@@ -239,10 +240,13 @@ function mapRootSpellRows(json_data: SpellGrantAuthored) {
     return []
   }
 
-  return requireSelectedSpellIds(json_data.id, json_data.spellIds, 'root').map((spellId) => ({
-    spell_grant_id: json_data.id,
-    spell_id: spellId
-  }))
+  return requireSelectedSpellIds(json_data.id, json_data.spellIds, 'root').map(
+    (spellId, index) => ({
+      spell_grant_id: json_data.id,
+      spell_id: spellId,
+      sort_order: index
+    })
+  )
 }
 
 function mapScalingLevelRows(json_data: SpellGrantAuthored): SpellGrantScalingLevelRow[] {
@@ -291,10 +295,13 @@ function mapScalingLevelSpellRows(json_data: SpellGrantAuthored): SpellGrantScal
       return []
     }
 
-    return requireSelectedSpellIds(json_data.id, level.spellIds, level.id).map((spellId) => ({
-      scaling_level_id: level.id,
-      spell_id: spellId
-    }))
+    return requireSelectedSpellIds(json_data.id, level.spellIds, level.id).map(
+      (spellId, index) => ({
+        scaling_level_id: level.id,
+        spell_id: spellId,
+        sort_order: index
+      })
+    )
   })
 }
 

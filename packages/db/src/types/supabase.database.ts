@@ -10866,14 +10866,17 @@ export type Database = {
       spell_grant_scaling_level_spells: {
         Row: {
           scaling_level_id: string
+          sort_order: number
           spell_id: string
         }
         Insert: {
           scaling_level_id: string
+          sort_order: number
           spell_id: string
         }
         Update: {
           scaling_level_id?: string
+          sort_order?: number
           spell_id?: string
         }
         Relationships: [
@@ -10939,14 +10942,17 @@ export type Database = {
       }
       spell_grant_spells: {
         Row: {
+          sort_order: number
           spell_grant_id: string
           spell_id: string
         }
         Insert: {
+          sort_order: number
           spell_grant_id: string
           spell_id: string
         }
         Update: {
+          sort_order?: number
           spell_grant_id?: string
           spell_id?: string
         }

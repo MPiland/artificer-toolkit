@@ -185,7 +185,10 @@ CREATE INDEX IF NOT EXISTS idx_spell_grant_attributes_grant ON public.spell_gran
 CREATE TABLE IF NOT EXISTS public.spell_grant_spells (
   spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   spell_id uuid NOT NULL,
-  PRIMARY KEY (spell_grant_id, spell_id)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (spell_grant_id, spell_id),
+  UNIQUE (spell_grant_id, sort_order),
+  CONSTRAINT spell_grant_spells_sort_order_chk CHECK (sort_order >= 0)
 );
 
 ALTER TABLE public.spell_grant_spells ENABLE ROW LEVEL SECURITY;
@@ -233,7 +236,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_spell_grant_scaling_levels_grant_level ON p
 CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_level_spells (
   scaling_level_id uuid NOT NULL REFERENCES public.spell_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   spell_id uuid NOT NULL,
-  PRIMARY KEY (scaling_level_id, spell_id)
+  sort_order integer NOT NULL,
+  PRIMARY KEY (scaling_level_id, spell_id),
+  UNIQUE (scaling_level_id, sort_order),
+  CONSTRAINT spell_grant_scaling_level_spells_sort_order_chk CHECK (sort_order >= 0)
 );
 
 ALTER TABLE public.spell_grant_scaling_level_spells ENABLE ROW LEVEL SECURITY;

@@ -6,7 +6,9 @@ async function findAuthoringRailItem(container: HTMLElement, name: RegExp) {
   return await waitFor(() => {
     const target =
       scope.queryByRole('link', { name }) ??
-      scope.queryAllByRole('button', { name }).find((button) => !button.hasAttribute('aria-expanded'))
+      scope
+        .queryAllByRole('button', { name })
+        .find((button) => !button.hasAttribute('aria-expanded'))
     if (!target) throw new Error(`Unable to find authoring rail item matching ${name}.`)
     return target
   })
@@ -23,13 +25,35 @@ function getAuthoringRailExpander(target: HTMLElement) {
 export async function expectCreateEmptyAuthoringRoute(canvasElement: HTMLElement) {
   const canvas = within(canvasElement)
 
-  await waitFor(async () => {
-    await expect(canvas.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
-  })
+  await expect(
+    await canvas.findByRole('heading', { name: 'How do you want to begin?' })
+  ).toBeVisible()
   await expect(canvas.getByTestId('authoring-form-canvas')).toBeInTheDocument()
-  await expect(canvas.getByTestId('authoring-action-bar')).toBeInTheDocument()
-  await expect(canvas.getByRole('button', { name: /^back$/i })).toBeDisabled()
-  await expect(canvas.queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument()
+  await expect(canvas.queryByTestId('authoring-action-bar')).not.toBeInTheDocument()
+  await expect(canvas.queryByLabelText('Authoring preview')).not.toBeInTheDocument()
+
+  await userEvent.click(canvas.getByRole('button', { name: /start from scratch/i }))
+  await waitFor(async () => {
+    const visibleName = canvas
+      .getAllByRole('textbox', { name: /name/i })
+      .find((element) => element.getClientRects().length > 0)
+    if (!visibleName) throw new Error('Expected a visible Guided name field.')
+    await expect(visibleName).toBeVisible()
+  })
+}
+
+export async function expectCreateGuidedSpellRoute(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement)
+
+  await expectCreateEmptyAuthoringRoute(canvasElement)
+  await expect(canvas.getByRole('heading', { name: 'Start with the basics' })).toBeVisible()
+  await expect(canvas.getByRole('textbox', { name: 'Spell name' })).toBeVisible()
+  await expect(canvas.getByRole('combobox', { name: 'Level' })).toHaveValue('Cantrip')
+  await expect(canvas.getByRole('button', { name: /switch to advanced/i })).toBeVisible()
+  await expect(canvas.getByRole('button', { name: /save draft/i })).toBeInTheDocument()
+  await expect(canvas.queryByRole('button', { name: /activate/i })).not.toBeInTheDocument()
+  await expect(canvas.queryByTestId('authoring-action-bar')).not.toBeInTheDocument()
+  await expect(canvas.queryByLabelText('Authoring preview')).not.toBeInTheDocument()
 }
 
 export async function expectOwnedActiveAuthoringRoute(canvasElement: HTMLElement, label: string) {

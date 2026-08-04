@@ -8,6 +8,7 @@
 - `authoring-schema` selects absolute nested scopes from the backend-resolved contract and identifies simple leaf field groups.
 - `node-map` contains story/test resolution and form-friendly path/clearing utilities; production navigation and progress must not evaluate maps from this folder.
 - `rendering/FormRenderer.tsx` orchestrates the active scope, renderer contexts, navigation target, and validation state.
+- A domain may supply alternate canvas content, but `FormRenderer` must remain mounted as the sole owner of resolution, navigation, progress, and finalization state.
 - `rendering/ResolvedInputControl.tsx` and the focused object/array/overview/leaf modules bind resolved nodes to real TanStack fields. Simple inline leaf objects use `withFieldGroup`; all modules share the one root form.
 - `rendering/collectionPresentation.ts` translates resolved collection semantics into web-local labels, summaries, and icons; `collectionStyleMap.ts` maps semantic row-layout intent to vanilla-extract classes. Neither may branch on child-map IDs.
 - `rendering/authoringNodeDefaultRegistry.ts` owns the map-ID to explicit default-factory routing. It is separate from rendering because default values are domain data, not presentation.
@@ -24,6 +25,7 @@ Character Builder is intentionally distinct from this Authoring Schema platform,
 
 - Only top-level domain forms and isolated harnesses call `useAppForm`.
 - Keep array/object groups connected to TanStack Form; do not introduce local Zustand drafts or nested local forms.
+- Guided presentations write to the same root form values and must bridge unsupported data to the resolved Advanced renderer without reshaping it.
 - Render resolved nodes directly; do not add duplicate resolved-field wrappers, generic group shells, domain-local modal/resolver stacks, or production static-map evaluation.
 - Treat Authoring Schema `authoring` metadata as content intent only. It may declare system-owned fields, labels, joins, add/remove capability, row expansion/layout, action presentation, and row-summary semantics. CSS classes, icons, responsive geometry, and concrete overlay behavior remain web-owned.
 - `ui/primitives` and `ui/overlays` remain the homes for primitive controls and overlay infrastructure.

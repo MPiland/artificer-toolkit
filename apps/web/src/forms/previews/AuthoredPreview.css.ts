@@ -2,7 +2,6 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
 import * as authoredDetailStyles from '../../components/AuthoredDetail/AuthoredDetail.css'
-import * as contextCardStyles from '../../ui/components/ContextCard/ContextCard.css'
 
 export const root = style({
   '@layer': {
@@ -13,14 +12,91 @@ export const root = style({
   }
 })
 
-export const previewIdentity = style({
+export const sheetHero = style({
   '@layer': {
     [app]: {
       display: 'grid',
       gap: foundationVars.space[1],
-      padding: foundationVars.space[3],
+      padding: `${foundationVars.space[5]} ${foundationVars.space[4]} ${foundationVars.space[4]}`,
       borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
-      backgroundColor: foundationVars.color.authoring.header
+      background: `linear-gradient(135deg, ${foundationVars.color.authoring.header}, transparent)`
+    }
+  }
+})
+
+export const sheetTitle = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontFamily: foundationVars.font.display,
+      fontSize: '24px',
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '-0.025em',
+      lineHeight: '30px'
+    }
+  }
+})
+
+export const sheetSection = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[3],
+      padding: foundationVars.space[4],
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      ':last-child': { borderBlockEnd: 0 }
+    }
+  }
+})
+
+export const sheetSectionTitle = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      color: foundationVars.color.accent.tertiarySolid,
+      fontSize: '11px',
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '0.06em',
+      lineHeight: '16px',
+      textTransform: 'uppercase'
+    }
+  }
+})
+
+export const sheetFacts = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: 1,
+      margin: 0,
+      overflow: 'hidden',
+      border: `1px solid ${foundationVars.color.authoring.border}`,
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: foundationVars.color.authoring.border
+    }
+  }
+})
+
+export const sheetFact = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      alignContent: 'start',
+      gap: foundationVars.space[1],
+      minInlineSize: 0,
+      padding: foundationVars.space[3],
+      backgroundColor: foundationVars.color.authoring.row
+    }
+  }
+})
+
+export const sheetQuote = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      color: foundationVars.color.text.muted,
+      fontStyle: 'italic'
     }
   }
 })
@@ -47,6 +123,119 @@ export const previewTitle = style({
       fontWeight: foundationVars.fontWeight.bold,
       letterSpacing: '-0.02em',
       lineHeight: '25px'
+    }
+  }
+})
+
+export const spellHero = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[1],
+      padding: `${foundationVars.space[5]} ${foundationVars.space[4]} ${foundationVars.space[4]}`,
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`
+    }
+  }
+})
+
+export const spellTitle = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary,
+      fontFamily: foundationVars.font.display,
+      fontSize: '24px',
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '-0.02em',
+      lineHeight: '30px'
+    }
+  }
+})
+
+export const spellMeta = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '13px',
+      lineHeight: '19px'
+    }
+  }
+})
+
+export const spellStats = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      margin: 0,
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`
+    }
+  }
+})
+
+export const spellStat = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      alignContent: 'start',
+      gap: foundationVars.space[1],
+      minInlineSize: 0,
+      padding: foundationVars.space[4],
+      selectors: {
+        '&:nth-child(even)': {
+          borderInlineStart: `1px solid ${foundationVars.color.authoring.border}`
+        }
+      }
+    }
+  }
+})
+
+export const spellStatLabel = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.dim,
+      fontSize: '11px',
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '0.04em',
+      lineHeight: '16px',
+      textTransform: 'uppercase'
+    }
+  }
+})
+
+export const spellStatValue = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      color: foundationVars.color.text.primary,
+      fontSize: '13px',
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: '19px',
+      overflowWrap: 'anywhere'
+    }
+  }
+})
+
+export const spellProse = style({
+  '@layer': {
+    [app]: {
+      padding: foundationVars.space[4],
+      borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
+      color: foundationVars.color.text.secondary,
+      fontSize: '13px',
+      lineHeight: '20px'
+    }
+  }
+})
+
+globalStyle(`${spellProse} p`, {
+  marginBlock: 0
+})
+
+export const spellQuote = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.muted,
+      fontStyle: 'italic'
     }
   }
 })
@@ -191,32 +380,6 @@ export const rowValue = style({
       overflowWrap: 'anywhere'
     }
   }
-})
-
-globalStyle(`${root} > ${contextCardStyles.root}`, {
-  border: 0,
-  borderRadius: 0,
-  borderBlockEnd: `1px solid ${foundationVars.color.authoring.border}`,
-  backgroundColor: 'transparent'
-})
-
-globalStyle(`${root} > ${contextCardStyles.root}:last-child`, {
-  borderBlockEnd: 0
-})
-
-globalStyle(`${root} ${contextCardStyles.header}`, {
-  padding: `${foundationVars.space[4]} ${foundationVars.space[4]} ${foundationVars.space[2]}`
-})
-
-globalStyle(`${root} ${contextCardStyles.title}`, {
-  color: foundationVars.color.accent.tertiarySolid,
-  fontSize: '12px',
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase'
-})
-
-globalStyle(`${root} ${contextCardStyles.body}`, {
-  padding: `0 ${foundationVars.space[4]} ${foundationVars.space[4]}`
 })
 
 globalStyle(`${root} ${authoredDetailStyles.itemList}`, {

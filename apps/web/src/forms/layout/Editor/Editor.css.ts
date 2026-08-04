@@ -31,6 +31,11 @@ export const content = style({
       minInlineSize: 0,
       padding: `${foundationVars.space[4]} ${foundationVars.space[5]} calc(44px + ${foundationVars.space[5]} + env(safe-area-inset-bottom))`,
       overflow: 'auto',
+      selectors: {
+        '&[data-step-navigation=false]': {
+          paddingBlockEnd: foundationVars.space[5]
+        }
+      },
       '@media': {
         [AUTHORING_WIDE_DESKTOP_QUERY]: {
           display: 'flex',
@@ -57,6 +62,12 @@ export const stage = style({
       gap: foundationVars.space[3],
       inlineSize: '100%',
       minInlineSize: 0,
+      selectors: {
+        '&[data-fill-stage="true"]': {
+          alignContent: 'stretch',
+          blockSize: '100%'
+        }
+      },
       '@media': {
         [AUTHORING_WIDE_DESKTOP_QUERY]: {
           maxInlineSize: AUTHORING_WORKING_STAGE_MAX_WIDTH,

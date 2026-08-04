@@ -1,6 +1,7 @@
 import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
-import { useEffect, useMemo, type ReactNode } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Alert, Button, Group, Stack } from '@mantine/core'
+import { useStore } from '@tanstack/react-form'
 import { useMatches } from '@tanstack/react-router'
 import * as styles from './AuthoringLayout.css'
 import { ResetFormConfirmation } from './Actions/ResetFormConfirmation'
@@ -19,12 +20,18 @@ import { clearResolvedNodeFormPaths } from '../node-map/nodeFormUtils'
 import { FormRenderer } from '../rendering/FormRenderer'
 import { InvalidDraftAlert } from './Editor/SectionRow/InvalidDraftAlert'
 import type { AuthoredFormDomainRegistration } from '../factories/authoredFormFactories'
-import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
+import type {
+  AuthoredFormDomain,
+  AuthoredFormSession
+} from '../factories/authoredFormFactories.types'
 import type { AuthoredFormRouteMode, CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import { CharacterBuilderAuthoringRuntime } from '#domains/characters/builder/core/CharacterBuilderAuthoringRuntime'
 import { useShellHeaderSupplement } from '#app/shell'
 import { getRulesetLabel } from './AuthoringLayout.utils'
 import { useAuthoringSaveShortcut } from './useAuthoringSaveShortcut'
+import { useAuthoringExperience } from './useAuthoringExperience'
+import { GuidedAuthoring } from '../guided/GuidedAuthoring'
+import type { GuidedAuthoringState } from '../guided/guidedAuthoring.types'
 
 type EmptyAuthoringLayoutProps = {
   children?: ReactNode
@@ -47,6 +54,7 @@ type CharacterBuilderDomainRegistration = {
 }
 
 const EMPTY_FORM_VALUES: object = {}
+const INITIAL_GUIDED_STATE: GuidedAuthoringState = { isReview: false, showPreview: false }
 const AuthoredFormRenderer = FormRenderer({ defaultValues: EMPTY_FORM_VALUES })
 
 export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
@@ -62,6 +70,8 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const authoring = useAuthoringForm()
   const session = authoring.authoredSession
   const characterSession = authoring.characterSession
+  const { experience, isUpdating: isExperienceUpdating, setExperience } = useAuthoringExperience()
+  const [guidedState, setGuidedState] = useState<GuidedAuthoringState>(INITIAL_GUIDED_STATE)
   const rulesetLabel = getRulesetLabel(session?.system)
   useShellHeaderSupplement(rulesetLabel ?? null)
   const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
@@ -78,10 +88,40 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       await activateValues(value)
     }
   })
+  const canonicalLabel = useStore(form.store, (state) =>
+    readPreviewLabel(state.values, session?.fallbackLabel ?? 'Untitled Item')
+  )
+  const guidedAvailable = Boolean(session && isGuidedSessionEligible(session))
+  const isGuided =
+    experience === 'guided' &&
+    guidedAvailable &&
+    !session?.systemRequired &&
+    session?.system !== null &&
+    session?.system !== undefined
+  const guidedModeButtonRef = useRef<HTMLButtonElement>(null)
+  const previousGuidedRef = useRef(isGuided)
+  const guidedModeFocusPendingRef = useRef(false)
+  useEffect(() => {
+    const wasGuided = previousGuidedRef.current
+    previousGuidedRef.current = isGuided
+
+    if (!guidedAvailable) {
+      guidedModeFocusPendingRef.current = false
+      return
+    }
+    if (wasGuided && !isGuided) guidedModeFocusPendingRef.current = true
+    if (guidedModeFocusPendingRef.current && !isGuided && !isExperienceUpdating) {
+      guidedModeButtonRef.current?.focus()
+      guidedModeFocusPendingRef.current = false
+    }
+  }, [guidedAvailable, isExperienceUpdating, isGuided])
   useEffect(() => {
     if (!session) return
     form.reset(session.initialValues)
   }, [form, session])
+  useEffect(() => {
+    setGuidedState(INITIAL_GUIDED_STATE)
+  }, [session?.key])
 
   const previewContent = useMemo(() => {
     if (!session?.renderPreview) return undefined
@@ -101,9 +141,11 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     )
   }, [form, session, status.label])
 
+  const visiblePreviewContent = isGuided && !guidedState.showPreview ? undefined : previewContent
+
   useEffect(() => {
-    setPreviewContent(previewContent)
-  }, [previewContent, setPreviewContent])
+    setPreviewContent(visiblePreviewContent)
+  }, [setPreviewContent, visiblePreviewContent])
 
   useEffect(() => () => setPreviewContent(undefined), [setPreviewContent])
 
@@ -165,6 +207,47 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       )
     }
 
+    const renderer = isGuided ? (
+      <AuthoredFormRenderer
+        canvasContent={
+          <GuidedAuthoring
+            key={session.key}
+            form={form}
+            session={session}
+            onAdvanced={() => void setExperience('advanced')}
+            onStateChange={setGuidedState}
+          />
+        }
+        form={form}
+        mapId={session.mapId}
+        readOnly={session.readOnly}
+        systemId={session.systemId}
+      />
+    ) : (
+      <Stack gap='xs'>
+        {guidedAvailable ? (
+          <Group justify='flex-end'>
+            <Button
+              disabled={isExperienceUpdating}
+              ref={guidedModeButtonRef}
+              size='compact-sm'
+              type='button'
+              variant='subtle'
+              onClick={() => void setExperience('guided')}
+            >
+              Use guided authoring
+            </Button>
+          </Group>
+        ) : null}
+        <AuthoredFormRenderer
+          form={form}
+          mapId={session.mapId}
+          readOnly={session.readOnly}
+          systemId={session.systemId}
+        />
+      </Stack>
+    )
+
     return (
       <>
         {session.hasInvalidDraft ? (
@@ -174,15 +257,20 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
             onDiscard={() => void authoring.discardDraft()}
           />
         ) : null}
-        <AuthoredFormRenderer
-          form={form}
-          mapId={session.mapId}
-          readOnly={session.readOnly}
-          systemId={session.systemId}
-        />
+        {renderer}
       </>
     )
-  }, [authoring, characterSession, children, form, session])
+  }, [
+    authoring,
+    characterSession,
+    children,
+    form,
+    guidedAvailable,
+    isExperienceUpdating,
+    isGuided,
+    session,
+    setExperience
+  ])
 
   const shell = (
     <>
@@ -192,8 +280,14 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         data-structure-open={isWideDesktop ? 'true' : 'false'}
       >
         <section id='authoring-workspace' className={styles.workspace}>
-          <Steps />
-          <Editor>{editorContent}</Editor>
+          {isGuided ? null : <Steps />}
+          <Editor
+            showActivate={!isGuided || guidedState.isReview}
+            showStepNavigation={!isGuided}
+            title={isGuided ? canonicalLabel : undefined}
+          >
+            {editorContent}
+          </Editor>
           <Previews />
         </section>
       </main>
@@ -343,4 +437,16 @@ function readPreviewLabel(values: object, fallbackLabel: string): string {
   if (!('label' in values) || typeof values.label !== 'string') return fallbackLabel
 
   return values.label.trim() || fallbackLabel
+}
+
+function isGuidedSessionEligible(session: AuthoredFormSession) {
+  if (session.readOnly || session.invalidDraftOnly || session.notFound) return false
+  if (session.mode === 'create') return true
+
+  return (
+    session.mode === 'edit' &&
+    session.isDraft &&
+    !session.hasActiveDraft &&
+    session.provenanceKind === 'OWNED'
+  )
 }

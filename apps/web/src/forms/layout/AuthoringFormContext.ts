@@ -181,6 +181,7 @@ export type AuthoringFormContextValue = AuthoringFormSessionState & {
   clearValidationIssues: (fieldName: string) => void
   clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction
+  copySource: (subjectId: string) => Promise<void>
   deleteRecord: AuthoringFormAction
   discardDraft: AuthoringFormAction
   goToNavigationTarget: (targetId: string) => void

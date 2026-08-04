@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useStore } from '@tanstack/react-form'
 import type {
   NodeRuntimePathDto,
@@ -57,6 +57,7 @@ export type FormRendererOptions<TValues extends object> = {
 
 type SharedRendererProps = {
   ancestors?: readonly Record<string, unknown>[]
+  canvasContent?: ReactNode
   currentStepId?: string
   debounceMs?: number
   fieldPathPrefix?: string
@@ -91,6 +92,7 @@ export function FormRenderer<TValues extends object>({
     props: {} as SharedRendererProps,
     render: function Render({
       ancestors,
+      canvasContent,
       currentStepId,
       debounceMs = 150,
       fieldPathPrefix,
@@ -471,6 +473,21 @@ export function FormRenderer<TValues extends object>({
           </Group>
         </Modal>
       ) : null
+
+      if (canvasContent) {
+        return (
+          <>
+            <AuthoringValidationAlert
+              target={updateAuthoringState ? activeTarget : undefined}
+              validationTargets={
+                navigationState?.navigationTargets ?? authoring.navigationTargets ?? []
+              }
+            />
+            {canvasContent}
+            {structuralChangeConfirmationModal}
+          </>
+        )
+      }
 
       if (delegatesNavigationTarget && activeTarget && activeCanvasMapId) {
         const delegatedModel = getResolvedAuthoringScope(

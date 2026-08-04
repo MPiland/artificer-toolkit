@@ -2,10 +2,9 @@ import { Rail, useBreakpoints } from '#ui'
 import * as styles from './Previews.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 import { CloseButton, Drawer } from '@mantine/core'
-import { Info } from 'lucide-react'
 
 function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean }) {
-  const { previewContent, status, togglePreview } = useAuthoringLayout()
+  const { previewContent, togglePreview } = useAuthoringLayout()
 
   return (
     <Rail id='authoring-preview' aria-label='Authoring preview' className={styles.shell}>
@@ -21,13 +20,6 @@ function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean
       </Rail.Header>
       <Rail.Content className={styles.content}>
         <div className={styles.previewFrame}>{previewContent}</div>
-        <div className={styles.previewNotice}>
-          <Info aria-hidden='true' className={styles.previewNoticeIcon} size={18} />
-          <span className={styles.previewNoticeCopy}>
-            <span>{`This preview reflects your current ${status.label.toLowerCase()}.`}</span>
-            <span>Values and formatting may change.</span>
-          </span>
-        </div>
       </Rail.Content>
     </Rail>
   )

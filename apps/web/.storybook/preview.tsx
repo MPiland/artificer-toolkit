@@ -57,7 +57,9 @@ const preview: Preview = {
           queryClient={queryClient}
         >
           <ColorSchemeScript defaultColorScheme={colorScheme} />
-          <Story />
+          <div style={{ blockSize: '100dvh' }}>
+            <Story />
+          </div>
         </AppProviders>
       )
     }

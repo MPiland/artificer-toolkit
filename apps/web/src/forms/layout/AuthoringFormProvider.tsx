@@ -490,6 +490,22 @@ export function AuthoringFormProvider({
   const copy = useCallback(() => {
     void (copyAction ?? actionsRef.current.onCopy)?.()
   }, [copyAction])
+  const copySource = useCallback(
+    async (subjectId: string) => {
+      if (!authoredSession) return
+
+      await createCopyAction({
+        buildRouteParams: authoredSession.actionFactory.buildRouteParams,
+        duplicateMutation,
+        editPath: authoredSession.actionFactory.editPath,
+        messages: authoredSession.actionFactory.messages,
+        navigate: navigateWithoutBlock,
+        notifier: notifications,
+        subjectId
+      })()
+    },
+    [authoredSession, duplicateMutation, navigateWithoutBlock]
+  )
   const deleteRecord = useCallback(() => {
     void (deleteAction ?? actionsRef.current.onDelete)?.()
   }, [deleteAction])
@@ -819,6 +835,7 @@ export function AuthoringFormProvider({
       clearValidationIssues,
       clearPaths: clearRegisteredPaths,
       copy,
+      copySource,
       deleteRecord,
       discardDraft,
       goToNavigationTarget,
@@ -845,6 +862,7 @@ export function AuthoringFormProvider({
       clearValidationIssues,
       clearRegisteredPaths,
       copy,
+      copySource,
       contextSession,
       deleteRecord,
       discardDraft,

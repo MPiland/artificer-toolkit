@@ -274,7 +274,7 @@ describe('round-trip upsert correctness', () => {
       authoringModeKind: 'SELECTED',
       count: 2,
       selectionDuplicatePolicy: 'REPEATABLE',
-      spellIds: ['spell-a', 'spell-b']
+      spellIds: ['spell-b', 'spell-a']
     })
     await senseRepository.upsert({
       id: 'sense-grant-policy',
@@ -321,7 +321,7 @@ describe('round-trip upsert correctness', () => {
             authoringModeKind: 'SELECTED',
             count: 1,
             selectionDuplicatePolicy: 'UNIQUE',
-            spellIds: ['spell-c']
+            spellIds: ['spell-d', 'spell-c']
           }
         ]
       }
@@ -335,7 +335,7 @@ describe('round-trip upsert correctness', () => {
       authoringModeKind: 'SELECTED',
       count: 2,
       selectionDuplicatePolicy: 'REPEATABLE',
-      spellIds: ['spell-a', 'spell-b'],
+      spellIds: ['spell-b', 'spell-a'],
       attributes: undefined,
       castAtLevel: undefined,
       charges: undefined,
@@ -390,7 +390,7 @@ describe('round-trip upsert correctness', () => {
             authoringModeKind: 'SELECTED',
             count: 1,
             selectionDuplicatePolicy: 'UNIQUE',
-            spellIds: ['spell-c']
+            spellIds: ['spell-d', 'spell-c']
           }
         ]
       },
@@ -409,6 +409,22 @@ describe('round-trip upsert correctness', () => {
         authoring_mode_kind: 'SELECTED',
         selection_count: 1,
         selection_duplicate_policy: 'UNIQUE'
+      }
+    ])
+    expect(db.snapshot('spell_grant_spells')).toEqual([
+      { spell_grant_id: 'spell-grant-policy', spell_id: 'spell-b', sort_order: 0 },
+      { spell_grant_id: 'spell-grant-policy', spell_id: 'spell-a', sort_order: 1 }
+    ])
+    expect(db.snapshot('spell_grant_scaling_level_spells')).toEqual([
+      {
+        scaling_level_id: 'spell-grant-scaling-policy-level-1',
+        spell_id: 'spell-d',
+        sort_order: 0
+      },
+      {
+        scaling_level_id: 'spell-grant-scaling-policy-level-1',
+        spell_id: 'spell-c',
+        sort_order: 1
       }
     ])
   })

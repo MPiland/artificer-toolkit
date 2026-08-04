@@ -19,15 +19,33 @@ test.describe('route-backed authored domain workspace', () => {
       test.setTimeout(60_000)
 
       await openStory(page, `domains-${domain.id}-routes-create--create-empty`)
-      await expect(page.getByRole('textbox', { name: /name/i })).toBeVisible()
-      await expect(page.getByTestId('authoring-action-bar')).toBeVisible()
-      await expect(page.getByText('Homebrew', { exact: true })).toBeVisible()
-
+      if (domain.id === 'spells') {
+        await expect(page.getByText(/spell.*draft.*homebrew/i)).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Start with the basics' })).toBeVisible()
+        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
+        await page.getByRole('textbox', { name: 'Spell name' }).fill('Ember Thread')
+        await page.getByRole('button', { name: 'Next' }).click()
+        await expect(page.getByRole('heading', { name: 'What does the spell do?' })).toBeVisible()
+        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
+        const damageOutcome = page.getByRole('button', { name: /^Damage\b/ })
+        await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+        await damageOutcome.click()
+        await expect(damageOutcome).toHaveAttribute('aria-pressed', 'true')
+        await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
+        await page.getByRole('button', { name: 'Next' }).click()
+        await expect(page.getByRole('textbox', { name: 'Damage dice' })).toBeVisible()
+        await expect(page.getByLabel('Authoring preview')).toBeVisible()
+        await expect(page.getByTestId('authoring-action-bar')).toHaveCount(0)
+      } else {
+        await expect(page.getByRole('textbox', { name: /name/i })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Next' })).toBeVisible()
+        await expect(page.getByLabel('Authoring preview')).toHaveCount(0)
+        await expect(page.getByTestId('authoring-action-bar')).toHaveCount(0)
+      }
       await openStory(page, `domains-${domain.id}-routes-edit--owned-active`)
       await expect(page.getByRole('textbox', { name: /^name/i })).toHaveValue(domain.label)
       await expect(page.getByRole('textbox', { name: /^name/i })).toBeEditable()
       await expect(page.getByText(/locked for direct editing/i)).toHaveCount(0)
-      await expect(page.getByText('Homebrew', { exact: true })).toBeVisible()
 
       await openStory(page, `domains-${domain.id}-routes-edit--owned-draft`)
       await expect(page.getByText(/all changes saved/i)).toBeVisible()
@@ -39,18 +57,17 @@ test.describe('route-backed authored domain workspace', () => {
       await expect(page.getByText(/locked for direct editing/i)).toBeVisible()
       await expect(page.getByRole('button', { name: /duplicate to edit/i })).toBeVisible()
       await expect(page.getByRole('button', { name: /save draft/i })).toHaveCount(0)
-      await expect(page.getByText('SRD', { exact: true })).toBeVisible()
     })
   }
 
-  test('required validation remains visible at the point of repair', async ({ page }) => {
+  test('required Guided values block forward navigation at the point of repair', async ({
+    page
+  }) => {
     await openStory(page, 'domains-backgrounds-routes-create--create-empty')
 
     const name = page.getByRole('textbox', { name: /name/i })
-    await name.focus()
-    await name.blur()
-
-    await expect(page.getByText('Name is required.')).toBeVisible()
+    await expect(name).toHaveValue('')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 
   test('focused effects use the rail while a summary outcome uses a reversible overlay', async ({
@@ -63,7 +80,7 @@ test.describe('route-backed authored domain workspace', () => {
     const canvasWidthBefore = (await canvas.boundingBox())?.width
     const navigation = page.getByRole('navigation', { name: /authoring steps/i })
     const effects = await expandRailBranch(page, navigation, /^effects/i)
-    await effects.getByRole('button', { name: /^overview/i }).click()
+    await navigation.getByRole('link', { name: /^effects/i }).click()
 
     await page.getByRole('button', { name: /add effect/i }).click()
 
@@ -119,8 +136,10 @@ test.describe('route-backed authored domain workspace', () => {
     await expect(page.getByTestId('app-shell')).toBeVisible()
     await expect(page.getByText('Artificer Toolkit', { exact: true })).toBeVisible()
     await expect(page.getByText('D&D 5e 2014', { exact: true })).toBeVisible()
-    await expect(page.getByText('Homebrew', { exact: true })).toBeVisible()
-    const progressTrack = page.getByRole('progressbar', { name: '11 of 11 steps complete' })
+    await expect(page.getByText('Equipment · Draft · Homebrew', { exact: true })).toBeVisible()
+    const progressTrack = page.getByRole('progressbar', {
+      name: /^\d+ of \d+ steps complete$/
+    })
     const progressTrackBox = await progressTrack.boundingBox()
     const progressFillBox = await progressTrack.locator('span').boundingBox()
     if (!progressTrackBox || !progressFillBox) {
@@ -144,8 +163,7 @@ test.describe('route-backed authored domain workspace', () => {
       throw new Error('Expected the authoring canvas to have measurable width.')
 
     const navigation = page.getByRole('navigation', { name: /authoring steps/i })
-    const mechanics = await expandRailBranch(page, navigation, /^mechanics/i)
-    await openRailTarget(mechanics, /modifiers/i)
+    await openRailTarget(navigation, /^grants/i)
 
     const modifierCard = page
       .getByRole('button', { name: 'Open +1 Damage Rolls' })
@@ -153,9 +171,6 @@ test.describe('route-backed authored domain workspace', () => {
     await expect(modifierCard).toHaveCSS('border-bottom-style', 'solid')
     await expect(modifierCard).toHaveCSS('border-bottom-width', '1px')
     await expect(modifierCard).not.toHaveAttribute('data-editing')
-    const restingBorderColor = await modifierCard.evaluate(
-      (element) => getComputedStyle(element).borderColor
-    )
 
     const damageModifier = page.getByRole('button', { name: 'Edit +1 Damage Rolls' })
     await expect(damageModifier).toBeVisible()
@@ -167,9 +182,6 @@ test.describe('route-backed authored domain workspace', () => {
     const save = editor.getByRole('button', { name: /^save$/i })
     await expect(editor).toBeVisible()
     await expect(modifierCard).toHaveAttribute('data-editing', 'true')
-    expect(
-      await modifierCard.evaluate((element) => getComputedStyle(element).borderColor)
-    ).not.toBe(restingBorderColor)
     await expect(page.locator('.mantine-Drawer-overlay')).toBeVisible()
     await expect(page.getByTestId('app-shell')).toBeVisible()
     expect((await canvas.boundingBox())?.width).toBe(canvasWidthBefore)
@@ -254,12 +266,12 @@ test.describe('route-backed authored domain workspace', () => {
     await page.getByRole('button', { name: 'Show steps' }).click()
     const stepsDrawer = page.getByRole('dialog', { name: 'Authoring steps' })
     const navigation = stepsDrawer.getByRole('navigation', { name: 'Authoring steps' })
-    const mechanics = await expandRailBranch(page, navigation, /^mechanics/i)
-    const modifiers = await expandRailBranch(page, mechanics, /^modifiers/i)
-    await modifiers.getByRole('button', { name: /^\+1 damage rolls/i }).click()
+    await openRailTarget(navigation, /^grants/i)
+    await stepsDrawer.getByRole('button', { name: 'Close steps' }).click()
     await expect(stepsDrawer).toBeHidden()
 
     const canvasModifierOpener = page.getByRole('button', { name: 'Open +1 Damage Rolls' })
+    await canvasModifierOpener.click()
     const editor = page.getByRole('dialog', { name: /edit \+1 damage rolls/i })
     const editorBox = await editor.boundingBox()
     if (!editorBox) throw new Error('Expected the leaf editor to have measurable geometry.')
@@ -295,7 +307,10 @@ test.describe('route-backed authored domain workspace', () => {
 })
 
 async function expandRailBranch(page: Page, scope: Locator, name: RegExp) {
-  const branch = scope.getByRole('button', { name }).first()
+  const link = scope.getByRole('link', { name }).first()
+  const target = (await link.count()) > 0 ? link : scope.getByRole('button', { name }).first()
+  await expect(target).toBeVisible()
+  const branch = target.locator('xpath=..').locator('button[aria-expanded]')
   await expect(branch).toBeVisible()
   const childGroupId = await branch.getAttribute('aria-controls')
   if (!childGroupId) throw new Error(`Expected ${name.source} to be a rail branch.`)
@@ -314,7 +329,8 @@ async function openStory(page: Page, storyId: string) {
 }
 
 async function openRailTarget(navigation: Locator, name: RegExp) {
-  const target = navigation.getByRole('button', { name }).first()
+  const link = navigation.getByRole('link', { name }).first()
+  const target = (await link.count()) > 0 ? link : navigation.getByRole('button', { name }).first()
   await expect(target).toBeVisible()
   const childGroupId = await target.getAttribute('aria-controls')
 

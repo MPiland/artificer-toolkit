@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { Route } from '#routes/_authed/spells/new'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
-import { expectCreateEmptyAuthoringRoute } from '#domains/authoredRouteStory.play'
+import { expectCreateGuidedSpellRoute } from '#domains/authoredRouteStory.play'
 import {
   authoredRouteNodeRuntimeHandlers,
   createAuthoredCreateRouteOverrides
@@ -27,6 +27,8 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+export const StartingPoint: Story = {}
+
 export const CreateEmpty: Story = {
-  play: async ({ canvasElement }) => expectCreateEmptyAuthoringRoute(canvasElement)
+  play: async ({ canvasElement }) => expectCreateGuidedSpellRoute(canvasElement)
 }

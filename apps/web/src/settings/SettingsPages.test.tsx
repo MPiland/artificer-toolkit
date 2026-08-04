@@ -5,6 +5,7 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 const mocks = vi.hoisted(() => ({
   deleteAccount: vi.fn(),
   requestPasswordReset: vi.fn(),
+  updateAuthUser: vi.fn(),
   updateEmail: vi.fn(),
   updatePassword: vi.fn()
 }))
@@ -17,6 +18,11 @@ vi.mock('#app/auth/authClient', () => ({
     requestPasswordReset: mocks.requestPasswordReset
   }
 }))
+vi.mock('#supabase/client', () => ({
+  getSupabaseBrowserClient: () => ({
+    auth: { updateUser: mocks.updateAuthUser }
+  })
+}))
 
 import { AccountSettingsPage } from './AccountSettingsPage'
 import { PreferencesSettingsPage } from './PreferencesSettingsPage'
@@ -24,7 +30,29 @@ import { PreferencesSettingsPage } from './PreferencesSettingsPage'
 describe('settings pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.updateAuthUser.mockResolvedValue({ error: null })
     window.localStorage.clear()
+  })
+
+  it('persists the account authoring experience', async () => {
+    renderWithAppProviders(<PreferencesSettingsPage />)
+
+    fireEvent.click(screen.getByText('Advanced'))
+
+    await waitFor(() =>
+      expect(mocks.updateAuthUser).toHaveBeenCalledWith({
+        data: { authoring_experience: 'advanced' }
+      })
+    )
+  })
+
+  it('keeps the selected authoring experience when persistence fails', async () => {
+    mocks.updateAuthUser.mockResolvedValueOnce({ error: new Error('unavailable') })
+    renderWithAppProviders(<PreferencesSettingsPage />)
+
+    fireEvent.click(screen.getByText('Advanced'))
+
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Advanced' })).toBeChecked())
   })
 
   it('persists appearance changes through Mantine local storage', async () => {
