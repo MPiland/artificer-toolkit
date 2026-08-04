@@ -53,6 +53,8 @@ export function mapGuidedSpellEffect(
     draft.intent === 'CONDITION'
       ? createConditionDuration(draft.conditionDuration, ids.durationId)
       : undefined
+  const resultBlock = { ...path.resultBlock }
+  delete resultBlock.duration
 
   return {
     ...baseEffect,
@@ -61,7 +63,7 @@ export function mapGuidedSpellEffect(
       {
         ...path,
         resultBlock: {
-          ...path.resultBlock,
+          ...resultBlock,
           ...(duration ? { duration } : {}),
           outcomes: [outcome]
         }

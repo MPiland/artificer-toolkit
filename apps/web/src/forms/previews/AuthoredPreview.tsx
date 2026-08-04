@@ -222,7 +222,7 @@ function SheetSectionView({ section }: { section: PreviewSection }) {
   }
 
   if (section.type === 'prose') {
-    if (!section.html && !section.quote) return null
+    if (!section.html && !section.quote && !section.fallback) return null
     const showsTitle = !section.id.endsWith('-prose')
     return (
       <section

@@ -120,6 +120,9 @@ describe('non-character authored domain layout coverage', () => {
 
     const preview = await screen.findByLabelText('Authoring preview')
     expect(await within(preview).findByText('Moon Blade')).toBeInTheDocument()
+    expect(
+      within(preview).getByText('Add a description to preview its reader copy.')
+    ).toBeInTheDocument()
   })
 
   it('guides a new spell through grouped questions on the canonical form', async () => {

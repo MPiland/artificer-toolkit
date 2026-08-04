@@ -66,6 +66,27 @@ describe('guided spell effect mapping', () => {
     })
   })
 
+  it('removes condition duration when changing to a different outcome', () => {
+    const condition = createGuidedSpellDraft('CONDITION', { conditionTypeId: 'blinded' })
+    condition.conditionDuration = 'MINUTE'
+    const conditionEffect = mapGuidedSpellEffect(
+      condition,
+      createDefaultEffect(1) as EffectAuthored,
+      ids
+    )
+
+    const damageEffect = mapGuidedSpellEffect(
+      createGuidedSpellDraft('DAMAGE', { damageTypeId: 'fire' }),
+      conditionEffect,
+      ids
+    )
+    const path = damageEffect.paths[0]
+    if (!path || path.selectionKind !== 'FIXED') throw new Error('Expected a fixed path.')
+
+    expect(path.resultBlock).not.toHaveProperty('duration')
+    expect(canUseGuidedSpellAuthoring([damageEffect])).toBe(true)
+  })
+
   it('rejects mechanics that Guided cannot represent without flattening', () => {
     const draft = createGuidedSpellDraft('DAMAGE', { damageTypeId: 'fire' })
     const effect = mapGuidedSpellEffect(draft, createDefaultEffect(1) as EffectAuthored, ids)
