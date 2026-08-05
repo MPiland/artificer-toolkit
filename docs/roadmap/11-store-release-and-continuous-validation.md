@@ -1,7 +1,7 @@
-# Phase 12 — Store release and continuous validation
+# Phase 11 — Store release and continuous validation
 
 > **Status:** planned; validation work begins in Phase 00 and is hardened here
-> **Depends on:** the native features selected for the first public release
+> **Depends on:** [Phase 10 native foundation and play parity](10-cross-platform-foundation.md)
 > **Unlocks:** controlled App Store and Play Store release
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0010](../adr/0010-platform-neutral-design-system.md)
 
@@ -64,7 +64,7 @@ Release health is based on backend/API compatibility, authorization correctness,
 - All shipped API contracts parse identically on web and native release builds.
 - Critical authorization and RLS matrices pass against the production-equivalent backend.
 - Required Maestro journeys pass on current and oldest-supported physical iOS and Android devices.
-- Cold-start invitation, Encounter, Marketplace, and Social Hub links reach the correct authorized route or fail closed.
+- Cold-start Campaign invitation, Encounter, VTT, paid-table booking, and Social Hub links reach the correct authorized route or fail closed.
 - Sign-out, remote revocation, and account deletion clear device secrets, caches, subscriptions, and push registration.
 - Accessibility review finds no required action available only through drag, color, small text, or an unlabeled canvas.
 - Performance, VTT, thermal, battery, crash-free, and reconnect budgets meet written thresholds.
@@ -79,7 +79,7 @@ Release health is based on backend/API compatibility, authorization correctness,
 
 ## Questions for the phase subplan
 
-- Which features and commerce controls are in the first public binary?
+- Which play journeys and paid-table management controls are in the first public binary?
 - What crash reporter and privacy-safe product analytics, if any, are approved?
 - What numeric budgets define launch time, memory, crash-free use, reconnect, VTT performance, thermal state, and battery drain?
 - What soak duration and health thresholds control staged rollout expansion?

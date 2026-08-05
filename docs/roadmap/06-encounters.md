@@ -1,13 +1,13 @@
-# Phase 06 — Encounters on all clients
+# Phase 06 — Encounters
 
 > **Status:** planned
-> **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 04](04-campaign-core.md), and the relevant live-play primitives from [Phase 05](05-live-campaign-play.md)
-> **Unlocks:** standalone one-shots and the VTT
+> **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 03](03-campaign-core.md), and the relevant live-play primitives from [Phase 05](05-live-campaign-play.md)
+> **Unlocks:** standalone one-shots and the [Phase 07 web VTT](07-vtt.md)
 > **Primary ADRs:** [0005](../adr/0005-pure-rules-system-engine.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0009](../adr/0009-vtt-encounter-event-boundary.md)
 
 ## Goal
 
-Add a manual, server-authoritative Encounter aggregate for Campaign play and standalone one-shots. GMs can manage actors and initiative, inspect authorized Character Sheets, update creature state, chat, and roll; players can participate on web and native without combat automation.
+Add a manual, server-authoritative Encounter aggregate for Campaign play and standalone one-shots. GMs can manage actors and initiative, inspect authorized Character Sheets, update creature state, chat, and roll; players participate through responsive web without combat automation.
 
 ## Current starting point
 
@@ -70,19 +70,19 @@ Use the existing character command pattern as a reference, not as a universal ev
 ## Ordered workstreams
 
 1. **Resolve ownership and transaction policy.** Finalize Campaign versus standalone authority, actor control, Sheet truth, creature-local truth, and lock order for correlated operations.
-2. **Define contracts and replay invariants.** Specify commands, events, projection, cursor, actor summaries, invitations, rolls, visibility, and exact revision recording.
+2. **Define contracts and replay invariants.** Specify commands, events, projection, cursor, actor summaries, invitations, rolls, visibility, and immutable Campaign content-version recording.
 3. **Add persistence and repositories.** Create Encounter, membership/invitation, actor, event, projection, creature-state, initiative, and correlation storage with RLS and version constraints.
 4. **Add application orchestration.** Implement lifecycle, membership, actor management, manual initiative, creature changes, rolls, and projection/replay in `packages/functions`.
 5. **Coordinate Character mutations.** Reuse Sheet validation and command semantics while guaranteeing one transaction, deterministic lock order, and retry idempotency.
 6. **Add thin API procedures and Realtime delivery.** Persist first, then notify authorized clients to reconcile from a cursor.
-7. **Build web and native play surfaces.** Provide high-level actor list, HP/slot summaries, manual initiative, Sheet navigation, chat, rolls, join/leave, and clear authority feedback.
+7. **Build responsive web play surfaces.** Provide high-level actor list, HP/slot summaries, manual initiative, Sheet navigation, chat, rolls, join/leave, and clear authority feedback.
 8. **Validate replay, concurrency, and access.** Test campaign and standalone matrices, duplicate commands, simultaneous Sheet/Encounter edits, exact replay, reconnect, removed participants, and player-only channels.
 
 ## Acceptance gates
 
 - A standalone invitee can join an authorized standalone Encounter without joining a Campaign.
 - A Campaign non-member cannot infer or access its Encounter.
-- Manual initiative order is stable, versioned, and identical on web/native.
+- Manual initiative order is stable, versioned, and consistent across responsive web surfaces.
 - Creature changes replay entirely from Encounter events.
 - Character HP/resource changes appear once in both Encounter and Sheet projections or in neither.
 - Concurrent direct Sheet and Encounter commands resolve through expected-version conflicts without lost updates.
@@ -94,6 +94,7 @@ Use the existing character command pattern as a reference, not as a universal ev
 ## Out of scope
 
 - Automated attacks, saves, damage, healing, conditions, reactions, effect execution, action economy, AI creatures, maps, tokens, fog, and VTT interaction.
+- Native Encounter surfaces; Phase 10 consumes the proven contracts after web viability.
 - A generic cross-domain event framework. The Encounter event model is purpose-built and separate from Character history.
 
 ## Questions for the phase subplan
